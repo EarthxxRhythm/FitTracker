@@ -286,4 +286,66 @@ export default function trainingPlanServiceTest() {
       expect(filtered[1].id).assertEqual('plan_c')
     })
   })
+
+  describe('TrainingPlanService — today training matching', () => {
+
+    it('should have dayOfWeek on all bro split days', 0, () => {
+      const plan = TrainingPlanService.getPresetPlanById('preset_bro_split')
+      for (let day of plan!.days) {
+        expect(day.dayOfWeek !== undefined).assertTrue()
+        expect(day.dayOfWeek!.length).assertLarger(0)
+      }
+    })
+
+    it('should map Monday(1) to chest day correctly', 0, () => {
+      const plan = TrainingPlanService.getPresetPlanById('preset_bro_split')
+      const chestDay = plan!.days.find(d => d.dayOfWeek && d.dayOfWeek.includes(1))
+      expect(chestDay !== undefined).assertTrue()
+      expect(chestDay!.dayLabel).assertContain('胸部')
+    })
+
+    it('should map rest days (Sat=6, Sun=0) to null for bro split', 0, () => {
+      const plan = TrainingPlanService.getPresetPlanById('preset_bro_split')
+      const satDay = plan!.days.find(d => d.dayOfWeek && d.dayOfWeek.includes(6))
+      expect(satDay === undefined).assertTrue()
+      const sunDay = plan!.days.find(d => d.dayOfWeek && d.dayOfWeek.includes(0))
+      expect(sunDay === undefined).assertTrue()
+    })
+
+    it('should map Wednesday(3) to leg day for bro split', 0, () => {
+      const plan = TrainingPlanService.getPresetPlanById('preset_bro_split')
+      const legDay = plan!.days.find(d => d.dayOfWeek && d.dayOfWeek.includes(3))
+      expect(legDay !== undefined).assertTrue()
+      expect(legDay!.dayLabel).assertContain('腿部')
+    })
+
+    it('should map Monday(1) to push day for upper/lower', 0, () => {
+      const plan = TrainingPlanService.getPresetPlanById('preset_upper_lower')
+      const pushDay = plan!.days.find(d => d.dayOfWeek && d.dayOfWeek.includes(1))
+      expect(pushDay !== undefined).assertTrue()
+      expect(pushDay!.dayLabel).assertContain('上肢推')
+    })
+
+    it('should return today label as valid Chinese day string', 0, () => {
+      const label = TrainingPlanService.getTodayLabel()
+      expect(label.length).assertLarger(0)
+      const validDays = ['星期一', '星期二', '星期三', '星期四', '星期五', '星期六', '星期日']
+      expect(validDays.includes(label)).assertTrue()
+    })
+
+    it('should have PPL spread across whole week', 0, () => {
+      const plan = TrainingPlanService.getPresetPlanById('preset_ppl')
+      const pushDay = plan!.days.find(d => d.dayLabel === '推日')
+      expect(pushDay!.dayOfWeek!.includes(1)).assertTrue()
+      expect(pushDay!.dayOfWeek!.includes(4)).assertTrue()
+
+      const pullDay = plan!.days.find(d => d.dayLabel === '拉日')
+      expect(pullDay!.dayOfWeek!.includes(2)).assertTrue()
+      expect(pullDay!.dayOfWeek!.includes(5)).assertTrue()
+
+      const legDay = plan!.days.find(d => d.dayLabel === '腿日')
+      expect(legDay!.dayOfWeek!.includes(3)).assertTrue()
+      expect(legDay!.dayOfWeek!.includes(6)).assertTrue()
+    })
+  })
 }
