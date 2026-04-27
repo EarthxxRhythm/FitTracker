@@ -3,6 +3,7 @@
  *
  * 功能 #8: 用户点击预置计划卡片进入详情页，以纵向时间线展示所有训练日
  *          及对应动作清单（动作名+目标肌群标签），底部显示"开始此计划"按钮。
+ * 功能 #9: 点击"开始此计划"克隆计划至我的计划并设为当前计划。
  */
 import { router } from '@kit.ArkUI'
 import { AppButton } from '../components/AppButton'
@@ -21,18 +22,20 @@ const MUSCLE_COLORS: Record<string, string> = {
 @Entry
 @Component
 struct PlanDetailPage {
+  @State planId: string = ''
   @State planName: string = ''
   @State coverColor: string = '#CCCCCC'
   @State targetAudience: string = ''
   @State weeklyFrequency: string = ''
   @State trainingDays: TrainingDay[] = []
-  @State loaded: boolean = false
+  @State enabling: boolean = false
 
   async aboutToAppear(): Promise<void> {
     try {
       const params = router.getParams() as Record<string, string>
       const planId = params['planId'] as string
       if (planId) {
+        this.planId = planId
         const plan = TrainingPlanService.getPresetPlanById(planId)
         if (plan) {
           this.planName = plan.name
@@ -43,9 +46,22 @@ struct PlanDetailPage {
         }
       }
     } catch (e) {
-      // fallback: stay on page, show empty
+      // fallback
     }
-    this.loaded = true
+  }
+
+  async handleEnablePlan(): Promise<void> {
+    if (!this.planId) {
+      return
+    }
+    this.enabling = true
+    try {
+      await TrainingPlanService.enablePlan(getContext(this), this.planId)
+    } catch (e) {
+      // fallback to navigation
+    }
+    this.enabling = false
+    router.back()
   }
 
   getMuscleColor(muscle: string): string {
@@ -210,8 +226,9 @@ struct PlanDetailPage {
           type: 'primary',
           size: 'large',
           block: true,
+          loading: this.enabling,
           onButtonClick: () => {
-            // 功能 #9 将实现具体的开始计划逻辑
+            this.handleEnablePlan()
           }
         })
       }

@@ -201,25 +201,25 @@
     "id": 34,
     "category": "用户界面",
     "description": "设计Token系统：全局CSS/样式文件定义所有颜色Token、字体Token、间距Token、圆角Token、阴影Token、动效Token；所有组件引用Token变量而非硬编码色值/字号；暗黑模式预留[data-theme='dark']覆盖。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 35,
     "category": "用户界面",
     "description": "通用AppButton组件：封装主按钮组件，支持primary/secondary/ghost样式变体，large/medium/small尺寸，loading/disabled状态，block全宽模式；最小触摸热区48vp×48vp；圆角使用--radius-full（9999vp）。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 36,
     "category": "用户界面",
     "description": "通用AppInput组件：封装输入框组件，支持text/number/password类型，可配置前缀（如+86）、清除按钮、错误状态提示；聚焦边框颜色--color-primary，错误边框--color-error；输入框高度固定48vp。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 37,
     "category": "用户界面",
     "description": "通用AppCard组件：封装卡片组件，支持elevated（带阴影）/outlined（带边框）变体，default/compact内边距模式；投影使用--shadow-md，圆角使用--radius-md，背景色--color-surface-primary。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 38,

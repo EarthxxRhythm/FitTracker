@@ -2,8 +2,10 @@
  * TrainingPlanService — 训练计划服务
  *
  * 功能 #7: 提供5套预置训练计划数据，每套包含训练日及动作清单。
- * 预置计划为只读模板，启用时通过克隆生成用户计划（功能 #9）。
+ * 功能 #9: 启用预置计划 — 克隆至我的计划并设为当前计划，持久化存储。
+ * 预置计划为只读模板，启用时通过克隆生成用户计划。
  */
+import { preferences } from '@kit.ArkData'
 
 export interface ExerciseRef {
   name: string
@@ -25,6 +27,14 @@ export interface PresetPlan {
   weeklyFrequency: string
   days: TrainingDay[]
 }
+
+export interface UserPlan extends PresetPlan {
+  enabledAt: number
+}
+
+const STORE_NAME = 'fit_tracker_plans'
+const KEY_MY_PLANS = 'my_plans'
+const KEY_CURRENT_PLAN_ID = 'current_plan_id'
 
 const PRESET_PLANS: PresetPlan[] = [
   {
@@ -278,6 +288,76 @@ class TrainingPlanService {
 
   getPlanCount(): number {
     return PRESET_PLANS.length
+  }
+
+  async enablePlan(context: Context, presetId: string): Promise<UserPlan | null> {
+    const preset = this.getPresetPlanById(presetId)
+    if (!preset) {
+      return null
+    }
+    const userPlan: UserPlan = {
+      id: `user_plan_${Date.now()}`,
+      name: preset.name,
+      coverColor: preset.coverColor,
+      targetAudience: preset.targetAudience,
+      weeklyFrequency: preset.weeklyFrequency,
+      days: JSON.parse(JSON.stringify(preset.days)),
+      enabledAt: Date.now()
+    }
+    const myPlans = await this.getMyPlans(context)
+    myPlans.push(userPlan)
+    const prefs = await preferences.getPreferences(context, STORE_NAME)
+    await prefs.put(KEY_MY_PLANS, JSON.stringify(myPlans))
+    await prefs.put(KEY_CURRENT_PLAN_ID, userPlan.id)
+    await prefs.flush()
+    return userPlan
+  }
+
+  async getMyPlans(context: Context): Promise<UserPlan[]> {
+    try {
+      const prefs = await preferences.getPreferences(context, STORE_NAME)
+      const json = await prefs.get(KEY_MY_PLANS, '[]') as string
+      return JSON.parse(json) as UserPlan[]
+    } catch (e) {
+      return []
+    }
+  }
+
+  async getCurrentPlan(context: Context): Promise<UserPlan | null> {
+    try {
+      const prefs = await preferences.getPreferences(context, STORE_NAME)
+      const currentId = await prefs.get(KEY_CURRENT_PLAN_ID, '') as string
+      if (!currentId) {
+        return null
+      }
+      const myPlans = await this.getMyPlans(context)
+      return myPlans.find(p => p.id === currentId) || null
+    } catch (e) {
+      return null
+    }
+  }
+
+  async setCurrentPlan(context: Context, planId: string): Promise<void> {
+    const prefs = await preferences.getPreferences(context, STORE_NAME)
+    await prefs.put(KEY_CURRENT_PLAN_ID, planId)
+    await prefs.flush()
+  }
+
+  async removeMyPlan(context: Context, planId: string): Promise<void> {
+    let myPlans = await this.getMyPlans(context)
+    myPlans = myPlans.filter(p => p.id !== planId)
+    const prefs = await preferences.getPreferences(context, STORE_NAME)
+    const currentId = await prefs.get(KEY_CURRENT_PLAN_ID, '') as string
+    if (currentId === planId) {
+      await prefs.put(KEY_CURRENT_PLAN_ID, myPlans.length > 0 ? myPlans[0].id : '')
+    }
+    await prefs.put(KEY_MY_PLANS, JSON.stringify(myPlans))
+    await prefs.flush()
+  }
+
+  async hasMyPlans(context: Context): Promise<boolean> {
+    const plans = await this.getMyPlans(context)
+    return plans.length > 0
   }
 }
 

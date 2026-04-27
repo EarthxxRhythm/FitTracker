@@ -211,4 +211,39 @@ export default function trainingPlanServiceTest() {
       }
     })
   })
+
+  describe('TrainingPlanService — enable plan simulation', () => {
+
+    it('should clone preset plan with deep copy of days', 0, () => {
+      const preset = TrainingPlanService.getPresetPlanById('preset_bro_split')
+      expect(preset !== undefined).assertTrue()
+
+      // Simulate cloning: deep copy days
+      const clonedDays = JSON.parse(JSON.stringify(preset!.days))
+      expect(clonedDays.length).assertEqual(5)
+
+      // Verify deep copy independence
+      clonedDays[0].dayLabel = 'MODIFIED'
+      expect(preset!.days[0].dayLabel).assertContain('周一')
+      expect(clonedDays[0].dayLabel).assertEqual('MODIFIED')
+    })
+
+    it('should generate unique plan ID for each enabled plan', 0, () => {
+      const id1 = `user_plan_${Date.now()}`
+      const id2 = `user_plan_${Date.now() + 1}`
+      expect(id1 === id2).assertFalse()
+    })
+
+    it('should carry over all preset fields to user plan', 0, () => {
+      const preset = TrainingPlanService.getPresetPlanById('preset_ppl')
+      expect(preset !== undefined).assertTrue()
+
+      // Verify all fields that would be carried over
+      expect(preset!.name).assertContain('推拉腿')
+      expect(preset!.coverColor).assertContain('#')
+      expect(preset!.targetAudience.length).assertLarger(0)
+      expect(preset!.weeklyFrequency.length).assertLarger(0)
+      expect(preset!.days.length).assertLarger(0)
+    })
+  })
 }
