@@ -4,6 +4,7 @@ import authServiceTest from './AuthService.test'
 import sessionManagerTest from './SessionManager.test'
 import userProfileServiceTest from './UserProfileService.test'
 import trainingPlanServiceTest from './TrainingPlanService.test'
+import exerciseServiceTest from './ExerciseService.test'
 
 export default function testsuite() {
   localUnitTest()
@@ -12,4 +13,5 @@ export default function testsuite() {
   sessionManagerTest()
   userProfileServiceTest()
   trainingPlanServiceTest()
+  exerciseServiceTest()
 }

@@ -428,6 +428,9 @@ struct Index {
           .fontColor(ColorTokens.NEUTRAL_300)
           .layoutWeight(1)
           .textAlign(TextAlign.Center)
+          .onClick(() => {
+            router.pushUrl({ url: 'pages/ExerciseLibraryPage' })
+          })
         Text('统计')
           .fontSize(FontTokens.SMALL_SIZE)
           .fontColor(ColorTokens.NEUTRAL_300)
