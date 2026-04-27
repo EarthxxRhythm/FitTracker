@@ -1,6 +1,8 @@
 这是一个进度日志。请按时间倒序记录每个会话完成的工作。
 
 ================================================================================
+ [完成] 功能 #6：安全登出。ProfilePage底部新增"退出登录"按钮（红色ERROR色），点击弹出AlertDialog二次确认（"确定要退出登录吗？"），确认后调用SessionManager.clearToken()清除Token、UserProfileService.clearProfile()清除个人资料缓存，router.replaceUrl()跳回LoginPage。新增SessionManager登出流程模拟测试（登录→验证→登出→重新登录全生命周期）。所有测试通过。
+================================================================================
  [完成] 功能 #5：个人资料页。创建UserProfileService（昵称/头像/体重单位偏好本地持久化），ProfilePage（头像占位圆+昵称编辑框+kg/lbs切换按钮，修改即时保存），Index页"我的"Tab导航至ProfilePage。新增UserProfileService单元测试（6个用例）。所有测试通过。
 ================================================================================
  [完成] 功能 #4：Token持久化。创建SessionManager服务（JWT Token生成/存储/校验/清除），登录/注册成功后通过preferences持久化Token；EntryAbility冷启动时异步校验Token有效性，有效则直入主页，无效则跳转登录页。新增SessionManager单元测试（10个用例），更新AuthService测试验证Token返回。所有测试通过。

@@ -33,7 +33,7 @@
     "id": 6,
     "category": "用户认证",
     "description": "安全登出：用户在"我的"Tab点击"退出登录"，二次确认后清除本地Token和缓存，跳回登录页。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 7,
