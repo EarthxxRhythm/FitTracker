@@ -79,6 +79,9 @@ struct Index {
           .fontColor(ColorTokens.NEUTRAL_300)
           .layoutWeight(1)
           .textAlign(TextAlign.Center)
+          .onClick(() => {
+            router.pushUrl({ url: 'pages/ProfilePage' })
+          })
       }
       .width('100%')
       .height(56)
