@@ -7,8 +7,9 @@
  * 后续功能 #11: 替换为"今日训练视图"。
  */
 import { router } from '@kit.ArkUI'
+import { AppButton } from '../components/AppButton'
 import { AppCard } from '../components/AppCard'
-import TrainingPlanService, { PresetPlan, UserPlan } from '../common/services/TrainingPlanService'
+import TrainingPlanService, { PresetPlan, UserPlan, TrainingDay, ExerciseRef } from '../common/services/TrainingPlanService'
 import { ColorTokens, FontTokens, SpacingTokens, RadiusTokens } from '../common/styles/DesignTokens'
 
 @Entry
@@ -17,8 +18,24 @@ struct Index {
   @State activeSegment: number = 0 // 0=预置计划, 1=我的计划
   @State myPlans: UserPlan[] = []
   @State currentPlanId: string = ''
+  @State currentPlan: UserPlan | null = null
+  @State todayTraining: TrainingDay | null = null
   @State myPlansLoaded: boolean = false
   private presetPlans: PresetPlan[] = TrainingPlanService.getAllPresetPlans()
+
+  async aboutToAppear(): Promise<void> {
+    try {
+      const plan = await TrainingPlanService.getCurrentPlan(getContext(this))
+      if (plan) {
+        this.currentPlan = plan
+        this.currentPlanId = plan.id
+        this.todayTraining = TrainingPlanService.getTodayTraining(plan)
+        this.activeSegment = 1
+      }
+    } catch (e) {
+      // no current plan, show default view
+    }
+  }
 
   async onSegmentChange(segment: number): Promise<void> {
     this.activeSegment = segment
@@ -51,6 +68,130 @@ struct Index {
     .alignItems(HorizontalAlign.Center)
   }
 
+  @Builder
+  todayTrainingView() {
+    Column() {
+      // 日期欢迎语
+      Column() {
+        Text(`${TrainingPlanService.getTodayLabel()}，开始训练吧！`)
+          .fontSize(FontTokens.TITLE_SIZE)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+          .margin({ bottom: SpacingTokens.XS })
+
+        if (this.currentPlan !== null) {
+          Text(`${this.currentPlan.name} · ${this.todayTraining!.dayLabel}`)
+            .fontSize(FontTokens.CAPTION_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+        }
+      }
+      .width('100%')
+      .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.MD, bottom: SpacingTokens.LG })
+      .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+
+      // 动作清单
+      Scroll() {
+        Column() {
+          if (this.todayTraining !== null) {
+            ForEach(this.todayTraining.exercises, (exercise: ExerciseRef, index: number) => {
+              Row() {
+                Text(`${index + 1}`)
+                  .fontSize(FontTokens.CAPTION_SIZE)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(ColorTokens.TEXT_SECONDARY)
+                  .width(24)
+
+                Column() {
+                  Text(exercise.name)
+                    .fontSize(FontTokens.BODY_BOLD_SIZE)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(ColorTokens.TEXT_PRIMARY)
+
+                  Row() {
+                    Text(exercise.targetMuscle)
+                      .fontSize(FontTokens.SMALL_SIZE)
+                      .fontColor(Color.White)
+                      .padding({ left: SpacingTokens.SM, right: SpacingTokens.SM, top: 1, bottom: 1 })
+                      .backgroundColor(this.currentPlan?.coverColor || '#999')
+                      .borderRadius(4)
+
+                    Text(`${exercise.sets}组 × ${exercise.reps}`)
+                      .fontSize(FontTokens.CAPTION_SIZE)
+                      .fontColor(ColorTokens.TEXT_SECONDARY)
+                      .margin({ left: SpacingTokens.SM })
+                  }
+                  .margin({ top: SpacingTokens.XS })
+                }
+                .alignItems(HorizontalAlign.Start)
+                .layoutWeight(1)
+                .margin({ left: SpacingTokens.SM })
+              }
+              .width('100%')
+              .padding(SpacingTokens.MD)
+              .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+              .borderRadius(RadiusTokens.SM)
+              .margin({ bottom: SpacingTokens.SM })
+            }, (exercise: ExerciseRef, index: number) => `today_${index}`)
+          }
+        }
+        .width('100%')
+        .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.MD, bottom: SpacingTokens.XXL })
+      }
+      .layoutWeight(1)
+      .scrollBar(BarState.Off)
+
+      // 底部"开始训练"悬浮按钮
+      Row() {
+        AppButton({
+          text: '开始训练',
+          type: 'primary',
+          size: 'large',
+          block: true,
+          onButtonClick: () => {
+            // 功能 #20 将实现训练记录
+          }
+        })
+      }
+      .width('100%')
+      .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.LG })
+      .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+    }
+    .layoutWeight(1)
+    .width('100%')
+  }
+
+  @Builder
+  restDayView() {
+    Column() {
+      Column() {
+        Text('今日休息')
+          .fontSize(FontTokens.DISPLAY_SIZE)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(ColorTokens.SUCCESS)
+          .margin({ bottom: SpacingTokens.SM })
+
+        Text('好好恢复，迎接下一次训练')
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .margin({ bottom: SpacingTokens.XL })
+
+        // 拉伸建议
+        Row() {
+          Text('建议进行轻度拉伸或泡沫轴放松')
+            .fontSize(FontTokens.CAPTION_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+        }
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.Center)
+      .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD })
+    }
+    .layoutWeight(1)
+    .width('100%')
+  }
+
   build() {
     Column() {
       // 顶部标题栏
@@ -64,6 +205,16 @@ struct Index {
       .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.LG, bottom: SpacingTokens.SM })
       .backgroundColor(ColorTokens.SURFACE_PRIMARY)
 
+      // 今日训练视图 / 分段控件
+      if (this.currentPlan !== null) {
+        // 今日训练或休息日
+        if (this.todayTraining !== null) {
+          this.todayTrainingView()
+        } else {
+          this.restDayView()
+        }
+      } else {
+        // 选择计划模式
       // 分段控件
       Row() {
         // "预置计划" 按钮
@@ -262,6 +413,7 @@ struct Index {
           .layoutWeight(1)
           .scrollBar(BarState.Off)
         }
+      }
       }
 
       // 底部导航栏占位
