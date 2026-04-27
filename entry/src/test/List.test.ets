@@ -3,6 +3,7 @@ import validationUtilsTest from './ValidationUtils.test'
 import authServiceTest from './AuthService.test'
 import sessionManagerTest from './SessionManager.test'
 import userProfileServiceTest from './UserProfileService.test'
+import trainingPlanServiceTest from './TrainingPlanService.test'
 
 export default function testsuite() {
   localUnitTest()
@@ -10,4 +11,5 @@ export default function testsuite() {
   authServiceTest()
   sessionManagerTest()
   userProfileServiceTest()
+  trainingPlanServiceTest()
 }
