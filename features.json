@@ -21,7 +21,7 @@
     "id": 4,
     "category": "用户认证",
     "description": "Token持久化：登录成功后JWT Token存储于本地安全存储，应用冷启动时自动校验Token有效性，有效则直接进入主页，无效则跳转登录页。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 5,
