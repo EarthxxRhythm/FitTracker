@@ -13,6 +13,7 @@ import { AppButton } from '../components/AppButton'
 import { AppInput } from '../components/AppInput'
 import { validateLoginForm } from '../common/utils/ValidationUtils'
 import AuthService from '../common/services/AuthService'
+import SessionManager from '../common/services/SessionManager'
 import { ColorTokens, FontTokens, SpacingTokens } from '../common/styles/DesignTokens'
 
 @Entry
@@ -37,9 +38,10 @@ struct LoginPage {
 
     this.loading = true
     const authResult = AuthService.login(this.phone, this.password)
-    setTimeout(() => {
+    setTimeout(async () => {
       this.loading = false
       if (authResult.success) {
+        await SessionManager.saveToken(getContext(this), authResult.token)
         router.replaceUrl({ url: 'pages/Index' })
       } else {
         this.generalError = authResult.message
