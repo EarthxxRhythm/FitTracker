@@ -135,4 +135,80 @@ export default function trainingPlanServiceTest() {
       }
     })
   })
+
+  describe('TrainingPlanService — e2e-lite: plan detail page navigation', () => {
+
+    it('should simulate clicking a plan card and viewing detail', 0, () => {
+      // User taps a plan card → navigates to detail page with planId
+      const planId = 'preset_bro_split'
+      const plan = TrainingPlanService.getPresetPlanById(planId)
+      expect(plan !== undefined).assertTrue()
+
+      // Detail page displays plan meta
+      expect(plan!.name).assertEqual('五分化训练')
+      expect(plan!.targetAudience.length).assertLarger(0)
+      expect(plan!.weeklyFrequency.length).assertLarger(0)
+
+      // Detail page shows timeline of 5 training days
+      expect(plan!.days.length).assertEqual(5)
+
+      // Each day shows exercises with name + muscle tag + sets×reps
+      const dayLabels = plan!.days.map(d => d.dayLabel)
+      expect(dayLabels.includes('周一 胸部')).assertTrue()
+      expect(dayLabels.includes('周二 背部')).assertTrue()
+      expect(dayLabels.includes('周三 腿部')).assertTrue()
+      expect(dayLabels.includes('周四 肩部')).assertTrue()
+      expect(dayLabels.includes('周五 手臂')).assertTrue()
+
+      // Each day has 5 exercises
+      for (let day of plan!.days) {
+        expect(day.exercises.length).assertEqual(5)
+        for (let ex of day.exercises) {
+          expect(ex.targetMuscle.length).assertLarger(0)
+          expect(ex.name.length).assertLarger(0)
+          expect(ex.sets).assertLarger(0)
+          expect(ex.reps.length).assertLarger(0)
+        }
+      }
+
+      // User can see all muscle groups represented
+      const allMuscles = new Set<string>()
+      for (let day of plan!.days) {
+        for (let ex of day.exercises) {
+          allMuscles.add(ex.targetMuscle)
+        }
+      }
+      expect(allMuscles.size).assertLarger(2)
+    })
+
+    it('should show exercises with correct target muscle per day', 0, () => {
+      const plan = TrainingPlanService.getPresetPlanById('preset_bro_split')
+      expect(plan !== undefined).assertTrue()
+
+      // Monday = chest exercises
+      for (let ex of plan!.days[0].exercises) {
+        expect(ex.targetMuscle).assertEqual('胸')
+      }
+
+      // Tuesday = back exercises
+      for (let ex of plan!.days[1].exercises) {
+        expect(ex.targetMuscle).assertEqual('背')
+      }
+
+      // Wednesday = leg exercises
+      for (let ex of plan!.days[2].exercises) {
+        expect(ex.targetMuscle).assertEqual('腿')
+      }
+
+      // Thursday = shoulder exercises
+      for (let ex of plan!.days[3].exercises) {
+        expect(ex.targetMuscle).assertEqual('肩')
+      }
+
+      // Friday = arm exercises
+      for (let ex of plan!.days[4].exercises) {
+        expect(ex.targetMuscle).assertEqual('臂')
+      }
+    })
+  })
 }

@@ -113,6 +113,9 @@ struct Index {
                 .width('100%')
                 .alignItems(VerticalAlign.Center)
               }
+              .onClick(() => {
+                router.pushUrl({ url: 'pages/PlanDetailPage', params: { planId: plan.id } })
+              })
             }, (plan: PresetPlan) => plan.id)
           }
           .width('100%')
