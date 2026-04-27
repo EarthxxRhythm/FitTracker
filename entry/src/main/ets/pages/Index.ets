@@ -148,7 +148,12 @@ struct Index {
           size: 'large',
           block: true,
           onButtonClick: () => {
-            // 功能 #20 将实现训练记录
+            if (this.currentPlan !== null && this.todayTraining !== null) {
+              router.pushUrl({
+                url: 'pages/WorkoutRecorderPage',
+                params: { days: [this.todayTraining] }
+              })
+            }
           }
         })
       }
@@ -436,6 +441,9 @@ struct Index {
           .fontColor(ColorTokens.NEUTRAL_300)
           .layoutWeight(1)
           .textAlign(TextAlign.Center)
+          .onClick(() => {
+            router.pushUrl({ url: 'pages/StatsPage' })
+          })
         Text('我的')
           .fontSize(FontTokens.SMALL_SIZE)
           .fontColor(ColorTokens.NEUTRAL_300)
