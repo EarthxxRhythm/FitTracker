@@ -10,6 +10,7 @@ import { AppButton } from '../components/AppButton'
 import { AppInput } from '../components/AppInput'
 import { validateRegisterForm } from '../common/utils/ValidationUtils'
 import AuthService from '../common/services/AuthService'
+import SessionManager from '../common/services/SessionManager'
 import { ColorTokens, FontTokens, SpacingTokens } from '../common/styles/DesignTokens'
 
 @Entry
@@ -34,9 +35,10 @@ struct RegisterPage {
     }
 
     this.loading = true
-    AuthService.register(this.phone, this.password)
-    setTimeout(() => {
+    const authResult = AuthService.register(this.phone, this.password)
+    setTimeout(async () => {
       this.loading = false
+      await SessionManager.saveToken(getContext(this), authResult.token)
       router.replaceUrl({ url: 'pages/Index' })
     }, 500)
   }
