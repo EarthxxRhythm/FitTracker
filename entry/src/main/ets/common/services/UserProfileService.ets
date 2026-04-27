@@ -63,6 +63,14 @@ class UserProfileService {
       weightUnit: DEFAULT_PROFILE.weightUnit
     }
   }
+
+  async clearProfile(context: Context): Promise<void> {
+    const prefs = await preferences.getPreferences(context, STORE_NAME)
+    await prefs.delete(KEY_NICKNAME)
+    await prefs.delete(KEY_AVATAR)
+    await prefs.delete(KEY_WEIGHT_UNIT)
+    await prefs.flush()
+  }
 }
 
 export default new UserProfileService()

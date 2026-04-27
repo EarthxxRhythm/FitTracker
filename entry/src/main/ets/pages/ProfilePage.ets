@@ -3,11 +3,13 @@
  *
  * 功能 #5: 用户可在"我的"Tab查看和编辑昵称、头像占位、体重单位偏好（kg/lbs），
  *          修改后即时保存并全局生效。
+ * 功能 #6: 底部"退出登录"按钮，二次确认后清除Token和缓存，跳回登录页。
  */
 import { router } from '@kit.ArkUI'
 import { AppCard } from '../components/AppCard'
 import UserProfileService from '../common/services/UserProfileService'
-import { ColorTokens, FontTokens, SpacingTokens, RadiusTokens } from '../common/styles/DesignTokens'
+import SessionManager from '../common/services/SessionManager'
+import { ColorTokens, FontTokens, SpacingTokens, RadiusTokens, TouchTokens } from '../common/styles/DesignTokens'
 
 @Entry
 @Component
@@ -38,6 +40,32 @@ struct ProfilePage {
   async onWeightUnitChange(unit: string): Promise<void> {
     this.weightUnit = unit
     await UserProfileService.saveWeightUnit(getContext(this), unit as 'kg' | 'lbs')
+  }
+
+  handleLogout(): void {
+    AlertDialog.show({
+      title: '退出登录',
+      message: '确定要退出登录吗？',
+      autoCancel: true,
+      alignment: DialogAlignment.Center,
+      primaryButton: {
+        value: '取消',
+        action: () => {}
+      },
+      secondaryButton: {
+        value: '确定',
+        fontColor: ColorTokens.ERROR,
+        action: async () => {
+          try {
+            await SessionManager.clearToken(getContext(this))
+            await UserProfileService.clearProfile(getContext(this))
+            router.replaceUrl({ url: 'pages/LoginPage' })
+          } catch (e) {
+            router.replaceUrl({ url: 'pages/LoginPage' })
+          }
+        }
+      }
+    })
   }
 
   getAvatarInitial(): string {
@@ -167,6 +195,23 @@ struct ProfilePage {
         }
         .width('100%')
       }
+
+      Blank()
+
+      // 退出登录按钮
+      Row() {
+        Text('退出登录')
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(ColorTokens.ERROR)
+      }
+      .width('100%')
+      .height(TouchTokens.MIN_TARGET)
+      .justifyContent(FlexAlign.Center)
+      .margin({ bottom: SpacingTokens.XXL })
+      .onClick(() => {
+        this.handleLogout()
+      })
     }
     .width('100%')
     .height('100%')

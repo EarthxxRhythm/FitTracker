@@ -5,6 +5,7 @@
  *   - Token 生成（结构完整、包含必要字段）
  *   - Token 有效性校验（有效/过期/格式损坏）
  *   - 从 Token 中提取 userId
+ *   - 登出流程模拟（Token 生命周期）
  */
 import { describe, it, expect } from '@ohos/hypium'
 import SessionManager from '../main/ets/common/services/SessionManager'
@@ -31,9 +32,7 @@ export default function sessionManagerTest() {
 
     it('should generate different tokens for same user at different times', 0, () => {
       const token1 = SessionManager.generateToken('13800138000')
-      // brief wait to ensure different iat timestamp
       const token2 = SessionManager.generateToken('13800138000')
-      // Same user should produce different tokens due to iat timestamp
       expect(token1 === token2).assertFalse()
     })
   })
@@ -57,11 +56,9 @@ export default function sessionManagerTest() {
       expect(SessionManager.validateToken('header.payload')).assertFalse()
     })
 
-    it('should return false for expired token', 0, () => {
+    it('should reject tampered tokens', 0, () => {
       const token = SessionManager.generateToken('13800138000')
-      // Verify a freshly generated token is valid
       expect(SessionManager.validateToken(token)).assertTrue()
-      // Tampered tokens with invalid base64 should fail validation
       expect(SessionManager.validateToken(token + 'tampered')).assertFalse()
     })
 
@@ -85,6 +82,31 @@ export default function sessionManagerTest() {
 
     it('should return empty string for empty token', 0, () => {
       expect(SessionManager.getUserIdFromToken('')).assertEqual('')
+    })
+  })
+
+  describe('SessionManager — logout flow simulation', () => {
+
+    it('should simulate full login-validate-logout lifecycle', 0, () => {
+      // Step 1: User logs in → token generated
+      const phone = '13800138000'
+      const token = SessionManager.generateToken(phone)
+      expect(token.length).assertLarger(0)
+      expect(SessionManager.validateToken(token)).assertTrue()
+
+      // Step 2: User is identified via token
+      const userId = SessionManager.getUserIdFromToken(token)
+      expect(userId).assertEqual(phone)
+
+      // Step 3: After logout, cleared token no longer valid
+      // (clearToken requires Context; we simulate via invalidating)
+      const clearedToken = ''
+      expect(SessionManager.validateToken(clearedToken)).assertFalse()
+
+      // Step 4: A new login would generate a different token
+      const newToken = SessionManager.generateToken(phone)
+      expect(newToken === token).assertFalse()
+      expect(SessionManager.validateToken(newToken)).assertTrue()
     })
   })
 }
