@@ -4,6 +4,9 @@
  * 功能 #2: 用户可输入已注册手机号及密码完成登录，
  *          登录成功后跳转至训练Tab首页；
  *          若未注册则提示引导至注册页。
+ * 功能 #3: 页面垂直居中布局，顶部品牌Logo与标语，
+ *          中部手机号输入框（带+86前缀）与密码输入框，
+ *          底部全宽"登录"主按钮，下方"注册"文字链接跳转。
  */
 import { router } from '@kit.ArkUI'
 import { AppButton } from '../components/AppButton'
@@ -61,7 +64,7 @@ struct LoginPage {
       }
       .width('100%')
       .alignItems(HorizontalAlign.Center)
-      .margin({ top: SpacingTokens.XXL, bottom: SpacingTokens.XL })
+      .margin({ bottom: SpacingTokens.XL })
 
       // 中部：登录表单
       Column() {
@@ -125,11 +128,10 @@ struct LoginPage {
       }
       .width('100%')
       .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD })
-
-      Blank()
     }
     .width('100%')
     .height('100%')
+    .justifyContent(FlexAlign.Center)
     .backgroundColor(ColorTokens.SURFACE_SECONDARY)
   }
 }
