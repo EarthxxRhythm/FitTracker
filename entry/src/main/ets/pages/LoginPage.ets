@@ -1,54 +1,135 @@
 /**
- * LoginPage —— 用户登录页面（占位页）
+ * LoginPage —— 用户登录页面
  *
- * 功能 #2 & #3 将由后续 Coding Agent 实现完整登录 UI。
- * 当前提供最小骨架：标题 + 注册链接，确保 RegisterPage 的导航目标存在。
+ * 功能 #2: 用户可输入已注册手机号及密码完成登录，
+ *          登录成功后跳转至训练Tab首页；
+ *          若未注册则提示引导至注册页。
  */
 import { router } from '@kit.ArkUI'
 import { AppButton } from '../components/AppButton'
+import { AppInput } from '../components/AppInput'
+import { validateLoginForm } from '../common/utils/ValidationUtils'
+import AuthService from '../common/services/AuthService'
 import { ColorTokens, FontTokens, SpacingTokens } from '../common/styles/DesignTokens'
 
 @Entry
 @Component
 struct LoginPage {
+  @State phone: string = ''
+  @State password: string = ''
+  @State phoneError: string = ''
+  @State passwordError: string = ''
+  @State generalError: string = ''
+  @State loading: boolean = false
+
+  handleLogin(): void {
+    this.generalError = ''
+    const result = validateLoginForm(this.phone, this.password)
+    this.phoneError = result.phoneError
+    this.passwordError = result.passwordError
+
+    if (!result.allValid) {
+      return
+    }
+
+    this.loading = true
+    const authResult = AuthService.login(this.phone, this.password)
+    setTimeout(() => {
+      this.loading = false
+      if (authResult.success) {
+        router.replaceUrl({ url: 'pages/Index' })
+      } else {
+        this.generalError = authResult.message
+      }
+    }, 500)
+  }
+
   build() {
     Column() {
-      // Logo
-      Text('FitTracker')
-        .fontSize(FontTokens.DISPLAY_SIZE)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(ColorTokens.PRIMARY)
-        .margin({ top: SpacingTokens.XXL })
+      // 顶部：Logo 与标语
+      Column() {
+        Text('FitTracker')
+          .fontSize(FontTokens.DISPLAY_SIZE)
+          .lineHeight(FontTokens.DISPLAY_LINE_HEIGHT)
+          .fontWeight(FontTokens.DISPLAY_WEIGHT)
+          .fontColor(ColorTokens.PRIMARY)
 
-      // 标题
-      Text('欢迎回来')
-        .fontSize(FontTokens.HEADLINE_SIZE)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(ColorTokens.TEXT_PRIMARY)
+        Text('欢迎回来，继续你的训练')
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .margin({ top: SpacingTokens.XS })
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Center)
+      .margin({ top: SpacingTokens.XXL, bottom: SpacingTokens.XL })
+
+      // 中部：登录表单
+      Column() {
+        AppInput({
+          value: $phone,
+          placeholder: '请输入手机号',
+          type: 'number',
+          prefix: '+86',
+          maxLength: 11,
+          errorMessage: this.phoneError
+        })
+
+        AppInput({
+          value: $password,
+          placeholder: '请输入密码',
+          type: 'password',
+          maxLength: 20,
+          errorMessage: this.passwordError
+        })
+          .margin({ top: SpacingTokens.MD })
+
+        if (this.generalError) {
+          Row() {
+            Text(this.generalError)
+              .fontSize(FontTokens.SMALL_SIZE)
+              .fontColor(ColorTokens.ERROR)
+              .width('100%')
+          }
+          .width('100%')
+          .margin({ top: SpacingTokens.SM })
+        }
+      }
+      .width('100%')
+      .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD })
+
+      // 下部：登录按钮 + 跳转注册链接
+      Column() {
+        AppButton({
+          text: '登录',
+          type: 'primary',
+          size: 'large',
+          block: true,
+          loading: this.loading,
+          onButtonClick: () => { this.handleLogin() }
+        })
+          .margin({ top: SpacingTokens.LG })
+
+        Row() {
+          Text('没有账号？')
+            .fontSize(FontTokens.CAPTION_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+          Text('注册')
+            .fontSize(FontTokens.CAPTION_SIZE)
+            .fontColor(ColorTokens.PRIMARY)
+            .fontWeight(FontWeight.Medium)
+            .onClick(() => {
+              router.replaceUrl({ url: 'pages/RegisterPage' })
+            })
+        }
         .margin({ top: SpacingTokens.MD })
-
-      Text('登录功能即将上线')
-        .fontSize(FontTokens.CAPTION_SIZE)
-        .fontColor(ColorTokens.TEXT_SECONDARY)
-        .margin({ top: SpacingTokens.XS })
+      }
+      .width('100%')
+      .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD })
 
       Blank()
-
-      // 跳转注册
-      AppButton({
-        text: '没有账号？立即注册',
-        type: 'ghost',
-        size: 'large',
-        block: true,
-        onButtonClick: () => {
-          router.replaceUrl({ url: 'pages/RegisterPage' })
-        }
-      })
-        .margin({ bottom: SpacingTokens.LG })
     }
     .width('100%')
     .height('100%')
-    .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD })
     .backgroundColor(ColorTokens.SURFACE_SECONDARY)
   }
 }

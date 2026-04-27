@@ -52,6 +52,23 @@ export function validateConfirmPassword(password: string, confirmPassword: strin
 }
 
 /**
+ * 一次性校验登录字段（手机号 + 密码）
+ */
+export function validateLoginForm(
+  phone: string,
+  password: string
+): { phoneError: string; passwordError: string; allValid: boolean } {
+  const phoneResult = validatePhone(phone)
+  const passwordResult = validatePassword(password)
+
+  return {
+    phoneError: phoneResult.valid ? '' : phoneResult.message,
+    passwordError: passwordResult.valid ? '' : passwordResult.message,
+    allValid: phoneResult.valid && passwordResult.valid
+  }
+}
+
+/**
  * 一次性校验所有注册字段，返回所有错误信息
  */
 export function validateRegisterForm(
