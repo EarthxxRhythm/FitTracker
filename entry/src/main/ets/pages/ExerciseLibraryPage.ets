@@ -263,5 +263,9 @@ struct ExerciseLibraryPage {
       }
       .width('100%')
     }
+    .width('100%')
+    .onClick(() => {
+      router.pushUrl({ url: 'pages/ExerciseDetailPage', params: { exerciseId: exercise.id } })
+    })
   }
 }

@@ -5,6 +5,9 @@
     "pages/LoginPage",
     "pages/ProfilePage",
     "pages/PlanDetailPage",
-    "pages/ExerciseLibraryPage"
+    "pages/ExerciseLibraryPage",
+    "pages/ExerciseDetailPage",
+    "pages/WorkoutRecorderPage",
+    "pages/StatsPage"
   ]
 }
