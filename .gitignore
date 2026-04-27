@@ -1,0 +1,40 @@
+# Dependencies
+/node_modules
+/oh_modules
+*.har
+
+# Build outputs
+**/build
+/.preview
+/default
+
+# IDE & Editor
+/.idea
+/.hvigor
+/.appanalyzer
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local configuration (contains signing keys)
+/local.properties
+
+# C/C++ tooling
+.cxx
+/.clangd
+/.clang-format
+/.clang-tidy
+
+# Testing
+**/.test
+
+# Distribution
+*.tar.gz
+*.zip
+
+# Environment
+.env
+.env.local
+.env.*.local
