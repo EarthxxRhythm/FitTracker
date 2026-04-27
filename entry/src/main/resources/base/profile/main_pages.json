@@ -4,6 +4,7 @@
     "pages/RegisterPage",
     "pages/LoginPage",
     "pages/ProfilePage",
-    "pages/PlanDetailPage"
+    "pages/PlanDetailPage",
+    "pages/ExerciseLibraryPage"
   ]
 }
