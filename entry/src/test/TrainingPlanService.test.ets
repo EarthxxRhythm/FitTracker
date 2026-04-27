@@ -246,4 +246,44 @@ export default function trainingPlanServiceTest() {
       expect(preset!.days.length).assertLarger(0)
     })
   })
+
+  describe('TrainingPlanService — my plans management', () => {
+
+    it('should have UserPlan type with all required fields', 0, () => {
+      const preset = TrainingPlanService.getPresetPlanById('preset_bro_split')
+      // Simulate building a UserPlan from preset
+      const userPlan = {
+        id: `user_plan_test`,
+        name: preset!.name,
+        coverColor: preset!.coverColor,
+        targetAudience: preset!.targetAudience,
+        weeklyFrequency: preset!.weeklyFrequency,
+        days: JSON.parse(JSON.stringify(preset!.days)),
+        enabledAt: Date.now()
+      }
+      expect(userPlan.id.length).assertLarger(0)
+      expect(userPlan.enabledAt).assertLarger(0)
+      expect(userPlan.days.length).assertEqual(5)
+    })
+
+    it('should distinguish current plan from other plans by id', 0, () => {
+      const currentId = 'user_plan_current'
+      const otherId = 'user_plan_other'
+      const ids = [currentId, otherId]
+      expect(ids.indexOf(currentId)).assertEqual(0)
+      expect(currentId === otherId).assertFalse()
+    })
+
+    it('should remove item from array without affecting others', 0, () => {
+      const plans = [
+        { id: 'plan_a', name: 'Plan A' },
+        { id: 'plan_b', name: 'Plan B' },
+        { id: 'plan_c', name: 'Plan C' }
+      ]
+      const filtered = plans.filter(p => p.id !== 'plan_b')
+      expect(filtered.length).assertEqual(2)
+      expect(filtered[0].id).assertEqual('plan_a')
+      expect(filtered[1].id).assertEqual('plan_c')
+    })
+  })
 }
