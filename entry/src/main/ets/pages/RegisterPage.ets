@@ -9,7 +9,8 @@ import { router } from '@kit.ArkUI'
 import { AppButton } from '../components/AppButton'
 import { AppInput } from '../components/AppInput'
 import { validateRegisterForm } from '../common/utils/ValidationUtils'
-import { ColorTokens, FontTokens, SpacingTokens, TouchTokens } from '../common/styles/DesignTokens'
+import AuthService from '../common/services/AuthService'
+import { ColorTokens, FontTokens, SpacingTokens } from '../common/styles/DesignTokens'
 
 @Entry
 @Component
@@ -33,8 +34,7 @@ struct RegisterPage {
     }
 
     this.loading = true
-    // TODO: 替换为实际后端注册接口
-    // 模拟注册延迟后跳转
+    AuthService.register(this.phone, this.password)
     setTimeout(() => {
       this.loading = false
       router.replaceUrl({ url: 'pages/Index' })

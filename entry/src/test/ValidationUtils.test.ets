@@ -12,7 +12,8 @@ import {
   validatePhone,
   validatePassword,
   validateConfirmPassword,
-  validateRegisterForm
+  validateRegisterForm,
+  validateLoginForm
 } from '../main/ets/common/utils/ValidationUtils'
 
 export default function validationUtilsTest() {
@@ -147,6 +148,49 @@ export default function validationUtilsTest() {
       expect(result.phoneError).assertEqual('')
       expect(result.passwordError).assertEqual('')
       expect(result.confirmError.length).assertLarger(0)
+    })
+  })
+
+  describe('validateLoginForm — 登录校验', () => {
+
+    it('should return allValid=true when phone and password are valid', 0, () => {
+      const result = validateLoginForm('13800138000', '123456')
+      expect(result.allValid).assertTrue()
+      expect(result.phoneError).assertEqual('')
+      expect(result.passwordError).assertEqual('')
+    })
+
+    it('should return allValid=false with empty phone', 0, () => {
+      const result = validateLoginForm('', '123456')
+      expect(result.allValid).assertFalse()
+      expect(result.phoneError.length).assertLarger(0)
+      expect(result.passwordError).assertEqual('')
+    })
+
+    it('should return allValid=false with invalid phone format', 0, () => {
+      const result = validateLoginForm('123', '123456')
+      expect(result.allValid).assertFalse()
+      expect(result.phoneError.length).assertLarger(0)
+    })
+
+    it('should return allValid=false with empty password', 0, () => {
+      const result = validateLoginForm('13800138000', '')
+      expect(result.allValid).assertFalse()
+      expect(result.phoneError).assertEqual('')
+      expect(result.passwordError.length).assertLarger(0)
+    })
+
+    it('should return allValid=false with password shorter than 6 chars', 0, () => {
+      const result = validateLoginForm('13800138000', '12345')
+      expect(result.allValid).assertFalse()
+      expect(result.passwordError).assertContain('6')
+    })
+
+    it('should return allValid=false with both phone and password invalid', 0, () => {
+      const result = validateLoginForm('', '')
+      expect(result.allValid).assertFalse()
+      expect(result.phoneError.length).assertLarger(0)
+      expect(result.passwordError.length).assertLarger(0)
     })
   })
 }
