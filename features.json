@@ -27,7 +27,7 @@
     "id": 5,
     "category": "用户认证",
     "description": "个人资料页：用户可在"我的"Tab查看和编辑昵称、头像、体重单位偏好（kg/lbs），修改后即时保存并全局生效。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 6,
