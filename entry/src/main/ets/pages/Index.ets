@@ -3,6 +3,7 @@
  *
  * 功能 #7: 预置计划列表 — 分段控件"预置计划|我的计划"切换；
  * 功能 #9: "我的计划"显示已启用计划。
+ * 功能 #10: 当前计划高亮（绿色边框+标签），左滑删除非当前计划。
  * 后续功能 #11: 替换为"今日训练视图"。
  */
 import { router } from '@kit.ArkUI'
@@ -15,15 +16,39 @@ import { ColorTokens, FontTokens, SpacingTokens, RadiusTokens } from '../common/
 struct Index {
   @State activeSegment: number = 0 // 0=预置计划, 1=我的计划
   @State myPlans: UserPlan[] = []
+  @State currentPlanId: string = ''
   @State myPlansLoaded: boolean = false
   private presetPlans: PresetPlan[] = TrainingPlanService.getAllPresetPlans()
 
   async onSegmentChange(segment: number): Promise<void> {
     this.activeSegment = segment
-    if (segment === 1 && !this.myPlansLoaded) {
+    if (segment === 1) {
       this.myPlans = await TrainingPlanService.getMyPlans(getContext(this))
+      const current = await TrainingPlanService.getCurrentPlan(getContext(this))
+      this.currentPlanId = current ? current.id : ''
       this.myPlansLoaded = true
     }
+  }
+
+  async deleteMyPlan(planId: string): Promise<void> {
+    await TrainingPlanService.removeMyPlan(getContext(this), planId)
+    this.myPlans = await TrainingPlanService.getMyPlans(getContext(this))
+    const current = await TrainingPlanService.getCurrentPlan(getContext(this))
+    this.currentPlanId = current ? current.id : ''
+  }
+
+  @Builder
+  swipeDeleteBuilder() {
+    Column() {
+      Text('删除')
+        .fontSize(FontTokens.SMALL_SIZE)
+        .fontColor(Color.White)
+    }
+    .width(72)
+    .height('100%')
+    .backgroundColor(ColorTokens.ERROR)
+    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
   }
 
   build() {
@@ -152,57 +177,88 @@ struct Index {
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Center)
         } else {
-          Scroll() {
-            Column() {
-              ForEach(this.myPlans, (plan: UserPlan) => {
-                AppCard({ variant: 'outlined', padding: 'compact' }) {
-                  Row() {
-                    Column() {
-                      Text(plan.name.charAt(0))
-                        .fontSize(24)
-                        .fontWeight(FontWeight.Bold)
+          List() {
+            ForEach(this.myPlans, (plan: UserPlan) => {
+              ListItem() {
+                Column() {
+                  // 当前计划标签
+                  if (plan.id === this.currentPlanId) {
+                    Row() {
+                      Text('当前使用')
+                        .fontSize(FontTokens.SMALL_SIZE)
                         .fontColor(Color.White)
+                        .padding({ left: SpacingTokens.SM, right: SpacingTokens.SM, top: 2, bottom: 2 })
+                        .backgroundColor(ColorTokens.SUCCESS)
+                        .borderRadius(RadiusTokens.SM)
                     }
-                    .width(64)
-                    .height(64)
-                    .borderRadius(RadiusTokens.SM)
-                    .backgroundColor(plan.coverColor)
-                    .justifyContent(FlexAlign.Center)
-                    .alignItems(HorizontalAlign.Center)
-
-                    Column() {
-                      Text(plan.name)
-                        .fontSize(FontTokens.BODY_BOLD_SIZE)
-                        .fontWeight(FontWeight.Medium)
-                        .fontColor(ColorTokens.TEXT_PRIMARY)
-                        .margin({ bottom: SpacingTokens.XS })
-
-                      Row() {
-                        Text(plan.targetAudience)
-                          .fontSize(FontTokens.SMALL_SIZE)
-                          .fontColor(Color.White)
-                          .padding({ left: SpacingTokens.SM, right: SpacingTokens.SM, top: 2, bottom: 2 })
-                          .backgroundColor(plan.coverColor)
-                          .borderRadius(RadiusTokens.SM)
-
-                        Text(plan.weeklyFrequency)
-                          .fontSize(FontTokens.CAPTION_SIZE)
-                          .fontColor(ColorTokens.TEXT_SECONDARY)
-                          .margin({ left: SpacingTokens.SM })
-                      }
-                    }
-                    .alignItems(HorizontalAlign.Start)
-                    .margin({ left: SpacingTokens.MD })
-                    .layoutWeight(1)
+                    .width('100%')
+                    .margin({ bottom: SpacingTokens.SM })
                   }
-                  .width('100%')
-                  .alignItems(VerticalAlign.Center)
+
+                  AppCard({ variant: 'outlined', padding: 'compact' }) {
+                    Row() {
+                      Column() {
+                        Text(plan.name.charAt(0))
+                          .fontSize(24)
+                          .fontWeight(FontWeight.Bold)
+                          .fontColor(Color.White)
+                      }
+                      .width(64)
+                      .height(64)
+                      .borderRadius(RadiusTokens.SM)
+                      .backgroundColor(plan.coverColor)
+                      .justifyContent(FlexAlign.Center)
+                      .alignItems(HorizontalAlign.Center)
+
+                      Column() {
+                        Text(plan.name)
+                          .fontSize(FontTokens.BODY_BOLD_SIZE)
+                          .fontWeight(FontWeight.Medium)
+                          .fontColor(ColorTokens.TEXT_PRIMARY)
+                          .margin({ bottom: SpacingTokens.XS })
+
+                        Row() {
+                          Text(plan.targetAudience)
+                            .fontSize(FontTokens.SMALL_SIZE)
+                            .fontColor(Color.White)
+                            .padding({ left: SpacingTokens.SM, right: SpacingTokens.SM, top: 2, bottom: 2 })
+                            .backgroundColor(plan.coverColor)
+                            .borderRadius(RadiusTokens.SM)
+
+                          Text(plan.weeklyFrequency)
+                            .fontSize(FontTokens.CAPTION_SIZE)
+                            .fontColor(ColorTokens.TEXT_SECONDARY)
+                            .margin({ left: SpacingTokens.SM })
+                        }
+                      }
+                      .alignItems(HorizontalAlign.Start)
+                      .margin({ left: SpacingTokens.MD })
+                      .layoutWeight(1)
+                    }
+                    .width('100%')
+                    .alignItems(VerticalAlign.Center)
+                  }
+                  .border(plan.id === this.currentPlanId
+                    ? { width: 2, color: ColorTokens.SUCCESS }
+                    : { width: 0 })
                 }
-              }, (plan: UserPlan) => plan.id)
-            }
-            .width('100%')
-            .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.SM, bottom: SpacingTokens.MD })
+                .width('100%')
+                .swipeAction({
+                  end: plan.id !== this.currentPlanId ? {
+                    builder: () => {
+                      this.swipeDeleteBuilder()
+                    },
+                    onAction: () => {
+                      this.deleteMyPlan(plan.id)
+                    }
+                  } : undefined
+                })
+              }
+              .margin({ bottom: SpacingTokens.MD })
+            }, (plan: UserPlan) => plan.id)
           }
+          .width('100%')
+          .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.SM, bottom: SpacingTokens.MD })
           .layoutWeight(1)
           .scrollBar(BarState.Off)
         }
