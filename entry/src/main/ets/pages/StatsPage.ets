@@ -17,6 +17,7 @@ struct StatsPage {
   @State activePeriod: number = 0 // 0=周, 1=月
   @State currentMonth: number = new Date().getMonth() + 1
   @State currentYear: number = new Date().getFullYear()
+  private calendarDays: number[] = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]
 
   getDaysInMonth(): number {
     return new Date(this.currentYear, this.currentMonth, 0).getDate()
@@ -175,9 +176,9 @@ struct StatsPage {
               .width('100%')
               .margin({ bottom: SpacingTokens.SM })
 
-              // 日历网格（简化版：显示当月天数）
+              // 日历网格
               Row() {
-                ForEach(Array.from({ length: 28 }, (_, i) => i), (day: number) => {
+                ForEach(this.calendarDays, (day: number) => {
                   Column() {
                     Text(`${day + 1}`)
                       .fontSize(FontTokens.SMALL_SIZE)

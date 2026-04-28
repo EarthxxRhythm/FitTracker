@@ -10,14 +10,14 @@
  * 功能 #26: 结束训练（摘要计算）
  * 功能 #27: 训练摘要弹窗
  */
-import { router, promptAction } from '@kit.ArkUI'
+import { router } from '@kit.ArkUI'
 import { AppButton } from '../components/AppButton'
 import { ExerciseRef, TrainingDay } from '../common/services/TrainingPlanService'
 import { ColorTokens, FontTokens, SpacingTokens, RadiusTokens } from '../common/styles/DesignTokens'
 
 interface SetData {
-  weight: number
-  reps: number
+  weight: string
+  reps: string
 }
 
 interface ExerciseSet {
@@ -49,7 +49,7 @@ struct WorkoutRecorderPage {
         for (let ex of today.exercises) {
           sets.push({
             exercise: ex,
-            sets: [{ weight: 0, reps: 0 }],
+            sets: [{ weight: '', reps: '' }],
             expanded: sets.length === 0
           })
         }
@@ -82,7 +82,9 @@ struct WorkoutRecorderPage {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
   }
 
-  getEstimated1RM(weight: number, reps: number): number {
+  getEstimated1RM(weightStr: string, repsStr: string): number {
+    const weight = parseFloat(weightStr) || 0
+    const reps = parseInt(repsStr) || 0
     if (weight <= 0 || reps <= 0) {
       return 0
     }
@@ -94,14 +96,14 @@ struct WorkoutRecorderPage {
   }
 
   addSet(exerciseIndex: number): void {
-    this.exercises[exerciseIndex].sets.push({ weight: 0, reps: 0 })
+    this.exercises[exerciseIndex].sets.push({ weight: '', reps: '' })
   }
 
   removeSet(exerciseIndex: number, setIndex: number): void {
     this.exercises[exerciseIndex].sets.splice(setIndex, 1)
   }
 
-  updateSet(exerciseIndex: number, setIndex: number, field: 'weight' | 'reps', value: number): void {
+  updateSet(exerciseIndex: number, setIndex: number, field: 'weight' | 'reps', value: string): void {
     this.exercises[exerciseIndex].sets[setIndex][field] = value
   }
 
@@ -129,9 +131,11 @@ struct WorkoutRecorderPage {
     let volume = 0
     for (let es of this.exercises) {
       for (let s of es.sets) {
-        if (s.weight > 0 && s.reps > 0) {
+        const w = parseFloat(s.weight) || 0
+        const r = parseInt(s.reps) || 0
+        if (w > 0 && r > 0) {
           sets++
-          volume += s.weight * s.reps
+          volume += w * r
         }
       }
     }
@@ -260,7 +264,7 @@ struct WorkoutRecorderPage {
                       .alignItems(HorizontalAlign.Center)
 
                       // 重量输入
-                      TextInput({ text: $$this.exercises[index].sets[sIndex].weight.toString(), placeholder: '重量' })
+                      TextInput({ text: $$this.exercises[index].sets[sIndex].weight, placeholder: '重量' })
                         .type(InputType.Number)
                         .fontSize(FontTokens.CAPTION_SIZE)
                         .width(80)
@@ -268,9 +272,6 @@ struct WorkoutRecorderPage {
                         .textAlign(TextAlign.Center)
                         .backgroundColor(ColorTokens.SURFACE_SECONDARY)
                         .borderRadius(RadiusTokens.SM)
-                        .onChange((v: string) => {
-                          this.updateSet(index, sIndex, 'weight', parseInt(v) || 0)
-                        })
 
                       Text('kg')
                         .fontSize(FontTokens.CAPTION_SIZE)
@@ -283,7 +284,7 @@ struct WorkoutRecorderPage {
                         .margin({ right: SpacingTokens.XS })
 
                       // 次数输入
-                      TextInput({ text: $$this.exercises[index].sets[sIndex].reps.toString(), placeholder: '次数' })
+                      TextInput({ text: $$this.exercises[index].sets[sIndex].reps, placeholder: '次数' })
                         .type(InputType.Number)
                         .fontSize(FontTokens.CAPTION_SIZE)
                         .width(60)
@@ -291,9 +292,6 @@ struct WorkoutRecorderPage {
                         .textAlign(TextAlign.Center)
                         .backgroundColor(ColorTokens.SURFACE_SECONDARY)
                         .borderRadius(RadiusTokens.SM)
-                        .onChange((v: string) => {
-                          this.updateSet(index, sIndex, 'reps', parseInt(v) || 0)
-                        })
 
                       Text('次')
                         .fontSize(FontTokens.CAPTION_SIZE)
