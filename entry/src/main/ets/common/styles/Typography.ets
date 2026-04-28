@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FitTracker Typography Styles
  * 通过 @Extend 装饰器复用的文字样式函数，遵循 BEM 命名：block_element-modifier
  */
@@ -6,7 +6,7 @@ import { FontTokens, ColorTokens } from './DesignTokens'
 
 // ── 大标题（Display）───────────────────────────────────────
 @Extend(Text)
-function textDisplay() {
+export function textDisplay() {
   .fontSize(FontTokens.DISPLAY_SIZE)
   .lineHeight(FontTokens.DISPLAY_LINE_HEIGHT)
   .fontWeight(FontTokens.DISPLAY_WEIGHT)
@@ -16,7 +16,7 @@ function textDisplay() {
 
 // ── 页面标题（Headline）─────────────────────────────────────
 @Extend(Text)
-function textHeadline() {
+export function textHeadline() {
   .fontSize(FontTokens.HEADLINE_SIZE)
   .lineHeight(FontTokens.HEADLINE_LINE_HEIGHT)
   .fontWeight(FontTokens.HEADLINE_WEIGHT)
@@ -26,7 +26,7 @@ function textHeadline() {
 
 // ── 卡片/对话框标题（Title）─────────────────────────────────
 @Extend(Text)
-function textTitle() {
+export function textTitle() {
   .fontSize(FontTokens.TITLE_SIZE)
   .lineHeight(FontTokens.TITLE_LINE_HEIGHT)
   .fontWeight(FontTokens.TITLE_WEIGHT)
@@ -36,7 +36,7 @@ function textTitle() {
 
 // ── 正文（Body）─────────────────────────────────────────────
 @Extend(Text)
-function textBody() {
+export function textBody() {
   .fontSize(FontTokens.BODY_SIZE)
   .lineHeight(FontTokens.BODY_LINE_HEIGHT)
   .fontWeight(FontTokens.BODY_WEIGHT)
@@ -46,7 +46,7 @@ function textBody() {
 
 // ── 正文加粗（Body-Bold）────────────────────────────────────
 @Extend(Text)
-function textBodyBold() {
+export function textBodyBold() {
   .fontSize(FontTokens.BODY_BOLD_SIZE)
   .lineHeight(FontTokens.BODY_BOLD_LINE_HEIGHT)
   .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
@@ -56,7 +56,7 @@ function textBodyBold() {
 
 // ── 辅助说明（Caption）─────────────────────────────────────
 @Extend(Text)
-function textCaption() {
+export function textCaption() {
   .fontSize(FontTokens.CAPTION_SIZE)
   .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
   .fontWeight(FontTokens.CAPTION_WEIGHT)
@@ -66,7 +66,7 @@ function textCaption() {
 
 // ── 标签/时间戳（Small）─────────────────────────────────────
 @Extend(Text)
-function textSmall() {
+export function textSmall() {
   .fontSize(FontTokens.SMALL_SIZE)
   .lineHeight(FontTokens.SMALL_LINE_HEIGHT)
   .fontWeight(FontTokens.SMALL_WEIGHT)
@@ -76,7 +76,7 @@ function textSmall() {
 
 // ── 计时器（Timer）─────────────────────────────────────────
 @Extend(Text)
-function textTimer() {
+export function textTimer() {
   .fontSize(FontTokens.TIMER_SIZE)
   .lineHeight(FontTokens.TIMER_LINE_HEIGHT)
   .fontWeight(FontTokens.TIMER_WEIGHT)
@@ -86,7 +86,7 @@ function textTimer() {
 
 // ── 卡片标题（复用在 AppCard 等场景）────────────────────────
 @Extend(Text)
-function cardTitle() {
+export function cardTitle() {
   .fontSize(FontTokens.TITLE_SIZE)
   .lineHeight(FontTokens.TITLE_LINE_HEIGHT)
   .fontWeight(FontTokens.TITLE_WEIGHT)

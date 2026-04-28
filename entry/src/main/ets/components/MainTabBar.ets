@@ -10,29 +10,33 @@ import { ColorTokens, FontTokens, SpacingTokens, TouchTokens } from '../common/s
 
 export interface TabBarItem {
   key: string
-  icon: Resource
-  activeIcon?: Resource
   label: string
+}
+
+const TAB_SYMBOLS: Record<string, string> = {
+  'training': '🏋',
+  'movement': '📋',
+  'stats': '📊',
+  'profile': '👤'
 }
 
 @Component
 export struct MainTabBar {
   @Link currentTab: string
   @State tabs: TabBarItem[] = [
-    { key: 'training', icon: $r('app.media.ic_train'), label: '训练' },
-    { key: 'movement', icon: $r('app.media.ic_movement'), label: '动作库' },
-    { key: 'stats', icon: $r('app.media.ic_stats'), label: '统计' },
-    { key: 'profile', icon: $r('app.media.ic_profile'), label: '我的' }
+    { key: 'training', label: '训练' },
+    { key: 'movement', label: '动作库' },
+    { key: 'stats', label: '统计' },
+    { key: 'profile', label: '我的' }
   ]
 
   build() {
     Row() {
       ForEach(this.tabs, (tab: TabBarItem) => {
         Column() {
-          Image(tab.key === this.currentTab ? (tab.activeIcon ?? tab.icon) : tab.icon)
-            .width(TouchTokens.TAB_ICON)
-            .height(TouchTokens.TAB_ICON)
-            .fillColor(tab.key === this.currentTab
+          Text(TAB_SYMBOLS[tab.key] || '●')
+            .fontSize(20)
+            .fontColor(tab.key === this.currentTab
               ? ColorTokens.PRIMARY
               : ColorTokens.NEUTRAL_300)
           Text(tab.label)

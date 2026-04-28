@@ -32,9 +32,8 @@ struct ProfilePage {
     }
   }
 
-  async onNicknameChange(value: string): Promise<void> {
-    this.nickname = value
-    await UserProfileService.saveNickname(getContext(this), value)
+  async saveNickname(): Promise<void> {
+    await UserProfileService.saveNickname(getContext(this), this.nickname)
   }
 
   async onWeightUnitChange(unit: string): Promise<void> {
@@ -144,7 +143,10 @@ struct ProfilePage {
             .layoutWeight(1)
             .maxLength(20)
             .onChange((value: string) => {
-              this.onNicknameChange(value)
+              this.nickname = value
+            })
+            .onBlur(() => {
+              this.saveNickname()
             })
         }
         .width('100%')

@@ -1,7 +1,7 @@
-/**
- * TrainingPlanService �?训练计划服务
+﻿/**
+ * TrainingPlanService �?训练计划服务
  *
- * 功能 #7: 提供5套预置训练计划数据，每套包含训练日及动作清单�? * 功能 #9: 启用预置计划 �?克隆至我的计划并设为当前计划，持久化存储�? * 预置计划为只读模板，启用时通过克隆生成用户计划�? */
+ * 功能 #7: 提供5套预置训练计划数据，每套包含训练日及动作清单�? * 功能 #9: 启用预置计划 �?克隆至我的计划并设为当前计划，持久化存储�? * 预置计划为只读模板，启用时通过克隆生成用户计划�? */
 import { preferences } from '@kit.ArkData'
 
 export interface ExerciseRef {
@@ -37,153 +37,164 @@ const KEY_CURRENT_PLAN_ID = 'current_plan_id'
 const PRESET_PLANS: PresetPlan[] = [
   {
     id: 'preset_bro_split',
-    name: '五分化训�?,
+    name: '五分化训�?,
     coverColor: '#1E88E5',
-    targetAudience: '中高级健身�?,
-    weeklyFrequency: '5�?�?,
+    targetAudience: '中高级健身�?,
+    weeklyFrequency: '5�?�?,
     days: [
       {
         dayLabel: '周一 胸部',
         dayOfWeek: [1],
         exercises: [
-          { name: '杠铃平板卧推', targetMuscle: '�?, sets: 4, reps: '8-12' },
-          { name: '上斜哑铃卧推', targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '哑铃飞鸟', targetMuscle: '�?, sets: 3, reps: '12-15' },
-          { name: '绳索夹胸', targetMuscle: '�?, sets: 3, reps: '12-15' },
-          { name: '双杠臂屈�?, targetMuscle: '�?, sets: 3, reps: '8-12' }
+          { name: '杠铃平板卧推', targetMuscle: '�?, sets: 4, reps: '8-12' },
+          { name: '上斜哑铃卧推', targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '哑铃飞鸟', targetMuscle: '�?, sets: 3, reps: '12-15' },
+          { name: '绳索夹胸', targetMuscle: '�?, sets: 3, reps: '12-15' },
+          { name: '双杠臂屈�?, targetMuscle: '�?, sets: 3, reps: '8-12' }
         ]
       },
       {
         dayLabel: '周二 背部',
         dayOfWeek: [2],
         exercises: [
-          { name: '引体向上', targetMuscle: '�?, sets: 4, reps: '8-12' },
-          { name: '杠铃划船', targetMuscle: '�?, sets: 4, reps: '8-12' },
-          { name: '高位下拉', targetMuscle: '�?, sets: 3, reps: '10-12' },
-          { name: '坐姿划船', targetMuscle: '�?, sets: 3, reps: '10-12' },
-          { name: '面拉', targetMuscle: '�?, sets: 3, reps: '12-15' }
+          { name: '引体向上', targetMuscle: '�?, sets: 4, reps: '8-12' },
+          { name: '杠铃划船', targetMuscle: '�?, sets: 4, reps: '8-12' },
+          { name: '高位下拉', targetMuscle: '�?, sets: 3, reps: '10-12' },
+          { name: '坐姿划船', targetMuscle: '�?, sets: 3, reps: '10-12' },
+          { name: '面拉', targetMuscle: '�?, sets: 3, reps: '12-15' }
         ]
       },
       {
         dayLabel: '周三 腿部',
         dayOfWeek: [3],
         exercises: [
-          { name: '杠铃深蹲', targetMuscle: '�?, sets: 4, reps: '8-12' },
-          { name: '罗马尼亚硬拉', targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '腿举', targetMuscle: '�?, sets: 3, reps: '10-12' },
-          { name: '腿弯�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
-          { name: '提踵', targetMuscle: '�?, sets: 4, reps: '15-20' }
+          { name: '杠铃深蹲', targetMuscle: '�?, sets: 4, reps: '8-12' },
+          { name: '罗马尼亚硬拉', targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '腿举', targetMuscle: '�?, sets: 3, reps: '10-12' },
+          { name: '腿弯�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
+          { name: '提踵', targetMuscle: '�?, sets: 4, reps: '15-20' }
         ]
       },
       {
         dayLabel: '周四 肩部',
         dayOfWeek: [4],
         exercises: [
-          { name: '杠铃推举', targetMuscle: '�?, sets: 4, reps: '8-12' },
-          { name: '哑铃侧平�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
-          { name: '前平�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
-          { name: '俯身飞鸟', targetMuscle: '�?, sets: 3, reps: '12-15' },
-          { name: '耸肩', targetMuscle: '�?, sets: 3, reps: '12-15' }
+          { name: '杠铃推举', targetMuscle: '�?, sets: 4, reps: '8-12' },
+          { name: '哑铃侧平�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
+          { name: '前平�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
+          { name: '俯身飞鸟', targetMuscle: '�?, sets: 3, reps: '12-15' },
+          { name: '耸肩', targetMuscle: '�?, sets: 3, reps: '12-15' }
         ]
       },
       {
         dayLabel: '周五 手臂',
         dayOfWeek: [5],
         exercises: [
-          { name: '杠铃弯举', targetMuscle: '�?, sets: 4, reps: '8-12' },
-          { name: '哑铃锤式弯举', targetMuscle: '�?, sets: 3, reps: '10-12' },
-          { name: '窄距卧推', targetMuscle: '�?, sets: 4, reps: '8-12' },
-          { name: '绳索下压', targetMuscle: '�?, sets: 3, reps: '12-15' },
-          { name: '集中弯举', targetMuscle: '�?, sets: 3, reps: '12-15' }
+          { name: '杠铃弯举', targetMuscle: '�?, sets: 4, reps: '8-12' },
+          { name: '哑铃锤式弯举', targetMuscle: '�?, sets: 3, reps: '10-12' },
+          { name: '窄距卧推', targetMuscle: '�?, sets: 4, reps: '8-12' },
+          { name: '绳索下压', targetMuscle: '�?, sets: 3, reps: '12-15' },
+          { name: '集中弯举', targetMuscle: '�?, sets: 3, reps: '12-15' }
         ]
       }
     ]
   },
   {
     id: 'preset_upper_lower',
-    name: '上下肢分�?,
+    name: '上下肢分�?,
     coverColor: '#43A047',
-    targetAudience: '初中级健身�?,
-    weeklyFrequency: '4�?�?,
+    targetAudience: '初中级健身�?,
+    weeklyFrequency: '4�?�?,
     days: [
       {
-        dayLabel: '周一 上肢�?,
+        dayLabel: '周一 上肢�?,
         dayOfWeek: [1],
         exercises: [
-          { name: '杠铃平板卧推', targetMuscle: '�?, sets: 4, reps: '8-12' },
-          { name: '哑铃推举', targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '上斜哑铃飞鸟', targetMuscle: '�?, sets: 3, reps: '10-15' },
-          { name: '侧平�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
-          { name: '绳索下压', targetMuscle: '�?, sets: 3, reps: '12-15' }
+          { name: '杠铃平板卧推', targetMuscle: '�?, sets: 4, reps: '8-12' },
+          { name: '哑铃推举', targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '上斜哑铃飞鸟', targetMuscle: '�?, sets: 3, reps: '10-15' },
+          { name: '侧平�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
+          { name: '绳索下压', targetMuscle: '�?, sets: 3, reps: '12-15' }
         ]
       },
       {
         dayLabel: '周二 下肢',
+        dayOfWeek: [2],
         exercises: [
-          { name: '杠铃深蹲', targetMuscle: '�?, sets: 4, reps: '8-12' },
-          { name: '罗马尼亚硬拉', targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '保加利亚分腿�?, targetMuscle: '�?, sets: 3, reps: '10-12' },
-          { name: '腿弯�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
-          { name: '提踵', targetMuscle: '�?, sets: 3, reps: '15-20' }
+          { name: '杠铃深蹲', targetMuscle: '�?, sets: 4, reps: '8-12' },
+          { name: '罗马尼亚硬拉', targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '保加利亚分腿�?, targetMuscle: '�?, sets: 3, reps: '10-12' },
+          { name: '腿弯�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
+          { name: '提踵', targetMuscle: '�?, sets: 3, reps: '15-20' }
         ]
       },
       {
-        dayLabel: '周四 上肢�?,
+        dayLabel: '周四 上肢�?,
+        dayOfWeek: [4],
+
         exercises: [
-          { name: '引体向上', targetMuscle: '�?, sets: 4, reps: '8-12' },
-          { name: '杠铃划船', targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '高位下拉', targetMuscle: '�?, sets: 3, reps: '10-12' },
-          { name: '面拉', targetMuscle: '�?, sets: 3, reps: '12-15' },
-          { name: '杠铃弯举', targetMuscle: '�?, sets: 3, reps: '10-12' }
+          { name: '引体向上', targetMuscle: '�?, sets: 4, reps: '8-12' },
+          { name: '杠铃划船', targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '高位下拉', targetMuscle: '�?, sets: 3, reps: '10-12' },
+          { name: '面拉', targetMuscle: '�?, sets: 3, reps: '12-15' },
+          { name: '杠铃弯举', targetMuscle: '�?, sets: 3, reps: '10-12' }
         ]
       },
       {
         dayLabel: '周五 下肢',
+        dayOfWeek: [5],
+
         exercises: [
-          { name: '杠铃深蹲', targetMuscle: '�?, sets: 4, reps: '6-10' },
-          { name: '腿举', targetMuscle: '�?, sets: 3, reps: '10-12' },
-          { name: '腿弯�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
-          { name: '腿伸�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
-          { name: '提踵', targetMuscle: '�?, sets: 3, reps: '15-20' }
+          { name: '杠铃深蹲', targetMuscle: '�?, sets: 4, reps: '6-10' },
+          { name: '腿举', targetMuscle: '�?, sets: 3, reps: '10-12' },
+          { name: '腿弯�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
+          { name: '腿伸�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
+          { name: '提踵', targetMuscle: '�?, sets: 3, reps: '15-20' }
         ]
       }
     ]
   },
   {
     id: 'preset_ppl',
-    name: '推拉腿分�?,
+    name: '推拉腿分�?,
     coverColor: '#FB8C00',
     targetAudience: '初中高级通用',
-    weeklyFrequency: '3-6�?�?,
+    weeklyFrequency: '3-6�?�?,
     days: [
       {
         dayLabel: '推日',
+        dayOfWeek: [1, 4],
+
         exercises: [
-          { name: '杠铃平板卧推', targetMuscle: '�?, sets: 4, reps: '8-12' },
-          { name: '哑铃推举', targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '上斜哑铃卧推', targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '侧平�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
-          { name: '窄距卧推', targetMuscle: '�?, sets: 3, reps: '8-12' }
+          { name: '杠铃平板卧推', targetMuscle: '�?, sets: 4, reps: '8-12' },
+          { name: '哑铃推举', targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '上斜哑铃卧推', targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '侧平�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
+          { name: '窄距卧推', targetMuscle: '�?, sets: 3, reps: '8-12' }
         ]
       },
       {
         dayLabel: '拉日',
+        dayOfWeek: [2, 5],
+
         exercises: [
-          { name: '引体向上', targetMuscle: '�?, sets: 4, reps: '8-12' },
-          { name: '杠铃划船', targetMuscle: '�?, sets: 4, reps: '8-12' },
-          { name: '坐姿划船', targetMuscle: '�?, sets: 3, reps: '10-12' },
-          { name: '面拉', targetMuscle: '�?, sets: 3, reps: '12-15' },
-          { name: '杠铃弯举', targetMuscle: '�?, sets: 3, reps: '10-12' }
+          { name: '引体向上', targetMuscle: '�?, sets: 4, reps: '8-12' },
+          { name: '杠铃划船', targetMuscle: '�?, sets: 4, reps: '8-12' },
+          { name: '坐姿划船', targetMuscle: '�?, sets: 3, reps: '10-12' },
+          { name: '面拉', targetMuscle: '�?, sets: 3, reps: '12-15' },
+          { name: '杠铃弯举', targetMuscle: '�?, sets: 3, reps: '10-12' }
         ]
       },
       {
         dayLabel: '腿日',
+        dayOfWeek: [3, 6],
+
         exercises: [
-          { name: '杠铃深蹲', targetMuscle: '�?, sets: 4, reps: '8-12' },
-          { name: '罗马尼亚硬拉', targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '腿举', targetMuscle: '�?, sets: 3, reps: '10-12' },
-          { name: '腿弯�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
-          { name: '提踵', targetMuscle: '�?, sets: 4, reps: '15-20' }
+          { name: '杠铃深蹲', targetMuscle: '�?, sets: 4, reps: '8-12' },
+          { name: '罗马尼亚硬拉', targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '腿举', targetMuscle: '�?, sets: 3, reps: '10-12' },
+          { name: '腿弯�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
+          { name: '提踵', targetMuscle: '�?, sets: 4, reps: '15-20' }
         ]
       }
     ]
@@ -192,40 +203,46 @@ const PRESET_PLANS: PresetPlan[] = [
     id: 'preset_fullbody_3x',
     name: '全身训练 3x',
     coverColor: '#8E24AA',
-    targetAudience: '初级健身�?,
-    weeklyFrequency: '3�?�?,
+    targetAudience: '初级健身�?,
+    weeklyFrequency: '3�?�?,
     days: [
       {
         dayLabel: '周一 全身',
+        dayOfWeek: [1],
+
         exercises: [
-          { name: '杠铃深蹲', targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '杠铃平板卧推', targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '杠铃划船', targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '杠铃推举', targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '杠铃弯举', targetMuscle: '�?, sets: 2, reps: '10-12' },
-          { name: '平板支撑', targetMuscle: '�?, sets: 3, reps: '30�? }
+          { name: '杠铃深蹲', targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '杠铃平板卧推', targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '杠铃划船', targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '杠铃推举', targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '杠铃弯举', targetMuscle: '�?, sets: 2, reps: '10-12' },
+          { name: '平板支撑', targetMuscle: '�?, sets: 3, reps: '30�? }
         ]
       },
       {
         dayLabel: '周三 全身',
+        dayOfWeek: [3],
+
         exercises: [
-          { name: '罗马尼亚硬拉', targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '哑铃卧推', targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '高位下拉', targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '侧平�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
-          { name: '绳索下压', targetMuscle: '�?, sets: 2, reps: '12-15' },
-          { name: '卷腹', targetMuscle: '�?, sets: 3, reps: '15-20' }
+          { name: '罗马尼亚硬拉', targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '哑铃卧推', targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '高位下拉', targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '侧平�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
+          { name: '绳索下压', targetMuscle: '�?, sets: 2, reps: '12-15' },
+          { name: '卷腹', targetMuscle: '�?, sets: 3, reps: '15-20' }
         ]
       },
       {
         dayLabel: '周五 全身',
+        dayOfWeek: [5],
+
         exercises: [
-          { name: '杠铃深蹲', targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '上斜哑铃卧推', targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '坐姿划船', targetMuscle: '�?, sets: 3, reps: '10-12' },
-          { name: '哑铃推举', targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '锤式弯举', targetMuscle: '�?, sets: 2, reps: '10-12' },
-          { name: '悬垂举腿', targetMuscle: '�?, sets: 3, reps: '12-15' }
+          { name: '杠铃深蹲', targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '上斜哑铃卧推', targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '坐姿划船', targetMuscle: '�?, sets: 3, reps: '10-12' },
+          { name: '哑铃推举', targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '锤式弯举', targetMuscle: '�?, sets: 2, reps: '10-12' },
+          { name: '悬垂举腿', targetMuscle: '�?, sets: 3, reps: '12-15' }
         ]
       }
     ]
@@ -234,47 +251,51 @@ const PRESET_PLANS: PresetPlan[] = [
     id: 'preset_powerlifting',
     name: '力量举基础',
     coverColor: '#E53935',
-    targetAudience: '力量举入�?,
-    weeklyFrequency: '3-4�?�?,
+    targetAudience: '力量举入�?,
+    weeklyFrequency: '3-4�?�?,
     days: [
       {
-        dayLabel: '深蹲�?,
+        dayLabel: '深蹲�?,
+        dayOfWeek: [1],
         exercises: [
-          { name: '杠铃深蹲', targetMuscle: '�?, sets: 5, reps: '5' },
-          { name: '前蹲', targetMuscle: '�?, sets: 3, reps: '6-8' },
-          { name: '腿弯�?, targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '提踵', targetMuscle: '�?, sets: 3, reps: '12-15' },
-          { name: '平板支撑', targetMuscle: '�?, sets: 3, reps: '30�? }
+          { name: '杠铃深蹲', targetMuscle: '�?, sets: 5, reps: '5' },
+          { name: '前蹲', targetMuscle: '�?, sets: 3, reps: '6-8' },
+          { name: '腿弯�?, targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '提踵', targetMuscle: '�?, sets: 3, reps: '12-15' },
+          { name: '平板支撑', targetMuscle: '�?, sets: 3, reps: '30�? }
         ]
       },
       {
-        dayLabel: '卧推�?,
+        dayLabel: '卧推�?,
+        dayOfWeek: [2],
         exercises: [
-          { name: '杠铃平板卧推', targetMuscle: '�?, sets: 5, reps: '5' },
-          { name: '窄距卧推', targetMuscle: '�?, sets: 3, reps: '6-8' },
-          { name: '哑铃推举', targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '绳索下压', targetMuscle: '�?, sets: 3, reps: '10-12' },
-          { name: '面拉', targetMuscle: '�?, sets: 3, reps: '12-15' }
+          { name: '杠铃平板卧推', targetMuscle: '�?, sets: 5, reps: '5' },
+          { name: '窄距卧推', targetMuscle: '�?, sets: 3, reps: '6-8' },
+          { name: '哑铃推举', targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '绳索下压', targetMuscle: '�?, sets: 3, reps: '10-12' },
+          { name: '面拉', targetMuscle: '�?, sets: 3, reps: '12-15' }
         ]
       },
       {
-        dayLabel: '硬拉�?,
+        dayLabel: '硬拉�?,
+        dayOfWeek: [4],
         exercises: [
-          { name: '杠铃硬拉', targetMuscle: '�?, sets: 5, reps: '5' },
-          { name: '杠铃划船', targetMuscle: '�?, sets: 3, reps: '6-8' },
-          { name: '引体向上', targetMuscle: '�?, sets: 3, reps: '6-8' },
-          { name: '杠铃弯举', targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '卷腹', targetMuscle: '�?, sets: 3, reps: '12-15' }
+          { name: '杠铃硬拉', targetMuscle: '�?, sets: 5, reps: '5' },
+          { name: '杠铃划船', targetMuscle: '�?, sets: 3, reps: '6-8' },
+          { name: '引体向上', targetMuscle: '�?, sets: 3, reps: '6-8' },
+          { name: '杠铃弯举', targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '卷腹', targetMuscle: '�?, sets: 3, reps: '12-15' }
         ]
       },
       {
         dayLabel: '辅助日（可选）',
+        dayOfWeek: [5],
         exercises: [
-          { name: '腿举', targetMuscle: '�?, sets: 3, reps: '8-12' },
-          { name: '坐姿划船', targetMuscle: '�?, sets: 3, reps: '10-12' },
-          { name: '侧平�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
-          { name: '锤式弯举', targetMuscle: '�?, sets: 3, reps: '10-12' },
-          { name: '提踵', targetMuscle: '�?, sets: 3, reps: '15-20' }
+          { name: '腿举', targetMuscle: '�?, sets: 3, reps: '8-12' },
+          { name: '坐姿划船', targetMuscle: '�?, sets: 3, reps: '10-12' },
+          { name: '侧平�?, targetMuscle: '�?, sets: 3, reps: '12-15' },
+          { name: '锤式弯举', targetMuscle: '�?, sets: 3, reps: '10-12' },
+          { name: '提踵', targetMuscle: '�?, sets: 3, reps: '15-20' }
         ]
       }
     ]
@@ -392,7 +413,7 @@ class TrainingPlanService {
   }
 
   getTodayLabel(): string {
-    const labels = ['星期�?, '星期一', '星期�?, '星期�?, '星期�?, '星期�?, '星期�?]
+    const labels = ['星期�?, '星期一', '星期�?, '星期�?, '星期�?, '星期�?, '星期�?]
     return labels[new Date().getDay()]
   }
 }

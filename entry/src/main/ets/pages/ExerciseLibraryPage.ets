@@ -176,15 +176,21 @@ struct ExerciseLibraryPage {
             // 两列网格
             Row() {
               ForEach(this.exercises, (exercise: Exercise, index: number) => {
-                if (index % 2 === 0 && index < this.exercises.length - 1) {
+                if (index % 2 === 0) {
                   Column() {
                     this.exerciseCard(exercise)
-                    Blank().height(SpacingTokens.SM)
-                    this.exerciseCard(this.exercises[index + 1])
+                    if (index + 1 < this.exercises.length) {
+                      Blank()
+                        .height(SpacingTokens.SM)
+                      this.exerciseCard(this.exercises[index + 1])
+                    } else {
+                      Blank()
+                        .height(SpacingTokens.SM)
+                    }
                   }
                   .layoutWeight(1)
                 }
-              }, (exercise: Exercise) => `row_${exercise.id}`)
+              }, (exercise: Exercise) => exercise.id)
             }
             .width('100%')
 
