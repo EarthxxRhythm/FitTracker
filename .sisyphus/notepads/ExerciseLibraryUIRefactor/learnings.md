@@ -1,0 +1,12 @@
+Learning notes for ExerciseLibrary UI refactor (search, muscle chips, empty state)
+- Replaced manual muscle color mapping with centralized MuscleColorMap utility.
+- Introduced SearchBar, Chip, EmptyState components to standardize UI.
+- Replaced inline muscle chips in Muscle filter with Chip components using md sizing.
+- Replaced height constants with TouchTokens for responsive card media height.
+- Used FontTokens.HERO_SIZE and TOUCH tokens for hero sizing in detail page.
+- Replaced empty state text with EmptyState using an icon for better UX.
+- ExerciseDetailPage changes:
+- Replaced getMuscleColor usage with MuscleColorMap.getColor in hero and muscle chips.
+- Replaced hero size/height with HERO_SIZE and HERO_HEIGHT tokens.
+- Replaced tab switcher with SegmentedControl.
+- Replaced '尚未记录' block with EmptyState (icon 📊).

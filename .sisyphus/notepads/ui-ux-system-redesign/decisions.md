@@ -1,0 +1,1 @@
+- No new architectural decisions required for this audit run. Plan remains the single source of truth for task scope.
