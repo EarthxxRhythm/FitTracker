@@ -11,6 +11,11 @@ const STORE_NAME = 'fit_tracker_session'
 const TOKEN_KEY = 'auth_token'
 const TOKEN_EXPIRY_DAYS = 7
 
+interface JwtHeader {
+  alg: string
+  typ: string
+}
+
 interface TokenPayload {
   userId: string
   iat: number
@@ -39,7 +44,8 @@ class SessionManager {
       iat: now,
       exp: now + TOKEN_EXPIRY_DAYS * 24 * 60 * 60
     }
-    const header = this.base64Encode(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
+    const jwtHeader: JwtHeader = { alg: 'HS256', typ: 'JWT' }
+    const header = this.base64Encode(JSON.stringify(jwtHeader))
     const body = this.base64Encode(JSON.stringify(payload))
     const signature = this.base64Encode('mock_signature')
     return `${header}.${body}.${signature}`

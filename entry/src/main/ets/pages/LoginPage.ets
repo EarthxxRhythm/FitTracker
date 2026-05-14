@@ -50,6 +50,7 @@ struct LoginPage {
   }
 
   build() {
+    // DESIGN: Login page uses centered layout with brand logo + form inputs.
     Column() {
       // 顶部：Logo 与标语
       Column() {
@@ -107,7 +108,7 @@ struct LoginPage {
         AppButton({
           text: '登录',
           type: 'primary',
-          size: 'large',
+          buttonSize: 'large',
           block: true,
           loading: this.loading,
           onButtonClick: () => { this.handleLogin() }

@@ -62,7 +62,7 @@ export struct AppInput {
         width: 1,
         color: this.errorMessage ? ColorTokens.ERROR :
                this.focused ? ColorTokens.PRIMARY :
-               ColorTokens.NEUTRAL_100
+               ColorTokens.SURFACE_ELEVATED
       })
       .height(TouchTokens.INPUT_HEIGHT)
 

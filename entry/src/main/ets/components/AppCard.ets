@@ -11,7 +11,7 @@ import { ColorTokens, RadiusTokens, ShadowTokens, SpacingTokens } from '../commo
 @Component
 export struct AppCard {
   @Prop variant: 'elevated' | 'outlined' = 'elevated'
-  @Prop padding: 'default' | 'compact' = 'default'
+  @Prop cardPadding: 'default' | 'compact' = 'default'
   @BuilderParam content: () => void = this.defaultContent
 
   @Builder
@@ -26,17 +26,12 @@ export struct AppCard {
       this.content()
     }
     .width('100%')
-    .padding(this.padding === 'default' ? SpacingTokens.MD : SpacingTokens.SM)
+    .padding(this.cardPadding === 'default' ? SpacingTokens.MD : SpacingTokens.SM)
     .backgroundColor(ColorTokens.SURFACE_PRIMARY)
     .borderRadius(RadiusTokens.MD)
-    .shadow(this.variant === 'elevated' ? ShadowTokens.MD : {
-      radius: 0,
-      color: 'rgba(0,0,0,0)',
-      offsetX: 0,
-      offsetY: 0
-    })
+    .shadow(this.variant === 'elevated' ? ShadowTokens.MD : ShadowTokens.NONE)
     .border(this.variant === 'outlined'
-      ? { width: 1, color: ColorTokens.NEUTRAL_100 }
+      ? { width: 1, color: ColorTokens.SURFACE_ELEVATED }
       : {})
   }
 }

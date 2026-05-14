@@ -14,11 +14,11 @@ import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens } from '../common/
 export struct StatBadge {
   @Prop text: string = ''
   @Prop color: 'gold' | 'positive' | 'neutral' = 'neutral'
-  @Prop size: 'small' | 'medium' = 'small'
+  @Prop badgeSize: 'small' | 'medium' = 'small'
 
   build() {
     Text(this.text)
-      .fontSize(this.size === 'small'
+      .fontSize(this.badgeSize === 'small'
         ? FontTokens.SMALL_SIZE
         : FontTokens.BODY_SIZE)
       .fontColor(this.color === 'gold'

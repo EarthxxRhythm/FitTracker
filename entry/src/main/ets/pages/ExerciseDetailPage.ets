@@ -7,18 +7,21 @@
 import { router } from '@kit.ArkUI'
 import { AppCard } from '../components/AppCard'
 import ExerciseService, { Exercise } from '../common/services/ExerciseService'
-import { ColorTokens, FontTokens, SpacingTokens, RadiusTokens } from '../common/styles/DesignTokens'
+import WorkoutSessionService, { ExerciseRecord } from '../common/services/WorkoutSessionService'
+import { MuscleColorMap, TouchTokens, FontTokens, RadiusTokens, ColorTokens, SpacingTokens } from '../common/styles/DesignTokens'
+import { SegmentedControl } from '../components/SegmentedControl'
+import { Chip } from '../components/Chip'
+import { EmptyState } from '../components/EmptyState'
 
-const MUSCLE_COLORS: Record<string, string> = {
-  '胸': '#1E88E5', '背': '#43A047', '腿': '#FB8C00',
-  '肩': '#8E24AA', '臂': '#E53935', '腹': '#00897B'
-}
+// Muscle color mapping handled by MuscleColorMap
 
 @Entry
 @Component
 struct ExerciseDetailPage {
   @State exercise: Exercise | null = null
   @State activeTab: number = 0 // 0=动作要领, 1=参与肌群
+  @State best1RM: number = 0
+  @State bestRecord: ExerciseRecord | null = null
 
   async aboutToAppear(): Promise<void> {
     try {
@@ -26,12 +29,21 @@ struct ExerciseDetailPage {
       const id = params['exerciseId'] as string
       if (id) {
         this.exercise = ExerciseService.getById(id) || null
+        if (this.exercise) {
+          const records = await WorkoutSessionService.getAllExerciseRecords(getContext(this))
+          const match = records.find(r => r.exerciseName === this.exercise!.name)
+          if (match) {
+            this.best1RM = match.best1RM
+            this.bestRecord = match
+          }
+        }
       }
     } catch (e) {
       // fallback
     }
   }
 
+  // DESIGN: ExerciseDetail uses HERO_SIZE/HERO_HEIGHT for hero, Chip for muscle tags, SegmentedControl for tabs, EmptyState for no-records.
   build() {
     Column() {
       // 顶部导航栏
@@ -56,11 +68,12 @@ struct ExerciseDetailPage {
       .backgroundColor(ColorTokens.SURFACE_PRIMARY)
 
       if (this.exercise !== null) {
-        Column() {
+        Scroll() {
+          Column() {
           // 顶部大图占位
           Column() {
             Text(this.exercise.name.charAt(0))
-              .fontSize(48)
+              .fontSize(FontTokens.HERO_SIZE)
               .fontWeight(FontWeight.Bold)
               .fontColor(Color.White)
             Text(this.exercise.name)
@@ -69,19 +82,14 @@ struct ExerciseDetailPage {
               .margin({ top: SpacingTokens.SM })
           }
           .width('100%')
-          .height(200)
-          .backgroundColor(MUSCLE_COLORS[this.exercise.primaryMuscle] || '#999')
+          .height(TouchTokens.HERO_HEIGHT)
+          .backgroundColor(MuscleColorMap.getColor(this.exercise.primaryMuscle))
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Center)
 
           // 主肌群/器械标签
           Row() {
-            Text(this.exercise.primaryMuscle)
-              .fontSize(FontTokens.CAPTION_SIZE)
-              .fontColor(Color.White)
-              .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.XS, bottom: SpacingTokens.XS })
-              .backgroundColor(MUSCLE_COLORS[this.exercise.primaryMuscle] || '#999')
-              .borderRadius(RadiusTokens.FULL)
+            Chip({ label: this.exercise.primaryMuscle, color: MuscleColorMap.getColor(this.exercise.primaryMuscle), chipSize: 'sm' })
             Text(this.exercise.equipment)
               .fontSize(FontTokens.CAPTION_SIZE)
               .fontColor(ColorTokens.TEXT_SECONDARY)
@@ -92,32 +100,7 @@ struct ExerciseDetailPage {
           .backgroundColor(ColorTokens.SURFACE_PRIMARY)
 
           // 标签页：动作要领 / 参与肌群
-          Row() {
-            Button() {
-              Text('动作要领')
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(this.activeTab === 0 ? Color.White : ColorTokens.TEXT_SECONDARY)
-            }
-            .layoutWeight(1)
-            .height(36)
-            .backgroundColor(this.activeTab === 0 ? ColorTokens.PRIMARY : ColorTokens.SURFACE_SECONDARY)
-            .borderRadius(RadiusTokens.FULL)
-            .onClick(() => { this.activeTab = 0 })
-
-            Button() {
-              Text('参与肌群')
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(this.activeTab === 1 ? Color.White : ColorTokens.TEXT_SECONDARY)
-            }
-            .layoutWeight(1)
-            .height(36)
-            .backgroundColor(this.activeTab === 1 ? ColorTokens.PRIMARY : ColorTokens.SURFACE_SECONDARY)
-            .borderRadius(RadiusTokens.FULL)
-            .margin({ left: SpacingTokens.SM })
-            .onClick(() => { this.activeTab = 1 })
-          }
+          SegmentedControl({ selectedIndex: this.activeTab, options: ['动作要领', '参与肌群'], segmentSize: 'small' })
           .width('100%')
           .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.MD, bottom: SpacingTokens.MD })
           .backgroundColor(ColorTokens.SURFACE_PRIMARY)
@@ -159,12 +142,7 @@ struct ExerciseDetailPage {
                   .fontWeight(FontWeight.Medium)
                   .fontColor(ColorTokens.TEXT_PRIMARY)
                 Blank()
-                Text(this.exercise.primaryMuscle)
-                  .fontSize(FontTokens.CAPTION_SIZE)
-                  .fontColor(Color.White)
-                  .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.XS, bottom: SpacingTokens.XS })
-                  .backgroundColor(MUSCLE_COLORS[this.exercise.primaryMuscle] || '#999')
-                  .borderRadius(RadiusTokens.SM)
+                Chip({ label: this.exercise.primaryMuscle, color: MuscleColorMap.getColor(this.exercise.primaryMuscle), chipSize: 'sm' })
               }
               .width('100%')
               .margin({ bottom: SpacingTokens.MD })
@@ -190,7 +168,7 @@ struct ExerciseDetailPage {
           }
 
           // 个人纪录卡片 (#18)
-          AppCard({ variant: 'outlined', padding: 'default' }) {
+          AppCard({ variant: 'outlined', cardPadding: 'default' }) {
             Column() {
               Text('我的纪录')
                 .fontSize(FontTokens.BODY_BOLD_SIZE)
@@ -199,23 +177,54 @@ struct ExerciseDetailPage {
                 .width('100%')
                 .margin({ bottom: SpacingTokens.MD })
 
-              Text('尚未记录')
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontColor(ColorTokens.TEXT_DISABLED)
+              if (this.bestRecord !== null) {
+                Row() {
+                  Column() {
+                    Text(`${this.best1RM}`)
+                      .fontSize(FontTokens.TITLE_SIZE)
+                      .fontWeight(FontWeight.Bold)
+                      .fontColor(ColorTokens.PRIMARY)
+                    Text('最佳 1RM (kg)')
+                      .fontSize(FontTokens.SMALL_SIZE)
+                      .fontColor(ColorTokens.TEXT_SECONDARY)
+                      .margin({ top: SpacingTokens.XS })
+                  }
+                  .layoutWeight(1)
+                  .alignItems(HorizontalAlign.Center)
+
+                  Column() {
+                    Text(`${this.bestRecord.bestWeight}×${this.bestRecord.bestReps}`)
+                      .fontSize(FontTokens.TITLE_SIZE)
+                      .fontWeight(FontWeight.Bold)
+                      .fontColor(ColorTokens.TEXT_PRIMARY)
+                    Text('最佳重量 × 次数')
+                      .fontSize(FontTokens.SMALL_SIZE)
+                      .fontColor(ColorTokens.TEXT_SECONDARY)
+                      .margin({ top: SpacingTokens.XS })
+                  }
+                  .layoutWeight(1)
+                  .alignItems(HorizontalAlign.Center)
+                }
                 .width('100%')
-              Text('完成一次训练后系统将自动记录')
-                .fontSize(FontTokens.SMALL_SIZE)
-                .fontColor(ColorTokens.TEXT_DISABLED)
-                .margin({ top: SpacingTokens.XS })
-                .width('100%')
+                .margin({ bottom: SpacingTokens.SM })
+
+                Text(`纪录日期：${this.bestRecord.bestDate}`)
+                  .fontSize(FontTokens.CAPTION_SIZE)
+                  .fontColor(ColorTokens.TEXT_SECONDARY)
+                  .width('100%')
+            } else {
+              EmptyState({ icon: '📊', title: '尚未记录', subtitle: '完成一次训练后系统将自动记录' })
+            }
             }
             .width('100%')
+            .margin({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.LG })
           }
-          .margin({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.LG })
         }
-        .layoutWeight(1)
         .width('100%')
-        .scrollBar(BarState.Off)
+      }
+      .layoutWeight(1)
+      .width('100%')
+      .scrollBar(BarState.Off)
       }
     }
     .width('100%')
