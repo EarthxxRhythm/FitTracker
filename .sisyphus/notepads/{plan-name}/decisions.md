@@ -1,0 +1,3 @@
+- Decision: Use centralized DesignTokens for colors and sizing; replace inline styling with PageHeader and Chip components.
+- Decision: Timeline column width driven by TouchTokens.TIMESTAMP_COL_WIDTH/TIMESTAMP? (Ensure correct constant in actual code)
+- Rationale: Improves theming consistency and easier maintenance.

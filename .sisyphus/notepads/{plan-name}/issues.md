@@ -1,0 +1,2 @@
+- No blockers recorded yet. Changes are isolated to UI tokens and imports; auth logic untouched.
+- If build issues appear, verify Import paths for DesignTokens, PageHeader, Chip, and MuscleColorMap.

@@ -1,0 +1,2 @@
+- Potential mismatch: TIMELINE_COL_WIDTH constant name vs TIMESTAMP in notes; verify real token names in DesignTokens.
+- Ensure Chip component is available in ArkTS UI runtime; fallback if not, consider alternative Tag-like component.
