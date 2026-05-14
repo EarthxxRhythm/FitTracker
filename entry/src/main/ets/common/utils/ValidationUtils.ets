@@ -11,18 +11,34 @@ export interface ValidationResult {
   message: string
 }
 
+export interface LoginFormResult {
+  phoneError: string
+  passwordError: string
+  allValid: boolean
+}
+
+export interface RegisterFormResult {
+  phoneError: string
+  passwordError: string
+  confirmError: string
+  allValid: boolean
+}
+
 /**
  * 校验手机号格式（中国大陆手机号）
  * @returns { valid: false, message } 或 { valid: true, message: '' }
  */
 export function validatePhone(phone: string): ValidationResult {
   if (!phone || phone.trim().length === 0) {
-    return { valid: false, message: '请输入手机号' }
+    const result: ValidationResult = { valid: false, message: '请输入手机号' }
+    return result
   }
   if (!PHONE_REGEX.test(phone.trim())) {
-    return { valid: false, message: '请输入正确的手机号格式' }
+    const result: ValidationResult = { valid: false, message: '请输入正确的手机号格式' }
+    return result
   }
-  return { valid: true, message: '' }
+  const result: ValidationResult = { valid: true, message: '' }
+  return result
 }
 
 /**
@@ -30,12 +46,15 @@ export function validatePhone(phone: string): ValidationResult {
  */
 export function validatePassword(password: string): ValidationResult {
   if (!password) {
-    return { valid: false, message: '请输入密码' }
+    const result: ValidationResult = { valid: false, message: '请输入密码' }
+    return result
   }
   if (password.length < MIN_PASSWORD_LENGTH) {
-    return { valid: false, message: `密码长度不能少于${MIN_PASSWORD_LENGTH}位` }
+    const result: ValidationResult = { valid: false, message: `密码长度不能少于${MIN_PASSWORD_LENGTH}位` }
+    return result
   }
-  return { valid: true, message: '' }
+  const result: ValidationResult = { valid: true, message: '' }
+  return result
 }
 
 /**
@@ -43,12 +62,15 @@ export function validatePassword(password: string): ValidationResult {
  */
 export function validateConfirmPassword(password: string, confirmPassword: string): ValidationResult {
   if (!confirmPassword) {
-    return { valid: false, message: '请再次输入密码' }
+    const result: ValidationResult = { valid: false, message: '请再次输入密码' }
+    return result
   }
   if (password !== confirmPassword) {
-    return { valid: false, message: '两次输入的密码不一致' }
+    const result: ValidationResult = { valid: false, message: '两次输入的密码不一致' }
+    return result
   }
-  return { valid: true, message: '' }
+  const result: ValidationResult = { valid: true, message: '' }
+  return result
 }
 
 /**
@@ -57,15 +79,16 @@ export function validateConfirmPassword(password: string, confirmPassword: strin
 export function validateLoginForm(
   phone: string,
   password: string
-): { phoneError: string; passwordError: string; allValid: boolean } {
+): LoginFormResult {
   const phoneResult = validatePhone(phone)
   const passwordResult = validatePassword(password)
 
-  return {
+  const result: LoginFormResult = {
     phoneError: phoneResult.valid ? '' : phoneResult.message,
     passwordError: passwordResult.valid ? '' : passwordResult.message,
     allValid: phoneResult.valid && passwordResult.valid
   }
+  return result
 }
 
 /**
@@ -75,15 +98,16 @@ export function validateRegisterForm(
   phone: string,
   password: string,
   confirmPassword: string
-): { phoneError: string; passwordError: string; confirmError: string; allValid: boolean } {
+): RegisterFormResult {
   const phoneResult = validatePhone(phone)
   const passwordResult = validatePassword(password)
   const confirmResult = validateConfirmPassword(password, confirmPassword)
 
-  return {
+  const result: RegisterFormResult = {
     phoneError: phoneResult.valid ? '' : phoneResult.message,
     passwordError: passwordResult.valid ? '' : passwordResult.message,
     confirmError: confirmResult.valid ? '' : confirmResult.message,
     allValid: phoneResult.valid && passwordResult.valid && confirmResult.valid
   }
+  return result
 }

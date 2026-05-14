@@ -9,18 +9,19 @@
 import { router } from '@kit.ArkUI'
 import { AppCard } from '../components/AppCard'
 import ExerciseService, { Exercise } from '../common/services/ExerciseService'
-import { ColorTokens, FontTokens, SpacingTokens, RadiusTokens } from '../common/styles/DesignTokens'
+import { MuscleColorMap, TouchTokens, FontTokens } from '../common/styles/DesignTokens'
+import { SearchBar } from '../components/SearchBar'
+import { Chip } from '../components/Chip'
+import { EmptyState } from '../components/EmptyState'
+import { ColorTokens, SpacingTokens, RadiusTokens } from '../common/styles/DesignTokens'
 
 const MUSCLE_GROUPS = ['全部', '胸', '背', '腿', '肩', '臂', '腹']
 const EQUIPMENT_TYPES = ['杠铃', '哑铃', '绳索', '固定器械', '自重']
-const MUSCLE_COLORS: Record<string, string> = {
-  '胸': '#1E88E5', '背': '#43A047', '腿': '#FB8C00',
-  '肩': '#8E24AA', '臂': '#E53935', '腹': '#00897B'
-}
+// MuscleColorMap provides color mapping with default values
 
-@Entry
+
 @Component
-struct ExerciseLibraryPage {
+export struct ExerciseLibraryPage {
   @State searchQuery: string = ''
   @State activeMuscle: string = '全部'
   @State activeEquipment: string = ''
@@ -105,12 +106,8 @@ struct ExerciseLibraryPage {
 
       // 搜索框
       Row() {
-        TextInput({ text: $$this.searchQuery, placeholder: '搜索动作名称...' })
-          .fontSize(FontTokens.BODY_SIZE)
-          .backgroundColor(Color.Transparent)
-          .layoutWeight(1)
-          .height(44)
-          .onChange(() => { this.filterAndSearch() })
+        // 使用统一的 SearchBar 组件
+        SearchBar({ query: this.searchQuery, placeholder: '搜索动作名称...' })
       }
       .width('100%')
       .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD })
@@ -123,18 +120,15 @@ struct ExerciseLibraryPage {
         Scroll() {
           Row() {
             ForEach(MUSCLE_GROUPS, (muscle: string) => {
-              Text(muscle)
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(this.activeMuscle === muscle ? Color.White : ColorTokens.TEXT_SECONDARY)
-                .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.SM, bottom: SpacingTokens.SM })
-                .backgroundColor(this.activeMuscle === muscle ? ColorTokens.PRIMARY : ColorTokens.SURFACE_SECONDARY)
-                .borderRadius(RadiusTokens.FULL)
-                .margin({ right: SpacingTokens.SM })
-                .onClick(() => {
-                  this.activeMuscle = muscle
-                  this.filterAndSearch()
-                })
+              Chip({
+                label: muscle,
+                color: this.activeMuscle === muscle ? ColorTokens.PRIMARY : MuscleColorMap.getColor(muscle),
+                chipSize: 'md'
+              })
+              .onClick(() => {
+                this.activeMuscle = muscle
+                this.filterAndSearch()
+              })
             })
           }
         }
@@ -145,26 +139,26 @@ struct ExerciseLibraryPage {
       .backgroundColor(ColorTokens.SURFACE_PRIMARY)
 
       // 器械筛选栏
-      Row() {
-        Scroll() {
           Row() {
-            ForEach(EQUIPMENT_TYPES, (equip: string) => {
-              Text(equip)
-                .fontSize(FontTokens.SMALL_SIZE)
-                .fontColor(this.activeEquipment === equip ? Color.White : ColorTokens.TEXT_SECONDARY)
-                .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.XS, bottom: SpacingTokens.XS })
-                .backgroundColor(this.activeEquipment === equip ? ColorTokens.NEUTRAL_400 : ColorTokens.SURFACE_SECONDARY)
-                .borderRadius(RadiusTokens.FULL)
-                .margin({ right: SpacingTokens.SM })
-                .onClick(() => {
-                  this.activeEquipment = this.activeEquipment === equip ? '' : equip
-                  this.filterAndSearch()
+            Scroll() {
+              Row() {
+                ForEach(EQUIPMENT_TYPES, (equip: string) => {
+                  Text(equip)
+                    .fontSize(FontTokens.SMALL_SIZE)
+                    .fontColor(this.activeEquipment === equip ? Color.White : ColorTokens.TEXT_SECONDARY)
+                    .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.XS, bottom: SpacingTokens.XS })
+                    .backgroundColor(this.activeEquipment === equip ? ColorTokens.NEUTRAL_400 : ColorTokens.SURFACE_SECONDARY)
+                    .borderRadius(RadiusTokens.FULL)
+                    .margin({ right: SpacingTokens.SM })
+                    .onClick(() => {
+                      this.activeEquipment = this.activeEquipment === equip ? '' : equip
+                      this.filterAndSearch()
+                    })
                 })
-            })
+              }
+            }
+            .scrollBar(BarState.Off)
           }
-        }
-        .scrollBar(BarState.Off)
-      }
       .width('100%')
       .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.SM })
       .backgroundColor(ColorTokens.SURFACE_PRIMARY)
@@ -172,7 +166,7 @@ struct ExerciseLibraryPage {
       // 动作列表（两列网格）
       Scroll() {
         Column() {
-          if (this.exercises.length > 0) {
+            if (this.exercises.length > 0) {
             // 两列网格
             Row() {
               ForEach(this.exercises, (exercise: Exercise, index: number) => {
@@ -206,11 +200,9 @@ struct ExerciseLibraryPage {
               .justifyContent(FlexAlign.Center)
               .onClick(() => { this.loadMore() })
             }
-          } else {
+            } else {
             Column() {
-              Text('未找到匹配动作')
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(ColorTokens.TEXT_SECONDARY)
+              EmptyState({ icon: '🔍', title: '未找到匹配动作' })
             }
             .width('100%')
             .padding(SpacingTokens.XXL)
@@ -231,8 +223,9 @@ struct ExerciseLibraryPage {
 
   @Builder
   exerciseCard(exercise: Exercise) {
-    AppCard({ variant: 'outlined', padding: 'compact' }) {
-      Column() {
+    Stack() {
+      AppCard({ variant: 'outlined', cardPadding: 'compact' }) {
+        Column() {
         // 缩略图占位
         Column() {
           Text(exercise.name.charAt(0))
@@ -243,7 +236,7 @@ struct ExerciseLibraryPage {
         .width('100%')
         .height(72)
         .borderRadius({ topLeft: RadiusTokens.SM, topRight: RadiusTokens.SM, bottomLeft: 0, bottomRight: 0 })
-        .backgroundColor(MUSCLE_COLORS[exercise.primaryMuscle] || '#999')
+        .backgroundColor(MuscleColorMap.getColor(exercise.primaryMuscle))
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
 
@@ -257,10 +250,7 @@ struct ExerciseLibraryPage {
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .width('100%')
 
-          Text(exercise.primaryMuscle)
-            .fontSize(FontTokens.SMALL_SIZE)
-            .fontColor(MUSCLE_COLORS[exercise.primaryMuscle] || '#999')
-            .fontWeight(FontWeight.Medium)
+          Chip({ label: exercise.primaryMuscle, color: MuscleColorMap.getColor(exercise.primaryMuscle), chipSize: 'sm' })
             .margin({ top: SpacingTokens.XS })
         }
         .width('100%')
@@ -269,8 +259,9 @@ struct ExerciseLibraryPage {
       }
       .width('100%')
     }
-    .width('100%')
-    .onClick(() => {
+  }
+  .width('100%')
+  .onClick(() => {
       router.pushUrl({ url: 'pages/ExerciseDetailPage', params: { exerciseId: exercise.id } })
     })
   }

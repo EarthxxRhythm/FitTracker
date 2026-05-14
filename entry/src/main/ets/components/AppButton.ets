@@ -15,7 +15,7 @@ import { ColorTokens, FontTokens, RadiusTokens, TouchTokens } from '../common/st
 export struct AppButton {
   @Prop text: string = ''
   @Prop type: 'primary' | 'secondary' | 'ghost' = 'primary'
-  @Prop size: 'large' | 'medium' | 'small' = 'medium'
+  @Prop buttonSize: 'large' | 'medium' | 'small' = 'medium'
   @Prop disabled: boolean = false
   @Prop loading: boolean = false
   @Prop block: boolean = false
@@ -30,13 +30,13 @@ export struct AppButton {
           .color(this.type === 'primary' ? Color.White : ColorTokens.PRIMARY)
       } else {
         Text(this.text)
-          .fontSize(this.size === 'large' ? 18 : this.size === 'small' ? 14 : FontTokens.BODY_SIZE)
+          .fontSize(this.buttonSize === 'large' ? 18 : this.buttonSize === 'small' ? 14 : FontTokens.BODY_SIZE)
           .fontColor(this.type === 'primary' ? Color.White : ColorTokens.PRIMARY)
           .fontWeight(this.type === 'ghost' ? FontWeight.Normal : FontWeight.Medium)
       }
     }
     .width(this.block ? '100%' : 'auto')
-    .height(this.size === 'small' ? TouchTokens.BUTTON_HEIGHT_SMALL : TouchTokens.BUTTON_HEIGHT_DEFAULT)
+    .height(this.buttonSize === 'small' ? TouchTokens.BUTTON_HEIGHT_SMALL : TouchTokens.BUTTON_HEIGHT_DEFAULT)
     .backgroundColor(this.type === 'primary'
       ? (this.disabled ? ColorTokens.PRIMARY_DISABLED : ColorTokens.PRIMARY)
       : Color.Transparent)

@@ -1,374 +1,732 @@
 /**
- * WorkoutRecorderPage —— 训练记录器
+ * WorkoutRecorderPage —— 训练记录器 (原型 8+9)
  *
- * 功能 #20: 开始训练 — 计时器 00:00:00 正计时
- * 功能 #21: 动作组数录入 — 手风琴折叠、重量/次数输入、添加/删除组
- * 功能 #22: 组数据实时保存
- * 功能 #23: 1RM实时估算（Epley公式）
- * 功能 #24: 临时添加动作
- * 功能 #25: 放弃训练（二次确认）
- * 功能 #26: 结束训练（摘要计算）
- * 功能 #27: 训练摘要弹窗
+ * View A: 训练编辑 (重量/次数/组数/休息 ± 控件, 完成按钮)
+ * View B: 计时器 (进度环, 开始/暂停, 任务列表, 浮动添加按钮)
  */
 import { router } from '@kit.ArkUI'
-import { AppButton } from '../components/AppButton'
 import { ExerciseRef, TrainingDay } from '../common/services/TrainingPlanService'
-import { ColorTokens, FontTokens, SpacingTokens, RadiusTokens } from '../common/styles/DesignTokens'
+import TrainingPlanService from '../common/services/TrainingPlanService'
+import WorkoutSessionService, { WorkoutSession, SavedExercise, SavedSet } from '../common/services/WorkoutSessionService'
+import { ColorTokens, FontTokens, SpacingTokens, RadiusTokens, TouchTokens, StopwatchTokens } from '../common/styles/DesignTokens'
+import { CustomTabBar } from '../components/MainTabBar'
+import { promptAction } from '@kit.ArkUI'
 
-interface SetData {
-  weight: string
-  reps: string
+interface ExEditorData {
+  name: string
+  weight: number
+  reps: number
+  sets: number
+  rest: number
 }
-
-interface ExerciseSet {
-  exercise: ExerciseRef
-  sets: SetData[]
-  expanded: boolean
-}
-
-@Entry
+@Preview
 @Component
-struct WorkoutRecorderPage {
-  @State exercises: ExerciseSet[] = []
-  @State elapsedSeconds: number = 0
-  @State timerId: number = -1
-  @State startTime: number = 0
-  @State isFinished: boolean = false
-  @State showSummary: boolean = false
-  @State totalSets: number = 0
-  @State totalVolume: number = 0
-  @State totalDuration: string = ''
+export struct WorkoutRecorderPage {
+  @State currentTab: string = 'training'
+  @State viewMode: number = 1 // 0=editor, 1=timer
+  @State timerSeconds: number = 0
+  @State timerRunning: boolean = false
+  private timerId: number = -1
+  private planId: string = ''
+  private planName: string = ''
+  private dayLabel: string = ''
+  private trainingDays: TrainingDay[] = []
 
-  async aboutToAppear(): Promise<void> {
+  // Editor state
+  @State exercises: ExEditorData[] = [
+    { name: '深蹲', weight: 60, reps: 12, sets: 4, rest: 90 },
+    { name: '卧推', weight: 50, reps: 10, sets: 4, rest: 120 },
+    { name: '硬拉', weight: 80, reps: 8, sets: 3, rest: 180 }
+  ]
+
+  // Timer state
+  private totalMinutes: number = 45
+  private tasksTotal: number = 5
+  private tasksDone: number = 3
+
+  aboutToAppear(): void {
     try {
       const params = router.getParams() as Record<string, Object>
-      const days = params['days'] as TrainingDay[]
-      if (days && days.length > 0) {
-        const today = days[0]
-        const sets: ExerciseSet[] = []
-        for (let ex of today.exercises) {
-          sets.push({
-            exercise: ex,
-            sets: [{ weight: '', reps: '' }],
-            expanded: sets.length === 0
-          })
+      if (params) {
+        if (params['days'] !== undefined) {
+          this.trainingDays = params['days'] as TrainingDay[]
         }
-        this.exercises = sets
+        if (params['planId'] !== undefined) {
+          this.planId = params['planId'] as string
+        }
+        if (params['planName'] !== undefined) {
+          this.planName = params['planName'] as string
+        }
+        if (params['dayLabel'] !== undefined) {
+          this.dayLabel = params['dayLabel'] as string
+        }
       }
     } catch (e) {
-      // default empty
+      // params parse failed
     }
-    this.startTimer()
-  }
-
-  startTimer(): void {
-    this.startTime = Date.now()
-    this.timerId = setInterval(() => {
-      this.elapsedSeconds = Math.floor((Date.now() - this.startTime) / 1000)
-    }, 1000)
-  }
-
-  stopTimer(): void {
-    if (this.timerId >= 0) {
-      clearInterval(this.timerId)
-      this.timerId = -1
-    }
-  }
-
-  formatTime(seconds: number): string {
-    const h = Math.floor(seconds / 3600)
-    const m = Math.floor((seconds % 3600) / 60)
-    const s = seconds % 60
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
-  }
-
-  getEstimated1RM(weightStr: string, repsStr: string): number {
-    const weight = parseFloat(weightStr) || 0
-    const reps = parseInt(repsStr) || 0
-    if (weight <= 0 || reps <= 0) {
-      return 0
-    }
-    return Math.round(weight * (1 + reps / 30))
-  }
-
-  toggleExpand(index: number): void {
-    this.exercises[index].expanded = !this.exercises[index].expanded
-  }
-
-  addSet(exerciseIndex: number): void {
-    this.exercises[exerciseIndex].sets.push({ weight: '', reps: '' })
-  }
-
-  removeSet(exerciseIndex: number, setIndex: number): void {
-    this.exercises[exerciseIndex].sets.splice(setIndex, 1)
-  }
-
-  updateSet(exerciseIndex: number, setIndex: number, field: 'weight' | 'reps', value: string): void {
-    this.exercises[exerciseIndex].sets[setIndex][field] = value
-  }
-
-  handleDiscard(): void {
-    AlertDialog.show({
-      title: '放弃训练',
-      message: '确定放弃本次训练？已填写数据将不会保存',
-      autoCancel: true,
-      alignment: DialogAlignment.Center,
-      primaryButton: { value: '取消', action: () => {} },
-      secondaryButton: {
-        value: '确定放弃',
-        fontColor: ColorTokens.ERROR,
-        action: () => {
-          this.stopTimer()
-          router.back()
-        }
-      }
-    })
-  }
-
-  handleFinish(): void {
-    // Calculate summary
-    let sets = 0
-    let volume = 0
-    for (let es of this.exercises) {
-      for (let s of es.sets) {
-        const w = parseFloat(s.weight) || 0
-        const r = parseInt(s.reps) || 0
-        if (w > 0 && r > 0) {
-          sets++
-          volume += w * r
-        }
-      }
-    }
-    this.totalSets = sets
-    this.totalVolume = volume
-    this.totalDuration = this.formatTime(this.elapsedSeconds)
-    this.stopTimer()
-    this.showSummary = true
   }
 
   aboutToDisappear(): void {
     this.stopTimer()
   }
 
-  build() {
-    if (this.showSummary) {
-      // 训练摘要弹窗 (Feature #27)
-      Column() {
-        Column() {
-          Text('训练完成！')
-            .fontSize(FontTokens.DISPLAY_SIZE)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(ColorTokens.PRIMARY)
-            .margin({ bottom: SpacingTokens.XL })
+  startTimer(): void {
+    if (!this.timerRunning) {
+      this.timerRunning = true
+      this.timerId = setInterval(() => {
+        this.timerSeconds++
+      }, 1000)
+    }
+  }
 
-          Row() {
-            this.summaryItem('时长', this.totalDuration)
-            this.summaryItem('组数', this.totalSets.toString())
-          }
-          .width('100%')
-          .margin({ bottom: SpacingTokens.MD })
+  pauseTimer(): void {
+    this.timerRunning = false
+    if (this.timerId !== -1) {
+      clearInterval(this.timerId)
+      this.timerId = -1
+    }
+  }
 
-          Text(`总容量：${this.totalVolume} kg`)
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontColor(ColorTokens.TEXT_SECONDARY)
-            .margin({ bottom: SpacingTokens.XXL })
+  stopTimer(): void {
+    this.timerRunning = false
+    if (this.timerId !== -1) {
+      clearInterval(this.timerId)
+      this.timerId = -1
+    }
+  }
 
-          AppButton({
-            text: '完成',
-            type: 'primary',
-            size: 'large',
-            block: true,
-            onButtonClick: () => {
-              router.back()
-            }
-          })
-        }
-        .width('100%')
-        .height('100%')
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
-        .padding(SpacingTokens.MD)
-        .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+  resetTimer(): void {
+    this.pauseTimer()
+    this.timerSeconds = 0
+  }
+
+  async finishWorkout(): Promise<void> {
+    const exercises: SavedExercise[] = []
+    let totalSets = 0
+    let totalVolume = 0
+
+    for (let i = 0; i < this.exercises.length; i++) {
+      const ex = this.exercises[i]
+      const sets: SavedSet[] = []
+      for (let s = 0; s < ex.sets; s++) {
+        const set: SavedSet = { weight: ex.weight, reps: ex.reps }
+        sets.push(set)
+        totalVolume += ex.weight * ex.reps
       }
-      .width('100%')
-      .height('100%')
-    } else {
+      totalSets += ex.sets
+      const savedEx: SavedExercise = {
+        name: ex.name,
+        targetMuscle: '',
+        sets: sets
+      }
+      exercises.push(savedEx)
+    }
+
+    const now = Date.now()
+    const dateStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`
+
+    const session: WorkoutSession = {
+      id: `session_${now}`,
+      planId: this.planId,
+      planName: this.planName || '自由训练',
+      dayLabel: this.dayLabel || '',
+      startTime: now - this.timerSeconds * 1000,
+      endTime: now,
+      durationSeconds: this.timerSeconds,
+      totalSets: totalSets,
+      totalVolume: totalVolume,
+      notes: '',
+      exercises: exercises,
+      createdAt: dateStr
+    }
+
+    await WorkoutSessionService.saveSession(getContext(this), session)
+    promptAction.showToast({ message: '训练已保存' })
+    router.back()
+  }
+
+  formatTime(totalSec: number): string {
+    const m = Math.floor(totalSec / 60)
+    const s = totalSec % 60
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+  }
+
+  build() {
     Column() {
-      // 顶部计时器 + 放弃按钮
+      if (this.viewMode === 0) {
+        this.EditorView()
+      } else {
+        this.TimerView()
+      }
+
+      // CustomTabBar()
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(ColorTokens.BG_PRIMARY)
+  }
+
+  // ═══════════════ VIEW A: 训练记录编辑 ═══════════════
+  @Builder
+  EditorView() {
+    Column() {
+      // Header
       Row() {
-        Text(this.formatTime(this.elapsedSeconds))
-          .fontSize(FontTokens.TIMER_SIZE)
+        Text('←')
+          .fontSize(22)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+          .padding({ right: SpacingTokens.SM })
+          .onClick(() => { router.back() })
+        Text('训练记录编辑')
+          .fontSize(FontTokens.HEADLINE_SIZE)
           .fontWeight(FontWeight.Bold)
           .fontColor(ColorTokens.TEXT_PRIMARY)
-          .fontFamily(FontTokens.FAMILY_MONO)
-
         Blank()
-
-        Button() {
-          Text('放弃')
-            .fontSize(FontTokens.CAPTION_SIZE)
-            .fontColor(ColorTokens.ERROR)
-        }
-        .height(36)
-        .backgroundColor(Color.Transparent)
-        .border({ width: 1, color: ColorTokens.ERROR })
-        .borderRadius(RadiusTokens.FULL)
-        .onClick(() => { this.handleDiscard() })
+        Text(new Date().toLocaleDateString())
+          .fontSize(FontTokens.SMALL_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
       }
       .width('100%')
       .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.LG, bottom: SpacingTokens.MD })
-      .backgroundColor(ColorTokens.SURFACE_PRIMARY)
 
-      // 动作列表
       Scroll() {
         Column() {
-          ForEach(this.exercises, (es: ExerciseSet, index: number) => {
+          ForEach(this.exercises, (ex: ExEditorData, idx: number) => {
             Column() {
-              // 手风琴头部
+              // 标题行
               Row() {
-                Text(es.exercise.name)
-                  .fontSize(FontTokens.BODY_SIZE)
-                  .fontWeight(FontWeight.Medium)
+                Column() {
+                  Text('🏋')
+                    .fontSize(20)
+                }
+                .width(36)
+                .height(36)
+                .borderRadius(RadiusTokens.FULL)
+                .backgroundColor(ColorTokens.OVERLAY_PRIMARY)
+                .justifyContent(FlexAlign.Center)
+                .alignItems(HorizontalAlign.Center)
+
+                Text(ex.name)
+                  .fontSize(FontTokens.BODY_BOLD_SIZE)
                   .fontColor(ColorTokens.TEXT_PRIMARY)
+                  .margin({ left: SpacingTokens.SM })
                   .layoutWeight(1)
 
-                Text(`${es.sets.length}组`)
-                  .fontSize(FontTokens.CAPTION_SIZE)
-                  .fontColor(ColorTokens.TEXT_SECONDARY)
-                  .margin({ right: SpacingTokens.SM })
-
-                Text(es.expanded ? '▼' : '▶')
-                  .fontSize(FontTokens.CAPTION_SIZE)
+                Text('⋯')
+                  .fontSize(20)
                   .fontColor(ColorTokens.TEXT_SECONDARY)
               }
               .width('100%')
-              .padding(SpacingTokens.MD)
-              .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-              .onClick(() => { this.toggleExpand(index) })
+              .margin({ bottom: SpacingTokens.MD })
 
-              // 手风琴内容 — 组数据
-              if (es.expanded) {
-                Column() {
-                  ForEach(es.sets, (set: SetData, sIndex: number) => {
-                    Row() {
-                      // 1RM估算
-                      Column() {
-                        Text(`${this.getEstimated1RM(set.weight, set.reps)}`)
-                          .fontSize(FontTokens.SMALL_SIZE)
-                          .fontColor(ColorTokens.TEXT_SECONDARY)
-                        Text('1RM')
-                          .fontSize(9)
-                          .fontColor(ColorTokens.TEXT_DISABLED)
-                      }
-                      .width(40)
-                      .alignItems(HorizontalAlign.Center)
-
-                      // 重量输入
-                      TextInput({ text: $$this.exercises[index].sets[sIndex].weight, placeholder: '重量' })
-                        .type(InputType.Number)
-                        .fontSize(FontTokens.CAPTION_SIZE)
-                        .width(80)
-                        .height(40)
-                        .textAlign(TextAlign.Center)
-                        .backgroundColor(ColorTokens.SURFACE_SECONDARY)
-                        .borderRadius(RadiusTokens.SM)
-
-                      Text('kg')
-                        .fontSize(FontTokens.CAPTION_SIZE)
-                        .fontColor(ColorTokens.TEXT_SECONDARY)
-                        .margin({ left: SpacingTokens.XS, right: SpacingTokens.SM })
-
-                      Text('×')
-                        .fontSize(FontTokens.CAPTION_SIZE)
-                        .fontColor(ColorTokens.TEXT_DISABLED)
-                        .margin({ right: SpacingTokens.XS })
-
-                      // 次数输入
-                      TextInput({ text: $$this.exercises[index].sets[sIndex].reps, placeholder: '次数' })
-                        .type(InputType.Number)
-                        .fontSize(FontTokens.CAPTION_SIZE)
-                        .width(60)
-                        .height(40)
-                        .textAlign(TextAlign.Center)
-                        .backgroundColor(ColorTokens.SURFACE_SECONDARY)
-                        .borderRadius(RadiusTokens.SM)
-
-                      Text('次')
-                        .fontSize(FontTokens.CAPTION_SIZE)
-                        .fontColor(ColorTokens.TEXT_SECONDARY)
-                        .margin({ left: SpacingTokens.XS })
-
-                      // 删除按钮
-                      Text('✕')
-                        .fontSize(FontTokens.CAPTION_SIZE)
-                        .fontColor(ColorTokens.ERROR)
-                        .padding(SpacingTokens.SM)
-                        .onClick(() => { this.removeSet(index, sIndex) })
-                    }
-                    .width('100%')
-                    .height(48)
-                    .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD })
-                    .alignItems(VerticalAlign.Center)
-                  }, (set: SetData, sIdx: number) => `set_${index}_${sIdx}`)
-
-                  // 添加组按钮
-                  Row() {
-                    Text('+ 添加组')
-                      .fontSize(FontTokens.CAPTION_SIZE)
-                      .fontColor(ColorTokens.PRIMARY)
-                  }
-                  .width('100%')
-                  .height(40)
-                  .justifyContent(FlexAlign.Center)
-                  .margin({ top: SpacingTokens.SM })
-                  .onClick(() => { this.addSet(index) })
-                }
-                .padding({ bottom: SpacingTokens.MD })
-                .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+              // Row 1: 重量 | 次数
+              Row() {
+                this.NumberField('重量(kg)', ex.weight, (v: number) => { this.exercises[idx].weight = v })
+                Column().width(SpacingTokens.SM)
+                this.NumberField('次数', ex.reps, (v: number) => { this.exercises[idx].reps = v })
               }
+              .width('100%')
+              .margin({ bottom: SpacingTokens.SM })
+
+              // Row 2: 组数 | 休息
+              Row() {
+                this.NumberField('组数', ex.sets, (v: number) => { this.exercises[idx].sets = v })
+                Column().width(SpacingTokens.SM)
+                this.NumberField('休息(s)', ex.rest, (v: number) => { this.exercises[idx].rest = v })
+              }
+              .width('100%')
             }
-            .borderRadius(RadiusTokens.SM)
-            .margin({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.SM })
+            .width('100%')
+            .padding(SpacingTokens.MD)
             .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-          }, (es: ExerciseSet) => es.exercise.name)
+            .borderRadius(RadiusTokens.LG)
+            .margin({ bottom: SpacingTokens.SM })
+          }, (ex: ExEditorData, idx: number) => `${idx}`)
+
+          // 完成按钮
+          Button('完成')
+            .width('100%')
+            .height(TouchTokens.BUTTON_HEIGHT_LARGE)
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+            .backgroundColor(ColorTokens.PRIMARY)
+            .borderRadius(RadiusTokens.FULL)
+            .margin({ top: SpacingTokens.MD, bottom: SpacingTokens.XXL })
+            .onClick(() => { this.finishWorkout() })
         }
         .width('100%')
+        .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD })
+      }
+      .layoutWeight(1)
+      .scrollBar(BarState.Off)
+    }
+    .layoutWeight(1)
+    .width('100%')
+  }
+
+  @Builder
+  NumberField(label: string, value: number, onChange: (v: number) => void) {
+    Column() {
+      Text(label)
+        .fontSize(FontTokens.SMALL_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .margin({ bottom: SpacingTokens.XS })
+      Row() {
+        Text('−')
+          .fontSize(18)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+          .width(32)
+          .height(32)
+          .textAlign(TextAlign.Center)
+          .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+          .borderRadius(RadiusTokens.XS)
+          .onClick(() => { if (value > 0) onChange(value - 1) })
+
+        Text(`${value}`)
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+          .layoutWeight(1)
+          .textAlign(TextAlign.Center)
+
+        Text('+')
+          .fontSize(18)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+          .width(32)
+          .height(32)
+          .textAlign(TextAlign.Center)
+          .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+          .borderRadius(RadiusTokens.XS)
+          .onClick(() => { onChange(value + 1) })
+      }
+      .width('100%')
+    }
+    .layoutWeight(1)
+    .padding(SpacingTokens.XS)
+    .backgroundColor(ColorTokens.BG_SECONDARY)
+    .borderRadius(RadiusTokens.SM)
+  }
+
+  // ═══════════════ VIEW B: 计时器 + 任务列表 ═══════════════
+  @Builder
+  TimerView() {
+    Column() {
+      Scroll() {
+        Column() {
+          // ═══ 计时器卡片 ═══
+          Column() {
+            MechanicalStopwatch({ elapsedSeconds: this.timerSeconds, isRunning: this.timerRunning })
+
+            // 开始/暂停按钮
+            Row() {
+              Button(this.timerRunning ? '⏸ 暂停' : '▶ 开始')
+                .fontSize(FontTokens.BODY_SIZE)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+                .backgroundColor(this.timerRunning
+                  ? ColorTokens.ACCENT
+                  : ColorTokens.PRIMARY)
+                .borderRadius(RadiusTokens.FULL)
+                .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
+                .layoutWeight(1)
+                .shadow({
+                  radius: 8,
+                  color: this.timerRunning
+                    ? 'rgba(255,152,0,0.35)'
+                    : 'rgba(30,136,229,0.35)',
+                  offsetX: 0,
+                  offsetY: 4
+                })
+                .onClick(() => { this.timerRunning ? this.pauseTimer() : this.startTimer() })
+
+              Column().width(SpacingTokens.MD)
+
+              Button('↺ 重置')
+                .fontSize(FontTokens.BODY_SIZE)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+                .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+                .borderRadius(RadiusTokens.FULL)
+                .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
+                .layoutWeight(1)
+                .onClick(() => { this.resetTimer() })
+            }
+            .width('100%')
+            .margin({ bottom: SpacingTokens.MD })
+
+            // 分隔线
+            Row()
+              .width('100%')
+              .height(1)
+              .backgroundColor('rgba(255,255,255,0.06)')
+              .margin({ bottom: SpacingTokens.MD })
+
+            // 任务进度
+            Row() {
+              Column() {
+                Text(`${this.tasksDone}/${this.tasksTotal}`)
+                  .fontSize(FontTokens.TITLE_SIZE)
+                  .fontWeight(FontWeight.Bold)
+                  .fontColor(ColorTokens.TEXT_PRIMARY)
+                Text('今日任务')
+                  .fontSize(FontTokens.SMALL_SIZE)
+                  .fontColor(ColorTokens.TEXT_SECONDARY)
+              }
+              .layoutWeight(1)
+
+              Column() {
+                Text(`${Math.round(this.tasksDone / this.tasksTotal * 100)}%`)
+                  .fontSize(FontTokens.TITLE_SIZE)
+                  .fontWeight(FontWeight.Bold)
+                  .fontColor(ColorTokens.SUCCESS)
+                Text('完成度')
+                  .fontSize(FontTokens.SMALL_SIZE)
+                  .fontColor(ColorTokens.TEXT_SECONDARY)
+              }
+              .layoutWeight(1)
+            }
+            .width('100%')
+          }
+          .width('95%')
+          .padding(SpacingTokens.MD)
+          .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+          .borderRadius(RadiusTokens.LG)
+          .border({
+            width: { top: 2 },
+            color: { top: ColorTokens.PRIMARY },
+            radius: { topLeft: RadiusTokens.LG, topRight: RadiusTokens.LG }
+          })
+          .margin({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.LG })
+
+          // ═══ 任务列表 ═══
+          Column( {space : 10} ) {
+            ForEach(this.trainingDays.length > 0 && this.trainingDays[0].exercises.length > 0
+              ? this.trainingDays[0].exercises
+              : [
+                  { name: '哑铃卧推', targetMuscle: '胸', sets: 4, reps: '12' },
+                  { name: '坐姿划船', targetMuscle: '背', sets: 4, reps: '10' },
+                  { name: '肩部推举', targetMuscle: '肩', sets: 3, reps: '12' },
+                  { name: '三头肌绳索下拉', targetMuscle: '臂', sets: 3, reps: '15' }
+                ] as ExerciseRef[],
+              (ex: ExerciseRef, idx: number) => {
+                Row() {
+                  Text(`${idx + 1}`)
+                    .fontSize(FontTokens.CAPTION_SIZE)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+                    .width(28)
+                    .height(28)
+                    .borderRadius(RadiusTokens.FULL)
+                    .backgroundColor(ColorTokens.PRIMARY)
+                    .textAlign(TextAlign.Center)
+                    .margin({
+                      left: SpacingTokens.SM,
+                      right: SpacingTokens.SM,
+                      bottom: SpacingTokens.SM,
+                      top: SpacingTokens.SM
+                    })
+
+                  Column() {
+                    Text(ex.name)
+                      .fontSize(FontTokens.BODY_SIZE)
+                      .fontColor(ColorTokens.TEXT_PRIMARY)
+                    Text(`${ex.sets}组 x ${ex.reps}次`)
+                      .fontSize(FontTokens.CAPTION_SIZE)
+                      .fontColor(ColorTokens.TEXT_SECONDARY)
+                  }
+                  .alignItems(HorizontalAlign.Start)
+                  .layoutWeight(1)
+                  .margin({ left: SpacingTokens.SM })
+
+                  Text('')
+                    .fontSize(FontTokens.CAPTION_SIZE)
+                    .fontColor(ColorTokens.TEXT_SECONDARY)
+                    .width(28)
+                    .height(28)
+                    .border({ width: 1, color: ColorTokens.TEXT_SECONDARY })
+                    .borderRadius(RadiusTokens.FULL)
+                    .textAlign(TextAlign.Center)
+                    .margin({
+                      left: SpacingTokens.SM,
+                      right: SpacingTokens.SM,
+                    })
+                }
+                .width('100%')
+                .backgroundColor(ColorTokens.BG_SECONDARY)
+                .padding({ top: SpacingTokens.SM, bottom: SpacingTokens.SM })
+                .borderRadius(RadiusTokens.MD)
+              }, (ex: ExerciseRef, idx: number) => `${idx}`)
+
+          }
+          .width('100%')
+          .padding(SpacingTokens.MD)
+          .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+          .borderRadius(RadiusTokens.LG)
+          .margin({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.XXL })
+        }
+        .width('90%')
       }
       .layoutWeight(1)
       .scrollBar(BarState.Off)
 
-      // 底部结束训练按钮
-      Row() {
-        AppButton({
-          text: '结束训练',
-          type: 'primary',
-          size: 'large',
-          block: true,
-          onButtonClick: () => { this.handleFinish() }
-        })
+      // 浮动添加按钮
+      Stack() {
+        Button('+')
+          .width(56)
+          .height(56)
+          .fontSize(28)
+          .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+          .backgroundColor(ColorTokens.PRIMARY)
+          .borderRadius(RadiusTokens.FULL)
+          .position({ x: '80%', y: '-20%' })
+          .onClick(() => { this.viewMode = 0 })
       }
-      .width('100%')
-      .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.LG })
-    }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
-    }
-  }
-
-  @Builder
-  summaryItem(label: string, value: string) {
-    Column() {
-      Text(value)
-        .fontSize(FontTokens.TITLE_SIZE)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(ColorTokens.TEXT_PRIMARY)
-      Text(label)
-        .fontSize(FontTokens.CAPTION_SIZE)
-        .fontColor(ColorTokens.TEXT_SECONDARY)
-        .margin({ top: SpacingTokens.XS })
     }
     .layoutWeight(1)
-    .alignItems(HorizontalAlign.Center)
+    .width('100%')
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MechanicalStopwatch — 精密计时秒表 (Precision Instrument)
+//
+// 美学方向：高端运动计时码表
+//   深度层次：3 层同心圆（表盘基色 → 微光晕 → 内圈高光）
+//   外表圈：双环装饰线模拟金属表圈
+//   指针：青色秒针 + 配重尾端，白色分针
+//   中心枢纽：双层圆（外环 + 内实心），计时中切换为暖橙
+//   数字时间：等宽字体 + 蓝色微光阴影
+// ═══════════════════════════════════════════════════════════════
+@Component
+export struct MechanicalStopwatch {
+  @Prop elapsedSeconds: number = 0
+  @Prop isRunning: boolean = false
+
+  private readonly SECOND_MARKS: number[] = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
+  private readonly ALL_TICKS: number[] = [
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+    10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+    20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+    30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
+    40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+    50, 51, 52, 53, 54, 55, 56, 57, 58, 59
+  ]
+
+  getDisplayTime(): string {
+    const mins = Math.floor(this.elapsedSeconds / 60)
+    const secs = this.elapsedSeconds % 60
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+  }
+
+  getSecondsAngle(): number {
+    return this.elapsedSeconds * 6
+  }
+
+  getMinutesAngle(): number {
+    return Math.floor(this.elapsedSeconds / 60) * 6
+  }
+
+  build() {
+    Stack() {
+      Stack() {
+        // ────── Layer 1: 表盘基底（最深）────────
+        Circle()
+          .width('100%')
+          .height('100%')
+          .fill(StopwatchTokens.DIAL_BASE)
+
+        // ────── Layer 2: 微光晕层（92% 直径，淡蓝色）────────
+        Circle()
+          .width('92%')
+          .height('92%')
+          .fill(StopwatchTokens.DIAL_OVERLAY)
+
+        // ────── Layer 3: 内圈高光（78% 直径）────────
+        Circle()
+          .width('78%')
+          .height('78%')
+          .fill(StopwatchTokens.DIAL_INNER)
+
+        // ────── 外表圈装饰 — 双环线 ────────
+        Circle()
+          .width('96%')
+          .height('96%')
+          .fill(Color.Transparent)
+          .stroke(StopwatchTokens.BEZEL_STROKE)
+          .strokeWidth(1.5)
+
+        Circle()
+          .width('98%')
+          .height('98%')
+          .fill(Color.Transparent)
+          .stroke(StopwatchTokens.BEZEL_STROKE)
+          .strokeWidth(0.5)
+
+        // ═══════════════ 主刻度（每 5 秒）+ 数字 ═══════════════
+        ForEach(this.SECOND_MARKS, (second: number) => {
+          Stack() {
+            Rect()
+              .width(2.5)
+              .height(16)
+              .fill(StopwatchTokens.TICK_MAJOR)
+              .borderRadius(1.25)
+              .offset({ y: -126 })
+            Text(second.toString())
+              .fontSize(FontTokens.SMALL_SIZE)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(StopwatchTokens.TICK_MAJOR)
+              .offset({ y: -106 })
+              .rotate({ angle: -second * 6 })
+          }
+          .width('100%')
+          .height('100%')
+          .rotate({ angle: second * 6, centerX: '50%', centerY: '50%' })
+        })
+
+        // ═══════════════ 小刻度（每 1 秒，跳过 5 倍数）═══════════════
+        ForEach(this.ALL_TICKS, (second: number) => {
+          if (second % 5 !== 0) {
+            Stack() {
+              Rect()
+                .width(1)
+                .height(6)
+                .fill(StopwatchTokens.TICK_MINOR)
+                .borderRadius(0.5)
+                .offset({ y: -131 })
+            }
+            .width('100%')
+            .height('100%')
+            .rotate({ angle: second * 6, centerX: '50%', centerY: '50%' })
+          }
+        })
+
+        // ═══════════════ 秒针 — 配重尾端 + 细长针体 ═══════════════
+        // 配重圆（针尾）
+        Circle()
+          .width(8)
+          .height(8)
+          .fill(StopwatchTokens.SECOND_HAND)
+          .position({ x: '50%', y: '50%' })
+          .translate({ x: -4, y: 14 })
+
+        // 秒针主体
+        Rect()
+          .width(2)
+          .height(120)
+          .fill(StopwatchTokens.SECOND_HAND)
+          .borderRadius(1)
+          .position({ x: '50%', y: '50%' })
+          .translate({ x: -1, y: -122 })
+          .rotate({
+            angle: this.getSecondsAngle(),
+            centerX: 1,
+            centerY: 122
+          })
+
+        // ═══════════════ 中心枢纽 — 双层圆 ═══════════════
+        // 外环（透明填充 + 描边）
+        Circle()
+          .width(18)
+          .height(18)
+          .fill(Color.Transparent)
+          .stroke(this.isRunning
+            ? StopwatchTokens.RUNNING_GLOW
+            : StopwatchTokens.CENTER_RING)
+          .strokeWidth(2.5)
+          .position({ x: '50%', y: '50%' })
+          .translate({ x: -9, y: -9 })
+
+        // 内实心圆（计时中橙色，暂停蓝色）
+        Circle()
+          .width(8)
+          .height(8)
+          .fill(this.isRunning
+            ? ColorTokens.ACCENT
+            : ColorTokens.PRIMARY)
+          .position({ x: '50%', y: '50%' })
+          .translate({ x: -4, y: -4 })
+
+        // ═══════════════ 子表盘 — 累计分钟 ═══════════════
+        Stack() {
+          Circle()
+            .width('100%')
+            .height('100%')
+            .fill(StopwatchTokens.SUBDIAL_FILL)
+            .stroke(StopwatchTokens.SUBDIAL_STROKE)
+            .strokeWidth(1)
+
+          ForEach([0, 10, 20, 30, 40, 50], (minute: number) => {
+            Stack() {
+              Rect()
+                .width(1.5)
+                .height(5)
+                .fill(StopwatchTokens.TICK_MINOR)
+                .borderRadius(0.75)
+                .offset({ y: -28 })
+              Text(minute.toString())
+                .fontSize(FontTokens.MICRO_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
+                .offset({ y: -18 })
+                .rotate({ angle: -minute * 6 })
+            }
+            .width('100%')
+            .height('100%')
+            .rotate({ angle: minute * 6, centerX: '50%', centerY: '50%' })
+          })
+
+          // 分针
+          Rect()
+            .width(2)
+            .height(22)
+            .fill(StopwatchTokens.MINUTE_HAND)
+            .borderRadius(1)
+            .position({ x: '50%', y: '50%' })
+            .translate({ x: -1, y: -25 })
+            .rotate({
+              angle: this.getMinutesAngle(),
+              centerX: 1,
+              centerY: 32
+            })
+
+          // 子表盘中心点
+          Circle()
+            .width(5)
+            .height(5)
+            .fill(ColorTokens.PRIMARY)
+            .position({ x: '50%', y: '50%' })
+            .translate({ x: -2.5, y: -2.5 })
+        }
+        .width(62)
+        .height(62)
+        .position({ x: '53%', y: '72%' })
+        .translate({ x: -31, y: -31 })
+
+        // ═══════════════ 数字时间 ═══════════════
+        Text(this.getDisplayTime())
+          .fontSize(FontTokens.HERO_SIZE)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+          .fontFamily(FontTokens.FAMILY_MONO)
+          .shadow({
+            radius: 12,
+            color: 'rgba(30,136,229,0.18)',
+            offsetX: 0,
+            offsetY: 0
+          })
+          .position({ x: '50%', y: '26%' })
+          .translate({ x: '-50%', y: '-50%' })
+      }
+      .width(StopwatchTokens.CASE_SIZE)
+      .height(StopwatchTokens.CASE_SIZE)
+      .shadow({
+        radius: 32,
+        color: 'rgba(0,0,0,0.55)',
+        offsetX: 0,
+        offsetY: 12
+      })
+    }
+    .width('100%')
+    .height(StopwatchTokens.CONTAINER_HEIGHT)
+    .alignContent(Alignment.Center)
+    .backgroundColor(Color.Transparent)
   }
 }

@@ -1,5 +1,17 @@
-import abilityTest from './Ability.test';
+import abilityTest from './Ability.test'
+import validationUtilsTest from './ValidationUtils.test'
+import exerciseServiceTest from './ExerciseService.test'
+import authServiceTest from './AuthService.test'
+import sessionManagerTest from './SessionManager.test'
+import workoutSessionLogicTest from './WorkoutSessionService.test'
+import trainingPlanServiceTest from './TrainingPlanService.test'
 
-export default function testsuite() {
-  abilityTest();
+export default function testsuite(): void {
+  abilityTest()
+  validationUtilsTest()
+  exerciseServiceTest()
+  authServiceTest()
+  sessionManagerTest()
+  workoutSessionLogicTest()
+  trainingPlanServiceTest()
 }

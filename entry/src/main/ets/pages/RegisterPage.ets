@@ -44,6 +44,7 @@ struct RegisterPage {
   }
 
   build() {
+    // DESIGN: Register page uses centered layout with brand logo (DISPLAY_SIZE, PRIMARY color) + form inputs. No page header — brand acts as header.
     Column() {
       // 顶部区域：Logo 与标题
       Column() {
@@ -99,7 +100,7 @@ struct RegisterPage {
         AppButton({
           text: '注册',
           type: 'primary',
-          size: 'large',
+          buttonSize: 'large',
           block: true,
           loading: this.loading,
           onButtonClick: () => { this.handleRegister() }

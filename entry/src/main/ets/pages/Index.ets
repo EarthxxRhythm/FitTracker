@@ -1,466 +1,343 @@
 /**
- * Index —— 训练Tab首页（应用主页）
- *
- * 功能 #7: 预置计划列表 — 分段控件"预置计划|我的计划"切换；
- * 功能 #9: "我的计划"显示已启用计划。
- * 功能 #10: 当前计划高亮（绿色边框+标签），左滑删除非当前计划。
- * 后续功能 #11: 替换为"今日训练视图"。
+ * Index —— 主页 (原型 1)
+ * 深色主题 | 蓝色主色 #1E88E5 | 问候语 | 训练卡 | 进度 | 统计 | 趋势图
  */
 import { router } from '@kit.ArkUI'
-import { AppButton } from '../components/AppButton'
-import { AppCard } from '../components/AppCard'
-import TrainingPlanService, { PresetPlan, UserPlan, TrainingDay, ExerciseRef } from '../common/services/TrainingPlanService'
-import { ColorTokens, FontTokens, SpacingTokens, RadiusTokens } from '../common/styles/DesignTokens'
+import TrainingPlanService, { UserPlan, TrainingDay, ExerciseRef } from '../common/services/TrainingPlanService'
+import WorkoutSessionService from '../common/services/WorkoutSessionService'
+import { ColorTokens, FontTokens, SpacingTokens, RadiusTokens, TouchTokens } from '../common/styles/DesignTokens'
+import { CustomTabBar } from '../components/MainTabBar'
 
-@Entry
+interface WeekStat {
+  label: string
+  value: string
+  unit: string
+}
+
+interface BarData {
+  day: string
+  height: number
+}
+
+
 @Component
-struct Index {
-  @State activeSegment: number = 0 // 0=预置计划, 1=我的计划
-  @State myPlans: UserPlan[] = []
-  @State currentPlanId: string = ''
+export struct Index {
+  @State currentTab: string = 'home'
+  @State todayLabel: string = ''
+  @State timeLabel: string = ''
   @State currentPlan: UserPlan | null = null
   @State todayTraining: TrainingDay | null = null
-  @State myPlansLoaded: boolean = false
-  private presetPlans: PresetPlan[] = TrainingPlanService.getAllPresetPlans()
+  @State weeklyTrainCount: number = 3
+  @State weeklyMinutes: number = 120
+  @State weeklyCalories: number = 1800
+  @State planProgress: number = 12
+  @State planTotal: number = 30
+  private barData: BarData[] = [
+    { day: '一', height: 60 }, { day: '二', height: 90 }, { day: '三', height: 40 },
+    { day: '四', height: 80 }, { day: '五', height: 50 }, { day: '六', height: 70 }, { day: '日', height: 30 }
+  ]
+  private stats: WeekStat[] = [
+    { label: '本周训练', value: '3', unit: '次' },
+    { label: '累计时长', value: '120', unit: '分钟' },
+    { label: '消耗热量', value: '1800', unit: '千卡' }
+  ]
 
   async aboutToAppear(): Promise<void> {
+    this.todayLabel = TrainingPlanService.getTodayLabel()
+    const now = new Date()
+    this.timeLabel = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+
     try {
       const plan = await TrainingPlanService.getCurrentPlan(getContext(this))
       if (plan) {
         this.currentPlan = plan
-        this.currentPlanId = plan.id
         this.todayTraining = TrainingPlanService.getTodayTraining(plan)
-        this.activeSegment = 1
       }
+      const weeklyStats = await WorkoutSessionService.getWeeklyStats(getContext(this))
+      this.weeklyTrainCount = weeklyStats.count
+      this.weeklyMinutes = Math.round(weeklyStats.duration / 60)
+      this.weeklyCalories = Math.round(weeklyStats.volume * 0.1)
     } catch (e) {
-      // no current plan, show default view
+      // use defaults
     }
-  }
-
-  async onSegmentChange(segment: number): Promise<void> {
-    this.activeSegment = segment
-    if (segment === 1) {
-      this.myPlans = await TrainingPlanService.getMyPlans(getContext(this))
-      const current = await TrainingPlanService.getCurrentPlan(getContext(this))
-      this.currentPlanId = current ? current.id : ''
-      this.myPlansLoaded = true
-    }
-  }
-
-  async deleteMyPlan(planId: string): Promise<void> {
-    await TrainingPlanService.removeMyPlan(getContext(this), planId)
-    this.myPlans = await TrainingPlanService.getMyPlans(getContext(this))
-    const current = await TrainingPlanService.getCurrentPlan(getContext(this))
-    this.currentPlanId = current ? current.id : ''
-  }
-
-  @Builder
-  swipeDeleteBuilder() {
-    Column() {
-      Text('删除')
-        .fontSize(FontTokens.SMALL_SIZE)
-        .fontColor(Color.White)
-    }
-    .width(72)
-    .height('100%')
-    .backgroundColor(ColorTokens.ERROR)
-    .justifyContent(FlexAlign.Center)
-    .alignItems(HorizontalAlign.Center)
-  }
-
-  @Builder
-  todayTrainingView() {
-    Column() {
-      // 日期欢迎语
-      Column() {
-        Text(`${TrainingPlanService.getTodayLabel()}，开始训练吧！`)
-          .fontSize(FontTokens.TITLE_SIZE)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(ColorTokens.TEXT_PRIMARY)
-          .margin({ bottom: SpacingTokens.XS })
-
-        if (this.currentPlan !== null) {
-          Text(`${this.currentPlan.name} · ${this.todayTraining!.dayLabel}`)
-            .fontSize(FontTokens.CAPTION_SIZE)
-            .fontColor(ColorTokens.TEXT_SECONDARY)
-        }
-      }
-      .width('100%')
-      .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.MD, bottom: SpacingTokens.LG })
-      .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-
-      // 动作清单
-      Scroll() {
-        Column() {
-          if (this.todayTraining !== null) {
-            ForEach(this.todayTraining.exercises, (exercise: ExerciseRef, index: number) => {
-              Row() {
-                Text(`${index + 1}`)
-                  .fontSize(FontTokens.CAPTION_SIZE)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor(ColorTokens.TEXT_SECONDARY)
-                  .width(24)
-
-                Column() {
-                  Text(exercise.name)
-                    .fontSize(FontTokens.BODY_BOLD_SIZE)
-                    .fontWeight(FontWeight.Medium)
-                    .fontColor(ColorTokens.TEXT_PRIMARY)
-
-                  Row() {
-                    Text(exercise.targetMuscle)
-                      .fontSize(FontTokens.SMALL_SIZE)
-                      .fontColor(Color.White)
-                      .padding({ left: SpacingTokens.SM, right: SpacingTokens.SM, top: 1, bottom: 1 })
-                      .backgroundColor(this.currentPlan?.coverColor || '#999')
-                      .borderRadius(4)
-
-                    Text(`${exercise.sets}组 × ${exercise.reps}`)
-                      .fontSize(FontTokens.CAPTION_SIZE)
-                      .fontColor(ColorTokens.TEXT_SECONDARY)
-                      .margin({ left: SpacingTokens.SM })
-                  }
-                  .margin({ top: SpacingTokens.XS })
-                }
-                .alignItems(HorizontalAlign.Start)
-                .layoutWeight(1)
-                .margin({ left: SpacingTokens.SM })
-              }
-              .width('100%')
-              .padding(SpacingTokens.MD)
-              .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-              .borderRadius(RadiusTokens.SM)
-              .margin({ bottom: SpacingTokens.SM })
-            }, (exercise: ExerciseRef, index: number) => `today_${index}`)
-          }
-        }
-        .width('100%')
-        .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.MD, bottom: SpacingTokens.XXL })
-      }
-      .layoutWeight(1)
-      .scrollBar(BarState.Off)
-
-      // 底部"开始训练"悬浮按钮
-      Row() {
-        AppButton({
-          text: '开始训练',
-          type: 'primary',
-          size: 'large',
-          block: true,
-          onButtonClick: () => {
-            if (this.currentPlan !== null && this.todayTraining !== null) {
-              router.pushUrl({
-                url: 'pages/WorkoutRecorderPage',
-                params: { days: [this.todayTraining] }
-              })
-            }
-          }
-        })
-      }
-      .width('100%')
-      .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.LG })
-      .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-    }
-    .layoutWeight(1)
-    .width('100%')
-  }
-
-  @Builder
-  restDayView() {
-    Column() {
-      Column() {
-        Text('今日休息')
-          .fontSize(FontTokens.DISPLAY_SIZE)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(ColorTokens.SUCCESS)
-          .margin({ bottom: SpacingTokens.SM })
-
-        Text('好好恢复，迎接下一次训练')
-          .fontSize(FontTokens.BODY_SIZE)
-          .fontColor(ColorTokens.TEXT_SECONDARY)
-          .margin({ bottom: SpacingTokens.XL })
-
-        // 拉伸建议
-        Row() {
-          Text('建议进行轻度拉伸或泡沫轴放松')
-            .fontSize(FontTokens.CAPTION_SIZE)
-            .fontColor(ColorTokens.TEXT_SECONDARY)
-        }
-      }
-      .width('100%')
-      .layoutWeight(1)
-      .justifyContent(FlexAlign.Center)
-      .alignItems(HorizontalAlign.Center)
-      .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD })
-    }
-    .layoutWeight(1)
-    .width('100%')
   }
 
   build() {
     Column() {
-      // 顶部标题栏
-      Row() {
-        Text('FitTracker')
-          .fontSize(FontTokens.HEADLINE_SIZE)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(ColorTokens.PRIMARY)
-      }
-      .width('100%')
-      .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.LG, bottom: SpacingTokens.SM })
-      .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+      Scroll() {
+        Column() {
+          // ═══ 问候语 ═══
+          Text('下午好，训练者')
+            .fontSize(FontTokens.TITLE_SIZE)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
+            .margin({
+              left: SpacingTokens.MD,
+              right: SpacingTokens.MD,
+              bottom: SpacingTokens.MD,
+              top: SpacingTokens.MD
+            })
+            .align(Alignment.Start)
+            .width('100%')
 
-      // 今日训练视图 / 分段控件
-      if (this.currentPlan !== null) {
-        // 今日训练或休息日
-        if (this.todayTraining !== null) {
-          this.todayTrainingView()
-        } else {
-          this.restDayView()
-        }
-      } else {
-        // 选择计划模式
-      // 分段控件
-      Row() {
-        // "预置计划" 按钮
-        Button() {
-          Text('预置计划')
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(this.activeSegment === 0 ? Color.White : ColorTokens.TEXT_SECONDARY)
-        }
-        .layoutWeight(1)
-        .height(40)
-        .backgroundColor(this.activeSegment === 0 ? ColorTokens.PRIMARY : ColorTokens.SURFACE_SECONDARY)
-        .borderRadius(RadiusTokens.FULL)
-        .onClick(() => { this.onSegmentChange(0) })
-
-        // "我的计划" 按钮
-        Button() {
-          Text('我的计划')
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(this.activeSegment === 1 ? Color.White : ColorTokens.TEXT_SECONDARY)
-        }
-        .layoutWeight(1)
-        .height(40)
-        .backgroundColor(this.activeSegment === 1 ? ColorTokens.PRIMARY : ColorTokens.SURFACE_SECONDARY)
-        .borderRadius(RadiusTokens.FULL)
-        .margin({ left: SpacingTokens.SM })
-        .onClick(() => { this.onSegmentChange(1) })
-      }
-      .width('100%')
-      .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.MD, bottom: SpacingTokens.SM })
-      .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-
-      // 内容区域
-      if (this.activeSegment === 0) {
-        // 预置计划列表
-        Scroll() {
+          // ═══ 训练卡 ═══
           Column() {
-            ForEach(this.presetPlans, (plan: PresetPlan) => {
-              AppCard({ variant: 'outlined', padding: 'compact' }) {
-                Row() {
-                  // 封面占位
-                  Column() {
-                    Text(plan.name.charAt(0))
-                      .fontSize(24)
-                      .fontWeight(FontWeight.Bold)
-                      .fontColor(Color.White)
-                  }
-                  .width(64)
-                  .height(64)
-                  .borderRadius(RadiusTokens.SM)
-                  .backgroundColor(plan.coverColor)
-                  .justifyContent(FlexAlign.Center)
-                  .alignItems(HorizontalAlign.Center)
-
-                  // 计划信息
-                  Column() {
-                    Text(plan.name)
-                      .fontSize(FontTokens.BODY_BOLD_SIZE)
-                      .fontWeight(FontWeight.Medium)
-                      .fontColor(ColorTokens.TEXT_PRIMARY)
-                      .margin({ bottom: SpacingTokens.XS })
-
-                    Row() {
-                      Text(plan.targetAudience)
-                        .fontSize(FontTokens.SMALL_SIZE)
-                        .fontColor(Color.White)
-                        .padding({ left: SpacingTokens.SM, right: SpacingTokens.SM, top: 2, bottom: 2 })
-                        .backgroundColor(plan.coverColor)
-                        .borderRadius(RadiusTokens.SM)
-
-                      Text(plan.weeklyFrequency)
-                        .fontSize(FontTokens.CAPTION_SIZE)
-                        .fontColor(ColorTokens.TEXT_SECONDARY)
-                        .margin({ left: SpacingTokens.SM })
-                    }
-                  }
-                  .alignItems(HorizontalAlign.Start)
-                  .margin({ left: SpacingTokens.MD })
-                  .layoutWeight(1)
+            Row() {
+              Column() {
+                Text('上肢力量训练')
+                  .fontSize(FontTokens.FAMILY_BASE)
+                  .fontWeight(FontWeight.Bold)
+                  .fontColor(ColorTokens.TEXT_PRIMARY)
+                  .margin({ bottom: SpacingTokens.XS })
+                Row({space: 3}){
+                  Image($rawfile('时间表.svg'))
+                    .width(15)
+                  Text('30 分钟')
+                    .fontSize(FontTokens.CAPTION_SIZE)
+                    .fontColor(ColorTokens.TEXT_SECONDARY)
+                  Text(' · ')
+                    .fontSize(FontTokens.CAPTION_SIZE)
+                    .fontColor(ColorTokens.TEXT_SECONDARY)
+                  Image($rawfile('哑铃.svg'))
+                    .width(20)
+                  Text('4个动作')
+                    .fontSize(FontTokens.CAPTION_SIZE)
+                    .fontColor(ColorTokens.TEXT_SECONDARY)
                 }
-                .width('100%')
-                .alignItems(VerticalAlign.Center)
+
               }
-              .onClick(() => {
-                router.pushUrl({ url: 'pages/PlanDetailPage', params: { planId: plan.id } })
-              })
-            }, (plan: PresetPlan) => plan.id)
-          }
-          .width('100%')
-          .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.SM, bottom: SpacingTokens.MD })
-        }
-        .layoutWeight(1)
-        .scrollBar(BarState.Off)
-      } else {
-        // 我的计划
-        if (this.myPlans.length === 0) {
-          Column() {
-            Text('暂无启用计划')
-              .fontSize(FontTokens.TITLE_SIZE)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(ColorTokens.TEXT_PRIMARY)
-              .margin({ bottom: SpacingTokens.SM })
+              .alignItems(HorizontalAlign.Start)
+              .layoutWeight(1)
 
-            Text('从预置计划中选择一套开始训练')
-              .fontSize(FontTokens.CAPTION_SIZE)
-              .fontColor(ColorTokens.TEXT_SECONDARY)
-          }
-          .width('100%')
-          .layoutWeight(1)
-          .justifyContent(FlexAlign.Center)
-          .alignItems(HorizontalAlign.Center)
-        } else {
-          List() {
-            ForEach(this.myPlans, (plan: UserPlan) => {
-              ListItem() {
-                Column() {
-                  // 当前计划标签
-                  if (plan.id === this.currentPlanId) {
-                    Row() {
-                      Text('当前使用')
-                        .fontSize(FontTokens.SMALL_SIZE)
-                        .fontColor(Color.White)
-                        .padding({ left: SpacingTokens.SM, right: SpacingTokens.SM, top: 2, bottom: 2 })
-                        .backgroundColor(ColorTokens.SUCCESS)
-                        .borderRadius(RadiusTokens.SM)
-                    }
-                    .width('100%')
-                    .margin({ bottom: SpacingTokens.SM })
-                  }
-
-                  AppCard({ variant: 'outlined', padding: 'compact' }) {
-                    Row() {
-                      Column() {
-                        Text(plan.name.charAt(0))
-                          .fontSize(24)
-                          .fontWeight(FontWeight.Bold)
-                          .fontColor(Color.White)
-                      }
-                      .width(64)
-                      .height(64)
-                      .borderRadius(RadiusTokens.SM)
-                      .backgroundColor(plan.coverColor)
-                      .justifyContent(FlexAlign.Center)
-                      .alignItems(HorizontalAlign.Center)
-
-                      Column() {
-                        Text(plan.name)
-                          .fontSize(FontTokens.BODY_BOLD_SIZE)
-                          .fontWeight(FontWeight.Medium)
-                          .fontColor(ColorTokens.TEXT_PRIMARY)
-                          .margin({ bottom: SpacingTokens.XS })
-
-                        Row() {
-                          Text(plan.targetAudience)
-                            .fontSize(FontTokens.SMALL_SIZE)
-                            .fontColor(Color.White)
-                            .padding({ left: SpacingTokens.SM, right: SpacingTokens.SM, top: 2, bottom: 2 })
-                            .backgroundColor(plan.coverColor)
-                            .borderRadius(RadiusTokens.SM)
-
-                          Text(plan.weeklyFrequency)
-                            .fontSize(FontTokens.CAPTION_SIZE)
-                            .fontColor(ColorTokens.TEXT_SECONDARY)
-                            .margin({ left: SpacingTokens.SM })
-                        }
-                      }
-                      .alignItems(HorizontalAlign.Start)
-                      .margin({ left: SpacingTokens.MD })
-                      .layoutWeight(1)
-                    }
-                    .width('100%')
-                    .alignItems(VerticalAlign.Center)
-                  }
-                  .border(plan.id === this.currentPlanId
-                    ? { width: 2, color: ColorTokens.SUCCESS }
-                    : { width: 0 })
+              Button(){
+                Row({ space: 3 }){
+                  Image($rawfile('开始1.svg'))
+                    .width(15)
+                  Text('开始训练')
+                    .fontColor(Color.White)
                 }
-                .width('100%')
-                .swipeAction({
-                  end: plan.id !== this.currentPlanId ? {
-                    builder: () => {
-                      this.swipeDeleteBuilder()
-                    },
-                    onAction: () => {
-                      this.deleteMyPlan(plan.id)
-                    }
-                  } : undefined
+              }
+                .fontSize(FontTokens.CAPTION_SIZE)
+                .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+                .backgroundColor(ColorTokens.ACCENT)
+                .borderRadius(RadiusTokens.SM)
+                .height(TouchTokens.BUTTON_HEIGHT_SMALL)
+                .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD })
+                .onClick(() => {
+                  if (this.currentPlan && this.todayTraining) {
+                    router.pushUrl({
+                      url: 'pages/WorkoutRecorderPage',
+                      params: { days: [this.todayTraining], planId: this.currentPlan.id, planName: this.currentPlan.name, dayLabel: this.todayTraining.dayLabel }
+                    })
+                  }
                 })
-              }
-              .margin({ bottom: SpacingTokens.MD })
-            }, (plan: UserPlan) => plan.id)
-          }
-          .width('100%')
-          .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.SM, bottom: SpacingTokens.MD })
-          .layoutWeight(1)
-          .scrollBar(BarState.Off)
-        }
-      }
-      }
+            }
+            .width('100%')
+            .margin({ bottom: SpacingTokens.MD })
 
-      // 底部导航栏占位
-      Row() {
-        Text('训练')
-          .fontSize(FontTokens.SMALL_SIZE)
-          .fontColor(ColorTokens.PRIMARY)
-          .layoutWeight(1)
-          .textAlign(TextAlign.Center)
-        Text('动作库')
-          .fontSize(FontTokens.SMALL_SIZE)
-          .fontColor(ColorTokens.NEUTRAL_300)
-          .layoutWeight(1)
-          .textAlign(TextAlign.Center)
-          .onClick(() => {
-            router.pushUrl({ url: 'pages/ExerciseLibraryPage' })
-          })
-        Text('统计')
-          .fontSize(FontTokens.SMALL_SIZE)
-          .fontColor(ColorTokens.NEUTRAL_300)
-          .layoutWeight(1)
-          .textAlign(TextAlign.Center)
-          .onClick(() => {
-            router.pushUrl({ url: 'pages/StatsPage' })
-          })
-        Text('我的')
-          .fontSize(FontTokens.SMALL_SIZE)
-          .fontColor(ColorTokens.NEUTRAL_300)
-          .layoutWeight(1)
-          .textAlign(TextAlign.Center)
-          .onClick(() => {
-            router.pushUrl({ url: 'pages/ProfilePage' })
-          })
+            // ── 动作列表 ──
+            Column({ space: 10 }){
+              this.ExerciseRow('哑铃卧推', '3组 x 12次')
+              this.ExerciseRow('坐姿肩推', '3组 x 10次')
+              this.ExerciseRow('俯身划船', '3组 x 12次')
+              this.ExerciseRow('二头弯举', '3组 x 15次')
+            }
+          }
+          .width('95%')
+          .padding(SpacingTokens.MD)
+          .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+          .borderRadius(RadiusTokens.LG)
+          .margin({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.LG })
+
+          // ═══ 当前计划 ═══
+          Column() {
+            Row() {
+              Text('当前计划')
+                .fontSize(FontTokens.TITLE_SIZE)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+              Text('查看详情 ›')
+                .fontSize(FontTokens.SMALL_SIZE)
+                .fontColor(ColorTokens.PRIMARY)
+            }
+            .width('100%')
+            .margin({ bottom: SpacingTokens.MD })
+            .justifyContent(FlexAlign.SpaceBetween)
+
+            Row() {
+              Column({ space: 5 }) {
+                Row(){
+                  Text('减脂塑形挑战')
+                    .fontSize(FontTokens.BODY_BOLD_SIZE)
+                    .fontColor(ColorTokens.TEXT_PRIMARY)
+                    .margin({ bottom: SpacingTokens.XS })
+
+
+                  Text(`已完成 ${this.planProgress}/${this.planTotal} 天`)
+                    .fontSize(FontTokens.CAPTION_SIZE)
+                    .fontColor(ColorTokens.TEXT_SECONDARY)
+                    .margin({ bottom: SpacingTokens.SM })
+
+                }
+                .width('100%')
+                .justifyContent(FlexAlign.SpaceBetween)
+                // 进度条
+                Row() {
+                  Row()
+                    .width(`${(this.planProgress / this.planTotal) * 100}%`)
+                    .height(TouchTokens.PROGRESS_BAR_HEIGHT)
+                    .backgroundColor(ColorTokens.SUCCESS)
+                    .borderRadius(RadiusTokens.FULL)
+                }
+                .width('100%')
+                .height(TouchTokens.PROGRESS_BAR_HEIGHT)
+                .backgroundColor(ColorTokens.BG_SECONDARY)
+                .borderRadius(RadiusTokens.FULL)
+                .margin({ bottom: SpacingTokens.XS })
+
+                Row() {
+                  Text(`剩余 ${this.planTotal - this.planProgress} 天`)
+                    .fontSize(FontTokens.SMALL_SIZE)
+                    .fontColor(ColorTokens.TEXT_SECONDARY)
+                    .width('100%')
+                    .textAlign(TextAlign.End)
+                }
+                .width('100%')
+              }
+              .layoutWeight(1)
+            }
+            .width('100%')
+          }
+          .width('95%')
+          .padding(SpacingTokens.MD)
+          .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+          .borderRadius(RadiusTokens.LG)
+          .margin({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.LG })
+
+          // ═══ 训练统计 ═══
+          Column() {
+            Row() {
+              Text('训练统计')
+                .fontSize(FontTokens.TITLE_SIZE)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+              Blank()
+              Text('查看全部 ›')
+                .fontSize(FontTokens.SMALL_SIZE)
+                .fontColor(ColorTokens.PRIMARY)
+            }
+            .width('100%')
+            .margin({ bottom: SpacingTokens.MD })
+
+            Row() {
+              ForEach(this.stats, (stat: WeekStat) => {
+                Column() {
+                  Text(stat.value)
+                    .fontSize(FontTokens.DISPLAY_SIZE)
+                    .fontWeight(FontWeight.Bold)
+                    .fontColor(ColorTokens.ACCENT)
+                    .margin({ bottom: SpacingTokens.XS })
+                  Text(stat.label)
+                    .fontSize(FontTokens.SMALL_SIZE)
+                    .fontColor(ColorTokens.TEXT_SECONDARY)
+                }
+                .layoutWeight(1)
+                .alignItems(HorizontalAlign.Center)
+              }, (stat: WeekStat) => stat.label)
+            }
+            .width('100%')
+          }
+          .width('95%')
+          .padding(SpacingTokens.MD)
+          .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+          .borderRadius(RadiusTokens.LG)
+          .margin({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.LG })
+
+          // ═══ 训练趋势 ═══
+          Column() {
+            Row() {
+              Text('训练趋势')
+                .fontSize(FontTokens.TITLE_SIZE)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+            }
+            .width('100%')
+            .margin({ bottom: SpacingTokens.MD })
+
+            Row() {
+              ForEach(this.barData, (bar: BarData) => {
+                Column() {
+                  Column()
+                    .width(24)
+                    .height(bar.height)
+                    .backgroundColor(ColorTokens.PRIMARY)
+                    .borderRadius({ topLeft: RadiusTokens.XS, topRight: RadiusTokens.XS })
+                  Text(bar.day)
+                    .fontSize(FontTokens.SMALL_SIZE)
+                    .fontColor(ColorTokens.TEXT_SECONDARY)
+                    .margin({ top: SpacingTokens.XS })
+                }
+                .layoutWeight(1)
+                .alignItems(HorizontalAlign.Center)
+                .justifyContent(FlexAlign.End)
+              }, (bar: BarData) => bar.day)
+            }
+            .width('100%')
+            .height(120)
+            .alignItems(VerticalAlign.Bottom)
+          }
+          .width('95%')
+          .padding(SpacingTokens.MD)
+          .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+          .borderRadius(RadiusTokens.LG)
+          .margin({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.LG })
+        }
+        .width('100%')
+        .backgroundColor('#1a1a1a')
       }
-      .width('100%')
-      .height(56)
-      .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-      .border({ width: { top: 0.5 }, color: ColorTokens.NEUTRAL_100 })
-      .padding({ bottom: SpacingTokens.SM })
+      .layoutWeight(1)
+      .scrollBar(BarState.Off)
+
+      // ═══ 底部导航 ═══
+      // CustomTabBar()
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+    .backgroundColor(ColorTokens.BG_PRIMARY)
+  }
+
+  @Builder
+  ExerciseRow(name: string, detail: string) {
+    Row() {
+      Image($rawfile('Up.svg'))
+        .width(20)
+        .margin({
+          left: SpacingTokens.MD,
+          right: SpacingTokens.MD,
+          bottom: SpacingTokens.MD,
+          top: SpacingTokens.MD
+        })
+      Column() {
+        Text(name)
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+        Text(detail)
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
+      Image($rawfile('Arrow Right.svg'))
+        .width(24)
+        .margin({
+          left: SpacingTokens.MD,
+          right: SpacingTokens.MD
+        })
+        .fillColor('#808084')
+    }
+    .width('100%')
+    .padding({ top: SpacingTokens.SM, bottom: SpacingTokens.SM })
+    .borderRadius('20')
+    .backgroundColor('#191919')
   }
 }

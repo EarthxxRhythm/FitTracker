@@ -1,222 +1,247 @@
 /**
- * ProfilePage —— 个人资料页
- *
- * 功能 #5: 用户可在"我的"Tab查看和编辑昵称、头像占位、体重单位偏好（kg/lbs），
- *          修改后即时保存并全局生效。
- * 功能 #6: 底部"退出登录"按钮，二次确认后清除Token和缓存，跳回登录页。
+ * ProfilePage —— 个人中心 (原型 5)
+ * 深色主题 | 头像卡片 | 成就网格 4x2 | 操作面板
  */
 import { router } from '@kit.ArkUI'
-import { AppCard } from '../components/AppCard'
 import UserProfileService from '../common/services/UserProfileService'
 import SessionManager from '../common/services/SessionManager'
 import { ColorTokens, FontTokens, SpacingTokens, RadiusTokens, TouchTokens } from '../common/styles/DesignTokens'
+import { CustomTabBar } from '../components/MainTabBar'
 
-@Entry
+interface AchievementItem {
+  title: string
+  icon: string
+  locked: boolean
+}
+
 @Component
-struct ProfilePage {
-  @State nickname: string = ''
-  @State avatar: string = ''
-  @State weightUnit: string = 'kg'
+export struct ProfilePage {
+  @State currentTab: string = 'profile'
+  @State nickname: string = '健身达人'
+  @State streakDays: number = 128
+  @State achievements: AchievementItem[] = [
+    { title: '首次训练', icon: '🎯', locked: false },
+    { title: '连续3天', icon: '🔥', locked: false },
+    { title: '10次训练', icon: '💪', locked: false },
+    { title: '新手入门', icon: '🌟', locked: false },
+    { title: '晨练达人', icon: '🌅', locked: false },
+    { title: '全身训练', icon: '🏋', locked: false },
+    { title: '减脂先锋', icon: '⚡', locked: false },
+    { title: '力量突破', icon: '🔒', locked: true }
+  ]
 
   async aboutToAppear(): Promise<void> {
     try {
       const profile = await UserProfileService.loadProfile(getContext(this))
-      this.nickname = profile.nickname
-      this.avatar = profile.avatar
-      this.weightUnit = profile.weightUnit
-    } catch (e) {
-      const defaults = UserProfileService.getDefaultProfile()
-      this.nickname = defaults.nickname
-      this.avatar = defaults.avatar
-      this.weightUnit = defaults.weightUnit
-    }
-  }
-
-  async saveNickname(): Promise<void> {
-    await UserProfileService.saveNickname(getContext(this), this.nickname)
-  }
-
-  async onWeightUnitChange(unit: string): Promise<void> {
-    this.weightUnit = unit
-    await UserProfileService.saveWeightUnit(getContext(this), unit as 'kg' | 'lbs')
-  }
-
-  handleLogout(): void {
-    AlertDialog.show({
-      title: '退出登录',
-      message: '确定要退出登录吗？',
-      autoCancel: true,
-      alignment: DialogAlignment.Center,
-      primaryButton: {
-        value: '取消',
-        action: () => {}
-      },
-      secondaryButton: {
-        value: '确定',
-        fontColor: ColorTokens.ERROR,
-        action: async () => {
-          try {
-            await SessionManager.clearToken(getContext(this))
-            await UserProfileService.clearProfile(getContext(this))
-            router.replaceUrl({ url: 'pages/LoginPage' })
-          } catch (e) {
-            router.replaceUrl({ url: 'pages/LoginPage' })
-          }
-        }
+      if (profile.nickname) {
+        this.nickname = profile.nickname
       }
-    })
+    } catch (e) {
+      // use defaults
+    }
   }
 
-  getAvatarInitial(): string {
-    if (this.nickname.length > 0) {
-      return this.nickname.charAt(0).toUpperCase()
-    }
-    return '?'
+  async logout(): Promise<void> {
+    await SessionManager.clearToken(getContext(this))
+    router.replaceUrl({ url: 'pages/LoginPage' })
   }
 
   build() {
     Column() {
-      // 顶部导航栏
+      // ═══ HEADER ═══
       Row() {
-        Row() {
-          Text('←')
-            .fontSize(FontTokens.TITLE_SIZE)
-            .fontColor(ColorTokens.PRIMARY)
-            .padding({ right: SpacingTokens.SM })
-          Text('个人资料')
-            .fontSize(FontTokens.HEADLINE_SIZE)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-        }
-        .onClick(() => {
-          router.back()
-        })
-
-        Blank()
+        Text('个人中心')
+          .fontSize(FontTokens.HEADLINE_SIZE)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
       }
       .width('100%')
-      .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.LG, bottom: SpacingTokens.MD })
-      .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+      .justifyContent(FlexAlign.Center)
+      .padding({ top: SpacingTokens.LG, bottom: SpacingTokens.MD })
 
-      // 头像区域
-      Column() {
-        Stack() {
-          Circle()
-            .width(80)
-            .height(80)
-            .fill(ColorTokens.SURFACE_SECONDARY)
-            .stroke(ColorTokens.NEUTRAL_100)
-            .strokeWidth(1)
-
-          Text(this.getAvatarInitial())
-            .fontSize(32)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(ColorTokens.TEXT_SECONDARY)
-        }
-        .width(80)
-        .height(80)
-
-        Text('点击更换头像')
-          .fontSize(FontTokens.CAPTION_SIZE)
-          .fontColor(ColorTokens.PRIMARY)
-          .margin({ top: SpacingTokens.SM })
-      }
-      .width('100%')
-      .padding({ top: SpacingTokens.XL, bottom: SpacingTokens.LG })
-      .alignItems(HorizontalAlign.Center)
-      .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-
-      // 昵称区域
-      AppCard({ variant: 'outlined', padding: 'default' }) {
-        Row() {
-          Text('昵称')
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-            .fontWeight(FontWeight.Medium)
-            .width(60)
-
-          TextInput({ text: $$this.nickname, placeholder: '请输入昵称' })
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-            .placeholderColor(ColorTokens.TEXT_DISABLED)
-            .backgroundColor(Color.Transparent)
-            .layoutWeight(1)
-            .maxLength(20)
-            .onChange((value: string) => {
-              this.nickname = value
-            })
-            .onBlur(() => {
-              this.saveNickname()
-            })
-        }
-        .width('100%')
-        .alignItems(VerticalAlign.Center)
-      }
-
-      // 体重单位区域
-      AppCard({ variant: 'outlined', padding: 'default' }) {
+      Scroll() {
         Column() {
-          Text('体重单位')
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-            .fontWeight(FontWeight.Medium)
+          // ═══ 头像卡片 ═══
+          Row() {
+            // 头像
+            Column() {
+              Text('👤')
+                .fontSize(32)
+                .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+            }
+            .width(TouchTokens.AVATAR_SIZE)
+            .height(TouchTokens.AVATAR_SIZE)
+            .borderRadius(RadiusTokens.FULL)
+            .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+            .justifyContent(FlexAlign.Center)
+            .alignItems(HorizontalAlign.Center)
+
+            // 名称 + 天数
+            Column() {
+              Text(this.nickname)
+                .fontSize(FontTokens.TITLE_SIZE)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+                .margin({ bottom: SpacingTokens.XS })
+
+              Row() {
+                Text('已坚持训练 ')
+                  .fontSize(FontTokens.CAPTION_SIZE)
+                  .fontColor(ColorTokens.TEXT_SECONDARY)
+                Text(`${this.streakDays}`)
+                  .fontSize(FontTokens.CAPTION_SIZE)
+                  .fontWeight(FontWeight.Bold)
+                  .fontColor(ColorTokens.ACCENT)
+                Text(' 天')
+                  .fontSize(FontTokens.CAPTION_SIZE)
+                  .fontColor(ColorTokens.TEXT_SECONDARY)
+              }
+            }
+            .alignItems(HorizontalAlign.Start)
+            .margin({ left: SpacingTokens.MD })
+            .layoutWeight(1)
+
+            // 编辑 + 设置
+            Column() {
+              Button('✎ 编辑')
+                .fontSize(FontTokens.SMALL_SIZE)
+                .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+                .backgroundColor(ColorTokens.PRIMARY)
+                .borderRadius(RadiusTokens.FULL)
+                .height(TouchTokens.BUTTON_HEIGHT_SMALL)
+                .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD })
+                .margin({ bottom: SpacingTokens.SM })
+
+              Row() {
+                Text('⚙')
+                  .fontSize(16)
+                  .fontColor(ColorTokens.TEXT_SECONDARY)
+                Text(' 设置')
+                  .fontSize(FontTokens.SMALL_SIZE)
+                  .fontColor(ColorTokens.TEXT_SECONDARY)
+              }
+            }
+            .alignItems(HorizontalAlign.Center)
+          }
+          .width('100%')
+          .padding(SpacingTokens.MD)
+          .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+          .borderRadius(RadiusTokens.LG)
+          .margin({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.LG })
+
+          // ═══ 我的成就 ═══
+          Column() {
+            Row() {
+              Text('我的成就')
+                .fontSize(FontTokens.TITLE_SIZE)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+              Blank()
+              Text('查看全部 ›')
+                .fontSize(FontTokens.SMALL_SIZE)
+                .fontColor(ColorTokens.PRIMARY)
+            }
             .width('100%')
             .margin({ bottom: SpacingTokens.MD })
 
-          Row() {
-            Button('kg (公斤)') {
-              Text('kg (公斤)')
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontColor(this.weightUnit === 'kg' ? Color.White : ColorTokens.TEXT_PRIMARY)
-                .fontWeight(FontWeight.Medium)
-            }
-            .height(40)
-            .layoutWeight(1)
-            .backgroundColor(this.weightUnit === 'kg' ? ColorTokens.PRIMARY : ColorTokens.SURFACE_SECONDARY)
-            .borderRadius(RadiusTokens.FULL)
-            .onClick(() => {
-              this.onWeightUnitChange('kg')
-            })
+            // 4x2 网格
+            Column() {
+              Row() {
+                ForEach(this.achievements.slice(0, 4), (item: AchievementItem) => {
+                  this.AchievementTile(item)
+                }, (item: AchievementItem) => item.title)
+              }
+              .width('100%')
+              .margin({ bottom: SpacingTokens.SM })
 
-            Button('lbs (磅)') {
-              Text('lbs (磅)')
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontColor(this.weightUnit === 'lbs' ? Color.White : ColorTokens.TEXT_PRIMARY)
-                .fontWeight(FontWeight.Medium)
+              Row() {
+                ForEach(this.achievements.slice(4, 8), (item: AchievementItem) => {
+                  this.AchievementTile(item)
+                }, (item: AchievementItem) => item.title)
+              }
+              .width('100%')
             }
-            .height(40)
-            .layoutWeight(1)
-            .backgroundColor(this.weightUnit === 'lbs' ? ColorTokens.PRIMARY : ColorTokens.SURFACE_SECONDARY)
-            .borderRadius(RadiusTokens.FULL)
-            .margin({ left: SpacingTokens.MD })
-            .onClick(() => {
-              this.onWeightUnitChange('lbs')
+          }
+          .width('100%')
+          .padding(SpacingTokens.MD)
+          .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+          .borderRadius(RadiusTokens.LG)
+          .margin({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.LG })
+
+          // ═══ 操作面板 ═══
+          Row() {
+            this.ActionPanel('📊', '数据统计', () => {
+              router.pushUrl({ url: 'pages/StatsPage' })
+            })
+            Column().width(SpacingTokens.MD)
+            this.ActionPanel('⚙', '系统设置', () => {
+              this.logout()
             })
           }
           .width('100%')
+          .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.XXL })
         }
         .width('100%')
       }
+      .layoutWeight(1)
+      .scrollBar(BarState.Off)
 
-      Blank()
-
-      // 退出登录按钮
-      Row() {
-        Text('退出登录')
-          .fontSize(FontTokens.BODY_SIZE)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(ColorTokens.ERROR)
-      }
-      .width('100%')
-      .height(TouchTokens.MIN_TARGET)
-      .justifyContent(FlexAlign.Center)
-      .margin({ bottom: SpacingTokens.XXL })
-      .onClick(() => {
-        this.handleLogout()
-      })
+      // CustomTabBar()
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+    .backgroundColor(ColorTokens.BG_PRIMARY)
+  }
+
+  @Builder
+  AchievementTile(item: AchievementItem) {
+    Column() {
+      Column() {
+        Text(item.icon)
+          .fontSize(28)
+          .opacity(item.locked ? 0.3 : 1.0)
+      }
+      .width(60)
+      .height(60)
+      .borderRadius(RadiusTokens.LG)
+      .backgroundColor(item.locked ? ColorTokens.SURFACE_SECONDARY : ColorTokens.SURFACE_ELEVATED)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.Center)
+
+      Text(item.title)
+        .fontSize(FontTokens.MICRO_SIZE)
+        .fontColor(item.locked ? ColorTokens.TEXT_DISABLED : ColorTokens.TEXT_SECONDARY)
+        .margin({ top: SpacingTokens.XS })
+        .maxLines(1)
+    }
+    .layoutWeight(1)
+    .alignItems(HorizontalAlign.Center)
+  }
+
+  @Builder
+  ActionPanel(icon: string, label: string, onClick: () => void) {
+    Row() {
+      Column() {
+        Text(icon)
+          .fontSize(24)
+      }
+      .width(48)
+      .height(48)
+      .borderRadius(RadiusTokens.FULL)
+      .backgroundColor(ColorTokens.OVERLAY_PRIMARY)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.Center)
+
+      Text(label)
+        .fontSize(FontTokens.BODY_SIZE)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+        .margin({ left: SpacingTokens.MD })
+    }
+    .layoutWeight(1)
+    .height(72)
+    .padding(SpacingTokens.MD)
+    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+    .borderRadius(RadiusTokens.LG)
+    .onClick(onClick)
   }
 }

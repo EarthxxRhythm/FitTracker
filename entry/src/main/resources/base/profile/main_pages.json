@@ -1,13 +1,9 @@
 {
   "src": [
-    "pages/Index",
     "pages/RegisterPage",
     "pages/LoginPage",
-    "pages/ProfilePage",
     "pages/PlanDetailPage",
-    "pages/ExerciseLibraryPage",
     "pages/ExerciseDetailPage",
-    "pages/WorkoutRecorderPage",
     "pages/StatsPage"
   ]
 }

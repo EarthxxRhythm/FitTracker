@@ -1,226 +1,154 @@
 /**
- * StatsPage —— 数据统计页
- *
- * 功能 #28: 日历热力图（月视图，5档颜色深浅）
- * 功能 #29: 月份切换（左右箭头）
- * 功能 #30: 日期训练摘要（点击日期弹窗）
- * 功能 #31: 周统计概览（4项指标卡片）
- * 功能 #32: 统计时间段切换（周/月选项卡）
+ * StatsPage —— 训练记录历史 (原型 4)
+ * 深色主题 | 训练会话卡片列表 | 时长/动作数/热量指标
  */
 import { router } from '@kit.ArkUI'
-import { AppCard } from '../components/AppCard'
+import WorkoutSessionService, { WorkoutSession } from '../common/services/WorkoutSessionService'
 import { ColorTokens, FontTokens, SpacingTokens, RadiusTokens } from '../common/styles/DesignTokens'
+import { CustomTabBar } from '../components/MainTabBar'
 
 @Entry
 @Component
 struct StatsPage {
-  @State activePeriod: number = 0 // 0=周, 1=月
-  @State currentMonth: number = new Date().getMonth() + 1
-  @State currentYear: number = new Date().getFullYear()
-  private calendarDays: number[] = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]
+  @State currentTab: string = 'stats'
+  @State sessions: WorkoutSession[] = []
 
-  getDaysInMonth(): number {
-    return new Date(this.currentYear, this.currentMonth, 0).getDate()
-  }
-
-  getMonthLabel(): string {
-    return `${this.currentYear}年${this.currentMonth}月`
-  }
-
-  prevMonth(): void {
-    if (this.currentMonth === 1) {
-      this.currentMonth = 12
-      this.currentYear--
-    } else {
-      this.currentMonth--
+  async aboutToAppear(): Promise<void> {
+    try {
+      this.sessions = await WorkoutSessionService.getSessions(getContext(this))
+    } catch (e) {
+      // empty
     }
-  }
-
-  nextMonth(): void {
-    const now = new Date()
-    const isFuture = this.currentYear > now.getFullYear() ||
-      (this.currentYear === now.getFullYear() && this.currentMonth >= now.getMonth() + 1)
-    if (!isFuture) {
-      if (this.currentMonth === 12) {
-        this.currentMonth = 1
-        this.currentYear++
-      } else {
-        this.currentMonth++
-      }
-    }
-  }
-
-  getHeatColor(index: number): string {
-    const colors = ['#E8E8E8', '#C8E6C9', '#A5D6A7', '#66BB6A', '#43A047']
-    return colors[index % colors.length]
   }
 
   build() {
     Column() {
-      // 顶部导航栏
+      // ═══ HEADER ═══
       Row() {
-        Row() {
-          Text('←')
-            .fontSize(FontTokens.TITLE_SIZE)
-            .fontColor(ColorTokens.PRIMARY)
-            .padding({ right: SpacingTokens.SM })
-          Text('数据统计')
-            .fontSize(FontTokens.HEADLINE_SIZE)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-        }
-        .onClick(() => { router.back() })
-        Blank()
+        Text('←')
+          .fontSize(22)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+          .padding({ right: SpacingTokens.SM })
+          .onClick(() => { router.back() })
+        Text('训练记录')
+          .fontSize(FontTokens.HEADLINE_SIZE)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
       }
       .width('100%')
-      .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.LG, bottom: SpacingTokens.SM })
-      .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+      .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.LG, bottom: SpacingTokens.MD })
 
-      // 时间维度切换（周/月）
-      Row() {
-        Button() {
-          Text('本周')
-            .fontSize(FontTokens.CAPTION_SIZE)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(this.activePeriod === 0 ? Color.White : ColorTokens.TEXT_SECONDARY)
-        }
-        .layoutWeight(1)
-        .height(36)
-        .backgroundColor(this.activePeriod === 0 ? ColorTokens.PRIMARY : ColorTokens.SURFACE_SECONDARY)
-        .borderRadius(RadiusTokens.FULL)
-        .onClick(() => { this.activePeriod = 0 })
-
-        Button() {
-          Text('本月')
-            .fontSize(FontTokens.CAPTION_SIZE)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(this.activePeriod === 1 ? Color.White : ColorTokens.TEXT_SECONDARY)
-        }
-        .layoutWeight(1)
-        .height(36)
-        .backgroundColor(this.activePeriod === 1 ? ColorTokens.PRIMARY : ColorTokens.SURFACE_SECONDARY)
-        .borderRadius(RadiusTokens.FULL)
-        .margin({ left: SpacingTokens.SM })
-        .onClick(() => { this.activePeriod = 1 })
-      }
-      .width('100%')
-      .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.MD })
-      .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-
-      Scroll() {
+      // ═══ 会话列表 ═══
+      if (this.sessions.length === 0) {
         Column() {
-          // 周统计概览卡片
-          AppCard({ variant: 'elevated', padding: 'default' }) {
-            Column() {
-              Text('本周概况')
-                .fontSize(FontTokens.BODY_BOLD_SIZE)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(ColorTokens.TEXT_PRIMARY)
-                .width('100%')
-                .margin({ bottom: SpacingTokens.MD })
-
-              Row() {
-                this.statItem('训练次数', '0')
-                this.statItem('总时长', '0m')
-              }
-              .width('100%')
-              .margin({ bottom: SpacingTokens.MD })
-
-              Row() {
-                this.statItem('总组数', '0')
-                this.statItem('总容量', '0kg')
-              }
-              .width('100%')
-            }
-            .width('100%')
-          }
-          .margin({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.MD })
-
-          // 月视图日历热力图
-          AppCard({ variant: 'elevated', padding: 'default' }) {
-            Column() {
-              // 月份切换
-              Row() {
-                Text('←')
-                  .fontSize(FontTokens.BODY_SIZE)
-                  .fontColor(ColorTokens.PRIMARY)
-                  .padding(SpacingTokens.SM)
-                  .onClick(() => { this.prevMonth() })
-
-                Text(this.getMonthLabel())
-                  .fontSize(FontTokens.BODY_SIZE)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor(ColorTokens.TEXT_PRIMARY)
-                  .layoutWeight(1)
-                  .textAlign(TextAlign.Center)
-
-                Text('→')
-                  .fontSize(FontTokens.BODY_SIZE)
-                  .fontColor(ColorTokens.PRIMARY)
-                  .padding(SpacingTokens.SM)
-                  .onClick(() => { this.nextMonth() })
-              }
-              .width('100%')
-              .margin({ bottom: SpacingTokens.MD })
-
-              // 星期头
-              Row() {
-                ForEach(['日', '一', '二', '三', '四', '五', '六'], (day: string) => {
-                  Text(day)
-                    .fontSize(FontTokens.SMALL_SIZE)
-                    .fontColor(ColorTokens.TEXT_SECONDARY)
-                    .layoutWeight(1)
-                    .textAlign(TextAlign.Center)
-                })
-              }
-              .width('100%')
-              .margin({ bottom: SpacingTokens.SM })
-
-              // 日历网格
-              Row() {
-                ForEach(this.calendarDays, (day: number) => {
-                  Column() {
-                    Text(`${day + 1}`)
-                      .fontSize(FontTokens.SMALL_SIZE)
-                      .fontColor(ColorTokens.TEXT_PRIMARY)
-                  }
-                  .width(`${100 / 7}%`)
-                  .height(32)
-                  .backgroundColor(this.getHeatColor(day))
-                  .justifyContent(FlexAlign.Center)
-                  .alignItems(HorizontalAlign.Center)
-                  .borderRadius(4)
-                }, (day: number) => `day_${day}`)
-              }
-              .width('100%')
-            }
-            .width('100%')
-          }
-          .margin({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.MD })
+          Text('暂无训练记录')
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
         }
         .width('100%')
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+      } else {
+        Scroll() {
+          Column() {
+            ForEach(this.sessions, (session: WorkoutSession) => {
+              this.SessionCard(session)
+            }, (session: WorkoutSession) => session.id)
+          }
+          .width('100%')
+          .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.XXL })
+        }
+        .layoutWeight(1)
+        .scrollBar(BarState.Off)
       }
-      .layoutWeight(1)
-      .scrollBar(BarState.Off)
+
+      CustomTabBar()
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+    .backgroundColor(ColorTokens.BG_PRIMARY)
   }
 
   @Builder
-  statItem(label: string, value: string) {
+  SessionCard(session: WorkoutSession) {
     Column() {
-      Text(value)
-        .fontSize(FontTokens.TITLE_SIZE)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(ColorTokens.PRIMARY)
-      Text(label)
-        .fontSize(FontTokens.SMALL_SIZE)
-        .fontColor(ColorTokens.TEXT_SECONDARY)
-        .margin({ top: SpacingTokens.XS })
+      // ── 标题行 ──
+      Row() {
+        // 图标
+        Column() {
+          Text('🏋')
+            .fontSize(20)
+        }
+        .width(40)
+        .height(40)
+        .borderRadius(RadiusTokens.FULL)
+        .backgroundColor(ColorTokens.OVERLAY_PRIMARY)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+
+        // 标题 + 日期
+        Column() {
+          Text(session.planName)
+            .fontSize(FontTokens.BODY_BOLD_SIZE)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+          Text(session.createdAt)
+            .fontSize(FontTokens.SMALL_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+            .margin({ top: SpacingTokens.XXXS })
+        }
+        .alignItems(HorizontalAlign.Start)
+        .layoutWeight(1)
+        .margin({ left: SpacingTokens.SM })
+
+        Text('查看详情 ›')
+          .fontSize(FontTokens.SMALL_SIZE)
+          .fontColor(ColorTokens.PRIMARY)
+      }
+      .width('100%')
+      .margin({ bottom: SpacingTokens.SM })
+
+      // ── 指标行 ──
+      Row() {
+        // 时长
+        Row() {
+          Text('⏱ ')
+            .fontSize(12)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+          Text(`${Math.round(session.durationSeconds / 60)}分钟`)
+            .fontSize(FontTokens.SMALL_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+        }
+        .margin({ right: SpacingTokens.MD })
+
+        // 动作数
+        Row() {
+          Text('📋 ')
+            .fontSize(12)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+          Text(`${session.totalSets}个动作`)
+            .fontSize(FontTokens.SMALL_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+        }
+        .margin({ right: SpacingTokens.MD })
+
+        // 热量
+        Row() {
+          Text('🔥 ')
+            .fontSize(12)
+            .fontColor(ColorTokens.ACCENT)
+          Text(`${Math.round(session.totalVolume * 0.1)}千卡`)
+            .fontSize(FontTokens.SMALL_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+        }
+      }
+      .width('100%')
     }
-    .layoutWeight(1)
-    .alignItems(HorizontalAlign.Center)
+    .width('100%')
+    .padding(SpacingTokens.MD)
+    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+    .borderRadius(RadiusTokens.LG)
+    .margin({ bottom: SpacingTokens.SM })
   }
 }
