@@ -20,6 +20,7 @@ interface BarData {
 }
 
 
+@Entry
 @Component
 export struct Index {
   @State currentTab: string = 'home'

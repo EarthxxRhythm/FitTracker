@@ -5,6 +5,10 @@ import SessionManager from '../common/services/SessionManager';
 
 const DOMAIN = 0x0000;
 
+export function resolveInitialPage(isLoggedIn: boolean): string {
+  return isLoggedIn ? 'pages/Index' : 'pages/LoginPage'
+}
+
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     try {
@@ -23,7 +27,7 @@ export default class EntryAbility extends UIAbility {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
     const isLoggedIn = await SessionManager.isLoggedIn(this.context)
-    const initialPage = isLoggedIn ? 'pages/Index' : 'pages/LoginPage'
+    const initialPage = resolveInitialPage(isLoggedIn)
 
     windowStage.loadContent(initialPage, (err) => {
       if (err.code) {
