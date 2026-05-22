@@ -1,229 +1,311 @@
 /**
- * TrainingModels -- shared data contracts for training features.
- *
- * Feature #1: clean ArkUI target loop skeleton.
+ * TrainingModels - shared target-loop data contracts.
  */
 
 export interface UserGoal {
-  id: string
-  name: string
-  description: string
-  weeklyTarget: number
+  goalId: string
+  goalType: string
+  level: string
+  weeklyDays: number
+  sessionMinutes: number
+  equipmentIds: string[]
+  restrictedMuscleIds: string[]
+  createdAt: number
+  updatedAt: number
 }
 
 export interface MuscleGroup {
-  id: string
-  name: string
-  sortOrder: number
+  muscleId: string
+  nameZh: string
+  region: string
 }
 
 export interface EquipmentItem {
-  id: string
-  name: string
-  sortOrder: number
+  equipmentId: string
+  nameZh: string
 }
 
 export interface ExerciseContent {
-  id: string
-  name: string
-  description: string
-  primaryMuscleGroupId: string
-  equipmentItemId: string
+  exerciseId: string
+  nameZh: string
+  nameEn: string
+  aliases: string[]
+  primaryMuscleIds: string[]
+  secondaryMuscleIds: string[]
+  equipmentIds: string[]
+  difficulty: string
+  goalTags: string[]
+  videoUrl: string
+  coverUrl: string
+  steps: string[]
+  cues: string[]
+  commonMistakes: string[]
+  safetyNotes: string[]
+  alternativeExerciseIds: string[]
+  contentVersion: number
 }
 
 export interface PlannedExercise {
-  id: string
-  exerciseContentId: string
+  plannedExerciseId: string
+  exerciseId: string
   targetSets: number
   targetReps: string
-  sortOrder: number
+  intensityNote: string
+  alternativeExerciseIds: string[]
 }
 
 export interface PlanDay {
-  id: string
-  name: string
+  dayId: string
   dayOfWeek: number
+  title: string
+  focusMuscleIds: string[]
   exercises: PlannedExercise[]
 }
 
 export interface TrainingPlan {
-  id: string
-  name: string
+  planId: string
   goalId: string
+  name: string
+  cycleWeeks: number
   days: PlanDay[]
-  createdAt: number
+  generatedBy: string
+  status: string
 }
 
 export interface WorkoutSet {
-  id: string
-  exerciseContentId: string
+  setId: string
+  exerciseId: string
   weight: number
   reps: number
-  setIndex: number
+  rpe: number
+  isWarmup: boolean
 }
 
 export interface WorkoutSession {
-  id: string
+  sessionId: string
   planId: string
+  dayId: string
   startedAt: number
-  finishedAt: number
+  endedAt: number
+  durationSeconds: number
+  totalSets: number
+  totalVolume: number
+  fatigueScore: number
+  notes: string
   sets: WorkoutSet[]
 }
 
 export interface ContentSyncStatus {
-  id: string
-  lastSyncedAt: number
-  version: string
-  isDirty: boolean
+  localVersion: number
+  remoteVersion: number
+  lastCheckedAt: number
+  status: string
 }
 
-export function createUserGoal(id: string, name: string, description: string, weeklyTarget: number): UserGoal {
-  const goal: UserGoal = {
-    id: id,
-    name: name,
-    description: description,
-    weeklyTarget: weeklyTarget
+export function createUserGoal(
+  goalId: string,
+  goalType: string,
+  level: string,
+  weeklyDays: number,
+  sessionMinutes: number,
+  equipmentIds: string[],
+  restrictedMuscleIds: string[],
+  createdAt: number,
+  updatedAt: number
+): UserGoal {
+  const item: UserGoal = {
+    goalId: goalId,
+    goalType: goalType,
+    level: level,
+    weeklyDays: weeklyDays,
+    sessionMinutes: sessionMinutes,
+    equipmentIds: equipmentIds,
+    restrictedMuscleIds: restrictedMuscleIds,
+    createdAt: createdAt,
+    updatedAt: updatedAt
   }
-  return goal
+  return item
 }
 
-export function createMuscleGroup(id: string, name: string, sortOrder: number): MuscleGroup {
-  const muscleGroup: MuscleGroup = {
-    id: id,
-    name: name,
-    sortOrder: sortOrder
+export function createMuscleGroup(muscleId: string, nameZh: string, region: string): MuscleGroup {
+  const item: MuscleGroup = {
+    muscleId: muscleId,
+    nameZh: nameZh,
+    region: region
   }
-  return muscleGroup
+  return item
 }
 
-export function createEquipmentItem(id: string, name: string, sortOrder: number): EquipmentItem {
-  const equipmentItem: EquipmentItem = {
-    id: id,
-    name: name,
-    sortOrder: sortOrder
+export function createEquipmentItem(equipmentId: string, nameZh: string): EquipmentItem {
+  const item: EquipmentItem = {
+    equipmentId: equipmentId,
+    nameZh: nameZh
   }
-  return equipmentItem
+  return item
 }
 
 export function createExerciseContent(
-  id: string,
-  name: string,
-  description: string,
-  primaryMuscleGroupId: string,
-  equipmentItemId: string
+  exerciseId: string,
+  nameZh: string,
+  nameEn: string,
+  aliases: string[],
+  primaryMuscleIds: string[],
+  secondaryMuscleIds: string[],
+  equipmentIds: string[],
+  difficulty: string,
+  goalTags: string[],
+  videoUrl: string,
+  coverUrl: string,
+  steps: string[],
+  cues: string[],
+  commonMistakes: string[],
+  safetyNotes: string[],
+  alternativeExerciseIds: string[],
+  contentVersion: number
 ): ExerciseContent {
-  const exerciseContent: ExerciseContent = {
-    id: id,
-    name: name,
-    description: description,
-    primaryMuscleGroupId: primaryMuscleGroupId,
-    equipmentItemId: equipmentItemId
+  const item: ExerciseContent = {
+    exerciseId: exerciseId,
+    nameZh: nameZh,
+    nameEn: nameEn,
+    aliases: aliases,
+    primaryMuscleIds: primaryMuscleIds,
+    secondaryMuscleIds: secondaryMuscleIds,
+    equipmentIds: equipmentIds,
+    difficulty: difficulty,
+    goalTags: goalTags,
+    videoUrl: videoUrl,
+    coverUrl: coverUrl,
+    steps: steps,
+    cues: cues,
+    commonMistakes: commonMistakes,
+    safetyNotes: safetyNotes,
+    alternativeExerciseIds: alternativeExerciseIds,
+    contentVersion: contentVersion
   }
-  return exerciseContent
+  return item
 }
 
 export function createPlannedExercise(
-  id: string,
-  exerciseContentId: string,
+  plannedExerciseId: string,
+  exerciseId: string,
   targetSets: number,
   targetReps: string,
-  sortOrder: number
+  intensityNote: string,
+  alternativeExerciseIds: string[]
 ): PlannedExercise {
-  const plannedExercise: PlannedExercise = {
-    id: id,
-    exerciseContentId: exerciseContentId,
+  const item: PlannedExercise = {
+    plannedExerciseId: plannedExerciseId,
+    exerciseId: exerciseId,
     targetSets: targetSets,
     targetReps: targetReps,
-    sortOrder: sortOrder
+    intensityNote: intensityNote,
+    alternativeExerciseIds: alternativeExerciseIds
   }
-  return plannedExercise
+  return item
 }
 
 export function createPlanDay(
-  id: string,
-  name: string,
+  dayId: string,
   dayOfWeek: number,
+  title: string,
+  focusMuscleIds: string[],
   exercises: PlannedExercise[]
 ): PlanDay {
-  const copiedExercises: PlannedExercise[] = exercises.slice()
-  const planDay: PlanDay = {
-    id: id,
-    name: name,
+  const item: PlanDay = {
+    dayId: dayId,
     dayOfWeek: dayOfWeek,
-    exercises: copiedExercises
+    title: title,
+    focusMuscleIds: focusMuscleIds,
+    exercises: exercises
   }
-  return planDay
+  return item
 }
 
 export function createTrainingPlan(
-  id: string,
-  name: string,
+  planId: string,
   goalId: string,
+  name: string,
+  cycleWeeks: number,
   days: PlanDay[],
-  createdAt: number
+  generatedBy: string,
+  status: string
 ): TrainingPlan {
-  const copiedDays: PlanDay[] = days.slice()
-  const trainingPlan: TrainingPlan = {
-    id: id,
-    name: name,
+  const item: TrainingPlan = {
+    planId: planId,
     goalId: goalId,
-    days: copiedDays,
-    createdAt: createdAt
+    name: name,
+    cycleWeeks: cycleWeeks,
+    days: days,
+    generatedBy: generatedBy,
+    status: status
   }
-  return trainingPlan
+  return item
 }
 
 export function createWorkoutSet(
-  id: string,
-  exerciseContentId: string,
+  setId: string,
+  exerciseId: string,
   weight: number,
   reps: number,
-  setIndex: number
+  rpe: number,
+  isWarmup: boolean
 ): WorkoutSet {
-  const workoutSet: WorkoutSet = {
-    id: id,
-    exerciseContentId: exerciseContentId,
+  const item: WorkoutSet = {
+    setId: setId,
+    exerciseId: exerciseId,
     weight: weight,
     reps: reps,
-    setIndex: setIndex
+    rpe: rpe,
+    isWarmup: isWarmup
   }
-  return workoutSet
+  return item
 }
 
 export function createWorkoutSession(
-  id: string,
+  sessionId: string,
   planId: string,
+  dayId: string,
   startedAt: number,
-  finishedAt: number,
+  endedAt: number,
+  durationSeconds: number,
+  totalSets: number,
+  totalVolume: number,
+  fatigueScore: number,
+  notes: string,
   sets: WorkoutSet[]
 ): WorkoutSession {
-  const copiedSets: WorkoutSet[] = sets.slice()
-  const workoutSession: WorkoutSession = {
-    id: id,
+  const item: WorkoutSession = {
+    sessionId: sessionId,
     planId: planId,
+    dayId: dayId,
     startedAt: startedAt,
-    finishedAt: finishedAt,
-    sets: copiedSets
+    endedAt: endedAt,
+    durationSeconds: durationSeconds,
+    totalSets: totalSets,
+    totalVolume: totalVolume,
+    fatigueScore: fatigueScore,
+    notes: notes,
+    sets: sets
   }
-  return workoutSession
+  return item
 }
 
 export function createContentSyncStatus(
-  id: string,
-  lastSyncedAt: number,
-  version: string,
-  isDirty: boolean
+  localVersion: number,
+  remoteVersion: number,
+  lastCheckedAt: number,
+  status: string
 ): ContentSyncStatus {
-  const status: ContentSyncStatus = {
-    id: id,
-    lastSyncedAt: lastSyncedAt,
-    version: version,
-    isDirty: isDirty
+  const item: ContentSyncStatus = {
+    localVersion: localVersion,
+    remoteVersion: remoteVersion,
+    lastCheckedAt: lastCheckedAt,
+    status: status
   }
-  return status
+  return item
 }
 
 export function estimateOneRepMax(weight: number, reps: number): number {
-  const rawEstimate = weight * (1 + reps / 30)
-  return Math.round(rawEstimate * 100) / 100
+  const raw = weight * (1 + reps / 30)
+  return Math.round(raw * 100) / 100
 }
