@@ -20,6 +20,7 @@ const EQUIPMENT_TYPES = ['杠铃', '哑铃', '绳索', '固定器械', '自重']
 // MuscleColorMap provides color mapping with default values
 
 
+@Entry
 @Component
 export struct ExerciseLibraryPage {
   @State searchQuery: string = ''
