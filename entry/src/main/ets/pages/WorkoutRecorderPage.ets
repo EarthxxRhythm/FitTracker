@@ -20,6 +20,7 @@ interface ExEditorData {
   rest: number
 }
 @Preview
+@Entry
 @Component
 export struct WorkoutRecorderPage {
   @State currentTab: string = 'training'
