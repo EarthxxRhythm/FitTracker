@@ -122,5 +122,57 @@ export default function targetLoopSkeletonTest() {
       expect(alternatives.length >= 1).assertTrue()
       expect(alternatives[0].exerciseId).assertEqual('ex_dumbbell_bench_press')
     })
+
+    it('finds exercise content by id', 0, () => {
+      const exercise: ExerciseContent | undefined = ContentRepository.getExerciseById('ex_barbell_bench_press')
+
+      expect(exercise !== undefined).assertTrue()
+      if (exercise !== undefined) {
+        expect(exercise.exerciseId).assertEqual('ex_barbell_bench_press')
+      }
+    })
+
+    it('searches exercise names and aliases', 0, () => {
+      const results: ExerciseContent[] = ContentRepository.searchExercises('bench')
+
+      expect(results.length >= 1).assertTrue()
+      expect(results[0].exerciseId).assertEqual('ex_barbell_bench_press')
+    })
+
+    it('filters exercises by muscle', 0, () => {
+      const results: ExerciseContent[] = ContentRepository.getExercisesByMuscle('muscle_chest')
+
+      expect(results.length >= 1).assertTrue()
+    })
+
+    it('filters exercises by equipment', 0, () => {
+      const results: ExerciseContent[] = ContentRepository.getExercisesByEquipment('eq_dumbbell')
+
+      expect(results.length >= 1).assertTrue()
+    })
+
+    it('returns empty values for missing exercise ids', 0, () => {
+      const exercise: ExerciseContent | undefined = ContentRepository.getExerciseById('ex_unknown')
+      const alternatives: ExerciseContent[] = ContentRepository.getAlternativeExercises('ex_unknown')
+
+      expect(exercise === undefined).assertTrue()
+      expect(alternatives.length).assertEqual(0)
+    })
+
+    it('returns defensive copies of exercise arrays', 0, () => {
+      const firstRead: ExerciseContent | undefined = ContentRepository.getExerciseById('ex_barbell_bench_press')
+
+      expect(firstRead !== undefined).assertTrue()
+      if (firstRead !== undefined) {
+        firstRead.steps.push('mutated')
+      }
+
+      const secondRead: ExerciseContent | undefined = ContentRepository.getExerciseById('ex_barbell_bench_press')
+
+      expect(secondRead !== undefined).assertTrue()
+      if (secondRead !== undefined) {
+        expect(secondRead.steps.includes('mutated')).assertFalse()
+      }
+    })
   })
 }

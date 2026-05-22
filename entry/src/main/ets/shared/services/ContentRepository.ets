@@ -10,22 +10,34 @@ import { EquipmentItem, ExerciseContent, MuscleGroup } from '../models/TrainingM
 
 class ContentRepositoryImpl {
   getMuscles(): MuscleGroup[] {
-    return SEED_MUSCLES
+    const muscles: MuscleGroup[] = []
+    for (let index = 0; index < SEED_MUSCLES.length; index++) {
+      muscles.push(this.copyMuscleGroup(SEED_MUSCLES[index]))
+    }
+    return muscles
   }
 
   getEquipment(): EquipmentItem[] {
-    return SEED_EQUIPMENT
+    const equipmentItems: EquipmentItem[] = []
+    for (let index = 0; index < SEED_EQUIPMENT.length; index++) {
+      equipmentItems.push(this.copyEquipmentItem(SEED_EQUIPMENT[index]))
+    }
+    return equipmentItems
   }
 
   getExercises(): ExerciseContent[] {
-    return SEED_EXERCISES
+    const exercises: ExerciseContent[] = []
+    for (let index = 0; index < SEED_EXERCISES.length; index++) {
+      exercises.push(this.copyExerciseContent(SEED_EXERCISES[index]))
+    }
+    return exercises
   }
 
   getExerciseById(exerciseId: string): ExerciseContent | undefined {
     for (let index = 0; index < SEED_EXERCISES.length; index++) {
       const exercise: ExerciseContent = SEED_EXERCISES[index]
       if (exercise.exerciseId === exerciseId) {
-        return exercise
+        return this.copyExerciseContent(exercise)
       }
     }
     return undefined
@@ -36,7 +48,7 @@ class ContentRepositoryImpl {
     for (let index = 0; index < SEED_EXERCISES.length; index++) {
       const exercise: ExerciseContent = SEED_EXERCISES[index]
       if (this.containsValue(exercise.primaryMuscleIds, muscleId) || this.containsValue(exercise.secondaryMuscleIds, muscleId)) {
-        exercises.push(exercise)
+        exercises.push(this.copyExerciseContent(exercise))
       }
     }
     return exercises
@@ -47,7 +59,7 @@ class ContentRepositoryImpl {
     for (let index = 0; index < SEED_EXERCISES.length; index++) {
       const exercise: ExerciseContent = SEED_EXERCISES[index]
       if (this.containsValue(exercise.equipmentIds, equipmentId)) {
-        exercises.push(exercise)
+        exercises.push(this.copyExerciseContent(exercise))
       }
     }
     return exercises
@@ -63,14 +75,14 @@ class ContentRepositoryImpl {
     for (let index = 0; index < SEED_EXERCISES.length; index++) {
       const exercise: ExerciseContent = SEED_EXERCISES[index]
       if (this.matchesExercise(exercise, normalizedQuery)) {
-        exercises.push(exercise)
+        exercises.push(this.copyExerciseContent(exercise))
       }
     }
     return exercises
   }
 
   getAlternativeExercises(exerciseId: string): ExerciseContent[] {
-    const exercise: ExerciseContent | undefined = this.getExerciseById(exerciseId)
+    const exercise: ExerciseContent | undefined = this.findSeedExerciseById(exerciseId)
     const alternatives: ExerciseContent[] = []
     if (exercise === undefined) {
       return alternatives
@@ -78,9 +90,9 @@ class ContentRepositoryImpl {
 
     for (let index = 0; index < exercise.alternativeExerciseIds.length; index++) {
       const alternativeExerciseId: string = exercise.alternativeExerciseIds[index]
-      const alternative: ExerciseContent | undefined = this.getExerciseById(alternativeExerciseId)
+      const alternative: ExerciseContent | undefined = this.findSeedExerciseById(alternativeExerciseId)
       if (alternative !== undefined) {
-        alternatives.push(alternative)
+        alternatives.push(this.copyExerciseContent(alternative))
       }
     }
     return alternatives
@@ -107,6 +119,64 @@ class ContentRepositoryImpl {
       }
     }
     return false
+  }
+
+  private findSeedExerciseById(exerciseId: string): ExerciseContent | undefined {
+    for (let index = 0; index < SEED_EXERCISES.length; index++) {
+      const exercise: ExerciseContent = SEED_EXERCISES[index]
+      if (exercise.exerciseId === exerciseId) {
+        return exercise
+      }
+    }
+    return undefined
+  }
+
+  private copyMuscleGroup(source: MuscleGroup): MuscleGroup {
+    const item: MuscleGroup = {
+      muscleId: source.muscleId,
+      nameZh: source.nameZh,
+      region: source.region
+    }
+    return item
+  }
+
+  private copyEquipmentItem(source: EquipmentItem): EquipmentItem {
+    const item: EquipmentItem = {
+      equipmentId: source.equipmentId,
+      nameZh: source.nameZh
+    }
+    return item
+  }
+
+  private copyExerciseContent(source: ExerciseContent): ExerciseContent {
+    const item: ExerciseContent = {
+      exerciseId: source.exerciseId,
+      nameZh: source.nameZh,
+      nameEn: source.nameEn,
+      aliases: this.copyStringArray(source.aliases),
+      primaryMuscleIds: this.copyStringArray(source.primaryMuscleIds),
+      secondaryMuscleIds: this.copyStringArray(source.secondaryMuscleIds),
+      equipmentIds: this.copyStringArray(source.equipmentIds),
+      difficulty: source.difficulty,
+      goalTags: this.copyStringArray(source.goalTags),
+      videoUrl: source.videoUrl,
+      coverUrl: source.coverUrl,
+      steps: this.copyStringArray(source.steps),
+      cues: this.copyStringArray(source.cues),
+      commonMistakes: this.copyStringArray(source.commonMistakes),
+      safetyNotes: this.copyStringArray(source.safetyNotes),
+      alternativeExerciseIds: this.copyStringArray(source.alternativeExerciseIds),
+      contentVersion: source.contentVersion
+    }
+    return item
+  }
+
+  private copyStringArray(source: string[]): string[] {
+    const values: string[] = []
+    for (let index = 0; index < source.length; index++) {
+      values.push(source[index])
+    }
+    return values
   }
 
   private containsValue(values: string[], targetValue: string): boolean {
