@@ -8,6 +8,7 @@ import { StartupDecision } from '../main/ets/app/AppState'
 import ContentRepository from '../main/ets/shared/services/ContentRepository'
 import GoalRepository from '../main/ets/shared/services/GoalRepository'
 import GoalSetupService from '../main/ets/shared/services/GoalSetupService'
+import HomePlanService, { HomePlanSummary } from '../main/ets/shared/services/HomePlanService'
 import PlanEngine from '../main/ets/shared/services/PlanEngine'
 import ReviewService from '../main/ets/shared/services/ReviewService'
 import SyncService from '../main/ets/shared/services/SyncService'
@@ -361,6 +362,54 @@ export default function targetLoopSkeletonTest() {
 
       expect(goal.equipmentIds.length).assertEqual(1)
       expect(goal.restrictedMuscleIds.length).assertEqual(0)
+    })
+
+    it('builds a home plan summary from saved goal and generated plan', 0, () => {
+      const equipmentIds: string[] = ['eq_barbell', 'eq_dumbbell']
+      const restrictedMuscleIds: string[] = []
+      const goal: UserGoal = createUserGoal(
+        'goal_home_summary',
+        'hypertrophy',
+        'beginner',
+        3,
+        45,
+        equipmentIds,
+        restrictedMuscleIds,
+        7000,
+        7000
+      )
+      const plan: TrainingPlan = PlanEngine.generatePlan(goal)
+
+      const summary: HomePlanSummary = HomePlanService.createSummary(goal, plan, 2)
+
+      expect(summary.hasGoal).assertTrue()
+      expect(summary.planName).assertEqual(plan.name)
+      expect(summary.weeklyDays).assertEqual(3)
+      expect(summary.sessionMinutes).assertEqual(45)
+      expect(summary.todayDayId).assertEqual('day_2')
+      expect(summary.todayExerciseCount > 0).assertTrue()
+      expect(summary.todayExerciseNames.length).assertEqual(summary.todayExerciseCount)
+    })
+
+    it('wraps today selection into available generated plan days', 0, () => {
+      const equipmentIds: string[] = ['eq_barbell', 'eq_dumbbell']
+      const restrictedMuscleIds: string[] = []
+      const goal: UserGoal = createUserGoal(
+        'goal_home_wrap',
+        'hypertrophy',
+        'beginner',
+        3,
+        45,
+        equipmentIds,
+        restrictedMuscleIds,
+        8000,
+        8000
+      )
+      const plan: TrainingPlan = PlanEngine.generatePlan(goal)
+
+      const summary: HomePlanSummary = HomePlanService.createSummary(goal, plan, 5)
+
+      expect(summary.todayDayId).assertEqual('day_2')
     })
 
     it('stores created workout sessions locally', 0, () => {

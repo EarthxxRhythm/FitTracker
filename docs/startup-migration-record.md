@@ -16,3 +16,9 @@
 - `GoalSetupService` now maps onboarding selections into a typed `UserGoal`.
 - `GoalSetupPage` now captures goal type, experience level, weekly training days, session duration, and available equipment.
 - The save action persists the selected goal and routes into the new home page.
+
+## Today Training Entry Step
+
+- `HomePlanService` now creates a home summary from a saved goal and a generated `TrainingPlan`.
+- `HomePage` now reads the saved goal, calls `PlanEngine.generatePlan(goal)`, and displays today's training entry.
+- The page also shows weekly plan days so users can scan the generated plan before starting a workout.
