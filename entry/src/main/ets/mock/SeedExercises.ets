@@ -91,7 +91,26 @@ export const SEED_EXERCISES: ExerciseContent[] = [
     BASIC_CUES,
     BASIC_MISTAKES,
     BASIC_SAFETY_NOTES,
-    ['ex_lat_pulldown'],
+    ['ex_dumbbell_row', 'ex_lat_pulldown'],
+    1
+  ),
+  createExerciseContent(
+    'ex_dumbbell_row',
+    'Dumbbell Row',
+    'Dumbbell Row',
+    ['row'],
+    ['muscle_back'],
+    ['muscle_arms', 'muscle_core'],
+    ['eq_dumbbell'],
+    'beginner',
+    HYPERTROPHY_STRENGTH_TAGS,
+    EMPTY_VIDEO_URL,
+    EMPTY_COVER_URL,
+    BASIC_STEPS,
+    BASIC_CUES,
+    BASIC_MISTAKES,
+    BASIC_SAFETY_NOTES,
+    ['ex_pull_up'],
     1
   ),
   createExerciseContent(

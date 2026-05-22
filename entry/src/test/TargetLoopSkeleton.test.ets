@@ -196,7 +196,9 @@ export default function targetLoopSkeletonTest() {
       const plan: TrainingPlan = PlanEngine.generatePlan(goal)
 
       expect(plan.days.length).assertEqual(3)
-      expect(plan.days[0].exercises.length > 0).assertTrue()
+      for (let index = 0; index < plan.days.length; index++) {
+        expect(plan.days[index].exercises.length > 0).assertTrue()
+      }
       expect(plan.generatedBy).assertEqual('rule_v1')
     })
 
@@ -207,6 +209,30 @@ export default function targetLoopSkeletonTest() {
       ]
 
       expect(ReviewService.calculateVolume(sets)).assertEqual(1220)
+    })
+
+    it('excludes warmup sets from workout volume', 0, () => {
+      const sets: WorkoutSet[] = [
+        createWorkoutSet('set_warmup_1', 'ex_barbell_bench_press', 60, 10, 5, true),
+        createWorkoutSet('set_work_1', 'ex_barbell_bench_press', 100, 5, 8, false)
+      ]
+
+      expect(ReviewService.calculateVolume(sets)).assertEqual(500)
+    })
+
+    it('calculates best estimated one rep max from non-warmup sets', 0, () => {
+      const sets: WorkoutSet[] = [
+        createWorkoutSet('set_warmup_1', 'ex_barbell_bench_press', 150, 5, 5, true),
+        createWorkoutSet('set_work_1', 'ex_barbell_bench_press', 100, 5, 8, false),
+        createWorkoutSet('set_work_2', 'ex_barbell_bench_press', 110, 3, 9, false)
+      ]
+
+      expect(ReviewService.calculateBestEstimatedOneRepMax(sets)).assertEqual(121)
+    })
+
+    it('calculates completion rate with zero-plan guard and rounded percentage', 0, () => {
+      expect(ReviewService.calculateCompletionRate(2, 0)).assertEqual(0)
+      expect(ReviewService.calculateCompletionRate(2, 3)).assertEqual(67)
     })
   })
 }
