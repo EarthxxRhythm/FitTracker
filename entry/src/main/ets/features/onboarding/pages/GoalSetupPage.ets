@@ -48,11 +48,30 @@ const EQUIPMENT_OPTIONS: GoalOption[] = [
 @Component
 export struct GoalSetupPage {
   @State saving: boolean = false
+  @State hasExistingGoal: boolean = false
+  @State existingGoal: UserGoal | undefined = undefined
   @State selectedGoalType: string = 'hypertrophy'
   @State selectedLevel: string = 'beginner'
   @State weeklyDays: number = 3
   @State sessionMinutes: number = 45
   @State selectedEquipmentIds: string[] = ['eq_bodyweight', 'eq_dumbbell']
+
+  async aboutToAppear(): Promise<void> {
+    try {
+      const goal: UserGoal | undefined = await GoalRepository.loadGoal(getContext(this))
+      if (goal !== undefined) {
+        this.hasExistingGoal = true
+        this.existingGoal = goal
+        this.selectedGoalType = goal.goalType
+        this.selectedLevel = goal.level
+        this.weeklyDays = goal.weeklyDays
+        this.sessionMinutes = goal.sessionMinutes
+        this.selectedEquipmentIds = this.copyStringArray(goal.equipmentIds)
+      }
+    } catch (e) {
+      this.hasExistingGoal = false
+    }
+  }
 
   async saveSelectedGoal(): Promise<void> {
     if (this.saving) {
@@ -62,16 +81,30 @@ export struct GoalSetupPage {
     const equipmentIds: string[] = this.getSelectedEquipmentIds()
     const restrictedMuscleIds: string[] = []
     const now: number = Date.now()
-    const goal: UserGoal = GoalSetupService.createGoalFromSelection(
-      'goal_current',
-      this.selectedGoalType,
-      this.selectedLevel,
-      this.weeklyDays,
-      this.sessionMinutes,
-      equipmentIds,
-      restrictedMuscleIds,
-      now
-    )
+    let goal: UserGoal
+    if (this.existingGoal !== undefined) {
+      goal = GoalSetupService.createGoalFromExistingSelection(
+        this.existingGoal,
+        this.selectedGoalType,
+        this.selectedLevel,
+        this.weeklyDays,
+        this.sessionMinutes,
+        equipmentIds,
+        restrictedMuscleIds,
+        now
+      )
+    } else {
+      goal = GoalSetupService.createGoalFromSelection(
+        'goal_current',
+        this.selectedGoalType,
+        this.selectedLevel,
+        this.weeklyDays,
+        this.sessionMinutes,
+        equipmentIds,
+        restrictedMuscleIds,
+        now
+      )
+    }
 
     try {
       await GoalRepository.saveGoal(getContext(this), goal)
@@ -116,6 +149,14 @@ export struct GoalSetupPage {
       }
     }
     return false
+  }
+
+  copyStringArray(source: string[]): string[] {
+    const values: string[] = []
+    for (let index = 0; index < source.length; index++) {
+      values.push(source[index])
+    }
+    return values
   }
 
   selectedBg(isSelected: boolean): string {

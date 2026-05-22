@@ -40,3 +40,11 @@
 - `WorkoutSummaryService` now converts saved `WorkoutSession` records into post-workout summaries with completion rate, completed sets, duration text, and volume.
 - `WorkoutRepository` can now find sessions by id and return the latest session for route fallback.
 - `WorkoutSummaryPage` now reads the saved session, shows a completion progress bar and key metrics, and offers home/review navigation.
+
+## MVP Review And Adjustment Step
+
+- `ReviewDashboardService` now aggregates local workout sessions into training count, completed sets, average completion rate, total duration, and a next-adjustment hint.
+- `ReviewHomePage` now shows the aggregate review dashboard and routes users to goal adjustment or the latest workout summary.
+- `GoalSetupPage` now loads an existing goal when present and saves edits while preserving the original goal creation time.
+- `HomePage` now includes a training review entry so users can return to the review loop outside the immediate post-workout flow.
+- `features/exercise/pages/ExerciseDetailPage` now reads local seed exercise content so preview alternatives open a real local detail page while video data waits for the future self-owned database.

@@ -83,6 +83,14 @@ export struct HomePage {
     }
   }
 
+  openReviewHome(): void {
+    try {
+      router.pushUrl({ url: AppRoutes.REVIEW_HOME })
+    } catch (e) {
+      // stay on home
+    }
+  }
+
   copyStringArray(source: string[]): string[] {
     const values: string[] = []
     for (let index = 0; index < source.length; index++) {
@@ -222,6 +230,17 @@ export struct HomePage {
               .borderRadius(RadiusTokens.FULL)
               .onClick(() => {
                 this.openWorkoutPreview()
+              })
+
+            Button('查看训练回顾')
+              .width('100%')
+              .height(TouchTokens.BUTTON_HEIGHT_LARGE)
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+              .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+              .borderRadius(RadiusTokens.FULL)
+              .onClick(() => {
+                this.openReviewHome()
               })
           }
           .width('100%')
