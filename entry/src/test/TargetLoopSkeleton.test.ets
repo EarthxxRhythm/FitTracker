@@ -5,8 +5,11 @@
  */
 import { describe, it, expect } from '@ohos/hypium'
 import ContentRepository from '../main/ets/shared/services/ContentRepository'
+import PlanEngine from '../main/ets/shared/services/PlanEngine'
+import ReviewService from '../main/ets/shared/services/ReviewService'
 import {
   ExerciseContent,
+  TrainingPlan,
   UserGoal,
   WorkoutSet,
   createExerciseContent,
@@ -173,6 +176,37 @@ export default function targetLoopSkeletonTest() {
       if (secondRead !== undefined) {
         expect(secondRead.steps.includes('mutated')).assertFalse()
       }
+    })
+
+    it('generates a three day hypertrophy plan from available barbell and dumbbell equipment', 0, () => {
+      const equipmentIds: string[] = ['eq_barbell', 'eq_dumbbell']
+      const restrictedMuscleIds: string[] = []
+      const goal: UserGoal = createUserGoal(
+        'goal_plan_engine',
+        'hypertrophy',
+        'beginner',
+        3,
+        60,
+        equipmentIds,
+        restrictedMuscleIds,
+        2000,
+        2000
+      )
+
+      const plan: TrainingPlan = PlanEngine.generatePlan(goal)
+
+      expect(plan.days.length).assertEqual(3)
+      expect(plan.days[0].exercises.length > 0).assertTrue()
+      expect(plan.generatedBy).assertEqual('rule_v1')
+    })
+
+    it('calculates workout volume from completed working sets', 0, () => {
+      const sets: WorkoutSet[] = [
+        createWorkoutSet('set_volume_1', 'ex_barbell_bench_press', 100, 5, 8, false),
+        createWorkoutSet('set_volume_2', 'ex_barbell_bench_press', 90, 8, 8, false)
+      ]
+
+      expect(ReviewService.calculateVolume(sets)).assertEqual(1220)
     })
   })
 }
