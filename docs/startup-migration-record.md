@@ -34,3 +34,9 @@
 - `ActiveWorkoutService` now turns the workout preview into executable workout state with target sets and completed-set progress.
 - `ActiveWorkoutPage` now reads the saved goal, regenerates today's plan, lets users mark completed sets, and can save either current progress or all planned sets.
 - Completed workouts are saved through `WorkoutRepository` as local `WorkoutSession` records before routing to the summary page.
+
+## Workout Summary Step
+
+- `WorkoutSummaryService` now converts saved `WorkoutSession` records into post-workout summaries with completion rate, completed sets, duration text, and volume.
+- `WorkoutRepository` can now find sessions by id and return the latest session for route fallback.
+- `WorkoutSummaryPage` now reads the saved session, shows a completion progress bar and key metrics, and offers home/review navigation.
