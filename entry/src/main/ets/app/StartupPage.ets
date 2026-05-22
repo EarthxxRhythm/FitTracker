@@ -2,11 +2,21 @@
  * StartupPage -- application startup placeholder
  * Function #5: Routes and placeholder pages
  */
+import { router } from '@kit.ArkUI'
 import { ColorTokens, FontTokens, SpacingTokens } from '../common/styles/DesignTokens'
+import { StartupDecision } from './AppState'
 
 @Entry
 @Component
 export struct StartupPage {
+  aboutToAppear(): void {
+    try {
+      router.replaceUrl({ url: StartupDecision.getInitialRoute(false) })
+    } catch (e) {
+      // Keep the startup placeholder visible if route replacement fails.
+    }
+  }
+
   build() {
     Column() {
       Text('FitTracker')

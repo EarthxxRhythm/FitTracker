@@ -1,5 +1,6 @@
 {
   "src": [
+    "app/StartupPage",
     "pages/Index",
     "pages/RegisterPage",
     "pages/LoginPage",
@@ -9,7 +10,6 @@
     "pages/StatsPage",
     "pages/ExerciseLibraryPage",
     "pages/ProfilePage",
-    "app/StartupPage",
     "features/onboarding/pages/GoalSetupPage",
     "pages/HomePage",
     "features/planner/pages/PlanHomePage",
