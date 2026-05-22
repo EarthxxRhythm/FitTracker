@@ -29,6 +29,29 @@ class GoalSetupService {
     )
   }
 
+  createGoalFromExistingSelection(
+    existingGoal: UserGoal,
+    goalType: string,
+    level: string,
+    weeklyDays: number,
+    sessionMinutes: number,
+    equipmentIds: string[],
+    restrictedMuscleIds: string[],
+    now: number
+  ): UserGoal {
+    return createUserGoal(
+      existingGoal.goalId,
+      goalType,
+      level,
+      weeklyDays,
+      sessionMinutes,
+      this.copyStringArray(equipmentIds),
+      this.copyStringArray(restrictedMuscleIds),
+      existingGoal.createdAt,
+      now
+    )
+  }
+
   private copyStringArray(source: string[]): string[] {
     const values: string[] = []
     for (let index = 0; index < source.length; index++) {

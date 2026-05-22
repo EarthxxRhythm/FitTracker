@@ -11,6 +11,9 @@ import GoalSetupService from '../main/ets/shared/services/GoalSetupService'
 import HomePlanService, { HomePlanSummary } from '../main/ets/shared/services/HomePlanService'
 import PlanEngine from '../main/ets/shared/services/PlanEngine'
 import ReviewService from '../main/ets/shared/services/ReviewService'
+import ReviewDashboardService, {
+  ReviewDashboardSummary
+} from '../main/ets/shared/services/ReviewDashboardService'
 import SyncService from '../main/ets/shared/services/SyncService'
 import ActiveWorkoutService, {
   ActiveWorkoutState
@@ -253,6 +256,68 @@ export default function targetLoopSkeletonTest() {
       expect(ReviewService.calculateCompletionRate(2, 3)).assertEqual(67)
     })
 
+    it('builds review dashboard summary from saved sessions', 0, () => {
+      const sets: WorkoutSet[] = []
+      const firstSession: WorkoutSession = WorkoutRepository.createSession(
+        'session_dashboard_1',
+        'plan_dashboard',
+        'day_1',
+        1000,
+        61000,
+        60,
+        2,
+        0,
+        0,
+        'completed_sets=2;target_sets=4',
+        sets
+      )
+      const secondSession: WorkoutSession = WorkoutRepository.createSession(
+        'session_dashboard_2',
+        'plan_dashboard',
+        'day_2',
+        100000,
+        280000,
+        180,
+        4,
+        0,
+        0,
+        'completed_sets=4;target_sets=4',
+        sets
+      )
+      const sessions: WorkoutSession[] = [firstSession, secondSession]
+
+      const summary: ReviewDashboardSummary = ReviewDashboardService.createSummary(sessions)
+
+      expect(summary.hasSessions).assertTrue()
+      expect(summary.sessionCount).assertEqual(2)
+      expect(summary.totalCompletedSets).assertEqual(6)
+      expect(summary.totalTargetSets).assertEqual(8)
+      expect(summary.averageCompletionRate).assertEqual(75)
+      expect(summary.latestSessionId).assertEqual('session_dashboard_2')
+    })
+
+    it('suggests reducing next plan when average completion is low', 0, () => {
+      const sets: WorkoutSet[] = []
+      const session: WorkoutSession = WorkoutRepository.createSession(
+        'session_dashboard_low',
+        'plan_dashboard',
+        'day_1',
+        1000,
+        61000,
+        60,
+        1,
+        0,
+        0,
+        'completed_sets=1;target_sets=4',
+        sets
+      )
+      const sessions: WorkoutSession[] = [session]
+
+      const summary: ReviewDashboardSummary = ReviewDashboardService.createSummary(sessions)
+
+      expect(summary.adjustmentHint).assertEqual('reduce_load')
+    })
+
     it('returns local content sync status', 0, () => {
       const status: ContentSyncStatus = SyncService.getLocalStatus()
 
@@ -372,6 +437,41 @@ export default function targetLoopSkeletonTest() {
 
       expect(goal.equipmentIds.length).assertEqual(1)
       expect(goal.restrictedMuscleIds.length).assertEqual(0)
+    })
+
+    it('creates an updated goal while preserving original creation time', 0, () => {
+      const equipmentIds: string[] = ['eq_bodyweight']
+      const restrictedMuscleIds: string[] = []
+      const existingGoal: UserGoal = createUserGoal(
+        'goal_existing_update',
+        'hypertrophy',
+        'beginner',
+        3,
+        45,
+        equipmentIds,
+        restrictedMuscleIds,
+        1000,
+        1000
+      )
+      const nextEquipmentIds: string[] = ['eq_barbell']
+      const nextRestrictedMuscleIds: string[] = []
+
+      const updatedGoal: UserGoal = GoalSetupService.createGoalFromExistingSelection(
+        existingGoal,
+        'strength',
+        'intermediate',
+        4,
+        60,
+        nextEquipmentIds,
+        nextRestrictedMuscleIds,
+        2000
+      )
+
+      expect(updatedGoal.goalId).assertEqual('goal_existing_update')
+      expect(updatedGoal.goalType).assertEqual('strength')
+      expect(updatedGoal.createdAt).assertEqual(1000)
+      expect(updatedGoal.updatedAt).assertEqual(2000)
+      expect(updatedGoal.equipmentIds[0]).assertEqual('eq_barbell')
     })
 
     it('builds a home plan summary from saved goal and generated plan', 0, () => {
