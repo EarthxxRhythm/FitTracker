@@ -22,3 +22,9 @@
 - `HomePlanService` now creates a home summary from a saved goal and a generated `TrainingPlan`.
 - `HomePage` now reads the saved goal, calls `PlanEngine.generatePlan(goal)`, and displays today's training entry.
 - The page also shows weekly plan days so users can scan the generated plan before starting a workout.
+
+## Workout Preview Step
+
+- `WorkoutPreviewService` now transforms generated plan days into preview rows with exercise names, set targets, rep targets, intensity notes, and alternatives.
+- `WorkoutPreviewPage` now reads the saved goal, regenerates today's plan, and shows the pre-workout checklist before entering active training.
+- Alternative exercise chips route to the exercise detail flow using local exercise IDs.
