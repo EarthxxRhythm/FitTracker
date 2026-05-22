@@ -12,6 +12,9 @@ import HomePlanService, { HomePlanSummary } from '../main/ets/shared/services/Ho
 import PlanEngine from '../main/ets/shared/services/PlanEngine'
 import ReviewService from '../main/ets/shared/services/ReviewService'
 import SyncService from '../main/ets/shared/services/SyncService'
+import ActiveWorkoutService, {
+  ActiveWorkoutState
+} from '../main/ets/shared/services/ActiveWorkoutService'
 import WorkoutRepository from '../main/ets/shared/services/WorkoutRepository'
 import WorkoutPreviewService, {
   WorkoutPreviewExercise,
@@ -464,6 +467,68 @@ export default function targetLoopSkeletonTest() {
       const firstExercise: WorkoutPreviewExercise = preview.exercises[0]
 
       expect(firstExercise.alternativeNames.length > 0).assertTrue()
+    })
+
+    it('creates an active workout state from the preview exercises', 0, () => {
+      const equipmentIds: string[] = ['eq_barbell', 'eq_dumbbell']
+      const restrictedMuscleIds: string[] = []
+      const goal: UserGoal = createUserGoal(
+        'goal_active_state',
+        'hypertrophy',
+        'beginner',
+        3,
+        45,
+        equipmentIds,
+        restrictedMuscleIds,
+        9200,
+        9200
+      )
+      const plan: TrainingPlan = PlanEngine.generatePlan(goal)
+      const preview: WorkoutPreviewSummary = WorkoutPreviewService.createPreview(plan, 1)
+
+      const state: ActiveWorkoutState = ActiveWorkoutService.createState(preview)
+
+      expect(state.hasWorkout).assertTrue()
+      expect(state.planId).assertEqual(plan.planId)
+      expect(state.dayId).assertEqual('day_1')
+      expect(state.totalTargetSets > 0).assertTrue()
+      expect(state.completedSets).assertEqual(0)
+      expect(state.exercises.length).assertEqual(preview.exerciseCount)
+    })
+
+    it('creates a completed workout session from active workout progress', 0, () => {
+      const equipmentIds: string[] = ['eq_barbell', 'eq_dumbbell']
+      const restrictedMuscleIds: string[] = []
+      const goal: UserGoal = createUserGoal(
+        'goal_active_session',
+        'hypertrophy',
+        'beginner',
+        3,
+        45,
+        equipmentIds,
+        restrictedMuscleIds,
+        9300,
+        9300
+      )
+      const plan: TrainingPlan = PlanEngine.generatePlan(goal)
+      const preview: WorkoutPreviewSummary = WorkoutPreviewService.createPreview(plan, 1)
+      const state: ActiveWorkoutState = ActiveWorkoutService.createState(preview)
+
+      const session: WorkoutSession = ActiveWorkoutService.createCompletedSession(
+        'session_active_1',
+        state,
+        1000,
+        121000,
+        2
+      )
+
+      expect(session.sessionId).assertEqual('session_active_1')
+      expect(session.planId).assertEqual(plan.planId)
+      expect(session.dayId).assertEqual('day_1')
+      expect(session.durationSeconds).assertEqual(120)
+      expect(session.totalSets).assertEqual(2)
+      expect(session.totalVolume).assertEqual(0)
+      expect(session.sets.length).assertEqual(0)
     })
 
     it('stores created workout sessions locally', 0, () => {
