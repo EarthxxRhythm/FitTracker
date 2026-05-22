@@ -7,6 +7,7 @@ import { describe, it, expect } from '@ohos/hypium'
 import { StartupDecision } from '../main/ets/app/AppState'
 import ContentRepository from '../main/ets/shared/services/ContentRepository'
 import GoalRepository from '../main/ets/shared/services/GoalRepository'
+import GoalSetupService from '../main/ets/shared/services/GoalSetupService'
 import PlanEngine from '../main/ets/shared/services/PlanEngine'
 import ReviewService from '../main/ets/shared/services/ReviewService'
 import SyncService from '../main/ets/shared/services/SyncService'
@@ -312,6 +313,54 @@ export default function targetLoopSkeletonTest() {
         expect(secondRead.equipmentIds.length).assertEqual(1)
         expect(secondRead.restrictedMuscleIds.length).assertEqual(1)
       }
+    })
+
+    it('creates a goal from onboarding questionnaire selections', 0, () => {
+      const equipmentIds: string[] = ['eq_dumbbell', 'eq_bodyweight']
+      const restrictedMuscleIds: string[] = ['muscle_knee_sensitive']
+
+      const goal: UserGoal = GoalSetupService.createGoalFromSelection(
+        'goal_selection_1',
+        'fat_loss',
+        'beginner',
+        4,
+        50,
+        equipmentIds,
+        restrictedMuscleIds,
+        5000
+      )
+
+      expect(goal.goalId).assertEqual('goal_selection_1')
+      expect(goal.goalType).assertEqual('fat_loss')
+      expect(goal.level).assertEqual('beginner')
+      expect(goal.weeklyDays).assertEqual(4)
+      expect(goal.sessionMinutes).assertEqual(50)
+      expect(goal.equipmentIds.length).assertEqual(2)
+      expect(goal.restrictedMuscleIds.length).assertEqual(1)
+      expect(goal.createdAt).assertEqual(5000)
+      expect(goal.updatedAt).assertEqual(5000)
+    })
+
+    it('copies onboarding questionnaire arrays into the created goal', 0, () => {
+      const equipmentIds: string[] = ['eq_barbell']
+      const restrictedMuscleIds: string[] = []
+
+      const goal: UserGoal = GoalSetupService.createGoalFromSelection(
+        'goal_selection_copy',
+        'strength',
+        'intermediate',
+        5,
+        60,
+        equipmentIds,
+        restrictedMuscleIds,
+        6000
+      )
+
+      equipmentIds.push('eq_mutated')
+      restrictedMuscleIds.push('muscle_mutated')
+
+      expect(goal.equipmentIds.length).assertEqual(1)
+      expect(goal.restrictedMuscleIds.length).assertEqual(0)
     })
 
     it('stores created workout sessions locally', 0, () => {

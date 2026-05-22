@@ -10,3 +10,9 @@
 - `GoalRepository` now stores the current goal in memory and mirrors it to the `fit_tracker_goal` preferences store.
 - `StartupPage` calls `GoalRepository.hasSavedGoal(...)` and routes returning users with a saved goal to `pages/HomePage`.
 - `GoalSetupPage` includes a minimal default-goal save action that writes the goal and enters the new home page.
+
+## Goal Questionnaire Step
+
+- `GoalSetupService` now maps onboarding selections into a typed `UserGoal`.
+- `GoalSetupPage` now captures goal type, experience level, weekly training days, session duration, and available equipment.
+- The save action persists the selected goal and routes into the new home page.
