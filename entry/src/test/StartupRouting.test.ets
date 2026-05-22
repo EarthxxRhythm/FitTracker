@@ -3,12 +3,12 @@ import { resolveInitialPage } from '../main/ets/entryability/EntryAbility'
 
 export default function startupRoutingTest() {
   describe('Startup routing', () => {
-    it('should route logged-out users to the login page', 0, () => {
-      expect(resolveInitialPage(false)).assertEqual('pages/LoginPage')
+    it('loads the target-loop startup page before user state routing', 0, () => {
+      expect(resolveInitialPage(false)).assertEqual('app/StartupPage')
     })
 
-    it('should route logged-in users to the index page', 0, () => {
-      expect(resolveInitialPage(true)).assertEqual('pages/Index')
+    it('keeps the startup page stable for returning users', 0, () => {
+      expect(resolveInitialPage(true)).assertEqual('app/StartupPage')
     })
   })
 }
