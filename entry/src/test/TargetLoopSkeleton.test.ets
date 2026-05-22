@@ -15,6 +15,9 @@ import SyncService from '../main/ets/shared/services/SyncService'
 import ActiveWorkoutService, {
   ActiveWorkoutState
 } from '../main/ets/shared/services/ActiveWorkoutService'
+import WorkoutSummaryService, {
+  WorkoutSummary
+} from '../main/ets/shared/services/WorkoutSummaryService'
 import WorkoutRepository from '../main/ets/shared/services/WorkoutRepository'
 import WorkoutPreviewService, {
   WorkoutPreviewExercise,
@@ -531,6 +534,42 @@ export default function targetLoopSkeletonTest() {
       expect(session.sets.length).assertEqual(0)
     })
 
+    it('builds a workout summary from a completed session', 0, () => {
+      const sets: WorkoutSet[] = []
+      const session: WorkoutSession = WorkoutRepository.createSession(
+        'session_summary_1',
+        'plan_summary_1',
+        'day_1',
+        1000,
+        181000,
+        180,
+        3,
+        0,
+        0,
+        'completed_sets=3;target_sets=4',
+        sets
+      )
+
+      const summary: WorkoutSummary = WorkoutSummaryService.createSummary(session)
+
+      expect(summary.hasSession).assertTrue()
+      expect(summary.sessionId).assertEqual('session_summary_1')
+      expect(summary.dayId).assertEqual('day_1')
+      expect(summary.completedSets).assertEqual(3)
+      expect(summary.targetSets).assertEqual(4)
+      expect(summary.completionRate).assertEqual(75)
+      expect(summary.durationText).assertEqual('3 分钟')
+    })
+
+    it('returns an empty workout summary when no session is available', 0, () => {
+      const summary: WorkoutSummary = WorkoutSummaryService.createEmptySummary()
+
+      expect(summary.hasSession).assertFalse()
+      expect(summary.sessionId).assertEqual('')
+      expect(summary.completedSets).assertEqual(0)
+      expect(summary.completionRate).assertEqual(0)
+    })
+
     it('stores created workout sessions locally', 0, () => {
       WorkoutRepository.clear()
       const sets: WorkoutSet[] = [
@@ -589,6 +628,52 @@ export default function targetLoopSkeletonTest() {
 
       const secondRead: WorkoutSession[] = WorkoutRepository.getSessions()
       expect(secondRead[0].sets[0].reps).assertEqual(6)
+    })
+
+    it('finds workout sessions by id and returns latest session', 0, () => {
+      WorkoutRepository.clear()
+      const sets: WorkoutSet[] = []
+      const firstSession: WorkoutSession = WorkoutRepository.createSession(
+        'session_find_1',
+        'plan_find',
+        'day_1',
+        1000,
+        2000,
+        1,
+        1,
+        0,
+        0,
+        '',
+        sets
+      )
+      const secondSession: WorkoutSession = WorkoutRepository.createSession(
+        'session_find_2',
+        'plan_find',
+        'day_2',
+        3000,
+        4000,
+        1,
+        2,
+        0,
+        0,
+        '',
+        sets
+      )
+
+      WorkoutRepository.saveSession(firstSession)
+      WorkoutRepository.saveSession(secondSession)
+
+      const foundSession: WorkoutSession | undefined = WorkoutRepository.getSessionById('session_find_1')
+      const latestSession: WorkoutSession | undefined = WorkoutRepository.getLatestSession()
+
+      expect(foundSession !== undefined).assertTrue()
+      expect(latestSession !== undefined).assertTrue()
+      if (foundSession !== undefined) {
+        expect(foundSession.dayId).assertEqual('day_1')
+      }
+      if (latestSession !== undefined) {
+        expect(latestSession.sessionId).assertEqual('session_find_2')
+      }
     })
   })
 }

@@ -48,6 +48,23 @@ class WorkoutRepository {
     return sessions
   }
 
+  getSessionById(sessionId: string): WorkoutSession | undefined {
+    for (let index = this.sessions.length - 1; index >= 0; index--) {
+      const session: WorkoutSession = this.sessions[index]
+      if (session.sessionId === sessionId) {
+        return this.copyWorkoutSession(session)
+      }
+    }
+    return undefined
+  }
+
+  getLatestSession(): WorkoutSession | undefined {
+    if (this.sessions.length === 0) {
+      return undefined
+    }
+    return this.copyWorkoutSession(this.sessions[this.sessions.length - 1])
+  }
+
   clear(): void {
     this.sessions = []
   }
