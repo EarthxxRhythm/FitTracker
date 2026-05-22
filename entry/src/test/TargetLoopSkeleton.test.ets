@@ -7,10 +7,14 @@ import { describe, it, expect } from '@ohos/hypium'
 import ContentRepository from '../main/ets/shared/services/ContentRepository'
 import PlanEngine from '../main/ets/shared/services/PlanEngine'
 import ReviewService from '../main/ets/shared/services/ReviewService'
+import SyncService from '../main/ets/shared/services/SyncService'
+import WorkoutRepository from '../main/ets/shared/services/WorkoutRepository'
 import {
+  ContentSyncStatus,
   ExerciseContent,
   TrainingPlan,
   UserGoal,
+  WorkoutSession,
   WorkoutSet,
   createExerciseContent,
   createUserGoal,
@@ -233,6 +237,38 @@ export default function targetLoopSkeletonTest() {
     it('calculates completion rate with zero-plan guard and rounded percentage', 0, () => {
       expect(ReviewService.calculateCompletionRate(2, 0)).assertEqual(0)
       expect(ReviewService.calculateCompletionRate(2, 3)).assertEqual(67)
+    })
+
+    it('returns local content sync status', 0, () => {
+      const status: ContentSyncStatus = SyncService.getLocalStatus()
+
+      expect(status.localVersion).assertEqual(1)
+      expect(status.status).assertEqual('local_available')
+    })
+
+    it('stores created workout sessions locally', 0, () => {
+      WorkoutRepository.clear()
+      const sets: WorkoutSet[] = [
+        createWorkoutSet('set_repo_1', 'ex_barbell_bench_press', 100, 5, 8, false)
+      ]
+      const session: WorkoutSession = WorkoutRepository.createSession(
+        'session_repo_1',
+        'plan_goal_repo',
+        'day_1',
+        1000,
+        1600,
+        600,
+        1,
+        500,
+        3,
+        'felt strong',
+        sets
+      )
+
+      WorkoutRepository.saveSession(session)
+
+      const sessions: WorkoutSession[] = WorkoutRepository.getSessions()
+      expect(sessions.length > 0).assertTrue()
     })
   })
 }
