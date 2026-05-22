@@ -4,6 +4,7 @@
  * Feature #1: shared data models for the target loop skeleton.
  */
 import { describe, it, expect } from '@ohos/hypium'
+import { StartupDecision } from '../main/ets/app/AppState'
 import ContentRepository from '../main/ets/shared/services/ContentRepository'
 import PlanEngine from '../main/ets/shared/services/PlanEngine'
 import ReviewService from '../main/ets/shared/services/ReviewService'
@@ -246,6 +247,14 @@ export default function targetLoopSkeletonTest() {
       expect(status.status).assertEqual('local_available')
     })
 
+    it('routes users with goals to home page on startup', 0, () => {
+      expect(StartupDecision.getInitialRoute(true)).assertEqual('pages/HomePage')
+    })
+
+    it('routes users without goals to onboarding goal setup on startup', 0, () => {
+      expect(StartupDecision.getInitialRoute(false)).assertEqual('features/onboarding/pages/GoalSetupPage')
+    })
+
     it('stores created workout sessions locally', 0, () => {
       WorkoutRepository.clear()
       const sets: WorkoutSet[] = [
@@ -269,6 +278,41 @@ export default function targetLoopSkeletonTest() {
 
       const sessions: WorkoutSession[] = WorkoutRepository.getSessions()
       expect(sessions.length > 0).assertTrue()
+      expect(sessions[0].sessionId).assertEqual('session_repo_1')
+      expect(sessions[0].totalVolume).assertEqual(500)
+      expect(sessions[0].sets[0].setId).assertEqual('set_repo_1')
+      expect(sessions[0].sets[0].exerciseId).assertEqual('ex_barbell_bench_press')
+      expect(sessions[0].sets[0].weight).assertEqual(100)
+      expect(sessions[0].sets[0].reps).assertEqual(5)
+      expect(sessions[0].sets[0].rpe).assertEqual(8)
+      expect(sessions[0].sets[0].isWarmup).assertFalse()
+    })
+
+    it('returns defensive copies of stored workout session sets', 0, () => {
+      WorkoutRepository.clear()
+      const sets: WorkoutSet[] = [
+        createWorkoutSet('set_copy_1', 'ex_barbell_bench_press', 80, 6, 7, false)
+      ]
+      const session: WorkoutSession = WorkoutRepository.createSession(
+        'session_copy_1',
+        'plan_goal_copy',
+        'day_1',
+        2000,
+        2600,
+        600,
+        1,
+        480,
+        2,
+        'copy check',
+        sets
+      )
+
+      WorkoutRepository.saveSession(session)
+      const firstRead: WorkoutSession[] = WorkoutRepository.getSessions()
+      firstRead[0].sets[0].reps = 99
+
+      const secondRead: WorkoutSession[] = WorkoutRepository.getSessions()
+      expect(secondRead[0].sets[0].reps).assertEqual(6)
     })
   })
 }

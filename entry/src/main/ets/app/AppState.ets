@@ -17,6 +17,6 @@ export class StartupDecision {
     if (hasGoal) {
       return 'pages/HomePage'
     }
-    return 'pages/GoalSetupPage'
+    return 'features/onboarding/pages/GoalSetupPage'
   }
 }
