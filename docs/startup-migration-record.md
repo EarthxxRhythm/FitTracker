@@ -28,3 +28,9 @@
 - `WorkoutPreviewService` now transforms generated plan days into preview rows with exercise names, set targets, rep targets, intensity notes, and alternatives.
 - `WorkoutPreviewPage` now reads the saved goal, regenerates today's plan, and shows the pre-workout checklist before entering active training.
 - Alternative exercise chips route to the exercise detail flow using local exercise IDs.
+
+## Active Workout Step
+
+- `ActiveWorkoutService` now turns the workout preview into executable workout state with target sets and completed-set progress.
+- `ActiveWorkoutPage` now reads the saved goal, regenerates today's plan, lets users mark completed sets, and can save either current progress or all planned sets.
+- Completed workouts are saved through `WorkoutRepository` as local `WorkoutSession` records before routing to the summary page.
