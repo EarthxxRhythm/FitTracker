@@ -6,6 +6,7 @@
 import { describe, it, expect } from '@ohos/hypium'
 import { StartupDecision } from '../main/ets/app/AppState'
 import ContentRepository from '../main/ets/shared/services/ContentRepository'
+import GoalRepository from '../main/ets/shared/services/GoalRepository'
 import PlanEngine from '../main/ets/shared/services/PlanEngine'
 import ReviewService from '../main/ets/shared/services/ReviewService'
 import SyncService from '../main/ets/shared/services/SyncService'
@@ -253,6 +254,64 @@ export default function targetLoopSkeletonTest() {
 
     it('routes users without goals to onboarding goal setup on startup', 0, () => {
       expect(StartupDecision.getInitialRoute(false)).assertEqual('features/onboarding/pages/GoalSetupPage')
+    })
+
+    it('stores the current goal locally', 0, () => {
+      GoalRepository.clearLocal()
+      const equipmentIds: string[] = ['eq_dumbbell']
+      const restrictedMuscleIds: string[] = []
+      const goal: UserGoal = createUserGoal(
+        'goal_repo_1',
+        'hypertrophy',
+        'beginner',
+        3,
+        45,
+        equipmentIds,
+        restrictedMuscleIds,
+        3000,
+        3000
+      )
+
+      GoalRepository.saveLocalGoal(goal)
+
+      const savedGoal: UserGoal | undefined = GoalRepository.getLocalGoal()
+      expect(GoalRepository.hasLocalGoal()).assertTrue()
+      expect(savedGoal !== undefined).assertTrue()
+      if (savedGoal !== undefined) {
+        expect(savedGoal.goalId).assertEqual('goal_repo_1')
+        expect(savedGoal.weeklyDays).assertEqual(3)
+      }
+    })
+
+    it('returns defensive copies of local goal arrays', 0, () => {
+      GoalRepository.clearLocal()
+      const equipmentIds: string[] = ['eq_barbell']
+      const restrictedMuscleIds: string[] = ['muscle_knee_sensitive']
+      const goal: UserGoal = createUserGoal(
+        'goal_repo_copy',
+        'strength',
+        'intermediate',
+        4,
+        60,
+        equipmentIds,
+        restrictedMuscleIds,
+        4000,
+        4000
+      )
+
+      GoalRepository.saveLocalGoal(goal)
+      const firstRead: UserGoal | undefined = GoalRepository.getLocalGoal()
+      if (firstRead !== undefined) {
+        firstRead.equipmentIds.push('eq_mutated')
+        firstRead.restrictedMuscleIds.push('muscle_mutated')
+      }
+
+      const secondRead: UserGoal | undefined = GoalRepository.getLocalGoal()
+      expect(secondRead !== undefined).assertTrue()
+      if (secondRead !== undefined) {
+        expect(secondRead.equipmentIds.length).assertEqual(1)
+        expect(secondRead.restrictedMuscleIds.length).assertEqual(1)
+      }
     })
 
     it('stores created workout sessions locally', 0, () => {

@@ -5,13 +5,15 @@
 import { router } from '@kit.ArkUI'
 import { ColorTokens, FontTokens, SpacingTokens } from '../common/styles/DesignTokens'
 import { StartupDecision } from './AppState'
+import GoalRepository from '../shared/services/GoalRepository'
 
 @Entry
 @Component
 export struct StartupPage {
-  aboutToAppear(): void {
+  async aboutToAppear(): Promise<void> {
     try {
-      router.replaceUrl({ url: StartupDecision.getInitialRoute(false) })
+      const hasGoal: boolean = await GoalRepository.hasSavedGoal(getContext(this))
+      router.replaceUrl({ url: StartupDecision.getInitialRoute(hasGoal) })
     } catch (e) {
       // Keep the startup placeholder visible if route replacement fails.
     }
