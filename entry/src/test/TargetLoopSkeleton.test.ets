@@ -4,6 +4,7 @@
  * Feature #1: shared data models for the target loop skeleton.
  */
 import { describe, it, expect } from '@ohos/hypium'
+import ContentRepository from '../main/ets/shared/services/ContentRepository'
 import {
   ExerciseContent,
   UserGoal,
@@ -105,6 +106,21 @@ export default function targetLoopSkeletonTest() {
       const set: WorkoutSet = createWorkoutSet('set_1', 'ex_barbell_bench_press', 100, 5, 8, false)
 
       expect(estimateOneRepMax(set.weight, set.reps)).assertEqual(116.67)
+    })
+
+    it('loads local seed muscles', 0, () => {
+      expect(ContentRepository.getMuscles().length).assertEqual(6)
+    })
+
+    it('loads local seed equipment', 0, () => {
+      expect(ContentRepository.getEquipment().length).assertEqual(6)
+    })
+
+    it('returns bench press alternatives in preferred order', 0, () => {
+      const alternatives: ExerciseContent[] = ContentRepository.getAlternativeExercises('ex_barbell_bench_press')
+
+      expect(alternatives.length >= 1).assertTrue()
+      expect(alternatives[0].exerciseId).assertEqual('ex_dumbbell_bench_press')
     })
   })
 }
