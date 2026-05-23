@@ -1,5 +1,6 @@
 {
   "src": [
+    "app/StartupPage",
     "pages/Index",
     "pages/RegisterPage",
     "pages/LoginPage",
@@ -8,6 +9,21 @@
     "pages/ExerciseDetailPage",
     "pages/StatsPage",
     "pages/ExerciseLibraryPage",
-    "pages/ProfilePage"
+    "pages/ProfilePage",
+    "features/onboarding/pages/GoalSetupPage",
+    "pages/HomePage",
+    "features/planner/pages/PlanHomePage",
+    "features/planner/pages/PlanDayDetailPage",
+    "features/exercise/pages/ExerciseHomePage",
+    "features/exercise/pages/ExerciseListPage",
+    "features/exercise/pages/ExerciseDetailPage",
+    "features/workout/pages/WorkoutPreviewPage",
+    "features/workout/pages/ActiveWorkoutPage",
+    "features/workout/pages/WorkoutSummaryPage",
+    "features/review/pages/ReviewHomePage",
+    "features/review/pages/MuscleCoveragePage",
+    "features/review/pages/PersonalRecordsPage",
+    "features/profile/pages/ProfileHomePage",
+    "features/profile/pages/ContentSyncPage"
   ]
 }
