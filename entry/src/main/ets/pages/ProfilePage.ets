@@ -14,6 +14,7 @@ interface AchievementItem {
   locked: boolean
 }
 
+@Entry
 @Component
 export struct ProfilePage {
   @State currentTab: string = 'profile'
