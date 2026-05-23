@@ -1,12 +1,12 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
-import SessionManager from '../common/services/SessionManager';
+import { AppRoutes } from '../app/AppRoutes';
 
 const DOMAIN = 0x0000;
 
 export function resolveInitialPage(isLoggedIn: boolean): string {
-  return isLoggedIn ? 'pages/Index' : 'pages/LoginPage'
+  return AppRoutes.STARTUP
 }
 
 export default class EntryAbility extends UIAbility {
@@ -23,11 +23,10 @@ export default class EntryAbility extends UIAbility {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onDestroy');
   }
 
-  async onWindowStageCreate(windowStage: window.WindowStage): Promise<void> {
+  onWindowStageCreate(windowStage: window.WindowStage): void {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
-    const isLoggedIn = await SessionManager.isLoggedIn(this.context)
-    const initialPage = resolveInitialPage(isLoggedIn)
+    const initialPage = resolveInitialPage(false)
 
     windowStage.loadContent(initialPage, (err) => {
       if (err.code) {
