@@ -18,7 +18,6 @@ import ContentRepository from './ContentRepository'
 
 const GENERATED_BY_RULE_V1: string = 'rule_v1'
 const ACTIVE_STATUS: string = 'active'
-const BODYWEIGHT_EQUIPMENT_ID: string = 'eq_bodyweight'
 const FOCUS_MUSCLE_IDS: string[] = [
   'muscle_chest',
   'muscle_back',
@@ -75,7 +74,13 @@ class PlanEngineImpl {
     dayNumber: number
   ): PlannedExercise[] {
     const plannedExercises: PlannedExercise[] = []
-    const exercises: ExerciseContent[] = ContentRepository.getExercisesByMuscle(muscleId)
+    const exercises: ExerciseContent[] = ContentRepository.getCandidateExercises(
+      goal.goalType,
+      goal.level,
+      goal.equipmentIds,
+      muscleId,
+      goal.restrictedMuscleIds
+    )
 
     for (let index = 0; index < exercises.length; index++) {
       if (plannedExercises.length >= MAX_EXERCISES_PER_DAY) {
@@ -83,52 +88,17 @@ class PlanEngineImpl {
       }
 
       const exercise: ExerciseContent = exercises[index]
-      if (this.canUseExercise(goal, exercise)) {
-        plannedExercises.push(createPlannedExercise(
-          'planned_' + dayNumber.toString() + '_' + (plannedExercises.length + 1).toString(),
-          exercise.exerciseId,
-          rule.targetSets,
-          rule.targetReps,
-          rule.intensityNote,
-          this.copyStringArray(exercise.alternativeExerciseIds)
-        ))
-      }
+      plannedExercises.push(createPlannedExercise(
+        'planned_' + dayNumber.toString() + '_' + (plannedExercises.length + 1).toString(),
+        exercise.exerciseId,
+        rule.targetSets,
+        rule.targetReps,
+        rule.intensityNote,
+        this.copyStringArray(exercise.alternativeExerciseIds)
+      ))
     }
 
     return plannedExercises
-  }
-
-  private canUseExercise(goal: UserGoal, exercise: ExerciseContent): boolean {
-    if (this.hasRestrictedMuscle(goal, exercise)) {
-      return false
-    }
-
-    if (goal.equipmentIds.length === 0) {
-      return this.containsValue(exercise.equipmentIds, BODYWEIGHT_EQUIPMENT_ID)
-    }
-
-    for (let index = 0; index < exercise.equipmentIds.length; index++) {
-      const equipmentId: string = exercise.equipmentIds[index]
-      if (this.containsValue(goal.equipmentIds, equipmentId)) {
-        return true
-      }
-    }
-    return false
-  }
-
-  private hasRestrictedMuscle(goal: UserGoal, exercise: ExerciseContent): boolean {
-    for (let index = 0; index < exercise.primaryMuscleIds.length; index++) {
-      if (this.containsValue(goal.restrictedMuscleIds, exercise.primaryMuscleIds[index])) {
-        return true
-      }
-    }
-
-    for (let index = 0; index < exercise.secondaryMuscleIds.length; index++) {
-      if (this.containsValue(goal.restrictedMuscleIds, exercise.secondaryMuscleIds[index])) {
-        return true
-      }
-    }
-    return false
   }
 
   private copyStringArray(source: string[]): string[] {
@@ -139,14 +109,6 @@ class PlanEngineImpl {
     return values
   }
 
-  private containsValue(values: string[], targetValue: string): boolean {
-    for (let index = 0; index < values.length; index++) {
-      if (values[index] === targetValue) {
-        return true
-      }
-    }
-    return false
-  }
 }
 
 export default new PlanEngineImpl()
