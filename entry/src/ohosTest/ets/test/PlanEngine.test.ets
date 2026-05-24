@@ -57,5 +57,37 @@ export default function planEngineTest(): void {
         }
       }
     })
+
+    it('limits weekly training days to the 0 to 7 range', 0, () => {
+      const lowGoal: UserGoal = createUserGoal(
+        'plan_engine_low_days_goal',
+        'hypertrophy',
+        'beginner',
+        -2,
+        45,
+        ['eq_dumbbell'],
+        [],
+        1,
+        1
+      )
+      const highGoal: UserGoal = createUserGoal(
+        'plan_engine_high_days_goal',
+        'hypertrophy',
+        'beginner',
+        9,
+        45,
+        ['eq_dumbbell'],
+        [],
+        1,
+        1
+      )
+
+      const lowPlan: TrainingPlan = PlanEngine.generatePlan(lowGoal)
+      const highPlan: TrainingPlan = PlanEngine.generatePlan(highGoal)
+
+      expect(lowPlan.days.length).assertEqual(0)
+      expect(highPlan.days.length).assertEqual(7)
+      expect(highPlan.days[6].dayOfWeek).assertEqual(7)
+    })
   })
 }
