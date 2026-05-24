@@ -7,6 +7,9 @@ import workoutSessionLogicTest from './WorkoutSessionService.test'
 import trainingPlanServiceTest from './TrainingPlanService.test'
 import startupRoutingTest from './StartupRouting.test'
 import contentRepositoryTest from './ContentRepository.test'
+import goalSetupServiceTest from './GoalSetupService.test'
+import workoutPreviewServiceTest from './WorkoutPreviewService.test'
+import workoutSummaryServiceTest from './WorkoutSummaryService.test'
 
 export default function testsuite(): void {
   abilityTest()
@@ -18,4 +21,7 @@ export default function testsuite(): void {
   trainingPlanServiceTest()
   startupRoutingTest()
   contentRepositoryTest()
+  goalSetupServiceTest()
+  workoutPreviewServiceTest()
+  workoutSummaryServiceTest()
 }

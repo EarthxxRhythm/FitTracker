@@ -20,8 +20,11 @@ export struct WorkoutPreviewPage {
   @State hasGoal: boolean = false
   @State hasWorkout: boolean = false
   @State planId: string = ''
+  @State planName: string = ''
   @State dayId: string = ''
   @State title: string = ''
+  @State goalSummary: string = ''
+  @State scheduleSummary: string = ''
   @State exerciseCount: number = 0
   @State exercises: WorkoutPreviewExercise[] = []
 
@@ -37,7 +40,7 @@ export struct WorkoutPreviewPage {
       }
 
       const plan: TrainingPlan = PlanEngine.generatePlan(goal)
-      const preview: WorkoutPreviewSummary = WorkoutPreviewService.createPreview(plan, this.getTodaySeed())
+      const preview: WorkoutPreviewSummary = WorkoutPreviewService.createPreviewForGoal(goal, plan, this.getTodaySeed())
       this.applyPreview(preview)
       this.hasGoal = true
     } catch (e) {
@@ -50,8 +53,11 @@ export struct WorkoutPreviewPage {
   applyPreview(preview: WorkoutPreviewSummary): void {
     this.hasWorkout = preview.hasWorkout
     this.planId = preview.planId
+    this.planName = preview.planName
     this.dayId = preview.dayId
     this.title = preview.title
+    this.goalSummary = preview.goalSummary
+    this.scheduleSummary = preview.scheduleSummary
     this.exerciseCount = preview.exerciseCount
     this.exercises = this.copyPreviewExercises(preview.exercises)
   }
@@ -190,6 +196,26 @@ export struct WorkoutPreviewPage {
 
         if (!this.loading && this.hasGoal && this.hasWorkout) {
           Column({ space: SpacingTokens.MD }) {
+            Column({ space: SpacingTokens.SM }) {
+              Text(this.planName)
+                .fontSize(FontTokens.TITLE_SIZE)
+                .fontWeight(FontTokens.TITLE_WEIGHT)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+
+              Text(this.goalSummary)
+                .fontSize(FontTokens.BODY_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
+
+              Text(this.scheduleSummary)
+                .fontSize(FontTokens.BODY_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+            .padding(SpacingTokens.MD)
+            .borderRadius(RadiusTokens.SM)
+            .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+
             Text(this.title)
               .fontSize(FontTokens.HEADLINE_SIZE)
               .fontWeight(FontTokens.HEADLINE_WEIGHT)

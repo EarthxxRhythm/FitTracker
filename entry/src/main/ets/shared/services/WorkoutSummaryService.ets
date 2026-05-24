@@ -37,7 +37,7 @@ class WorkoutSummaryService {
       completedSets: completedSets,
       targetSets: targetSets,
       completionRate: ReviewService.calculateCompletionRate(completedSets, targetSets),
-      totalVolume: session.totalVolume,
+      totalVolume: this.getTotalVolume(session),
       fatigueScore: session.fatigueScore
     }
     return summary
@@ -95,6 +95,13 @@ class WorkoutSummaryService {
       return parsed
     }
     return fallbackTargetSets
+  }
+
+  private getTotalVolume(session: WorkoutSession): number {
+    if (session.totalVolume > 0) {
+      return session.totalVolume
+    }
+    return ReviewService.calculateVolume(session.sets)
   }
 
   private getNumberAfterPrefix(source: string, prefix: string): number {
