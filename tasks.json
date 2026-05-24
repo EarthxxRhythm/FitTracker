@@ -63,7 +63,7 @@
     "id": 11,
     "category": "训练执行",
     "description": "用户结束训练后，系统应将本次训练会话保存到本地。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 12,
@@ -81,7 +81,7 @@
     "id": 14,
     "category": "回顾与调整",
     "description": "回顾页应允许用户查看最近训练记录和历史训练趋势。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 15,
@@ -105,7 +105,7 @@
     "id": 18,
     "category": "动作筛选",
     "description": "动作库应支持按目标、器械、肌群和难度筛选动作。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 19,

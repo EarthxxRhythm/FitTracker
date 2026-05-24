@@ -16,13 +16,48 @@ import ContentRepository, { ExerciseLibraryItem } from '../shared/services/Conte
 
 const ALL_FILTER_LABEL: string = '全部'
 const PAGE_SIZE: number = 20
+const GOAL_HYPERTROPHY: string = 'hypertrophy'
+const GOAL_STRENGTH: string = 'strength'
+const GOAL_FAT_LOSS: string = 'fat_loss'
+const GOAL_POSTURE: string = 'posture'
+const DIFFICULTY_BEGINNER: string = 'beginner'
+const DIFFICULTY_INTERMEDIATE: string = 'intermediate'
+const DIFFICULTY_ADVANCED: string = 'advanced'
+
+interface LibraryFilterOption {
+  value: string
+  label: string
+}
+
+function createLibraryFilterOption(value: string, label: string): LibraryFilterOption {
+  const option: LibraryFilterOption = {
+    value: value,
+    label: label
+  }
+  return option
+}
+
+const GOAL_FILTER_OPTIONS: LibraryFilterOption[] = [
+  createLibraryFilterOption(GOAL_HYPERTROPHY, '增肌'),
+  createLibraryFilterOption(GOAL_STRENGTH, '力量'),
+  createLibraryFilterOption(GOAL_FAT_LOSS, '减脂'),
+  createLibraryFilterOption(GOAL_POSTURE, '体态')
+]
+
+const DIFFICULTY_FILTER_OPTIONS: LibraryFilterOption[] = [
+  createLibraryFilterOption(DIFFICULTY_BEGINNER, '入门'),
+  createLibraryFilterOption(DIFFICULTY_INTERMEDIATE, '进阶'),
+  createLibraryFilterOption(DIFFICULTY_ADVANCED, '高级')
+]
 
 @Entry
 @Component
 export struct ExerciseLibraryPage {
   @State searchQuery: string = ''
+  @State activeGoalTag: string = ''
   @State activeMuscleId: string = ''
   @State activeEquipmentId: string = ''
+  @State activeDifficulty: string = ''
   @State muscles: MuscleGroup[] = []
   @State equipmentItems: EquipmentItem[] = []
   @State exercises: ExerciseLibraryItem[] = []
@@ -62,7 +97,12 @@ export struct ExerciseLibraryPage {
   }
 
   getFilteredItems(): ExerciseLibraryItem[] {
-    const allItems: ExerciseLibraryItem[] = ContentRepository.getExerciseLibraryItems()
+    const allItems: ExerciseLibraryItem[] = ContentRepository.filterExerciseLibraryItems(
+      this.activeGoalTag,
+      this.activeEquipmentId,
+      this.activeMuscleId,
+      this.activeDifficulty
+    )
     const normalizedQuery: string = this.searchQuery.trim().toLowerCase()
     const result: ExerciseLibraryItem[] = []
     for (let index = 0; index < allItems.length; index++) {
@@ -75,12 +115,6 @@ export struct ExerciseLibraryPage {
   }
 
   matchesItem(item: ExerciseLibraryItem, normalizedQuery: string): boolean {
-    if (this.activeMuscleId.length > 0 && item.primaryMuscleId !== this.activeMuscleId) {
-      return false
-    }
-    if (this.activeEquipmentId.length > 0 && !this.containsValue(item.equipmentIds, this.activeEquipmentId)) {
-      return false
-    }
     if (normalizedQuery.length === 0) {
       return true
     }
@@ -110,15 +144,6 @@ export struct ExerciseLibraryPage {
 
   hasMorePage(items: ExerciseLibraryItem[], page: number): boolean {
     return page * PAGE_SIZE < items.length
-  }
-
-  containsValue(values: string[], targetValue: string): boolean {
-    for (let index = 0; index < values.length; index++) {
-      if (values[index] === targetValue) {
-        return true
-      }
-    }
-    return false
   }
 
   getMuscleShortName(item: ExerciseLibraryItem): string {
@@ -166,6 +191,54 @@ export struct ExerciseLibraryPage {
       left: SpacingTokens.MD,
       right: SpacingTokens.MD,
       top: SpacingTokens.LG,
+      bottom: SpacingTokens.SM
+    })
+    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+  }
+
+  @Builder
+  buildOptionChip(option: LibraryFilterOption, activeValue: string, tone: string) {
+    Text(option.label)
+      .fontSize(FontTokens.SMALL_SIZE)
+      .fontColor(activeValue === option.value ? ColorTokens.TEXT_ON_PRIMARY : ColorTokens.TEXT_SECONDARY)
+      .padding({
+        left: SpacingTokens.MD,
+        right: SpacingTokens.MD,
+        top: SpacingTokens.XS,
+        bottom: SpacingTokens.XS
+      })
+      .backgroundColor(activeValue === option.value ? tone : ColorTokens.SURFACE_SECONDARY)
+      .borderRadius(RadiusTokens.FULL)
+      .margin({ right: SpacingTokens.SM })
+  }
+
+  @Builder
+  buildGoalFilters() {
+    Row() {
+      Scroll() {
+        Row() {
+          this.buildOptionChip(createLibraryFilterOption('', ALL_FILTER_LABEL), this.activeGoalTag, ColorTokens.PRIMARY)
+          .onClick(() => {
+            this.activeGoalTag = ''
+            this.filterAndSearch()
+          })
+
+          ForEach(GOAL_FILTER_OPTIONS, (option: LibraryFilterOption) => {
+            this.buildOptionChip(option, this.activeGoalTag, ColorTokens.PRIMARY)
+              .onClick(() => {
+                this.activeGoalTag = option.value
+                this.filterAndSearch()
+              })
+          }, (option: LibraryFilterOption) => option.value)
+        }
+      }
+      .scrollBar(BarState.Off)
+    }
+    .width('100%')
+    .padding({
+      left: SpacingTokens.MD,
+      right: SpacingTokens.MD,
+      top: SpacingTokens.SM,
       bottom: SpacingTokens.SM
     })
     .backgroundColor(ColorTokens.SURFACE_PRIMARY)
@@ -265,6 +338,33 @@ export struct ExerciseLibraryPage {
     .backgroundColor(ColorTokens.SURFACE_PRIMARY)
   }
 
+  @Builder
+  buildDifficultyFilters() {
+    Row() {
+      Scroll() {
+        Row() {
+          this.buildOptionChip(createLibraryFilterOption('', ALL_FILTER_LABEL), this.activeDifficulty, ColorTokens.NEUTRAL_400)
+          .onClick(() => {
+            this.activeDifficulty = ''
+            this.filterAndSearch()
+          })
+
+          ForEach(DIFFICULTY_FILTER_OPTIONS, (option: LibraryFilterOption) => {
+            this.buildOptionChip(option, this.activeDifficulty, ColorTokens.NEUTRAL_400)
+              .onClick(() => {
+                this.activeDifficulty = option.value
+                this.filterAndSearch()
+              })
+          }, (option: LibraryFilterOption) => option.value)
+        }
+      }
+      .scrollBar(BarState.Off)
+    }
+    .width('100%')
+    .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.SM })
+    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+  }
+
   build() {
     Column() {
       this.buildHeader()
@@ -289,8 +389,10 @@ export struct ExerciseLibraryPage {
       .border({ width: { bottom: 0.5 }, color: ColorTokens.NEUTRAL_100 })
       .padding({ bottom: SpacingTokens.SM })
 
-      this.buildMuscleFilters()
+      this.buildGoalFilters()
       this.buildEquipmentFilters()
+      this.buildMuscleFilters()
+      this.buildDifficultyFilters()
 
       Scroll() {
         Column() {

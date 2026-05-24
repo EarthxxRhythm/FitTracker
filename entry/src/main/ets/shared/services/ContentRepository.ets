@@ -18,6 +18,8 @@ export interface ExerciseLibraryItem {
   primaryMuscleName: string
   equipmentText: string
   difficultyText: string
+  difficulty: string
+  goalTags: string[]
   primaryMuscleId: string
   equipmentIds: string[]
 }
@@ -45,6 +47,8 @@ function createExerciseLibraryItem(
   primaryMuscleName: string,
   equipmentText: string,
   difficultyText: string,
+  difficulty: string,
+  goalTags: string[],
   primaryMuscleId: string,
   equipmentIds: string[]
 ): ExerciseLibraryItem {
@@ -56,6 +60,8 @@ function createExerciseLibraryItem(
     primaryMuscleName: primaryMuscleName,
     equipmentText: equipmentText,
     difficultyText: difficultyText,
+    difficulty: difficulty,
+    goalTags: goalTags,
     primaryMuscleId: primaryMuscleId,
     equipmentIds: equipmentIds
   }
@@ -130,9 +136,39 @@ class ContentRepositoryImpl {
         this.getPrimaryMuscleName(exercise),
         this.getEquipmentText(exercise.equipmentIds),
         this.getDifficultyText(exercise.difficulty),
+        exercise.difficulty,
+        this.copyStringArray(exercise.goalTags),
         this.getPrimaryMuscleId(exercise),
         this.copyStringArray(exercise.equipmentIds)
       ))
+    }
+    return items
+  }
+
+  filterExerciseLibraryItems(
+    goalTag: string,
+    equipmentId: string,
+    muscleId: string,
+    difficulty: string
+  ): ExerciseLibraryItem[] {
+    const items: ExerciseLibraryItem[] = []
+    for (let index = 0; index < LOCAL_EXERCISES.length; index++) {
+      const exercise: ExerciseContent = LOCAL_EXERCISES[index]
+      if (this.matchesLibraryFilter(exercise, goalTag, equipmentId, muscleId, difficulty)) {
+        items.push(createExerciseLibraryItem(
+          exercise.exerciseId,
+          exercise.nameZh,
+          exercise.nameEn,
+          this.copyStringArray(exercise.aliases),
+          this.getPrimaryMuscleName(exercise),
+          this.getEquipmentText(exercise.equipmentIds),
+          this.getDifficultyText(exercise.difficulty),
+          exercise.difficulty,
+          this.copyStringArray(exercise.goalTags),
+          this.getPrimaryMuscleId(exercise),
+          this.copyStringArray(exercise.equipmentIds)
+        ))
+      }
     }
     return items
   }
@@ -343,6 +379,29 @@ class ContentRepositoryImpl {
       }
     }
     return false
+  }
+
+  private matchesLibraryFilter(
+    exercise: ExerciseContent,
+    goalTag: string,
+    equipmentId: string,
+    muscleId: string,
+    difficulty: string
+  ): boolean {
+    if (goalTag.length > 0 && !this.containsValue(exercise.goalTags, goalTag)) {
+      return false
+    }
+    if (equipmentId.length > 0 && !this.containsValue(exercise.equipmentIds, equipmentId)) {
+      return false
+    }
+    if (muscleId.length > 0 && !this.containsValue(exercise.primaryMuscleIds, muscleId) &&
+      !this.containsValue(exercise.secondaryMuscleIds, muscleId)) {
+      return false
+    }
+    if (difficulty.length > 0 && exercise.difficulty !== difficulty) {
+      return false
+    }
+    return true
   }
 
   private hasRestrictedMuscle(exercise: ExerciseContent, restrictedMuscleIds: string[]): boolean {

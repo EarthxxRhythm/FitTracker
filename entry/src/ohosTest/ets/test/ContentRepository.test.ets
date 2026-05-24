@@ -43,6 +43,23 @@ export default function contentRepositoryTest(): void {
       expect(rows[0].difficultyText).assertEqual('进阶')
     })
 
+    it('filters local exercise library rows by goal equipment muscle and difficulty', 0, () => {
+      const allRows: ExerciseLibraryItem[] = ContentRepository.filterExerciseLibraryItems('', '', '', '')
+      expect(allRows.length).assertEqual(ContentRepository.getExerciseLibraryItems().length)
+
+      const rows: ExerciseLibraryItem[] = ContentRepository.filterExerciseLibraryItems(
+        'strength',
+        'eq_barbell',
+        'muscle_chest',
+        'intermediate'
+      )
+      expect(rows.length).assertEqual(1)
+      expect(rows[0].exerciseId).assertEqual('ex_barbell_bench_press')
+      expect(rows[0].equipmentIds[0]).assertEqual('eq_barbell')
+      expect(rows[0].primaryMuscleId).assertEqual('muscle_chest')
+      expect(rows[0].difficulty).assertEqual('intermediate')
+    })
+
     it('filters candidate exercises by goal equipment muscle and difficulty', 0, () => {
       const candidates: ExerciseContent[] = ContentRepository.getCandidateExercises(
         'hypertrophy',
