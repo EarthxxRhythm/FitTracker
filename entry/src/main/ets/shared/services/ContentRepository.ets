@@ -22,6 +22,21 @@ export interface ExerciseLibraryItem {
   equipmentIds: string[]
 }
 
+export interface ExerciseDetailViewModel {
+  exerciseId: string
+  name: string
+  nameEn: string
+  difficultyText: string
+  primaryMuscleNames: string[]
+  equipmentNames: string[]
+  steps: string[]
+  cues: string[]
+  commonMistakes: string[]
+  safetyNotes: string[]
+  alternativeNames: string[]
+  videoPlaceholder: string
+}
+
 function createExerciseLibraryItem(
   exerciseId: string,
   name: string,
@@ -43,6 +58,37 @@ function createExerciseLibraryItem(
     difficultyText: difficultyText,
     primaryMuscleId: primaryMuscleId,
     equipmentIds: equipmentIds
+  }
+  return item
+}
+
+function createExerciseDetailViewModel(
+  exerciseId: string,
+  name: string,
+  nameEn: string,
+  difficultyText: string,
+  primaryMuscleNames: string[],
+  equipmentNames: string[],
+  steps: string[],
+  cues: string[],
+  commonMistakes: string[],
+  safetyNotes: string[],
+  alternativeNames: string[],
+  videoPlaceholder: string
+): ExerciseDetailViewModel {
+  const item: ExerciseDetailViewModel = {
+    exerciseId: exerciseId,
+    name: name,
+    nameEn: nameEn,
+    difficultyText: difficultyText,
+    primaryMuscleNames: primaryMuscleNames,
+    equipmentNames: equipmentNames,
+    steps: steps,
+    cues: cues,
+    commonMistakes: commonMistakes,
+    safetyNotes: safetyNotes,
+    alternativeNames: alternativeNames,
+    videoPlaceholder: videoPlaceholder
   }
   return item
 }
@@ -99,6 +145,27 @@ class ContentRepositoryImpl {
       }
     }
     return undefined
+  }
+
+  getExerciseDetailViewModel(exerciseId: string): ExerciseDetailViewModel | undefined {
+    const exercise: ExerciseContent | undefined = this.findLocalExerciseById(exerciseId)
+    if (exercise === undefined) {
+      return undefined
+    }
+    return createExerciseDetailViewModel(
+      exercise.exerciseId,
+      exercise.nameZh,
+      exercise.nameEn,
+      this.getDifficultyText(exercise.difficulty),
+      this.getMuscleNames(exercise.primaryMuscleIds),
+      this.getEquipmentNames(exercise.equipmentIds),
+      this.copyStringArray(exercise.steps),
+      this.copyStringArray(exercise.cues),
+      this.copyStringArray(exercise.commonMistakes),
+      this.copyStringArray(exercise.safetyNotes),
+      this.getAlternativeExerciseNames(exercise.alternativeExerciseIds),
+      this.getVideoPlaceholder(exercise)
+    )
   }
 
   getMuscleName(muscleId: string): string {
@@ -367,6 +434,40 @@ class ContentRepositoryImpl {
       text += this.getEquipmentName(equipmentIds[index])
     }
     return text
+  }
+
+  private getMuscleNames(muscleIds: string[]): string[] {
+    const names: string[] = []
+    for (let index = 0; index < muscleIds.length; index++) {
+      names.push(this.getMuscleName(muscleIds[index]))
+    }
+    return names
+  }
+
+  private getEquipmentNames(equipmentIds: string[]): string[] {
+    const names: string[] = []
+    for (let index = 0; index < equipmentIds.length; index++) {
+      names.push(this.getEquipmentName(equipmentIds[index]))
+    }
+    return names
+  }
+
+  private getAlternativeExerciseNames(exerciseIds: string[]): string[] {
+    const names: string[] = []
+    for (let index = 0; index < exerciseIds.length; index++) {
+      const exercise: ExerciseContent | undefined = this.findLocalExerciseById(exerciseIds[index])
+      if (exercise !== undefined) {
+        names.push(exercise.nameZh)
+      }
+    }
+    return names
+  }
+
+  private getVideoPlaceholder(exercise: ExerciseContent): string {
+    if (this.hasVideoAsset(exercise)) {
+      return '视频占位：本地动作库已有视频素材'
+    }
+    return '视频占位：本地动作库暂未接入视频素材'
   }
 
   private getDifficultyText(difficulty: string): string {

@@ -8,6 +8,7 @@ import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } fro
 import { TrainingPlan, UserGoal, WorkoutSession } from '../../../shared/models/TrainingModels'
 import ActiveWorkoutService, {
   ActiveWorkoutExercise,
+  ActiveWorkoutSetEntry,
   ActiveWorkoutState
 } from '../../../shared/services/ActiveWorkoutService'
 import GoalRepository from '../../../shared/services/GoalRepository'
@@ -121,6 +122,28 @@ export struct ActiveWorkoutPage {
     this.applyProgressExercises(nextExercises)
   }
 
+  updateSetWeight(exercise: ActiveWorkoutExercise, setEntry: ActiveWorkoutSetEntry, weightText: string): void {
+    const nextExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.updateSetEntry(
+      this.exercises,
+      exercise.plannedExerciseId,
+      setEntry.setIndex,
+      weightText,
+      setEntry.repsText
+    )
+    this.applyProgressExercises(nextExercises)
+  }
+
+  updateSetReps(exercise: ActiveWorkoutExercise, setEntry: ActiveWorkoutSetEntry, repsText: string): void {
+    const nextExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.updateSetEntry(
+      this.exercises,
+      exercise.plannedExerciseId,
+      setEntry.setIndex,
+      setEntry.weightText,
+      repsText
+    )
+    this.applyProgressExercises(nextExercises)
+  }
+
   applyProgressExercises(exercises: ActiveWorkoutExercise[]): void {
     const state: ActiveWorkoutState = {
       hasWorkout: this.hasWorkout,
@@ -227,7 +250,25 @@ export struct ActiveWorkoutPage {
         targetSets: exercise.targetSets,
         targetReps: exercise.targetReps,
         intensityNote: exercise.intensityNote,
-        completedSets: exercise.completedSets
+        completedSets: exercise.completedSets,
+        sets: this.copySetEntries(exercise.sets)
+      }
+      values.push(item)
+    }
+    return values
+  }
+
+  copySetEntries(source: ActiveWorkoutSetEntry[]): ActiveWorkoutSetEntry[] {
+    const values: ActiveWorkoutSetEntry[] = []
+    for (let index = 0; index < source.length; index++) {
+      const entry: ActiveWorkoutSetEntry = source[index]
+      const item: ActiveWorkoutSetEntry = {
+        setIndex: entry.setIndex,
+        weightText: entry.weightText,
+        repsText: entry.repsText,
+        estimatedOneRepMax: entry.estimatedOneRepMax,
+        oneRepMaxText: entry.oneRepMaxText,
+        isComplete: entry.isComplete
       }
       values.push(item)
     }
@@ -417,38 +458,51 @@ export struct ActiveWorkoutPage {
                 }
                 .width('100%')
 
-                Row() {
-                  Button('-')
-                    .width(TouchTokens.BUTTON_HEIGHT_SMALL)
-                    .height(TouchTokens.BUTTON_HEIGHT_SMALL)
-                    .fontSize(FontTokens.BODY_SIZE)
-                    .fontColor(ColorTokens.TEXT_PRIMARY)
-                    .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-                    .borderRadius(RadiusTokens.FULL)
-                    .onClick(() => {
-                      this.decreaseSet(exercise)
-                    })
+                Text('已录入 ' + exercise.completedSets.toString() + '/' + exercise.targetSets.toString() + ' 组')
+                  .fontSize(FontTokens.CAPTION_SIZE)
+                  .fontColor(ColorTokens.PRIMARY)
 
-                  Text(exercise.completedSets.toString() + '/' + exercise.targetSets.toString())
-                    .fontSize(FontTokens.TITLE_SIZE)
-                    .fontWeight(FontTokens.TITLE_WEIGHT)
-                    .fontColor(ColorTokens.TEXT_PRIMARY)
-                    .textAlign(TextAlign.Center)
-                    .layoutWeight(1)
+                ForEach(exercise.sets, (setEntry: ActiveWorkoutSetEntry) => {
+                  Column({ space: SpacingTokens.XS }) {
+                    Row({ space: SpacingTokens.SM }) {
+                      Text('第 ' + (setEntry.setIndex + 1).toString() + ' 组')
+                        .fontSize(FontTokens.CAPTION_SIZE)
+                        .fontColor(ColorTokens.TEXT_SECONDARY)
 
-                  Button('+')
-                    .width(TouchTokens.BUTTON_HEIGHT_SMALL)
-                    .height(TouchTokens.BUTTON_HEIGHT_SMALL)
-                    .fontSize(FontTokens.BODY_SIZE)
-                    .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-                    .backgroundColor(ColorTokens.PRIMARY)
-                    .borderRadius(RadiusTokens.FULL)
-                    .onClick(() => {
-                      this.increaseSet(exercise)
-                    })
-                }
-                .width('100%')
-                .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
+                      TextInput({ text: setEntry.weightText, placeholder: '重量kg' })
+                        .type(InputType.Number)
+                        .fontSize(FontTokens.CAPTION_SIZE)
+                        .fontColor(ColorTokens.TEXT_PRIMARY)
+                        .placeholderColor(ColorTokens.TEXT_DISABLED)
+                        .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+                        .borderRadius(RadiusTokens.SM)
+                        .height(TouchTokens.INPUT_HEIGHT)
+                        .layoutWeight(1)
+                        .onChange((value: string) => {
+                          this.updateSetWeight(exercise, setEntry, value)
+                        })
+
+                      TextInput({ text: setEntry.repsText, placeholder: '次数' })
+                        .type(InputType.Number)
+                        .fontSize(FontTokens.CAPTION_SIZE)
+                        .fontColor(ColorTokens.TEXT_PRIMARY)
+                        .placeholderColor(ColorTokens.TEXT_DISABLED)
+                        .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+                        .borderRadius(RadiusTokens.SM)
+                        .height(TouchTokens.INPUT_HEIGHT)
+                        .layoutWeight(1)
+                        .onChange((value: string) => {
+                          this.updateSetReps(exercise, setEntry, value)
+                        })
+                    }
+                    .width('100%')
+
+                    Text(setEntry.oneRepMaxText)
+                      .fontSize(FontTokens.SMALL_SIZE)
+                      .fontColor(setEntry.isComplete ? ColorTokens.ACCENT_LIGHT : ColorTokens.TEXT_SECONDARY)
+                  }
+                  .width('100%')
+                }, (setEntry: ActiveWorkoutSetEntry) => setEntry.setIndex.toString())
               }
               .width('100%')
               .padding(SpacingTokens.MD)

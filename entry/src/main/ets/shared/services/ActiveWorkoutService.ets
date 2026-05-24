@@ -4,6 +4,7 @@
  * Feature #10: active workout execution.
  */
 import {
+  estimateOneRepMax,
   WorkoutSession,
   WorkoutSet,
   createWorkoutSession
@@ -21,6 +22,16 @@ export interface ActiveWorkoutExercise {
   targetReps: string
   intensityNote: string
   completedSets: number
+  sets: ActiveWorkoutSetEntry[]
+}
+
+export interface ActiveWorkoutSetEntry {
+  setIndex: number
+  weightText: string
+  repsText: string
+  estimatedOneRepMax: number
+  oneRepMaxText: string
+  isComplete: boolean
 }
 
 export interface ActiveWorkoutState {
@@ -128,6 +139,25 @@ class ActiveWorkoutService {
     return values
   }
 
+  updateSetEntry(
+    exercises: ActiveWorkoutExercise[],
+    plannedExerciseId: string,
+    setIndex: number,
+    weightText: string,
+    repsText: string
+  ): ActiveWorkoutExercise[] {
+    const values: ActiveWorkoutExercise[] = []
+    for (let index = 0; index < exercises.length; index++) {
+      const exercise: ActiveWorkoutExercise = exercises[index]
+      if (exercise.plannedExerciseId === plannedExerciseId) {
+        values.push(this.copyActiveExerciseWithSetEntry(exercise, setIndex, weightText, repsText))
+      } else {
+        values.push(this.copyActiveExercise(exercise))
+      }
+    }
+    return values
+  }
+
   markAllComplete(exercises: ActiveWorkoutExercise[]): ActiveWorkoutExercise[] {
     const values: ActiveWorkoutExercise[] = []
     for (let index = 0; index < exercises.length; index++) {
@@ -141,7 +171,7 @@ class ActiveWorkoutService {
     const values: ActiveWorkoutExercise[] = []
     for (let index = 0; index < source.length; index++) {
       const exercise: ActiveWorkoutExercise = source[index]
-      values.push(this.copyActiveExerciseWithCompletedSets(exercise, exercise.completedSets))
+      values.push(this.copyActiveExercise(exercise))
     }
     return values
   }
@@ -184,9 +214,24 @@ class ActiveWorkoutService {
       targetSets: previewExercise.targetSets,
       targetReps: previewExercise.targetReps,
       intensityNote: previewExercise.intensityNote,
-      completedSets: 0
+      completedSets: 0,
+      sets: this.createSetEntries(previewExercise.targetSets)
     }
     return exercise
+  }
+
+  private copyActiveExercise(exercise: ActiveWorkoutExercise): ActiveWorkoutExercise {
+    const item: ActiveWorkoutExercise = {
+      plannedExerciseId: exercise.plannedExerciseId,
+      exerciseId: exercise.exerciseId,
+      name: exercise.name,
+      targetSets: exercise.targetSets,
+      targetReps: exercise.targetReps,
+      intensityNote: exercise.intensityNote,
+      completedSets: exercise.completedSets,
+      sets: this.copySetEntries(exercise.sets)
+    }
+    return item
   }
 
   private copyActiveExerciseWithCompletedSets(
@@ -200,9 +245,101 @@ class ActiveWorkoutService {
       targetSets: exercise.targetSets,
       targetReps: exercise.targetReps,
       intensityNote: exercise.intensityNote,
-      completedSets: completedSets
+      completedSets: completedSets,
+      sets: this.copySetEntries(exercise.sets)
     }
     return item
+  }
+
+  private copyActiveExerciseWithSetEntry(
+    exercise: ActiveWorkoutExercise,
+    setIndex: number,
+    weightText: string,
+    repsText: string
+  ): ActiveWorkoutExercise {
+    const sets: ActiveWorkoutSetEntry[] = []
+    for (let index = 0; index < exercise.sets.length; index++) {
+      const entry: ActiveWorkoutSetEntry = exercise.sets[index]
+      if (entry.setIndex === setIndex) {
+        sets.push(this.createSetEntry(setIndex, weightText, repsText))
+      } else {
+        sets.push(this.copySetEntry(entry))
+      }
+    }
+
+    const item: ActiveWorkoutExercise = {
+      plannedExerciseId: exercise.plannedExerciseId,
+      exerciseId: exercise.exerciseId,
+      name: exercise.name,
+      targetSets: exercise.targetSets,
+      targetReps: exercise.targetReps,
+      intensityNote: exercise.intensityNote,
+      completedSets: this.countCompleteSetEntries(sets),
+      sets: sets
+    }
+    return item
+  }
+
+  private createSetEntries(targetSets: number): ActiveWorkoutSetEntry[] {
+    const values: ActiveWorkoutSetEntry[] = []
+    for (let index = 0; index < targetSets; index++) {
+      values.push(this.createSetEntry(index, '', ''))
+    }
+    return values
+  }
+
+  private copySetEntries(source: ActiveWorkoutSetEntry[]): ActiveWorkoutSetEntry[] {
+    const values: ActiveWorkoutSetEntry[] = []
+    for (let index = 0; index < source.length; index++) {
+      values.push(this.copySetEntry(source[index]))
+    }
+    return values
+  }
+
+  private copySetEntry(entry: ActiveWorkoutSetEntry): ActiveWorkoutSetEntry {
+    const item: ActiveWorkoutSetEntry = {
+      setIndex: entry.setIndex,
+      weightText: entry.weightText,
+      repsText: entry.repsText,
+      estimatedOneRepMax: entry.estimatedOneRepMax,
+      oneRepMaxText: entry.oneRepMaxText,
+      isComplete: entry.isComplete
+    }
+    return item
+  }
+
+  private createSetEntry(setIndex: number, weightText: string, repsText: string): ActiveWorkoutSetEntry {
+    const weight: number = Number(weightText)
+    const reps: number = Number(repsText)
+    let estimatedOneRepMax: number = 0
+    let oneRepMaxText: string = '录入重量和次数后显示 1RM'
+    let isComplete: boolean = false
+
+    if (!Number.isNaN(weight) && !Number.isNaN(reps) && weight > 0 && reps > 0) {
+      estimatedOneRepMax = Math.round(estimateOneRepMax(weight, reps))
+      oneRepMaxText = '1RM 参考 ' + estimatedOneRepMax.toString() + ' kg'
+      isComplete = true
+    }
+
+    const item: ActiveWorkoutSetEntry = {
+      setIndex: setIndex,
+      weightText: weightText,
+      repsText: repsText,
+      estimatedOneRepMax: estimatedOneRepMax,
+      oneRepMaxText: oneRepMaxText,
+      isComplete: isComplete
+    }
+    return item
+  }
+
+  private countCompleteSetEntries(sets: ActiveWorkoutSetEntry[]): number {
+    let count: number = 0
+    for (let index = 0; index < sets.length; index++) {
+      if (sets[index].isComplete) {
+        count++
+      }
+    }
+    return count
   }
 
   private clampCompletedSets(completedSets: number, targetSets: number): number {

@@ -9,7 +9,11 @@ import { AppRoutes } from '../app/AppRoutes'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../common/styles/DesignTokens'
 import { TrainingPlan, UserGoal } from '../shared/models/TrainingModels'
 import GoalRepository from '../shared/services/GoalRepository'
-import HomePlanService, { HomePlanSummary, HomeWeeklyPlanDay } from '../shared/services/HomePlanService'
+import HomePlanService, {
+  HomePlanSummary,
+  HomeRecommendedExercise,
+  HomeWeeklyPlanDay
+} from '../shared/services/HomePlanService'
 import PlanEngine from '../shared/services/PlanEngine'
 
 @Entry
@@ -26,8 +30,11 @@ export struct HomePage {
   @State restrictionSummary: string = ''
   @State todayDayId: string = ''
   @State todayTitle: string = ''
+  @State todayLabel: string = ''
   @State todayExerciseCount: number = 0
-  @State todayExerciseNames: string[] = []
+  @State recommendedExercises: HomeRecommendedExercise[] = []
+  @State startButtonText: string = ''
+  @State startRoute: string = ''
   @State weeklyPlanDays: HomeWeeklyPlanDay[] = []
 
   async aboutToAppear(): Promise<void> {
@@ -61,8 +68,11 @@ export struct HomePage {
     this.restrictionSummary = summary.restrictionSummary
     this.todayDayId = summary.todayDayId
     this.todayTitle = summary.todayTitle
+    this.todayLabel = summary.todayLabel
     this.todayExerciseCount = summary.todayExerciseCount
-    this.todayExerciseNames = this.copyStringArray(summary.todayExerciseNames)
+    this.recommendedExercises = this.copyRecommendedExercises(summary.recommendedExercises)
+    this.startButtonText = summary.startButtonText
+    this.startRoute = summary.startRoute
     this.weeklyPlanDays = this.copyWeeklyPlanDays(summary.weeklyPlanDays)
   }
 
@@ -84,8 +94,11 @@ export struct HomePage {
   }
 
   openWorkoutPreview(): void {
+    if (this.startRoute.length === 0) {
+      return
+    }
     try {
-      router.pushUrl({ url: AppRoutes.WORKOUT_PREVIEW })
+      router.pushUrl({ url: this.startRoute, params: { dayId: this.todayDayId } })
     } catch (e) {
       // stay on home
     }
@@ -99,10 +112,17 @@ export struct HomePage {
     }
   }
 
-  copyStringArray(source: string[]): string[] {
-    const values: string[] = []
+  copyRecommendedExercises(source: HomeRecommendedExercise[]): HomeRecommendedExercise[] {
+    const values: HomeRecommendedExercise[] = []
     for (let index = 0; index < source.length; index++) {
-      values.push(source[index])
+      const exercise: HomeRecommendedExercise = source[index]
+      const item: HomeRecommendedExercise = {
+        exerciseId: exercise.exerciseId,
+        name: exercise.name,
+        prescription: exercise.prescription,
+        intensityNote: exercise.intensityNote
+      }
+      values.push(item)
     }
     return values
   }
@@ -218,7 +238,7 @@ export struct HomePage {
             .alignItems(HorizontalAlign.Start)
 
             Column({ space: SpacingTokens.SM }) {
-              Text(this.todayTitle)
+              Text(this.todayLabel)
                 .fontSize(FontTokens.HEADLINE_SIZE)
                 .fontWeight(FontTokens.HEADLINE_WEIGHT)
                 .fontColor(ColorTokens.TEXT_PRIMARY)
@@ -227,7 +247,12 @@ export struct HomePage {
                 .fontSize(FontTokens.BODY_SIZE)
                 .fontColor(ColorTokens.TEXT_SECONDARY)
 
-              ForEach(this.todayExerciseNames, (name: string, index: number) => {
+              Text('推荐动作')
+                .fontSize(FontTokens.CAPTION_SIZE)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+
+              ForEach(this.recommendedExercises, (exercise: HomeRecommendedExercise, index: number) => {
                 Row() {
                   Text((index + 1).toString())
                     .fontSize(FontTokens.SMALL_SIZE)
@@ -238,26 +263,35 @@ export struct HomePage {
                     .backgroundColor(ColorTokens.SURFACE_ELEVATED)
                     .borderRadius(RadiusTokens.FULL)
 
-                  Text(name)
-                    .fontSize(FontTokens.BODY_SIZE)
-                    .fontColor(ColorTokens.TEXT_PRIMARY)
-                    .margin({ left: SpacingTokens.SM })
+                  Column({ space: SpacingTokens.XS }) {
+                    Text(exercise.name)
+                      .fontSize(FontTokens.BODY_SIZE)
+                      .fontWeight(FontWeight.Medium)
+                      .fontColor(ColorTokens.TEXT_PRIMARY)
+
+                    Text(exercise.prescription + ' | ' + exercise.intensityNote)
+                      .fontSize(FontTokens.CAPTION_SIZE)
+                      .fontColor(ColorTokens.TEXT_SECONDARY)
+                  }
+                  .layoutWeight(1)
+                  .alignItems(HorizontalAlign.Start)
+                  .margin({ left: SpacingTokens.SM })
                 }
                 .width('100%')
-              }, (name: string, index: number) => name + index.toString())
+              }, (exercise: HomeRecommendedExercise) => exercise.exerciseId)
             }
             .width('100%')
             .padding(SpacingTokens.MD)
             .borderRadius(RadiusTokens.SM)
             .backgroundColor(ColorTokens.SURFACE_PRIMARY)
 
-            Button('开始今日训练')
+            Button(this.startButtonText)
               .width('100%')
               .height(TouchTokens.BUTTON_HEIGHT_LARGE)
               .fontSize(FontTokens.BODY_SIZE)
               .fontWeight(FontWeight.Medium)
               .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-              .backgroundColor(ColorTokens.PRIMARY)
+              .backgroundColor(this.startRoute.length > 0 ? ColorTokens.PRIMARY : ColorTokens.PRIMARY_DISABLED)
               .borderRadius(RadiusTokens.FULL)
               .onClick(() => {
                 this.openWorkoutPreview()

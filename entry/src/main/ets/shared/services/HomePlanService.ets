@@ -12,6 +12,7 @@ import {
   TrainingPlan,
   UserGoal
 } from '../models/TrainingModels'
+import { AppRoutes } from '../../app/AppRoutes'
 import ContentRepository from './ContentRepository'
 
 export interface HomeWeeklyPlanDay {
@@ -19,6 +20,13 @@ export interface HomeWeeklyPlanDay {
   title: string
   exerciseCount: number
   isToday: boolean
+}
+
+export interface HomeRecommendedExercise {
+  exerciseId: string
+  name: string
+  prescription: string
+  intensityNote: string
 }
 
 export interface HomePlanSummary {
@@ -33,8 +41,12 @@ export interface HomePlanSummary {
   weeklyPlanDays: HomeWeeklyPlanDay[]
   todayDayId: string
   todayTitle: string
+  todayLabel: string
   todayExerciseCount: number
   todayExerciseNames: string[]
+  recommendedExercises: HomeRecommendedExercise[]
+  startButtonText: string
+  startRoute: string
 }
 
 class HomePlanService {
@@ -42,6 +54,7 @@ class HomePlanService {
     const today: PlanDay | undefined = this.pickTodayDay(plan, daySeed)
     if (today === undefined) {
       const emptyNames: string[] = []
+      const emptyExercises: HomeRecommendedExercise[] = []
       const emptySummary: HomePlanSummary = {
         hasGoal: true,
         planId: plan.planId,
@@ -54,13 +67,18 @@ class HomePlanService {
         weeklyPlanDays: this.createWeeklyPlanDays(plan.days, ''),
         todayDayId: '',
         todayTitle: '休息日',
+        todayLabel: '今天为休息日',
         todayExerciseCount: 0,
-        todayExerciseNames: emptyNames
+        todayExerciseNames: emptyNames,
+        recommendedExercises: emptyExercises,
+        startButtonText: '开始训练',
+        startRoute: ''
       }
       return emptySummary
     }
 
     const names: string[] = this.getExerciseNames(today.exercises)
+    const recommendedExercises: HomeRecommendedExercise[] = this.createRecommendedExercises(today.exercises)
     const summary: HomePlanSummary = {
       hasGoal: true,
       planId: plan.planId,
@@ -73,8 +91,12 @@ class HomePlanService {
       weeklyPlanDays: this.createWeeklyPlanDays(plan.days, today.dayId),
       todayDayId: today.dayId,
       todayTitle: today.title,
+      todayLabel: '今天该练 ' + today.title,
       todayExerciseCount: today.exercises.length,
-      todayExerciseNames: names
+      todayExerciseNames: names,
+      recommendedExercises: recommendedExercises,
+      startButtonText: '开始训练',
+      startRoute: AppRoutes.WORKOUT_PREVIEW
     }
     return summary
   }
@@ -104,6 +126,27 @@ class HomePlanService {
       }
     }
     return names
+  }
+
+  createRecommendedExercises(exercises: PlannedExercise[]): HomeRecommendedExercise[] {
+    const items: HomeRecommendedExercise[] = []
+    for (let index = 0; index < exercises.length; index++) {
+      const planned: PlannedExercise = exercises[index]
+      const content: ExerciseContent | undefined = ContentRepository.getExerciseById(planned.exerciseId)
+      let name: string = planned.exerciseId
+      if (content !== undefined) {
+        name = content.nameZh
+      }
+
+      const item: HomeRecommendedExercise = {
+        exerciseId: planned.exerciseId,
+        name: name,
+        prescription: planned.targetSets.toString() + ' 组 x ' + planned.targetReps,
+        intensityNote: planned.intensityNote
+      }
+      items.push(item)
+    }
+    return items
   }
 
   createWeeklyPlanDays(days: PlanDay[], todayDayId: string): HomeWeeklyPlanDay[] {

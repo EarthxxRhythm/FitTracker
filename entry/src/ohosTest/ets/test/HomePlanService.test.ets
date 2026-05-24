@@ -2,7 +2,10 @@ import { describe, it, expect } from '@ohos/hypium'
 import { PlanDay, TrainingPlan, UserGoal } from '../../../main/ets/shared/models/TrainingModels'
 import GoalRepository from '../../../main/ets/shared/services/GoalRepository'
 import GoalSetupService from '../../../main/ets/shared/services/GoalSetupService'
-import HomePlanService, { HomePlanSummary } from '../../../main/ets/shared/services/HomePlanService'
+import HomePlanService, {
+  HomePlanSummary,
+  HomeRecommendedExercise
+} from '../../../main/ets/shared/services/HomePlanService'
 import PlanEngine from '../../../main/ets/shared/services/PlanEngine'
 
 export default function homePlanServiceTest(): void {
@@ -66,6 +69,40 @@ export default function homePlanServiceTest(): void {
           expect(summary.weeklyPlanDays[index].title.length > 0).assertTrue()
         }
         expect(summary.weeklyPlanDays[2].isToday).assertTrue()
+      }
+    })
+
+    it('exposes today training day, recommended exercise details and start action from saved goal flow', 0, () => {
+      GoalRepository.clearLocal()
+      const goal: UserGoal = GoalSetupService.createGoalFromSelection(
+        'home_today_goal',
+        'hypertrophy',
+        'beginner',
+        3,
+        45,
+        ['eq_bodyweight', 'eq_dumbbell'],
+        [],
+        300
+      )
+      GoalRepository.saveLocalGoal(goal)
+
+      const savedGoal: UserGoal | undefined = GoalRepository.getLocalGoal()
+      expect(savedGoal !== undefined).assertTrue()
+      if (savedGoal !== undefined) {
+        const plan: TrainingPlan = PlanEngine.generatePlan(savedGoal)
+        const summary: HomePlanSummary = HomePlanService.createSummary(savedGoal, plan, 2)
+
+        expect(summary.todayLabel).assertEqual('今天该练 Day 2')
+        expect(summary.todayDayId).assertEqual(plan.days[1].dayId)
+        expect(summary.startButtonText).assertEqual('开始训练')
+        expect(summary.startRoute.length > 0).assertTrue()
+        expect(summary.recommendedExercises.length).assertEqual(summary.todayExerciseCount)
+        expect(summary.recommendedExercises.length > 0).assertTrue()
+
+        const firstExercise: HomeRecommendedExercise = summary.recommendedExercises[0]
+        expect(firstExercise.name.length > 0).assertTrue()
+        expect(firstExercise.prescription.length > 0).assertTrue()
+        expect(firstExercise.intensityNote.length > 0).assertTrue()
       }
     })
   })

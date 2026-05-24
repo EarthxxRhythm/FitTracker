@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@ohos/hypium'
 import { ExerciseContent, UserGoal, createUserGoal } from '../../../main/ets/shared/models/TrainingModels'
-import ContentRepository, { ExerciseLibraryItem } from '../../../main/ets/shared/services/ContentRepository'
+import ContentRepository, { ExerciseDetailViewModel, ExerciseLibraryItem } from '../../../main/ets/shared/services/ContentRepository'
 import PlanEngine from '../../../main/ets/shared/services/PlanEngine'
 
 export default function contentRepositoryTest(): void {
@@ -17,6 +17,19 @@ export default function contentRepositoryTest(): void {
         expect(exercise.nameZh).assertEqual('俯卧撑')
         expect(exercise.steps.length > 0).assertTrue()
         expect(ContentRepository.hasVideoAsset(exercise)).assertFalse()
+      }
+    })
+
+    it('builds exercise detail display data with local video placeholder and alternatives', 0, () => {
+      const detail: ExerciseDetailViewModel | undefined = ContentRepository.getExerciseDetailViewModel('ex_push_up')
+      expect(detail !== undefined).assertTrue()
+      if (detail !== undefined) {
+        expect(detail.name).assertEqual('俯卧撑')
+        expect(detail.steps.length).assertLarger(0)
+        expect(detail.safetyNotes.length).assertLarger(0)
+        expect(detail.alternativeNames.length).assertEqual(1)
+        expect(detail.alternativeNames[0]).assertEqual('哑铃卧推')
+        expect(detail.videoPlaceholder).assertEqual('视频占位：本地动作库暂未接入视频素材')
       }
     })
 
