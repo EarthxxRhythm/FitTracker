@@ -1,11 +1,10 @@
 /**
  * ExerciseDetailPage -- local exercise detail from the self-owned action library.
- * Function #13: local exercise detail for MVP.
+ * Function #17: exercise detail with steps, notes, alternatives, and video placeholder.
  */
 import { router } from '@kit.ArkUI'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens } from '../../../common/styles/DesignTokens'
-import { ExerciseContent } from '../../../shared/models/TrainingModels'
-import ContentRepository from '../../../shared/services/ContentRepository'
+import ContentRepository, { ExerciseDetailViewModel } from '../../../shared/services/ContentRepository'
 
 @Entry
 @Component
@@ -13,14 +12,16 @@ export struct ExerciseDetailPage {
   @State hasExercise: boolean = false
   @State exerciseId: string = ''
   @State name: string = ''
-  @State difficulty: string = ''
+  @State nameEn: string = ''
+  @State difficultyText: string = ''
   @State primaryMuscleNames: string[] = []
   @State equipmentNames: string[] = []
   @State steps: string[] = []
   @State cues: string[] = []
   @State commonMistakes: string[] = []
   @State safetyNotes: string[] = []
-  @State videoStatusText: string = ''
+  @State alternativeNames: string[] = []
+  @State videoPlaceholder: string = ''
 
   aboutToAppear(): void {
     const routeExerciseId: string = this.getRouteExerciseId()
@@ -29,12 +30,12 @@ export struct ExerciseDetailPage {
       return
     }
 
-    const exercise: ExerciseContent | undefined = ContentRepository.getExerciseById(routeExerciseId)
-    if (exercise === undefined) {
+    const detail: ExerciseDetailViewModel | undefined = ContentRepository.getExerciseDetailViewModel(routeExerciseId)
+    if (detail === undefined) {
       this.hasExercise = false
       return
     }
-    this.applyExercise(exercise)
+    this.applyDetail(detail)
   }
 
   getRouteExerciseId(): string {
@@ -49,34 +50,20 @@ export struct ExerciseDetailPage {
     return ''
   }
 
-  applyExercise(exercise: ExerciseContent): void {
+  applyDetail(detail: ExerciseDetailViewModel): void {
     this.hasExercise = true
-    this.exerciseId = exercise.exerciseId
-    this.name = exercise.nameZh
-    this.difficulty = exercise.difficulty
-    this.primaryMuscleNames = this.mapMuscleNames(exercise.primaryMuscleIds)
-    this.equipmentNames = this.mapEquipmentNames(exercise.equipmentIds)
-    this.steps = this.copyStringArray(exercise.steps)
-    this.cues = this.copyStringArray(exercise.cues)
-    this.commonMistakes = this.copyStringArray(exercise.commonMistakes)
-    this.safetyNotes = this.copyStringArray(exercise.safetyNotes)
-    this.videoStatusText = ContentRepository.hasVideoAsset(exercise) ? '视频素材已接入本地动作库' : '视频素材待接入自建数据库'
-  }
-
-  mapMuscleNames(source: string[]): string[] {
-    const values: string[] = []
-    for (let index = 0; index < source.length; index++) {
-      values.push(ContentRepository.getMuscleName(source[index]))
-    }
-    return values
-  }
-
-  mapEquipmentNames(source: string[]): string[] {
-    const values: string[] = []
-    for (let index = 0; index < source.length; index++) {
-      values.push(ContentRepository.getEquipmentName(source[index]))
-    }
-    return values
+    this.exerciseId = detail.exerciseId
+    this.name = detail.name
+    this.nameEn = detail.nameEn
+    this.difficultyText = detail.difficultyText
+    this.primaryMuscleNames = this.copyStringArray(detail.primaryMuscleNames)
+    this.equipmentNames = this.copyStringArray(detail.equipmentNames)
+    this.steps = this.copyStringArray(detail.steps)
+    this.cues = this.copyStringArray(detail.cues)
+    this.commonMistakes = this.copyStringArray(detail.commonMistakes)
+    this.safetyNotes = this.copyStringArray(detail.safetyNotes)
+    this.alternativeNames = this.copyStringArray(detail.alternativeNames)
+    this.videoPlaceholder = detail.videoPlaceholder
   }
 
   copyStringArray(source: string[]): string[] {
@@ -104,7 +91,7 @@ export struct ExerciseDetailPage {
   }
 
   @Builder
-  buildListSection(title: string, values: string[]) {
+  buildNumberedSection(title: string, values: string[]) {
     Column({ space: SpacingTokens.SM }) {
       Text(title)
         .fontSize(FontTokens.TITLE_SIZE)
@@ -131,6 +118,34 @@ export struct ExerciseDetailPage {
         .width('100%')
         .alignItems(VerticalAlign.Top)
       }, (value: string, index: number) => title + value + index.toString())
+    }
+    .width('100%')
+    .padding(SpacingTokens.MD)
+    .borderRadius(RadiusTokens.SM)
+    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  buildPlainSection(title: string, values: string[], emptyText: string) {
+    Column({ space: SpacingTokens.SM }) {
+      Text(title)
+        .fontSize(FontTokens.TITLE_SIZE)
+        .fontWeight(FontTokens.TITLE_WEIGHT)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+
+      if (values.length === 0) {
+        Text(emptyText)
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+      }
+
+      ForEach(values, (value: string) => {
+        Text(value)
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+          .width('100%')
+      }, (value: string) => title + value)
     }
     .width('100%')
     .padding(SpacingTokens.MD)
@@ -171,8 +186,12 @@ export struct ExerciseDetailPage {
               .fontSize(FontTokens.CAPTION_SIZE)
               .fontColor(ColorTokens.TEXT_SECONDARY)
 
+            Text(this.nameEn)
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+
             Flex({ wrap: FlexWrap.Wrap }) {
-              this.buildTag(this.difficulty)
+              this.buildTag(this.difficultyText)
               ForEach(this.primaryMuscleNames, (muscleName: string) => {
                 this.buildTag(muscleName)
               }, (muscleName: string) => muscleName)
@@ -188,12 +207,13 @@ export struct ExerciseDetailPage {
           .backgroundColor(ColorTokens.BG_SECONDARY)
           .alignItems(HorizontalAlign.Start)
 
-          this.buildListSection('动作步骤', this.steps)
-          this.buildListSection('训练提示', this.cues)
-          this.buildListSection('常见错误', this.commonMistakes)
-          this.buildListSection('安全注意', this.safetyNotes)
+          this.buildNumberedSection('动作步骤', this.steps)
+          this.buildPlainSection('注意事项', this.safetyNotes, '暂无额外注意事项')
+          this.buildPlainSection('替代动作', this.alternativeNames, '暂无替代动作')
+          this.buildPlainSection('训练提示', this.cues, '暂无训练提示')
+          this.buildPlainSection('常见错误', this.commonMistakes, '暂无常见错误记录')
 
-          Text(this.videoStatusText)
+          Text(this.videoPlaceholder)
             .fontSize(FontTokens.CAPTION_SIZE)
             .fontColor(ColorTokens.TEXT_SECONDARY)
             .width('100%')

@@ -33,7 +33,7 @@
     "id": 6,
     "category": "首页",
     "description": "首页应明确显示今天该进行的训练日、推荐动作和开始训练按钮。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 7,
@@ -57,7 +57,7 @@
     "id": 10,
     "category": "训练执行",
     "description": "用户在训练执行页录入重量和次数后，系统应即时显示该组的 1RM 参考值。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 11,
@@ -99,7 +99,7 @@
     "id": 17,
     "category": "动作详情",
     "description": "动作详情页应展示动作名称、步骤、注意事项、替代动作和视频占位信息。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 18,
