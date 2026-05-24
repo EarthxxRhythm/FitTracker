@@ -1,6 +1,6 @@
 /**
- * StartupPage -- application startup placeholder
- * Function #5: Routes and placeholder pages
+ * StartupPage -- application startup router.
+ * Function #8: target-driven workout loop.
  */
 import { router } from '@kit.ArkUI'
 import { ColorTokens, FontTokens, SpacingTokens } from '../common/styles/DesignTokens'
@@ -15,7 +15,7 @@ export struct StartupPage {
       const hasGoal: boolean = await GoalRepository.hasSavedGoal(getContext(this))
       router.replaceUrl({ url: StartupDecision.getInitialRoute(hasGoal) })
     } catch (e) {
-      // Keep the startup placeholder visible if route replacement fails.
+      // Keep the startup screen visible if route replacement fails.
     }
   }
 
@@ -26,7 +26,7 @@ export struct StartupPage {
         .fontWeight(FontTokens.DISPLAY_WEIGHT)
         .fontColor(ColorTokens.TEXT_PRIMARY)
 
-      Text('Startup placeholder')
+      Text('正在准备今日训练')
         .fontSize(FontTokens.BODY_SIZE)
         .fontColor(ColorTokens.TEXT_SECONDARY)
         .margin({ top: SpacingTokens.SM })
