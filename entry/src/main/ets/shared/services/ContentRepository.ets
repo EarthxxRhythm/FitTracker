@@ -43,6 +43,30 @@ class ContentRepositoryImpl {
     return undefined
   }
 
+  getMuscleName(muscleId: string): string {
+    for (let index = 0; index < SEED_MUSCLES.length; index++) {
+      const muscle: MuscleGroup = SEED_MUSCLES[index]
+      if (muscle.muscleId === muscleId) {
+        return muscle.nameZh
+      }
+    }
+    return muscleId
+  }
+
+  getEquipmentName(equipmentId: string): string {
+    for (let index = 0; index < SEED_EQUIPMENT.length; index++) {
+      const equipment: EquipmentItem = SEED_EQUIPMENT[index]
+      if (equipment.equipmentId === equipmentId) {
+        return equipment.nameZh
+      }
+    }
+    return equipmentId
+  }
+
+  hasVideoAsset(exercise: ExerciseContent): boolean {
+    return exercise.videoUrl.trim().length > 0
+  }
+
   getExercisesByMuscle(muscleId: string): ExerciseContent[] {
     const exercises: ExerciseContent[] = []
     for (let index = 0; index < SEED_EXERCISES.length; index++) {

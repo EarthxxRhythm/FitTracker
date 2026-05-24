@@ -1,9 +1,9 @@
 /**
- * ExerciseDetailPage -- local exercise encyclopedia detail.
+ * ExerciseDetailPage -- local exercise detail from the self-owned action library.
  * Function #13: local exercise detail for MVP.
  */
 import { router } from '@kit.ArkUI'
-import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
+import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens } from '../../../common/styles/DesignTokens'
 import { ExerciseContent } from '../../../shared/models/TrainingModels'
 import ContentRepository from '../../../shared/services/ContentRepository'
 
@@ -14,12 +14,13 @@ export struct ExerciseDetailPage {
   @State exerciseId: string = ''
   @State name: string = ''
   @State difficulty: string = ''
-  @State primaryMuscleIds: string[] = []
-  @State equipmentIds: string[] = []
+  @State primaryMuscleNames: string[] = []
+  @State equipmentNames: string[] = []
   @State steps: string[] = []
   @State cues: string[] = []
   @State commonMistakes: string[] = []
   @State safetyNotes: string[] = []
+  @State videoStatusText: string = ''
 
   aboutToAppear(): void {
     const routeExerciseId: string = this.getRouteExerciseId()
@@ -53,12 +54,29 @@ export struct ExerciseDetailPage {
     this.exerciseId = exercise.exerciseId
     this.name = exercise.nameZh
     this.difficulty = exercise.difficulty
-    this.primaryMuscleIds = this.copyStringArray(exercise.primaryMuscleIds)
-    this.equipmentIds = this.copyStringArray(exercise.equipmentIds)
+    this.primaryMuscleNames = this.mapMuscleNames(exercise.primaryMuscleIds)
+    this.equipmentNames = this.mapEquipmentNames(exercise.equipmentIds)
     this.steps = this.copyStringArray(exercise.steps)
     this.cues = this.copyStringArray(exercise.cues)
     this.commonMistakes = this.copyStringArray(exercise.commonMistakes)
     this.safetyNotes = this.copyStringArray(exercise.safetyNotes)
+    this.videoStatusText = ContentRepository.hasVideoAsset(exercise) ? '视频素材已接入本地动作库' : '视频素材待接入自建数据库'
+  }
+
+  mapMuscleNames(source: string[]): string[] {
+    const values: string[] = []
+    for (let index = 0; index < source.length; index++) {
+      values.push(ContentRepository.getMuscleName(source[index]))
+    }
+    return values
+  }
+
+  mapEquipmentNames(source: string[]): string[] {
+    const values: string[] = []
+    for (let index = 0; index < source.length; index++) {
+      values.push(ContentRepository.getEquipmentName(source[index]))
+    }
+    return values
   }
 
   copyStringArray(source: string[]): string[] {
@@ -131,7 +149,7 @@ export struct ExerciseDetailPage {
               .fontWeight(FontTokens.DISPLAY_WEIGHT)
               .fontColor(ColorTokens.TEXT_PRIMARY)
 
-            Text('没有找到这个动作，后续动作库会由本地数据库补全。')
+            Text('没有找到这个动作，请从训练预览页重新进入。')
               .fontSize(FontTokens.BODY_SIZE)
               .fontColor(ColorTokens.TEXT_SECONDARY)
           }
@@ -155,12 +173,12 @@ export struct ExerciseDetailPage {
 
             Flex({ wrap: FlexWrap.Wrap }) {
               this.buildTag(this.difficulty)
-              ForEach(this.primaryMuscleIds, (muscleId: string) => {
-                this.buildTag(muscleId)
-              }, (muscleId: string) => muscleId)
-              ForEach(this.equipmentIds, (equipmentId: string) => {
-                this.buildTag(equipmentId)
-              }, (equipmentId: string) => equipmentId)
+              ForEach(this.primaryMuscleNames, (muscleName: string) => {
+                this.buildTag(muscleName)
+              }, (muscleName: string) => muscleName)
+              ForEach(this.equipmentNames, (equipmentName: string) => {
+                this.buildTag(equipmentName)
+              }, (equipmentName: string) => equipmentName)
             }
             .width('100%')
           }
@@ -175,7 +193,7 @@ export struct ExerciseDetailPage {
           this.buildListSection('常见错误', this.commonMistakes)
           this.buildListSection('安全注意', this.safetyNotes)
 
-          Text('视频和完整动作数据后续接入自建数据库。')
+          Text(this.videoStatusText)
             .fontSize(FontTokens.CAPTION_SIZE)
             .fontColor(ColorTokens.TEXT_SECONDARY)
             .width('100%')

@@ -6,6 +6,7 @@ import sessionManagerTest from './SessionManager.test'
 import workoutSessionLogicTest from './WorkoutSessionService.test'
 import trainingPlanServiceTest from './TrainingPlanService.test'
 import startupRoutingTest from './StartupRouting.test'
+import contentRepositoryTest from './ContentRepository.test'
 
 export default function testsuite(): void {
   abilityTest()
@@ -16,4 +17,5 @@ export default function testsuite(): void {
   workoutSessionLogicTest()
   trainingPlanServiceTest()
   startupRoutingTest()
+  contentRepositoryTest()
 }

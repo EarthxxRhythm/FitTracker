@@ -6,10 +6,10 @@
 import { EquipmentItem, createEquipmentItem } from '../shared/models/TrainingModels'
 
 export const SEED_EQUIPMENT: EquipmentItem[] = [
-  createEquipmentItem('eq_barbell', 'Barbell'),
-  createEquipmentItem('eq_dumbbell', 'Dumbbell'),
-  createEquipmentItem('eq_cable', 'Cable'),
-  createEquipmentItem('eq_machine', 'Machine'),
-  createEquipmentItem('eq_bodyweight', 'Bodyweight'),
-  createEquipmentItem('eq_band', 'Band')
+  createEquipmentItem('eq_barbell', '杠铃'),
+  createEquipmentItem('eq_dumbbell', '哑铃'),
+  createEquipmentItem('eq_cable', '绳索'),
+  createEquipmentItem('eq_machine', '固定器械'),
+  createEquipmentItem('eq_bodyweight', '徒手'),
+  createEquipmentItem('eq_band', '弹力带')
 ]
