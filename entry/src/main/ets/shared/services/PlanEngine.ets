@@ -23,6 +23,7 @@ const FOCUS_MUSCLE_IDS: string[] = [
   'muscle_back',
   'muscle_legs',
   'muscle_shoulders',
+  'muscle_arms',
   'muscle_core'
 ]
 const MAX_EXERCISES_PER_DAY: number = 3
@@ -31,9 +32,10 @@ class PlanEngineImpl {
   generatePlan(goal: UserGoal): TrainingPlan {
     const rule: PlanRule = this.findRule(goal.goalType)
     const days: PlanDay[] = []
+    const availableFocusMuscleIds: string[] = this.getAvailableFocusMuscleIds(goal)
 
     for (let dayIndex = 0; dayIndex < goal.weeklyDays; dayIndex++) {
-      const focusMuscleId: string = FOCUS_MUSCLE_IDS[dayIndex % FOCUS_MUSCLE_IDS.length]
+      const focusMuscleId: string = this.pickFocusMuscleId(availableFocusMuscleIds, dayIndex)
       const dayNumber: number = dayIndex + 1
       const dayFocusMuscleIds: string[] = [focusMuscleId]
       const exercises: PlannedExercise[] = this.buildPlannedExercises(goal, rule, focusMuscleId, dayNumber)
@@ -101,12 +103,50 @@ class PlanEngineImpl {
     return plannedExercises
   }
 
+  private getAvailableFocusMuscleIds(goal: UserGoal): string[] {
+    const muscleIds: string[] = []
+    for (let index = 0; index < FOCUS_MUSCLE_IDS.length; index++) {
+      const muscleId: string = FOCUS_MUSCLE_IDS[index]
+      if (!this.containsValue(goal.restrictedMuscleIds, muscleId) && this.hasCandidateExercise(goal, muscleId)) {
+        muscleIds.push(muscleId)
+      }
+    }
+    return muscleIds
+  }
+
+  private pickFocusMuscleId(availableFocusMuscleIds: string[], dayIndex: number): string {
+    if (availableFocusMuscleIds.length > 0) {
+      return availableFocusMuscleIds[dayIndex % availableFocusMuscleIds.length]
+    }
+    return FOCUS_MUSCLE_IDS[dayIndex % FOCUS_MUSCLE_IDS.length]
+  }
+
+  private hasCandidateExercise(goal: UserGoal, muscleId: string): boolean {
+    const exercises: ExerciseContent[] = ContentRepository.getCandidateExercises(
+      goal.goalType,
+      goal.level,
+      goal.equipmentIds,
+      muscleId,
+      goal.restrictedMuscleIds
+    )
+    return exercises.length > 0
+  }
+
   private copyStringArray(source: string[]): string[] {
     const values: string[] = []
     for (let index = 0; index < source.length; index++) {
       values.push(source[index])
     }
     return values
+  }
+
+  private containsValue(values: string[], targetValue: string): boolean {
+    for (let index = 0; index < values.length; index++) {
+      if (values[index] === targetValue) {
+        return true
+      }
+    }
+    return false
   }
 
 }

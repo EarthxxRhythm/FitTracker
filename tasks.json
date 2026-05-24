@@ -111,7 +111,7 @@
     "id": 19,
     "category": "计划引擎",
     "description": "PlanEngine 应根据用户目标、器械、肌群限制和难度生成训练计划。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 20,

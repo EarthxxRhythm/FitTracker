@@ -14,6 +14,7 @@ import activeWorkoutServiceTest from './ActiveWorkoutService.test'
 import workoutSummaryServiceTest from './WorkoutSummaryService.test'
 import reviewDashboardServiceTest from './ReviewDashboardService.test'
 import userProfileServiceTest from './UserProfileService.test'
+import planEngineTest from './PlanEngine.test'
 
 export default function testsuite(): void {
   abilityTest()
@@ -32,4 +33,5 @@ export default function testsuite(): void {
   workoutSummaryServiceTest()
   reviewDashboardServiceTest()
   userProfileServiceTest()
+  planEngineTest()
 }
