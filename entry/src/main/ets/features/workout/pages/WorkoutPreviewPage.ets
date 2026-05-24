@@ -80,8 +80,24 @@ export struct WorkoutPreviewPage {
   }
 
   startWorkout(): void {
+    const preview: WorkoutPreviewSummary = {
+      hasWorkout: this.hasWorkout,
+      planId: this.planId,
+      planName: this.planName,
+      dayId: this.dayId,
+      title: this.title,
+      goalSummary: this.goalSummary,
+      scheduleSummary: this.scheduleSummary,
+      exerciseCount: this.exerciseCount,
+      exercises: this.copyPreviewExercises(this.exercises)
+    }
+    const targetRoute: string = WorkoutPreviewService.getStartWorkoutRoute(preview)
+    if (targetRoute.length === 0) {
+      return
+    }
+
     try {
-      router.pushUrl({ url: AppRoutes.ACTIVE_WORKOUT })
+      router.pushUrl({ url: targetRoute })
     } catch (e) {
       // stay on preview
     }

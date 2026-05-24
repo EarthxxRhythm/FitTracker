@@ -7,7 +7,7 @@ import { AppRoutes } from '../../../app/AppRoutes'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
 import { UserGoal } from '../../../shared/models/TrainingModels'
 import GoalRepository from '../../../shared/services/GoalRepository'
-import GoalSetupService from '../../../shared/services/GoalSetupService'
+import GoalSetupService, { GoalSetupPrefill } from '../../../shared/services/GoalSetupService'
 
 interface GoalOption {
   id: string
@@ -70,14 +70,15 @@ export struct GoalSetupPage {
     try {
       const goal: UserGoal | undefined = await GoalRepository.loadGoal(getContext(this))
       if (goal !== undefined) {
+        const prefill: GoalSetupPrefill = GoalSetupService.createPrefillFromGoal(goal)
         this.hasExistingGoal = true
         this.existingGoal = goal
-        this.selectedGoalType = goal.goalType
-        this.selectedLevel = goal.level
-        this.weeklyDays = goal.weeklyDays
-        this.sessionMinutes = goal.sessionMinutes
-        this.selectedEquipmentIds = this.copyStringArray(goal.equipmentIds)
-        this.selectedRestrictedMuscleIds = this.copyStringArray(goal.restrictedMuscleIds)
+        this.selectedGoalType = prefill.goalType
+        this.selectedLevel = prefill.level
+        this.weeklyDays = prefill.weeklyDays
+        this.sessionMinutes = prefill.sessionMinutes
+        this.selectedEquipmentIds = prefill.equipmentIds
+        this.selectedRestrictedMuscleIds = prefill.restrictedMuscleIds
       }
     } catch (e) {
       this.hasExistingGoal = false

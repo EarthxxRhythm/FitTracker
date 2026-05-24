@@ -10,6 +10,7 @@ import {
   TrainingPlan,
   UserGoal
 } from '../models/TrainingModels'
+import { AppRoutes } from '../../app/AppRoutes'
 import ContentRepository from './ContentRepository'
 
 export interface WorkoutPreviewExercise {
@@ -42,6 +43,13 @@ class WorkoutPreviewService {
 
   createPreviewForGoal(goal: UserGoal, plan: TrainingPlan, daySeed: number): WorkoutPreviewSummary {
     return this.createPreviewWithGoal(goal, plan, daySeed)
+  }
+
+  getStartWorkoutRoute(preview: WorkoutPreviewSummary): string {
+    if (!preview.hasWorkout) {
+      return ''
+    }
+    return AppRoutes.ACTIVE_WORKOUT
   }
 
   private createPreviewWithGoal(goal: UserGoal | undefined, plan: TrainingPlan, daySeed: number): WorkoutPreviewSummary {
