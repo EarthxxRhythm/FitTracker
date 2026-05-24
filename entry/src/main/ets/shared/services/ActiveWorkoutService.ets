@@ -7,7 +7,8 @@ import {
   estimateOneRepMax,
   WorkoutSession,
   WorkoutSet,
-  createWorkoutSession
+  createWorkoutSession,
+  createWorkoutSet
 } from '../models/TrainingModels'
 import {
   WorkoutPreviewExercise,
@@ -97,7 +98,11 @@ class ActiveWorkoutService {
     endedAt: number,
     completedSets: number
   ): WorkoutSession {
-    const sets: WorkoutSet[] = []
+    const sets: WorkoutSet[] = this.createWorkoutSets(state.exercises)
+    let totalSets: number = completedSets
+    if (sets.length > 0) {
+      totalSets = sets.length
+    }
     const session: WorkoutSession = createWorkoutSession(
       sessionId,
       state.planId,
@@ -105,10 +110,10 @@ class ActiveWorkoutService {
       startedAt,
       endedAt,
       this.calculateDurationSeconds(startedAt, endedAt),
-      completedSets,
+      totalSets,
+      this.calculateTotalVolume(sets),
       0,
-      0,
-      this.createSessionNotes(completedSets, state.totalTargetSets),
+      this.createSessionNotes(totalSets, state.totalTargetSets),
       sets
     )
     return session
@@ -340,6 +345,51 @@ class ActiveWorkoutService {
       }
     }
     return count
+  }
+
+  private createWorkoutSets(exercises: ActiveWorkoutExercise[]): WorkoutSet[] {
+    const values: WorkoutSet[] = []
+    for (let exerciseIndex = 0; exerciseIndex < exercises.length; exerciseIndex++) {
+      const exercise: ActiveWorkoutExercise = exercises[exerciseIndex]
+      for (let setIndex = 0; setIndex < exercise.sets.length; setIndex++) {
+        const setEntry: ActiveWorkoutSetEntry = exercise.sets[setIndex]
+        if (setEntry.isComplete) {
+          values.push(this.createWorkoutSetFromEntry(exercise, setEntry))
+        }
+      }
+    }
+    return values
+  }
+
+  private createWorkoutSetFromEntry(
+    exercise: ActiveWorkoutExercise,
+    setEntry: ActiveWorkoutSetEntry
+  ): WorkoutSet {
+    return createWorkoutSet(
+      exercise.plannedExerciseId + '_set_' + (setEntry.setIndex + 1).toString(),
+      exercise.exerciseId,
+      this.parsePositiveNumber(setEntry.weightText),
+      Math.floor(this.parsePositiveNumber(setEntry.repsText)),
+      0,
+      false
+    )
+  }
+
+  private calculateTotalVolume(sets: WorkoutSet[]): number {
+    let totalVolume: number = 0
+    for (let index = 0; index < sets.length; index++) {
+      const set: WorkoutSet = sets[index]
+      totalVolume += set.weight * set.reps
+    }
+    return Math.round(totalVolume * 100) / 100
+  }
+
+  private parsePositiveNumber(value: string): number {
+    const parsed: number = Number(value)
+    if (Number.isNaN(parsed) || parsed <= 0) {
+      return 0
+    }
+    return parsed
   }
 
   private clampCompletedSets(completedSets: number, targetSets: number): number {

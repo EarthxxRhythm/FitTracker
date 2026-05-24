@@ -1,11 +1,16 @@
 /**
  * ReviewHomePage -- training review dashboard.
  * Function #12: review dashboard and next adjustment hint.
+ * Function #14: recent workout records and historical training trend.
  */
 import { router } from '@kit.ArkUI'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
-import ReviewDashboardService, { ReviewDashboardSummary } from '../../../shared/services/ReviewDashboardService'
+import ReviewDashboardService, {
+  ReviewDashboardSummary,
+  ReviewRecentSessionRecord,
+  ReviewTrendSummary
+} from '../../../shared/services/ReviewDashboardService'
 import WorkoutRepository from '../../../shared/services/WorkoutRepository'
 import { WorkoutSession } from '../../../shared/models/TrainingModels'
 
@@ -22,6 +27,8 @@ export struct ReviewHomePage {
   @State latestSessionId: string = ''
   @State latestDayId: string = ''
   @State adjustmentText: string = ''
+  @State recentRecords: ReviewRecentSessionRecord[] = []
+  @State trendSummary: ReviewTrendSummary = ReviewDashboardService.createEmptyTrendSummary()
 
   aboutToAppear(): void {
     this.loading = true
@@ -41,6 +48,8 @@ export struct ReviewHomePage {
     this.latestSessionId = summary.latestSessionId
     this.latestDayId = summary.latestDayId
     this.adjustmentText = summary.adjustmentText
+    this.recentRecords = summary.recentRecords
+    this.trendSummary = summary.trendSummary
   }
 
   openHome(): void {
@@ -103,6 +112,74 @@ export struct ReviewHomePage {
     .borderRadius(RadiusTokens.SM)
     .backgroundColor(ColorTokens.SURFACE_PRIMARY)
     .alignItems(HorizontalAlign.Center)
+  }
+
+  @Builder
+  buildRecentRecord(record: ReviewRecentSessionRecord) {
+    Column({ space: SpacingTokens.SM }) {
+      Row() {
+        Column({ space: SpacingTokens.XS }) {
+          Text(record.dayId)
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
+
+          Text(record.dateText + ' · ' + record.durationText)
+            .fontSize(FontTokens.CAPTION_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
+
+        Text(record.completionRate.toString() + '%')
+          .fontSize(FontTokens.TITLE_SIZE)
+          .fontWeight(FontTokens.TITLE_WEIGHT)
+          .fontColor(ColorTokens.PRIMARY)
+      }
+      .width('100%')
+
+      Row() {
+        Text(record.completionText)
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .layoutWeight(1)
+
+        Text(record.volumeText)
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.ACCENT_LIGHT)
+      }
+      .width('100%')
+    }
+    .width('100%')
+    .padding(SpacingTokens.MD)
+    .borderRadius(RadiusTokens.SM)
+    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  buildTrendSummary() {
+    Column({ space: SpacingTokens.SM }) {
+      Text('历史训练趋势')
+        .fontSize(FontTokens.TITLE_SIZE)
+        .fontWeight(FontTokens.TITLE_WEIGHT)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+
+      Text(this.trendSummary.summaryText)
+        .fontSize(FontTokens.BODY_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+
+      Row({ space: SpacingTokens.SM }) {
+        this.buildMetric('训练量趋势', this.trendSummary.volumeTrendText)
+        this.buildMetric('完成率趋势', this.trendSummary.completionTrendText)
+      }
+      .width('100%')
+    }
+    .width('100%')
+    .padding(SpacingTokens.MD)
+    .borderRadius(RadiusTokens.SM)
+    .backgroundColor(ColorTokens.BG_SECONDARY)
+    .alignItems(HorizontalAlign.Start)
   }
 
   build() {
@@ -198,6 +275,21 @@ export struct ReviewHomePage {
               this.buildMetric('最近训练日', this.latestDayId)
             }
             .width('100%')
+
+            Column({ space: SpacingTokens.SM }) {
+              Text('最近训练记录')
+                .fontSize(FontTokens.TITLE_SIZE)
+                .fontWeight(FontTokens.TITLE_WEIGHT)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+
+              ForEach(this.recentRecords, (record: ReviewRecentSessionRecord) => {
+                this.buildRecentRecord(record)
+              }, (record: ReviewRecentSessionRecord) => record.sessionId)
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+
+            this.buildTrendSummary()
 
             Column({ space: SpacingTokens.SM }) {
               Text('下次调整建议')
