@@ -2,6 +2,7 @@
  * HomePlanService - home screen plan summary helpers.
  *
  * Feature #4: home goal summary.
+ * Feature #5: weekly plan rows.
  * Feature #8: today training entry.
  */
 import {
@@ -13,6 +14,13 @@ import {
 } from '../models/TrainingModels'
 import ContentRepository from './ContentRepository'
 
+export interface HomeWeeklyPlanDay {
+  dayId: string
+  title: string
+  exerciseCount: number
+  isToday: boolean
+}
+
 export interface HomePlanSummary {
   hasGoal: boolean
   planId: string
@@ -22,6 +30,7 @@ export interface HomePlanSummary {
   goalSummary: string
   equipmentSummary: string
   restrictionSummary: string
+  weeklyPlanDays: HomeWeeklyPlanDay[]
   todayDayId: string
   todayTitle: string
   todayExerciseCount: number
@@ -42,6 +51,7 @@ class HomePlanService {
         goalSummary: this.createGoalSummary(goal),
         equipmentSummary: this.createEquipmentSummary(goal.equipmentIds),
         restrictionSummary: this.createRestrictionSummary(goal.restrictedMuscleIds),
+        weeklyPlanDays: this.createWeeklyPlanDays(plan.days, ''),
         todayDayId: '',
         todayTitle: '休息日',
         todayExerciseCount: 0,
@@ -60,6 +70,7 @@ class HomePlanService {
       goalSummary: this.createGoalSummary(goal),
       equipmentSummary: this.createEquipmentSummary(goal.equipmentIds),
       restrictionSummary: this.createRestrictionSummary(goal.restrictedMuscleIds),
+      weeklyPlanDays: this.createWeeklyPlanDays(plan.days, today.dayId),
       todayDayId: today.dayId,
       todayTitle: today.title,
       todayExerciseCount: today.exercises.length,
@@ -93,6 +104,21 @@ class HomePlanService {
       }
     }
     return names
+  }
+
+  createWeeklyPlanDays(days: PlanDay[], todayDayId: string): HomeWeeklyPlanDay[] {
+    const weeklyPlanDays: HomeWeeklyPlanDay[] = []
+    for (let index = 0; index < days.length; index++) {
+      const day: PlanDay = days[index]
+      const item: HomeWeeklyPlanDay = {
+        dayId: day.dayId,
+        title: day.title,
+        exerciseCount: day.exercises.length,
+        isToday: day.dayId === todayDayId
+      }
+      weeklyPlanDays.push(item)
+    }
+    return weeklyPlanDays
   }
 
   private createGoalSummary(goal: UserGoal): string {

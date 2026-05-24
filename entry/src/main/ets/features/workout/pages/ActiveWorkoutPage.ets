@@ -27,11 +27,16 @@ export struct ActiveWorkoutPage {
   @State title: string = ''
   @State totalTargetSets: number = 0
   @State completedSets: number = 0
+  @State currentExerciseName: string = ''
+  @State currentExerciseSetProgress: string = '0/0'
+  @State elapsedSeconds: number = 0
   @State exercises: ActiveWorkoutExercise[] = []
+  private timerId: number = -1
 
   async aboutToAppear(): Promise<void> {
     this.loading = true
     this.startedAt = Date.now()
+    this.startTimer()
     try {
       const goal: UserGoal | undefined = await GoalRepository.loadGoal(getContext(this))
       if (goal === undefined) {
@@ -53,6 +58,10 @@ export struct ActiveWorkoutPage {
     this.loading = false
   }
 
+  aboutToDisappear(): void {
+    this.stopTimer()
+  }
+
   applyState(state: ActiveWorkoutState): void {
     this.hasWorkout = state.hasWorkout
     this.planId = state.planId
@@ -60,7 +69,29 @@ export struct ActiveWorkoutPage {
     this.title = state.title
     this.totalTargetSets = state.totalTargetSets
     this.completedSets = state.completedSets
+    this.currentExerciseName = state.currentExerciseName
+    this.currentExerciseSetProgress = state.currentExerciseSetProgress
     this.exercises = this.copyActiveExercises(state.exercises)
+  }
+
+  startTimer(): void {
+    this.stopTimer()
+    this.elapsedSeconds = 0
+    this.timerId = setInterval(() => {
+      const now: number = Date.now()
+      if (now <= this.startedAt) {
+        this.elapsedSeconds = 0
+      } else {
+        this.elapsedSeconds = Math.floor((now - this.startedAt) / 1000)
+      }
+    }, 1000)
+  }
+
+  stopTimer(): void {
+    if (this.timerId !== -1) {
+      clearInterval(this.timerId)
+      this.timerId = -1
+    }
   }
 
   getTodaySeed(): number {
@@ -73,21 +104,37 @@ export struct ActiveWorkoutPage {
   }
 
   increaseSet(exercise: ActiveWorkoutExercise): void {
-    this.exercises = ActiveWorkoutService.updateExerciseCompletedSets(
+    const nextExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.updateExerciseCompletedSets(
       this.exercises,
       exercise.plannedExerciseId,
       exercise.completedSets + 1
     )
-    this.completedSets = ActiveWorkoutService.countCompletedSets(this.exercises)
+    this.applyProgressExercises(nextExercises)
   }
 
   decreaseSet(exercise: ActiveWorkoutExercise): void {
-    this.exercises = ActiveWorkoutService.updateExerciseCompletedSets(
+    const nextExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.updateExerciseCompletedSets(
       this.exercises,
       exercise.plannedExerciseId,
       exercise.completedSets - 1
     )
-    this.completedSets = ActiveWorkoutService.countCompletedSets(this.exercises)
+    this.applyProgressExercises(nextExercises)
+  }
+
+  applyProgressExercises(exercises: ActiveWorkoutExercise[]): void {
+    const state: ActiveWorkoutState = {
+      hasWorkout: this.hasWorkout,
+      planId: this.planId,
+      dayId: this.dayId,
+      title: this.title,
+      totalTargetSets: this.totalTargetSets,
+      completedSets: this.completedSets,
+      currentExerciseName: this.currentExerciseName,
+      currentExerciseSetProgress: this.currentExerciseSetProgress,
+      exercises: this.copyActiveExercises(this.exercises)
+    }
+    const nextState: ActiveWorkoutState = ActiveWorkoutService.createStateWithProgress(state, exercises)
+    this.applyState(nextState)
   }
 
   finishCurrentProgress(): void {
@@ -115,6 +162,8 @@ export struct ActiveWorkoutPage {
       title: this.title,
       totalTargetSets: this.totalTargetSets,
       completedSets: completedSets,
+      currentExerciseName: this.currentExerciseName,
+      currentExerciseSetProgress: this.currentExerciseSetProgress,
       exercises: this.copyActiveExercises(exercises)
     }
     const sessionId: string = 'session_' + endedAt.toString()
@@ -155,6 +204,16 @@ export struct ActiveWorkoutPage {
     }
     const percent: number = Math.floor((this.completedSets * 100) / this.totalTargetSets)
     return percent.toString() + '%'
+  }
+
+  getElapsedText(): string {
+    const minutes: number = Math.floor(this.elapsedSeconds / 60)
+    const seconds: number = this.elapsedSeconds % 60
+    let secondText: string = seconds.toString()
+    if (seconds < 10) {
+      secondText = '0' + secondText
+    }
+    return minutes.toString() + ':' + secondText
   }
 
   copyActiveExercises(source: ActiveWorkoutExercise[]): ActiveWorkoutExercise[] {
@@ -268,6 +327,39 @@ export struct ActiveWorkoutPage {
                   })
                   .backgroundColor(ColorTokens.ACCENT)
                   .borderRadius(RadiusTokens.FULL)
+              }
+              .width('100%')
+
+              Row() {
+                Column({ space: SpacingTokens.XS }) {
+                  Text('训练计时')
+                    .fontSize(FontTokens.CAPTION_SIZE)
+                    .fontColor(ColorTokens.TEXT_SECONDARY)
+
+                  Text(this.getElapsedText())
+                    .fontSize(FontTokens.HEADLINE_SIZE)
+                    .fontWeight(FontTokens.HEADLINE_WEIGHT)
+                    .fontColor(ColorTokens.TEXT_PRIMARY)
+                }
+                .layoutWeight(1)
+                .alignItems(HorizontalAlign.Start)
+
+                Column({ space: SpacingTokens.XS }) {
+                  Text('当前动作')
+                    .fontSize(FontTokens.CAPTION_SIZE)
+                    .fontColor(ColorTokens.TEXT_SECONDARY)
+
+                  Text(this.currentExerciseName)
+                    .fontSize(FontTokens.BODY_SIZE)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(ColorTokens.TEXT_PRIMARY)
+
+                  Text(this.currentExerciseSetProgress)
+                    .fontSize(FontTokens.CAPTION_SIZE)
+                    .fontColor(ColorTokens.PRIMARY)
+                }
+                .layoutWeight(1)
+                .alignItems(HorizontalAlign.Start)
               }
               .width('100%')
 

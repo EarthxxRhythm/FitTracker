@@ -27,7 +27,7 @@
     "id": 5,
     "category": "首页",
     "description": "首页应根据已保存目标生成并展示本周训练计划。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 6,
@@ -51,7 +51,7 @@
     "id": 9,
     "category": "训练执行",
     "description": "训练执行页应显示计时器、当前训练动作和训练组进度。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 10,
@@ -93,7 +93,7 @@
     "id": 16,
     "category": "动作库",
     "description": "动作库应展示本地维护的动作数据，不依赖 MuscleWiki 官方 API。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 17,
