@@ -77,6 +77,47 @@ export default function activeWorkoutServiceTest(): void {
       expect(updatedState.exercises[0].sets[0].estimatedOneRepMax).assertEqual(107)
       expect(updatedState.exercises[0].sets[0].oneRepMaxText).assertEqual('1RM 参考 107 kg')
     })
+
+    it('preserves the latest sibling field when weight and reps are entered separately', 0, () => {
+      const equipmentIds: string[] = ['eq_bodyweight']
+      const restrictedMuscleIds: string[] = []
+      const goal: UserGoal = createUserGoal(
+        'goal_active_separate_input',
+        'hypertrophy',
+        'beginner',
+        3,
+        45,
+        equipmentIds,
+        restrictedMuscleIds,
+        100,
+        100
+      )
+      const plan: TrainingPlan = PlanEngine.generatePlan(goal)
+      const preview: WorkoutPreviewSummary = WorkoutPreviewService.createPreview(plan, 1)
+      const state: ActiveWorkoutState = ActiveWorkoutService.createState(preview)
+      const firstExercise: ActiveWorkoutExercise = state.exercises[0]
+
+      const weightUpdatedExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.updateSetWeight(
+        state.exercises,
+        firstExercise.plannedExerciseId,
+        0,
+        '40'
+      )
+      const repsUpdatedExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.updateSetReps(
+        weightUpdatedExercises,
+        firstExercise.plannedExerciseId,
+        0,
+        '10'
+      )
+      const updatedState: ActiveWorkoutState = ActiveWorkoutService.createStateWithProgress(state, repsUpdatedExercises)
+
+      expect(updatedState.completedSets).assertEqual(1)
+      expect(updatedState.exercises[0].sets[0].weightText).assertEqual('40')
+      expect(updatedState.exercises[0].sets[0].repsText).assertEqual('10')
+      expect(updatedState.exercises[0].sets[0].estimatedOneRepMax).assertEqual(53)
+      expect(updatedState.exercises[0].sets[0].oneRepMaxText).assertEqual('1RM 参考 53 kg')
+    })
+
     it('saves completed workout session with set entries, totals, volume and duration through local repository', 0, () => {
       WorkoutRepository.clear()
       const equipmentIds: string[] = ['eq_bodyweight']

@@ -123,22 +123,20 @@ export struct ActiveWorkoutPage {
   }
 
   updateSetWeight(exercise: ActiveWorkoutExercise, setEntry: ActiveWorkoutSetEntry, weightText: string): void {
-    const nextExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.updateSetEntry(
+    const nextExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.updateSetWeight(
       this.exercises,
       exercise.plannedExerciseId,
       setEntry.setIndex,
-      weightText,
-      setEntry.repsText
+      weightText
     )
     this.applyProgressExercises(nextExercises)
   }
 
   updateSetReps(exercise: ActiveWorkoutExercise, setEntry: ActiveWorkoutSetEntry, repsText: string): void {
-    const nextExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.updateSetEntry(
+    const nextExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.updateSetReps(
       this.exercises,
       exercise.plannedExerciseId,
       setEntry.setIndex,
-      setEntry.weightText,
       repsText
     )
     this.applyProgressExercises(nextExercises)
@@ -273,6 +271,19 @@ export struct ActiveWorkoutPage {
       values.push(item)
     }
     return values
+  }
+
+  createExerciseRenderKey(exercise: ActiveWorkoutExercise): string {
+    let key: string = exercise.plannedExerciseId + '_' + exercise.completedSets.toString()
+    for (let index = 0; index < exercise.sets.length; index++) {
+      key += '_' + this.createSetEntryRenderKey(exercise.sets[index])
+    }
+    return key
+  }
+
+  createSetEntryRenderKey(setEntry: ActiveWorkoutSetEntry): string {
+    return setEntry.setIndex.toString() + '_' + setEntry.weightText + '_' + setEntry.repsText + '_' +
+      setEntry.oneRepMaxText
   }
 
   build() {
@@ -502,13 +513,13 @@ export struct ActiveWorkoutPage {
                       .fontColor(setEntry.isComplete ? ColorTokens.ACCENT_LIGHT : ColorTokens.TEXT_SECONDARY)
                   }
                   .width('100%')
-                }, (setEntry: ActiveWorkoutSetEntry) => setEntry.setIndex.toString())
+                }, (setEntry: ActiveWorkoutSetEntry) => this.createSetEntryRenderKey(setEntry))
               }
               .width('100%')
               .padding(SpacingTokens.MD)
               .borderRadius(RadiusTokens.SM)
               .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-            }, (exercise: ActiveWorkoutExercise) => exercise.plannedExerciseId)
+            }, (exercise: ActiveWorkoutExercise) => this.createExerciseRenderKey(exercise))
 
             Button('保存当前进度')
               .width('100%')

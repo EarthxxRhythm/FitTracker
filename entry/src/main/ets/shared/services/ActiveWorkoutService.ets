@@ -163,6 +163,26 @@ class ActiveWorkoutService {
     return values
   }
 
+  updateSetWeight(
+    exercises: ActiveWorkoutExercise[],
+    plannedExerciseId: string,
+    setIndex: number,
+    weightText: string
+  ): ActiveWorkoutExercise[] {
+    const repsText: string = this.findSetRepsText(exercises, plannedExerciseId, setIndex)
+    return this.updateSetEntry(exercises, plannedExerciseId, setIndex, weightText, repsText)
+  }
+
+  updateSetReps(
+    exercises: ActiveWorkoutExercise[],
+    plannedExerciseId: string,
+    setIndex: number,
+    repsText: string
+  ): ActiveWorkoutExercise[] {
+    const weightText: string = this.findSetWeightText(exercises, plannedExerciseId, setIndex)
+    return this.updateSetEntry(exercises, plannedExerciseId, setIndex, weightText, repsText)
+  }
+
   markAllComplete(exercises: ActiveWorkoutExercise[]): ActiveWorkoutExercise[] {
     const values: ActiveWorkoutExercise[] = []
     for (let index = 0; index < exercises.length; index++) {
@@ -283,6 +303,50 @@ class ActiveWorkoutService {
       sets: sets
     }
     return item
+  }
+
+  private findSetWeightText(
+    exercises: ActiveWorkoutExercise[],
+    plannedExerciseId: string,
+    setIndex: number
+  ): string {
+    const entry: ActiveWorkoutSetEntry | undefined = this.findSetEntry(exercises, plannedExerciseId, setIndex)
+    if (entry === undefined) {
+      return ''
+    }
+    return entry.weightText
+  }
+
+  private findSetRepsText(
+    exercises: ActiveWorkoutExercise[],
+    plannedExerciseId: string,
+    setIndex: number
+  ): string {
+    const entry: ActiveWorkoutSetEntry | undefined = this.findSetEntry(exercises, plannedExerciseId, setIndex)
+    if (entry === undefined) {
+      return ''
+    }
+    return entry.repsText
+  }
+
+  private findSetEntry(
+    exercises: ActiveWorkoutExercise[],
+    plannedExerciseId: string,
+    setIndex: number
+  ): ActiveWorkoutSetEntry | undefined {
+    for (let exerciseIndex = 0; exerciseIndex < exercises.length; exerciseIndex++) {
+      const exercise: ActiveWorkoutExercise = exercises[exerciseIndex]
+      if (exercise.plannedExerciseId !== plannedExerciseId) {
+        continue
+      }
+      for (let setEntryIndex = 0; setEntryIndex < exercise.sets.length; setEntryIndex++) {
+        const entry: ActiveWorkoutSetEntry = exercise.sets[setEntryIndex]
+        if (entry.setIndex === setIndex) {
+          return entry
+        }
+      }
+    }
+    return undefined
   }
 
   private createSetEntries(targetSets: number): ActiveWorkoutSetEntry[] {
