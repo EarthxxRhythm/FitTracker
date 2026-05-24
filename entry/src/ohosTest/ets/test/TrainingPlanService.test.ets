@@ -6,7 +6,7 @@
  * 需要 preferences Context，逻辑正确性通过集成测试验证。
  */
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium'
-import trainingPlanService from '../../../main/ets/common/services/TrainingPlanService'
+import trainingPlanService, { TrainingDay, UserPlan } from '../../../main/ets/common/services/TrainingPlanService'
 
 export default function trainingPlanServiceTest(): void {
   describe('TrainingPlanService', () => {
@@ -52,7 +52,7 @@ export default function trainingPlanServiceTest(): void {
     describe('getPresetPlanById', () => {
       it('should find the 五分化训练 plan', 0, () => {
         const plan = trainingPlanService.getPresetPlanById('preset_bro_split')
-        expect(plan).assertNotNull()
+        expect(plan !== undefined).assertTrue()
         if (plan) {
           expect(plan.name).assertEqual('五分化训练')
           expect(plan.days.length).assertEqual(5)
@@ -62,7 +62,7 @@ export default function trainingPlanServiceTest(): void {
 
       it('should find the 全身训练 plan', 0, () => {
         const plan = trainingPlanService.getPresetPlanById('preset_fullbody_3x')
-        expect(plan).assertNotNull()
+        expect(plan !== undefined).assertTrue()
         if (plan) {
           expect(plan.name).assertEqual('全身训练 3x')
           expect(plan.days.length).assertEqual(3)
@@ -71,7 +71,7 @@ export default function trainingPlanServiceTest(): void {
 
       it('should find the 推拉腿分裂 plan', 0, () => {
         const plan = trainingPlanService.getPresetPlanById('preset_ppl')
-        expect(plan).assertNotNull()
+        expect(plan !== undefined).assertTrue()
         if (plan) {
           expect(plan.name).assertEqual('推拉腿分裂')
           expect(plan.days.length).assertEqual(3)
@@ -105,7 +105,7 @@ export default function trainingPlanServiceTest(): void {
         if (plan) {
           for (let i = 0; i < plan.days.length; i++) {
             const day = plan.days[i]
-            expect(day.dayOfWeek).assertNotNull()
+            expect(day.dayOfWeek !== undefined).assertTrue()
             if (day.dayOfWeek) {
               expect(day.dayOfWeek.length).assertLarger(0)
             }
@@ -159,7 +159,7 @@ export default function trainingPlanServiceTest(): void {
         const plan = trainingPlanService.getPresetPlanById('preset_ppl')
         if (plan) {
           // Create a UserPlan from the preset for testing
-          const userPlan = {
+          const userPlan: UserPlan = {
             id: plan.id,
             name: plan.name,
             coverColor: plan.coverColor,
@@ -176,7 +176,8 @@ export default function trainingPlanServiceTest(): void {
       })
 
       it('should return null for a plan with empty days', 0, () => {
-        const emptyPlan = {
+        const emptyDays: TrainingDay[] = []
+        const emptyPlan: UserPlan = {
           id: 'test',
           name: 'Test',
           coverColor: '#000',
@@ -197,7 +198,7 @@ export default function trainingPlanServiceTest(): void {
       it('should return boolean for a valid plan', 0, () => {
         const plan = trainingPlanService.getPresetPlanById('preset_ppl')
         if (plan) {
-          const userPlan = {
+          const userPlan: UserPlan = {
             id: plan.id,
             name: plan.name,
             coverColor: plan.coverColor,
@@ -214,7 +215,8 @@ export default function trainingPlanServiceTest(): void {
       })
 
       it('should return false for empty-days plan', 0, () => {
-        const emptyPlan = {
+        const emptyDays: TrainingDay[] = []
+        const emptyPlan: UserPlan = {
           id: 'test',
           name: 'Test',
           coverColor: '#000',

@@ -205,7 +205,7 @@ export default function exerciseServiceTest(): void {
     describe('getById', () => {
       it('should find by existing id', 0, () => {
         const ex = exerciseService.getById('e1')
-        expect(ex).assertNotNull()
+        expect(ex !== undefined).assertTrue()
         if (ex) {
           expect(ex.name).assertEqual('杠铃平板卧推')
         }
