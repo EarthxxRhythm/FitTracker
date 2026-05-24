@@ -40,5 +40,43 @@ export default function goalSetupServiceTest(): void {
         expect(savedGoal.updatedAt).assertEqual(1000)
       }
     })
+
+    it('builds goal setup prefill values from a saved goal with equipment and restricted muscles', 0, () => {
+      GoalRepository.clearLocal()
+      const equipmentIds: string[] = ['eq_bodyweight', 'eq_cable']
+      const restrictedMuscleIds: string[] = ['muscle_chest', 'muscle_core']
+      const savedGoal: UserGoal = GoalSetupService.createCurrentGoalFromSelection(
+        'fat_loss',
+        'advanced',
+        5,
+        75,
+        equipmentIds,
+        restrictedMuscleIds,
+        2000
+      )
+
+      GoalRepository.saveLocalGoal(savedGoal)
+
+      const reloadedGoal: UserGoal | undefined = GoalRepository.getLocalGoal()
+      expect(reloadedGoal !== undefined).assertTrue()
+      if (reloadedGoal !== undefined) {
+        const prefill = GoalSetupService.createPrefillFromGoal(reloadedGoal)
+        expect(prefill.goalType).assertEqual('fat_loss')
+        expect(prefill.level).assertEqual('advanced')
+        expect(prefill.weeklyDays).assertEqual(5)
+        expect(prefill.sessionMinutes).assertEqual(75)
+        expect(prefill.equipmentIds.length).assertEqual(2)
+        expect(prefill.equipmentIds[0]).assertEqual('eq_bodyweight')
+        expect(prefill.equipmentIds[1]).assertEqual('eq_cable')
+        expect(prefill.restrictedMuscleIds.length).assertEqual(2)
+        expect(prefill.restrictedMuscleIds[0]).assertEqual('muscle_chest')
+        expect(prefill.restrictedMuscleIds[1]).assertEqual('muscle_core')
+
+        prefill.equipmentIds[0] = 'eq_mutated'
+        prefill.restrictedMuscleIds[0] = 'muscle_mutated'
+        expect(reloadedGoal.equipmentIds[0]).assertEqual('eq_bodyweight')
+        expect(reloadedGoal.restrictedMuscleIds[0]).assertEqual('muscle_chest')
+      }
+    })
   })
 }

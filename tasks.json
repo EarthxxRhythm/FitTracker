@@ -15,13 +15,13 @@
     "id": 3,
     "category": "目标设置",
     "description": "用户再次进入目标设置页时，系统应自动回填已保存的目标内容。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 4,
     "category": "首页",
     "description": "首页顶部应显示“今日训练入口”，并展示当前已保存目标的摘要信息。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 5,
@@ -45,7 +45,7 @@
     "id": 8,
     "category": "训练预览",
     "description": "用户在训练预览页点击开始训练后，应进入训练执行页。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 9,

@@ -8,6 +8,7 @@ import trainingPlanServiceTest from './TrainingPlanService.test'
 import startupRoutingTest from './StartupRouting.test'
 import contentRepositoryTest from './ContentRepository.test'
 import goalSetupServiceTest from './GoalSetupService.test'
+import homePlanServiceTest from './HomePlanService.test'
 import workoutPreviewServiceTest from './WorkoutPreviewService.test'
 import workoutSummaryServiceTest from './WorkoutSummaryService.test'
 
@@ -22,6 +23,7 @@ export default function testsuite(): void {
   startupRoutingTest()
   contentRepositoryTest()
   goalSetupServiceTest()
+  homePlanServiceTest()
   workoutPreviewServiceTest()
   workoutSummaryServiceTest()
 }

@@ -1,6 +1,7 @@
 /**
  * HomePlanService - home screen plan summary helpers.
  *
+ * Feature #4: home goal summary.
  * Feature #8: today training entry.
  */
 import {
@@ -18,6 +19,9 @@ export interface HomePlanSummary {
   planName: string
   weeklyDays: number
   sessionMinutes: number
+  goalSummary: string
+  equipmentSummary: string
+  restrictionSummary: string
   todayDayId: string
   todayTitle: string
   todayExerciseCount: number
@@ -35,8 +39,11 @@ class HomePlanService {
         planName: plan.name,
         weeklyDays: goal.weeklyDays,
         sessionMinutes: goal.sessionMinutes,
+        goalSummary: this.createGoalSummary(goal),
+        equipmentSummary: this.createEquipmentSummary(goal.equipmentIds),
+        restrictionSummary: this.createRestrictionSummary(goal.restrictedMuscleIds),
         todayDayId: '',
-        todayTitle: 'Rest Day',
+        todayTitle: '休息日',
         todayExerciseCount: 0,
         todayExerciseNames: emptyNames
       }
@@ -50,6 +57,9 @@ class HomePlanService {
       planName: plan.name,
       weeklyDays: goal.weeklyDays,
       sessionMinutes: goal.sessionMinutes,
+      goalSummary: this.createGoalSummary(goal),
+      equipmentSummary: this.createEquipmentSummary(goal.equipmentIds),
+      restrictionSummary: this.createRestrictionSummary(goal.restrictedMuscleIds),
       todayDayId: today.dayId,
       todayTitle: today.title,
       todayExerciseCount: today.exercises.length,
@@ -83,6 +93,69 @@ class HomePlanService {
       }
     }
     return names
+  }
+
+  private createGoalSummary(goal: UserGoal): string {
+    return '目标 ' + this.getGoalTypeLabel(goal.goalType) + ' · ' + this.getLevelLabel(goal.level) +
+      ' · 每周 ' + goal.weeklyDays.toString() + ' 天 · 单次 ' + goal.sessionMinutes.toString() + ' 分钟'
+  }
+
+  private createEquipmentSummary(equipmentIds: string[]): string {
+    if (equipmentIds.length === 0) {
+      return '器械 徒手'
+    }
+    return '器械 ' + this.createNameList(equipmentIds, true)
+  }
+
+  private createRestrictionSummary(restrictedMuscleIds: string[]): string {
+    if (restrictedMuscleIds.length === 0) {
+      return '避开 无'
+    }
+    return '避开 ' + this.createNameList(restrictedMuscleIds, false)
+  }
+
+  private createNameList(ids: string[], isEquipment: boolean): string {
+    let text: string = ''
+    for (let index = 0; index < ids.length; index++) {
+      if (index > 0) {
+        text += '、'
+      }
+      if (isEquipment) {
+        text += ContentRepository.getEquipmentName(ids[index])
+      } else {
+        text += ContentRepository.getMuscleName(ids[index])
+      }
+    }
+    return text
+  }
+
+  private getGoalTypeLabel(goalType: string): string {
+    if (goalType === 'hypertrophy') {
+      return '增肌'
+    }
+    if (goalType === 'strength') {
+      return '力量'
+    }
+    if (goalType === 'fat_loss') {
+      return '减脂'
+    }
+    if (goalType === 'posture') {
+      return '体态'
+    }
+    return goalType
+  }
+
+  private getLevelLabel(level: string): string {
+    if (level === 'beginner') {
+      return '初学'
+    }
+    if (level === 'intermediate') {
+      return '进阶'
+    }
+    if (level === 'advanced') {
+      return '高级'
+    }
+    return level
   }
 }
 

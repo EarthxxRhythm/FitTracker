@@ -1,5 +1,6 @@
 /**
  * HomePage -- today training entry.
+ * Function #4: home goal summary.
  * Function #8: today training entry.
  */
 import { router } from '@kit.ArkUI'
@@ -19,6 +20,9 @@ export struct HomePage {
   @State planName: string = ''
   @State weeklyDays: number = 0
   @State sessionMinutes: number = 0
+  @State goalSummary: string = ''
+  @State equipmentSummary: string = ''
+  @State restrictionSummary: string = ''
   @State todayDayId: string = ''
   @State todayTitle: string = ''
   @State todayExerciseCount: number = 0
@@ -51,6 +55,9 @@ export struct HomePage {
     this.planName = summary.planName
     this.weeklyDays = summary.weeklyDays
     this.sessionMinutes = summary.sessionMinutes
+    this.goalSummary = summary.goalSummary
+    this.equipmentSummary = summary.equipmentSummary
+    this.restrictionSummary = summary.restrictionSummary
     this.todayDayId = summary.todayDayId
     this.todayTitle = summary.todayTitle
     this.todayExerciseCount = summary.todayExerciseCount
@@ -111,7 +118,7 @@ export struct HomePage {
     Scroll() {
       Column({ space: SpacingTokens.LG }) {
         Column({ space: SpacingTokens.SM }) {
-          Text('今日训练')
+          Text('今日训练入口')
             .fontSize(FontTokens.DISPLAY_SIZE)
             .fontWeight(FontTokens.DISPLAY_WEIGHT)
             .fontColor(ColorTokens.TEXT_PRIMARY)
@@ -158,6 +165,10 @@ export struct HomePage {
               .fontWeight(FontTokens.TITLE_WEIGHT)
               .fontColor(ColorTokens.TEXT_PRIMARY)
 
+            Text(this.goalSummary)
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+
             Row() {
               Text('每周 ' + this.weeklyDays.toString() + ' 天')
                 .fontSize(FontTokens.CAPTION_SIZE)
@@ -185,6 +196,18 @@ export struct HomePage {
                 .margin({ left: SpacingTokens.SM })
             }
             .width('100%')
+
+            Column({ space: SpacingTokens.XS }) {
+              Text(this.equipmentSummary)
+                .fontSize(FontTokens.CAPTION_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
+
+              Text(this.restrictionSummary)
+                .fontSize(FontTokens.CAPTION_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
 
             Column({ space: SpacingTokens.SM }) {
               Text(this.todayTitle)
