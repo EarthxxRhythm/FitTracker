@@ -6,6 +6,27 @@
 import { UserGoal, createUserGoal } from '../models/TrainingModels'
 
 class GoalSetupService {
+  createCurrentGoalFromSelection(
+    goalType: string,
+    level: string,
+    weeklyDays: number,
+    sessionMinutes: number,
+    equipmentIds: string[],
+    restrictedMuscleIds: string[],
+    now: number
+  ): UserGoal {
+    return this.createGoalFromSelection(
+      'goal_current',
+      goalType,
+      level,
+      weeklyDays,
+      sessionMinutes,
+      equipmentIds,
+      restrictedMuscleIds,
+      now
+    )
+  }
+
   createGoalFromSelection(
     goalId: string,
     goalType: string,

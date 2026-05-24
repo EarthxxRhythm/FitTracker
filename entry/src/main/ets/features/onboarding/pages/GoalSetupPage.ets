@@ -44,6 +44,15 @@ const EQUIPMENT_OPTIONS: GoalOption[] = [
   createGoalOption('eq_cable', '绳索')
 ]
 
+const RESTRICTED_MUSCLE_OPTIONS: GoalOption[] = [
+  createGoalOption('muscle_chest', '胸部'),
+  createGoalOption('muscle_back', '背部'),
+  createGoalOption('muscle_legs', '腿部'),
+  createGoalOption('muscle_shoulders', '肩部'),
+  createGoalOption('muscle_arms', '手臂'),
+  createGoalOption('muscle_core', '核心')
+]
+
 @Entry
 @Component
 export struct GoalSetupPage {
@@ -55,6 +64,7 @@ export struct GoalSetupPage {
   @State weeklyDays: number = 3
   @State sessionMinutes: number = 45
   @State selectedEquipmentIds: string[] = ['eq_bodyweight', 'eq_dumbbell']
+  @State selectedRestrictedMuscleIds: string[] = []
 
   async aboutToAppear(): Promise<void> {
     try {
@@ -67,6 +77,7 @@ export struct GoalSetupPage {
         this.weeklyDays = goal.weeklyDays
         this.sessionMinutes = goal.sessionMinutes
         this.selectedEquipmentIds = this.copyStringArray(goal.equipmentIds)
+        this.selectedRestrictedMuscleIds = this.copyStringArray(goal.restrictedMuscleIds)
       }
     } catch (e) {
       this.hasExistingGoal = false
@@ -79,7 +90,7 @@ export struct GoalSetupPage {
     }
     this.saving = true
     const equipmentIds: string[] = this.getSelectedEquipmentIds()
-    const restrictedMuscleIds: string[] = []
+    const restrictedMuscleIds: string[] = this.copyStringArray(this.selectedRestrictedMuscleIds)
     const now: number = Date.now()
     let goal: UserGoal
     if (this.existingGoal !== undefined) {
@@ -94,8 +105,7 @@ export struct GoalSetupPage {
         now
       )
     } else {
-      goal = GoalSetupService.createGoalFromSelection(
-        'goal_current',
+      goal = GoalSetupService.createCurrentGoalFromSelection(
         this.selectedGoalType,
         this.selectedLevel,
         this.weeklyDays,
@@ -127,6 +137,21 @@ export struct GoalSetupPage {
       values.push(equipmentId)
     }
     this.selectedEquipmentIds = values
+  }
+
+  toggleRestrictedMuscle(muscleId: string): void {
+    const values: string[] = []
+    const exists: boolean = this.containsValue(this.selectedRestrictedMuscleIds, muscleId)
+    for (let index = 0; index < this.selectedRestrictedMuscleIds.length; index++) {
+      const value: string = this.selectedRestrictedMuscleIds[index]
+      if (value !== muscleId) {
+        values.push(value)
+      }
+    }
+    if (!exists) {
+      values.push(muscleId)
+    }
+    this.selectedRestrictedMuscleIds = values
   }
 
   getSelectedEquipmentIds(): string[] {
@@ -319,6 +344,38 @@ export struct GoalSetupPage {
                 .margin({ right: SpacingTokens.SM, bottom: SpacingTokens.SM })
                 .onClick(() => {
                   this.toggleEquipment(option.id)
+                })
+            }, (option: GoalOption) => option.id)
+          }
+          .width('100%')
+        }
+        .width('100%')
+        .padding(SpacingTokens.MD)
+        .borderRadius(RadiusTokens.SM)
+        .backgroundColor(ColorTokens.BG_SECONDARY)
+
+        Column({ space: SpacingTokens.MD }) {
+          Text('限制肌群')
+            .fontSize(FontTokens.TITLE_SIZE)
+            .fontWeight(FontTokens.TITLE_WEIGHT)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
+
+          Text('选中后计划会尽量避开相关肌群，适合疼痛、恢复期或临时限制。')
+            .fontSize(FontTokens.CAPTION_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+
+          Flex({ wrap: FlexWrap.Wrap }) {
+            ForEach(RESTRICTED_MUSCLE_OPTIONS, (option: GoalOption) => {
+              Button(option.label)
+                .width('31%')
+                .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
+                .fontSize(FontTokens.BODY_SIZE)
+                .fontColor(this.selectedTextColor(this.containsValue(this.selectedRestrictedMuscleIds, option.id)))
+                .backgroundColor(this.selectedBg(this.containsValue(this.selectedRestrictedMuscleIds, option.id)))
+                .borderRadius(RadiusTokens.SM)
+                .margin({ right: SpacingTokens.SM, bottom: SpacingTokens.SM })
+                .onClick(() => {
+                  this.toggleRestrictedMuscle(option.id)
                 })
             }, (option: GoalOption) => option.id)
           }

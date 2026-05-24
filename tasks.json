@@ -9,7 +9,7 @@
     "id": 2,
     "category": "目标设置",
     "description": "用户在目标设置页应能填写并保存训练目标类型、每周训练天数、器械条件和限制肌群。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 3,
@@ -39,7 +39,7 @@
     "id": 7,
     "category": "训练预览",
     "description": "用户进入训练预览页时，应看到本次计划的目标、训练日安排和动作清单。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 8,
@@ -69,7 +69,7 @@
     "id": 12,
     "category": "训练复盘",
     "description": "训练复盘页应汇总展示总时长、总组数、总训练量和完成情况。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 13,

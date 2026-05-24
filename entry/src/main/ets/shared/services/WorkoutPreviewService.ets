@@ -7,7 +7,8 @@ import {
   ExerciseContent,
   PlanDay,
   PlannedExercise,
-  TrainingPlan
+  TrainingPlan,
+  UserGoal
 } from '../models/TrainingModels'
 import ContentRepository from './ContentRepository'
 
@@ -25,22 +26,36 @@ export interface WorkoutPreviewExercise {
 export interface WorkoutPreviewSummary {
   hasWorkout: boolean
   planId: string
+  planName: string
   dayId: string
   title: string
+  goalSummary: string
+  scheduleSummary: string
   exerciseCount: number
   exercises: WorkoutPreviewExercise[]
 }
 
 class WorkoutPreviewService {
   createPreview(plan: TrainingPlan, daySeed: number): WorkoutPreviewSummary {
+    return this.createPreviewWithGoal(undefined, plan, daySeed)
+  }
+
+  createPreviewForGoal(goal: UserGoal, plan: TrainingPlan, daySeed: number): WorkoutPreviewSummary {
+    return this.createPreviewWithGoal(goal, plan, daySeed)
+  }
+
+  private createPreviewWithGoal(goal: UserGoal | undefined, plan: TrainingPlan, daySeed: number): WorkoutPreviewSummary {
     const day: PlanDay | undefined = this.pickDay(plan, daySeed)
     if (day === undefined) {
       const emptyExercises: WorkoutPreviewExercise[] = []
       const emptySummary: WorkoutPreviewSummary = {
         hasWorkout: false,
         planId: plan.planId,
+        planName: plan.name,
         dayId: '',
         title: 'Rest Day',
+        goalSummary: this.createGoalSummary(goal),
+        scheduleSummary: '今天为休息日',
         exerciseCount: 0,
         exercises: emptyExercises
       }
@@ -55,8 +70,11 @@ class WorkoutPreviewService {
     const summary: WorkoutPreviewSummary = {
       hasWorkout: exercises.length > 0,
       planId: plan.planId,
+      planName: plan.name,
       dayId: day.dayId,
       title: day.title,
+      goalSummary: this.createGoalSummary(goal),
+      scheduleSummary: this.createScheduleSummary(day, exercises.length),
       exerciseCount: exercises.length,
       exercises: exercises
     }
@@ -74,6 +92,47 @@ class WorkoutPreviewService {
     }
     const index: number = (normalizedSeed - 1) % plan.days.length
     return plan.days[index]
+  }
+
+  private createGoalSummary(goal: UserGoal | undefined): string {
+    if (goal === undefined) {
+      return '训练目标待确认'
+    }
+    return '目标 ' + this.getGoalTypeLabel(goal.goalType) + ' · ' + this.getLevelLabel(goal.level) +
+      ' · 每周 ' + goal.weeklyDays.toString() + ' 天 · 单次 ' + goal.sessionMinutes.toString() + ' 分钟'
+  }
+
+  private createScheduleSummary(day: PlanDay, exerciseCount: number): string {
+    return '训练日 ' + day.title + ' · ' + day.dayId + ' · ' + exerciseCount.toString() + ' 个动作'
+  }
+
+  private getGoalTypeLabel(goalType: string): string {
+    if (goalType === 'hypertrophy') {
+      return '增肌'
+    }
+    if (goalType === 'strength') {
+      return '力量'
+    }
+    if (goalType === 'fat_loss') {
+      return '减脂'
+    }
+    if (goalType === 'posture') {
+      return '体态'
+    }
+    return goalType
+  }
+
+  private getLevelLabel(level: string): string {
+    if (level === 'beginner') {
+      return '初学'
+    }
+    if (level === 'intermediate') {
+      return '进阶'
+    }
+    if (level === 'advanced') {
+      return '高级'
+    }
+    return level
   }
 
   private createPreviewExercise(planned: PlannedExercise): WorkoutPreviewExercise {
