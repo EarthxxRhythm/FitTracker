@@ -32,9 +32,10 @@ class PlanEngineImpl {
   generatePlan(goal: UserGoal): TrainingPlan {
     const rule: PlanRule = this.findRule(goal.goalType)
     const days: PlanDay[] = []
+    const weeklyDays: number = this.normalizeWeeklyDays(goal.weeklyDays)
     const availableFocusMuscleIds: string[] = this.getAvailableFocusMuscleIds(goal)
 
-    for (let dayIndex = 0; dayIndex < goal.weeklyDays; dayIndex++) {
+    for (let dayIndex = 0; dayIndex < weeklyDays; dayIndex++) {
       const focusMuscleId: string = this.pickFocusMuscleId(availableFocusMuscleIds, dayIndex)
       const dayNumber: number = dayIndex + 1
       const dayFocusMuscleIds: string[] = [focusMuscleId]
@@ -57,6 +58,16 @@ class PlanEngineImpl {
       GENERATED_BY_RULE_V1,
       ACTIVE_STATUS
     )
+  }
+
+  private normalizeWeeklyDays(weeklyDays: number): number {
+    if (weeklyDays < 0) {
+      return 0
+    }
+    if (weeklyDays > 7) {
+      return 7
+    }
+    return weeklyDays
   }
 
   private findRule(goalType: string): PlanRule {

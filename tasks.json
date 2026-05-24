@@ -117,7 +117,7 @@
     "id": 20,
     "category": "计划边界",
     "description": "当用户每周训练天数小于 0 或大于 7 时，系统应将生成计划的天数限制在 0 到 7 之间。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 21,
