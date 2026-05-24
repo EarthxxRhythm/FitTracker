@@ -278,6 +278,16 @@ export struct WorkoutPreviewPage {
                   }
                   .width('100%')
                 }
+
+                Button('查看动作详情')
+                  .height(TouchTokens.BUTTON_HEIGHT_SMALL)
+                  .fontSize(FontTokens.SMALL_SIZE)
+                  .fontColor(ColorTokens.TEXT_PRIMARY)
+                  .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+                  .borderRadius(RadiusTokens.FULL)
+                  .onClick(() => {
+                    this.openAlternative(exercise.exerciseId)
+                  })
               }
               .width('100%')
               .padding(SpacingTokens.MD)

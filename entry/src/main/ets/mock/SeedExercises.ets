@@ -9,10 +9,10 @@ const EMPTY_ALIASES: string[] = []
 const EMPTY_SECONDARY_MUSCLES: string[] = []
 const EMPTY_VIDEO_URL: string = ''
 const EMPTY_COVER_URL: string = ''
-const BASIC_STEPS: string[] = ['Set up with control', 'Move through a steady range', 'Return with control']
-const BASIC_CUES: string[] = ['Keep posture stable', 'Breathe through each rep']
-const BASIC_MISTAKES: string[] = ['Rushing the movement']
-const BASIC_SAFETY_NOTES: string[] = ['Stop if sharp pain appears']
+const BASIC_STEPS: string[] = ['调整起始姿势并保持身体稳定', '用可控速度完成主要动作', '缓慢回到起始位置并准备下一次']
+const BASIC_CUES: string[] = ['保持躯干稳定', '动作过程中持续呼吸']
+const BASIC_MISTAKES: string[] = ['为了追求速度牺牲动作幅度']
+const BASIC_SAFETY_NOTES: string[] = ['出现尖锐疼痛时立即停止']
 const HYPERTROPHY_STRENGTH_TAGS: string[] = ['hypertrophy', 'strength']
 const HYPERTROPHY_TAGS: string[] = ['hypertrophy']
 const STABILITY_TAGS: string[] = ['stability', 'general']
@@ -20,7 +20,7 @@ const STABILITY_TAGS: string[] = ['stability', 'general']
 export const SEED_EXERCISES: ExerciseContent[] = [
   createExerciseContent(
     'ex_barbell_bench_press',
-    'Barbell Bench Press',
+    '杠铃卧推',
     'Barbell Bench Press',
     ['bench press'],
     ['muscle_chest'],
@@ -39,7 +39,7 @@ export const SEED_EXERCISES: ExerciseContent[] = [
   ),
   createExerciseContent(
     'ex_dumbbell_bench_press',
-    'Dumbbell Bench Press',
+    '哑铃卧推',
     'Dumbbell Bench Press',
     ['dumbbell press'],
     ['muscle_chest'],
@@ -58,7 +58,7 @@ export const SEED_EXERCISES: ExerciseContent[] = [
   ),
   createExerciseContent(
     'ex_push_up',
-    'Push Up',
+    '俯卧撑',
     'Push Up',
     ['pushup'],
     ['muscle_chest'],
@@ -68,16 +68,16 @@ export const SEED_EXERCISES: ExerciseContent[] = [
     HYPERTROPHY_TAGS,
     EMPTY_VIDEO_URL,
     EMPTY_COVER_URL,
-    BASIC_STEPS,
-    BASIC_CUES,
-    BASIC_MISTAKES,
-    BASIC_SAFETY_NOTES,
+    ['双手撑地略宽于肩，脚尖着地，身体从头到脚保持一条直线', '弯曲手肘让胸部接近地面，肩胛保持稳定', '推地回到起始位置，顶端不要塌腰'],
+    ['收紧腹部和臀部', '手肘与身体保持自然夹角', '下放和推起都保持可控'],
+    ['塌腰或抬臀过高', '只做半程动作', '耸肩代偿'],
+    ['手腕不适时可使用俯卧撑支架', '肩前侧疼痛时减少幅度或停止'],
     ['ex_dumbbell_bench_press'],
     1
   ),
   createExerciseContent(
     'ex_pull_up',
-    'Pull Up',
+    '引体向上',
     'Pull Up',
     EMPTY_ALIASES,
     ['muscle_back'],
@@ -96,7 +96,7 @@ export const SEED_EXERCISES: ExerciseContent[] = [
   ),
   createExerciseContent(
     'ex_dumbbell_row',
-    'Dumbbell Row',
+    '单臂哑铃划船',
     'Dumbbell Row',
     ['row'],
     ['muscle_back'],
@@ -115,7 +115,7 @@ export const SEED_EXERCISES: ExerciseContent[] = [
   ),
   createExerciseContent(
     'ex_lat_pulldown',
-    'Lat Pulldown',
+    '高位下拉',
     'Lat Pulldown',
     EMPTY_ALIASES,
     ['muscle_back'],
@@ -134,7 +134,7 @@ export const SEED_EXERCISES: ExerciseContent[] = [
   ),
   createExerciseContent(
     'ex_barbell_squat',
-    'Barbell Squat',
+    '杠铃深蹲',
     'Barbell Squat',
     ['squat'],
     ['muscle_legs'],
@@ -153,7 +153,7 @@ export const SEED_EXERCISES: ExerciseContent[] = [
   ),
   createExerciseContent(
     'ex_goblet_squat',
-    'Goblet Squat',
+    '高脚杯深蹲',
     'Goblet Squat',
     EMPTY_ALIASES,
     ['muscle_legs'],
@@ -172,7 +172,7 @@ export const SEED_EXERCISES: ExerciseContent[] = [
   ),
   createExerciseContent(
     'ex_machine_leg_press',
-    'Machine Leg Press',
+    '腿举',
     'Machine Leg Press',
     ['leg press'],
     ['muscle_legs'],
@@ -191,7 +191,7 @@ export const SEED_EXERCISES: ExerciseContent[] = [
   ),
   createExerciseContent(
     'ex_dumbbell_shoulder_press',
-    'Dumbbell Shoulder Press',
+    '哑铃肩推',
     'Dumbbell Shoulder Press',
     ['shoulder press'],
     ['muscle_shoulders'],
@@ -210,7 +210,7 @@ export const SEED_EXERCISES: ExerciseContent[] = [
   ),
   createExerciseContent(
     'ex_band_lateral_raise',
-    'Band Lateral Raise',
+    '弹力带侧平举',
     'Band Lateral Raise',
     ['lateral raise'],
     ['muscle_shoulders'],
@@ -229,7 +229,7 @@ export const SEED_EXERCISES: ExerciseContent[] = [
   ),
   createExerciseContent(
     'ex_cable_triceps_pressdown',
-    'Cable Triceps Pressdown',
+    '绳索下压',
     'Cable Triceps Pressdown',
     ['pressdown'],
     ['muscle_arms'],
@@ -248,7 +248,7 @@ export const SEED_EXERCISES: ExerciseContent[] = [
   ),
   createExerciseContent(
     'ex_dumbbell_curl',
-    'Dumbbell Curl',
+    '哑铃弯举',
     'Dumbbell Curl',
     ['curl'],
     ['muscle_arms'],
@@ -267,7 +267,7 @@ export const SEED_EXERCISES: ExerciseContent[] = [
   ),
   createExerciseContent(
     'ex_plank',
-    'Plank',
+    '平板支撑',
     'Plank',
     EMPTY_ALIASES,
     ['muscle_core'],
@@ -286,7 +286,7 @@ export const SEED_EXERCISES: ExerciseContent[] = [
   ),
   createExerciseContent(
     'ex_dead_bug',
-    'Dead Bug',
+    '死虫式',
     'Dead Bug',
     EMPTY_ALIASES,
     ['muscle_core'],
