@@ -7,6 +7,7 @@
  * 本文档测试 1RM 公式的数学正确性（Epley 公式）。
  */
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium'
+import { ExerciseRecord, SavedSet } from '../../../main/ets/common/services/WorkoutSessionService'
 
 // ============================================================
 // Epley formula pure-function test (extracted from WorkoutSessionService)
@@ -83,7 +84,7 @@ export default function workoutSessionLogicTest(): void {
     // ============================================================
     describe('Interface Conformance', () => {
       it('SavedSet should accept weight and reps', 0, () => {
-        const set: { weight: number; reps: number } = { weight: 80, reps: 10 }
+        const set: SavedSet = { weight: 80, reps: 10 }
         expect(set.weight).assertEqual(80)
         expect(set.reps).assertEqual(10)
       })
@@ -92,7 +93,7 @@ export default function workoutSessionLogicTest(): void {
         const weight = 80
         const reps = 10
         const expected1RM = calcEpley1RM(weight, reps)
-        const record = {
+        const record: ExerciseRecord = {
           exerciseName: '杠铃平板卧推',
           best1RM: expected1RM,
           bestWeight: weight,

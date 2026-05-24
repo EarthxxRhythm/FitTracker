@@ -31,13 +31,13 @@ export default function sessionManagerTest(): void {
       it('should generate different tokens for different users', 0, () => {
         const token1 = sessionManager.generateToken('13811111111')
         const token2 = sessionManager.generateToken('13822222222')
-        expect(token1).assertNotEqual(token2)
+        expect(token1 !== token2).assertTrue()
       })
 
       it('should generate fresh token each call for same user', 0, () => {
         const token1 = sessionManager.generateToken('13812345678')
         const token2 = sessionManager.generateToken('13812345678')
-        expect(token1).assertNotEqual(token2)
+        expect(token1 !== token2).assertTrue()
       })
     })
 
