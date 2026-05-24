@@ -30,6 +30,8 @@ export interface ActiveWorkoutState {
   title: string
   totalTargetSets: number
   completedSets: number
+  currentExerciseName: string
+  currentExerciseSetProgress: string
   exercises: ActiveWorkoutExercise[]
 }
 
@@ -51,9 +53,30 @@ class ActiveWorkoutService {
       title: preview.title,
       totalTargetSets: totalTargetSets,
       completedSets: 0,
+      currentExerciseName: this.findCurrentExerciseName(exercises),
+      currentExerciseSetProgress: this.createCurrentExerciseSetProgress(exercises),
       exercises: exercises
     }
     return state
+  }
+
+  createStateWithProgress(
+    state: ActiveWorkoutState,
+    exercises: ActiveWorkoutExercise[]
+  ): ActiveWorkoutState {
+    const nextExercises: ActiveWorkoutExercise[] = this.copyActiveExercises(exercises)
+    const nextState: ActiveWorkoutState = {
+      hasWorkout: state.hasWorkout,
+      planId: state.planId,
+      dayId: state.dayId,
+      title: state.title,
+      totalTargetSets: state.totalTargetSets,
+      completedSets: this.countCompletedSets(nextExercises),
+      currentExerciseName: this.findCurrentExerciseName(nextExercises),
+      currentExerciseSetProgress: this.createCurrentExerciseSetProgress(nextExercises),
+      exercises: nextExercises
+    }
+    return nextState
   }
 
   createCompletedSession(
@@ -112,6 +135,45 @@ class ActiveWorkoutService {
       values.push(this.copyActiveExerciseWithCompletedSets(exercise, exercise.targetSets))
     }
     return values
+  }
+
+  private copyActiveExercises(source: ActiveWorkoutExercise[]): ActiveWorkoutExercise[] {
+    const values: ActiveWorkoutExercise[] = []
+    for (let index = 0; index < source.length; index++) {
+      const exercise: ActiveWorkoutExercise = source[index]
+      values.push(this.copyActiveExerciseWithCompletedSets(exercise, exercise.completedSets))
+    }
+    return values
+  }
+
+  private findCurrentExerciseName(exercises: ActiveWorkoutExercise[]): string {
+    const exercise: ActiveWorkoutExercise | undefined = this.findCurrentExercise(exercises)
+    if (exercise === undefined) {
+      return ''
+    }
+    return exercise.name
+  }
+
+  private createCurrentExerciseSetProgress(exercises: ActiveWorkoutExercise[]): string {
+    const exercise: ActiveWorkoutExercise | undefined = this.findCurrentExercise(exercises)
+    if (exercise === undefined) {
+      return '0/0'
+    }
+    return exercise.completedSets.toString() + '/' + exercise.targetSets.toString()
+  }
+
+  private findCurrentExercise(exercises: ActiveWorkoutExercise[]): ActiveWorkoutExercise | undefined {
+    for (let index = 0; index < exercises.length; index++) {
+      const exercise: ActiveWorkoutExercise = exercises[index]
+      if (exercise.completedSets < exercise.targetSets) {
+        return exercise
+      }
+    }
+
+    if (exercises.length === 0) {
+      return undefined
+    }
+    return exercises[exercises.length - 1]
   }
 
   private createActiveExercise(previewExercise: WorkoutPreviewExercise): ActiveWorkoutExercise {

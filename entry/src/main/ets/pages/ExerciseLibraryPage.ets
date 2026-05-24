@@ -1,57 +1,46 @@
 /**
- * ExerciseLibraryPage —— 动作库列表页
+ * ExerciseLibraryPage -- local action library list.
  *
  * 功能 #13: 动作库列表（搜索框、肌群筛选栏、卡片网格、分页加载）
  * 功能 #14: 动作搜索（按名称/别名模糊匹配）
  * 功能 #15: 肌群筛选（胸/背/腿/肩/臂/腹/全部）
- * 功能 #16: 器械筛选（杠铃/哑铃/绳索/固定器械/自重）
+ * 功能 #16: 本地维护动作数据展示，不依赖 MuscleWiki 官方 API
  */
 import { router } from '@kit.ArkUI'
 import { AppCard } from '../components/AppCard'
-import ExerciseService, { Exercise } from '../common/services/ExerciseService'
-import { MuscleColorMap, TouchTokens, FontTokens } from '../common/styles/DesignTokens'
-import { SearchBar } from '../components/SearchBar'
 import { Chip } from '../components/Chip'
 import { EmptyState } from '../components/EmptyState'
-import { ColorTokens, SpacingTokens, RadiusTokens } from '../common/styles/DesignTokens'
+import { ColorTokens, FontTokens, MuscleColorMap, RadiusTokens, SpacingTokens, TouchTokens } from '../common/styles/DesignTokens'
+import { EquipmentItem, MuscleGroup } from '../shared/models/TrainingModels'
+import ContentRepository, { ExerciseLibraryItem } from '../shared/services/ContentRepository'
 
-const MUSCLE_GROUPS = ['全部', '胸', '背', '腿', '肩', '臂', '腹']
-const EQUIPMENT_TYPES = ['杠铃', '哑铃', '绳索', '固定器械', '自重']
-// MuscleColorMap provides color mapping with default values
-
+const ALL_FILTER_LABEL: string = '全部'
+const PAGE_SIZE: number = 20
 
 @Entry
 @Component
 export struct ExerciseLibraryPage {
   @State searchQuery: string = ''
-  @State activeMuscle: string = '全部'
-  @State activeEquipment: string = ''
-  @State exercises: Exercise[] = []
+  @State activeMuscleId: string = ''
+  @State activeEquipmentId: string = ''
+  @State muscles: MuscleGroup[] = []
+  @State equipmentItems: EquipmentItem[] = []
+  @State exercises: ExerciseLibraryItem[] = []
   @State page: number = 1
   @State hasMore: boolean = true
   @State loading: boolean = false
 
-  async aboutToAppear(): Promise<void> {
+  aboutToAppear(): void {
+    this.muscles = ContentRepository.getMuscles()
+    this.equipmentItems = ContentRepository.getEquipment()
     this.filterAndSearch()
   }
 
   filterAndSearch(): void {
     this.page = 1
-    let result = ExerciseService.search(this.searchQuery)
-    if (this.activeMuscle !== '全部') {
-      result = ExerciseService.filterByMuscle(this.activeMuscle)
-      if (this.searchQuery.trim()) {
-        result = result.filter(e =>
-          e.name.toLowerCase().includes(this.searchQuery.trim().toLowerCase()) ||
-          e.aliases.some(a => a.toLowerCase().includes(this.searchQuery.trim().toLowerCase()))
-        )
-      }
-    }
-    if (this.activeEquipment) {
-      result = result.filter(e => e.equipment === this.activeEquipment)
-    }
-    this.exercises = ExerciseService.getPage(result, 1)
-    this.hasMore = ExerciseService.hasMore(result, 1)
+    const result: ExerciseLibraryItem[] = this.getFilteredItems()
+    this.exercises = this.getPage(result, 1)
+    this.hasMore = this.hasMorePage(result, 1)
   }
 
   loadMore(): void {
@@ -59,118 +48,255 @@ export struct ExerciseLibraryPage {
       return
     }
     this.loading = true
-    const nextPage = this.page + 1
-    let result = ExerciseService.search(this.searchQuery)
-    if (this.activeMuscle !== '全部') {
-      result = ExerciseService.filterByMuscle(this.activeMuscle)
-      if (this.searchQuery.trim()) {
-        result = result.filter(e =>
-          e.name.toLowerCase().includes(this.searchQuery.trim().toLowerCase()) ||
-          e.aliases.some(a => a.toLowerCase().includes(this.searchQuery.trim().toLowerCase()))
-        )
-      }
-    }
-    if (this.activeEquipment) {
-      result = result.filter(e => e.equipment === this.activeEquipment)
-    }
-    const more = ExerciseService.getPage(result, nextPage)
+    const nextPage: number = this.page + 1
+    const result: ExerciseLibraryItem[] = this.getFilteredItems()
+    const more: ExerciseLibraryItem[] = this.getPage(result, nextPage)
     if (more.length > 0) {
       this.exercises = this.exercises.concat(more)
       this.page = nextPage
-      this.hasMore = ExerciseService.hasMore(result, nextPage)
+      this.hasMore = this.hasMorePage(result, nextPage)
     } else {
       this.hasMore = false
     }
     this.loading = false
   }
 
+  getFilteredItems(): ExerciseLibraryItem[] {
+    const allItems: ExerciseLibraryItem[] = ContentRepository.getExerciseLibraryItems()
+    const normalizedQuery: string = this.searchQuery.trim().toLowerCase()
+    const result: ExerciseLibraryItem[] = []
+    for (let index = 0; index < allItems.length; index++) {
+      const item: ExerciseLibraryItem = allItems[index]
+      if (this.matchesItem(item, normalizedQuery)) {
+        result.push(item)
+      }
+    }
+    return result
+  }
+
+  matchesItem(item: ExerciseLibraryItem, normalizedQuery: string): boolean {
+    if (this.activeMuscleId.length > 0 && item.primaryMuscleId !== this.activeMuscleId) {
+      return false
+    }
+    if (this.activeEquipmentId.length > 0 && !this.containsValue(item.equipmentIds, this.activeEquipmentId)) {
+      return false
+    }
+    if (normalizedQuery.length === 0) {
+      return true
+    }
+    if (item.name.toLowerCase().indexOf(normalizedQuery) >= 0) {
+      return true
+    }
+    if (item.nameEn.toLowerCase().indexOf(normalizedQuery) >= 0) {
+      return true
+    }
+    for (let index = 0; index < item.aliases.length; index++) {
+      if (item.aliases[index].toLowerCase().indexOf(normalizedQuery) >= 0) {
+        return true
+      }
+    }
+    return false
+  }
+
+  getPage(items: ExerciseLibraryItem[], page: number): ExerciseLibraryItem[] {
+    const result: ExerciseLibraryItem[] = []
+    const start: number = (page - 1) * PAGE_SIZE
+    const end: number = start + PAGE_SIZE
+    for (let index = start; index < end && index < items.length; index++) {
+      result.push(items[index])
+    }
+    return result
+  }
+
+  hasMorePage(items: ExerciseLibraryItem[], page: number): boolean {
+    return page * PAGE_SIZE < items.length
+  }
+
+  containsValue(values: string[], targetValue: string): boolean {
+    for (let index = 0; index < values.length; index++) {
+      if (values[index] === targetValue) {
+        return true
+      }
+    }
+    return false
+  }
+
+  getMuscleShortName(item: ExerciseLibraryItem): string {
+    if (item.primaryMuscleName === '胸部') {
+      return '胸'
+    }
+    if (item.primaryMuscleName === '背部') {
+      return '背'
+    }
+    if (item.primaryMuscleName === '腿部') {
+      return '腿'
+    }
+    if (item.primaryMuscleName === '肩部') {
+      return '肩'
+    }
+    if (item.primaryMuscleName === '手臂') {
+      return '臂'
+    }
+    if (item.primaryMuscleName === '核心') {
+      return '腹'
+    }
+    return item.primaryMuscleName
+  }
+
+  @Builder
+  buildHeader() {
+    Row() {
+      Row() {
+        Text('←')
+          .fontSize(FontTokens.TITLE_SIZE)
+          .fontColor(ColorTokens.PRIMARY)
+          .padding({ right: SpacingTokens.SM })
+        Text('动作库')
+          .fontSize(FontTokens.HEADLINE_SIZE)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+      }
+      .onClick(() => {
+        router.back()
+      })
+      Blank()
+    }
+    .width('100%')
+    .padding({
+      left: SpacingTokens.MD,
+      right: SpacingTokens.MD,
+      top: SpacingTokens.LG,
+      bottom: SpacingTokens.SM
+    })
+    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+  }
+
+  @Builder
+  buildMuscleFilters() {
+    Row() {
+      Scroll() {
+        Row() {
+          Chip({
+            label: ALL_FILTER_LABEL,
+            color: this.activeMuscleId.length === 0 ? ColorTokens.PRIMARY : ColorTokens.MUSCLE_DEFAULT,
+            chipSize: 'md'
+          })
+          .onClick(() => {
+            this.activeMuscleId = ''
+            this.filterAndSearch()
+          })
+
+          ForEach(this.muscles, (muscle: MuscleGroup) => {
+            Chip({
+              label: muscle.nameZh,
+              color: this.activeMuscleId === muscle.muscleId ? ColorTokens.PRIMARY : MuscleColorMap.getColor(this.getMuscleShortNameFromName(muscle.nameZh)),
+              chipSize: 'md'
+            })
+            .onClick(() => {
+              this.activeMuscleId = muscle.muscleId
+              this.filterAndSearch()
+            })
+          }, (muscle: MuscleGroup) => muscle.muscleId)
+        }
+      }
+      .scrollBar(BarState.Off)
+    }
+    .width('100%')
+    .padding({
+      left: SpacingTokens.MD,
+      right: SpacingTokens.MD,
+      top: SpacingTokens.SM,
+      bottom: SpacingTokens.SM
+    })
+    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+  }
+
+  getMuscleShortNameFromName(name: string): string {
+    if (name === '胸部') {
+      return '胸'
+    }
+    if (name === '背部') {
+      return '背'
+    }
+    if (name === '腿部') {
+      return '腿'
+    }
+    if (name === '肩部') {
+      return '肩'
+    }
+    if (name === '手臂') {
+      return '臂'
+    }
+    if (name === '核心') {
+      return '腹'
+    }
+    return name
+  }
+
+  @Builder
+  buildEquipmentFilters() {
+    Row() {
+      Scroll() {
+        Row() {
+          ForEach(this.equipmentItems, (equipment: EquipmentItem) => {
+            Text(equipment.nameZh)
+              .fontSize(FontTokens.SMALL_SIZE)
+              .fontColor(this.activeEquipmentId === equipment.equipmentId ? ColorTokens.TEXT_ON_PRIMARY : ColorTokens.TEXT_SECONDARY)
+              .padding({
+                left: SpacingTokens.MD,
+                right: SpacingTokens.MD,
+                top: SpacingTokens.XS,
+                bottom: SpacingTokens.XS
+              })
+              .backgroundColor(this.activeEquipmentId === equipment.equipmentId ? ColorTokens.NEUTRAL_400 : ColorTokens.SURFACE_SECONDARY)
+              .borderRadius(RadiusTokens.FULL)
+              .margin({ right: SpacingTokens.SM })
+              .onClick(() => {
+                this.activeEquipmentId = this.activeEquipmentId === equipment.equipmentId ? '' : equipment.equipmentId
+                this.filterAndSearch()
+              })
+          }, (equipment: EquipmentItem) => equipment.equipmentId)
+        }
+      }
+      .scrollBar(BarState.Off)
+    }
+    .width('100%')
+    .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.SM })
+    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+  }
+
   build() {
     Column() {
-      // 顶部导航栏
-      Row() {
-        Row() {
-          Text('←')
-            .fontSize(FontTokens.TITLE_SIZE)
-            .fontColor(ColorTokens.PRIMARY)
-            .padding({ right: SpacingTokens.SM })
-          Text('动作库')
-            .fontSize(FontTokens.HEADLINE_SIZE)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-        }
-        .onClick(() => { router.back() })
-        Blank()
-      }
-      .width('100%')
-      .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.LG, bottom: SpacingTokens.SM })
-      .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+      this.buildHeader()
 
-      // 搜索框
       Row() {
-        // 使用统一的 SearchBar 组件
-        SearchBar({ query: this.searchQuery, placeholder: '搜索动作名称...' })
+        TextInput({ text: this.searchQuery, placeholder: '搜索动作名称...' })
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+          .placeholderColor(ColorTokens.TEXT_DISABLED)
+          .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+          .height('100%')
+          .layoutWeight(1)
+          .onChange((value: string) => {
+            this.searchQuery = value
+            this.filterAndSearch()
+          })
       }
       .width('100%')
+      .height(TouchTokens.INPUT_HEIGHT)
       .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD })
       .backgroundColor(ColorTokens.SURFACE_PRIMARY)
       .border({ width: { bottom: 0.5 }, color: ColorTokens.NEUTRAL_100 })
       .padding({ bottom: SpacingTokens.SM })
 
-      // 肌群筛选栏
-      Row() {
-        Scroll() {
-          Row() {
-            ForEach(MUSCLE_GROUPS, (muscle: string) => {
-              Chip({
-                label: muscle,
-                color: this.activeMuscle === muscle ? ColorTokens.PRIMARY : MuscleColorMap.getColor(muscle),
-                chipSize: 'md'
-              })
-              .onClick(() => {
-                this.activeMuscle = muscle
-                this.filterAndSearch()
-              })
-            })
-          }
-        }
-        .scrollBar(BarState.Off)
-      }
-      .width('100%')
-      .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.SM, bottom: SpacingTokens.SM })
-      .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+      this.buildMuscleFilters()
+      this.buildEquipmentFilters()
 
-      // 器械筛选栏
-          Row() {
-            Scroll() {
-              Row() {
-                ForEach(EQUIPMENT_TYPES, (equip: string) => {
-                  Text(equip)
-                    .fontSize(FontTokens.SMALL_SIZE)
-                    .fontColor(this.activeEquipment === equip ? Color.White : ColorTokens.TEXT_SECONDARY)
-                    .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.XS, bottom: SpacingTokens.XS })
-                    .backgroundColor(this.activeEquipment === equip ? ColorTokens.NEUTRAL_400 : ColorTokens.SURFACE_SECONDARY)
-                    .borderRadius(RadiusTokens.FULL)
-                    .margin({ right: SpacingTokens.SM })
-                    .onClick(() => {
-                      this.activeEquipment = this.activeEquipment === equip ? '' : equip
-                      this.filterAndSearch()
-                    })
-                })
-              }
-            }
-            .scrollBar(BarState.Off)
-          }
-      .width('100%')
-      .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, bottom: SpacingTokens.SM })
-      .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-
-      // 动作列表（两列网格）
       Scroll() {
         Column() {
-            if (this.exercises.length > 0) {
-            // 两列网格
+          if (this.exercises.length > 0) {
             Row() {
-              ForEach(this.exercises, (exercise: Exercise, index: number) => {
+              ForEach(this.exercises, (exercise: ExerciseLibraryItem, index: number) => {
                 if (index % 2 === 0) {
                   Column() {
                     this.exerciseCard(exercise)
@@ -185,11 +311,10 @@ export struct ExerciseLibraryPage {
                   }
                   .layoutWeight(1)
                 }
-              }, (exercise: Exercise) => exercise.id)
+              }, (exercise: ExerciseLibraryItem) => exercise.exerciseId)
             }
             .width('100%')
 
-            // 加载更多指示
             if (this.hasMore) {
               Row() {
                 Text('加载更多...')
@@ -197,11 +322,13 @@ export struct ExerciseLibraryPage {
                   .fontColor(ColorTokens.TEXT_DISABLED)
               }
               .width('100%')
-              .height(48)
+              .height(TouchTokens.MIN_TARGET)
               .justifyContent(FlexAlign.Center)
-              .onClick(() => { this.loadMore() })
+              .onClick(() => {
+                this.loadMore()
+              })
             }
-            } else {
+          } else {
             Column() {
               EmptyState({ icon: '🔍', title: '未找到匹配动作' })
             }
@@ -211,11 +338,18 @@ export struct ExerciseLibraryPage {
           }
         }
         .width('100%')
-        .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.MD, bottom: SpacingTokens.MD })
+        .padding({
+          left: SpacingTokens.MD,
+          right: SpacingTokens.MD,
+          top: SpacingTokens.MD,
+          bottom: SpacingTokens.MD
+        })
       }
       .layoutWeight(1)
       .scrollBar(BarState.Off)
-      .onReachEnd(() => { this.loadMore() })
+      .onReachEnd(() => {
+        this.loadMore()
+      })
     }
     .width('100%')
     .height('100%')
@@ -223,47 +357,62 @@ export struct ExerciseLibraryPage {
   }
 
   @Builder
-  exerciseCard(exercise: Exercise) {
+  exerciseCard(exercise: ExerciseLibraryItem) {
     Stack() {
       AppCard({ variant: 'outlined', cardPadding: 'compact' }) {
         Column() {
-        // 缩略图占位
-        Column() {
-          Text(exercise.name.charAt(0))
-            .fontSize(22)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(Color.White)
-        }
-        .width('100%')
-        .height(72)
-        .borderRadius({ topLeft: RadiusTokens.SM, topRight: RadiusTokens.SM, bottomLeft: 0, bottomRight: 0 })
-        .backgroundColor(MuscleColorMap.getColor(exercise.primaryMuscle))
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
+          Column() {
+            Text(exercise.name.charAt(0))
+              .fontSize(FontTokens.TITLE_SIZE)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+          }
+          .width('100%')
+          .height(TouchTokens.CARD_MEDIA_HEIGHT)
+          .borderRadius({ topLeft: RadiusTokens.SM, topRight: RadiusTokens.SM, bottomLeft: 0, bottomRight: 0 })
+          .backgroundColor(MuscleColorMap.getColor(this.getMuscleShortName(exercise)))
+          .justifyContent(FlexAlign.Center)
+          .alignItems(HorizontalAlign.Center)
 
-        // 动作信息
-        Column() {
-          Text(exercise.name)
-            .fontSize(FontTokens.CAPTION_SIZE)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .width('100%')
+          Column() {
+            Text(exercise.name)
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .width('100%')
 
-          Chip({ label: exercise.primaryMuscle, color: MuscleColorMap.getColor(exercise.primaryMuscle), chipSize: 'sm' })
+            Chip({
+              label: exercise.primaryMuscleName,
+              color: MuscleColorMap.getColor(this.getMuscleShortName(exercise)),
+              chipSize: 'sm'
+            })
             .margin({ top: SpacingTokens.XS })
+
+            Text(exercise.equipmentText + ' · ' + exercise.difficultyText)
+              .fontSize(FontTokens.SMALL_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .width('100%')
+              .margin({ top: SpacingTokens.XS })
+          }
+          .width('100%')
+          .padding({
+            left: SpacingTokens.SM,
+            right: SpacingTokens.SM,
+            top: SpacingTokens.SM,
+            bottom: SpacingTokens.SM
+          })
+          .alignItems(HorizontalAlign.Start)
         }
         .width('100%')
-        .padding({ left: SpacingTokens.SM, right: SpacingTokens.SM, top: SpacingTokens.SM, bottom: SpacingTokens.SM })
-        .alignItems(HorizontalAlign.Start)
       }
-      .width('100%')
     }
-  }
-  .width('100%')
-  .onClick(() => {
-      router.pushUrl({ url: 'pages/ExerciseDetailPage', params: { exerciseId: exercise.id } })
+    .width('100%')
+    .onClick(() => {
+      router.pushUrl({ url: 'features/exercise/pages/ExerciseDetailPage', params: { exerciseId: exercise.exerciseId } })
     })
   }
 }

@@ -4,7 +4,48 @@
  * Feature #14: JSONL-backed local exercise content.
  */
 import { LOCAL_EQUIPMENT, LOCAL_EXERCISES, LOCAL_MUSCLES } from '../../generated/LocalExerciseContent'
-import { EquipmentItem, ExerciseContent, MuscleGroup } from '../models/TrainingModels'
+import {
+  EquipmentItem,
+  ExerciseContent,
+  MuscleGroup
+} from '../models/TrainingModels'
+
+export interface ExerciseLibraryItem {
+  exerciseId: string
+  name: string
+  nameEn: string
+  aliases: string[]
+  primaryMuscleName: string
+  equipmentText: string
+  difficultyText: string
+  primaryMuscleId: string
+  equipmentIds: string[]
+}
+
+function createExerciseLibraryItem(
+  exerciseId: string,
+  name: string,
+  nameEn: string,
+  aliases: string[],
+  primaryMuscleName: string,
+  equipmentText: string,
+  difficultyText: string,
+  primaryMuscleId: string,
+  equipmentIds: string[]
+): ExerciseLibraryItem {
+  const item: ExerciseLibraryItem = {
+    exerciseId: exerciseId,
+    name: name,
+    nameEn: nameEn,
+    aliases: aliases,
+    primaryMuscleName: primaryMuscleName,
+    equipmentText: equipmentText,
+    difficultyText: difficultyText,
+    primaryMuscleId: primaryMuscleId,
+    equipmentIds: equipmentIds
+  }
+  return item
+}
 
 class ContentRepositoryImpl {
   getMuscles(): MuscleGroup[] {
@@ -29,6 +70,25 @@ class ContentRepositoryImpl {
       exercises.push(this.copyExerciseContent(LOCAL_EXERCISES[index]))
     }
     return exercises
+  }
+
+  getExerciseLibraryItems(): ExerciseLibraryItem[] {
+    const items: ExerciseLibraryItem[] = []
+    for (let index = 0; index < LOCAL_EXERCISES.length; index++) {
+      const exercise: ExerciseContent = LOCAL_EXERCISES[index]
+      items.push(createExerciseLibraryItem(
+        exercise.exerciseId,
+        exercise.nameZh,
+        exercise.nameEn,
+        this.copyStringArray(exercise.aliases),
+        this.getPrimaryMuscleName(exercise),
+        this.getEquipmentText(exercise.equipmentIds),
+        this.getDifficultyText(exercise.difficulty),
+        this.getPrimaryMuscleId(exercise),
+        this.copyStringArray(exercise.equipmentIds)
+      ))
+    }
+    return items
   }
 
   getExerciseById(exerciseId: string): ExerciseContent | undefined {
@@ -278,6 +338,48 @@ class ContentRepositoryImpl {
       values.push(source[index])
     }
     return values
+  }
+
+  private getPrimaryMuscleId(exercise: ExerciseContent): string {
+    if (exercise.primaryMuscleIds.length === 0) {
+      return ''
+    }
+    return exercise.primaryMuscleIds[0]
+  }
+
+  private getPrimaryMuscleName(exercise: ExerciseContent): string {
+    const muscleId: string = this.getPrimaryMuscleId(exercise)
+    if (muscleId.length === 0) {
+      return '未分类'
+    }
+    return this.getMuscleName(muscleId)
+  }
+
+  private getEquipmentText(equipmentIds: string[]): string {
+    if (equipmentIds.length === 0) {
+      return '无器械'
+    }
+    let text: string = ''
+    for (let index = 0; index < equipmentIds.length; index++) {
+      if (index > 0) {
+        text += ' / '
+      }
+      text += this.getEquipmentName(equipmentIds[index])
+    }
+    return text
+  }
+
+  private getDifficultyText(difficulty: string): string {
+    if (difficulty === 'beginner') {
+      return '入门'
+    }
+    if (difficulty === 'intermediate') {
+      return '进阶'
+    }
+    if (difficulty === 'advanced') {
+      return '高级'
+    }
+    return difficulty
   }
 
   private containsValue(values: string[], targetValue: string): boolean {

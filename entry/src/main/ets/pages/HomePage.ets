@@ -1,14 +1,15 @@
 /**
  * HomePage -- today training entry.
  * Function #4: home goal summary.
+ * Function #5: weekly plan rows.
  * Function #8: today training entry.
  */
 import { router } from '@kit.ArkUI'
 import { AppRoutes } from '../app/AppRoutes'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../common/styles/DesignTokens'
-import { PlanDay, TrainingPlan, UserGoal } from '../shared/models/TrainingModels'
+import { TrainingPlan, UserGoal } from '../shared/models/TrainingModels'
 import GoalRepository from '../shared/services/GoalRepository'
-import HomePlanService, { HomePlanSummary } from '../shared/services/HomePlanService'
+import HomePlanService, { HomePlanSummary, HomeWeeklyPlanDay } from '../shared/services/HomePlanService'
 import PlanEngine from '../shared/services/PlanEngine'
 
 @Entry
@@ -27,7 +28,7 @@ export struct HomePage {
   @State todayTitle: string = ''
   @State todayExerciseCount: number = 0
   @State todayExerciseNames: string[] = []
-  @State planDays: PlanDay[] = []
+  @State weeklyPlanDays: HomeWeeklyPlanDay[] = []
 
   async aboutToAppear(): Promise<void> {
     this.loading = true
@@ -42,14 +43,14 @@ export struct HomePage {
       const plan: TrainingPlan = PlanEngine.generatePlan(goal)
       const todaySeed: number = this.getTodaySeed()
       const summary: HomePlanSummary = HomePlanService.createSummary(goal, plan, todaySeed)
-      this.applySummary(summary, plan.days)
+      this.applySummary(summary)
     } catch (e) {
       this.hasGoal = false
     }
     this.loading = false
   }
 
-  applySummary(summary: HomePlanSummary, days: PlanDay[]): void {
+  applySummary(summary: HomePlanSummary): void {
     this.hasGoal = summary.hasGoal
     this.planId = summary.planId
     this.planName = summary.planName
@@ -62,7 +63,7 @@ export struct HomePage {
     this.todayTitle = summary.todayTitle
     this.todayExerciseCount = summary.todayExerciseCount
     this.todayExerciseNames = this.copyStringArray(summary.todayExerciseNames)
-    this.planDays = this.copyPlanDays(days)
+    this.weeklyPlanDays = this.copyWeeklyPlanDays(summary.weeklyPlanDays)
   }
 
   getTodaySeed(): number {
@@ -106,10 +107,17 @@ export struct HomePage {
     return values
   }
 
-  copyPlanDays(source: PlanDay[]): PlanDay[] {
-    const days: PlanDay[] = []
+  copyWeeklyPlanDays(source: HomeWeeklyPlanDay[]): HomeWeeklyPlanDay[] {
+    const days: HomeWeeklyPlanDay[] = []
     for (let index = 0; index < source.length; index++) {
-      days.push(source[index])
+      const sourceDay: HomeWeeklyPlanDay = source[index]
+      const day: HomeWeeklyPlanDay = {
+        dayId: sourceDay.dayId,
+        title: sourceDay.title,
+        exerciseCount: sourceDay.exerciseCount,
+        isToday: sourceDay.isToday
+      }
+      days.push(day)
     }
     return days
   }
@@ -277,7 +285,7 @@ export struct HomePage {
               .fontWeight(FontTokens.TITLE_WEIGHT)
               .fontColor(ColorTokens.TEXT_PRIMARY)
 
-            ForEach(this.planDays, (day: PlanDay) => {
+            ForEach(this.weeklyPlanDays, (day: HomeWeeklyPlanDay) => {
               Row() {
                 Column() {
                   Text(day.title)
@@ -285,7 +293,7 @@ export struct HomePage {
                     .fontWeight(FontWeight.Medium)
                     .fontColor(ColorTokens.TEXT_PRIMARY)
 
-                  Text(day.exercises.length.toString() + ' 个动作')
+                  Text(day.exerciseCount.toString() + ' 个动作')
                     .fontSize(FontTokens.CAPTION_SIZE)
                     .fontColor(ColorTokens.TEXT_SECONDARY)
                     .margin({ top: SpacingTokens.XS })
@@ -293,7 +301,7 @@ export struct HomePage {
                 .layoutWeight(1)
                 .alignItems(HorizontalAlign.Start)
 
-                Text(day.dayId === this.todayDayId ? '今天' : '计划')
+                Text(day.isToday ? '今天' : '计划')
                   .fontSize(FontTokens.SMALL_SIZE)
                   .fontColor(ColorTokens.TEXT_ON_PRIMARY)
                   .padding({
@@ -302,14 +310,14 @@ export struct HomePage {
                     left: SpacingTokens.SM,
                     right: SpacingTokens.SM
                   })
-                  .backgroundColor(day.dayId === this.todayDayId ? ColorTokens.SUCCESS : ColorTokens.SURFACE_ELEVATED)
+                  .backgroundColor(day.isToday ? ColorTokens.SUCCESS : ColorTokens.SURFACE_ELEVATED)
                   .borderRadius(RadiusTokens.FULL)
               }
               .width('100%')
               .padding(SpacingTokens.MD)
               .borderRadius(RadiusTokens.SM)
               .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-            }, (day: PlanDay) => day.dayId)
+            }, (day: HomeWeeklyPlanDay) => day.dayId)
           }
           .width('100%')
           .padding(SpacingTokens.MD)

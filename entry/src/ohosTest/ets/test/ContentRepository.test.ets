@@ -1,6 +1,6 @@
 import { describe, it, expect } from '@ohos/hypium'
 import { ExerciseContent, UserGoal, createUserGoal } from '../../../main/ets/shared/models/TrainingModels'
-import ContentRepository from '../../../main/ets/shared/services/ContentRepository'
+import ContentRepository, { ExerciseLibraryItem } from '../../../main/ets/shared/services/ContentRepository'
 import PlanEngine from '../../../main/ets/shared/services/PlanEngine'
 
 export default function contentRepositoryTest(): void {
@@ -18,6 +18,16 @@ export default function contentRepositoryTest(): void {
         expect(exercise.steps.length > 0).assertTrue()
         expect(ContentRepository.hasVideoAsset(exercise)).assertFalse()
       }
+    })
+
+    it('builds local exercise library display rows with key metadata', 0, () => {
+      const rows: ExerciseLibraryItem[] = ContentRepository.getExerciseLibraryItems()
+      expect(rows.length).assertLarger(0)
+      expect(rows[0].exerciseId).assertEqual('ex_barbell_bench_press')
+      expect(rows[0].name).assertEqual('杠铃卧推')
+      expect(rows[0].primaryMuscleName).assertEqual('胸部')
+      expect(rows[0].equipmentText).assertEqual('杠铃')
+      expect(rows[0].difficultyText).assertEqual('进阶')
     })
 
     it('filters candidate exercises by goal equipment muscle and difficulty', 0, () => {
