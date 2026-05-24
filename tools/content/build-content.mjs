@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const contentDir = resolve(root, 'content/exercises')
 const outputPath = resolve(root, 'entry/src/main/ets/generated/LocalExerciseContent.ets')
+const sourceFileKey = '__sourceFile'
+const sourceLineKey = '__sourceLine'
 
 function readJsonl(fileName) {
   const path = resolve(contentDir, fileName)
@@ -17,7 +19,13 @@ function readJsonl(fileName) {
       continue
     }
     try {
-      rows.push(JSON.parse(line))
+      const record = JSON.parse(line)
+      if (record === null || Array.isArray(record) || typeof record !== 'object') {
+        throw new Error('line must be a JSON object')
+      }
+      record[sourceFileKey] = fileName
+      record[sourceLineKey] = index + 1
+      rows.push(record)
     } catch (error) {
       throw new Error(`${fileName}:${index + 1} is not valid JSON: ${error.message}`)
     }
@@ -27,30 +35,36 @@ function readJsonl(fileName) {
 
 function requireString(record, field, label) {
   if (typeof record[field] !== 'string' || record[field].trim().length === 0) {
-    throw new Error(`${label}.${field} must be a non-empty string`)
+    throw new Error(`${label}.${field} must be a non-empty string at ${sourceOf(record)}`)
   }
 }
 
 function requireStringArray(record, field, label) {
   if (!Array.isArray(record[field])) {
-    throw new Error(`${label}.${field} must be an array`)
+    throw new Error(`${label}.${field} must be an array at ${sourceOf(record)}`)
   }
   for (let index = 0; index < record[field].length; index++) {
     if (typeof record[field][index] !== 'string') {
-      throw new Error(`${label}.${field}[${index}] must be a string`)
+      throw new Error(`${label}.${field}[${index}] must be a string at ${sourceOf(record)}`)
     }
   }
 }
 
 function assertUnique(records, field, label) {
   const seen = new Set()
+  const firstSourceByValue = new Map()
   for (const record of records) {
     const value = record[field]
     if (seen.has(value)) {
-      throw new Error(`${label}.${field} duplicates ${value}`)
+      throw new Error(`${label}.${field} duplicates ${value} at ${sourceOf(record)}; first seen at ${firstSourceByValue.get(value)}`)
     }
     seen.add(value)
+    firstSourceByValue.set(value, sourceOf(record))
   }
+}
+
+function sourceOf(record) {
+  return `${record[sourceFileKey]}:${record[sourceLineKey]}`
 }
 
 function validate(muscles, equipment, exercises) {
@@ -89,30 +103,30 @@ function validate(muscles, equipment, exercises) {
     requireStringArray(exercise, 'safetyNotes', label)
     requireStringArray(exercise, 'alternativeExerciseIds', label)
     if (!allowedDifficulties.has(exercise.difficulty)) {
-      throw new Error(`${label}.difficulty is invalid`)
+      throw new Error(`${label}.difficulty is invalid at ${sourceOf(exercise)}`)
     }
     if (exercise.primaryMuscleIds.length === 0) {
-      throw new Error(`${label} must have at least one primary muscle`)
+      throw new Error(`${label} must have at least one primary muscle at ${sourceOf(exercise)}`)
     }
     if (exercise.equipmentIds.length === 0) {
-      throw new Error(`${label} must have at least one equipment`)
+      throw new Error(`${label} must have at least one equipment at ${sourceOf(exercise)}`)
     }
     if (exercise.steps.length === 0) {
-      throw new Error(`${label} must have steps`)
+      throw new Error(`${label} must have steps at ${sourceOf(exercise)}`)
     }
     for (const muscleId of exercise.primaryMuscleIds.concat(exercise.secondaryMuscleIds)) {
       if (!muscleIds.has(muscleId)) {
-        throw new Error(`${label} references unknown muscle ${muscleId}`)
+        throw new Error(`${label} references unknown muscle ${muscleId} at ${sourceOf(exercise)}`)
       }
     }
     for (const equipmentId of exercise.equipmentIds) {
       if (!equipmentIds.has(equipmentId)) {
-        throw new Error(`${label} references unknown equipment ${equipmentId}`)
+        throw new Error(`${label} references unknown equipment ${equipmentId} at ${sourceOf(exercise)}`)
       }
     }
     for (const alternativeId of exercise.alternativeExerciseIds) {
       if (!exerciseIds.has(alternativeId)) {
-        throw new Error(`${label} references unknown alternative ${alternativeId}`)
+        throw new Error(`${label} references unknown alternative ${alternativeId} at ${sourceOf(exercise)}`)
       }
     }
   }

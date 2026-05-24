@@ -123,13 +123,13 @@
     "id": 21,
     "category": "内容生成",
     "description": "修改动作库 JSONL 后，构建流程应自动校验输入并重新生成 ArkTS 内容模块。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 22,
     "category": "构建校验",
     "description": "构建前应检查 main_pages 注册页是否全部存在，并且每个页面只包含一个 @Entry。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 23,
