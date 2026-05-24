@@ -3,6 +3,7 @@
  *
  * Feature #4: local repositories and app state.
  */
+import { AppRoutes } from './AppRoutes'
 
 export class FitTrackerStores {
   static readonly GOAL: string = 'fit_tracker_goal'
@@ -15,8 +16,8 @@ export class FitTrackerStores {
 export class StartupDecision {
   static getInitialRoute(hasGoal: boolean): string {
     if (hasGoal) {
-      return 'pages/HomePage'
+      return AppRoutes.HOME
     }
-    return 'features/onboarding/pages/GoalSetupPage'
+    return AppRoutes.GOAL_SETUP
   }
 }
