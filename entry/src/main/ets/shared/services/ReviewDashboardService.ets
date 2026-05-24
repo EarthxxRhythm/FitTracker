@@ -4,7 +4,8 @@
  * Feature #12: review dashboard and next adjustment hint.
  * Feature #14: recent workout records and historical trend summary.
  */
-import { WorkoutSession } from '../models/TrainingModels'
+import { TrainingPlan, UserGoal, WorkoutSession, createUserGoal } from '../models/TrainingModels'
+import PlanEngine from './PlanEngine'
 import ReviewService from './ReviewService'
 import WorkoutSummaryService from './WorkoutSummaryService'
 
@@ -48,6 +49,24 @@ export interface ReviewTrendSummary {
   volumeTrendText: string
   completionTrendText: string
   summaryText: string
+}
+
+export interface ReviewGoalAdjustmentAction {
+  actionType: string
+  title: string
+  description: string
+  canApply: boolean
+  currentWeeklyDays: number
+  targetWeeklyDays: number
+  currentSessionMinutes: number
+  targetSessionMinutes: number
+  buttonText: string
+}
+
+export interface ReviewPlanRegenerationResult {
+  adjustedGoal: UserGoal
+  regeneratedPlan: TrainingPlan
+  statusText: string
 }
 
 class ReviewDashboardService {
@@ -206,6 +225,63 @@ class ReviewDashboardService {
     return trend
   }
 
+  createGoalAdjustmentAction(summary: ReviewDashboardSummary, goal: UserGoal): ReviewGoalAdjustmentAction {
+    const actionType: string = summary.adjustmentHint
+    const targetWeeklyDays: number = this.adjustWeeklyDays(goal.weeklyDays, actionType)
+    const targetSessionMinutes: number = this.adjustSessionMinutes(goal.sessionMinutes, actionType)
+    const canApply: boolean = summary.hasSessions &&
+      (targetWeeklyDays !== goal.weeklyDays || targetSessionMinutes !== goal.sessionMinutes)
+    const action: ReviewGoalAdjustmentAction = {
+      actionType: actionType,
+      title: this.getAdjustmentActionTitle(actionType),
+      description: this.getAdjustmentActionDescription(actionType, goal.weeklyDays, targetWeeklyDays,
+        goal.sessionMinutes, targetSessionMinutes),
+      canApply: canApply,
+      currentWeeklyDays: goal.weeklyDays,
+      targetWeeklyDays: targetWeeklyDays,
+      currentSessionMinutes: goal.sessionMinutes,
+      targetSessionMinutes: targetSessionMinutes,
+      buttonText: this.getAdjustmentButtonText(canApply)
+    }
+    return action
+  }
+
+  createEmptyGoalAdjustmentAction(): ReviewGoalAdjustmentAction {
+    const action: ReviewGoalAdjustmentAction = {
+      actionType: 'start_training',
+      title: '完成训练后再调整',
+      description: '先保存一次训练结果，系统会根据完成率给出目标调整动作。',
+      canApply: false,
+      currentWeeklyDays: 0,
+      targetWeeklyDays: 0,
+      currentSessionMinutes: 0,
+      targetSessionMinutes: 0,
+      buttonText: '暂无可应用调整'
+    }
+    return action
+  }
+
+  createPlanRegenerationResult(goal: UserGoal, action: ReviewGoalAdjustmentAction, now: number): ReviewPlanRegenerationResult {
+    const adjustedGoal: UserGoal = createUserGoal(
+      goal.goalId,
+      goal.goalType,
+      goal.level,
+      action.targetWeeklyDays,
+      action.targetSessionMinutes,
+      this.copyStringArray(goal.equipmentIds),
+      this.copyStringArray(goal.restrictedMuscleIds),
+      goal.createdAt,
+      now
+    )
+    const regeneratedPlan: TrainingPlan = PlanEngine.generatePlan(adjustedGoal)
+    const result: ReviewPlanRegenerationResult = {
+      adjustedGoal: adjustedGoal,
+      regeneratedPlan: regeneratedPlan,
+      statusText: '已保存调整并重新生成 ' + regeneratedPlan.days.length.toString() + ' 天计划'
+    }
+    return result
+  }
+
   private createVolumeTrendText(delta: number): string {
     if (delta > 0) {
       return '训练量上升 ' + delta.toString() + ' kg'
@@ -310,6 +386,75 @@ class ReviewDashboardService {
       return '完成率很高，下次可以增加训练天数或延长单次时长。'
     }
     return '完成率稳定，下次保持当前计划即可。'
+  }
+  private adjustWeeklyDays(currentWeeklyDays: number, actionType: string): number {
+    if (actionType === 'reduce_load') {
+      return this.clampNumber(currentWeeklyDays - 1, 1, 7)
+    }
+    if (actionType === 'increase_load') {
+      return this.clampNumber(currentWeeklyDays + 1, 1, 7)
+    }
+    return this.clampNumber(currentWeeklyDays, 1, 7)
+  }
+
+  private adjustSessionMinutes(currentSessionMinutes: number, actionType: string): number {
+    if (actionType === 'reduce_load') {
+      return this.clampNumber(currentSessionMinutes - 15, 30, 90)
+    }
+    if (actionType === 'increase_load') {
+      return this.clampNumber(currentSessionMinutes + 15, 30, 90)
+    }
+    return this.clampNumber(currentSessionMinutes, 30, 90)
+  }
+
+  private clampNumber(value: number, minValue: number, maxValue: number): number {
+    if (value < minValue) {
+      return minValue
+    }
+    if (value > maxValue) {
+      return maxValue
+    }
+    return value
+  }
+
+  private getAdjustmentActionTitle(actionType: string): string {
+    if (actionType === 'reduce_load') {
+      return '降低下次训练压力'
+    }
+    if (actionType === 'increase_load') {
+      return '提高下次训练目标'
+    }
+    return '保持当前目标'
+  }
+
+  private getAdjustmentActionDescription(
+    actionType: string,
+    currentWeeklyDays: number,
+    targetWeeklyDays: number,
+    currentSessionMinutes: number,
+    targetSessionMinutes: number
+  ): string {
+    if (actionType === 'keep_plan') {
+      return '当前完成率稳定，本次不需要改动目标。'
+    }
+    return '每周训练由 ' + currentWeeklyDays.toString() + ' 天调整为 ' + targetWeeklyDays.toString() +
+      ' 天，单次时长由 ' + currentSessionMinutes.toString() + ' 分钟调整为 ' +
+      targetSessionMinutes.toString() + ' 分钟。'
+  }
+
+  private getAdjustmentButtonText(canApply: boolean): string {
+    if (canApply) {
+      return '应用调整并重新生成计划'
+    }
+    return '无需重新生成'
+  }
+
+  private copyStringArray(source: string[]): string[] {
+    const values: string[] = []
+    for (let index = 0; index < source.length; index++) {
+      values.push(source[index])
+    }
+    return values
   }
 }
 

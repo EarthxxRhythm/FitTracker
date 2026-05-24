@@ -1,13 +1,17 @@
 /**
  * WorkoutSummaryPage -- post-workout summary review.
  * Function #11: workout summary review.
+ * Function #13: exercise personal best records in workout summary.
  */
 import { router } from '@kit.ArkUI'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
 import { WorkoutSession } from '../../../shared/models/TrainingModels'
 import WorkoutRepository from '../../../shared/services/WorkoutRepository'
-import WorkoutSummaryService, { WorkoutSummary } from '../../../shared/services/WorkoutSummaryService'
+import WorkoutSummaryService, {
+  WorkoutSummary,
+  WorkoutSummaryExerciseRecord
+} from '../../../shared/services/WorkoutSummaryService'
 
 @Entry
 @Component
@@ -21,6 +25,7 @@ export struct WorkoutSummaryPage {
   @State targetSets: number = 0
   @State completionRate: number = 0
   @State totalVolume: number = 0
+  @State exerciseRecords: WorkoutSummaryExerciseRecord[] = []
 
   aboutToAppear(): void {
     this.loading = true
@@ -31,7 +36,7 @@ export struct WorkoutSummaryPage {
       return
     }
 
-    const summary: WorkoutSummary = WorkoutSummaryService.createSummary(session)
+    const summary: WorkoutSummary = WorkoutSummaryService.createSummaryWithHistory(session, WorkoutRepository.getSessions())
     this.applySummary(summary)
     this.loading = false
   }
@@ -68,6 +73,7 @@ export struct WorkoutSummaryPage {
     this.targetSets = summary.targetSets
     this.completionRate = summary.completionRate
     this.totalVolume = summary.totalVolume
+    this.exerciseRecords = summary.exerciseRecords
   }
 
   openHome(): void {
@@ -107,16 +113,67 @@ export struct WorkoutSummaryPage {
         .fontSize(FontTokens.HEADLINE_SIZE)
         .fontWeight(FontTokens.HEADLINE_WEIGHT)
         .fontColor(ColorTokens.TEXT_PRIMARY)
+        .maxLines(1)
 
       Text(label)
         .fontSize(FontTokens.CAPTION_SIZE)
         .fontColor(ColorTokens.TEXT_SECONDARY)
+        .maxLines(1)
     }
     .layoutWeight(1)
     .padding(SpacingTokens.MD)
     .borderRadius(RadiusTokens.SM)
     .backgroundColor(ColorTokens.SURFACE_PRIMARY)
     .alignItems(HorizontalAlign.Center)
+  }
+
+  @Builder
+  buildRecordMetric(label: string, value: string) {
+    Column({ space: SpacingTokens.XS }) {
+      Text(value)
+        .fontSize(FontTokens.BODY_BOLD_SIZE)
+        .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+        .maxLines(1)
+
+      Text(label)
+        .fontSize(FontTokens.SMALL_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .maxLines(1)
+    }
+    .layoutWeight(1)
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  buildExerciseRecord(record: WorkoutSummaryExerciseRecord) {
+    Column({ space: SpacingTokens.SM }) {
+      Row() {
+        Text(record.exerciseName)
+          .fontSize(FontTokens.BODY_BOLD_SIZE)
+          .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+          .maxLines(1)
+          .layoutWeight(1)
+
+        Text(record.dateText)
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .maxLines(1)
+      }
+      .width('100%')
+
+      Row({ space: SpacingTokens.SM }) {
+        this.buildRecordMetric('最佳 1RM', record.bestOneRepMax.toString() + ' kg')
+        this.buildRecordMetric('最佳重量', record.bestWeight.toString() + ' kg')
+        this.buildRecordMetric('最佳次数', record.bestReps.toString() + ' 次')
+      }
+      .width('100%')
+    }
+    .width('100%')
+    .padding(SpacingTokens.MD)
+    .borderRadius(RadiusTokens.SM)
+    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
   }
 
   build() {
@@ -212,6 +269,19 @@ export struct WorkoutSummaryPage {
               this.buildMetric('训练容量', this.totalVolume.toString())
             }
             .width('100%')
+
+            Column({ space: SpacingTokens.SM }) {
+              Text('动作最佳记录')
+                .fontSize(FontTokens.TITLE_SIZE)
+                .fontWeight(FontTokens.TITLE_WEIGHT)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+
+              ForEach(this.exerciseRecords, (record: WorkoutSummaryExerciseRecord) => {
+                this.buildExerciseRecord(record)
+              }, (record: WorkoutSummaryExerciseRecord) => record.exerciseId)
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
 
             Column({ space: SpacingTokens.SM }) {
               Text('记录编号')

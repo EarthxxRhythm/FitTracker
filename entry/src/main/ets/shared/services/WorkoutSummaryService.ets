@@ -3,7 +3,8 @@
  *
  * Feature #11: workout summary review.
  */
-import { WorkoutSession } from '../models/TrainingModels'
+import { ExerciseContent, WorkoutSession, WorkoutSet, estimateOneRepMax } from '../models/TrainingModels'
+import ContentRepository from './ContentRepository'
 import ReviewService from './ReviewService'
 
 const COMPLETED_SETS_PREFIX: string = 'completed_sets='
@@ -21,10 +22,25 @@ export interface WorkoutSummary {
   completionRate: number
   totalVolume: number
   fatigueScore: number
+  exerciseRecords: WorkoutSummaryExerciseRecord[]
+}
+
+export class WorkoutSummaryExerciseRecord {
+  exerciseId: string = ''
+  exerciseName: string = ''
+  bestOneRepMax: number = 0
+  bestWeight: number = 0
+  bestReps: number = 0
+  dateText: string = ''
 }
 
 class WorkoutSummaryService {
   createSummary(session: WorkoutSession): WorkoutSummary {
+    const sessions: WorkoutSession[] = [session]
+    return this.createSummaryWithHistory(session, sessions)
+  }
+
+  createSummaryWithHistory(session: WorkoutSession, sessions: WorkoutSession[]): WorkoutSummary {
     const completedSets: number = this.getCompletedSets(session)
     const targetSets: number = this.getTargetSets(session.notes, completedSets)
     const summary: WorkoutSummary = {
@@ -38,7 +54,8 @@ class WorkoutSummaryService {
       targetSets: targetSets,
       completionRate: ReviewService.calculateCompletionRate(completedSets, targetSets),
       totalVolume: this.getTotalVolume(session),
-      fatigueScore: session.fatigueScore
+      fatigueScore: session.fatigueScore,
+      exerciseRecords: this.createExerciseRecords(session, sessions)
     }
     return summary
   }
@@ -55,7 +72,8 @@ class WorkoutSummaryService {
       targetSets: 0,
       completionRate: 0,
       totalVolume: 0,
-      fatigueScore: 0
+      fatigueScore: 0,
+      exerciseRecords: []
     }
     return summary
   }
@@ -102,6 +120,105 @@ class WorkoutSummaryService {
       return session.totalVolume
     }
     return ReviewService.calculateVolume(session.sets)
+  }
+
+  private createExerciseRecords(currentSession: WorkoutSession, sessions: WorkoutSession[]): WorkoutSummaryExerciseRecord[] {
+    const currentExerciseIds: string[] = this.getUniqueExerciseIds(currentSession.sets)
+    const records: WorkoutSummaryExerciseRecord[] = []
+    for (let index = 0; index < currentExerciseIds.length; index++) {
+      const exerciseId: string = currentExerciseIds[index]
+      const record: WorkoutSummaryExerciseRecord = this.createEmptyExerciseRecord(exerciseId)
+      for (let sessionIndex = 0; sessionIndex < sessions.length; sessionIndex++) {
+        this.updateExerciseRecord(record, sessions[sessionIndex])
+      }
+      records.push(record)
+    }
+    return records
+  }
+
+  private updateExerciseRecord(record: WorkoutSummaryExerciseRecord, session: WorkoutSession): void {
+    for (let setIndex = 0; setIndex < session.sets.length; setIndex++) {
+      const set: WorkoutSet = session.sets[setIndex]
+      if (set.exerciseId !== record.exerciseId || set.isWarmup || set.weight <= 0 || set.reps <= 0) {
+        continue
+      }
+      const oneRepMax: number = Math.round(estimateOneRepMax(set.weight, set.reps))
+      if (this.isBetterExerciseRecord(record, oneRepMax, session.startedAt)) {
+        record.bestOneRepMax = oneRepMax
+        record.bestWeight = set.weight
+        record.bestReps = set.reps
+        record.dateText = this.formatDate(session.startedAt)
+      }
+    }
+  }
+
+  private isBetterExerciseRecord(record: WorkoutSummaryExerciseRecord, oneRepMax: number, startedAt: number): boolean {
+    if (oneRepMax > record.bestOneRepMax) {
+      return true
+    }
+    if (oneRepMax < record.bestOneRepMax) {
+      return false
+    }
+    if (record.dateText.length === 0) {
+      return true
+    }
+    const dateText: string = this.formatDate(startedAt)
+    return dateText >= record.dateText
+  }
+
+  private createEmptyExerciseRecord(exerciseId: string): WorkoutSummaryExerciseRecord {
+    const record: WorkoutSummaryExerciseRecord = {
+      exerciseId: exerciseId,
+      exerciseName: this.getExerciseName(exerciseId),
+      bestOneRepMax: 0,
+      bestWeight: 0,
+      bestReps: 0,
+      dateText: ''
+    }
+    return record
+  }
+
+  private getUniqueExerciseIds(sets: WorkoutSet[]): string[] {
+    const exerciseIds: string[] = []
+    for (let index = 0; index < sets.length; index++) {
+      const exerciseId: string = sets[index].exerciseId
+      if (!this.containsString(exerciseIds, exerciseId)) {
+        exerciseIds.push(exerciseId)
+      }
+    }
+    return exerciseIds
+  }
+
+  private containsString(values: string[], targetValue: string): boolean {
+    for (let index = 0; index < values.length; index++) {
+      if (values[index] === targetValue) {
+        return true
+      }
+    }
+    return false
+  }
+
+  private getExerciseName(exerciseId: string): string {
+    const exercise: ExerciseContent | undefined = ContentRepository.getExerciseById(exerciseId)
+    if (exercise !== undefined) {
+      return exercise.nameZh
+    }
+    return exerciseId
+  }
+
+  private formatDate(timestamp: number): string {
+    const date: Date = new Date(timestamp)
+    const year: number = date.getFullYear()
+    const month: number = date.getMonth() + 1
+    const day: number = date.getDate()
+    return year.toString() + '-' + this.padTwoDigits(month) + '-' + this.padTwoDigits(day)
+  }
+
+  private padTwoDigits(value: number): string {
+    if (value < 10) {
+      return '0' + value.toString()
+    }
+    return value.toString()
   }
 
   private getNumberAfterPrefix(source: string, prefix: string): number {

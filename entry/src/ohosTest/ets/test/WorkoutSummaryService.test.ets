@@ -88,5 +88,62 @@ export default function workoutSummaryServiceTest(): void {
 
       expect(summary.totalVolume).assertEqual(670)
     })
+
+    it('shows each exercise best 1RM, best weight, best reps, and date from current plus history', 0, () => {
+      const historySets: WorkoutSet[] = [
+        createWorkoutSet('set_summary_record_history_1', 'ex_barbell_bench_press', 80, 8, 8, false),
+        createWorkoutSet('set_summary_record_history_2', 'ex_dumbbell_row', 42, 10, 8, false)
+      ]
+      const currentSets: WorkoutSet[] = [
+        createWorkoutSet('set_summary_record_current_1', 'ex_barbell_bench_press', 90, 5, 9, false),
+        createWorkoutSet('set_summary_record_current_2', 'ex_barbell_bench_press', 70, 12, 8, true),
+        createWorkoutSet('set_summary_record_current_3', 'ex_dumbbell_row', 40, 12, 8, false)
+      ]
+      const historySession: WorkoutSession = WorkoutRepository.createSession(
+        'session_summary_record_history',
+        'plan_summary_record',
+        'day_1',
+        1714521600000,
+        1714523400000,
+        1800,
+        2,
+        0,
+        0,
+        'completed_sets=2;target_sets=2',
+        historySets
+      )
+      const currentSession: WorkoutSession = WorkoutRepository.createSession(
+        'session_summary_record_current',
+        'plan_summary_record',
+        'day_2',
+        1715126400000,
+        1715128800000,
+        2400,
+        3,
+        0,
+        0,
+        'completed_sets=3;target_sets=3',
+        currentSets
+      )
+      WorkoutRepository.saveSession(historySession)
+      WorkoutRepository.saveSession(currentSession)
+
+      const summary: WorkoutSummary = WorkoutSummaryService.createSummaryWithHistory(
+        currentSession,
+        WorkoutRepository.getSessions()
+      )
+
+      expect(summary.exerciseRecords.length).assertEqual(2)
+      expect(summary.exerciseRecords[0].exerciseId).assertEqual('ex_barbell_bench_press')
+      expect(summary.exerciseRecords[0].bestOneRepMax).assertEqual(105)
+      expect(summary.exerciseRecords[0].bestWeight).assertEqual(90)
+      expect(summary.exerciseRecords[0].bestReps).assertEqual(5)
+      expect(summary.exerciseRecords[0].dateText).assertEqual('2024-05-08')
+      expect(summary.exerciseRecords[1].exerciseId).assertEqual('ex_dumbbell_row')
+      expect(summary.exerciseRecords[1].bestOneRepMax).assertEqual(56)
+      expect(summary.exerciseRecords[1].bestWeight).assertEqual(40)
+      expect(summary.exerciseRecords[1].bestReps).assertEqual(12)
+      expect(summary.exerciseRecords[1].dateText).assertEqual('2024-05-08')
+    })
   })
 }

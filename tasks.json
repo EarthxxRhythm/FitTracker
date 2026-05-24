@@ -75,7 +75,7 @@
     "id": 13,
     "category": "训练复盘",
     "description": "训练复盘页应展示每个动作的最佳 1RM、最佳重量、最佳次数和日期。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 14,
@@ -87,7 +87,7 @@
     "id": 15,
     "category": "回顾与调整",
     "description": "回顾页应允许用户基于训练结果调整目标并重新生成计划。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 16,
@@ -135,7 +135,7 @@
     "id": 23,
     "category": "个人资料",
     "description": "用户应能保存并再次读取昵称、头像和体重单位偏好。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 24,
