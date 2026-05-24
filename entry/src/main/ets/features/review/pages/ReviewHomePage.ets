@@ -7,12 +7,15 @@ import { router } from '@kit.ArkUI'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
 import ReviewDashboardService, {
+  ReviewGoalAdjustmentAction,
   ReviewDashboardSummary,
+  ReviewPlanRegenerationResult,
   ReviewRecentSessionRecord,
   ReviewTrendSummary
 } from '../../../shared/services/ReviewDashboardService'
+import GoalRepository from '../../../shared/services/GoalRepository'
 import WorkoutRepository from '../../../shared/services/WorkoutRepository'
-import { WorkoutSession } from '../../../shared/models/TrainingModels'
+import { UserGoal, WorkoutSession } from '../../../shared/models/TrainingModels'
 
 @Entry
 @Component
@@ -27,14 +30,34 @@ export struct ReviewHomePage {
   @State latestSessionId: string = ''
   @State latestDayId: string = ''
   @State adjustmentText: string = ''
+  @State adjustmentTitle: string = ''
+  @State adjustmentDescription: string = ''
+  @State adjustmentButtonText: string = '暂无可应用调整'
+  @State canApplyAdjustment: boolean = false
+  @State applyingAdjustment: boolean = false
+  @State adjustmentStatusText: string = ''
   @State recentRecords: ReviewRecentSessionRecord[] = []
   @State trendSummary: ReviewTrendSummary = ReviewDashboardService.createEmptyTrendSummary()
+  currentGoal: UserGoal | undefined = undefined
+  currentAdjustmentAction: ReviewGoalAdjustmentAction = ReviewDashboardService.createEmptyGoalAdjustmentAction()
 
-  aboutToAppear(): void {
+  async aboutToAppear(): Promise<void> {
     this.loading = true
     const sessions: WorkoutSession[] = WorkoutRepository.getSessions()
     const summary: ReviewDashboardSummary = ReviewDashboardService.createSummary(sessions)
     this.applySummary(summary)
+    try {
+      const goal: UserGoal | undefined = await GoalRepository.loadGoal(getContext(this))
+      this.currentGoal = goal
+      if (goal !== undefined) {
+        this.applyAdjustmentAction(ReviewDashboardService.createGoalAdjustmentAction(summary, goal))
+      } else {
+        this.applyAdjustmentAction(ReviewDashboardService.createEmptyGoalAdjustmentAction())
+      }
+    } catch (e) {
+      this.currentGoal = undefined
+      this.applyAdjustmentAction(ReviewDashboardService.createEmptyGoalAdjustmentAction())
+    }
     this.loading = false
   }
 
@@ -50,6 +73,14 @@ export struct ReviewHomePage {
     this.adjustmentText = summary.adjustmentText
     this.recentRecords = summary.recentRecords
     this.trendSummary = summary.trendSummary
+  }
+
+  applyAdjustmentAction(action: ReviewGoalAdjustmentAction): void {
+    this.currentAdjustmentAction = action
+    this.adjustmentTitle = action.title
+    this.adjustmentDescription = action.description
+    this.adjustmentButtonText = action.buttonText
+    this.canApplyAdjustment = action.canApply
   }
 
   openHome(): void {
@@ -77,6 +108,47 @@ export struct ReviewHomePage {
     } catch (e) {
       // stay on review
     }
+  }
+
+  async applyGoalAdjustment(): Promise<void> {
+    if (this.applyingAdjustment || !this.canApplyAdjustment || this.currentGoal === undefined) {
+      return
+    }
+    this.applyingAdjustment = true
+    this.adjustmentStatusText = ''
+    try {
+      const result: ReviewPlanRegenerationResult = ReviewDashboardService.createPlanRegenerationResult(
+        this.currentGoal,
+        this.currentAdjustmentAction,
+        Date.now()
+      )
+      await GoalRepository.saveGoal(getContext(this), result.adjustedGoal)
+      this.currentGoal = result.adjustedGoal
+      this.adjustmentStatusText = result.statusText
+      this.applyAdjustmentAction(ReviewDashboardService.createGoalAdjustmentAction(this.createCurrentSummary(), result.adjustedGoal))
+    } catch (e) {
+      this.adjustmentStatusText = '保存调整失败，请稍后重试'
+    }
+    this.applyingAdjustment = false
+  }
+
+  createCurrentSummary(): ReviewDashboardSummary {
+    const summary: ReviewDashboardSummary = {
+      hasSessions: this.hasSessions,
+      sessionCount: this.sessionCount,
+      totalCompletedSets: this.totalCompletedSets,
+      totalTargetSets: this.totalTargetSets,
+      averageCompletionRate: this.averageCompletionRate,
+      totalDurationSeconds: 0,
+      totalDurationText: this.totalDurationText,
+      latestSessionId: this.latestSessionId,
+      latestDayId: this.latestDayId,
+      adjustmentHint: this.currentAdjustmentAction.actionType,
+      adjustmentText: this.adjustmentText,
+      recentRecords: this.recentRecords,
+      trendSummary: this.trendSummary
+    }
+    return summary
   }
 
   getCompletionText(): string {
@@ -300,6 +372,33 @@ export struct ReviewHomePage {
               Text(this.adjustmentText)
                 .fontSize(FontTokens.BODY_SIZE)
                 .fontColor(ColorTokens.TEXT_SECONDARY)
+
+              Text(this.adjustmentTitle)
+                .fontSize(FontTokens.BODY_SIZE)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+
+              Text(this.adjustmentDescription)
+                .fontSize(FontTokens.CAPTION_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
+
+              if (this.adjustmentStatusText.length > 0) {
+                Text(this.adjustmentStatusText)
+                  .fontSize(FontTokens.CAPTION_SIZE)
+                  .fontColor(ColorTokens.PRIMARY)
+              }
+
+              Button(this.applyingAdjustment ? '保存调整中' : this.adjustmentButtonText)
+                .width('100%')
+                .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
+                .fontSize(FontTokens.BODY_SIZE)
+                .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+                .backgroundColor(this.canApplyAdjustment ? ColorTokens.PRIMARY : ColorTokens.PRIMARY_DISABLED)
+                .borderRadius(RadiusTokens.FULL)
+                .enabled(this.canApplyAdjustment && !this.applyingAdjustment)
+                .onClick(() => {
+                  this.applyGoalAdjustment()
+                })
             }
             .width('100%')
             .padding(SpacingTokens.MD)
