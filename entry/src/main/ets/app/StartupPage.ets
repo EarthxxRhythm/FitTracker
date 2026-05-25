@@ -6,6 +6,7 @@ import { router } from '@kit.ArkUI'
 import { ColorTokens, FontTokens, SpacingTokens } from '../common/styles/DesignTokens'
 import { StartupDecision } from './AppState'
 import GoalRepository from '../shared/services/GoalRepository'
+import PersistenceFallbackService from '../shared/services/PersistenceFallbackService'
 
 @Entry
 @Component
@@ -13,6 +14,17 @@ export struct StartupPage {
   async aboutToAppear(): Promise<void> {
     try {
       const hasGoal: boolean = await GoalRepository.hasSavedGoal(getContext(this))
+      if (!hasGoal && GoalRepository.getLastPersistenceError().length > 0) {
+        PersistenceFallbackService.recordFallback(
+          'goal',
+          GoalRepository.getLastPersistenceError(),
+          'default_goal',
+          Date.now()
+        )
+        GoalRepository.saveLocalGoal(PersistenceFallbackService.createDefaultGoal(Date.now()))
+        router.replaceUrl({ url: StartupDecision.getInitialRoute(true) })
+        return
+      }
       router.replaceUrl({ url: StartupDecision.getInitialRoute(hasGoal) })
     } catch (e) {
       // Keep the startup screen visible if route replacement fails.
