@@ -147,7 +147,7 @@
     "id": 25,
     "category": "个人纪录",
     "description": "用户应能查看每个动作的历史最佳 1RM、最佳重量和最佳次数。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 26,
