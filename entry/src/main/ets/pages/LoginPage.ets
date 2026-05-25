@@ -15,6 +15,7 @@ import { validateLoginForm } from '../common/utils/ValidationUtils'
 import AuthService from '../common/services/AuthService'
 import SessionManager from '../common/services/SessionManager'
 import { ColorTokens, FontTokens, SpacingTokens } from '../common/styles/DesignTokens'
+import { AppRoutes } from '../app/AppRoutes'
 
 @Entry
 @Component
@@ -37,12 +38,12 @@ struct LoginPage {
     }
 
     this.loading = true
-    const authResult = AuthService.login(this.phone, this.password)
     setTimeout(async () => {
+      const authResult = await AuthService.loginLocal(getContext(this), this.phone, this.password)
       this.loading = false
       if (authResult.success) {
         await SessionManager.saveToken(getContext(this), authResult.token)
-        router.replaceUrl({ url: 'pages/Index' })
+        router.replaceUrl({ url: AppRoutes.STARTUP })
       } else {
         this.generalError = authResult.message
       }
@@ -124,7 +125,7 @@ struct LoginPage {
             .fontColor(ColorTokens.PRIMARY)
             .fontWeight(FontWeight.Medium)
             .onClick(() => {
-              router.replaceUrl({ url: 'pages/RegisterPage' })
+              router.replaceUrl({ url: AppRoutes.REGISTER })
             })
         }
         .margin({ top: SpacingTokens.MD })

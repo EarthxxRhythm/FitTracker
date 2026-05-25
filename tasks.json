@@ -159,6 +159,6 @@
     "id": 27,
     "category": "用户认证",
     "description": "用户应能完成本地登录和注册，并在会话恢复时保持登录状态。",
-    "passes": false
+    "passes": true
   }
 ]

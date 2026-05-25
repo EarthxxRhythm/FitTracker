@@ -4,6 +4,8 @@
  */
 export class AppRoutes {
   static readonly STARTUP: string = 'app/StartupPage'
+  static readonly LOGIN: string = 'pages/LoginPage'
+  static readonly REGISTER: string = 'pages/RegisterPage'
   static readonly GOAL_SETUP: string = 'features/onboarding/pages/GoalSetupPage'
   static readonly HOME: string = 'pages/HomePage'
   static readonly EXERCISE_DETAIL: string = 'features/exercise/pages/ExerciseDetailPage'

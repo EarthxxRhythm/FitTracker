@@ -5,14 +5,21 @@
 import { router } from '@kit.ArkUI'
 import { ColorTokens, FontTokens, SpacingTokens } from '../common/styles/DesignTokens'
 import { StartupDecision } from './AppState'
+import { AppRoutes } from './AppRoutes'
 import GoalRepository from '../shared/services/GoalRepository'
 import PersistenceFallbackService from '../shared/services/PersistenceFallbackService'
+import SessionManager from '../common/services/SessionManager'
 
 @Entry
 @Component
 export struct StartupPage {
   async aboutToAppear(): Promise<void> {
     try {
+      const isLoggedIn: boolean = await SessionManager.isLoggedIn(getContext(this))
+      if (!isLoggedIn) {
+        router.replaceUrl({ url: AppRoutes.LOGIN })
+        return
+      }
       const hasGoal: boolean = await GoalRepository.hasSavedGoal(getContext(this))
       if (!hasGoal && GoalRepository.getLastPersistenceError().length > 0) {
         PersistenceFallbackService.recordFallback(
