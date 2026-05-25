@@ -23,6 +23,8 @@ interface TokenPayload {
 }
 
 class SessionManager {
+  private lastPersistenceError: string = ''
+
   private base64Encode(str: string): string {
     const textEncoder = new util.TextEncoder()
     const uint8Array = textEncoder.encodeInto(str)
@@ -34,7 +36,7 @@ class SessionManager {
     const base64 = new util.Base64Helper()
     const uint8Array = base64.decodeSync(str)
     const textDecoder = util.TextDecoder.create('utf-8')
-    return textDecoder.decodeWithStream(uint8Array)
+    return textDecoder.decodeToString(uint8Array)
   }
 
   generateToken(phone: string): string {
@@ -80,30 +82,55 @@ class SessionManager {
     }
   }
 
+  getLastPersistenceError(): string {
+    return this.lastPersistenceError
+  }
+
   async saveToken(context: Context, token: string): Promise<void> {
-    const prefs = await preferences.getPreferences(context, STORE_NAME)
-    await prefs.put(TOKEN_KEY, token)
-    await prefs.flush()
+    this.lastPersistenceError = ''
+    try {
+      const prefs = await preferences.getPreferences(context, STORE_NAME)
+      await prefs.put(TOKEN_KEY, token)
+      await prefs.flush()
+    } catch (error) {
+      this.lastPersistenceError = 'save_token_failed'
+    }
   }
 
   async getToken(context: Context): Promise<string | null> {
-    const prefs = await preferences.getPreferences(context, STORE_NAME)
-    const token = await prefs.get(TOKEN_KEY, '') as string
-    return token || null
+    this.lastPersistenceError = ''
+    try {
+      const prefs = await preferences.getPreferences(context, STORE_NAME)
+      const token = await prefs.get(TOKEN_KEY, '') as string
+      return token || null
+    } catch (error) {
+      this.lastPersistenceError = 'load_token_failed'
+      return null
+    }
   }
 
   async clearToken(context: Context): Promise<void> {
-    const prefs = await preferences.getPreferences(context, STORE_NAME)
-    await prefs.delete(TOKEN_KEY)
-    await prefs.flush()
+    this.lastPersistenceError = ''
+    try {
+      const prefs = await preferences.getPreferences(context, STORE_NAME)
+      await prefs.delete(TOKEN_KEY)
+      await prefs.flush()
+    } catch (error) {
+      this.lastPersistenceError = 'clear_token_failed'
+    }
   }
 
   async isLoggedIn(context: Context): Promise<boolean> {
-    const token = await this.getToken(context)
-    if (!token) {
+    try {
+      const token = await this.getToken(context)
+      if (!token) {
+        return false
+      }
+      return this.validateToken(token)
+    } catch (error) {
+      this.lastPersistenceError = 'check_login_failed'
       return false
     }
-    return this.validateToken(token)
   }
 }
 

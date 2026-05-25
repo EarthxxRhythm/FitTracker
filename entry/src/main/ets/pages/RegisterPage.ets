@@ -12,6 +12,7 @@ import { validateRegisterForm } from '../common/utils/ValidationUtils'
 import AuthService from '../common/services/AuthService'
 import SessionManager from '../common/services/SessionManager'
 import { ColorTokens, FontTokens, SpacingTokens } from '../common/styles/DesignTokens'
+import { AppRoutes } from '../app/AppRoutes'
 
 @Entry
 @Component
@@ -22,9 +23,11 @@ struct RegisterPage {
   @State phoneError: string = ''
   @State passwordError: string = ''
   @State confirmError: string = ''
+  @State generalError: string = ''
   @State loading: boolean = false
 
   handleRegister(): void {
+    this.generalError = ''
     const result = validateRegisterForm(this.phone, this.password, this.confirmPassword)
     this.phoneError = result.phoneError
     this.passwordError = result.passwordError
@@ -35,11 +38,15 @@ struct RegisterPage {
     }
 
     this.loading = true
-    const authResult = AuthService.register(this.phone, this.password)
     setTimeout(async () => {
+      const authResult = await AuthService.registerLocal(getContext(this), this.phone, this.password)
       this.loading = false
-      await SessionManager.saveToken(getContext(this), authResult.token)
-      router.replaceUrl({ url: 'pages/Index' })
+      if (authResult.success) {
+        await SessionManager.saveToken(getContext(this), authResult.token)
+        router.replaceUrl({ url: AppRoutes.STARTUP })
+      } else {
+        this.generalError = authResult.message
+      }
     }, 500)
   }
 
@@ -91,6 +98,17 @@ struct RegisterPage {
           errorMessage: this.confirmError
         })
           .margin({ top: SpacingTokens.MD })
+
+        if (this.generalError.length > 0) {
+          Row() {
+            Text(this.generalError)
+              .fontSize(FontTokens.SMALL_SIZE)
+              .fontColor(ColorTokens.ERROR)
+              .width('100%')
+          }
+          .width('100%')
+          .margin({ top: SpacingTokens.SM })
+        }
       }
       .width('100%')
       .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD })
@@ -116,7 +134,7 @@ struct RegisterPage {
             .fontColor(ColorTokens.PRIMARY)
             .fontWeight(FontWeight.Medium)
             .onClick(() => {
-              router.pushUrl({ url: 'pages/LoginPage' })
+              router.pushUrl({ url: AppRoutes.LOGIN })
             })
         }
         .margin({ top: SpacingTokens.MD })

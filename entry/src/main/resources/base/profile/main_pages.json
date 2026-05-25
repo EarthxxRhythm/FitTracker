@@ -1,6 +1,8 @@
 {
   "src": [
     "app/StartupPage",
+    "pages/LoginPage",
+    "pages/RegisterPage",
     "features/onboarding/pages/GoalSetupPage",
     "pages/HomePage",
     "features/exercise/pages/ExerciseDetailPage",
