@@ -19,6 +19,8 @@ import statsDashboardServiceTest from './StatsDashboardService.test'
 import personalRecordServiceTest from './PersonalRecordService.test'
 import persistenceFallbackServiceTest from './PersistenceFallbackService.test'
 import authSessionFlowTest from './AuthSessionFlow.test'
+import targetLoopFlowTest from './TargetLoopFlow.test'
+import authRoutingFlowTest from './AuthRoutingFlow.test'
 
 export default function testsuite(): void {
   abilityTest()
@@ -42,4 +44,6 @@ export default function testsuite(): void {
   personalRecordServiceTest()
   persistenceFallbackServiceTest()
   authSessionFlowTest()
+  targetLoopFlowTest()
+  authRoutingFlowTest()
 }
