@@ -17,6 +17,7 @@ import userProfileServiceTest from './UserProfileService.test'
 import planEngineTest from './PlanEngine.test'
 import statsDashboardServiceTest from './StatsDashboardService.test'
 import personalRecordServiceTest from './PersonalRecordService.test'
+import persistenceFallbackServiceTest from './PersistenceFallbackService.test'
 
 export default function testsuite(): void {
   abilityTest()
@@ -38,4 +39,5 @@ export default function testsuite(): void {
   planEngineTest()
   statsDashboardServiceTest()
   personalRecordServiceTest()
+  persistenceFallbackServiceTest()
 }
