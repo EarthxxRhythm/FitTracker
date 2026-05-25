@@ -19,21 +19,22 @@
 每次接力前，必须优先读取以下文件：
 
 1. [AGENTS.md](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/AGENTS.md)
-2. [tasks.json](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/docs/tasks.json)
-3. [项目开发日志.txt](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/docs/项目开发日志.txt)
+2. [tasks.next.json](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/tasks.next.json)
+3. [项目开发日志.txt](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/项目开发日志.txt)
 4. 当前要修改的源码文件
 
 说明：
 
-- `docs/tasks.json` 是当前开发任务的唯一任务清单。
+- 根目录 `tasks.json` 是已完成 MVP 的历史记录，不再作为接力任务源。
+- `tasks.next.json` 是当前开发任务的唯一任务清单。
+- `docs/tasks.legacy.json` 仅作历史归档，不再作为 Coding Agent 自动读取的任务源。
 - `项目开发日志.txt` 是会话交接记录。
-- 如果 `features.json` 与 `docs/tasks.json` 冲突，以 `docs/tasks.json` 为准；如必须兼容旧流程，应在交接中明确说明差异。
 
 ## 3. 核心原则
 
 ### 3.1 一次只做一个功能点
 
-- 每次只处理 `docs/tasks.json` 中 `passes: false` 且 `id` 最小的那一项。
+- 每次只处理 `tasks.next.json` 中 `passes: false` 且 `id` 最小的那一项。
 - 不允许顺手完成多个功能。
 - 不允许为了“看起来更完整”而扩大需求范围。
 
@@ -61,7 +62,7 @@
 
 ### Step 1. 接手
 
-1. 读取 `docs/tasks.json`
+1. 读取 `tasks.next.json`
 2. 找到下一个 `passes: false` 的功能点
 3. 读取 `项目开发日志.txt`
 4. 查看 `git log --oneline -5`
