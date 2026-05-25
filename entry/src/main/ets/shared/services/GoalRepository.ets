@@ -11,6 +11,7 @@ const KEY_CURRENT_GOAL = 'current_goal'
 
 class GoalRepository {
   private currentGoal: UserGoal | undefined = undefined
+  private lastPersistenceError: string = ''
 
   saveLocalGoal(goal: UserGoal): void {
     this.currentGoal = this.copyGoal(goal)
@@ -31,11 +32,20 @@ class GoalRepository {
     this.currentGoal = undefined
   }
 
+  getLastPersistenceError(): string {
+    return this.lastPersistenceError
+  }
+
   async saveGoal(context: Context, goal: UserGoal): Promise<void> {
     this.saveLocalGoal(goal)
-    const prefs = await preferences.getPreferences(context, FitTrackerStores.GOAL)
-    await prefs.put(KEY_CURRENT_GOAL, JSON.stringify(this.copyGoal(goal)))
-    await prefs.flush()
+    this.lastPersistenceError = ''
+    try {
+      const prefs = await preferences.getPreferences(context, FitTrackerStores.GOAL)
+      await prefs.put(KEY_CURRENT_GOAL, JSON.stringify(this.copyGoal(goal)))
+      await prefs.flush()
+    } catch (error) {
+      this.lastPersistenceError = 'save_goal_failed'
+    }
   }
 
   async loadGoal(context: Context): Promise<UserGoal | undefined> {
@@ -43,8 +53,15 @@ class GoalRepository {
       return this.copyGoal(this.currentGoal)
     }
 
-    const prefs = await preferences.getPreferences(context, FitTrackerStores.GOAL)
-    const value = await prefs.get(KEY_CURRENT_GOAL, '') as string
+    let value: string = ''
+    this.lastPersistenceError = ''
+    try {
+      const prefs = await preferences.getPreferences(context, FitTrackerStores.GOAL)
+      value = await prefs.get(KEY_CURRENT_GOAL, '') as string
+    } catch (error) {
+      this.lastPersistenceError = 'load_goal_failed'
+      return undefined
+    }
     if (value.length === 0) {
       return undefined
     }
@@ -66,9 +83,14 @@ class GoalRepository {
 
   async clearSavedGoal(context: Context): Promise<void> {
     this.clearLocal()
-    const prefs = await preferences.getPreferences(context, FitTrackerStores.GOAL)
-    await prefs.delete(KEY_CURRENT_GOAL)
-    await prefs.flush()
+    this.lastPersistenceError = ''
+    try {
+      const prefs = await preferences.getPreferences(context, FitTrackerStores.GOAL)
+      await prefs.delete(KEY_CURRENT_GOAL)
+      await prefs.flush()
+    } catch (error) {
+      this.lastPersistenceError = 'clear_goal_failed'
+    }
   }
 
   private copyGoal(source: UserGoal): UserGoal {
