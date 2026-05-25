@@ -27,6 +27,8 @@ export struct WorkoutPreviewPage {
   @State scheduleSummary: string = ''
   @State exerciseCount: number = 0
   @State exercises: WorkoutPreviewExercise[] = []
+  @State hasFallback: boolean = false
+  @State fallbackNote: string = ''
 
   async aboutToAppear(): Promise<void> {
     this.loading = true
@@ -60,6 +62,8 @@ export struct WorkoutPreviewPage {
     this.scheduleSummary = preview.scheduleSummary
     this.exerciseCount = preview.exerciseCount
     this.exercises = this.copyPreviewExercises(preview.exercises)
+    this.hasFallback = preview.hasFallback
+    this.fallbackNote = preview.fallbackNote
   }
 
   getTodaySeed(): number {
@@ -89,7 +93,9 @@ export struct WorkoutPreviewPage {
       goalSummary: this.goalSummary,
       scheduleSummary: this.scheduleSummary,
       exerciseCount: this.exerciseCount,
-      exercises: this.copyPreviewExercises(this.exercises)
+      exercises: this.copyPreviewExercises(this.exercises),
+      hasFallback: this.hasFallback,
+      fallbackNote: this.fallbackNote
     }
     const targetRoute: string = WorkoutPreviewService.getStartWorkoutRoute(preview)
     if (targetRoute.length === 0) {
@@ -123,7 +129,8 @@ export struct WorkoutPreviewPage {
         targetReps: exercise.targetReps,
         intensityNote: exercise.intensityNote,
         alternativeExerciseIds: this.copyStringArray(exercise.alternativeExerciseIds),
-        alternativeNames: this.copyStringArray(exercise.alternativeNames)
+        alternativeNames: this.copyStringArray(exercise.alternativeNames),
+        selectionNote: exercise.selectionNote
       }
       values.push(item)
     }
@@ -264,6 +271,16 @@ export struct WorkoutPreviewPage {
                 .margin({ left: SpacingTokens.SM })
             }
             .width('100%')
+
+            if (this.hasFallback) {
+              Text(this.fallbackNote)
+                .fontSize(FontTokens.CAPTION_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
+                .width('100%')
+                .padding(SpacingTokens.SM)
+                .borderRadius(RadiusTokens.SM)
+                .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+            }
 
             ForEach(this.exercises, (exercise: WorkoutPreviewExercise, index: number) => {
               Column({ space: SpacingTokens.SM }) {

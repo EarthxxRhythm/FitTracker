@@ -22,6 +22,7 @@ export interface WorkoutPreviewExercise {
   intensityNote: string
   alternativeExerciseIds: string[]
   alternativeNames: string[]
+  selectionNote: string
 }
 
 export interface WorkoutPreviewSummary {
@@ -34,6 +35,8 @@ export interface WorkoutPreviewSummary {
   scheduleSummary: string
   exerciseCount: number
   exercises: WorkoutPreviewExercise[]
+  hasFallback: boolean
+  fallbackNote: string
 }
 
 class WorkoutPreviewService {
@@ -65,7 +68,9 @@ class WorkoutPreviewService {
         goalSummary: this.createGoalSummary(goal),
         scheduleSummary: '今天为休息日',
         exerciseCount: 0,
-        exercises: emptyExercises
+        exercises: emptyExercises,
+        hasFallback: false,
+        fallbackNote: ''
       }
       return emptySummary
     }
@@ -84,7 +89,9 @@ class WorkoutPreviewService {
       goalSummary: this.createGoalSummary(goal),
       scheduleSummary: this.createScheduleSummary(day, exercises.length),
       exerciseCount: exercises.length,
-      exercises: exercises
+      exercises: exercises,
+      hasFallback: this.hasFallback(exercises),
+      fallbackNote: this.createFallbackNote(exercises)
     }
     return summary
   }
@@ -160,9 +167,36 @@ class WorkoutPreviewService {
       targetReps: planned.targetReps,
       intensityNote: planned.intensityNote,
       alternativeExerciseIds: alternativeIds,
-      alternativeNames: alternativeNames
+      alternativeNames: alternativeNames,
+      selectionNote: planned.selectionNote
     }
     return item
+  }
+
+  private hasFallback(exercises: WorkoutPreviewExercise[]): boolean {
+    for (let index = 0; index < exercises.length; index++) {
+      if (this.isFallbackNote(exercises[index].selectionNote)) {
+        return true
+      }
+    }
+    return false
+  }
+
+  private createFallbackNote(exercises: WorkoutPreviewExercise[]): string {
+    for (let index = 0; index < exercises.length; index++) {
+      const note: string = exercises[index].selectionNote
+      if (this.isFallbackNote(note)) {
+        return note
+      }
+    }
+    return ''
+  }
+
+  private isFallbackNote(selectionNote: string): boolean {
+    if (selectionNote.length === 0) {
+      return false
+    }
+    return selectionNote.indexOf('精确匹配') !== 0
   }
 
   private getAlternativeNames(alternativeExerciseIds: string[]): string[] {

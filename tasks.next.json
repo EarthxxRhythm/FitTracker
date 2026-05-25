@@ -15,7 +15,7 @@
     "id": 3,
     "category": "计划引擎",
     "description": "让 PlanEngine 在精确候选动作为空时逐级放宽筛选条件，并在训练预览页展示可解释的兜底提示。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 4,

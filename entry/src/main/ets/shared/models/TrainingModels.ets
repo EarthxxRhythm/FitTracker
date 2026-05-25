@@ -52,6 +52,7 @@ export interface PlannedExercise {
   targetReps: string
   intensityNote: string
   alternativeExerciseIds: string[]
+  selectionNote: string
 }
 
 export interface PlanDay {
@@ -191,7 +192,8 @@ export function createPlannedExercise(
   targetSets: number,
   targetReps: string,
   intensityNote: string,
-  alternativeExerciseIds: string[]
+  alternativeExerciseIds: string[],
+  selectionNote: string = ''
 ): PlannedExercise {
   const item: PlannedExercise = {
     plannedExerciseId: plannedExerciseId,
@@ -199,7 +201,8 @@ export function createPlannedExercise(
     targetSets: targetSets,
     targetReps: targetReps,
     intensityNote: intensityNote,
-    alternativeExerciseIds: alternativeExerciseIds
+    alternativeExerciseIds: alternativeExerciseIds,
+    selectionNote: selectionNote
   }
   return item
 }
