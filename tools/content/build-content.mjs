@@ -7,6 +7,14 @@ const contentDir = resolve(root, 'content/exercises')
 const outputPath = resolve(root, 'entry/src/main/ets/generated/LocalExerciseContent.ets')
 const sourceFileKey = '__sourceFile'
 const sourceLineKey = '__sourceLine'
+const minimumExerciseCount = 30
+const recommendedExerciseCount = 50
+const allowedDifficulties = ['beginner', 'intermediate', 'advanced']
+const allowedGoalTags = ['hypertrophy', 'strength', 'fat_loss', 'posture', 'stability']
+const minimumCoveragePerGoal = 3
+const minimumCoveragePerMuscle = 3
+const minimumCoveragePerEquipment = 2
+const minimumCoveragePerDifficulty = 2
 
 function readJsonl(fileName) {
   const path = resolve(contentDir, fileName)
@@ -90,8 +98,8 @@ function validate(muscles, equipment, exercises) {
   const muscleIds = new Set(muscles.map((item) => item.muscleId))
   const equipmentIds = new Set(equipment.map((item) => item.equipmentId))
   const exerciseIds = new Set(exercises.map((item) => item.exerciseId))
-  const allowedDifficulties = new Set(['beginner', 'intermediate', 'advanced'])
-  const allowedGoalTags = new Set(['hypertrophy', 'strength', 'fat_loss', 'posture', 'stability'])
+  const allowedDifficultySet = new Set(allowedDifficulties)
+  const allowedGoalTagSet = new Set(allowedGoalTags)
 
   for (const exercise of exercises) {
     const label = `exercise ${exercise.exerciseId || '<missing>'}`
@@ -110,8 +118,8 @@ function validate(muscles, equipment, exercises) {
     requireStringArray(exercise, 'safetyNotes', label)
     requireStringArray(exercise, 'alternativeExerciseIds', label)
     requirePositiveInteger(exercise, 'contentVersion', label)
-    if (!allowedDifficulties.has(exercise.difficulty)) {
-      throw new Error(`${label}.difficulty is invalid at ${sourceOf(exercise)}`)
+    if (!allowedDifficultySet.has(exercise.difficulty)) {
+      throw new Error(`${label}.difficulty is invalid at ${sourceOf(exercise)}; allowed values: ${allowedDifficulties.join(', ')}`)
     }
     if (exercise.primaryMuscleIds.length === 0) {
       throw new Error(`${label} must have at least one primary muscle at ${sourceOf(exercise)}`)
@@ -136,8 +144,8 @@ function validate(muscles, equipment, exercises) {
       }
     }
     for (const goalTag of exercise.goalTags) {
-      if (!allowedGoalTags.has(goalTag)) {
-        throw new Error(`${label} references unknown goal tag ${goalTag} at ${sourceOf(exercise)}`)
+      if (!allowedGoalTagSet.has(goalTag)) {
+        throw new Error(`${label} references unknown goal tag ${goalTag} at ${sourceOf(exercise)}; allowed values: ${allowedGoalTags.join(', ')}`)
       }
     }
     for (const alternativeId of exercise.alternativeExerciseIds) {
@@ -145,7 +153,106 @@ function validate(muscles, equipment, exercises) {
         throw new Error(`${label} references unknown alternative ${alternativeId} at ${sourceOf(exercise)}`)
       }
     }
+    validateLocalMediaField(exercise, 'videoUrl', label)
+    validateLocalMediaField(exercise, 'coverUrl', label)
   }
+  validateCoverage(muscles, equipment, exercises)
+}
+
+function validateLocalMediaField(exercise, field, label) {
+  const value = exercise[field] || ''
+  if (typeof value !== 'string') {
+    throw new Error(`${label}.${field} must be a string at ${sourceOf(exercise)}`)
+  }
+  if (value.length === 0) {
+    return
+  }
+  if (value.startsWith('http://') || value.startsWith('https://')) {
+    throw new Error(`${label}.${field} must use a local placeholder or self-hosted asset path, not remote API/media URL, at ${sourceOf(exercise)}`)
+  }
+  if (!value.startsWith('local://') && !value.startsWith('/')) {
+    throw new Error(`${label}.${field} must start with local:// or / at ${sourceOf(exercise)}`)
+  }
+}
+
+function validateCoverage(muscles, equipment, exercises) {
+  const coverage = createCoverageReport(muscles, equipment, exercises)
+  const issues = []
+  if (exercises.length < minimumExerciseCount) {
+    issues.push(`exercise count ${exercises.length} is below minimum ${minimumExerciseCount}; target range is ${minimumExerciseCount}-${recommendedExerciseCount}`)
+  }
+  appendCoverageIssues(issues, coverage.goalCounts, allowedGoalTags, minimumCoveragePerGoal, 'goal tag')
+  appendCoverageIssues(issues, coverage.equipmentCounts, equipment.map((item) => item.equipmentId), minimumCoveragePerEquipment, 'equipment')
+  appendCoverageIssues(issues, coverage.muscleCounts, muscles.map((item) => item.muscleId), minimumCoveragePerMuscle, 'primary muscle')
+  appendCoverageIssues(issues, coverage.difficultyCounts, allowedDifficulties, minimumCoveragePerDifficulty, 'difficulty')
+
+  if (issues.length > 0) {
+    throw new Error(`content coverage check failed:\n${issues.map((issue) => `- ${issue}`).join('\n')}\n${formatCoverageReport(coverage)}`)
+  }
+}
+
+function appendCoverageIssues(issues, counts, ids, minimum, label) {
+  for (const id of ids) {
+    const count = counts.get(id) || 0
+    if (count < minimum) {
+      issues.push(`${label} ${id} has ${count} exercise(s), requires at least ${minimum}`)
+    }
+  }
+}
+
+function createCoverageReport(muscles, equipment, exercises) {
+  const goalCounts = createCountMap(allowedGoalTags)
+  const equipmentCounts = createCountMap(equipment.map((item) => item.equipmentId))
+  const muscleCounts = createCountMap(muscles.map((item) => item.muscleId))
+  const difficultyCounts = createCountMap(allowedDifficulties)
+
+  for (const exercise of exercises) {
+    incrementCount(difficultyCounts, exercise.difficulty)
+    for (const goalTag of exercise.goalTags) {
+      incrementCount(goalCounts, goalTag)
+    }
+    for (const equipmentId of exercise.equipmentIds) {
+      incrementCount(equipmentCounts, equipmentId)
+    }
+    for (const muscleId of exercise.primaryMuscleIds) {
+      incrementCount(muscleCounts, muscleId)
+    }
+  }
+
+  return {
+    exerciseCount: exercises.length,
+    goalCounts,
+    equipmentCounts,
+    muscleCounts,
+    difficultyCounts
+  }
+}
+
+function createCountMap(ids) {
+  const counts = new Map()
+  for (const id of ids) {
+    counts.set(id, 0)
+  }
+  return counts
+}
+
+function incrementCount(counts, id) {
+  counts.set(id, (counts.get(id) || 0) + 1)
+}
+
+function formatCoverageReport(coverage) {
+  return [
+    'coverage report:',
+    `- exercises: ${coverage.exerciseCount} (target ${minimumExerciseCount}-${recommendedExerciseCount})`,
+    `- goals: ${formatCounts(coverage.goalCounts)}`,
+    `- equipment: ${formatCounts(coverage.equipmentCounts)}`,
+    `- muscles: ${formatCounts(coverage.muscleCounts)}`,
+    `- difficulties: ${formatCounts(coverage.difficultyCounts)}`
+  ].join('\n')
+}
+
+function formatCounts(counts) {
+  return Array.from(counts.entries()).map(([id, count]) => `${id}=${count}`).join(', ')
 }
 
 function q(value) {
@@ -209,4 +316,5 @@ const exercises = readJsonl('exercises.zh-CN.jsonl')
 validate(muscles, equipment, exercises)
 mkdirSync(dirname(outputPath), { recursive: true })
 writeFileSync(outputPath, render(muscles, equipment, exercises), 'utf8')
+console.log(formatCoverageReport(createCoverageReport(muscles, equipment, exercises)))
 console.log(`Generated ${outputPath}`)

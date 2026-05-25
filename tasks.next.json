@@ -3,13 +3,13 @@
     "id": 1,
     "category": "动作内容",
     "description": "扩充 content/exercises/exercises.zh-CN.jsonl 到至少 30 个核心动作，并覆盖胸、背、腿、肩、手臂、核心六类肌群。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 2,
     "category": "动作内容",
     "description": "为 tools/content/build-content.mjs 增加内容覆盖报告，按目标、器械、肌群和难度统计缺口并在严重缺口时失败。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 3,

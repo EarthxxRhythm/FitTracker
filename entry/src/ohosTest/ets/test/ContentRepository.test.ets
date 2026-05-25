@@ -3,6 +3,15 @@ import { ExerciseContent, UserGoal, createUserGoal } from '../../../main/ets/sha
 import ContentRepository, { ExerciseDetailViewModel, ExerciseLibraryItem } from '../../../main/ets/shared/services/ContentRepository'
 import PlanEngine from '../../../main/ets/shared/services/PlanEngine'
 
+function hasValue(values: string[], targetValue: string): boolean {
+  for (let index = 0; index < values.length; index++) {
+    if (values[index] === targetValue) {
+      return true
+    }
+  }
+  return false
+}
+
 export default function contentRepositoryTest(): void {
   describe('ContentRepository', () => {
     it('returns Chinese labels for local exercise metadata', 0, () => {
@@ -35,12 +44,45 @@ export default function contentRepositoryTest(): void {
 
     it('builds local exercise library display rows with key metadata', 0, () => {
       const rows: ExerciseLibraryItem[] = ContentRepository.getExerciseLibraryItems()
-      expect(rows.length).assertLarger(0)
+      expect(rows.length).assertLarger(29)
       expect(rows[0].exerciseId).assertEqual('ex_barbell_bench_press')
       expect(rows[0].name).assertEqual('杠铃卧推')
       expect(rows[0].primaryMuscleName).assertEqual('胸部')
       expect(rows[0].equipmentText).assertEqual('杠铃')
       expect(rows[0].difficultyText).assertEqual('进阶')
+    })
+
+    it('keeps expanded exercise content local and covered across key categories', 0, () => {
+      const exercises: ExerciseContent[] = ContentRepository.getExercises()
+      let advancedCount: number = 0
+      let bandCount: number = 0
+      let stabilityCount: number = 0
+      let localVideoCount: number = 0
+
+      for (let index = 0; index < exercises.length; index++) {
+        const exercise: ExerciseContent = exercises[index]
+        if (exercise.difficulty === 'advanced') {
+          advancedCount++
+        }
+        if (hasValue(exercise.equipmentIds, 'eq_band')) {
+          bandCount++
+        }
+        if (hasValue(exercise.goalTags, 'stability')) {
+          stabilityCount++
+        }
+        if (exercise.videoUrl.length > 0) {
+          expect(exercise.videoUrl.indexOf('http://')).assertEqual(-1)
+          expect(exercise.videoUrl.indexOf('https://')).assertEqual(-1)
+          expect(exercise.videoUrl.indexOf('local://')).assertEqual(0)
+          localVideoCount++
+        }
+      }
+
+      expect(exercises.length).assertLarger(29)
+      expect(advancedCount).assertLarger(1)
+      expect(bandCount).assertLarger(1)
+      expect(stabilityCount).assertLarger(2)
+      expect(localVideoCount).assertLarger(0)
     })
 
     it('filters local exercise library rows by goal equipment muscle and difficulty', 0, () => {
