@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "category": "动作内容",
+    "description": "扩充 content/exercises/exercises.zh-CN.jsonl 到至少 30 个核心动作，并覆盖胸、背、腿、肩、手臂、核心六类肌群。",
+    "passes": false
+  },
+  {
+    "id": 2,
+    "category": "动作内容",
+    "description": "为 tools/content/build-content.mjs 增加内容覆盖报告，按目标、器械、肌群和难度统计缺口并在严重缺口时失败。",
+    "passes": false
+  },
+  {
+    "id": 3,
+    "category": "计划引擎",
+    "description": "让 PlanEngine 在精确候选动作为空时逐级放宽筛选条件，并在训练预览页展示可解释的兜底提示。",
+    "passes": false
+  },
+  {
+    "id": 4,
+    "category": "自动化测试",
+    "description": "沉淀一条 DevEco 模拟器或 Midscene 视觉自动化回归链路，覆盖目标设置、首页、训练预览、训练执行、复盘和回顾。",
+    "passes": false
+  },
+  {
+    "id": 5,
+    "category": "本地数据库",
+    "description": "设计自建动作与视频数据库的最小表结构和 JSONL 导入适配层，不接入 MuscleWiki 官方 API。",
+    "passes": false
+  },
+  {
+    "id": 6,
+    "category": "页面治理",
+    "description": "按 docs/旧页面治理清单.md 的结论迁移或归档旧页面，确保 main_pages.json 只保留新版主线和明确需要的认证入口。",
+    "passes": false
+  }
+]
