@@ -141,7 +141,7 @@
     "id": 24,
     "category": "统计",
     "description": "用户应能查看本周训练统计和日历热力图。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 25,

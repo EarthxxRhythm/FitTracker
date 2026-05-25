@@ -16,6 +16,11 @@ import ReviewDashboardService, {
 import GoalRepository from '../../../shared/services/GoalRepository'
 import WorkoutRepository from '../../../shared/services/WorkoutRepository'
 import { UserGoal, WorkoutSession } from '../../../shared/models/TrainingModels'
+import StatsDashboardService, {
+  CalendarHeatmapDay,
+  CalendarHeatmapRow,
+  StatsDashboardSummary
+} from '../../../shared/services/StatsDashboardService'
 
 @Entry
 @Component
@@ -38,6 +43,13 @@ export struct ReviewHomePage {
   @State adjustmentStatusText: string = ''
   @State recentRecords: ReviewRecentSessionRecord[] = []
   @State trendSummary: ReviewTrendSummary = ReviewDashboardService.createEmptyTrendSummary()
+  @State weeklySessionCount: number = 0
+  @State weeklyDurationText: string = '0 分钟'
+  @State weeklyTotalSets: number = 0
+  @State weeklyTotalVolume: number = 0
+  @State weeklyDateRangeText: string = ''
+  @State heatmapMonthTitle: string = ''
+  @State heatmapRows: CalendarHeatmapRow[] = []
   currentGoal: UserGoal | undefined = undefined
   currentAdjustmentAction: ReviewGoalAdjustmentAction = ReviewDashboardService.createEmptyGoalAdjustmentAction()
 
@@ -45,7 +57,9 @@ export struct ReviewHomePage {
     this.loading = true
     const sessions: WorkoutSession[] = WorkoutRepository.getSessions()
     const summary: ReviewDashboardSummary = ReviewDashboardService.createSummary(sessions)
+    const statsSummary: StatsDashboardSummary = StatsDashboardService.createSummary(sessions, Date.now())
     this.applySummary(summary)
+    this.applyStatsSummary(statsSummary)
     try {
       const goal: UserGoal | undefined = await GoalRepository.loadGoal(getContext(this))
       this.currentGoal = goal
@@ -59,6 +73,16 @@ export struct ReviewHomePage {
       this.applyAdjustmentAction(ReviewDashboardService.createEmptyGoalAdjustmentAction())
     }
     this.loading = false
+  }
+
+  applyStatsSummary(summary: StatsDashboardSummary): void {
+    this.weeklySessionCount = summary.weeklyStats.sessionCount
+    this.weeklyDurationText = summary.weeklyStats.totalDurationText
+    this.weeklyTotalSets = summary.weeklyStats.totalSets
+    this.weeklyTotalVolume = summary.weeklyStats.totalVolume
+    this.weeklyDateRangeText = summary.weeklyStats.dateRangeText
+    this.heatmapMonthTitle = summary.monthTitle
+    this.heatmapRows = this.copyHeatmapRows(summary.heatmapRows)
   }
 
   applySummary(summary: ReviewDashboardSummary): void {
@@ -165,6 +189,62 @@ export struct ReviewHomePage {
     return this.averageCompletionRate.toString() + '%'
   }
 
+  copyHeatmapRows(source: CalendarHeatmapRow[]): CalendarHeatmapRow[] {
+    const rows: CalendarHeatmapRow[] = []
+    for (let rowIndex = 0; rowIndex < source.length; rowIndex++) {
+      const sourceRow: CalendarHeatmapRow = source[rowIndex]
+      const days: CalendarHeatmapDay[] = []
+      for (let dayIndex = 0; dayIndex < sourceRow.days.length; dayIndex++) {
+        const sourceDay: CalendarHeatmapDay = sourceRow.days[dayIndex]
+        const day: CalendarHeatmapDay = {
+          dateText: sourceDay.dateText,
+          dayOfMonth: sourceDay.dayOfMonth,
+          isCurrentMonth: sourceDay.isCurrentMonth,
+          sessionCount: sourceDay.sessionCount,
+          totalVolume: sourceDay.totalVolume,
+          level: sourceDay.level,
+          accessibilityText: sourceDay.accessibilityText
+        }
+        days.push(day)
+      }
+      const row: CalendarHeatmapRow = {
+        rowId: sourceRow.rowId,
+        days: days
+      }
+      rows.push(row)
+    }
+    return rows
+  }
+
+  getHeatmapDayColor(day: CalendarHeatmapDay): string {
+    if (!day.isCurrentMonth) {
+      return ColorTokens.BG_SECONDARY
+    }
+    if (day.level <= 0) {
+      return ColorTokens.SURFACE_ELEVATED
+    }
+    if (day.level === 1) {
+      return ColorTokens.OVERLAY_PRIMARY
+    }
+    if (day.level === 2) {
+      return ColorTokens.PRIMARY_DISABLED
+    }
+    if (day.level === 3) {
+      return ColorTokens.PRIMARY
+    }
+    return ColorTokens.ACCENT_LIGHT
+  }
+
+  getHeatmapTextColor(day: CalendarHeatmapDay): string {
+    if (!day.isCurrentMonth) {
+      return ColorTokens.TEXT_DISABLED
+    }
+    if (day.level >= 2) {
+      return ColorTokens.TEXT_ON_PRIMARY
+    }
+    return ColorTokens.TEXT_SECONDARY
+  }
+
   @Builder
   buildMetric(label: string, value: string) {
     Column({ space: SpacingTokens.XS }) {
@@ -184,6 +264,108 @@ export struct ReviewHomePage {
     .borderRadius(RadiusTokens.SM)
     .backgroundColor(ColorTokens.SURFACE_PRIMARY)
     .alignItems(HorizontalAlign.Center)
+  }
+
+  @Builder
+  buildWeeklyStats() {
+    Column({ space: SpacingTokens.MD }) {
+      Row() {
+        Column({ space: SpacingTokens.XS }) {
+          Text('本周训练统计')
+            .fontSize(FontTokens.TITLE_SIZE)
+            .fontWeight(FontTokens.TITLE_WEIGHT)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
+
+          Text(this.weeklyDateRangeText)
+            .fontSize(FontTokens.CAPTION_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
+
+        Text(this.weeklySessionCount.toString() + ' 次')
+          .fontSize(FontTokens.TITLE_SIZE)
+          .fontWeight(FontTokens.TITLE_WEIGHT)
+          .fontColor(ColorTokens.PRIMARY)
+      }
+      .width('100%')
+
+      Row({ space: SpacingTokens.SM }) {
+        this.buildMetric('本周时长', this.weeklyDurationText)
+        this.buildMetric('本周组数', this.weeklyTotalSets.toString())
+      }
+      .width('100%')
+
+      Row({ space: SpacingTokens.SM }) {
+        this.buildMetric('本周训练量', this.weeklyTotalVolume.toString() + ' kg')
+        this.buildMetric('训练天数', this.weeklySessionCount.toString())
+      }
+      .width('100%')
+    }
+    .width('100%')
+    .padding(SpacingTokens.MD)
+    .borderRadius(RadiusTokens.SM)
+    .backgroundColor(ColorTokens.BG_SECONDARY)
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  buildHeatmapDay(day: CalendarHeatmapDay) {
+    Text(day.dayOfMonth.toString())
+      .fontSize(FontTokens.SMALL_SIZE)
+      .fontColor(this.getHeatmapTextColor(day))
+      .textAlign(TextAlign.Center)
+      .width(TouchTokens.CALENDAR_CELL)
+      .height(TouchTokens.CALENDAR_CELL)
+      .backgroundColor(this.getHeatmapDayColor(day))
+      .borderRadius(RadiusTokens.XS)
+  }
+
+  @Builder
+  buildCalendarHeatmap() {
+    Column({ space: SpacingTokens.SM }) {
+      Row() {
+        Text('训练日历热力图')
+          .fontSize(FontTokens.TITLE_SIZE)
+          .fontWeight(FontTokens.TITLE_WEIGHT)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+          .layoutWeight(1)
+
+        Text(this.heatmapMonthTitle)
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+      }
+      .width('100%')
+
+      Row({ space: SpacingTokens.XS }) {
+        Text('一').fontSize(FontTokens.SMALL_SIZE).fontColor(ColorTokens.TEXT_SECONDARY).width(TouchTokens.CALENDAR_CELL).textAlign(TextAlign.Center)
+        Text('二').fontSize(FontTokens.SMALL_SIZE).fontColor(ColorTokens.TEXT_SECONDARY).width(TouchTokens.CALENDAR_CELL).textAlign(TextAlign.Center)
+        Text('三').fontSize(FontTokens.SMALL_SIZE).fontColor(ColorTokens.TEXT_SECONDARY).width(TouchTokens.CALENDAR_CELL).textAlign(TextAlign.Center)
+        Text('四').fontSize(FontTokens.SMALL_SIZE).fontColor(ColorTokens.TEXT_SECONDARY).width(TouchTokens.CALENDAR_CELL).textAlign(TextAlign.Center)
+        Text('五').fontSize(FontTokens.SMALL_SIZE).fontColor(ColorTokens.TEXT_SECONDARY).width(TouchTokens.CALENDAR_CELL).textAlign(TextAlign.Center)
+        Text('六').fontSize(FontTokens.SMALL_SIZE).fontColor(ColorTokens.TEXT_SECONDARY).width(TouchTokens.CALENDAR_CELL).textAlign(TextAlign.Center)
+        Text('日').fontSize(FontTokens.SMALL_SIZE).fontColor(ColorTokens.TEXT_SECONDARY).width(TouchTokens.CALENDAR_CELL).textAlign(TextAlign.Center)
+      }
+      .width('100%')
+
+      ForEach(this.heatmapRows, (row: CalendarHeatmapRow) => {
+        Row({ space: SpacingTokens.XS }) {
+          ForEach(row.days, (day: CalendarHeatmapDay) => {
+            this.buildHeatmapDay(day)
+          }, (day: CalendarHeatmapDay) => day.dateText)
+        }
+        .width('100%')
+      }, (row: CalendarHeatmapRow) => row.rowId)
+
+      Text('颜色越亮代表当天训练量越高')
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+    }
+    .width('100%')
+    .padding(SpacingTokens.MD)
+    .borderRadius(RadiusTokens.SM)
+    .backgroundColor(ColorTokens.BG_SECONDARY)
+    .alignItems(HorizontalAlign.Start)
   }
 
   @Builder
@@ -272,6 +454,9 @@ export struct ReviewHomePage {
 
         if (!this.loading && !this.hasSessions) {
           Column({ space: SpacingTokens.MD }) {
+            this.buildWeeklyStats()
+
+            this.buildCalendarHeatmap()
             Text('还没有训练记录')
               .fontSize(FontTokens.TITLE_SIZE)
               .fontWeight(FontTokens.TITLE_WEIGHT)
@@ -300,6 +485,9 @@ export struct ReviewHomePage {
 
         if (!this.loading && this.hasSessions) {
           Column({ space: SpacingTokens.MD }) {
+            this.buildWeeklyStats()
+
+            this.buildCalendarHeatmap()
             Column({ space: SpacingTokens.SM }) {
               Row() {
                 Text('平均完成率')
