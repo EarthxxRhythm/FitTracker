@@ -184,7 +184,7 @@ export const LOCAL_EXERCISES: ExerciseContent[] = [
     [],
     ["eq_machine"],
     "beginner",
-    ["hypertrophy"],
+    ["hypertrophy", "strength"],
     "",
     "",
     ["坐入器械并让下背贴住靠垫", "双脚放在踏板上，解除安全锁", "控制屈膝下放，再推回但不锁死膝盖"],

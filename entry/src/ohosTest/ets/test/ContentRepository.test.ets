@@ -72,6 +72,19 @@ export default function contentRepositoryTest(): void {
       expect(candidates[0].exerciseId).assertEqual('ex_push_up')
     })
 
+    it('reads machine strength candidates from local JSONL content', 0, () => {
+      const candidates: ExerciseContent[] = ContentRepository.getCandidateExercises(
+        'strength',
+        'beginner',
+        ['eq_machine'],
+        'muscle_legs',
+        []
+      )
+      expect(candidates.length).assertLarger(0)
+      expect(candidates[0].exerciseId).assertEqual('ex_machine_leg_press')
+      expect(candidates[0].equipmentIds[0]).assertEqual('eq_machine')
+    })
+
     it('lets plan engine select bodyweight beginner actions for hypertrophy goal', 0, () => {
       const goal: UserGoal = createUserGoal(
         'test_goal',
