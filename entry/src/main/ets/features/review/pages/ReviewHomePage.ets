@@ -21,6 +21,9 @@ import StatsDashboardService, {
   CalendarHeatmapRow,
   StatsDashboardSummary
 } from '../../../shared/services/StatsDashboardService'
+import PersonalRecordService, {
+  ExercisePersonalRecord
+} from '../../../shared/services/PersonalRecordService'
 
 @Entry
 @Component
@@ -50,6 +53,7 @@ export struct ReviewHomePage {
   @State weeklyDateRangeText: string = ''
   @State heatmapMonthTitle: string = ''
   @State heatmapRows: CalendarHeatmapRow[] = []
+  @State personalRecords: ExercisePersonalRecord[] = []
   currentGoal: UserGoal | undefined = undefined
   currentAdjustmentAction: ReviewGoalAdjustmentAction = ReviewDashboardService.createEmptyGoalAdjustmentAction()
 
@@ -60,6 +64,7 @@ export struct ReviewHomePage {
     const statsSummary: StatsDashboardSummary = StatsDashboardService.createSummary(sessions, Date.now())
     this.applySummary(summary)
     this.applyStatsSummary(statsSummary)
+    this.personalRecords = this.copyPersonalRecords(PersonalRecordService.createRecords(sessions))
     try {
       const goal: UserGoal | undefined = await GoalRepository.loadGoal(getContext(this))
       this.currentGoal = goal
@@ -214,6 +219,23 @@ export struct ReviewHomePage {
       rows.push(row)
     }
     return rows
+  }
+
+  copyPersonalRecords(source: ExercisePersonalRecord[]): ExercisePersonalRecord[] {
+    const records: ExercisePersonalRecord[] = []
+    for (let index = 0; index < source.length; index++) {
+      const sourceRecord: ExercisePersonalRecord = source[index]
+      const record: ExercisePersonalRecord = {
+        exerciseId: sourceRecord.exerciseId,
+        exerciseName: sourceRecord.exerciseName,
+        bestOneRepMax: sourceRecord.bestOneRepMax,
+        bestWeight: sourceRecord.bestWeight,
+        bestReps: sourceRecord.bestReps,
+        bestDateText: sourceRecord.bestDateText
+      }
+      records.push(record)
+    }
+    return records
   }
 
   getHeatmapDayColor(day: CalendarHeatmapDay): string {
@@ -436,6 +458,60 @@ export struct ReviewHomePage {
     .alignItems(HorizontalAlign.Start)
   }
 
+  @Builder
+  buildPersonalRecord(record: ExercisePersonalRecord) {
+    Column({ space: SpacingTokens.SM }) {
+      Row() {
+        Column({ space: SpacingTokens.XS }) {
+          Text(record.exerciseName)
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
+
+          Text(record.bestDateText)
+            .fontSize(FontTokens.CAPTION_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
+
+        Text(record.bestOneRepMax.toString() + ' kg')
+          .fontSize(FontTokens.TITLE_SIZE)
+          .fontWeight(FontTokens.TITLE_WEIGHT)
+          .fontColor(ColorTokens.PRIMARY)
+      }
+      .width('100%')
+
+      Row({ space: SpacingTokens.SM }) {
+        this.buildMetric('最佳 1RM', record.bestOneRepMax.toString() + ' kg')
+        this.buildMetric('最佳重量', record.bestWeight.toString() + ' kg')
+        this.buildMetric('最佳次数', record.bestReps.toString())
+      }
+      .width('100%')
+    }
+    .width('100%')
+    .padding(SpacingTokens.MD)
+    .borderRadius(RadiusTokens.SM)
+    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  buildPersonalRecords() {
+    Column({ space: SpacingTokens.SM }) {
+      Text('动作个人纪录')
+        .fontSize(FontTokens.TITLE_SIZE)
+        .fontWeight(FontTokens.TITLE_WEIGHT)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+
+      ForEach(this.personalRecords, (record: ExercisePersonalRecord) => {
+        this.buildPersonalRecord(record)
+      }, (record: ExercisePersonalRecord) => record.exerciseId)
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
+  }
+
   build() {
     Scroll() {
       Column({ space: SpacingTokens.LG }) {
@@ -550,6 +626,10 @@ export struct ReviewHomePage {
             .alignItems(HorizontalAlign.Start)
 
             this.buildTrendSummary()
+
+            if (this.personalRecords.length > 0) {
+              this.buildPersonalRecords()
+            }
 
             Column({ space: SpacingTokens.SM }) {
               Text('下次调整建议')
