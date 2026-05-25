@@ -44,9 +44,15 @@ function requireStringArray(record, field, label) {
     throw new Error(`${label}.${field} must be an array at ${sourceOf(record)}`)
   }
   for (let index = 0; index < record[field].length; index++) {
-    if (typeof record[field][index] !== 'string') {
-      throw new Error(`${label}.${field}[${index}] must be a string at ${sourceOf(record)}`)
+    if (typeof record[field][index] !== 'string' || record[field][index].trim().length === 0) {
+      throw new Error(`${label}.${field}[${index}] must be a non-empty string at ${sourceOf(record)}`)
     }
+  }
+}
+
+function requirePositiveInteger(record, field, label) {
+  if (!Number.isInteger(record[field]) || record[field] < 1) {
+    throw new Error(`${label}.${field} must be a positive integer at ${sourceOf(record)}`)
   }
 }
 
@@ -85,6 +91,7 @@ function validate(muscles, equipment, exercises) {
   const equipmentIds = new Set(equipment.map((item) => item.equipmentId))
   const exerciseIds = new Set(exercises.map((item) => item.exerciseId))
   const allowedDifficulties = new Set(['beginner', 'intermediate', 'advanced'])
+  const allowedGoalTags = new Set(['hypertrophy', 'strength', 'fat_loss', 'posture', 'stability'])
 
   for (const exercise of exercises) {
     const label = `exercise ${exercise.exerciseId || '<missing>'}`
@@ -102,6 +109,7 @@ function validate(muscles, equipment, exercises) {
     requireStringArray(exercise, 'commonMistakes', label)
     requireStringArray(exercise, 'safetyNotes', label)
     requireStringArray(exercise, 'alternativeExerciseIds', label)
+    requirePositiveInteger(exercise, 'contentVersion', label)
     if (!allowedDifficulties.has(exercise.difficulty)) {
       throw new Error(`${label}.difficulty is invalid at ${sourceOf(exercise)}`)
     }
@@ -110,6 +118,9 @@ function validate(muscles, equipment, exercises) {
     }
     if (exercise.equipmentIds.length === 0) {
       throw new Error(`${label} must have at least one equipment at ${sourceOf(exercise)}`)
+    }
+    if (exercise.goalTags.length === 0) {
+      throw new Error(`${label} must have at least one goal tag at ${sourceOf(exercise)}`)
     }
     if (exercise.steps.length === 0) {
       throw new Error(`${label} must have steps at ${sourceOf(exercise)}`)
@@ -122,6 +133,11 @@ function validate(muscles, equipment, exercises) {
     for (const equipmentId of exercise.equipmentIds) {
       if (!equipmentIds.has(equipmentId)) {
         throw new Error(`${label} references unknown equipment ${equipmentId} at ${sourceOf(exercise)}`)
+      }
+    }
+    for (const goalTag of exercise.goalTags) {
+      if (!allowedGoalTags.has(goalTag)) {
+        throw new Error(`${label} references unknown goal tag ${goalTag} at ${sourceOf(exercise)}`)
       }
     }
     for (const alternativeId of exercise.alternativeExerciseIds) {

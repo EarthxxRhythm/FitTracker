@@ -58,6 +58,31 @@ export default function planEngineTest(): void {
       }
     })
 
+    it('uses local JSONL content to generate strength plan with machine equipment', 0, () => {
+      const goal: UserGoal = createUserGoal(
+        'plan_engine_machine_strength_goal',
+        'strength',
+        'beginner',
+        1,
+        45,
+        ['eq_machine'],
+        [],
+        1,
+        1
+      )
+
+      const plan: TrainingPlan = PlanEngine.generatePlan(goal)
+
+      expect(plan.days.length).assertEqual(1)
+      expect(plan.days[0].exercises.length).assertLarger(0)
+      const exercise: ExerciseContent | undefined = ContentRepository.getExerciseById(plan.days[0].exercises[0].exerciseId)
+      expect(exercise !== undefined).assertTrue()
+      if (exercise !== undefined) {
+        expect(containsValue(exercise.goalTags, 'strength')).assertTrue()
+        expect(containsValue(exercise.equipmentIds, 'eq_machine')).assertTrue()
+      }
+    })
+
     it('limits weekly training days to the 0 to 7 range', 0, () => {
       const lowGoal: UserGoal = createUserGoal(
         'plan_engine_low_days_goal',
