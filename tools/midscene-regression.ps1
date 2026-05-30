@@ -18,7 +18,9 @@ function Invoke-Step {
 
   Write-Host ""
   Write-Host "[FitTracker Midscene] $Title"
-  & $Command[0] @($Command | Select-Object -Skip 1)
+  $exe = $Command[0]
+  $argsList = @($Command | Select-Object -Skip 1)
+  & $exe @argsList
   if ($LASTEXITCODE -ne 0) {
     throw "Step failed: $Title"
   }
@@ -27,26 +29,26 @@ function Invoke-Step {
 function Invoke-Hdc {
   param(
     [string]$Title,
-    [string[]]$Args
+    [string[]]$CommandArgs
   )
 
   $fullArgs = @()
   if ($DeviceId.Length -gt 0) {
     $fullArgs += @("-t", $DeviceId)
   }
-  $fullArgs += $Args
+  $fullArgs += $CommandArgs
   Invoke-Step -Title $Title -Command (@("hdc") + $fullArgs)
 }
 
 function Invoke-Midscene {
   param(
     [string]$Title,
-    [string[]]$Args
+    [string[]]$CommandArgs
   )
 
-  $fullArgs = @("-y", "@midscene/harmony@1") + $Args
+  $fullArgs = @("-y", "@midscene/harmony@1") + $CommandArgs
   if ($DeviceId.Length -gt 0) {
-    $fullArgs += @("--deviceId", $DeviceId)
+    $fullArgs += @("--device-id", $DeviceId)
   }
   Invoke-Step -Title $Title -Command (@("npx.cmd") + $fullArgs)
 }
@@ -66,7 +68,7 @@ function Invoke-VisualAssert {
     [string]$Prompt
   )
 
-  Invoke-Midscene -Title $Title -Args @("assert", "--prompt", $Prompt)
+  Invoke-Midscene -Title $Title -CommandArgs @("assert", "--prompt", $Prompt)
 }
 
 Assert-MidsceneEnvironment
@@ -85,15 +87,15 @@ if (-not $SkipInstall) {
   if (-not (Test-Path $HapPath)) {
     throw "HAP not found: $HapPath. Build entry@default before running this script."
   }
-  Invoke-Hdc -Title "install app HAP" -Args @("install", "-r", $HapPath)
+  Invoke-Hdc -Title "install app HAP" -CommandArgs @("install", "-r", $HapPath)
 }
 
-Invoke-Hdc -Title "launch app" -Args @("shell", "aa", "start", "-a", $AbilityName, "-b", $BundleName)
-Invoke-Midscene -Title "connect device" -Args @("connect")
-Invoke-Midscene -Title "capture startup screen" -Args @("take_screenshot")
+Invoke-Hdc -Title "launch app" -CommandArgs @("shell", "aa", "start", "-a", $AbilityName, "-b", $BundleName)
+Invoke-Midscene -Title "connect device" -CommandArgs @("connect")
+Invoke-Midscene -Title "capture startup screen" -CommandArgs @("take_screenshot")
 Invoke-VisualAssert -Title "assert startup screen" -Prompt "The FitTracker app is visible. The screen is not blank and there is no crash dialog."
 
-Invoke-Midscene -Title "run fixed training loop" -Args @(
+Invoke-Midscene -Title "run fixed training loop" -CommandArgs @(
   "act",
   "--prompt",
   "Complete this FitTracker regression path in order: startup, goal setup, home, workout preview, active workout, workout summary, review, and adjust goal. If the app starts on login or register, complete local registration or login first. If a goal setup screen appears, select muscle gain or strength, beginner level, three training days per week, bodyweight or dumbbell equipment, then save. From home open today's workout, confirm the workout preview, start training, enter one set with weight 60 and reps 10 if fields are available, finish the workout, continue to the summary, open review, then open adjust goal or regenerate plan."
@@ -101,11 +103,11 @@ Invoke-Midscene -Title "run fixed training loop" -Args @(
 
 Invoke-VisualAssert -Title "assert training loop result" -Prompt "The screen is still inside FitTracker and shows a review screen, goal adjustment screen, home screen, workout summary, or another completed training-flow result. There is no crash dialog and no blank screen."
 
-Invoke-Hdc -Title "restart app for routing check" -Args @("shell", "aa", "start", "-a", $AbilityName, "-b", $BundleName)
-Invoke-Midscene -Title "capture restart screen" -Args @("take_screenshot")
+Invoke-Hdc -Title "restart app for routing check" -CommandArgs @("shell", "aa", "start", "-a", $AbilityName, "-b", $BundleName)
+Invoke-Midscene -Title "capture restart screen" -CommandArgs @("take_screenshot")
 Invoke-VisualAssert -Title "assert restart routing" -Prompt "After restart, FitTracker shows home, goal setup, login, register, or another valid main-route screen. The screen is not blank and there is no crash dialog."
 
-Invoke-Midscene -Title "run auth route smoke" -Args @(
+Invoke-Midscene -Title "run auth route smoke" -CommandArgs @(
   "act",
   "--prompt",
   "If visible registration or login controls are present, complete one local registration and login flow, then restart or return to confirm the app routes to home or goal setup. If no authentication entry is visible, confirm the current screen remains a valid FitTracker main flow screen."
@@ -114,7 +116,7 @@ Invoke-Midscene -Title "run auth route smoke" -Args @(
 Invoke-VisualAssert -Title "assert auth route smoke" -Prompt "FitTracker remains usable after the authentication-route smoke check. The screen shows home, goal setup, login success, workout entry, review, or another valid main-flow page, with no crash dialog."
 
 if (-not $SkipDisconnect) {
-  Invoke-Midscene -Title "disconnect device" -Args @("disconnect")
+  Invoke-Midscene -Title "disconnect device" -CommandArgs @("disconnect")
 }
 
 Write-Host ""
