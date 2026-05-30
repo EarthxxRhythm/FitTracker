@@ -112,3 +112,19 @@ flowchart LR
 - 导入脚本必须先复用构建期校验规则，校验通过后才能写入本地数据库。
 - 数据库导入后仍保留 `node tools/content/build-content.mjs`，用于阻止脏 JSONL 进入应用。
 - 媒体字段只能使用本地占位、自制资源、授权资源或自建资源路径。
+
+## 种子 SQL 导出
+
+当前提供最小导出脚本：
+
+```powershell
+node tools/content/export-db-seed.mjs
+```
+
+脚本流程：
+
+1. 先运行 `node tools/content/build-content.mjs`，复用 JSONL 格式、引用、覆盖率和本地媒体校验。
+2. 校验通过后读取 `content/exercises/*.jsonl`。
+3. 生成 `build/content/fittracker-content-seed.sql`，包含 MVP 表结构和 `INSERT` 数据。
+
+应用侧当前默认使用 `JsonlSeedContentDataSource`。后续接入真实本地数据库读取时，新增数据库加载流程后切换到 `DatabaseContentDataSource`，`ContentRepository` 外部调用保持不变。

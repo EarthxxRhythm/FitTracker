@@ -109,6 +109,14 @@ class ContentRepositoryImpl {
     return this.dataSource.getSourceInfo()
   }
 
+  useContentDataSource(dataSource: ContentDataSource): void {
+    this.dataSource = dataSource
+  }
+
+  useJsonlSeedSource(): void {
+    this.dataSource = new JsonlSeedContentDataSource()
+  }
+
   getMuscles(): MuscleGroup[] {
     const muscles: MuscleGroup[] = []
     const sourceMuscles: MuscleGroup[] = this.dataSource.getMuscles()

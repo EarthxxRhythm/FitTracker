@@ -5,6 +5,7 @@ import ContentRepository, {
   ExerciseDetailViewModel,
   ExerciseLibraryItem
 } from '../../../main/ets/shared/services/ContentRepository'
+import { DatabaseContentDataSource } from '../../../main/ets/shared/services/DatabaseContentDataSource'
 import PlanEngine from '../../../main/ets/shared/services/PlanEngine'
 
 function hasValue(values: string[], targetValue: string): boolean {
@@ -25,6 +26,24 @@ export default function contentRepositoryTest(): void {
       expect(sourceInfo.sourceName).assertEqual('JSONL seed content')
       expect(sourceInfo.databaseBacked).assertFalse()
       expect(sourceInfo.buildValidationRequired).assertTrue()
+    })
+
+    it('can switch repository reads to a database content source', 0, () => {
+      const databaseSource: DatabaseContentDataSource = new DatabaseContentDataSource(
+        ContentRepository.getMuscles(),
+        ContentRepository.getEquipment(),
+        ContentRepository.getExercises()
+      )
+
+      ContentRepository.useContentDataSource(databaseSource)
+      const sourceInfo: ContentSourceInfo = ContentRepository.getContentSourceInfo()
+      const exercise: ExerciseContent | undefined = ContentRepository.getExerciseById('ex_push_up')
+
+      expect(sourceInfo.sourceId).assertEqual('local_database')
+      expect(sourceInfo.databaseBacked).assertTrue()
+      expect(exercise !== undefined).assertTrue()
+
+      ContentRepository.useJsonlSeedSource()
     })
 
     it('returns Chinese labels for local exercise metadata', 0, () => {

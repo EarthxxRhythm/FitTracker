@@ -21,7 +21,7 @@
     "id": 4,
     "category": "自动化测试",
     "description": "沉淀一条 DevEco 模拟器或 Midscene 视觉自动化回归链路，覆盖目标设置、首页、训练预览、训练执行、复盘和回顾。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 5,
