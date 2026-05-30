@@ -27,7 +27,7 @@
     "id": 5,
     "category": "本地数据库",
     "description": "设计自建动作与视频数据库的最小表结构和 JSONL 导入适配层，不接入 MuscleWiki 官方 API。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 6,
