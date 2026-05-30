@@ -1,14 +1,17 @@
 /**
- * ContentRepository -- read-only access to generated local exercise content.
+ * ContentRepository -- read-only access to adapted local exercise content.
  *
  * Feature #14: JSONL-backed local exercise content.
  */
-import { LOCAL_EQUIPMENT, LOCAL_EXERCISES, LOCAL_MUSCLES } from '../../generated/LocalExerciseContent'
 import {
   EquipmentItem,
   ExerciseContent,
   MuscleGroup
 } from '../models/TrainingModels'
+import { ContentDataSource, ContentSourceInfo } from './ContentDataSource'
+import { JsonlSeedContentDataSource } from './JsonlSeedContentDataSource'
+
+export { ContentSourceInfo } from './ContentDataSource'
 
 export interface ExerciseLibraryItem {
   exerciseId: string
@@ -100,34 +103,44 @@ function createExerciseDetailViewModel(
 }
 
 class ContentRepositoryImpl {
+  private dataSource: ContentDataSource = new JsonlSeedContentDataSource()
+
+  getContentSourceInfo(): ContentSourceInfo {
+    return this.dataSource.getSourceInfo()
+  }
+
   getMuscles(): MuscleGroup[] {
     const muscles: MuscleGroup[] = []
-    for (let index = 0; index < LOCAL_MUSCLES.length; index++) {
-      muscles.push(this.copyMuscleGroup(LOCAL_MUSCLES[index]))
+    const sourceMuscles: MuscleGroup[] = this.dataSource.getMuscles()
+    for (let index = 0; index < sourceMuscles.length; index++) {
+      muscles.push(this.copyMuscleGroup(sourceMuscles[index]))
     }
     return muscles
   }
 
   getEquipment(): EquipmentItem[] {
     const equipmentItems: EquipmentItem[] = []
-    for (let index = 0; index < LOCAL_EQUIPMENT.length; index++) {
-      equipmentItems.push(this.copyEquipmentItem(LOCAL_EQUIPMENT[index]))
+    const sourceEquipment: EquipmentItem[] = this.dataSource.getEquipment()
+    for (let index = 0; index < sourceEquipment.length; index++) {
+      equipmentItems.push(this.copyEquipmentItem(sourceEquipment[index]))
     }
     return equipmentItems
   }
 
   getExercises(): ExerciseContent[] {
     const exercises: ExerciseContent[] = []
-    for (let index = 0; index < LOCAL_EXERCISES.length; index++) {
-      exercises.push(this.copyExerciseContent(LOCAL_EXERCISES[index]))
+    const sourceExercises: ExerciseContent[] = this.dataSource.getExercises()
+    for (let index = 0; index < sourceExercises.length; index++) {
+      exercises.push(this.copyExerciseContent(sourceExercises[index]))
     }
     return exercises
   }
 
   getExerciseLibraryItems(): ExerciseLibraryItem[] {
     const items: ExerciseLibraryItem[] = []
-    for (let index = 0; index < LOCAL_EXERCISES.length; index++) {
-      const exercise: ExerciseContent = LOCAL_EXERCISES[index]
+    const sourceExercises: ExerciseContent[] = this.dataSource.getExercises()
+    for (let index = 0; index < sourceExercises.length; index++) {
+      const exercise: ExerciseContent = sourceExercises[index]
       items.push(createExerciseLibraryItem(
         exercise.exerciseId,
         exercise.nameZh,
@@ -152,8 +165,9 @@ class ContentRepositoryImpl {
     difficulty: string
   ): ExerciseLibraryItem[] {
     const items: ExerciseLibraryItem[] = []
-    for (let index = 0; index < LOCAL_EXERCISES.length; index++) {
-      const exercise: ExerciseContent = LOCAL_EXERCISES[index]
+    const sourceExercises: ExerciseContent[] = this.dataSource.getExercises()
+    for (let index = 0; index < sourceExercises.length; index++) {
+      const exercise: ExerciseContent = sourceExercises[index]
       if (this.matchesLibraryFilter(exercise, goalTag, equipmentId, muscleId, difficulty)) {
         items.push(createExerciseLibraryItem(
           exercise.exerciseId,
@@ -174,8 +188,9 @@ class ContentRepositoryImpl {
   }
 
   getExerciseById(exerciseId: string): ExerciseContent | undefined {
-    for (let index = 0; index < LOCAL_EXERCISES.length; index++) {
-      const exercise: ExerciseContent = LOCAL_EXERCISES[index]
+    const sourceExercises: ExerciseContent[] = this.dataSource.getExercises()
+    for (let index = 0; index < sourceExercises.length; index++) {
+      const exercise: ExerciseContent = sourceExercises[index]
       if (exercise.exerciseId === exerciseId) {
         return this.copyExerciseContent(exercise)
       }
@@ -205,8 +220,9 @@ class ContentRepositoryImpl {
   }
 
   getMuscleName(muscleId: string): string {
-    for (let index = 0; index < LOCAL_MUSCLES.length; index++) {
-      const muscle: MuscleGroup = LOCAL_MUSCLES[index]
+    const sourceMuscles: MuscleGroup[] = this.dataSource.getMuscles()
+    for (let index = 0; index < sourceMuscles.length; index++) {
+      const muscle: MuscleGroup = sourceMuscles[index]
       if (muscle.muscleId === muscleId) {
         return muscle.nameZh
       }
@@ -215,8 +231,9 @@ class ContentRepositoryImpl {
   }
 
   getEquipmentName(equipmentId: string): string {
-    for (let index = 0; index < LOCAL_EQUIPMENT.length; index++) {
-      const equipment: EquipmentItem = LOCAL_EQUIPMENT[index]
+    const sourceEquipment: EquipmentItem[] = this.dataSource.getEquipment()
+    for (let index = 0; index < sourceEquipment.length; index++) {
+      const equipment: EquipmentItem = sourceEquipment[index]
       if (equipment.equipmentId === equipmentId) {
         return equipment.nameZh
       }
@@ -230,8 +247,9 @@ class ContentRepositoryImpl {
 
   getExercisesByMuscle(muscleId: string): ExerciseContent[] {
     const exercises: ExerciseContent[] = []
-    for (let index = 0; index < LOCAL_EXERCISES.length; index++) {
-      const exercise: ExerciseContent = LOCAL_EXERCISES[index]
+    const sourceExercises: ExerciseContent[] = this.dataSource.getExercises()
+    for (let index = 0; index < sourceExercises.length; index++) {
+      const exercise: ExerciseContent = sourceExercises[index]
       if (this.containsValue(exercise.primaryMuscleIds, muscleId) || this.containsValue(exercise.secondaryMuscleIds, muscleId)) {
         exercises.push(this.copyExerciseContent(exercise))
       }
@@ -241,8 +259,9 @@ class ContentRepositoryImpl {
 
   getExercisesByEquipment(equipmentId: string): ExerciseContent[] {
     const exercises: ExerciseContent[] = []
-    for (let index = 0; index < LOCAL_EXERCISES.length; index++) {
-      const exercise: ExerciseContent = LOCAL_EXERCISES[index]
+    const sourceExercises: ExerciseContent[] = this.dataSource.getExercises()
+    for (let index = 0; index < sourceExercises.length; index++) {
+      const exercise: ExerciseContent = sourceExercises[index]
       if (this.containsValue(exercise.equipmentIds, equipmentId)) {
         exercises.push(this.copyExerciseContent(exercise))
       }
@@ -257,8 +276,9 @@ class ContentRepositoryImpl {
       return exercises
     }
 
-    for (let index = 0; index < LOCAL_EXERCISES.length; index++) {
-      const exercise: ExerciseContent = LOCAL_EXERCISES[index]
+    const sourceExercises: ExerciseContent[] = this.dataSource.getExercises()
+    for (let index = 0; index < sourceExercises.length; index++) {
+      const exercise: ExerciseContent = sourceExercises[index]
       if (this.matchesExercise(exercise, normalizedQuery)) {
         exercises.push(this.copyExerciseContent(exercise))
       }
@@ -291,8 +311,9 @@ class ContentRepositoryImpl {
     restrictedMuscleIds: string[]
   ): ExerciseContent[] {
     const candidates: ExerciseContent[] = []
-    for (let index = 0; index < LOCAL_EXERCISES.length; index++) {
-      const exercise: ExerciseContent = LOCAL_EXERCISES[index]
+    const sourceExercises: ExerciseContent[] = this.dataSource.getExercises()
+    for (let index = 0; index < sourceExercises.length; index++) {
+      const exercise: ExerciseContent = sourceExercises[index]
       if (this.matchesCandidate(exercise, goalType, level, equipmentIds, muscleId, restrictedMuscleIds)) {
         candidates.push(this.copyExerciseContent(exercise))
       }
@@ -324,8 +345,9 @@ class ContentRepositoryImpl {
   }
 
   private findLocalExerciseById(exerciseId: string): ExerciseContent | undefined {
-    for (let index = 0; index < LOCAL_EXERCISES.length; index++) {
-      const exercise: ExerciseContent = LOCAL_EXERCISES[index]
+    const sourceExercises: ExerciseContent[] = this.dataSource.getExercises()
+    for (let index = 0; index < sourceExercises.length; index++) {
+      const exercise: ExerciseContent = sourceExercises[index]
       if (exercise.exerciseId === exerciseId) {
         return exercise
       }

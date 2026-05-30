@@ -1,6 +1,10 @@
 import { describe, it, expect } from '@ohos/hypium'
 import { ExerciseContent, UserGoal, createUserGoal } from '../../../main/ets/shared/models/TrainingModels'
-import ContentRepository, { ExerciseDetailViewModel, ExerciseLibraryItem } from '../../../main/ets/shared/services/ContentRepository'
+import ContentRepository, {
+  ContentSourceInfo,
+  ExerciseDetailViewModel,
+  ExerciseLibraryItem
+} from '../../../main/ets/shared/services/ContentRepository'
 import PlanEngine from '../../../main/ets/shared/services/PlanEngine'
 
 function hasValue(values: string[], targetValue: string): boolean {
@@ -14,6 +18,15 @@ function hasValue(values: string[], targetValue: string): boolean {
 
 export default function contentRepositoryTest(): void {
   describe('ContentRepository', () => {
+    it('reads exercise content through the JSONL seed adapter', 0, () => {
+      const sourceInfo: ContentSourceInfo = ContentRepository.getContentSourceInfo()
+
+      expect(sourceInfo.sourceId).assertEqual('jsonl_seed')
+      expect(sourceInfo.sourceName).assertEqual('JSONL seed content')
+      expect(sourceInfo.databaseBacked).assertFalse()
+      expect(sourceInfo.buildValidationRequired).assertTrue()
+    })
+
     it('returns Chinese labels for local exercise metadata', 0, () => {
       expect(ContentRepository.getMuscleName('muscle_chest')).assertEqual('胸部')
       expect(ContentRepository.getEquipmentName('eq_bodyweight')).assertEqual('徒手')
