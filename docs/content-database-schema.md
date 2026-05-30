@@ -128,3 +128,12 @@ node tools/content/export-db-seed.mjs
 3. 生成 `build/content/fittracker-content-seed.sql`，包含 MVP 表结构和 `INSERT` 数据。
 
 应用侧当前默认使用 `JsonlSeedContentDataSource`。后续接入真实本地数据库读取时，新增数据库加载流程后切换到 `DatabaseContentDataSource`，`ContentRepository` 外部调用保持不变。
+
+## ArkTS 侧导入
+
+`ContentDatabaseService` 提供当前最小数据库落地入口：
+
+- `importSeedAndUseDatabase(context)`：打开 `fittracker_content.db`，建表，清空旧内容，将当前 JSONL 生成内容导入 RDB，然后把 `ContentRepository` 切到 `DatabaseContentDataSource`。
+- `loadDatabaseAndUse(context)`：读取已存在的 RDB 内容，读到动作后切换 `ContentRepository`，否则保持 JSONL 种子源。
+
+当前默认启动路径仍使用 JSONL 种子源。等模拟器视觉回归稳定后，再决定是否在启动阶段自动调用数据库导入。
