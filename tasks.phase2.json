@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "category": "动作内容",
+    "description": "将 content/exercises/exercises.zh-CN.jsonl 扩充到 50 个核心动作，并确保胸、背、腿、肩、手臂、核心六类肌群以及常用器械都有稳定覆盖。",
+    "passes": true
+  },
+  {
+    "id": 2,
+    "category": "本地数据库",
+    "description": "让 ContentRepository 在 JSONL 种子源与本地数据库之间可切换，并补齐可重复执行的导入、迁移和回滚说明。",
+    "passes": false
+  },
+  {
+    "id": 3,
+    "category": "计划引擎",
+    "description": "让 PlanEngine 在候选动作评分中同时考虑目标、器械、肌群、难度和替代动作完整度，并在训练预览页展示可解释的兜底原因。",
+    "passes": false
+  },
+  {
+    "id": 4,
+    "category": "自动化测试",
+    "description": "将 DevEco 模拟器、HDC 和 Midscene 或 uitest 的回归脚本固化为一键执行流程，并输出可复查的截图、报告和失败排查说明。",
+    "passes": false
+  },
+  {
+    "id": 5,
+    "category": "认证链路",
+    "description": "补齐模拟器认证回归，覆盖注册、登录、关闭重开、会话恢复以及首页和目标页分流。",
+    "passes": false
+  },
+  {
+    "id": 6,
+    "category": "构建校验",
+    "description": "让内容构建和任务接力在遇到 JSONL 脏数据、覆盖缺口或主路由异常时给出明确失败信息。",
+    "passes": false
+  }
+]
