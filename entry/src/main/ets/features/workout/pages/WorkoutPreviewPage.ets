@@ -304,6 +304,13 @@ export struct WorkoutPreviewPage {
                       .fontSize(FontTokens.CAPTION_SIZE)
                       .fontColor(ColorTokens.TEXT_SECONDARY)
                       .margin({ top: SpacingTokens.XS })
+
+                    if (exercise.selectionNote.length > 0) {
+                      Text(exercise.selectionNote)
+                        .fontSize(FontTokens.CAPTION_SIZE)
+                        .fontColor(ColorTokens.TEXT_SECONDARY)
+                        .margin({ top: SpacingTokens.XS })
+                    }
                   }
                   .layoutWeight(1)
                   .alignItems(HorizontalAlign.Start)

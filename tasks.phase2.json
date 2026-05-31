@@ -15,7 +15,7 @@
     "id": 3,
     "category": "计划引擎",
     "description": "让 PlanEngine 在候选动作评分中同时考虑目标、器械、肌群、难度和替代动作完整度，并在训练预览页展示可解释的兜底原因。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 4,
