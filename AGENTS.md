@@ -45,6 +45,8 @@ entry/src/main/ets/
 | `LoginPage` | @Entry struct | `pages/LoginPage.ets` | — | Local login entry |
 | `RegisterPage` | @Entry struct | `pages/RegisterPage.ets` | — | Local registration entry |
 | `HomePage` | @Entry struct | `pages/HomePage.ets` | — | Today's training entry + plan summary |
+| `Index` | @Entry struct | `pages/Index.ets` | — | Retained legacy shell that links back to HomePage |
+| `ProfilePage` | @Entry struct | `pages/ProfilePage.ets` | — | Retained legacy shell that links back to HomePage |
 | `GoalSetupPage` | @Entry struct | `features/onboarding/pages/GoalSetupPage.ets` | — | Save goal and generate plan |
 | `WorkoutPreviewPage` | @Entry struct | `features/workout/pages/WorkoutPreviewPage.ets` | — | Preview plan before training |
 | `ActiveWorkoutPage` | @Entry struct | `features/workout/pages/ActiveWorkoutPage.ets` | — | Live training execution and 1RM input |
@@ -62,12 +64,7 @@ entry/src/main/ets/
 The following page shells stay in `pages/` only as historical material and must not be reintroduced into `main_pages.json`:
 
 - `Index.ets`
-- `PlanDetailPage.ets`
-- `ExerciseLibraryPage.ets`
 - `ProfilePage.ets`
-- `StatsPage.ets`
-- `WorkoutRecorderPage.ets`
-- `RudderStyleTab.ets`
 
 ## CONVENTIONS
 

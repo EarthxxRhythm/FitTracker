@@ -2,7 +2,7 @@
 
 ## OVERVIEW
 
-`pages/` now contains the auth entry pages, `HomePage`, and legacy page shells kept out of the main route. The active product flow lives in `app/` and `features/`, and `main_pages.json` should only point at those main-line screens plus the explicit auth entry points.
+`pages/` now contains the auth entry pages, `HomePage`, and two retained legacy shells. The active product flow lives in `app/` and `features/`, and `main_pages.json` should only point at those main-line screens plus the explicit auth entry points.
 
 ## STRUCTURE
 
@@ -12,13 +12,7 @@ pages/
 ├── LoginPage.ets            # Phone/password login
 ├── HomePage.ets             # Today's training entry + current plan summary
 ├── Index.ets                # Legacy homepage shell, not part of the main route
-├── ProfilePage.ets          # Legacy personal center shell, not part of the main route
-├── PlanDetailPage.ets       # Legacy plan detail shell, not part of the main route
-├── ExerciseLibraryPage.ets  # Legacy exercise library shell, not part of the main route
-├── ExerciseDetailPage.ets   # Current exercise detail page under features/
-├── WorkoutRecorderPage.ets  # Legacy workout recorder shell, not part of the main route
-├── StatsPage.ets            # Legacy stats shell, not part of the main route
-└── RudderStyleTab.ets       # Legacy tab shell, not part of the main route
+└── ProfilePage.ets          # Legacy personal center shell, not part of the main route
 ```
 
 ## WHERE TO LOOK
@@ -28,6 +22,8 @@ pages/
 | `LoginPage` | `pages/LoginPage` | Phone/password login entry |
 | `RegisterPage` | `pages/RegisterPage` | Phone/password registration entry |
 | `HomePage` | `pages/HomePage` | Today's training entry, current plan summary, start workout |
+| `Index` | `pages/Index` | Historical shell that points back to HomePage |
+| `ProfilePage` | `pages/ProfilePage` | Historical shell that points back to HomePage |
 | `ExerciseDetailPage` | `features/exercise/pages/ExerciseDetailPage` | Exercise info tabs, muscle groups, personal records (best 1RM) |
 
 ## CONVENTIONS
@@ -45,4 +41,4 @@ pages/
 - **DO NOT** use `router.replaceUrl` for normal navigation — use `pushUrl`.
 - **DO NOT** forget to stop timers/intervals in `aboutToDisappear()`.
 - **DO NOT** hardcode navigation URLs — always reference from `main_pages.json` entries.
-- **DO NOT** re-register legacy page shells such as `Index`, `WorkoutRecorderPage`, or `StatsPage` into the main route.
+- **DO NOT** re-register legacy page shells such as `Index` or `ProfilePage` into the main route.
