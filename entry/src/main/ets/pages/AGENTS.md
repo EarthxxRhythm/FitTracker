@@ -2,37 +2,38 @@
 
 ## OVERVIEW
 
-`@Entry @Component` page structs registered in `resources/base/profile/main_pages.json`. Each page handles one screen with `aboutToAppear()` for data loading and `build()` returning the UI tree.
+`pages/` now contains the auth entry pages, `HomePage`, and legacy page shells kept out of the main route. The active product flow lives in `app/` and `features/`, and `main_pages.json` should only point at those main-line screens plus the explicit auth entry points.
 
 ## STRUCTURE
 
 ```
 pages/
-├── Index.ets                # Homepage: plan list + today's training view
 ├── RegisterPage.ets         # Phone/password registration
-├── LoginPage.ets            # Phone/password login (redirects to Index)
-├── ProfilePage.ets          # User profile, stats overview, settings placeholders
-├── PlanDetailPage.ets       # Plan preview with timeline, "开始此计划" button
-├── ExerciseLibraryPage.ets  # Exercise catalog with muscle group filters
-├── ExerciseDetailPage.ets   # Exercise details: description, muscles, personal records
-├── WorkoutRecorderPage.ets  # Live training: timer, set entry, 1RM, save session
-└── StatsPage.ets            # Weekly stats + monthly calendar heatmap
+├── LoginPage.ets            # Phone/password login
+├── HomePage.ets             # Today's training entry + current plan summary
+├── Index.ets                # Legacy homepage shell, not part of the main route
+├── ProfilePage.ets          # Legacy personal center shell, not part of the main route
+├── PlanDetailPage.ets       # Legacy plan detail shell, not part of the main route
+├── ExerciseLibraryPage.ets  # Legacy exercise library shell, not part of the main route
+├── ExerciseDetailPage.ets   # Current exercise detail page under features/
+├── WorkoutRecorderPage.ets  # Legacy workout recorder shell, not part of the main route
+├── StatsPage.ets            # Legacy stats shell, not part of the main route
+└── RudderStyleTab.ets       # Legacy tab shell, not part of the main route
 ```
 
 ## WHERE TO LOOK
 
 | Page | Registered As | Key Features |
 |------|--------------|--------------|
-| `Index` | `pages/Index` | Preset plans, my plans, today's training → navigates to WorkoutRecorderPage |
-| `WorkoutRecorderPage` | `pages/WorkoutRecorderPage` | Timer, accordion exercise list, set weight/reps, 1RM, notes, save session |
-| `StatsPage` | `pages/StatsPage` | Weekly stats (count/duration/sets/volume), calendar heatmap |
-| `ExerciseDetailPage` | `pages/ExerciseDetailPage` | Exercise info tabs, muscle groups, personal records (best 1RM) |
-| `ExerciseLibraryPage` | `pages/ExerciseLibraryPage` | Searchable exercise catalog, muscle group filter |
+| `LoginPage` | `pages/LoginPage` | Phone/password login entry |
+| `RegisterPage` | `pages/RegisterPage` | Phone/password registration entry |
+| `HomePage` | `pages/HomePage` | Today's training entry, current plan summary, start workout |
+| `ExerciseDetailPage` | `features/exercise/pages/ExerciseDetailPage` | Exercise info tabs, muscle groups, personal records (best 1RM) |
 
 ## CONVENTIONS
 
 - **Page structure**: `@Entry @Component struct XxxPage { @State variables; async aboutToAppear() { load data }; build() { Column() { ... } } }`
-- **Navigation**: `router.pushUrl({ url: 'pages/XxxPage', params: { ... } })`. Params read via `router.getParams() as Record<string, T>` in `aboutToAppear()`.
+- **Navigation**: main-line routes should use `AppRoutes` or feature paths. Legacy page shells stay out of new navigation. Params read via `router.getParams() as Record<string, T>` in `aboutToAppear()`.
 - **Navigation params**: Always wrapped in `try-catch`. Use type assertion with fallback defaults.
 - **Data loading**: Async operations in `aboutToAppear()`, not in constructors. Results stored in @State.
 - **Services**: Imported as singletons (e.g., `import WorkoutSessionService from '...'`). Call with `getContext(this)`.
@@ -44,3 +45,4 @@ pages/
 - **DO NOT** use `router.replaceUrl` for normal navigation — use `pushUrl`.
 - **DO NOT** forget to stop timers/intervals in `aboutToDisappear()`.
 - **DO NOT** hardcode navigation URLs — always reference from `main_pages.json` entries.
+- **DO NOT** re-register legacy page shells such as `Index`, `WorkoutRecorderPage`, or `StatsPage` into the main route.

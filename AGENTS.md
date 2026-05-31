@@ -17,7 +17,9 @@ entry/src/main/ets/
 │   ├── styles/       # DesignTokens.ets (colors, fonts, spacing, radii, shadows)
 │   └── utils/        # ValidationUtils.ets (phone/password validators)
 ├── components/       # Reusable @Component widgets: AppButton, AppCard, AppInput, etc.
-├── pages/            # @Entry page components (9 pages)
+├── pages/            # Auth entry pages, HomePage, and legacy shells kept out of the main route
+├── app/              # Startup routing and app-level route helpers
+├── features/         # Current product pages for onboarding, workout, review, exercise
 ├── entryability/     # EntryAbility.ets — app lifecycle entry
 └── entrybackupability/ # EntryBackupAbility.ets — backup extension
 ```
@@ -26,7 +28,8 @@ entry/src/main/ets/
 
 | Task | Location | Notes |
 |------|----------|-------|
-| Add a page | `pages/` + `main_pages.json` | Register in `resources/base/profile/main_pages.json` |
+| Add a main-line page | `app/` or `features/` + `main_pages.json` | Register in `resources/base/profile/main_pages.json` |
+| Add a legacy page shell | `pages/` | Keep out of the main route unless explicitly required |
 | Add a service | `common/services/` | Follow singleton + preferences pattern |
 | Add a reusable UI component | `components/` | @Component, @Prop-based props |
 | Change colors/spacing | `common/styles/DesignTokens.ets` | All visual properties defined here; NEVER hardcode |
@@ -38,15 +41,33 @@ entry/src/main/ets/
 
 | Symbol | Type | Location | Refs | Role |
 |--------|------|----------|------|------|
-| `Index` | @Entry struct | `pages/Index.ets` | — | App homepage, plan list + today's training |
-| `WorkoutRecorderPage` | @Entry struct | `pages/WorkoutRecorderPage.ets` | — | Live timer, set entry, 1RM, session save |
-| `StatsPage` | @Entry struct | `pages/StatsPage.ets` | — | Weekly stats + calendar heatmap |
-| `ExerciseDetailPage` | @Entry struct | `pages/ExerciseDetailPage.ets` | — | Exercise info + personal records |
+| `StartupPage` | @Entry struct | `app/StartupPage.ets` | — | Cold-start route gate: login vs home |
+| `LoginPage` | @Entry struct | `pages/LoginPage.ets` | — | Local login entry |
+| `RegisterPage` | @Entry struct | `pages/RegisterPage.ets` | — | Local registration entry |
+| `HomePage` | @Entry struct | `pages/HomePage.ets` | — | Today's training entry + plan summary |
+| `GoalSetupPage` | @Entry struct | `features/onboarding/pages/GoalSetupPage.ets` | — | Save goal and generate plan |
+| `WorkoutPreviewPage` | @Entry struct | `features/workout/pages/WorkoutPreviewPage.ets` | — | Preview plan before training |
+| `ActiveWorkoutPage` | @Entry struct | `features/workout/pages/ActiveWorkoutPage.ets` | — | Live training execution and 1RM input |
+| `WorkoutSummaryPage` | @Entry struct | `features/workout/pages/WorkoutSummaryPage.ets` | — | Workout recap and transition to review |
+| `ReviewHomePage` | @Entry struct | `features/review/pages/ReviewHomePage.ets` | — | History, trends, and goal adjustment |
+| `ExerciseDetailPage` | @Entry struct | `features/exercise/pages/ExerciseDetailPage.ets` | — | Exercise info + personal records |
 | `TrainingPlanService` | singleton class | `common/services/TrainingPlanService.ets` | all pages | 5 preset plans, plan CRUD |
 | `WorkoutSessionService` | singleton class | `common/services/WorkoutSessionService.ets` | 3 pages | Session save/load, weekly stats, records |
 | `AuthService` | singleton class | `common/services/AuthService.ets` | 2 pages | Mock auth (in-memory) |
 | `ColorTokens` | static class | `common/styles/DesignTokens.ets` | all UI files | Design tokens: PRIMARY=#00C853, etc. |
 | `AppButton` | @Component | `components/AppButton.ets` | all pages | Primary/secondary/ghost button with loading |
+
+## LEGACY PAGES
+
+The following page shells stay in `pages/` only as historical material and must not be reintroduced into `main_pages.json`:
+
+- `Index.ets`
+- `PlanDetailPage.ets`
+- `ExerciseLibraryPage.ets`
+- `ProfilePage.ets`
+- `StatsPage.ets`
+- `WorkoutRecorderPage.ets`
+- `RudderStyleTab.ets`
 
 ## CONVENTIONS
 
