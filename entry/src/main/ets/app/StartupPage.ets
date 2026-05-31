@@ -6,6 +6,7 @@ import { router } from '@kit.ArkUI'
 import { ColorTokens, FontTokens, SpacingTokens } from '../common/styles/DesignTokens'
 import { StartupDecision } from './AppState'
 import { AppRoutes } from './AppRoutes'
+import ContentDatabaseService from '../shared/services/ContentDatabaseService'
 import GoalRepository from '../shared/services/GoalRepository'
 import PersistenceFallbackService from '../shared/services/PersistenceFallbackService'
 import SessionManager from '../common/services/SessionManager'
@@ -20,6 +21,10 @@ export struct StartupPage {
         router.replaceUrl({ url: AppRoutes.LOGIN })
         return
       }
+      const contentLoaded: boolean = await ContentDatabaseService.loadDatabaseAndUse(getContext(this))
+      if (!contentLoaded) {
+        await ContentDatabaseService.importSeedAndUseDatabase(getContext(this))
+      }
       const hasGoal: boolean = await GoalRepository.hasSavedGoal(getContext(this))
       if (!hasGoal && GoalRepository.getLastPersistenceError().length > 0) {
         PersistenceFallbackService.recordFallback(
@@ -32,7 +37,8 @@ export struct StartupPage {
         router.replaceUrl({ url: StartupDecision.getInitialRoute(true) })
         return
       }
-      router.replaceUrl({ url: StartupDecision.getInitialRoute(hasGoal) })
+      const initialRoute: string = StartupDecision.getInitialRoute(hasGoal)
+      router.replaceUrl({ url: initialRoute })
     } catch (e) {
       // Keep the startup screen visible if route replacement fails.
     }

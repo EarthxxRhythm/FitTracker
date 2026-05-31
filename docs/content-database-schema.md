@@ -26,6 +26,8 @@ flowchart LR
 
 后续数据库落地时新增 `DatabaseContentDataSource`，保持 `ContentRepository` 对外 API 不变。
 
+当前启动页会先尝试加载本地数据库内容；如果本地库不存在或读取失败，仍会回退到 JSONL 种子源，并可通过 `ContentDatabaseService.importSeedAndUseDatabase(context)` 重新导入后切换数据源。
+
 ## MVP 表结构
 
 ### `exercises`

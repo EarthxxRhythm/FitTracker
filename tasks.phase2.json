@@ -9,7 +9,7 @@
     "id": 2,
     "category": "本地数据库",
     "description": "让 ContentRepository 在 JSONL 种子源与本地数据库之间可切换，并补齐可重复执行的导入、迁移和回滚说明。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 3,
