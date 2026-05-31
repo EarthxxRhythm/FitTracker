@@ -37,6 +37,7 @@ export default function workoutPreviewServiceTest(): void {
         expect(preview.exercises[0].targetSets).assertEqual(3)
         expect(preview.exercises[0].targetReps).assertEqual('8-12')
         expect(preview.exercises[0].intensityNote).assertEqual('Controlled reps with 1-2 reps in reserve')
+        expect(preview.exercises[0].selectionNote).assertEqual('精确匹配：目标、器械、肌群和难度均匹配。')
       }
     })
 
