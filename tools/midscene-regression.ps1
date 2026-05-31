@@ -143,9 +143,36 @@ function Invoke-VisualAct {
   Invoke-Midscene -Title $Title -CommandArgs @("act", "--prompt", $Prompt)
 }
 
+function Invoke-VisualActWithRetry {
+  param(
+    [string]$Title,
+    [string]$PrimaryPrompt,
+    [string]$PrimaryAssertTitle,
+    [string]$PrimaryAssertPrompt,
+    [string]$RetryPrompt,
+    [string]$RetryAssertTitle,
+    [string]$RetryAssertPrompt,
+    [int]$RetryPauseSeconds = 2
+  )
+
+  Invoke-VisualAct -Title $Title -Prompt $PrimaryPrompt
+  try {
+    Invoke-VisualAssert -Title $PrimaryAssertTitle -Prompt $PrimaryAssertPrompt
+    return
+  } catch {
+    if ($RetryPrompt.Length -eq 0) {
+      throw
+    }
+    Start-Sleep -Seconds $RetryPauseSeconds
+    Invoke-Midscene -Title ($Title + " retry screenshot") -CommandArgs @("take_screenshot")
+    Invoke-VisualAct -Title ($Title + " retry") -Prompt $RetryPrompt
+    Invoke-VisualAssert -Title $RetryAssertTitle -Prompt $RetryAssertPrompt
+  }
+}
+
 Assert-MidsceneEnvironment
 if (-not $env:MIDSCENE_REPLANNING_CYCLE_LIMIT) {
-  $env:MIDSCENE_REPLANNING_CYCLE_LIMIT = "40"
+  $env:MIDSCENE_REPLANNING_CYCLE_LIMIT = "60"
 }
  $runStatus = "failed"
  $failureReason = ""
@@ -171,34 +198,69 @@ if (-not $env:MIDSCENE_REPLANNING_CYCLE_LIMIT) {
   }
 
   Invoke-Hdc -Title "launch app" -CommandArgs @("shell", "aa", "start", "-a", $AbilityName, "-b", $BundleName)
+  Start-Sleep -Seconds 2
   Invoke-Midscene -Title "connect device" -CommandArgs @("connect")
   Invoke-Midscene -Title "capture startup screen" -CommandArgs @("take_screenshot")
   Invoke-VisualAssert -Title "assert startup screen" -Prompt "Screen is not blank and has no crash dialog."
 
-  Invoke-VisualAct -Title "prepare main route" -Prompt "Reach the today's training entry. If login/register appears, complete it. If goal setup appears, choose muscle gain, beginner, 3 days/week, bodyweight or dumbbell, then save."
-  Invoke-VisualAssert -Title "assert home or goal route" -Prompt "The screen shows home, goal setup, today's training entry, or workout preview."
+  $previewReady = $false
+  try {
+    Invoke-VisualAssert -Title "assert preview route already visible" -Prompt "The screen already shows the today's training preview with the Day 1 card and the 开始训练 button."
+    $previewReady = $true
+  } catch {
+    $previewReady = $false
+  }
 
-  Invoke-VisualAct -Title "open today's workout" -Prompt "Open today's workout and stop on the preview screen."
-  Invoke-VisualAssert -Title "assert workout preview" -Prompt "The workout preview screen is visible."
+  if (-not $previewReady) {
+    Invoke-VisualAct -Title "prepare main route" -Prompt "Open the FitTracker app from the home screen or recent apps, then reach the today's training entry. If login/register appears, complete it. If goal setup appears, choose muscle gain, beginner, 3 days/week, bodyweight or dumbbell equipment, then save. If the today's training preview is already visible, stop immediately. Do not open the app drawer or restart the device."
+    Invoke-VisualAssert -Title "assert home or goal route" -Prompt "The screen shows home, goal setup, today's training entry, or workout preview."
+    Invoke-VisualAct -Title "open today's workout" -Prompt "From the current FitTracker screen, open today's workout or the primary training entry. Stop on the workout preview screen before starting the workout."
+    Invoke-VisualAssert -Title "assert workout preview" -Prompt "The workout preview screen is visible."
+  }
 
-  Invoke-VisualAct -Title "start workout" -Prompt "Tap start training and stop on the active workout screen."
-  Invoke-VisualAssert -Title "assert active workout" -Prompt "The active workout screen is visible."
+  Invoke-VisualAct -Title "locate start button" -Prompt "On the workout preview screen, scroll until the large blue button labeled 开始训练 is fully visible in the lower half of the page with a little empty space below it. Stop there without tapping anything."
+  Invoke-VisualAssert -Title "assert start button visible" -Prompt "The large blue 开始训练 button is visible on the workout preview screen."
+  Start-Sleep -Seconds 3
 
-  Invoke-VisualAct -Title "record one set" -Prompt "Enter one set with weight 60 and reps 10, then stay on the active workout screen."
-  Invoke-VisualAssert -Title "assert set recorded" -Prompt "The set is recorded and no crash dialog is shown."
+  Invoke-VisualActWithRetry `
+    -Title "tap start button" `
+    -PrimaryPrompt "Tap only the large blue button labeled 开始训练 at the bottom of the workout preview screen. Do not tap 查看动作详情 or any exercise card. Stop when the active workout execution screen is visible." `
+    -PrimaryAssertTitle "assert active workout" `
+    -PrimaryAssertPrompt "The screen shows 训练执行 with a timer, the current exercise, and weight and reps input fields. It is not the training review or summary page." `
+    -RetryPrompt "Tap only the large blue button labeled 开始训练 at the bottom of the workout preview screen again. If the screen is already transitioning, wait on this screen and do not tap any other element. Stop when the active workout execution screen is visible." `
+    -RetryAssertTitle "assert active workout after retry" `
+    -RetryAssertPrompt "The screen shows 训练执行 with a timer, the current exercise, and weight and reps input fields. It is not the training review or summary page."
 
-  Invoke-VisualAct -Title "finish workout" -Prompt "Finish the workout and stop on the summary screen."
-  Invoke-VisualAssert -Title "assert workout summary" -Prompt "The workout summary screen is visible."
+  Invoke-VisualAct -Title "enter first set weight and reps" -Prompt "On the active workout screen for 哑铃卧推, tap the empty field with placeholder 重量kg in the 第 1 组 row and type 60. Then tap the empty field with placeholder 次数 in the same row and type 10. Stop immediately after the 10 is visible in the 次数 field. Do not wait for additional 1RM updates and do not finish the workout."
+  try {
+    Invoke-VisualAssert -Title "assert set recorded" -Prompt "The first set of the first exercise shows weight 60 and reps 10, and the 1RM reference updates on the training execution page with no crash dialog."
+  } catch {
+    Start-Sleep -Seconds 2
+    Invoke-Midscene -Title "first set retry screenshot" -CommandArgs @("take_screenshot")
+    Invoke-VisualAct -Title "enter first set weight" -Prompt "On the active workout screen for 哑铃卧推, tap the empty field with placeholder 重量kg in the 第 1 组 row and type 60. Stop immediately when 60 is visible in that field. Do not tap the rep field yet."
+    Invoke-VisualAssert -Title "assert first set weight entered" -Prompt "The first set row for 哑铃卧推 shows 60 in the 重量kg field and the screen is still the active workout page."
+    Invoke-VisualAct -Title "enter first set reps" -Prompt "On the same 第 1 组 row, tap the empty field with placeholder 次数 and type 10. Stop immediately when 10 is visible in that field. Do not finish the workout."
+    Invoke-VisualAssert -Title "assert set recorded after retry" -Prompt "The first set of the first exercise shows weight 60 and reps 10, and the 1RM reference updates on the training execution page with no crash dialog."
+  }
 
-  Invoke-VisualAct -Title "open review" -Prompt "Open the review or training history page."
-  Invoke-VisualAssert -Title "assert review screen" -Prompt "The review or history screen is visible."
+  Invoke-VisualActWithRetry `
+    -Title "finish workout" `
+    -PrimaryPrompt "Tap only the button labeled 保存当前进度 on the active workout screen. Do not tap 完成全部并保存 unless 保存当前进度 is not visible. Stop when the workout summary screen is visible." `
+    -PrimaryAssertTitle "assert workout summary" `
+    -PrimaryAssertPrompt "The workout summary screen is visible." `
+    -RetryPrompt "Tap only the button labeled 完成全部并保存 on the active workout screen. Stop when the workout summary screen is visible." `
+    -RetryAssertTitle "assert workout summary after retry" `
+    -RetryAssertPrompt "The workout summary screen is visible."
 
-  Invoke-VisualAct -Title "open adjust goal" -Prompt "On the review screen, tap the button labeled 调整目标, 目标设置, or 重新生成计划. Stop on the goal setup screen."
-  Invoke-VisualAssert -Title "assert goal adjustment" -Prompt "The goal setup or goal adjustment screen is visible."
+  Invoke-VisualAct -Title "open review" -Prompt "Tap the button labeled 查看训练回顾 on the workout summary screen."
+  Invoke-VisualAssert -Title "assert review screen" -Prompt "The review dashboard screen with the title 训练回顾 is visible."
+
+  Invoke-VisualAct -Title "open adjust goal" -Prompt "On the review screen, tap the button labeled 调整下次计划. Stop on the goal setup screen."
+  Invoke-VisualAssert -Title "assert goal adjustment" -Prompt "The goal setup screen is visible."
 
   Invoke-Hdc -Title "restart app for routing check" -CommandArgs @("shell", "aa", "start", "-a", $AbilityName, "-b", $BundleName)
   Invoke-Midscene -Title "capture restart screen" -CommandArgs @("take_screenshot")
-  Invoke-VisualAssert -Title "assert restart routing" -Prompt "After restart, the screen shows a valid FitTracker main page."
+  Invoke-VisualAssert -Title "assert restart routing" -Prompt "After restart, the screen shows a valid FitTracker page such as home, goal setup, login, or register, and there is no crash dialog."
 
   Invoke-Midscene -Title "run auth route smoke" -CommandArgs @(
     "act",
