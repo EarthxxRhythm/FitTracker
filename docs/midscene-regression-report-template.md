@@ -8,6 +8,7 @@
 - 设备 ID：
 - HAP 路径：
 - 执行命令：
+- `midscene_run/midscene-regression-summary.md`：
 
 ## 环境检查
 
