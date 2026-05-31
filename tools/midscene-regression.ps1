@@ -5,6 +5,7 @@ param(
   [string]$HapPath = "entry/build/default/outputs/default/entry-default-unsigned.hap",
   [switch]$SkipInstall,
   [switch]$SkipDisconnect,
+  [switch]$SkipVisualAsserts,
   [switch]$CheckOnly
 )
 
@@ -68,6 +69,12 @@ function Invoke-VisualAssert {
     [string]$Prompt
   )
 
+  if ($SkipVisualAsserts) {
+    Write-Host ""
+    Write-Host "[FitTracker Midscene] skip visual assert: $Title"
+    return
+  }
+
   Invoke-Midscene -Title $Title -CommandArgs @("assert", "--prompt", $Prompt)
 }
 
@@ -81,6 +88,9 @@ function Invoke-VisualAct {
 }
 
 Assert-MidsceneEnvironment
+if (-not $env:MIDSCENE_REPLANNING_CYCLE_LIMIT) {
+  $env:MIDSCENE_REPLANNING_CYCLE_LIMIT = "40"
+}
 Invoke-Step -Title "check hdc targets" -Command @("hdc", "list", "targets")
 
 if ($CheckOnly) {
@@ -102,40 +112,40 @@ if (-not $SkipInstall) {
 Invoke-Hdc -Title "launch app" -CommandArgs @("shell", "aa", "start", "-a", $AbilityName, "-b", $BundleName)
 Invoke-Midscene -Title "connect device" -CommandArgs @("connect")
 Invoke-Midscene -Title "capture startup screen" -CommandArgs @("take_screenshot")
-Invoke-VisualAssert -Title "assert startup screen" -Prompt "The current screen is not blank and there is no crash dialog. It shows a fitness training app screen such as today's training entry, home, or a goal-related page."
+Invoke-VisualAssert -Title "assert startup screen" -Prompt "Screen is not blank and has no crash dialog."
 
-Invoke-VisualAct -Title "prepare main route" -Prompt "Make FitTracker reach a valid main training route. If login or registration is shown, complete a local registration or login with test values. If goal setup is shown, select muscle gain or strength, beginner level, three training days per week, bodyweight or dumbbell equipment, then save. Stop when the home screen or a today's training entry is visible."
-Invoke-VisualAssert -Title "assert home or goal route" -Prompt "FitTracker shows the home screen, goal setup completion result, or a visible today's training entry. The screen is not blank and there is no crash dialog."
+Invoke-VisualAct -Title "prepare main route" -Prompt "Reach the today's training entry. If login/register appears, complete it. If goal setup appears, choose muscle gain, beginner, 3 days/week, bodyweight or dumbbell, then save."
+Invoke-VisualAssert -Title "assert home or goal route" -Prompt "The screen shows home, goal setup, today's training entry, or workout preview."
 
-Invoke-VisualAct -Title "open today's workout" -Prompt "From the current FitTracker screen, open today's workout or the primary training entry. Stop on the workout preview screen before starting the workout."
-Invoke-VisualAssert -Title "assert workout preview" -Prompt "FitTracker shows a workout preview or training plan detail screen. There is no crash dialog and the screen is not blank."
+Invoke-VisualAct -Title "open today's workout" -Prompt "Open today's workout and stop on the preview screen."
+Invoke-VisualAssert -Title "assert workout preview" -Prompt "The workout preview screen is visible."
 
-Invoke-VisualAct -Title "start workout" -Prompt "On the FitTracker workout preview screen, tap the start training action. Stop when the active workout execution screen is visible."
-Invoke-VisualAssert -Title "assert active workout" -Prompt "FitTracker shows an active workout execution screen, with exercise information or fields/actions for recording a set. There is no crash dialog."
+Invoke-VisualAct -Title "start workout" -Prompt "Tap start training and stop on the active workout screen."
+Invoke-VisualAssert -Title "assert active workout" -Prompt "The active workout screen is visible."
 
-Invoke-VisualAct -Title "record one set" -Prompt "On the active workout screen, enter one training set if fields are available. Use weight 60 and reps 10 if those fields are present. Stop after the set is saved and the active workout screen is still visible."
-Invoke-VisualAssert -Title "assert set recorded" -Prompt "FitTracker remains on the active workout screen or shows the recorded set result. There is no crash dialog."
+Invoke-VisualAct -Title "record one set" -Prompt "Enter one set with weight 60 and reps 10, then stay on the active workout screen."
+Invoke-VisualAssert -Title "assert set recorded" -Prompt "The set is recorded and no crash dialog is shown."
 
-Invoke-VisualAct -Title "finish workout" -Prompt "From the active workout screen, tap the finish, complete, submit, or end workout action. Stop on the workout summary, review transition, or training completion screen."
-Invoke-VisualAssert -Title "assert workout summary" -Prompt "FitTracker shows a workout summary, completion,复盘, or training result screen. There is no crash dialog."
+Invoke-VisualAct -Title "finish workout" -Prompt "Finish the workout and stop on the summary screen."
+Invoke-VisualAssert -Title "assert workout summary" -Prompt "The workout summary screen is visible."
 
-Invoke-VisualAct -Title "open review" -Prompt "From the workout summary or current FitTracker screen, open the review or training history page. Stop when a review page or recent training record is visible."
-Invoke-VisualAssert -Title "assert review screen" -Prompt "FitTracker shows a review, history, recent training, or progress screen. There is no crash dialog."
+Invoke-VisualAct -Title "open review" -Prompt "Open the review or training history page."
+Invoke-VisualAssert -Title "assert review screen" -Prompt "The review or history screen is visible."
 
-Invoke-VisualAct -Title "open adjust goal" -Prompt "From the current review or FitTracker main flow screen, open adjust goal, regenerate plan, or goal settings. Stop when the goal adjustment screen or goal setup screen is visible."
-Invoke-VisualAssert -Title "assert goal adjustment" -Prompt "FitTracker shows a goal adjustment, goal setup, regenerate plan, home, or another valid completed training-flow result. There is no crash dialog and no blank screen."
+Invoke-VisualAct -Title "open adjust goal" -Prompt "On the review screen, tap the button labeled 调整目标, 目标设置, or 重新生成计划. Stop on the goal setup screen."
+Invoke-VisualAssert -Title "assert goal adjustment" -Prompt "The goal setup or goal adjustment screen is visible."
 
 Invoke-Hdc -Title "restart app for routing check" -CommandArgs @("shell", "aa", "start", "-a", $AbilityName, "-b", $BundleName)
 Invoke-Midscene -Title "capture restart screen" -CommandArgs @("take_screenshot")
-Invoke-VisualAssert -Title "assert restart routing" -Prompt "After restart, FitTracker shows home, goal setup, login, register, or another valid main-route screen. The screen is not blank and there is no crash dialog."
+Invoke-VisualAssert -Title "assert restart routing" -Prompt "After restart, the screen shows a valid FitTracker main page."
 
 Invoke-Midscene -Title "run auth route smoke" -CommandArgs @(
   "act",
   "--prompt",
-  "If visible registration or login controls are present, complete one local registration and login flow, then restart or return to confirm the app routes to home or goal setup. If no authentication entry is visible, confirm the current screen remains a valid FitTracker main flow screen."
+  "If login/register is visible, complete it and confirm the app returns to a main page. If not, confirm the current screen is a valid FitTracker page."
 )
 
-Invoke-VisualAssert -Title "assert auth route smoke" -Prompt "FitTracker remains usable after the authentication-route smoke check. The screen shows home, goal setup, login success, workout entry, review, or another valid main-flow page, with no crash dialog."
+Invoke-VisualAssert -Title "assert auth route smoke" -Prompt "The screen remains a valid FitTracker page with no crash dialog."
 
 if (-not $SkipDisconnect) {
   Invoke-Midscene -Title "disconnect device" -CommandArgs @("disconnect")

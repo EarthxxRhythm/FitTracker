@@ -1,4 +1,5 @@
 这是一个进度日志。请按时间倒序记录每个会话完成的工作。
+[完成] 这次模拟器视觉回归已闭环：在 DevEco 模拟器上跑通 启动 -> 目标设置 -> 首页 -> 训练预览 -> 训练执行 -> 复盘 -> 回顾 -> 调整目标 -> 目标设置 的完整链路；Midscene 在配额受限时改用 HDC/uitest 兜底，相关报告与截图保存在 midscene_run/。
 [修复] Midscene 真实设备回归脚本：修复 PowerShell 参数展开与 device-id 传参问题；DevEco 模拟器 Pura 90 Pro Max 已通过 HDC 连接为 127.0.0.1:5555，HAP 安装、应用启动、截图和启动页视觉断言通过。完整训练链路因火山模型推理额度/安全体验模式 429 未继续执行。
 [完成] 本地数据库读取方案：新增 ContentDatabaseService，支持将当前 JSONL 生成内容导入 RDB 并切换 ContentRepository 到 DatabaseContentDataSource；默认启动路径仍保留 JSONL 种子源。
 [完成] 本地数据库导入脚本：新增 JSONL 到 SQL 种子导出脚本和 DatabaseContentDataSource，ContentRepository 支持切换内容源；导出脚本会先执行构建期内容校验。
