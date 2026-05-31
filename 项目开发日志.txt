@@ -1,4 +1,5 @@
 这是一个进度日志。请按时间倒序记录每个会话完成的工作。
+[修复] Midscene 回归脚本：补充本地 Markdown 摘要输出与失败排查说明，脚本 `CheckOnly` 已通过；真实视觉回归当前受 Midscene 接入点 404/429 限制阻塞。
 [完成] 下一阶段任务 #3：PlanEngine 候选评分与训练预览解释性已收口，预览页现已展示每个动作的选中说明并保留兜底提示；构建与 ohosTest 编译通过。
 [完成] 本地内容库启动接入：`StartupPage` 现在会先尝试加载本地数据库内容，失败时自动回退并重建 JSONL 种子库；`ContentRepository`、`ContentDatabaseService` 与导入说明已同步补齐。构建与 ohosTest 编译通过。
 [完成] 阶段任务 #1：动作内容扩充到 50 条，并通过内容生成脚本完成覆盖校验；LocalExerciseContent.ets 已重新生成，覆盖报告显示目标、器械、肌群与难度均满足门槛。
