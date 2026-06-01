@@ -1,4 +1,4 @@
-﻿[
+[
   {
     "id": 1,
     "category": "动作内容",
@@ -33,6 +33,6 @@
     "id": 6,
     "category": "构建校验",
     "description": "让内容构建和任务接力在遇到 JSONL 脏数据、覆盖缺口或主路由异常时给出明确失败信息。",
-    "passes": false
+    "passes": true
   }
 ]
