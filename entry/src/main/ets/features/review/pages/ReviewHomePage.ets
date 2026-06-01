@@ -6,6 +6,7 @@
 import { router } from '@kit.ArkUI'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
+import { AppInput } from '../../../components/AppInput'
 import ReviewDashboardService, {
   ReviewGoalAdjustmentAction,
   ReviewDashboardSummary,
@@ -24,6 +25,8 @@ import StatsDashboardService, {
 import PersonalRecordService, {
   ExercisePersonalRecord
 } from '../../../shared/services/PersonalRecordService'
+import UserProfileService, { UserProfile, WeightUnit } from '../../../common/services/UserProfileService'
+import SessionManager from '../../../common/services/SessionManager'
 
 @Entry
 @Component
@@ -54,6 +57,11 @@ export struct ReviewHomePage {
   @State heatmapMonthTitle: string = ''
   @State heatmapRows: CalendarHeatmapRow[] = []
   @State personalRecords: ExercisePersonalRecord[] = []
+  @State profileNickname: string = ''
+  @State profileAvatar: string = ''
+  @State profileWeightUnit: WeightUnit = 'kg'
+  @State profileStatusText: string = ''
+  @State profileLoading: boolean = false
   currentGoal: UserGoal | undefined = undefined
   currentAdjustmentAction: ReviewGoalAdjustmentAction = ReviewDashboardService.createEmptyGoalAdjustmentAction()
 
@@ -77,7 +85,15 @@ export struct ReviewHomePage {
       this.currentGoal = undefined
       this.applyAdjustmentAction(ReviewDashboardService.createEmptyGoalAdjustmentAction())
     }
+    await this.loadProfile()
     this.loading = false
+  }
+
+  async loadProfile(): Promise<void> {
+    const profile: UserProfile = await UserProfileService.loadProfile(getContext(this))
+    this.profileNickname = profile.nickname
+    this.profileAvatar = profile.avatar
+    this.profileWeightUnit = profile.weightUnit
   }
 
   applyStatsSummary(summary: StatsDashboardSummary): void {
@@ -137,6 +153,51 @@ export struct ReviewHomePage {
     } catch (e) {
       // stay on review
     }
+  }
+
+  async saveNickname(): Promise<void> {
+    const nickname: string = this.profileNickname.trim()
+    this.profileNickname = nickname
+    this.profileLoading = true
+    this.profileStatusText = ''
+    await UserProfileService.saveNickname(getContext(this), nickname)
+    this.profileStatusText = UserProfileService.getLastPersistenceError().length > 0 ? '昵称保存失败' : '昵称已保存'
+    this.profileLoading = false
+  }
+
+  async saveWeightUnit(unit: WeightUnit): Promise<void> {
+    if (this.profileWeightUnit === unit) {
+      return
+    }
+    this.profileLoading = true
+    this.profileStatusText = ''
+    this.profileWeightUnit = unit
+    await UserProfileService.saveWeightUnit(getContext(this), unit)
+    this.profileStatusText = UserProfileService.getLastPersistenceError().length > 0 ? '单位保存失败' : '单位已保存'
+    this.profileLoading = false
+  }
+
+  async logout(): Promise<void> {
+    this.profileLoading = true
+    this.profileStatusText = ''
+    await SessionManager.clearToken(getContext(this))
+    this.profileLoading = false
+    if (SessionManager.getLastPersistenceError().length > 0) {
+      this.profileStatusText = '退出登录失败'
+      return
+    }
+    try {
+      router.replaceUrl({ url: AppRoutes.LOGIN })
+    } catch (e) {
+      this.profileStatusText = '跳转登录页失败'
+    }
+  }
+
+  getProfileWeightUnitDescription(): string {
+    if (this.profileWeightUnit === 'lbs') {
+      return '当前重量单位：lbs'
+    }
+    return '当前重量单位：kg'
   }
 
   async applyGoalAdjustment(): Promise<void> {
@@ -512,6 +573,95 @@ export struct ReviewHomePage {
     .alignItems(HorizontalAlign.Start)
   }
 
+  @Builder
+  buildProfileSettings() {
+    Column({ space: SpacingTokens.SM }) {
+      Text('个人资料')
+        .fontSize(FontTokens.TITLE_SIZE)
+        .fontWeight(FontTokens.TITLE_WEIGHT)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+
+      Text(this.profileAvatar.length > 0 ? '头像占位：' + this.profileAvatar : '头像占位：默认头像')
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+
+      Text(this.getProfileWeightUnitDescription())
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+
+      AppInput({
+        value: $profileNickname,
+        placeholder: '输入昵称',
+        type: 'text',
+        maxLength: 20,
+        showClear: true
+      })
+
+      Row({ space: SpacingTokens.SM }) {
+        Button('kg')
+          .layoutWeight(1)
+          .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(this.profileWeightUnit === 'kg' ? ColorTokens.TEXT_ON_PRIMARY : ColorTokens.TEXT_PRIMARY)
+          .backgroundColor(this.profileWeightUnit === 'kg' ? ColorTokens.PRIMARY : ColorTokens.SURFACE_ELEVATED)
+          .borderRadius(RadiusTokens.FULL)
+          .onClick(() => {
+            this.saveWeightUnit('kg')
+          })
+
+        Button('lbs')
+          .layoutWeight(1)
+          .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(this.profileWeightUnit === 'lbs' ? ColorTokens.TEXT_ON_PRIMARY : ColorTokens.TEXT_PRIMARY)
+          .backgroundColor(this.profileWeightUnit === 'lbs' ? ColorTokens.PRIMARY : ColorTokens.SURFACE_ELEVATED)
+          .borderRadius(RadiusTokens.FULL)
+          .onClick(() => {
+            this.saveWeightUnit('lbs')
+          })
+      }
+      .width('100%')
+
+      Row({ space: SpacingTokens.SM }) {
+        Button(this.profileLoading ? '保存中' : '保存昵称')
+          .layoutWeight(1)
+          .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+          .backgroundColor(ColorTokens.PRIMARY)
+          .borderRadius(RadiusTokens.FULL)
+          .enabled(!this.profileLoading)
+          .onClick(() => {
+            this.saveNickname()
+          })
+
+        Button('退出登录')
+          .layoutWeight(1)
+          .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+          .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+          .borderRadius(RadiusTokens.FULL)
+          .enabled(!this.profileLoading)
+          .onClick(() => {
+            this.logout()
+          })
+      }
+      .width('100%')
+
+      if (this.profileStatusText.length > 0) {
+        Text(this.profileStatusText)
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+      }
+    }
+    .width('100%')
+    .padding(SpacingTokens.MD)
+    .borderRadius(RadiusTokens.SM)
+    .backgroundColor(ColorTokens.BG_SECONDARY)
+    .alignItems(HorizontalAlign.Start)
+  }
+
   build() {
     Scroll() {
       Column({ space: SpacingTokens.LG }) {
@@ -697,6 +847,10 @@ export struct ReviewHomePage {
               })
           }
           .width('100%')
+        }
+
+        if (!this.loading) {
+          this.buildProfileSettings()
         }
       }
       .width('100%')

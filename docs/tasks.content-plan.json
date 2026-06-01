@@ -3,25 +3,25 @@
     "id": 10,
     "category": "个人资料",
     "description": "个人中心页展示当前用户昵称、头像占位和体重单位偏好，并在重新进入页面时从本地恢复。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 11,
     "category": "个人资料",
     "description": "修改昵称后立即保存，并在后续进入个人中心时显示更新后的值。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 12,
     "category": "个人资料",
     "description": "切换体重单位偏好为 kg 或 lbs 后，系统持久化该偏好以供训练记录相关界面复用。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 13,
     "category": "个人资料",
     "description": "执行退出登录后清除本地登录令牌并返回登录页。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 21,
