@@ -180,26 +180,24 @@ $gitLog = Invoke-CapturedCommand -Title 'git log --oneline -5' -FilePath 'git' -
 $checkResults = [ordered]@{}
 
 if ($RunChecks) {
-  $checkResults['git diff --check'] = 'running'
-  $checkResults['node tools/check-main-pages.mjs'] = 'running'
-  $checkResults['node tools/content/build-content.mjs'] = 'running'
-  $checkResults['hvigorw tasks --type-check'] = 'running'
-  $checkResults['hvigorw assembleHap entry@default'] = 'running'
-  $checkResults['hvigorw assembleHap entry@ohosTest'] = 'running'
-
-  $checkResults['git diff --check'] = Invoke-CapturedCommand -Title 'git diff --check' -FilePath 'git' -Arguments @('diff', '--check')
-  $checkResults['node tools/check-main-pages.mjs'] = Invoke-CapturedCommand -Title 'node tools/check-main-pages.mjs' -FilePath 'node' -Arguments @('tools/check-main-pages.mjs')
-  $checkResults['node tools/content/build-content.mjs'] = Invoke-CapturedCommand -Title 'node tools/content/build-content.mjs' -FilePath 'node' -Arguments @('tools/content/build-content.mjs')
+  $checkResults['node tools/check-gates.mjs'] = 'running'
+  $checkResults['node tools/check-gates.mjs'] = Invoke-CapturedCommand -Title 'node tools/check-gates.mjs' -FilePath 'node' -Arguments @('tools/check-gates.mjs')
 
   Ensure-DevEcoToolchain
   $hvigorwPath = 'C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat'
-  if (-not (Test-Path $hvigorwPath)) {
-    throw 'hvigorw not found at ' + $hvigorwPath
-  }
+  if (Test-Path $hvigorwPath) {
+    $checkResults['hvigorw tasks --type-check'] = 'running'
+    $checkResults['hvigorw assembleHap entry@default'] = 'running'
+    $checkResults['hvigorw assembleHap entry@ohosTest'] = 'running'
 
-  $checkResults['hvigorw tasks --type-check'] = Invoke-CapturedCommand -Title 'hvigorw tasks --type-check' -FilePath $hvigorwPath -Arguments @('tasks', '--mode', 'module', '-p', 'module=entry@default', '-p', 'product=default', '--type-check')
-  $checkResults['hvigorw assembleHap entry@default'] = Invoke-CapturedCommand -Title 'hvigorw assembleHap entry@default' -FilePath $hvigorwPath -Arguments @('assembleHap', '--mode', 'module', '-p', 'module=entry@default', '-p', 'product=default')
-  $checkResults['hvigorw assembleHap entry@ohosTest'] = Invoke-CapturedCommand -Title 'hvigorw assembleHap entry@ohosTest' -FilePath $hvigorwPath -Arguments @('assembleHap', '--mode', 'module', '-p', 'module=entry@ohosTest', '-p', 'product=default')
+    $checkResults['hvigorw tasks --type-check'] = Invoke-CapturedCommand -Title 'hvigorw tasks --type-check' -FilePath $hvigorwPath -Arguments @('tasks', '--mode', 'module', '-p', 'module=entry@default', '-p', 'product=default', '--type-check')
+    $checkResults['hvigorw assembleHap entry@default'] = Invoke-CapturedCommand -Title 'hvigorw assembleHap entry@default' -FilePath $hvigorwPath -Arguments @('assembleHap', '--mode', 'module', '-p', 'module=entry@default', '-p', 'product=default')
+    $checkResults['hvigorw assembleHap entry@ohosTest'] = Invoke-CapturedCommand -Title 'hvigorw assembleHap entry@ohosTest' -FilePath $hvigorwPath -Arguments @('assembleHap', '--mode', 'module', '-p', 'module=entry@ohosTest', '-p', 'product=default')
+  } else {
+    $checkResults['hvigorw tasks --type-check'] = 'skipped (toolchain missing)'
+    $checkResults['hvigorw assembleHap entry@default'] = 'skipped (toolchain missing)'
+    $checkResults['hvigorw assembleHap entry@ohosTest'] = 'skipped (toolchain missing)'
+  }
 }
 
 $checkSummary = [ordered]@{}
