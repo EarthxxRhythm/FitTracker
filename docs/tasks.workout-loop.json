@@ -1,0 +1,104 @@
+[
+  {
+    "id": 14,
+    "category": "训练计划",
+    "description": "首页展示预置训练计划列表，至少包含五分化、上下肢分化、推拉腿、全身训练 3x 和力量举基础。",
+    "passes": false
+  },
+  {
+    "id": 15,
+    "category": "训练计划",
+    "description": "点击任一预置计划后进入计划详情页，可看到计划名称、适用人群、训练频率和按训练日分组的动作列表。",
+    "passes": false
+  },
+  {
+    "id": 16,
+    "category": "训练计划",
+    "description": "计划详情页中的每个训练日显示日标题，以及动作名称、目标肌群和推荐组数次数。",
+    "passes": false
+  },
+  {
+    "id": 17,
+    "category": "训练计划",
+    "description": "点击“开始此计划”后，将预置计划克隆到“我的计划”并设为当前使用计划。",
+    "passes": false
+  },
+  {
+    "id": 18,
+    "category": "训练计划",
+    "description": "重新打开应用后，可从本地存储恢复当前使用计划，而不是要求重新选择。",
+    "passes": false
+  },
+  {
+    "id": 19,
+    "category": "训练计划",
+    "description": "当前计划今天有训练安排时，首页显示今日训练视图，包括星期标签、计划名和动作清单。",
+    "passes": false
+  },
+  {
+    "id": 20,
+    "category": "训练计划",
+    "description": "当前计划今天没有训练安排时，首页显示休息日提示，而不是动作列表。",
+    "passes": false
+  },
+  {
+    "id": 27,
+    "category": "训练记录",
+    "description": "从首页点击“开始训练”后进入训练记录页，并启动可见的训练计时器。",
+    "passes": false
+  },
+  {
+    "id": 28,
+    "category": "训练记录",
+    "description": "训练记录页显示当前训练日的动作列表和每个动作的推荐组数次数。",
+    "passes": false
+  },
+  {
+    "id": 29,
+    "category": "训练记录",
+    "description": "训练记录页允许为单个动作录入重量、次数和组数，并支持对录入值增减调整。",
+    "passes": false
+  },
+  {
+    "id": 30,
+    "category": "训练记录",
+    "description": "系统基于重量和次数按 Epley 公式计算估算 1RM，并用于训练过程或结果中的个人记录判断。",
+    "passes": false
+  },
+  {
+    "id": 31,
+    "category": "训练记录",
+    "description": "训练完成并保存后生成一条训练记录，包含计划信息、训练日期、总组数、总容量、训练时长和动作明细。",
+    "passes": false
+  },
+  {
+    "id": 32,
+    "category": "训练记录",
+    "description": "训练保存成功后将训练记录持久化到本地存储，重进应用后仍可读取。",
+    "passes": false
+  },
+  {
+    "id": 33,
+    "category": "动作记录",
+    "description": "训练中某个动作产生更高估算 1RM 时，自动更新该动作的个人最佳记录。",
+    "passes": false
+  },
+  {
+    "id": 34,
+    "category": "数据统计",
+    "description": "统计页读取全部历史训练记录，并以列表或卡片形式展示计划名、日期、时长和基础指标。",
+    "passes": false
+  },
+  {
+    "id": 35,
+    "category": "数据统计",
+    "description": "根据本周内训练记录计算周统计数据，包括训练次数、总时长、总组数和总容量。",
+    "passes": false
+  },
+  {
+    "id": 36,
+    "category": "数据统计",
+    "description": "从历史训练记录中提取训练日期集合，为热力图或按日期统计视图提供数据源。",
+    "passes": false
+  }
+]

@@ -1,0 +1,86 @@
+[
+  {
+    "id": 10,
+    "category": "个人资料",
+    "description": "个人中心页展示当前用户昵称、头像占位和体重单位偏好，并在重新进入页面时从本地恢复。",
+    "passes": false
+  },
+  {
+    "id": 11,
+    "category": "个人资料",
+    "description": "修改昵称后立即保存，并在后续进入个人中心时显示更新后的值。",
+    "passes": false
+  },
+  {
+    "id": 12,
+    "category": "个人资料",
+    "description": "切换体重单位偏好为 kg 或 lbs 后，系统持久化该偏好以供训练记录相关界面复用。",
+    "passes": false
+  },
+  {
+    "id": 13,
+    "category": "个人资料",
+    "description": "执行退出登录后清除本地登录令牌并返回登录页。",
+    "passes": false
+  },
+  {
+    "id": 21,
+    "category": "动作库",
+    "description": "动作库页展示动作列表，并允许浏览预置动作名称、主肌群和器械类型。",
+    "passes": false
+  },
+  {
+    "id": 22,
+    "category": "动作库",
+    "description": "在动作库搜索框输入关键词时，按动作名称和别名实时过滤结果列表。",
+    "passes": false
+  },
+  {
+    "id": 23,
+    "category": "动作库",
+    "description": "选择某个肌群筛选标签时，动作库仅显示主目标肌群匹配的动作；选择“全部”时恢复完整列表。",
+    "passes": false
+  },
+  {
+    "id": 24,
+    "category": "动作库",
+    "description": "选择某个器械筛选标签时，动作库在当前搜索和肌群筛选结果基础上继续按器械类型过滤。",
+    "passes": false
+  },
+  {
+    "id": 25,
+    "category": "动作库",
+    "description": "点击动作卡片后进入动作详情页，并看到动作名称、动作说明、参与肌群信息和个人记录区域。",
+    "passes": false
+  },
+  {
+    "id": 26,
+    "category": "动作记录",
+    "description": "动作尚无历史训练记录时，详情页的个人记录区域显示“尚未记录”之类的空状态提示。",
+    "passes": false
+  },
+  {
+    "id": 37,
+    "category": "用户界面",
+    "description": "提供统一按钮组件，支持主按钮、次按钮和 ghost 三种样式，以及 loading 和 disabled 状态。",
+    "passes": false
+  },
+  {
+    "id": 38,
+    "category": "用户界面",
+    "description": "提供统一输入框组件，支持文本、数字和密码输入，并支持前缀和校验反馈。",
+    "passes": false
+  },
+  {
+    "id": 39,
+    "category": "用户界面",
+    "description": "提供统一卡片组件和设计 Token，页面中的颜色、字号、间距和圆角优先通过公共定义复用。",
+    "passes": false
+  },
+  {
+    "id": 40,
+    "category": "导航与可用性",
+    "description": "主要页面之间具备可用的导航路径，用户可在登录、首页、计划详情、动作库、统计和个人中心之间完成闭环操作。",
+    "passes": false
+  }
+]
