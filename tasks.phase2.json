@@ -27,7 +27,7 @@
     "id": 5,
     "category": "认证链路",
     "description": "补齐模拟器认证回归，覆盖注册、登录、关闭重开、会话恢复以及首页和目标页分流。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 6,
