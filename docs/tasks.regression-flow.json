@@ -3,54 +3,54 @@
     "id": 1,
     "category": "用户认证",
     "description": "应用冷启动时检查本地登录状态；存在有效令牌时直接进入首页，否则进入登录页。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 2,
     "category": "用户认证",
     "description": "登录页显示手机号、密码、主登录按钮和前往注册页入口，作为认证流程起点。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 3,
     "category": "用户认证",
     "description": "未注册手机号登录时提示账号未注册，并保留当前输入内容。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 4,
     "category": "用户认证",
     "description": "已注册手机号但密码错误时提示密码错误，且不进入首页。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 5,
     "category": "用户认证",
     "description": "手机号和密码正确时保存登录令牌并跳转首页。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 6,
     "category": "用户认证",
     "description": "注册页显示手机号、密码、确认密码输入框，以及提交注册和返回登录页入口。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 7,
     "category": "用户认证",
     "description": "注册输入非法手机号、短密码或两次密码不一致时，阻止注册并显示明确校验提示。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 8,
     "category": "用户认证",
     "description": "未注册手机号使用合法密码和一致确认密码可成功注册并进入首页。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 9,
     "category": "用户认证",
     "description": "已注册手机号重复注册时提示手机号已被注册，且不覆盖原账号数据。",
-    "passes": false
+    "passes": true
   }
 ]
