@@ -1,4 +1,4 @@
-[
+﻿[
   {
     "id": 1,
     "category": "动作内容",
@@ -21,7 +21,7 @@
     "id": 4,
     "category": "自动化测试",
     "description": "将 DevEco 模拟器、HDC 和 Midscene 或 uitest 的回归脚本固化为一键执行流程，并输出可复查的截图、报告和失败排查说明。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 5,
