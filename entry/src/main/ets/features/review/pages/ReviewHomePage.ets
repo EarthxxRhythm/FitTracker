@@ -8,7 +8,12 @@ import { router } from '@kit.ArkUI'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
 import { AppInput } from '../../../components/AppInput'
+import PlanEngine from '../../../shared/services/PlanEngine'
 import GoalRepository from '../../../shared/services/GoalRepository'
+import GoalSetupService, { GoalSetupPrefill } from '../../../shared/services/GoalSetupService'
+import GoalAdjustmentPreviewService, {
+  GoalAdjustmentPlanSnapshot
+} from '../../../shared/services/GoalAdjustmentPreviewService'
 import PersonalRecordService, {
   ExercisePersonalRecordDetail
 } from '../../../shared/services/PersonalRecordService'
@@ -29,7 +34,7 @@ import StatsDashboardService, {
   StatsDashboardSummary
 } from '../../../shared/services/StatsDashboardService'
 import WorkoutRepository from '../../../shared/services/WorkoutRepository'
-import { UserGoal, WorkoutSession } from '../../../shared/models/TrainingModels'
+import { TrainingPlan, UserGoal, WorkoutSession } from '../../../shared/models/TrainingModels'
 import SessionManager from '../../../common/services/SessionManager'
 import UserProfileService, { UserProfile, WeightUnit } from '../../../common/services/UserProfileService'
 
@@ -74,6 +79,12 @@ export struct ReviewHomePage {
   @State profileWeightUnit: WeightUnit = 'kg'
   @State profileStatusText: string = ''
   @State profileLoading: boolean = false
+  @State hasAdjustmentPreview: boolean = false
+  @State adjustmentPreviewOverviewText: string = ''
+  @State adjustmentPreviewArrangementText: string = ''
+  @State adjustmentPreviewCurrentSummaryText: string = ''
+  @State adjustmentPreviewNextSummaryText: string = ''
+  @State adjustmentPreviewHighlights: string[] = []
   currentGoal: UserGoal | undefined = undefined
   currentAdjustmentAction: ReviewGoalAdjustmentAction = ReviewDashboardService.createEmptyGoalAdjustmentAction()
   sessions: WorkoutSession[] = []
@@ -100,6 +111,7 @@ export struct ReviewHomePage {
       this.currentGoal = undefined
       this.applyAdjustmentAction(ReviewDashboardService.createEmptyGoalAdjustmentAction())
     }
+    this.refreshAdjustmentPreview()
     await this.loadProfile()
     this.loading = false
   }
@@ -171,6 +183,45 @@ export struct ReviewHomePage {
     this.adjustmentDescription = action.description
     this.adjustmentButtonText = action.buttonText
     this.canApplyAdjustment = action.canApply
+  }
+
+  refreshAdjustmentPreview(): void {
+    if (this.currentGoal === undefined || !this.canApplyAdjustment) {
+      this.clearAdjustmentPreview()
+      return
+    }
+
+    const selection: GoalSetupPrefill = GoalSetupService.createPrefillFromGoal(this.currentGoal)
+    selection.weeklyDays = this.currentAdjustmentAction.targetWeeklyDays
+    selection.sessionMinutes = this.currentAdjustmentAction.targetSessionMinutes
+    const currentPlan: TrainingPlan = PlanEngine.generatePlan(this.currentGoal)
+    const preview = GoalAdjustmentPreviewService.createPreview(
+      this.currentGoal,
+      currentPlan,
+      selection,
+      this.currentNow
+    )
+
+    this.hasAdjustmentPreview = preview.hasChanges || preview.planChanged
+    this.adjustmentPreviewOverviewText = preview.overviewText
+    this.adjustmentPreviewArrangementText = preview.arrangementChangeText
+    this.adjustmentPreviewCurrentSummaryText = this.createPlanSummaryText(preview.currentPlanSnapshot)
+    this.adjustmentPreviewNextSummaryText = this.createPlanSummaryText(preview.previewPlanSnapshot)
+    this.adjustmentPreviewHighlights = this.copyStringArray(preview.summaryHighlights)
+  }
+
+  clearAdjustmentPreview(): void {
+    this.hasAdjustmentPreview = false
+    this.adjustmentPreviewOverviewText = ''
+    this.adjustmentPreviewArrangementText = ''
+    this.adjustmentPreviewCurrentSummaryText = ''
+    this.adjustmentPreviewNextSummaryText = ''
+    this.adjustmentPreviewHighlights = []
+  }
+
+  createPlanSummaryText(snapshot: GoalAdjustmentPlanSnapshot): string {
+    return '每周' + snapshot.weeklyDays.toString() + '天 · ' +
+      snapshot.totalExercises.toString() + '个动作 · ' + snapshot.focusSummary
   }
 
   async loadProfile(): Promise<void> {
@@ -315,6 +366,8 @@ export struct ReviewHomePage {
       this.applyAdjustmentAction(
         ReviewDashboardService.createGoalAdjustmentAction(this.createCurrentSummary(), result.adjustedGoal)
       )
+      this.currentNow = Date.now()
+      this.refreshAdjustmentPreview()
     } catch (e) {
       this.adjustmentStatusText = '保存调整失败，请稍后重试'
     }
@@ -503,6 +556,14 @@ export struct ReviewHomePage {
       trendText: source.trendText
     }
     return detail
+  }
+
+  copyStringArray(source: string[]): string[] {
+    const values: string[] = []
+    for (let index = 0; index < source.length; index++) {
+      values.push(source[index])
+    }
+    return values
   }
 
   @Builder
@@ -953,6 +1014,78 @@ export struct ReviewHomePage {
   }
 
   @Builder
+  buildAdjustmentPreviewSection() {
+    if (this.hasAdjustmentPreview) {
+      Column({ space: SpacingTokens.SM }) {
+        Text('调整后预览')
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+
+        Text(this.adjustmentPreviewOverviewText)
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .width('100%')
+
+        Row({ space: SpacingTokens.SM }) {
+          Column({ space: SpacingTokens.XS }) {
+            Text('当前安排')
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+
+            Text(this.adjustmentPreviewCurrentSummaryText)
+              .fontSize(FontTokens.SMALL_SIZE)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+              .width('100%')
+          }
+          .layoutWeight(1)
+          .padding(SpacingTokens.SM)
+          .borderRadius(RadiusTokens.SM)
+          .backgroundColor(ColorTokens.BG_SECONDARY)
+          .alignItems(HorizontalAlign.Start)
+
+          Column({ space: SpacingTokens.XS }) {
+            Text('调整后')
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+
+            Text(this.adjustmentPreviewNextSummaryText)
+              .fontSize(FontTokens.SMALL_SIZE)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+              .width('100%')
+          }
+          .layoutWeight(1)
+          .padding(SpacingTokens.SM)
+          .borderRadius(RadiusTokens.SM)
+          .backgroundColor(ColorTokens.BG_SECONDARY)
+          .alignItems(HorizontalAlign.Start)
+        }
+        .width('100%')
+
+        Text(this.adjustmentPreviewArrangementText)
+          .fontSize(FontTokens.SMALL_SIZE)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+          .width('100%')
+
+        Column({ space: SpacingTokens.XS }) {
+          ForEach(this.adjustmentPreviewHighlights, (highlight: string) => {
+            Text('• ' + highlight)
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+              .width('100%')
+          }, (highlight: string) => highlight)
+        }
+        .width('100%')
+      }
+      .width('100%')
+      .padding(SpacingTokens.SM)
+      .borderRadius(RadiusTokens.SM)
+      .backgroundColor(ColorTokens.BG_SECONDARY)
+      .alignItems(HorizontalAlign.Start)
+    }
+  }
+
+  @Builder
   buildProfileSettings() {
     Column({ space: SpacingTokens.SM }) {
       Text('个人资料')
@@ -1162,6 +1295,8 @@ export struct ReviewHomePage {
               Text(this.adjustmentDescription)
                 .fontSize(FontTokens.CAPTION_SIZE)
                 .fontColor(ColorTokens.TEXT_SECONDARY)
+
+              this.buildAdjustmentPreviewSection()
 
               if (this.adjustmentStatusText.length > 0) {
                 Text(this.adjustmentStatusText)
