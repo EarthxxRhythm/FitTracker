@@ -14,6 +14,7 @@ import GoalSetupService, { GoalSetupPrefill } from '../../../shared/services/Goa
 import GoalAdjustmentPreviewService, {
   GoalAdjustmentPlanSnapshot
 } from '../../../shared/services/GoalAdjustmentPreviewService'
+import UserDataBackupService from '../../../shared/services/UserDataBackupService'
 import PersonalRecordService, {
   ExercisePersonalRecordDetail
 } from '../../../shared/services/PersonalRecordService'
@@ -37,6 +38,7 @@ import WorkoutRepository from '../../../shared/services/WorkoutRepository'
 import { TrainingPlan, UserGoal, WorkoutSession } from '../../../shared/models/TrainingModels'
 import SessionManager from '../../../common/services/SessionManager'
 import UserProfileService, { UserProfile, WeightUnit } from '../../../common/services/UserProfileService'
+import WorkoutSessionPersistenceBridgeService from '../../workout/services/WorkoutSessionPersistenceBridgeService'
 
 @Entry
 @Component
@@ -79,6 +81,9 @@ export struct ReviewHomePage {
   @State profileWeightUnit: WeightUnit = 'kg'
   @State profileStatusText: string = ''
   @State profileLoading: boolean = false
+  @State backupPackageText: string = ''
+  @State backupStatusText: string = ''
+  @State backupBusy: boolean = false
   @State hasAdjustmentPreview: boolean = false
   @State adjustmentPreviewOverviewText: string = ''
   @State adjustmentPreviewArrangementText: string = ''
@@ -91,9 +96,17 @@ export struct ReviewHomePage {
   currentNow: number = 0
 
   async aboutToAppear(): Promise<void> {
+    await this.reloadReviewData()
+  }
+
+  async reloadReviewData(): Promise<void> {
     this.loading = true
     this.currentNow = Date.now()
-    this.sessions = WorkoutRepository.getSessions()
+    try {
+      this.sessions = await WorkoutSessionPersistenceBridgeService.syncRepositoryFromPersistence(getContext(this))
+    } catch (e) {
+      this.sessions = WorkoutRepository.getSessions()
+    }
     const summary: ReviewDashboardSummary = ReviewDashboardService.createSummary(this.sessions)
     const statsSummary: StatsDashboardSummary = StatsDashboardService.createSummary(this.sessions, this.currentNow)
     this.applySummary(summary)
@@ -339,6 +352,44 @@ export struct ReviewHomePage {
     } catch (e) {
       this.profileStatusText = '跳转登录页失败'
     }
+  }
+
+  async exportBackupPackage(): Promise<void> {
+    if (this.backupBusy) {
+      return
+    }
+    this.backupBusy = true
+    this.backupStatusText = ''
+    try {
+      this.backupPackageText = await UserDataBackupService.exportPackage(getContext(this))
+      this.backupStatusText = '备份包已生成，可直接复制 JSON。'
+    } catch (e) {
+      this.backupStatusText = '备份包生成失败，请稍后重试。'
+    }
+    this.backupBusy = false
+  }
+
+  async importBackupPackage(): Promise<void> {
+    if (this.backupBusy) {
+      return
+    }
+    if (this.backupPackageText.trim().length === 0) {
+      this.backupStatusText = '请先粘贴备份 JSON。'
+      return
+    }
+
+    this.backupBusy = true
+    const result = await UserDataBackupService.importPackage(getContext(this), this.backupPackageText)
+    this.backupStatusText = result.statusText
+    this.backupBusy = false
+    if (result.success) {
+      await this.reloadReviewData()
+    }
+  }
+
+  clearBackupPackageText(): void {
+    this.backupPackageText = ''
+    this.backupStatusText = ''
   }
 
   getProfileWeightUnitDescription(): string {
@@ -1174,6 +1225,85 @@ export struct ReviewHomePage {
     .alignItems(HorizontalAlign.Start)
   }
 
+  @Builder
+  buildBackupSection() {
+    Column({ space: SpacingTokens.SM }) {
+      Text('数据备份')
+        .fontSize(FontTokens.TITLE_SIZE)
+        .fontWeight(FontTokens.TITLE_WEIGHT)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+
+      Text('目标与计划以导入包为准，训练记录按 sessionId 去重合并。')
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .width('100%')
+
+      TextArea({ text: $$this.backupPackageText, placeholder: '导出或粘贴备份 JSON' })
+        .width('100%')
+        .height(180)
+        .fontSize(FontTokens.SMALL_SIZE)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+        .placeholderColor(ColorTokens.TEXT_DISABLED)
+        .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+        .borderRadius(RadiusTokens.SM)
+        .border({
+          width: 1,
+          color: ColorTokens.SURFACE_ELEVATED
+        })
+
+      Row({ space: SpacingTokens.SM }) {
+        Button(this.backupBusy ? '处理中...' : '生成备份包')
+          .layoutWeight(1)
+          .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+          .backgroundColor(ColorTokens.PRIMARY)
+          .borderRadius(RadiusTokens.FULL)
+          .enabled(!this.backupBusy)
+          .onClick(() => {
+            this.exportBackupPackage()
+          })
+
+        Button(this.backupBusy ? '处理中...' : '导入备份包')
+          .layoutWeight(1)
+          .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+          .backgroundColor(ColorTokens.ACCENT)
+          .borderRadius(RadiusTokens.FULL)
+          .enabled(!this.backupBusy)
+          .onClick(() => {
+            this.importBackupPackage()
+          })
+      }
+      .width('100%')
+
+      Button('清空文本')
+        .width('100%')
+        .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
+        .fontSize(FontTokens.BODY_SIZE)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+        .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+        .borderRadius(RadiusTokens.FULL)
+        .enabled(!this.backupBusy)
+        .onClick(() => {
+          this.clearBackupPackageText()
+        })
+
+      if (this.backupStatusText.length > 0) {
+        Text(this.backupStatusText)
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .width('100%')
+      }
+    }
+    .width('100%')
+    .padding(SpacingTokens.MD)
+    .borderRadius(RadiusTokens.SM)
+    .backgroundColor(ColorTokens.BG_SECONDARY)
+    .alignItems(HorizontalAlign.Start)
+  }
+
   build() {
     Scroll() {
       Column({ space: SpacingTokens.LG }) {
@@ -1349,6 +1479,7 @@ export struct ReviewHomePage {
 
         if (!this.loading) {
           this.buildProfileSettings()
+          this.buildBackupSection()
         }
       }
       .width('100%')

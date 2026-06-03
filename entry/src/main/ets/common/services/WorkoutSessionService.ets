@@ -136,6 +136,10 @@ class WorkoutSessionService {
     return true
   }
 
+  async replaceSessions(context: Context, sessions: WorkoutSession[]): Promise<void> {
+    await this.writeSessions(context, sessions)
+  }
+
   async getSessions(context: Context): Promise<WorkoutSession[]> {
     return this.readSessions(context)
   }

@@ -314,6 +314,28 @@ class TrainingPlanService {
     }
   }
 
+  async getCurrentPlanId(context: Context): Promise<string> {
+    try {
+      const prefs = await preferences.getPreferences(context, STORE_NAME)
+      return await prefs.get(KEY_CURRENT_PLAN_ID, '') as string
+    } catch (e) {
+      return ''
+    }
+  }
+
+  async replaceMyPlans(context: Context, plans: UserPlan[], currentPlanId: string): Promise<void> {
+    const nextPlans: UserPlan[] = this.copyUserPlans(plans)
+    let nextCurrentPlanId: string = currentPlanId
+    if (!this.containsPlanId(nextPlans, nextCurrentPlanId)) {
+      nextCurrentPlanId = nextPlans.length > 0 ? nextPlans[0].id : ''
+    }
+
+    const prefs = await preferences.getPreferences(context, STORE_NAME)
+    await prefs.put(KEY_MY_PLANS, JSON.stringify(nextPlans))
+    await prefs.put(KEY_CURRENT_PLAN_ID, nextCurrentPlanId)
+    await prefs.flush()
+  }
+
   async setCurrentPlan(context: Context, planId: string): Promise<void> {
     const prefs = await preferences.getPreferences(context, STORE_NAME)
     await prefs.put(KEY_CURRENT_PLAN_ID, planId)
@@ -363,6 +385,76 @@ class TrainingPlanService {
   getTodayLabel(): string {
     const labels: string[] = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
     return labels[new Date().getDay()]
+  }
+
+  private containsPlanId(plans: UserPlan[], planId: string): boolean {
+    for (let index = 0; index < plans.length; index++) {
+      if (plans[index].id === planId) {
+        return true
+      }
+    }
+    return false
+  }
+
+  private copyUserPlans(source: UserPlan[]): UserPlan[] {
+    const plans: UserPlan[] = []
+    for (let index = 0; index < source.length; index++) {
+      plans.push(this.copyUserPlan(source[index]))
+    }
+    return plans
+  }
+
+  private copyUserPlan(source: UserPlan): UserPlan {
+    const plan: UserPlan = {
+      id: source.id,
+      name: source.name,
+      coverColor: source.coverColor,
+      targetAudience: source.targetAudience,
+      weeklyFrequency: source.weeklyFrequency,
+      days: this.copyTrainingDays(source.days),
+      enabledAt: source.enabledAt
+    }
+    return plan
+  }
+
+  private copyTrainingDays(source: TrainingDay[]): TrainingDay[] {
+    const days: TrainingDay[] = []
+    for (let index = 0; index < source.length; index++) {
+      const sourceDay: TrainingDay = source[index]
+      const day: TrainingDay = {
+        dayLabel: sourceDay.dayLabel,
+        dayOfWeek: this.copyDayOfWeek(sourceDay.dayOfWeek),
+        exercises: this.copyExercises(sourceDay.exercises)
+      }
+      days.push(day)
+    }
+    return days
+  }
+
+  private copyExercises(source: ExerciseRef[]): ExerciseRef[] {
+    const exercises: ExerciseRef[] = []
+    for (let index = 0; index < source.length; index++) {
+      const sourceExercise: ExerciseRef = source[index]
+      const exercise: ExerciseRef = {
+        name: sourceExercise.name,
+        targetMuscle: sourceExercise.targetMuscle,
+        sets: sourceExercise.sets,
+        reps: sourceExercise.reps
+      }
+      exercises.push(exercise)
+    }
+    return exercises
+  }
+
+  private copyDayOfWeek(source: number[] | undefined): number[] | undefined {
+    if (source === undefined) {
+      return undefined
+    }
+    const values: number[] = []
+    for (let index = 0; index < source.length; index++) {
+      values.push(source[index])
+    }
+    return values
   }
 }
 

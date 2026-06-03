@@ -10,6 +10,7 @@ import contentRepositoryTest from './ContentRepository.test'
 import goalSetupServiceTest from './GoalSetupService.test'
 import goalAdjustmentPreviewServiceTest from './GoalAdjustmentPreviewService.test'
 import homePlanServiceTest from './HomePlanService.test'
+import userDataBackupServiceTest from './UserDataBackupService.test'
 import workoutPreviewServiceTest from './WorkoutPreviewService.test'
 import activeWorkoutServiceTest from './ActiveWorkoutService.test'
 import workoutSummaryServiceTest from './WorkoutSummaryService.test'
@@ -38,6 +39,7 @@ export default function testsuite(): void {
   goalSetupServiceTest()
   goalAdjustmentPreviewServiceTest()
   homePlanServiceTest()
+  userDataBackupServiceTest()
   workoutPreviewServiceTest()
   activeWorkoutServiceTest()
   workoutSummaryServiceTest()

@@ -47,7 +47,7 @@ export struct WorkoutSummaryPage {
   currentSession: WorkoutSession | undefined = undefined
   lastRemovedSession: WorkoutSession | undefined = undefined
 
-  aboutToAppear(): void {
+  async aboutToAppear(): Promise<void> {
     this.loading = true
     this.isEditMode = false
     this.showUndoConfirm = false
@@ -56,6 +56,13 @@ export struct WorkoutSummaryPage {
     this.savingEdit = false
     this.undoingSession = false
     this.loadSummarySession()
+    if (this.currentSession !== undefined) {
+      try {
+        await WorkoutSessionPersistenceBridgeService.saveOrUpdateSession(getContext(this), this.currentSession)
+      } catch (e) {
+        // Keep summary visible even if legacy persistence sync fails.
+      }
+    }
     this.loading = false
   }
 
