@@ -7,13 +7,23 @@ import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } fro
 import ContentRepository, { ExerciseDetailViewModel } from '../../../shared/services/ContentRepository'
 import ExerciseMediaResolverService, {
   ExerciseMediaAssetInfo,
+  ExerciseMediaMetadata,
   ExerciseMediaPresentation
 } from '../../../shared/services/ExerciseMediaResolverService'
+
+function createEmptyExerciseMediaMetadata(): ExerciseMediaMetadata {
+  const metadata: ExerciseMediaMetadata = {
+    coverSourceLabel: '',
+    videoSourceLabel: '',
+    mediaLicenseText: ''
+  }
+  return metadata
+}
 
 @Entry
 @Component
 export struct ExerciseDetailPage {
-  mediaPresentation: ExerciseMediaPresentation = ExerciseMediaResolverService.resolve('', '', '')
+  mediaPresentation: ExerciseMediaPresentation = ExerciseMediaResolverService.resolve('', '', '', createEmptyExerciseMediaMetadata())
   @State hasExercise: boolean = false
   @State exerciseId: string = ''
   @State name: string = ''
@@ -28,6 +38,9 @@ export struct ExerciseDetailPage {
   @State alternativeNames: string[] = []
   @State coverUrl: string = ''
   @State videoUrl: string = ''
+  @State coverSourceLabel: string = ''
+  @State videoSourceLabel: string = ''
+  @State mediaLicenseText: string = ''
   @State videoPlaceholder: string = ''
 
   aboutToAppear(): void {
@@ -72,12 +85,25 @@ export struct ExerciseDetailPage {
     this.alternativeNames = this.copyStringArray(detail.alternativeNames)
     this.coverUrl = detail.coverUrl
     this.videoUrl = detail.videoUrl
+    this.coverSourceLabel = detail.coverSourceLabel
+    this.videoSourceLabel = detail.videoSourceLabel
+    this.mediaLicenseText = detail.mediaLicenseText
     this.videoPlaceholder = detail.videoPlaceholder
     this.mediaPresentation = ExerciseMediaResolverService.resolve(
       this.coverUrl,
       this.videoUrl,
-      this.videoPlaceholder
+      this.videoPlaceholder,
+      this.createMediaMetadata()
     )
+  }
+
+  createMediaMetadata(): ExerciseMediaMetadata {
+    const metadata: ExerciseMediaMetadata = {
+      coverSourceLabel: this.coverSourceLabel,
+      videoSourceLabel: this.videoSourceLabel,
+      mediaLicenseText: this.mediaLicenseText
+    }
+    return metadata
   }
 
   copyStringArray(source: string[]): string[] {

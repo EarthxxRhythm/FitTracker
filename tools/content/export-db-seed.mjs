@@ -52,7 +52,7 @@ function insert(table, fields, values) {
 
 function renderSchema() {
   return [
-    'CREATE TABLE IF NOT EXISTS exercises (exercise_id TEXT PRIMARY KEY, name_zh TEXT NOT NULL, name_en TEXT NOT NULL, aliases_json TEXT NOT NULL, difficulty TEXT NOT NULL, goal_tags_json TEXT NOT NULL, steps_json TEXT NOT NULL, cues_json TEXT NOT NULL, common_mistakes_json TEXT NOT NULL, safety_notes_json TEXT NOT NULL, content_version INTEGER NOT NULL, status TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);',
+    'CREATE TABLE IF NOT EXISTS exercises (exercise_id TEXT PRIMARY KEY, name_zh TEXT NOT NULL, name_en TEXT NOT NULL, aliases_json TEXT NOT NULL, difficulty TEXT NOT NULL, goal_tags_json TEXT NOT NULL, cover_source_label TEXT NOT NULL, video_source_label TEXT NOT NULL, media_license_text TEXT NOT NULL, steps_json TEXT NOT NULL, cues_json TEXT NOT NULL, common_mistakes_json TEXT NOT NULL, safety_notes_json TEXT NOT NULL, content_version INTEGER NOT NULL, status TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);',
     'CREATE TABLE IF NOT EXISTS muscles (muscle_id TEXT PRIMARY KEY, name_zh TEXT NOT NULL, region TEXT NOT NULL);',
     'CREATE TABLE IF NOT EXISTS equipment (equipment_id TEXT PRIMARY KEY, name_zh TEXT NOT NULL, category TEXT);',
     'CREATE TABLE IF NOT EXISTS exercise_muscles (exercise_id TEXT NOT NULL, muscle_id TEXT NOT NULL, role TEXT NOT NULL, sort_order INTEGER NOT NULL, PRIMARY KEY (exercise_id, muscle_id, role));',
@@ -81,13 +81,16 @@ function renderEquipment(equipment) {
 function renderExercises(exercises) {
   const lines = []
   for (const exercise of exercises) {
-    lines.push(`INSERT INTO exercises (exercise_id, name_zh, name_en, aliases_json, difficulty, goal_tags_json, steps_json, cues_json, common_mistakes_json, safety_notes_json, content_version, status, created_at, updated_at) VALUES (${[
+    lines.push(`INSERT INTO exercises (exercise_id, name_zh, name_en, aliases_json, difficulty, goal_tags_json, cover_source_label, video_source_label, media_license_text, steps_json, cues_json, common_mistakes_json, safety_notes_json, content_version, status, created_at, updated_at) VALUES (${[
       sql(exercise.exerciseId),
       sql(exercise.nameZh),
       sql(exercise.nameEn),
       jsonSql(exercise.aliases),
       sql(exercise.difficulty),
       jsonSql(exercise.goalTags),
+      sql(exercise.coverSourceLabel || ''),
+      sql(exercise.videoSourceLabel || ''),
+      sql(exercise.mediaLicenseText || ''),
       jsonSql(exercise.steps),
       jsonSql(exercise.cues),
       jsonSql(exercise.commonMistakes),
@@ -135,10 +138,10 @@ function renderExerciseAlternatives(exercise) {
 function renderExerciseMedia(exercise) {
   const lines = []
   if ((exercise.videoUrl || '').length > 0) {
-    lines.push(insert('exercise_media', ['media_id', 'exercise_id', 'media_type', 'uri', 'thumbnail_uri', 'view_angle', 'duration_seconds', 'license_type', 'source_note', 'checksum', 'sort_order'], [`${exercise.exerciseId}_video`, exercise.exerciseId, 'video', exercise.videoUrl, exercise.coverUrl || '', '', 0, 'owned', 'FitTracker local or self-hosted asset', '', 1]))
+    lines.push(insert('exercise_media', ['media_id', 'exercise_id', 'media_type', 'uri', 'thumbnail_uri', 'view_angle', 'duration_seconds', 'license_type', 'source_note', 'checksum', 'sort_order'], [`${exercise.exerciseId}_video`, exercise.exerciseId, 'video', exercise.videoUrl, exercise.coverUrl || '', '', 0, exercise.mediaLicenseText || 'owned', exercise.videoSourceLabel || 'FitTracker local or self-hosted asset', '', 1]))
   }
   if ((exercise.coverUrl || '').length > 0) {
-    lines.push(insert('exercise_media', ['media_id', 'exercise_id', 'media_type', 'uri', 'thumbnail_uri', 'view_angle', 'duration_seconds', 'license_type', 'source_note', 'checksum', 'sort_order'], [`${exercise.exerciseId}_cover`, exercise.exerciseId, 'cover', exercise.coverUrl, '', '', 0, 'owned', 'FitTracker local or self-hosted asset', '', 2]))
+    lines.push(insert('exercise_media', ['media_id', 'exercise_id', 'media_type', 'uri', 'thumbnail_uri', 'view_angle', 'duration_seconds', 'license_type', 'source_note', 'checksum', 'sort_order'], [`${exercise.exerciseId}_cover`, exercise.exerciseId, 'cover', exercise.coverUrl, '', '', 0, exercise.mediaLicenseText || 'owned', exercise.coverSourceLabel || 'FitTracker local or self-hosted asset', '', 2]))
   }
   return lines
 }

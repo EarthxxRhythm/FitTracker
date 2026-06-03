@@ -41,6 +41,9 @@ export interface ExerciseDetailViewModel {
   alternativeNames: string[]
   coverUrl: string
   videoUrl: string
+  coverSourceLabel: string
+  videoSourceLabel: string
+  mediaLicenseText: string
   videoPlaceholder: string
 }
 
@@ -87,6 +90,9 @@ function createExerciseDetailViewModel(
   alternativeNames: string[],
   coverUrl: string,
   videoUrl: string,
+  coverSourceLabel: string,
+  videoSourceLabel: string,
+  mediaLicenseText: string,
   videoPlaceholder: string
 ): ExerciseDetailViewModel {
   const item: ExerciseDetailViewModel = {
@@ -103,6 +109,9 @@ function createExerciseDetailViewModel(
     alternativeNames: alternativeNames,
     coverUrl: coverUrl,
     videoUrl: videoUrl,
+    coverSourceLabel: coverSourceLabel,
+    videoSourceLabel: videoSourceLabel,
+    mediaLicenseText: mediaLicenseText,
     videoPlaceholder: videoPlaceholder
   }
   return item
@@ -231,6 +240,9 @@ class ContentRepositoryImpl {
       this.getAlternativeExerciseNames(exercise.alternativeExerciseIds),
       exercise.coverUrl,
       exercise.videoUrl,
+      exercise.coverSourceLabel,
+      exercise.videoSourceLabel,
+      exercise.mediaLicenseText,
       this.getVideoPlaceholder(exercise)
     )
   }
@@ -486,6 +498,9 @@ class ContentRepositoryImpl {
       goalTags: this.copyStringArray(source.goalTags),
       videoUrl: source.videoUrl,
       coverUrl: source.coverUrl,
+      coverSourceLabel: source.coverSourceLabel,
+      videoSourceLabel: source.videoSourceLabel,
+      mediaLicenseText: source.mediaLicenseText,
       steps: this.copyStringArray(source.steps),
       cues: this.copyStringArray(source.cues),
       commonMistakes: this.copyStringArray(source.commonMistakes),

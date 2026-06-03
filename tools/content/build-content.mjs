@@ -47,6 +47,15 @@ function requireString(record, field, label) {
   }
 }
 
+function requireOptionalString(record, field, label) {
+  if (record[field] === undefined) {
+    return
+  }
+  if (typeof record[field] !== 'string') {
+    throw new Error(`${label}.${field} must be a string at ${sourceOf(record)}`)
+  }
+}
+
 function requireStringArray(record, field, label) {
   if (!Array.isArray(record[field])) {
     throw new Error(`${label}.${field} must be an array at ${sourceOf(record)}`)
@@ -153,10 +162,32 @@ function validate(muscles, equipment, exercises) {
         throw new Error(`${label} references unknown alternative ${alternativeId} at ${sourceOf(exercise)}`)
       }
     }
+    requireOptionalString(exercise, 'coverSourceLabel', label)
+    requireOptionalString(exercise, 'videoSourceLabel', label)
+    requireOptionalString(exercise, 'mediaLicenseText', label)
     validateLocalMediaField(exercise, 'videoUrl', label)
     validateLocalMediaField(exercise, 'coverUrl', label)
+    validateMediaMetadata(exercise, label)
   }
   validateCoverage(muscles, equipment, exercises)
+}
+
+function validateMediaMetadata(exercise, label) {
+  const videoUrl = exercise.videoUrl || ''
+  const coverUrl = exercise.coverUrl || ''
+  const coverSourceLabel = (exercise.coverSourceLabel || '').trim()
+  const videoSourceLabel = (exercise.videoSourceLabel || '').trim()
+  const mediaLicenseText = (exercise.mediaLicenseText || '').trim()
+
+  if (coverUrl.length > 0 && coverSourceLabel.length === 0) {
+    throw new Error(`${label}.coverSourceLabel must be provided when coverUrl exists at ${sourceOf(exercise)}`)
+  }
+  if (videoUrl.length > 0 && videoSourceLabel.length === 0) {
+    throw new Error(`${label}.videoSourceLabel must be provided when videoUrl exists at ${sourceOf(exercise)}`)
+  }
+  if ((coverUrl.length > 0 || videoUrl.length > 0) && mediaLicenseText.length === 0) {
+    throw new Error(`${label}.mediaLicenseText must be provided when media exists at ${sourceOf(exercise)}`)
+  }
 }
 
 function validateLocalMediaField(exercise, field, label) {
@@ -297,6 +328,9 @@ function render(muscles, equipment, exercises) {
     lines.push(`    ${arrayLiteral(exercise.goalTags)},`)
     lines.push(`    ${q(exercise.videoUrl || '')},`)
     lines.push(`    ${q(exercise.coverUrl || '')},`)
+    lines.push(`    ${q(exercise.coverSourceLabel || '')},`)
+    lines.push(`    ${q(exercise.videoSourceLabel || '')},`)
+    lines.push(`    ${q(exercise.mediaLicenseText || '')},`)
     lines.push(`    ${arrayLiteral(exercise.steps)},`)
     lines.push(`    ${arrayLiteral(exercise.cues)},`)
     lines.push(`    ${arrayLiteral(exercise.commonMistakes)},`)

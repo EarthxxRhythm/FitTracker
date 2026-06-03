@@ -37,6 +37,9 @@ export interface ExerciseContent {
   goalTags: string[]
   videoUrl: string
   coverUrl: string
+  coverSourceLabel: string
+  videoSourceLabel: string
+  mediaLicenseText: string
   steps: string[]
   cues: string[]
   commonMistakes: string[]
@@ -157,6 +160,9 @@ export function createExerciseContent(
   goalTags: string[],
   videoUrl: string,
   coverUrl: string,
+  coverSourceLabel: string,
+  videoSourceLabel: string,
+  mediaLicenseText: string,
   steps: string[],
   cues: string[],
   commonMistakes: string[],
@@ -176,6 +182,9 @@ export function createExerciseContent(
     goalTags: goalTags,
     videoUrl: videoUrl,
     coverUrl: coverUrl,
+    coverSourceLabel: coverSourceLabel,
+    videoSourceLabel: videoSourceLabel,
+    mediaLicenseText: mediaLicenseText,
     steps: steps,
     cues: cues,
     commonMistakes: commonMistakes,
