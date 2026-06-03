@@ -83,6 +83,7 @@ export struct ReviewHomePage {
   @State profileLoading: boolean = false
   @State backupPackageText: string = ''
   @State backupStatusText: string = ''
+  @State backupStatusTone: string = 'info'
   @State backupBusy: boolean = false
   @State hasAdjustmentPreview: boolean = false
   @State adjustmentPreviewOverviewText: string = ''
@@ -360,11 +361,14 @@ export struct ReviewHomePage {
     }
     this.backupBusy = true
     this.backupStatusText = ''
+    this.backupStatusTone = 'info'
     try {
       this.backupPackageText = await UserDataBackupService.exportPackage(getContext(this))
       this.backupStatusText = '备份包已生成，可直接复制 JSON。'
+      this.backupStatusTone = 'success'
     } catch (e) {
       this.backupStatusText = '备份包生成失败，请稍后重试。'
+      this.backupStatusTone = 'error'
     }
     this.backupBusy = false
   }
@@ -375,12 +379,14 @@ export struct ReviewHomePage {
     }
     if (this.backupPackageText.trim().length === 0) {
       this.backupStatusText = '请先粘贴备份 JSON。'
+      this.backupStatusTone = 'warning'
       return
     }
 
     this.backupBusy = true
     const result = await UserDataBackupService.importPackage(getContext(this), this.backupPackageText)
     this.backupStatusText = result.statusText
+    this.backupStatusTone = this.resolveBackupStatusTone(result.success, result.usedPlanFallback)
     this.backupBusy = false
     if (result.success) {
       await this.reloadReviewData()
@@ -390,6 +396,30 @@ export struct ReviewHomePage {
   clearBackupPackageText(): void {
     this.backupPackageText = ''
     this.backupStatusText = ''
+    this.backupStatusTone = 'info'
+  }
+
+  resolveBackupStatusTone(success: boolean, usedPlanFallback: boolean): string {
+    if (!success) {
+      return 'error'
+    }
+    if (usedPlanFallback) {
+      return 'warning'
+    }
+    return 'success'
+  }
+
+  getBackupStatusColor(): string {
+    if (this.backupStatusTone === 'error') {
+      return ColorTokens.ERROR
+    }
+    if (this.backupStatusTone === 'warning') {
+      return ColorTokens.WARNING
+    }
+    if (this.backupStatusTone === 'success') {
+      return ColorTokens.SUCCESS
+    }
+    return ColorTokens.TEXT_SECONDARY
   }
 
   getProfileWeightUnitDescription(): string {
@@ -1293,7 +1323,7 @@ export struct ReviewHomePage {
       if (this.backupStatusText.length > 0) {
         Text(this.backupStatusText)
           .fontSize(FontTokens.CAPTION_SIZE)
-          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .fontColor(this.getBackupStatusColor())
           .width('100%')
       }
     }
