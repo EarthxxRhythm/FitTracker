@@ -6,6 +6,7 @@ param(
   [string]$TestPhone = "13800138000",
   [string]$TestPassword = "FitTracker123",
   [string]$RunRoot = "",
+  [string]$RunTag = "",
   [string]$SummaryFileName = "midscene-auth-regression-summary.md",
   [switch]$SkipInstall,
   [switch]$SkipDisconnect,
@@ -15,9 +16,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 $ScriptRoot = $PSScriptRoot
-$DefaultRunRoot = Join-Path $ScriptRoot "..\midscene_run"
+$DefaultRunBase = Join-Path $ScriptRoot "..\midscene_run\auth"
+if ([string]::IsNullOrWhiteSpace($RunTag)) {
+  $RunTag = (Get-Date -Format "yyyyMMdd-HHmmss") + "-p" + $PID.ToString()
+}
 if ([string]::IsNullOrWhiteSpace($RunRoot)) {
-  $RunRoot = $DefaultRunRoot
+  $RunRoot = Join-Path $DefaultRunBase $RunTag
 }
 $RunRoot = [System.IO.Path]::GetFullPath($RunRoot)
 $RunSummaryPath = Join-Path $RunRoot $SummaryFileName
@@ -58,7 +62,9 @@ function Write-RegressionSummary {
   $summaryLines += "- ability: $AbilityName"
   $summaryLines += "- hap path: $HapPath"
   $summaryLines += "- test phone: $TestPhone"
+  $summaryLines += "- run root: $RunRoot"
   $summaryLines += "- report dir: $RunRoot\report"
+  $summaryLines += "- log dir: $RunRoot\log"
   $summaryLines += "- latest html: $(Get-LatestMidsceneReportHtmlPath)"
   $summaryLines += "- MIDSCENE_MODEL_BASE_URL: $($env:MIDSCENE_MODEL_BASE_URL)"
   $summaryLines += "- MIDSCENE_MODEL_NAME: $($env:MIDSCENE_MODEL_NAME)"

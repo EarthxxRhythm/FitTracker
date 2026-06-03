@@ -4,6 +4,7 @@
   [string]$AbilityName = "EntryAbility",
   [string]$HapPath = "entry/build/default/outputs/default/entry-default-unsigned.hap",
   [string]$RunRoot = "",
+  [string]$RunTag = "",
   [string]$SummaryFileName = "midscene-regression-summary.md",
   [switch]$SkipInstall,
   [switch]$SkipDisconnect,
@@ -13,9 +14,12 @@
 
 $ErrorActionPreference = "Stop"
 $ScriptRoot = $PSScriptRoot
-$DefaultRunRoot = Join-Path $ScriptRoot "..\midscene_run"
+$DefaultRunBase = Join-Path $ScriptRoot "..\midscene_run\full"
+if ([string]::IsNullOrWhiteSpace($RunTag)) {
+  $RunTag = (Get-Date -Format "yyyyMMdd-HHmmss") + "-p" + $PID.ToString()
+}
 if ([string]::IsNullOrWhiteSpace($RunRoot)) {
-  $RunRoot = $DefaultRunRoot
+  $RunRoot = Join-Path $DefaultRunBase $RunTag
 }
 $RunRoot = [System.IO.Path]::GetFullPath($RunRoot)
 $RunSummaryPath = Join-Path $RunRoot $SummaryFileName
@@ -55,6 +59,7 @@ function Write-RegressionSummary {
   $summaryLines += "- 包名：$BundleName"
   $summaryLines += "- Ability：$AbilityName"
   $summaryLines += "- HAP 路径：$HapPath"
+  $summaryLines += "- 运行目录：$RunRoot"
   $summaryLines += "- Midscene 报告目录：$RunRoot\report"
   $summaryLines += "- Midscene 日志目录：$RunRoot\log"
   $summaryLines += "- 最近报告 HTML：$(Get-LatestMidsceneReportHtmlPath)"
@@ -69,7 +74,7 @@ function Write-RegressionSummary {
     $summaryLines += "- 无"
   }
   $summaryLines += '- 查看 `docs/模拟器视觉回归说明.md` 的失败排查表。'
-  $summaryLines += '- 如需复盘节点详情，打开 `midscene_run/report/` 下最新 HTML 报告。'
+  $summaryLines += '- 如需复盘节点详情，打开当前运行目录下 `report/` 的最新 HTML 报告。'
 
   Set-Content -Path $RunSummaryPath -Value $summaryLines -Encoding utf8
 }

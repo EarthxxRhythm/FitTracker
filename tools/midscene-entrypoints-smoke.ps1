@@ -8,6 +8,7 @@ param(
   [string]$RunRoot = "",
   [string]$RunTag = "",
   [string]$SummaryFileName = "midscene-entrypoints-smoke-summary.md",
+  [switch]$ResetAppData,
   [switch]$SkipInstall,
   [switch]$SkipDisconnect,
   [switch]$SkipVisualAsserts,
@@ -66,6 +67,7 @@ function Write-SmokeSummary {
   $summaryLines += "- run root: $RunRoot"
   $summaryLines += "- report dir: $RunRoot\report"
   $summaryLines += "- log dir: $RunRoot\log"
+  $summaryLines += "- reset app data: $ResetAppData"
   $summaryLines += "- latest html: $(Get-LatestMidsceneReportHtmlPath)"
   $summaryLines += "- MIDSCENE_MODEL_BASE_URL: $($env:MIDSCENE_MODEL_BASE_URL)"
   $summaryLines += "- MIDSCENE_MODEL_NAME: $($env:MIDSCENE_MODEL_NAME)"
@@ -142,6 +144,15 @@ function Assert-MidsceneEnvironment {
     $env:MIDSCENE_MODEL_FAMILY.Length -eq 0) {
     throw 'Missing Midscene model environment variables. Set MIDSCENE_MODEL_API_KEY, MIDSCENE_MODEL_NAME, MIDSCENE_MODEL_BASE_URL and MIDSCENE_MODEL_FAMILY, or create a local .env file.'
   }
+}
+
+function Reset-AppDataIfRequested {
+  if (-not $ResetAppData) {
+    return
+  }
+
+  Invoke-Hdc -Title "clean app data" -CommandArgs @("shell", "bm", "clean", "-n", $BundleName, "-d", "-c", "-u", "0")
+  Start-Sleep -Seconds 1
 }
 
 function Invoke-VisualAssert {
@@ -289,6 +300,8 @@ try {
     }
     Invoke-Hdc -Title "install app HAP" -CommandArgs @("install", "-r", $HapPath)
   }
+
+  Reset-AppDataIfRequested
 
   Ensure-AppReady
 
