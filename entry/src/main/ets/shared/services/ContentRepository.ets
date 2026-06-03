@@ -39,6 +39,8 @@ export interface ExerciseDetailViewModel {
   commonMistakes: string[]
   safetyNotes: string[]
   alternativeNames: string[]
+  coverUrl: string
+  videoUrl: string
   videoPlaceholder: string
 }
 
@@ -83,6 +85,8 @@ function createExerciseDetailViewModel(
   commonMistakes: string[],
   safetyNotes: string[],
   alternativeNames: string[],
+  coverUrl: string,
+  videoUrl: string,
   videoPlaceholder: string
 ): ExerciseDetailViewModel {
   const item: ExerciseDetailViewModel = {
@@ -97,6 +101,8 @@ function createExerciseDetailViewModel(
     commonMistakes: commonMistakes,
     safetyNotes: safetyNotes,
     alternativeNames: alternativeNames,
+    coverUrl: coverUrl,
+    videoUrl: videoUrl,
     videoPlaceholder: videoPlaceholder
   }
   return item
@@ -223,6 +229,8 @@ class ContentRepositoryImpl {
       this.copyStringArray(exercise.commonMistakes),
       this.copyStringArray(exercise.safetyNotes),
       this.getAlternativeExerciseNames(exercise.alternativeExerciseIds),
+      exercise.coverUrl,
+      exercise.videoUrl,
       this.getVideoPlaceholder(exercise)
     )
   }

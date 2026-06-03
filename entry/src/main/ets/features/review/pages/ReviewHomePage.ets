@@ -1,12 +1,17 @@
 /**
- * ReviewHomePage -- training review dashboard.
- * Function #12: review dashboard and next adjustment hint.
- * Function #14: recent workout records and historical training trend.
+ * ReviewHomePage —— 增强训练回顾页。
+ *
+ * 功能 #12：训练回顾与目标调整建议。
+ * 功能 #14：最近训练筛选、按周趋势查看与按动作查看个人纪录。
  */
 import { router } from '@kit.ArkUI'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
 import { AppInput } from '../../../components/AppInput'
+import GoalRepository from '../../../shared/services/GoalRepository'
+import PersonalRecordService, {
+  ExercisePersonalRecordDetail
+} from '../../../shared/services/PersonalRecordService'
 import ReviewDashboardService, {
   ReviewGoalAdjustmentAction,
   ReviewDashboardSummary,
@@ -14,19 +19,19 @@ import ReviewDashboardService, {
   ReviewRecentSessionRecord,
   ReviewTrendSummary
 } from '../../../shared/services/ReviewDashboardService'
-import GoalRepository from '../../../shared/services/GoalRepository'
-import WorkoutRepository from '../../../shared/services/WorkoutRepository'
-import { UserGoal, WorkoutSession } from '../../../shared/models/TrainingModels'
+import ReviewInsightsService, {
+  ReviewRecentSessionFilterOption,
+  ReviewWeeklyTrendItem
+} from '../../../shared/services/ReviewInsightsService'
 import StatsDashboardService, {
   CalendarHeatmapDay,
   CalendarHeatmapRow,
   StatsDashboardSummary
 } from '../../../shared/services/StatsDashboardService'
-import PersonalRecordService, {
-  ExercisePersonalRecord
-} from '../../../shared/services/PersonalRecordService'
-import UserProfileService, { UserProfile, WeightUnit } from '../../../common/services/UserProfileService'
+import WorkoutRepository from '../../../shared/services/WorkoutRepository'
+import { UserGoal, WorkoutSession } from '../../../shared/models/TrainingModels'
 import SessionManager from '../../../common/services/SessionManager'
+import UserProfileService, { UserProfile, WeightUnit } from '../../../common/services/UserProfileService'
 
 @Entry
 @Component
@@ -47,7 +52,6 @@ export struct ReviewHomePage {
   @State canApplyAdjustment: boolean = false
   @State applyingAdjustment: boolean = false
   @State adjustmentStatusText: string = ''
-  @State recentRecords: ReviewRecentSessionRecord[] = []
   @State trendSummary: ReviewTrendSummary = ReviewDashboardService.createEmptyTrendSummary()
   @State weeklySessionCount: number = 0
   @State weeklyDurationText: string = '0 分钟'
@@ -56,7 +60,15 @@ export struct ReviewHomePage {
   @State weeklyDateRangeText: string = ''
   @State heatmapMonthTitle: string = ''
   @State heatmapRows: CalendarHeatmapRow[] = []
-  @State personalRecords: ExercisePersonalRecord[] = []
+  @State recentFilterOptions: ReviewRecentSessionFilterOption[] = []
+  @State selectedRecentFilterId: string = 'recent_7_days'
+  @State filteredRecentRecords: ReviewRecentSessionRecord[] = []
+  @State weeklyTrends: ReviewWeeklyTrendItem[] = []
+  @State selectedWeekId: string = ''
+  @State selectedWeekTrend: ReviewWeeklyTrendItem = ReviewInsightsService.createEmptyWeeklyTrendItem()
+  @State recordDetails: ExercisePersonalRecordDetail[] = []
+  @State selectedExerciseId: string = ''
+  @State selectedRecordDetail: ExercisePersonalRecordDetail = PersonalRecordService.createEmptyRecordDetail()
   @State profileNickname: string = ''
   @State profileAvatar: string = ''
   @State profileWeightUnit: WeightUnit = 'kg'
@@ -64,15 +76,18 @@ export struct ReviewHomePage {
   @State profileLoading: boolean = false
   currentGoal: UserGoal | undefined = undefined
   currentAdjustmentAction: ReviewGoalAdjustmentAction = ReviewDashboardService.createEmptyGoalAdjustmentAction()
+  sessions: WorkoutSession[] = []
+  currentNow: number = 0
 
   async aboutToAppear(): Promise<void> {
     this.loading = true
-    const sessions: WorkoutSession[] = WorkoutRepository.getSessions()
-    const summary: ReviewDashboardSummary = ReviewDashboardService.createSummary(sessions)
-    const statsSummary: StatsDashboardSummary = StatsDashboardService.createSummary(sessions, Date.now())
+    this.currentNow = Date.now()
+    this.sessions = WorkoutRepository.getSessions()
+    const summary: ReviewDashboardSummary = ReviewDashboardService.createSummary(this.sessions)
+    const statsSummary: StatsDashboardSummary = StatsDashboardService.createSummary(this.sessions, this.currentNow)
     this.applySummary(summary)
     this.applyStatsSummary(statsSummary)
-    this.personalRecords = this.copyPersonalRecords(PersonalRecordService.createRecords(sessions))
+    this.applyReviewInsights(this.sessions, this.currentNow)
     try {
       const goal: UserGoal | undefined = await GoalRepository.loadGoal(getContext(this))
       this.currentGoal = goal
@@ -89,11 +104,42 @@ export struct ReviewHomePage {
     this.loading = false
   }
 
-  async loadProfile(): Promise<void> {
-    const profile: UserProfile = await UserProfileService.loadProfile(getContext(this))
-    this.profileNickname = profile.nickname
-    this.profileAvatar = profile.avatar
-    this.profileWeightUnit = profile.weightUnit
+  applyReviewInsights(sessions: WorkoutSession[], now: number): void {
+    const filters: ReviewRecentSessionFilterOption[] = ReviewInsightsService.createRecentFilters(sessions, now)
+    this.recentFilterOptions = this.copyRecentFilterOptions(filters)
+    if (!this.hasFilter(this.recentFilterOptions, this.selectedRecentFilterId)) {
+      this.selectedRecentFilterId = this.recentFilterOptions.length > 0 ? this.recentFilterOptions[0].filterId : 'recent_7_days'
+    }
+    this.filteredRecentRecords = this.copyRecentRecords(
+      ReviewInsightsService.filterRecentRecords(sessions, this.selectedRecentFilterId, now)
+    )
+
+    const trendItems: ReviewWeeklyTrendItem[] = ReviewInsightsService.createWeeklyTrendItems(sessions, now)
+    this.weeklyTrends = this.copyWeeklyTrends(trendItems)
+    if (this.weeklyTrends.length > 0) {
+      this.selectWeekTrend(this.weeklyTrends[0].weekId)
+    } else {
+      this.selectedWeekId = ''
+      this.selectedWeekTrend = ReviewInsightsService.createEmptyWeeklyTrendItem()
+    }
+
+    const details: ExercisePersonalRecordDetail[] = PersonalRecordService.createRecordDetails(sessions)
+    this.recordDetails = this.copyRecordDetails(details)
+    if (this.recordDetails.length > 0) {
+      this.selectExerciseRecord(this.recordDetails[0].exerciseId)
+    } else {
+      this.selectedExerciseId = ''
+      this.selectedRecordDetail = PersonalRecordService.createEmptyRecordDetail()
+    }
+  }
+
+  hasFilter(filters: ReviewRecentSessionFilterOption[], filterId: string): boolean {
+    for (let index = 0; index < filters.length; index++) {
+      if (filters[index].filterId === filterId) {
+        return true
+      }
+    }
+    return false
   }
 
   applyStatsSummary(summary: StatsDashboardSummary): void {
@@ -116,7 +162,6 @@ export struct ReviewHomePage {
     this.latestSessionId = summary.latestSessionId
     this.latestDayId = summary.latestDayId
     this.adjustmentText = summary.adjustmentText
-    this.recentRecords = summary.recentRecords
     this.trendSummary = summary.trendSummary
   }
 
@@ -128,11 +173,49 @@ export struct ReviewHomePage {
     this.canApplyAdjustment = action.canApply
   }
 
+  async loadProfile(): Promise<void> {
+    const profile: UserProfile = await UserProfileService.loadProfile(getContext(this))
+    this.profileNickname = profile.nickname
+    this.profileAvatar = profile.avatar
+    this.profileWeightUnit = profile.weightUnit
+  }
+
+  selectRecentFilter(filterId: string): void {
+    this.selectedRecentFilterId = filterId
+    this.filteredRecentRecords = this.copyRecentRecords(
+      ReviewInsightsService.filterRecentRecords(this.sessions, filterId, this.currentNow)
+    )
+  }
+
+  selectWeekTrend(weekId: string): void {
+    this.selectedWeekId = weekId
+    for (let index = 0; index < this.weeklyTrends.length; index++) {
+      const item: ReviewWeeklyTrendItem = this.weeklyTrends[index]
+      if (item.weekId === weekId) {
+        this.selectedWeekTrend = this.copyWeeklyTrend(item)
+        return
+      }
+    }
+    this.selectedWeekTrend = ReviewInsightsService.createEmptyWeeklyTrendItem()
+  }
+
+  selectExerciseRecord(exerciseId: string): void {
+    this.selectedExerciseId = exerciseId
+    for (let index = 0; index < this.recordDetails.length; index++) {
+      const detail: ExercisePersonalRecordDetail = this.recordDetails[index]
+      if (detail.exerciseId === exerciseId) {
+        this.selectedRecordDetail = this.copyRecordDetail(detail)
+        return
+      }
+    }
+    this.selectedRecordDetail = PersonalRecordService.createEmptyRecordDetail()
+  }
+
   openHome(): void {
     try {
       router.replaceUrl({ url: AppRoutes.HOME })
     } catch (e) {
-      // stay on review
+      // stay on current page
     }
   }
 
@@ -140,7 +223,7 @@ export struct ReviewHomePage {
     try {
       router.pushUrl({ url: AppRoutes.GOAL_SETUP })
     } catch (e) {
-      // stay on review
+      // stay on current page
     }
   }
 
@@ -151,7 +234,21 @@ export struct ReviewHomePage {
     try {
       router.pushUrl({ url: AppRoutes.WORKOUT_SUMMARY, params: { sessionId: this.latestSessionId } })
     } catch (e) {
-      // stay on review
+      // stay on current page
+    }
+  }
+
+  openExerciseDetail(): void {
+    if (this.selectedRecordDetail.exerciseId.length === 0) {
+      return
+    }
+    try {
+      router.pushUrl({
+        url: AppRoutes.EXERCISE_DETAIL,
+        params: { exerciseId: this.selectedRecordDetail.exerciseId }
+      })
+    } catch (e) {
+      // stay on current page
     }
   }
 
@@ -173,7 +270,7 @@ export struct ReviewHomePage {
     this.profileStatusText = ''
     this.profileWeightUnit = unit
     await UserProfileService.saveWeightUnit(getContext(this), unit)
-    this.profileStatusText = UserProfileService.getLastPersistenceError().length > 0 ? '单位保存失败' : '单位已保存'
+    this.profileStatusText = UserProfileService.getLastPersistenceError().length > 0 ? '重量单位保存失败' : '重量单位已保存'
     this.profileLoading = false
   }
 
@@ -215,7 +312,9 @@ export struct ReviewHomePage {
       await GoalRepository.saveGoal(getContext(this), result.adjustedGoal)
       this.currentGoal = result.adjustedGoal
       this.adjustmentStatusText = result.statusText
-      this.applyAdjustmentAction(ReviewDashboardService.createGoalAdjustmentAction(this.createCurrentSummary(), result.adjustedGoal))
+      this.applyAdjustmentAction(
+        ReviewDashboardService.createGoalAdjustmentAction(this.createCurrentSummary(), result.adjustedGoal)
+      )
     } catch (e) {
       this.adjustmentStatusText = '保存调整失败，请稍后重试'
     }
@@ -235,7 +334,7 @@ export struct ReviewHomePage {
       latestDayId: this.latestDayId,
       adjustmentHint: this.currentAdjustmentAction.actionType,
       adjustmentText: this.adjustmentText,
-      recentRecords: this.recentRecords,
+      recentRecords: this.filteredRecentRecords,
       trendSummary: this.trendSummary
     }
     return summary
@@ -253,50 +352,6 @@ export struct ReviewHomePage {
       return '100%'
     }
     return this.averageCompletionRate.toString() + '%'
-  }
-
-  copyHeatmapRows(source: CalendarHeatmapRow[]): CalendarHeatmapRow[] {
-    const rows: CalendarHeatmapRow[] = []
-    for (let rowIndex = 0; rowIndex < source.length; rowIndex++) {
-      const sourceRow: CalendarHeatmapRow = source[rowIndex]
-      const days: CalendarHeatmapDay[] = []
-      for (let dayIndex = 0; dayIndex < sourceRow.days.length; dayIndex++) {
-        const sourceDay: CalendarHeatmapDay = sourceRow.days[dayIndex]
-        const day: CalendarHeatmapDay = {
-          dateText: sourceDay.dateText,
-          dayOfMonth: sourceDay.dayOfMonth,
-          isCurrentMonth: sourceDay.isCurrentMonth,
-          sessionCount: sourceDay.sessionCount,
-          totalVolume: sourceDay.totalVolume,
-          level: sourceDay.level,
-          accessibilityText: sourceDay.accessibilityText
-        }
-        days.push(day)
-      }
-      const row: CalendarHeatmapRow = {
-        rowId: sourceRow.rowId,
-        days: days
-      }
-      rows.push(row)
-    }
-    return rows
-  }
-
-  copyPersonalRecords(source: ExercisePersonalRecord[]): ExercisePersonalRecord[] {
-    const records: ExercisePersonalRecord[] = []
-    for (let index = 0; index < source.length; index++) {
-      const sourceRecord: ExercisePersonalRecord = source[index]
-      const record: ExercisePersonalRecord = {
-        exerciseId: sourceRecord.exerciseId,
-        exerciseName: sourceRecord.exerciseName,
-        bestOneRepMax: sourceRecord.bestOneRepMax,
-        bestWeight: sourceRecord.bestWeight,
-        bestReps: sourceRecord.bestReps,
-        bestDateText: sourceRecord.bestDateText
-      }
-      records.push(record)
-    }
-    return records
   }
 
   getHeatmapDayColor(day: CalendarHeatmapDay): string {
@@ -328,6 +383,128 @@ export struct ReviewHomePage {
     return ColorTokens.TEXT_SECONDARY
   }
 
+  getSelectedFilterDescription(): string {
+    for (let index = 0; index < this.recentFilterOptions.length; index++) {
+      const option: ReviewRecentSessionFilterOption = this.recentFilterOptions[index]
+      if (option.filterId === this.selectedRecentFilterId) {
+        return option.description + ' · ' + option.matchedSessionCount.toString() + ' 次训练'
+      }
+    }
+    return '筛选最近训练记录'
+  }
+
+  copyHeatmapRows(source: CalendarHeatmapRow[]): CalendarHeatmapRow[] {
+    const rows: CalendarHeatmapRow[] = []
+    for (let rowIndex = 0; rowIndex < source.length; rowIndex++) {
+      const sourceRow: CalendarHeatmapRow = source[rowIndex]
+      const days: CalendarHeatmapDay[] = []
+      for (let dayIndex = 0; dayIndex < sourceRow.days.length; dayIndex++) {
+        const sourceDay: CalendarHeatmapDay = sourceRow.days[dayIndex]
+        const day: CalendarHeatmapDay = {
+          dateText: sourceDay.dateText,
+          dayOfMonth: sourceDay.dayOfMonth,
+          isCurrentMonth: sourceDay.isCurrentMonth,
+          sessionCount: sourceDay.sessionCount,
+          totalVolume: sourceDay.totalVolume,
+          level: sourceDay.level,
+          accessibilityText: sourceDay.accessibilityText
+        }
+        days.push(day)
+      }
+      rows.push({ rowId: sourceRow.rowId, days: days })
+    }
+    return rows
+  }
+
+  copyRecentFilterOptions(source: ReviewRecentSessionFilterOption[]): ReviewRecentSessionFilterOption[] {
+    const options: ReviewRecentSessionFilterOption[] = []
+    for (let index = 0; index < source.length; index++) {
+      const option: ReviewRecentSessionFilterOption = source[index]
+      options.push({
+        filterId: option.filterId,
+        label: option.label,
+        description: option.description,
+        matchedSessionCount: option.matchedSessionCount
+      })
+    }
+    return options
+  }
+
+  copyRecentRecords(source: ReviewRecentSessionRecord[]): ReviewRecentSessionRecord[] {
+    const records: ReviewRecentSessionRecord[] = []
+    for (let index = 0; index < source.length; index++) {
+      const record: ReviewRecentSessionRecord = source[index]
+      records.push({
+        sessionId: record.sessionId,
+        dayId: record.dayId,
+        dateText: record.dateText,
+        durationText: record.durationText,
+        completedSets: record.completedSets,
+        targetSets: record.targetSets,
+        completionRate: record.completionRate,
+        completionText: record.completionText,
+        totalVolume: record.totalVolume,
+        volumeText: record.volumeText
+      })
+    }
+    return records
+  }
+
+  copyWeeklyTrends(source: ReviewWeeklyTrendItem[]): ReviewWeeklyTrendItem[] {
+    const items: ReviewWeeklyTrendItem[] = []
+    for (let index = 0; index < source.length; index++) {
+      items.push(this.copyWeeklyTrend(source[index]))
+    }
+    return items
+  }
+
+  copyWeeklyTrend(source: ReviewWeeklyTrendItem): ReviewWeeklyTrendItem {
+    const item: ReviewWeeklyTrendItem = {
+      weekId: source.weekId,
+      weekLabel: source.weekLabel,
+      dateRangeText: source.dateRangeText,
+      sessionCount: source.sessionCount,
+      totalDurationSeconds: source.totalDurationSeconds,
+      totalDurationText: source.totalDurationText,
+      totalVolume: source.totalVolume,
+      completionRate: source.completionRate,
+      completionText: source.completionText,
+      averageSessionText: source.averageSessionText,
+      dominantDayId: source.dominantDayId,
+      summaryText: source.summaryText
+    }
+    return item
+  }
+
+  copyRecordDetails(source: ExercisePersonalRecordDetail[]): ExercisePersonalRecordDetail[] {
+    const details: ExercisePersonalRecordDetail[] = []
+    for (let index = 0; index < source.length; index++) {
+      details.push(this.copyRecordDetail(source[index]))
+    }
+    return details
+  }
+
+  copyRecordDetail(source: ExercisePersonalRecordDetail): ExercisePersonalRecordDetail {
+    const detail: ExercisePersonalRecordDetail = {
+      exerciseId: source.exerciseId,
+      exerciseName: source.exerciseName,
+      bestOneRepMax: source.bestOneRepMax,
+      bestWeight: source.bestWeight,
+      bestReps: source.bestReps,
+      bestDateText: source.bestDateText,
+      lastPerformedAt: source.lastPerformedAt,
+      lastPerformedDateText: source.lastPerformedDateText,
+      sessionCount: source.sessionCount,
+      performedSetCount: source.performedSetCount,
+      recentOneRepMax: source.recentOneRepMax,
+      recentWeight: source.recentWeight,
+      recentReps: source.recentReps,
+      recentVolume: source.recentVolume,
+      trendText: source.trendText
+    }
+    return detail
+  }
+
   @Builder
   buildMetric(label: string, value: string) {
     Column({ space: SpacingTokens.XS }) {
@@ -336,6 +513,7 @@ export struct ReviewHomePage {
         .fontWeight(FontTokens.HEADLINE_WEIGHT)
         .fontColor(ColorTokens.TEXT_PRIMARY)
         .textAlign(TextAlign.Center)
+        .maxLines(1)
 
       Text(label)
         .fontSize(FontTokens.CAPTION_SIZE)
@@ -350,22 +528,39 @@ export struct ReviewHomePage {
   }
 
   @Builder
+  buildSectionTitle(title: string, description: string) {
+    Column({ space: SpacingTokens.XS }) {
+      Text(title)
+        .fontSize(FontTokens.TITLE_SIZE)
+        .fontWeight(FontTokens.TITLE_WEIGHT)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+
+      Text(description)
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  buildFilterButton(label: string, selected: boolean, countText: string, onTap: () => void) {
+    Button(label + ' · ' + countText)
+      .height(TouchTokens.BUTTON_HEIGHT_SMALL)
+      .fontSize(FontTokens.CAPTION_SIZE)
+      .fontColor(selected ? ColorTokens.TEXT_ON_PRIMARY : ColorTokens.TEXT_PRIMARY)
+      .backgroundColor(selected ? ColorTokens.PRIMARY : ColorTokens.SURFACE_ELEVATED)
+      .borderRadius(RadiusTokens.FULL)
+      .padding({ left: SpacingTokens.SM, right: SpacingTokens.SM })
+      .margin({ right: SpacingTokens.SM, bottom: SpacingTokens.SM })
+      .onClick(onTap)
+  }
+
+  @Builder
   buildWeeklyStats() {
     Column({ space: SpacingTokens.MD }) {
       Row() {
-        Column({ space: SpacingTokens.XS }) {
-          Text('本周训练统计')
-            .fontSize(FontTokens.TITLE_SIZE)
-            .fontWeight(FontTokens.TITLE_WEIGHT)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-
-          Text(this.weeklyDateRangeText)
-            .fontSize(FontTokens.CAPTION_SIZE)
-            .fontColor(ColorTokens.TEXT_SECONDARY)
-        }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Start)
-
+        this.buildSectionTitle('本周训练统计', this.weeklyDateRangeText)
         Text(this.weeklySessionCount.toString() + ' 次')
           .fontSize(FontTokens.TITLE_SIZE)
           .fontWeight(FontTokens.TITLE_WEIGHT)
@@ -440,7 +635,7 @@ export struct ReviewHomePage {
         .width('100%')
       }, (row: CalendarHeatmapRow) => row.rowId)
 
-      Text('颜色越亮代表当天训练量越高')
+      Text('颜色越亮代表当天训练量越高。')
         .fontSize(FontTokens.CAPTION_SIZE)
         .fontColor(ColorTokens.TEXT_SECONDARY)
     }
@@ -495,6 +690,43 @@ export struct ReviewHomePage {
   }
 
   @Builder
+  buildRecentTrainingSection() {
+    Column({ space: SpacingTokens.SM }) {
+      this.buildSectionTitle('最近训练筛选', this.getSelectedFilterDescription())
+
+      Flex({ wrap: FlexWrap.Wrap }) {
+        ForEach(this.recentFilterOptions, (option: ReviewRecentSessionFilterOption) => {
+          this.buildFilterButton(
+            option.label,
+            option.filterId === this.selectedRecentFilterId,
+            option.matchedSessionCount.toString(),
+            () => {
+              this.selectRecentFilter(option.filterId)
+            }
+          )
+        }, (option: ReviewRecentSessionFilterOption) => option.filterId)
+      }
+      .width('100%')
+
+      if (this.filteredRecentRecords.length === 0) {
+        Text('当前筛选条件下还没有训练记录。')
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .width('100%')
+          .padding(SpacingTokens.MD)
+          .borderRadius(RadiusTokens.SM)
+          .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+      }
+
+      ForEach(this.filteredRecentRecords, (record: ReviewRecentSessionRecord) => {
+        this.buildRecentRecord(record)
+      }, (record: ReviewRecentSessionRecord) => record.sessionId)
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
   buildTrendSummary() {
     Column({ space: SpacingTokens.SM }) {
       Text('历史训练趋势')
@@ -520,54 +752,201 @@ export struct ReviewHomePage {
   }
 
   @Builder
-  buildPersonalRecord(record: ExercisePersonalRecord) {
+  buildWeeklyTrendCard(item: ReviewWeeklyTrendItem) {
     Column({ space: SpacingTokens.SM }) {
       Row() {
         Column({ space: SpacingTokens.XS }) {
-          Text(record.exerciseName)
+          Text(item.weekLabel)
             .fontSize(FontTokens.BODY_SIZE)
             .fontWeight(FontWeight.Medium)
             .fontColor(ColorTokens.TEXT_PRIMARY)
 
-          Text(record.bestDateText)
+          Text(item.dateRangeText)
             .fontSize(FontTokens.CAPTION_SIZE)
             .fontColor(ColorTokens.TEXT_SECONDARY)
         }
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
 
-        Text(record.bestOneRepMax.toString() + ' kg')
-          .fontSize(FontTokens.TITLE_SIZE)
-          .fontWeight(FontTokens.TITLE_WEIGHT)
+        Text(item.sessionCount.toString() + ' 次')
+          .fontSize(FontTokens.CAPTION_SIZE)
           .fontColor(ColorTokens.PRIMARY)
       }
       .width('100%')
 
       Row({ space: SpacingTokens.SM }) {
-        this.buildMetric('最佳 1RM', record.bestOneRepMax.toString() + ' kg')
-        this.buildMetric('最佳重量', record.bestWeight.toString() + ' kg')
-        this.buildMetric('最佳次数', record.bestReps.toString())
+        this.buildMetric('训练量', item.totalVolume.toString() + ' kg')
+        this.buildMetric('完成率', item.completionRate.toString() + '%')
       }
       .width('100%')
+
+      Text(item.summaryText)
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
     }
     .width('100%')
     .padding(SpacingTokens.MD)
     .borderRadius(RadiusTokens.SM)
-    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+    .backgroundColor(this.selectedWeekId === item.weekId ? ColorTokens.SURFACE_SECONDARY : ColorTokens.SURFACE_PRIMARY)
+    .border({
+      width: 1,
+      color: this.selectedWeekId === item.weekId ? ColorTokens.PRIMARY : ColorTokens.SURFACE_PRIMARY
+    })
+    .alignItems(HorizontalAlign.Start)
+    .onClick(() => {
+      this.selectWeekTrend(item.weekId)
+    })
+  }
+
+  @Builder
+  buildWeeklyTrendSection() {
+    Column({ space: SpacingTokens.SM }) {
+      this.buildSectionTitle('按周趋势查看', '最近 6 周训练节奏与完成情况')
+
+      if (this.weeklyTrends.length === 0) {
+        Text('完成训练后，这里会开始累积周趋势。')
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .width('100%')
+          .padding(SpacingTokens.MD)
+          .borderRadius(RadiusTokens.SM)
+          .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+      }
+
+      ForEach(this.weeklyTrends, (item: ReviewWeeklyTrendItem) => {
+        this.buildWeeklyTrendCard(item)
+      }, (item: ReviewWeeklyTrendItem) => item.weekId)
+
+      if (this.selectedWeekTrend.weekId.length > 0) {
+        Column({ space: SpacingTokens.SM }) {
+          Text('本周明细')
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
+
+          Row({ space: SpacingTokens.SM }) {
+            this.buildMetric('总时长', this.selectedWeekTrend.totalDurationText)
+            this.buildMetric('平均单次', this.selectedWeekTrend.averageSessionText)
+          }
+          .width('100%')
+
+          Row({ space: SpacingTokens.SM }) {
+            this.buildMetric('完成组数', this.selectedWeekTrend.completionText)
+            this.buildMetric(
+              '训练重点日',
+              this.selectedWeekTrend.dominantDayId.length > 0 ? this.selectedWeekTrend.dominantDayId : '暂无'
+            )
+          }
+          .width('100%')
+        }
+        .width('100%')
+        .padding(SpacingTokens.MD)
+        .borderRadius(RadiusTokens.SM)
+        .backgroundColor(ColorTokens.BG_SECONDARY)
+        .alignItems(HorizontalAlign.Start)
+      }
+    }
+    .width('100%')
     .alignItems(HorizontalAlign.Start)
   }
 
   @Builder
-  buildPersonalRecords() {
+  buildRecordDetailSection() {
     Column({ space: SpacingTokens.SM }) {
-      Text('动作个人纪录')
-        .fontSize(FontTokens.TITLE_SIZE)
-        .fontWeight(FontTokens.TITLE_WEIGHT)
-        .fontColor(ColorTokens.TEXT_PRIMARY)
+      this.buildSectionTitle('按动作查看个人纪录', '切换动作查看 PR、最近表现与训练频率')
 
-      ForEach(this.personalRecords, (record: ExercisePersonalRecord) => {
-        this.buildPersonalRecord(record)
-      }, (record: ExercisePersonalRecord) => record.exerciseId)
+      Flex({ wrap: FlexWrap.Wrap }) {
+        ForEach(this.recordDetails, (detail: ExercisePersonalRecordDetail) => {
+          this.buildFilterButton(
+            detail.exerciseName,
+            detail.exerciseId === this.selectedExerciseId,
+            detail.bestOneRepMax.toString() + 'kg',
+            () => {
+              this.selectExerciseRecord(detail.exerciseId)
+            }
+          )
+        }, (detail: ExercisePersonalRecordDetail) => detail.exerciseId)
+      }
+      .width('100%')
+
+      if (this.recordDetails.length === 0) {
+        Text('完成正式组训练后，这里会显示动作个人纪录。')
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .width('100%')
+          .padding(SpacingTokens.MD)
+          .borderRadius(RadiusTokens.SM)
+          .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+      }
+
+      if (this.recordDetails.length > 0) {
+        Column({ space: SpacingTokens.SM }) {
+          Row() {
+            Column({ space: SpacingTokens.XS }) {
+              Text(this.selectedRecordDetail.exerciseName)
+                .fontSize(FontTokens.TITLE_SIZE)
+                .fontWeight(FontTokens.TITLE_WEIGHT)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+
+              Text('PR 记录于 ' + this.selectedRecordDetail.bestDateText)
+                .fontSize(FontTokens.CAPTION_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
+
+            Text(this.selectedRecordDetail.bestOneRepMax.toString() + ' kg')
+              .fontSize(FontTokens.HEADLINE_SIZE)
+              .fontWeight(FontTokens.HEADLINE_WEIGHT)
+              .fontColor(ColorTokens.PRIMARY)
+          }
+          .width('100%')
+
+          Row({ space: SpacingTokens.SM }) {
+            this.buildMetric('最佳重量', this.selectedRecordDetail.bestWeight.toString() + ' kg')
+            this.buildMetric('最佳次数', this.selectedRecordDetail.bestReps.toString())
+          }
+          .width('100%')
+
+          Row({ space: SpacingTokens.SM }) {
+            this.buildMetric('训练次数', this.selectedRecordDetail.sessionCount.toString())
+            this.buildMetric('累计正式组', this.selectedRecordDetail.performedSetCount.toString())
+          }
+          .width('100%')
+
+          Row({ space: SpacingTokens.SM }) {
+            this.buildMetric('最近 1RM', this.selectedRecordDetail.recentOneRepMax.toString() + ' kg')
+            this.buildMetric('最近训练量', this.selectedRecordDetail.recentVolume.toString() + ' kg')
+          }
+          .width('100%')
+
+          Text('最近训练：' + this.selectedRecordDetail.lastPerformedDateText + ' · ' +
+            this.selectedRecordDetail.recentWeight.toString() + ' kg × ' +
+            this.selectedRecordDetail.recentReps.toString())
+            .fontSize(FontTokens.CAPTION_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+
+          Text(this.selectedRecordDetail.trendText)
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+
+          Button('查看动作详情')
+            .width('100%')
+            .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+            .backgroundColor(ColorTokens.PRIMARY)
+            .borderRadius(RadiusTokens.FULL)
+            .onClick(() => {
+              this.openExerciseDetail()
+            })
+        }
+        .width('100%')
+        .padding(SpacingTokens.MD)
+        .borderRadius(RadiusTokens.SM)
+        .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+        .alignItems(HorizontalAlign.Start)
+      }
     }
     .width('100%')
     .alignItems(HorizontalAlign.Start)
@@ -623,7 +1002,7 @@ export struct ReviewHomePage {
       .width('100%')
 
       Row({ space: SpacingTokens.SM }) {
-        Button(this.profileLoading ? '保存中' : '保存昵称')
+        Button(this.profileLoading ? '保存中...' : '保存昵称')
           .layoutWeight(1)
           .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
           .fontSize(FontTokens.BODY_SIZE)
@@ -671,18 +1050,18 @@ export struct ReviewHomePage {
             .fontWeight(FontTokens.DISPLAY_WEIGHT)
             .fontColor(ColorTokens.TEXT_PRIMARY)
 
-          Text(this.loading ? '正在整理训练记录' : '用完成率决定下次如何调整')
+          Text(this.loading ? '正在整理训练记录' : '把最近训练、周趋势和动作 PR 放在一起看')
             .fontSize(FontTokens.BODY_SIZE)
             .fontColor(ColorTokens.TEXT_SECONDARY)
         }
         .width('100%')
         .alignItems(HorizontalAlign.Start)
 
+        this.buildWeeklyStats()
+        this.buildCalendarHeatmap()
+
         if (!this.loading && !this.hasSessions) {
           Column({ space: SpacingTokens.MD }) {
-            this.buildWeeklyStats()
-
-            this.buildCalendarHeatmap()
             Text('还没有训练记录')
               .fontSize(FontTokens.TITLE_SIZE)
               .fontWeight(FontTokens.TITLE_WEIGHT)
@@ -707,13 +1086,11 @@ export struct ReviewHomePage {
           .padding(SpacingTokens.MD)
           .borderRadius(RadiusTokens.SM)
           .backgroundColor(ColorTokens.BG_SECONDARY)
+          .alignItems(HorizontalAlign.Start)
         }
 
         if (!this.loading && this.hasSessions) {
           Column({ space: SpacingTokens.MD }) {
-            this.buildWeeklyStats()
-
-            this.buildCalendarHeatmap()
             Column({ space: SpacingTokens.SM }) {
               Row() {
                 Text('平均完成率')
@@ -762,24 +1139,10 @@ export struct ReviewHomePage {
             }
             .width('100%')
 
-            Column({ space: SpacingTokens.SM }) {
-              Text('最近训练记录')
-                .fontSize(FontTokens.TITLE_SIZE)
-                .fontWeight(FontTokens.TITLE_WEIGHT)
-                .fontColor(ColorTokens.TEXT_PRIMARY)
-
-              ForEach(this.recentRecords, (record: ReviewRecentSessionRecord) => {
-                this.buildRecentRecord(record)
-              }, (record: ReviewRecentSessionRecord) => record.sessionId)
-            }
-            .width('100%')
-            .alignItems(HorizontalAlign.Start)
-
+            this.buildRecentTrainingSection()
             this.buildTrendSummary()
-
-            if (this.personalRecords.length > 0) {
-              this.buildPersonalRecords()
-            }
+            this.buildWeeklyTrendSection()
+            this.buildRecordDetailSection()
 
             Column({ space: SpacingTokens.SM }) {
               Text('下次调整建议')
@@ -806,7 +1169,7 @@ export struct ReviewHomePage {
                   .fontColor(ColorTokens.PRIMARY)
               }
 
-              Button(this.applyingAdjustment ? '保存调整中' : this.adjustmentButtonText)
+              Button(this.applyingAdjustment ? '保存调整中...' : this.adjustmentButtonText)
                 .width('100%')
                 .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
                 .fontSize(FontTokens.BODY_SIZE)
