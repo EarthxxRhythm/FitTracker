@@ -1,8 +1,15 @@
+import { abilityDelegatorRegistry } from '@kit.TestKit'
 import { describe, expect, it } from '@ohos/hypium'
-import { UserPlan } from '../../../main/ets/common/services/TrainingPlanService'
+import TrainingPlanService, { UserPlan } from '../../../main/ets/common/services/TrainingPlanService'
+import GoalRepository from '../../../main/ets/shared/services/GoalRepository'
 import UserDataBackupService, { UserDataBackupPackage } from '../../../main/ets/shared/services/UserDataBackupService'
 import GoalSetupService from '../../../main/ets/shared/services/GoalSetupService'
+import WorkoutSessionPersistenceBridgeService from '../../../main/ets/features/workout/services/WorkoutSessionPersistenceBridgeService'
 import { UserGoal, WorkoutSession, createWorkoutSession, createWorkoutSet } from '../../../main/ets/shared/models/TrainingModels'
+
+function getTestContext(): Context {
+  return abilityDelegatorRegistry.getAbilityDelegator().getAppContext()
+}
 
 function createPlan(planId: string, enabledAt: number): UserPlan {
   const plan: UserPlan = {
@@ -92,6 +99,92 @@ export default function userDataBackupServiceTest(): void {
       expect(mergedSessions[0].totalVolume).assertEqual(720)
       expect(mergedSessions[1].sessionId).assertEqual('session_keep')
       expect(mergedSessions[2].sessionId).assertEqual('session_new')
+    })
+
+    it('rejects unsupported backup schema versions with null parse result', 0, () => {
+      const goal: UserGoal = GoalSetupService.createGoalFromSelection(
+        'goal_backup_schema',
+        'strength',
+        'intermediate',
+        3,
+        45,
+        ['eq_bodyweight'],
+        [],
+        1000
+      )
+      const backupPackage: UserDataBackupPackage = UserDataBackupService.createPackage(
+        goal,
+        [createPlan('plan_schema', 1000)],
+        'plan_schema',
+        [createSession('session_schema', 85)],
+        2000
+      )
+      const unsupportedPackage: UserDataBackupPackage = {
+        schemaVersion: 99,
+        exportedAt: backupPackage.exportedAt,
+        goal: backupPackage.goal,
+        plans: backupPackage.plans,
+        currentPlanId: backupPackage.currentPlanId,
+        sessions: backupPackage.sessions,
+        contentMeta: backupPackage.contentMeta
+      }
+      const unsupportedJson: string = JSON.stringify(unsupportedPackage)
+
+      const parsed: UserDataBackupPackage | null = UserDataBackupService.parsePackageJson(unsupportedJson)
+
+      expect(parsed).assertNull()
+    })
+
+    it('normalizes invalid current plan id to the first available imported plan', 0, () => {
+      const normalized = UserDataBackupService.normalizePlanSelection(
+        [createPlan('plan_first', 1000), createPlan('plan_second', 2000)],
+        'plan_missing'
+      )
+
+      expect(normalized.currentPlanId).assertEqual('plan_first')
+      expect(normalized.usedFallback).assertTrue()
+      expect(normalized.plans.length).assertEqual(2)
+    })
+
+    it('imports backup package and falls back current plan id when it is missing', 0, async () => {
+      await GoalRepository.clearSavedGoal(getTestContext())
+      await TrainingPlanService.replaceMyPlans(getTestContext(), [], '')
+      await WorkoutSessionPersistenceBridgeService.replacePersistedSessions(getTestContext(), [])
+
+      const goal: UserGoal = GoalSetupService.createGoalFromSelection(
+        'goal_backup_import',
+        'strength',
+        'intermediate',
+        4,
+        60,
+        ['eq_barbell'],
+        [],
+        5000
+      )
+      const backupPackage: UserDataBackupPackage = UserDataBackupService.createPackage(
+        goal,
+        [createPlan('plan_import_first', 3000)],
+        'plan_missing',
+        [createSession('session_import_1', 100)],
+        6000
+      )
+
+      const importResult = await UserDataBackupService.importPackage(getTestContext(), JSON.stringify(backupPackage))
+      const currentPlanId: string = await TrainingPlanService.getCurrentPlanId(getTestContext())
+      const savedGoal: UserGoal | undefined = await GoalRepository.loadGoal(getTestContext())
+      const sessions: WorkoutSession[] = await WorkoutSessionPersistenceBridgeService.loadPersistedSessions(getTestContext())
+
+      expect(importResult.success).assertTrue()
+      expect(importResult.usedPlanFallback).assertTrue()
+      expect(importResult.effectiveCurrentPlanId).assertEqual('plan_import_first')
+      expect(currentPlanId).assertEqual('plan_import_first')
+      expect(savedGoal !== undefined).assertTrue()
+      expect(sessions.length).assertEqual(1)
+      expect(sessions[0].sessionId).assertEqual('session_import_1')
+
+      await GoalRepository.clearSavedGoal(getTestContext())
+      await TrainingPlanService.replaceMyPlans(getTestContext(), [], '')
+      await WorkoutSessionPersistenceBridgeService.replacePersistedSessions(getTestContext(), [])
     })
   })
 }

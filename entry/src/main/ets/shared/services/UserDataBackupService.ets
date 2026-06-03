@@ -29,10 +29,24 @@ export interface UserDataBackupPackage {
 
 export interface UserDataBackupImportResult {
   success: boolean
+  statusId: string
   importedPlanCount: number
   importedSessionCount: number
   mergedSessionCount: number
+  effectiveCurrentPlanId: string
+  usedPlanFallback: boolean
   statusText: string
+}
+
+interface ParsedUserDataBackupPackageResult {
+  statusId: string
+  backupPackage: UserDataBackupPackage | null
+}
+
+interface UserDataBackupPlanSelection {
+  plans: UserPlan[]
+  currentPlanId: string
+  usedFallback: boolean
 }
 
 class UserDataBackupService {
@@ -53,10 +67,14 @@ class UserDataBackupService {
   }
 
   async importPackage(context: Context, json: string): Promise<UserDataBackupImportResult> {
-    const backupPackage: UserDataBackupPackage | null = this.parsePackageJson(json)
-    if (backupPackage === null) {
-      return this.createImportResult(false, 0, 0, 0, '备份包格式无效，无法导入。')
+    const parsedResult: ParsedUserDataBackupPackageResult = this.parsePackageImportCandidate(json)
+    if (parsedResult.backupPackage === null) {
+      return this.createImportResult(false, parsedResult.statusId, 0, 0, 0, '', false,
+        this.getImportFailureStatusText(parsedResult.statusId))
     }
+    const backupPackage: UserDataBackupPackage = parsedResult.backupPackage
+    const normalizedPlanSelection: UserDataBackupPlanSelection =
+      this.normalizePlanSelection(backupPackage.plans, backupPackage.currentPlanId)
 
     if (backupPackage.goal === null) {
       await GoalRepository.clearSavedGoal(context)
@@ -64,7 +82,11 @@ class UserDataBackupService {
       await GoalRepository.saveGoal(context, backupPackage.goal)
     }
 
-    await TrainingPlanService.replaceMyPlans(context, backupPackage.plans, backupPackage.currentPlanId)
+    await TrainingPlanService.replaceMyPlans(
+      context,
+      normalizedPlanSelection.plans,
+      normalizedPlanSelection.currentPlanId
+    )
 
     const existingSessions: WorkoutSession[] = await WorkoutSessionPersistenceBridgeService.loadPersistedSessions(context)
     const mergedSessions: WorkoutSession[] = this.mergeSessions(existingSessions, backupPackage.sessions)
@@ -73,11 +95,17 @@ class UserDataBackupService {
 
     return this.createImportResult(
       true,
-      backupPackage.plans.length,
+      'import_success',
+      normalizedPlanSelection.plans.length,
       backupPackage.sessions.length,
       mergedSessions.length,
-      '备份已导入：' + backupPackage.plans.length.toString() + ' 个计划，' +
-        mergedSessions.length.toString() + ' 条训练记录。'
+      normalizedPlanSelection.currentPlanId,
+      normalizedPlanSelection.usedFallback,
+      this.getImportSuccessStatusText(
+        normalizedPlanSelection.plans.length,
+        mergedSessions.length,
+        normalizedPlanSelection
+      )
     )
   }
 
@@ -103,24 +131,8 @@ class UserDataBackupService {
   }
 
   parsePackageJson(json: string): UserDataBackupPackage | null {
-    if (json.trim().length === 0) {
-      return null
-    }
-    try {
-      const parsed = JSON.parse(json) as UserDataBackupPackage
-      if (!this.isValidBackupPackage(parsed)) {
-        return null
-      }
-      return this.createPackage(
-        parsed.goal,
-        parsed.plans,
-        parsed.currentPlanId,
-        parsed.sessions,
-        parsed.exportedAt
-      )
-    } catch (e) {
-      return null
-    }
+    const parsedResult: ParsedUserDataBackupPackageResult = this.parsePackageImportCandidate(json)
+    return parsedResult.backupPackage
   }
 
   mergeSessions(existingSessions: WorkoutSession[], importedSessions: WorkoutSession[]): WorkoutSession[] {
@@ -142,21 +154,115 @@ class UserDataBackupService {
     return sessions
   }
 
+  normalizePlanSelection(plans: UserPlan[], currentPlanId: string): UserDataBackupPlanSelection {
+    const copiedPlans: UserPlan[] = this.copyPlans(plans)
+    let nextCurrentPlanId: string = currentPlanId
+    let usedFallback: boolean = false
+
+    if (!this.containsPlanId(copiedPlans, nextCurrentPlanId)) {
+      nextCurrentPlanId = copiedPlans.length > 0 ? copiedPlans[0].id : ''
+      usedFallback = currentPlanId.length > 0 || copiedPlans.length === 0
+    }
+
+    const selection: UserDataBackupPlanSelection = {
+      plans: copiedPlans,
+      currentPlanId: nextCurrentPlanId,
+      usedFallback: usedFallback
+    }
+    return selection
+  }
+
   private createImportResult(
     success: boolean,
+    statusId: string,
     importedPlanCount: number,
     importedSessionCount: number,
     mergedSessionCount: number,
+    effectiveCurrentPlanId: string,
+    usedPlanFallback: boolean,
     statusText: string
   ): UserDataBackupImportResult {
     const result: UserDataBackupImportResult = {
       success: success,
+      statusId: statusId,
       importedPlanCount: importedPlanCount,
       importedSessionCount: importedSessionCount,
       mergedSessionCount: mergedSessionCount,
+      effectiveCurrentPlanId: effectiveCurrentPlanId,
+      usedPlanFallback: usedPlanFallback,
       statusText: statusText
     }
     return result
+  }
+
+  private parsePackageImportCandidate(json: string): ParsedUserDataBackupPackageResult {
+    const trimmedJson: string = json.trim()
+    if (trimmedJson.length === 0) {
+      return this.createParsedPackageResult('backup_invalid_json', null)
+    }
+
+    let parsedValue: UserDataBackupPackage
+    try {
+      parsedValue = JSON.parse(trimmedJson) as UserDataBackupPackage
+    } catch (e) {
+      return this.createParsedPackageResult('backup_invalid_json', null)
+    }
+
+    if (!this.isFiniteNumberValue(parsedValue.schemaVersion)) {
+      return this.createParsedPackageResult('backup_invalid_json', null)
+    }
+    if (parsedValue.schemaVersion !== BACKUP_SCHEMA_VERSION) {
+      return this.createParsedPackageResult('backup_schema_unsupported', null)
+    }
+    if (!this.isValidBackupPackage(parsedValue)) {
+      return this.createParsedPackageResult('backup_invalid_json', null)
+    }
+
+    return this.createParsedPackageResult(
+      'backup_valid',
+      this.createPackage(
+        parsedValue.goal,
+        parsedValue.plans,
+        parsedValue.currentPlanId,
+        parsedValue.sessions,
+        parsedValue.exportedAt
+      )
+    )
+  }
+
+  private createParsedPackageResult(
+    statusId: string,
+    backupPackage: UserDataBackupPackage | null
+  ): ParsedUserDataBackupPackageResult {
+    const result: ParsedUserDataBackupPackageResult = {
+      statusId: statusId,
+      backupPackage: backupPackage
+    }
+    return result
+  }
+
+  private getImportFailureStatusText(statusId: string): string {
+    if (statusId === 'backup_schema_unsupported') {
+      return '备份包版本暂不受支持，请先升级应用后再试。'
+    }
+    return '备份包格式无效，无法导入。'
+  }
+
+  private getImportSuccessStatusText(
+    importedPlanCount: number,
+    mergedSessionCount: number,
+    normalizedPlanSelection: UserDataBackupPlanSelection
+  ): string {
+    let statusText: string = '备份已导入：' + importedPlanCount.toString() + ' 个计划，' +
+      mergedSessionCount.toString() + ' 条训练记录。'
+    if (normalizedPlanSelection.usedFallback) {
+      if (normalizedPlanSelection.currentPlanId.length > 0) {
+        statusText += ' 当前计划指针无效，已回退到首个可用计划。'
+      } else {
+        statusText += ' 导入包没有可用计划，当前计划已清空。'
+      }
+    }
+    return statusText
   }
 
   private isValidBackupPackage(source: UserDataBackupPackage): boolean {
@@ -312,6 +418,15 @@ class UserDataBackupService {
 
   private isBooleanValue(value: boolean): boolean {
     return value === true || value === false
+  }
+
+  private containsPlanId(plans: UserPlan[], planId: string): boolean {
+    for (let index = 0; index < plans.length; index++) {
+      if (plans[index].id === planId) {
+        return true
+      }
+    }
+    return false
   }
 
   private copyGoal(source: UserGoal): UserGoal {
