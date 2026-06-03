@@ -32,11 +32,22 @@ export interface ExerciseMediaPresentation {
   video: ExerciseMediaAssetInfo
 }
 
+export interface ExerciseMediaMetadata {
+  coverSourceLabel: string
+  videoSourceLabel: string
+  mediaLicenseText: string
+}
+
 class ExerciseMediaResolverServiceImpl {
-  resolve(coverUrl: string, videoUrl: string, videoPlaceholder: string): ExerciseMediaPresentation {
+  resolve(
+    coverUrl: string,
+    videoUrl: string,
+    videoPlaceholder: string,
+    metadata: ExerciseMediaMetadata
+  ): ExerciseMediaPresentation {
     const normalizedPlaceholder: string = videoPlaceholder.trim()
-    const cover: ExerciseMediaAssetInfo = this.resolveAsset('cover', coverUrl, normalizedPlaceholder)
-    const video: ExerciseMediaAssetInfo = this.resolveAsset('video', videoUrl, normalizedPlaceholder)
+    const cover: ExerciseMediaAssetInfo = this.resolveAsset('cover', coverUrl, normalizedPlaceholder, metadata)
+    const video: ExerciseMediaAssetInfo = this.resolveAsset('video', videoUrl, normalizedPlaceholder, metadata)
 
     const presentation: ExerciseMediaPresentation = {
       overallState: this.getOverallState(cover, video, normalizedPlaceholder),
@@ -55,12 +66,19 @@ class ExerciseMediaResolverServiceImpl {
     return presentation
   }
 
-  private resolveAsset(kind: string, url: string, videoPlaceholder: string): ExerciseMediaAssetInfo {
+  private resolveAsset(
+    kind: string,
+    url: string,
+    videoPlaceholder: string,
+    metadata: ExerciseMediaMetadata
+  ): ExerciseMediaAssetInfo {
     const normalizedUrl: string = url.trim()
     const scheme: string = this.getScheme(normalizedUrl)
     const hasReference: boolean = normalizedUrl.length > 0
     const canRenderInline: boolean = this.canRenderInline(kind, normalizedUrl, scheme)
     const state: string = this.getAssetState(hasReference, canRenderInline)
+    const explicitSourceLabel: string = this.getExplicitSourceLabel(kind, metadata)
+    const explicitLicenseLabel: string = metadata.mediaLicenseText.trim()
 
     const asset: ExerciseMediaAssetInfo = {
       kind: kind,
@@ -71,12 +89,19 @@ class ExerciseMediaResolverServiceImpl {
       stateText: this.getAssetStateText(kind, state),
       primaryText: this.getAssetPrimaryText(kind, state),
       secondaryText: this.getAssetSecondaryText(kind, state, scheme, videoPlaceholder),
-      sourceLabel: this.getSourceLabel(normalizedUrl, scheme),
-      licenseLabel: this.getLicenseLabel(normalizedUrl, scheme),
+      sourceLabel: this.getSourceLabel(explicitSourceLabel, normalizedUrl, scheme),
+      licenseLabel: this.getLicenseLabel(explicitLicenseLabel, normalizedUrl, scheme),
       hasReference: hasReference,
       canRenderInline: canRenderInline
     }
     return asset
+  }
+
+  private getExplicitSourceLabel(kind: string, metadata: ExerciseMediaMetadata): string {
+    if (kind === 'cover') {
+      return metadata.coverSourceLabel.trim()
+    }
+    return metadata.videoSourceLabel.trim()
   }
 
   private fillPresentationCopy(presentation: ExerciseMediaPresentation, videoPlaceholder: string): void {
@@ -205,7 +230,10 @@ class ExerciseMediaResolverServiceImpl {
     return '后续补入受控资源后即可在这里展示更完整的媒体体验。'
   }
 
-  private getSourceLabel(url: string, scheme: string): string {
+  private getSourceLabel(explicitLabel: string, url: string, scheme: string): string {
+    if (explicitLabel.length > 0) {
+      return explicitLabel
+    }
     if (url.length === 0) {
       return '未提供'
     }
@@ -221,7 +249,10 @@ class ExerciseMediaResolverServiceImpl {
     return '自定义资源引用'
   }
 
-  private getLicenseLabel(url: string, scheme: string): string {
+  private getLicenseLabel(explicitLabel: string, url: string, scheme: string): string {
+    if (explicitLabel.length > 0) {
+      return explicitLabel
+    }
     if (url.length === 0) {
       return '暂无授权信息'
     }

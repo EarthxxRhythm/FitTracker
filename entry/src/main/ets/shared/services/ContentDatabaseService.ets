@@ -63,7 +63,8 @@ class ContentDatabaseServiceImpl {
   private async createTables(store: relationalStore.RdbStore): Promise<void> {
     await store.executeSql('CREATE TABLE IF NOT EXISTS muscles (muscle_id TEXT PRIMARY KEY, name_zh TEXT NOT NULL, region TEXT NOT NULL)')
     await store.executeSql('CREATE TABLE IF NOT EXISTS equipment (equipment_id TEXT PRIMARY KEY, name_zh TEXT NOT NULL, category TEXT)')
-    await store.executeSql('CREATE TABLE IF NOT EXISTS exercises (exercise_id TEXT PRIMARY KEY, name_zh TEXT NOT NULL, name_en TEXT NOT NULL, aliases_json TEXT NOT NULL, primary_muscle_ids_json TEXT NOT NULL, secondary_muscle_ids_json TEXT NOT NULL, equipment_ids_json TEXT NOT NULL, difficulty TEXT NOT NULL, goal_tags_json TEXT NOT NULL, video_url TEXT NOT NULL, cover_url TEXT NOT NULL, steps_json TEXT NOT NULL, cues_json TEXT NOT NULL, common_mistakes_json TEXT NOT NULL, safety_notes_json TEXT NOT NULL, alternative_exercise_ids_json TEXT NOT NULL, content_version INTEGER NOT NULL)')
+    await store.executeSql('CREATE TABLE IF NOT EXISTS exercises (exercise_id TEXT PRIMARY KEY, name_zh TEXT NOT NULL, name_en TEXT NOT NULL, aliases_json TEXT NOT NULL, primary_muscle_ids_json TEXT NOT NULL, secondary_muscle_ids_json TEXT NOT NULL, equipment_ids_json TEXT NOT NULL, difficulty TEXT NOT NULL, goal_tags_json TEXT NOT NULL, video_url TEXT NOT NULL, cover_url TEXT NOT NULL, cover_source_label TEXT NOT NULL DEFAULT \'\', video_source_label TEXT NOT NULL DEFAULT \'\', media_license_text TEXT NOT NULL DEFAULT \'\', steps_json TEXT NOT NULL, cues_json TEXT NOT NULL, common_mistakes_json TEXT NOT NULL, safety_notes_json TEXT NOT NULL, alternative_exercise_ids_json TEXT NOT NULL, content_version INTEGER NOT NULL)')
+    await this.ensureExerciseColumns(store)
   }
 
   private async clearTables(store: relationalStore.RdbStore): Promise<void> {
@@ -96,7 +97,7 @@ class ContentDatabaseServiceImpl {
     for (let index = 0; index < exercises.length; index++) {
       const exercise: ExerciseContent = exercises[index]
       await store.executeSql(
-        'INSERT INTO exercises (exercise_id, name_zh, name_en, aliases_json, primary_muscle_ids_json, secondary_muscle_ids_json, equipment_ids_json, difficulty, goal_tags_json, video_url, cover_url, steps_json, cues_json, common_mistakes_json, safety_notes_json, alternative_exercise_ids_json, content_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO exercises (exercise_id, name_zh, name_en, aliases_json, primary_muscle_ids_json, secondary_muscle_ids_json, equipment_ids_json, difficulty, goal_tags_json, video_url, cover_url, cover_source_label, video_source_label, media_license_text, steps_json, cues_json, common_mistakes_json, safety_notes_json, alternative_exercise_ids_json, content_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           exercise.exerciseId,
           exercise.nameZh,
@@ -109,6 +110,9 @@ class ContentDatabaseServiceImpl {
           this.encodeStringArray(exercise.goalTags),
           exercise.videoUrl,
           exercise.coverUrl,
+          exercise.coverSourceLabel,
+          exercise.videoSourceLabel,
+          exercise.mediaLicenseText,
           this.encodeStringArray(exercise.steps),
           this.encodeStringArray(exercise.cues),
           this.encodeStringArray(exercise.commonMistakes),
@@ -156,7 +160,7 @@ class ContentDatabaseServiceImpl {
 
   private async queryExercises(store: relationalStore.RdbStore): Promise<ExerciseContent[]> {
     const rows: ExerciseContent[] = []
-    const resultSet: relationalStore.ResultSet = await store.querySql('SELECT exercise_id, name_zh, name_en, aliases_json, primary_muscle_ids_json, secondary_muscle_ids_json, equipment_ids_json, difficulty, goal_tags_json, video_url, cover_url, steps_json, cues_json, common_mistakes_json, safety_notes_json, alternative_exercise_ids_json, content_version FROM exercises ORDER BY exercise_id')
+    const resultSet: relationalStore.ResultSet = await store.querySql('SELECT exercise_id, name_zh, name_en, aliases_json, primary_muscle_ids_json, secondary_muscle_ids_json, equipment_ids_json, difficulty, goal_tags_json, video_url, cover_url, cover_source_label, video_source_label, media_license_text, steps_json, cues_json, common_mistakes_json, safety_notes_json, alternative_exercise_ids_json, content_version FROM exercises ORDER BY exercise_id')
     while (resultSet.goToNextRow()) {
       rows.push(createExerciseContent(
         resultSet.getString(resultSet.getColumnIndex('exercise_id')),
@@ -170,6 +174,9 @@ class ContentDatabaseServiceImpl {
         this.decodeStringArray(resultSet.getString(resultSet.getColumnIndex('goal_tags_json'))),
         resultSet.getString(resultSet.getColumnIndex('video_url')),
         resultSet.getString(resultSet.getColumnIndex('cover_url')),
+        resultSet.getString(resultSet.getColumnIndex('cover_source_label')),
+        resultSet.getString(resultSet.getColumnIndex('video_source_label')),
+        resultSet.getString(resultSet.getColumnIndex('media_license_text')),
         this.decodeStringArray(resultSet.getString(resultSet.getColumnIndex('steps_json'))),
         this.decodeStringArray(resultSet.getString(resultSet.getColumnIndex('cues_json'))),
         this.decodeStringArray(resultSet.getString(resultSet.getColumnIndex('common_mistakes_json'))),
@@ -180,6 +187,23 @@ class ContentDatabaseServiceImpl {
     }
     resultSet.close()
     return rows
+  }
+
+  private async ensureExerciseColumns(store: relationalStore.RdbStore): Promise<void> {
+    await this.tryAddExerciseColumn(store, 'cover_source_label', 'TEXT NOT NULL DEFAULT \'\'')
+    await this.tryAddExerciseColumn(store, 'video_source_label', 'TEXT NOT NULL DEFAULT \'\'')
+    await this.tryAddExerciseColumn(store, 'media_license_text', 'TEXT NOT NULL DEFAULT \'\'')
+  }
+
+  private async tryAddExerciseColumn(
+    store: relationalStore.RdbStore,
+    columnName: string,
+    columnDefinition: string
+  ): Promise<void> {
+    try {
+      await store.executeSql('ALTER TABLE exercises ADD COLUMN ' + columnName + ' ' + columnDefinition)
+    } catch (e) {
+    }
   }
 
   private encodeStringArray(values: string[]): string {
