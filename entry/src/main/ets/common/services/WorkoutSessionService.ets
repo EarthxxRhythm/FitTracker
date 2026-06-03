@@ -50,6 +50,33 @@ export interface ExerciseRecord {
   bestDate: string
 }
 
+export abstract class SessionPreferencesStore {
+  abstract get(key: string, defaultValue: string): Promise<string>
+  abstract put(key: string, value: string): Promise<void>
+  abstract flush(): Promise<void>
+}
+
+class ArkPreferencesSessionStore extends SessionPreferencesStore {
+  private readonly prefs: preferences.Preferences
+
+  constructor(prefs: preferences.Preferences) {
+    super()
+    this.prefs = prefs
+  }
+
+  async get(key: string, defaultValue: string): Promise<string> {
+    return await this.prefs.get(key, defaultValue) as string
+  }
+
+  async put(key: string, value: string): Promise<void> {
+    await this.prefs.put(key, value)
+  }
+
+  async flush(): Promise<void> {
+    await this.prefs.flush()
+  }
+}
+
 // ============================================================
 // 常量
 // ============================================================
@@ -60,23 +87,81 @@ const KEY_SESSIONS = 'sessions'
 // 服务实现
 // ============================================================
 class WorkoutSessionService {
+  private testStore: SessionPreferencesStore | null = null
+
+  setStoreForTesting(store: SessionPreferencesStore | null): void {
+    this.testStore = store
+  }
+
   async saveSession(context: Context, session: WorkoutSession): Promise<void> {
-    const prefs = await preferences.getPreferences(context, STORE_NAME)
-    const json = await prefs.get(KEY_SESSIONS, '[]') as string
-    const sessions: WorkoutSession[] = JSON.parse(json)
+    const sessions = await this.readSessions(context)
     sessions.push(session)
-    await prefs.put(KEY_SESSIONS, JSON.stringify(sessions))
-    await prefs.flush()
+    await this.writeSessions(context, sessions)
+  }
+
+  async updateSession(context: Context, session: WorkoutSession): Promise<boolean> {
+    const sessions = await this.readSessions(context)
+    for (let index = 0; index < sessions.length; index++) {
+      if (sessions[index].id === session.id) {
+        sessions[index] = session
+        await this.writeSessions(context, sessions)
+        return true
+      }
+    }
+    return false
+  }
+
+  async removeSession(context: Context, sessionId: string): Promise<WorkoutSession | null> {
+    const sessions = await this.readSessions(context)
+    for (let index = 0; index < sessions.length; index++) {
+      if (sessions[index].id === sessionId) {
+        const removedSession = sessions[index]
+        sessions.splice(index, 1)
+        await this.writeSessions(context, sessions)
+        return removedSession
+      }
+    }
+    return null
+  }
+
+  async restoreSession(context: Context, session: WorkoutSession): Promise<boolean> {
+    const sessions = await this.readSessions(context)
+    for (let index = 0; index < sessions.length; index++) {
+      if (sessions[index].id === session.id) {
+        return false
+      }
+    }
+    sessions.push(session)
+    await this.writeSessions(context, sessions)
+    return true
   }
 
   async getSessions(context: Context): Promise<WorkoutSession[]> {
+    return this.readSessions(context)
+  }
+
+  private async readSessions(context: Context): Promise<WorkoutSession[]> {
     try {
-      const prefs = await preferences.getPreferences(context, STORE_NAME)
-      const json = await prefs.get(KEY_SESSIONS, '[]') as string
+      const prefs = await this.getStore(context)
+      const json = await prefs.get(KEY_SESSIONS, '[]')
       return JSON.parse(json) as WorkoutSession[]
     } catch (e) {
       return []
     }
+  }
+
+  private async writeSessions(context: Context, sessions: WorkoutSession[]): Promise<void> {
+    const prefs = await this.getStore(context)
+    await prefs.put(KEY_SESSIONS, JSON.stringify(sessions))
+    await prefs.flush()
+  }
+
+  private async getStore(context: Context): Promise<SessionPreferencesStore> {
+    if (this.testStore !== null) {
+      return this.testStore
+    }
+    const prefs = await preferences.getPreferences(context, STORE_NAME)
+    return new ArkPreferencesSessionStore(prefs)
   }
 
   async getWeeklyStats(context: Context): Promise<WeeklyStats> {
