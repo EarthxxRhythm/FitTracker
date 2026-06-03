@@ -6,6 +6,7 @@
  */
 import { router } from '@kit.ArkUI'
 import { AppRoutes } from '../app/AppRoutes'
+import WorkoutDraftService, { hasWorkoutDraftProgress, WorkoutDraftSnapshot } from '../common/services/WorkoutDraftService'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../common/styles/DesignTokens'
 import { TrainingPlan, UserGoal } from '../shared/models/TrainingModels'
 import GoalRepository from '../shared/services/GoalRepository'
@@ -36,10 +37,13 @@ export struct HomePage {
   @State startButtonText: string = ''
   @State startRoute: string = ''
   @State weeklyPlanDays: HomeWeeklyPlanDay[] = []
+  @State hasRecoverableDraft: boolean = false
+  @State recoverDraftSummary: string = ''
 
   async aboutToAppear(): Promise<void> {
     this.loading = true
     try {
+      await this.loadWorkoutDraft()
       const goal: UserGoal | undefined = await GoalRepository.loadGoal(getContext(this))
       if (goal === undefined) {
         this.hasGoal = false
@@ -55,6 +59,18 @@ export struct HomePage {
       this.hasGoal = false
     }
     this.loading = false
+  }
+
+  async loadWorkoutDraft(): Promise<void> {
+    const snapshot: WorkoutDraftSnapshot | null = await WorkoutDraftService.getDraft(getContext(this))
+    if (snapshot === null || !hasWorkoutDraftProgress(snapshot)) {
+      this.hasRecoverableDraft = false
+      this.recoverDraftSummary = ''
+      return
+    }
+
+    this.hasRecoverableDraft = true
+    this.recoverDraftSummary = snapshot.dayLabel + ' | ' + snapshot.completedSets.toString() + '/' + snapshot.totalTargetSets.toString() + ' 组'
   }
 
   applySummary(summary: HomePlanSummary): void {
@@ -112,6 +128,22 @@ export struct HomePage {
     }
   }
 
+  openActiveWorkout(): void {
+    try {
+      router.pushUrl({ url: AppRoutes.ACTIVE_WORKOUT })
+    } catch (e) {
+      // stay on home
+    }
+  }
+
+  openExerciseLibrary(): void {
+    try {
+      router.pushUrl({ url: AppRoutes.EXERCISE_LIBRARY })
+    } catch (e) {
+      // stay on home
+    }
+  }
+
   copyRecommendedExercises(source: HomeRecommendedExercise[]): HomeRecommendedExercise[] {
     const values: HomeRecommendedExercise[] = []
     for (let index = 0; index < source.length; index++) {
@@ -157,6 +189,35 @@ export struct HomePage {
         }
         .width('100%')
         .alignItems(HorizontalAlign.Start)
+
+        if (!this.loading && this.hasRecoverableDraft) {
+          Column({ space: SpacingTokens.SM }) {
+            Text('继续未完成训练')
+              .fontSize(FontTokens.TITLE_SIZE)
+              .fontWeight(FontTokens.TITLE_WEIGHT)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+
+            Text(this.recoverDraftSummary)
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+
+            Button('恢复训练')
+              .width('100%')
+              .height(TouchTokens.BUTTON_HEIGHT_LARGE)
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+              .backgroundColor(ColorTokens.ACCENT)
+              .borderRadius(RadiusTokens.FULL)
+              .onClick(() => {
+                this.openActiveWorkout()
+              })
+          }
+          .width('100%')
+          .padding(SpacingTokens.MD)
+          .borderRadius(RadiusTokens.SM)
+          .backgroundColor(ColorTokens.BG_SECONDARY)
+        }
 
         if (!this.loading && !this.hasGoal) {
           Column({ space: SpacingTokens.MD }) {
@@ -306,6 +367,17 @@ export struct HomePage {
               .borderRadius(RadiusTokens.FULL)
               .onClick(() => {
                 this.openReviewHome()
+              })
+
+            Button('查看动作库')
+              .width('100%')
+              .height(TouchTokens.BUTTON_HEIGHT_LARGE)
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+              .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+              .borderRadius(RadiusTokens.FULL)
+              .onClick(() => {
+                this.openExerciseLibrary()
               })
           }
           .width('100%')
