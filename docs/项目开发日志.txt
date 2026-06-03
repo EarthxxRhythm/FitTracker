@@ -1,5 +1,7 @@
 这是一个进度日志。请按时间倒序记录每个会话完成的工作。
 
+[完成] 2026-06-03：完成 phase3.5 第一轮收口。新增 `WorkoutSessionEditService`，把训练总结页的已保存记录修正能力正式落库；新增动作库入口、训练草稿恢复入口、动作详情媒体状态卡，以及回顾页的最近训练筛选、周趋势、动作 PR drilldown；进一步在回顾页接入 `GoalAdjustmentPreviewService`，支持在保存前预览当前安排与调整后安排。已完成 `check-gates`、`entry@default`、`entry@ohosTest` 与 Midscene `-CheckOnly` 校验，通过的提交包括：`3d8dc30 feat: add workout session edit service`、`42a56e8 feat: add review insights and exercise library`、`045dfe0 feat: preview review goal adjustments`。
+
 [完成] 功能 #1：应用冷启动登录态分流。已补齐启动路由与页面注册，新增启动路由测试；本地结构化检查通过，HarmonyOS 工程测试因 SDK 组件缺失未能跑通。
 
 [初始化] 项目环境已搭建。生成 features.json 文件，共包含 40 个功能点。
