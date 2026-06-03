@@ -40,6 +40,37 @@ class WorkoutRepository {
     this.sessions.push(this.copyWorkoutSession(session))
   }
 
+  updateSession(session: WorkoutSession): boolean {
+    for (let index = 0; index < this.sessions.length; index++) {
+      if (this.sessions[index].sessionId === session.sessionId) {
+        this.sessions[index] = this.copyWorkoutSession(session)
+        return true
+      }
+    }
+    return false
+  }
+
+  removeSession(sessionId: string): WorkoutSession | undefined {
+    for (let index = this.sessions.length - 1; index >= 0; index--) {
+      const session: WorkoutSession = this.sessions[index]
+      if (session.sessionId === sessionId) {
+        this.sessions.splice(index, 1)
+        return this.copyWorkoutSession(session)
+      }
+    }
+    return undefined
+  }
+
+  restoreSession(session: WorkoutSession): boolean {
+    for (let index = 0; index < this.sessions.length; index++) {
+      if (this.sessions[index].sessionId === session.sessionId) {
+        return false
+      }
+    }
+    this.sessions.push(this.copyWorkoutSession(session))
+    return true
+  }
+
   getSessions(): WorkoutSession[] {
     const sessions: WorkoutSession[] = []
     for (let index = 0; index < this.sessions.length; index++) {
