@@ -3,6 +3,8 @@
   [string]$BundleName = "com.example.fittracker_opencode",
   [string]$AbilityName = "EntryAbility",
   [string]$HapPath = "entry/build/default/outputs/default/entry-default-unsigned.hap",
+  [string]$RunRoot = "",
+  [string]$SummaryFileName = "midscene-regression-summary.md",
   [switch]$SkipInstall,
   [switch]$SkipDisconnect,
   [switch]$SkipVisualAsserts,
@@ -11,8 +13,13 @@
 
 $ErrorActionPreference = "Stop"
 $ScriptRoot = $PSScriptRoot
-$RunRoot = Join-Path $ScriptRoot "..\midscene_run"
-$RunSummaryPath = Join-Path $RunRoot "midscene-regression-summary.md"
+$DefaultRunRoot = Join-Path $ScriptRoot "..\midscene_run"
+if ([string]::IsNullOrWhiteSpace($RunRoot)) {
+  $RunRoot = $DefaultRunRoot
+}
+$RunRoot = [System.IO.Path]::GetFullPath($RunRoot)
+$RunSummaryPath = Join-Path $RunRoot $SummaryFileName
+$env:MIDSCENE_RUN_DIR = $RunRoot
 
 function Get-LatestMidsceneReportHtmlPath {
   if (-not (Test-Path $RunRoot)) {
@@ -170,7 +177,6 @@ function Invoke-VisualActWithRetry {
   }
 }
 
-Assert-MidsceneEnvironment
 if (-not $env:MIDSCENE_REPLANNING_CYCLE_LIMIT) {
   $env:MIDSCENE_REPLANNING_CYCLE_LIMIT = "60"
 }
@@ -189,6 +195,8 @@ if (-not $env:MIDSCENE_REPLANNING_CYCLE_LIMIT) {
     $runStatus = "check-only"
     return
   }
+
+  Assert-MidsceneEnvironment
 
   if (-not $SkipInstall) {
     if (-not (Test-Path $HapPath)) {

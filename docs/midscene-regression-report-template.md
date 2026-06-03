@@ -8,7 +8,8 @@
 - 设备 ID：
 - HAP 路径：
 - 执行命令：
-- Midscene 摘要文件：`midscene_run/midscene-regression-summary.md`
+- Midscene 摘要文件：`midscene_run/.../*.md`
+- Midscene 运行目录：`midscene_run/...`
 
 ## 环境检查
 
