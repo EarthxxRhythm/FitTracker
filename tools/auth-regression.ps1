@@ -5,6 +5,8 @@ param(
   [string]$HapPath = "entry/build/default/outputs/default/entry-default-unsigned.hap",
   [string]$TestPhone = "13800138000",
   [string]$TestPassword = "FitTracker123",
+  [string]$RunRoot = "",
+  [string]$SummaryFileName = "midscene-auth-regression-summary.md",
   [switch]$SkipInstall,
   [switch]$SkipDisconnect,
   [switch]$SkipVisualAsserts,
@@ -13,8 +15,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 $ScriptRoot = $PSScriptRoot
-$RunRoot = Join-Path $ScriptRoot "..\midscene_run"
-$RunSummaryPath = Join-Path $RunRoot "midscene-auth-regression-summary.md"
+$DefaultRunRoot = Join-Path $ScriptRoot "..\midscene_run"
+if ([string]::IsNullOrWhiteSpace($RunRoot)) {
+  $RunRoot = $DefaultRunRoot
+}
+$RunRoot = [System.IO.Path]::GetFullPath($RunRoot)
+$RunSummaryPath = Join-Path $RunRoot $SummaryFileName
+$env:MIDSCENE_RUN_DIR = $RunRoot
 
 function Get-LatestMidsceneReportHtmlPath {
   if (-not (Test-Path $RunRoot)) {
