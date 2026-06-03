@@ -4,7 +4,9 @@
  * Function #11: keep workout summary edit and undo flows consistent with the legacy session store.
  */
 import { ExerciseContent, WorkoutSession, WorkoutSet } from '../../../shared/models/TrainingModels'
+import { createWorkoutSession, createWorkoutSet } from '../../../shared/models/TrainingModels'
 import ContentRepository from '../../../shared/services/ContentRepository'
+import WorkoutRepository from '../../../shared/services/WorkoutRepository'
 import WorkoutSessionService, {
   SavedExercise,
   SavedSet,
@@ -32,6 +34,32 @@ class WorkoutSessionPersistenceBridgeService {
     }
   }
 
+  async loadPersistedSessions(context: Context): Promise<WorkoutSession[]> {
+    const legacySessions: LegacyWorkoutSession[] = await WorkoutSessionService.getSessions(context)
+    const sessions: WorkoutSession[] = []
+    for (let index = 0; index < legacySessions.length; index++) {
+      sessions.push(this.createSharedSession(legacySessions[index]))
+    }
+    return sessions
+  }
+
+  async replacePersistedSessions(context: Context, sessions: WorkoutSession[]): Promise<void> {
+    const legacySessions: LegacyWorkoutSession[] = []
+    for (let index = 0; index < sessions.length; index++) {
+      legacySessions.push(this.createLegacySession(sessions[index]))
+    }
+    await WorkoutSessionService.replaceSessions(context, legacySessions)
+  }
+
+  async syncRepositoryFromPersistence(context: Context): Promise<WorkoutSession[]> {
+    const sessions: WorkoutSession[] = await this.loadPersistedSessions(context)
+    WorkoutRepository.clear()
+    for (let index = 0; index < sessions.length; index++) {
+      WorkoutRepository.saveSession(sessions[index])
+    }
+    return WorkoutRepository.getSessions()
+  }
+
   private createLegacySession(session: WorkoutSession): LegacyWorkoutSession {
     const legacySession: LegacyWorkoutSession = {
       id: session.sessionId,
@@ -48,6 +76,23 @@ class WorkoutSessionPersistenceBridgeService {
       createdAt: this.formatDate(session.startedAt)
     }
     return legacySession
+  }
+
+  private createSharedSession(session: LegacyWorkoutSession): WorkoutSession {
+    const sets: WorkoutSet[] = this.createSharedSets(session)
+    return createWorkoutSession(
+      session.id,
+      session.planId,
+      session.dayLabel,
+      session.startTime,
+      session.endTime,
+      session.durationSeconds,
+      session.totalSets,
+      session.totalVolume,
+      0,
+      session.notes,
+      sets
+    )
   }
 
   private createLegacyExercises(sets: WorkoutSet[]): SavedExercise[] {
@@ -107,6 +152,48 @@ class WorkoutSessionPersistenceBridgeService {
       reps: set.reps
     }
     return legacySet
+  }
+
+  private createSharedSets(session: LegacyWorkoutSession): WorkoutSet[] {
+    const sets: WorkoutSet[] = []
+    for (let exerciseIndex = 0; exerciseIndex < session.exercises.length; exerciseIndex++) {
+      const exercise: SavedExercise = session.exercises[exerciseIndex]
+      const exerciseId: string = this.resolveExerciseId(exercise.name)
+      for (let setIndex = 0; setIndex < exercise.sets.length; setIndex++) {
+        const set: SavedSet = exercise.sets[setIndex]
+        sets.push(createWorkoutSet(
+          session.id + '_set_' + exerciseIndex.toString() + '_' + setIndex.toString(),
+          exerciseId,
+          set.weight,
+          set.reps,
+          0,
+          false
+        ))
+      }
+    }
+    return sets
+  }
+
+  private resolveExerciseId(exerciseName: string): string {
+    const directExercise: ExerciseContent | undefined = ContentRepository.getExerciseById(exerciseName)
+    if (directExercise !== undefined) {
+      return directExercise.exerciseId
+    }
+
+    const exercises: ExerciseContent[] = ContentRepository.getExercises()
+    const normalizedName: string = exerciseName.trim().toLowerCase()
+    for (let index = 0; index < exercises.length; index++) {
+      const exercise: ExerciseContent = exercises[index]
+      if (exercise.nameZh.toLowerCase() === normalizedName || exercise.nameEn.toLowerCase() === normalizedName) {
+        return exercise.exerciseId
+      }
+      for (let aliasIndex = 0; aliasIndex < exercise.aliases.length; aliasIndex++) {
+        if (exercise.aliases[aliasIndex].toLowerCase() === normalizedName) {
+          return exercise.exerciseId
+        }
+      }
+    }
+    return exerciseName
   }
 
   private formatDate(timestamp: number): string {
