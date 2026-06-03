@@ -8,8 +8,9 @@
 - 设备 ID：
 - HAP 路径：
 - 执行命令：
-- Midscene 摘要文件：`midscene_run/.../*.md`
+- Midscene 摘要文件：`midscene_run/full/<run-tag>/...` / `midscene_run/auth/<run-tag>/...` / `midscene_run/focused/<target>-<run-tag>/...`
 - Midscene 运行目录：`midscene_run/...`
+- 是否使用 `-ResetAppData`：
 
 ## 环境检查
 
