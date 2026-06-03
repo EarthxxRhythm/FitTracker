@@ -1,6 +1,6 @@
 +++
 title = "FitTracker 开发日志"
-date = 2026-06-03T23:45:00+08:00
+date = 2026-06-04T10:30:00+08:00
 draft = false
 tags = ["HarmonyOS", "ArkUI", "FitTracker", "开发日志"]
 categories = ["项目复盘"]
@@ -8,7 +8,35 @@ categories = ["项目复盘"]
 
 FitTracker 是一个本地优先的 HarmonyOS ArkUI 健身训练记录应用：用户可以设置训练目标、生成计划、执行训练、记录重量和次数，并在回顾页查看周统计、历史趋势和个人纪录。这个开发日志记录的是项目从基础功能闭环到回归工具化、再到回顾体验增强的阶段变化。
 
+## 开发进度
+
+- 总体进度：`77%`
+- 当前阶段：`Phase 3.5`
+- 当前重点：`手动备份/恢复 MVP 已落地，继续补验证与边界收口`
+
+```text
+Phase 1 基础训练闭环        [██████████] 100%
+Phase 2 内容与回归工具化    [██████████] 100%
+Phase 3 回顾与修正体验      [██████████] 100%
+Phase 3.5 收口与恢复能力    [███████░░░]  70%
+Phase 4 系统化与扩展能力    [░░░░░░░░░░]   0%
+```
+
 ## 开发日志
+
+### 2026-06-04：手动备份包先落地，恢复链路先做真实可用
+
+今天这一笔更像 phase 3.5 的第一块地基，而不是新页面。FitTracker 先把“用户最怕丢的东西”圈定下来：训练目标、我的计划、当前计划指针，以及训练记录。围绕这四类数据，新加了 `UserDataBackupService`，支持直接导出带 `schemaVersion` 的 JSON 包，并在应用内重新导入。
+
+这次没有停在“能导出一份文本”这一层，而是把导入后的可见性也一起补齐了。因为当前训练记录真正落地的是旧的持久化 store，而回顾页看的却是共享 `WorkoutRepository`，如果只做导入不做回灌，功能会看起来存在，体验却是空的。于是这轮顺手把 `WorkoutSessionPersistenceBridgeService` 往前推了一步：它现在不仅能把新 session 写回旧持久化层，也能把持久化层里的 session 重新灌回当前仓库。
+
+```ts
+const mergedSessions: WorkoutSession[] = this.mergeSessions(existingSessions, backupPackage.sessions)
+await WorkoutSessionPersistenceBridgeService.replacePersistedSessions(context, mergedSessions)
+await WorkoutSessionPersistenceBridgeService.syncRepositoryFromPersistence(context)
+```
+
+这样导入完成后，回顾页里的数据就能立刻刷新出来，而不是留下一份“已经导入成功”的提示，再让用户自己猜数据去了哪里。现在的版本还只是手动 JSON 包 MVP，但至少已经满足一个很朴素的标准：导出、导入、刷新、可见，这条链路是真通的。
 
 ### 2026-06-03：从训练闭环走向可复盘、可恢复
 
