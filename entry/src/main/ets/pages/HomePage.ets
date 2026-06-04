@@ -3,9 +3,12 @@
  * Function #4: home goal summary.
  * Function #5: weekly plan rows.
  * Function #8: today training entry.
+ * Function #19: current preset plan today view.
+ * Function #20: current preset plan rest-day view.
  */
 import { router } from '@kit.ArkUI'
 import { AppRoutes } from '../app/AppRoutes'
+import TrainingPlanService, { PresetPlan, UserPlan } from '../common/services/TrainingPlanService'
 import WorkoutDraftService, { hasWorkoutDraftProgress, WorkoutDraftSnapshot } from '../common/services/WorkoutDraftService'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../common/styles/DesignTokens'
 import { TrainingPlan, UserGoal } from '../shared/models/TrainingModels'
@@ -17,6 +20,15 @@ import HomePlanService, {
 } from '../shared/services/HomePlanService'
 import PlanEngine from '../shared/services/PlanEngine'
 
+interface HomePresetPlanCard {
+  presetPlanId: string
+  name: string
+  targetAudience: string
+  weeklyFrequency: string
+  trainingDayCount: number
+  coverColor: string
+}
+
 @Entry
 @Component
 export struct HomePage {
@@ -26,24 +38,43 @@ export struct HomePage {
   @State planName: string = ''
   @State weeklyDays: number = 0
   @State sessionMinutes: number = 0
+  @State primaryMetaText: string = ''
+  @State secondaryMetaText: string = ''
   @State goalSummary: string = ''
   @State equipmentSummary: string = ''
   @State restrictionSummary: string = ''
   @State todayDayId: string = ''
   @State todayTitle: string = ''
   @State todayLabel: string = ''
+  @State hasTodayWorkout: boolean = false
+  @State todayRestMessage: string = ''
   @State todayExerciseCount: number = 0
   @State recommendedExercises: HomeRecommendedExercise[] = []
   @State startButtonText: string = ''
   @State startRoute: string = ''
   @State weeklyPlanDays: HomeWeeklyPlanDay[] = []
+  @State presetPlanCards: HomePresetPlanCard[] = []
   @State hasRecoverableDraft: boolean = false
   @State recoverDraftSummary: string = ''
 
   async aboutToAppear(): Promise<void> {
     this.loading = true
     try {
+      this.loadPresetPlanCards()
       await this.loadWorkoutDraft()
+
+      const currentPlan: UserPlan | null = await TrainingPlanService.getCurrentPlan(getContext(this))
+      if (currentPlan !== null) {
+        const summary: HomePlanSummary = HomePlanService.createSummaryFromCurrentPlan(
+          currentPlan,
+          TrainingPlanService.getTodayLabel(),
+          TrainingPlanService.getTodayTraining(currentPlan)
+        )
+        this.applySummary(summary)
+        this.loading = false
+        return
+      }
+
       const goal: UserGoal | undefined = await GoalRepository.loadGoal(getContext(this))
       if (goal === undefined) {
         this.hasGoal = false
@@ -61,6 +92,10 @@ export struct HomePage {
     this.loading = false
   }
 
+  loadPresetPlanCards(): void {
+    this.presetPlanCards = this.copyPresetPlanCards(TrainingPlanService.getAllPresetPlans())
+  }
+
   async loadWorkoutDraft(): Promise<void> {
     const snapshot: WorkoutDraftSnapshot | null = await WorkoutDraftService.getDraft(getContext(this))
     if (snapshot === null || !hasWorkoutDraftProgress(snapshot)) {
@@ -70,7 +105,8 @@ export struct HomePage {
     }
 
     this.hasRecoverableDraft = true
-    this.recoverDraftSummary = snapshot.dayLabel + ' | ' + snapshot.completedSets.toString() + '/' + snapshot.totalTargetSets.toString() + ' 组'
+    this.recoverDraftSummary = snapshot.dayLabel + ' | ' + snapshot.completedSets.toString() + '/' +
+      snapshot.totalTargetSets.toString() + ' 组'
   }
 
   applySummary(summary: HomePlanSummary): void {
@@ -79,12 +115,16 @@ export struct HomePage {
     this.planName = summary.planName
     this.weeklyDays = summary.weeklyDays
     this.sessionMinutes = summary.sessionMinutes
+    this.primaryMetaText = summary.primaryMetaText
+    this.secondaryMetaText = summary.secondaryMetaText
     this.goalSummary = summary.goalSummary
     this.equipmentSummary = summary.equipmentSummary
     this.restrictionSummary = summary.restrictionSummary
     this.todayDayId = summary.todayDayId
     this.todayTitle = summary.todayTitle
     this.todayLabel = summary.todayLabel
+    this.hasTodayWorkout = summary.hasTodayWorkout
+    this.todayRestMessage = summary.todayRestMessage
     this.todayExerciseCount = summary.todayExerciseCount
     this.recommendedExercises = this.copyRecommendedExercises(summary.recommendedExercises)
     this.startButtonText = summary.startButtonText
@@ -144,6 +184,14 @@ export struct HomePage {
     }
   }
 
+  openTrainingPlanDetail(presetPlanId: string): void {
+    try {
+      router.pushUrl({ url: AppRoutes.TRAINING_PLAN_DETAIL, params: { presetPlanId: presetPlanId } })
+    } catch (e) {
+      // stay on home
+    }
+  }
+
   copyRecommendedExercises(source: HomeRecommendedExercise[]): HomeRecommendedExercise[] {
     const values: HomeRecommendedExercise[] = []
     for (let index = 0; index < source.length; index++) {
@@ -174,6 +222,23 @@ export struct HomePage {
     return days
   }
 
+  copyPresetPlanCards(source: PresetPlan[]): HomePresetPlanCard[] {
+    const cards: HomePresetPlanCard[] = []
+    for (let index = 0; index < source.length; index++) {
+      const sourcePlan: PresetPlan = source[index]
+      const card: HomePresetPlanCard = {
+        presetPlanId: sourcePlan.id,
+        name: sourcePlan.name,
+        targetAudience: sourcePlan.targetAudience,
+        weeklyFrequency: sourcePlan.weeklyFrequency,
+        trainingDayCount: sourcePlan.days.length,
+        coverColor: sourcePlan.coverColor
+      }
+      cards.push(card)
+    }
+    return cards
+  }
+
   build() {
     Scroll() {
       Column({ space: SpacingTokens.LG }) {
@@ -183,7 +248,7 @@ export struct HomePage {
             .fontWeight(FontTokens.DISPLAY_WEIGHT)
             .fontColor(ColorTokens.TEXT_PRIMARY)
 
-          Text(this.loading ? '正在读取训练目标' : '目标驱动的本周训练入口')
+          Text(this.loading ? '正在读取训练安排' : '根据当前训练计划展示今天的训练或恢复状态')
             .fontSize(FontTokens.BODY_SIZE)
             .fontColor(ColorTokens.TEXT_SECONDARY)
         }
@@ -259,7 +324,7 @@ export struct HomePage {
               .fontColor(ColorTokens.TEXT_SECONDARY)
 
             Row() {
-              Text('每周 ' + this.weeklyDays.toString() + ' 天')
+              Text(this.primaryMetaText)
                 .fontSize(FontTokens.CAPTION_SIZE)
                 .fontColor(ColorTokens.TEXT_ON_PRIMARY)
                 .padding({
@@ -271,7 +336,7 @@ export struct HomePage {
                 .backgroundColor(ColorTokens.PRIMARY)
                 .borderRadius(RadiusTokens.FULL)
 
-              Text('单次 ' + this.sessionMinutes.toString() + ' 分钟')
+              Text(this.secondaryMetaText)
                 .fontSize(FontTokens.CAPTION_SIZE)
                 .fontColor(ColorTokens.TEXT_ON_PRIMARY)
                 .padding({
@@ -304,42 +369,48 @@ export struct HomePage {
                 .fontWeight(FontTokens.HEADLINE_WEIGHT)
                 .fontColor(ColorTokens.TEXT_PRIMARY)
 
-              Text(this.todayExerciseCount.toString() + ' 个动作')
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(ColorTokens.TEXT_SECONDARY)
+              if (this.hasTodayWorkout) {
+                Text(this.todayExerciseCount.toString() + ' 个动作')
+                  .fontSize(FontTokens.BODY_SIZE)
+                  .fontColor(ColorTokens.TEXT_SECONDARY)
 
-              Text('推荐动作')
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(ColorTokens.TEXT_PRIMARY)
+                Text('今日动作')
+                  .fontSize(FontTokens.CAPTION_SIZE)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(ColorTokens.TEXT_PRIMARY)
 
-              ForEach(this.recommendedExercises, (exercise: HomeRecommendedExercise, index: number) => {
-                Row() {
-                  Text((index + 1).toString())
-                    .fontSize(FontTokens.SMALL_SIZE)
-                    .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-                    .width(24)
-                    .height(24)
-                    .textAlign(TextAlign.Center)
-                    .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-                    .borderRadius(RadiusTokens.FULL)
+                ForEach(this.recommendedExercises, (exercise: HomeRecommendedExercise, index: number) => {
+                  Row() {
+                    Text((index + 1).toString())
+                      .fontSize(FontTokens.SMALL_SIZE)
+                      .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+                      .width(24)
+                      .height(24)
+                      .textAlign(TextAlign.Center)
+                      .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+                      .borderRadius(RadiusTokens.FULL)
 
-                  Column({ space: SpacingTokens.XS }) {
-                    Text(exercise.name)
-                      .fontSize(FontTokens.BODY_SIZE)
-                      .fontWeight(FontWeight.Medium)
-                      .fontColor(ColorTokens.TEXT_PRIMARY)
+                    Column({ space: SpacingTokens.XS }) {
+                      Text(exercise.name)
+                        .fontSize(FontTokens.BODY_SIZE)
+                        .fontWeight(FontWeight.Medium)
+                        .fontColor(ColorTokens.TEXT_PRIMARY)
 
-                    Text(exercise.prescription + ' | ' + exercise.intensityNote)
-                      .fontSize(FontTokens.CAPTION_SIZE)
-                      .fontColor(ColorTokens.TEXT_SECONDARY)
+                      Text(exercise.prescription + ' | ' + exercise.intensityNote)
+                        .fontSize(FontTokens.CAPTION_SIZE)
+                        .fontColor(ColorTokens.TEXT_SECONDARY)
+                    }
+                    .layoutWeight(1)
+                    .alignItems(HorizontalAlign.Start)
+                    .margin({ left: SpacingTokens.SM })
                   }
-                  .layoutWeight(1)
-                  .alignItems(HorizontalAlign.Start)
-                  .margin({ left: SpacingTokens.SM })
-                }
-                .width('100%')
-              }, (exercise: HomeRecommendedExercise) => exercise.exerciseId)
+                  .width('100%')
+                }, (exercise: HomeRecommendedExercise) => exercise.exerciseId)
+              } else {
+                Text(this.todayRestMessage)
+                  .fontSize(FontTokens.BODY_SIZE)
+                  .fontColor(ColorTokens.TEXT_SECONDARY)
+              }
             }
             .width('100%')
             .padding(SpacingTokens.MD)
@@ -409,7 +480,7 @@ export struct HomePage {
 
                 Text(day.isToday ? '今天' : '计划')
                   .fontSize(FontTokens.SMALL_SIZE)
-                  .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+                  .fontColor(day.isToday ? ColorTokens.TEXT_ON_PRIMARY : ColorTokens.TEXT_PRIMARY)
                   .padding({
                     top: SpacingTokens.XS,
                     bottom: SpacingTokens.XS,
@@ -424,6 +495,81 @@ export struct HomePage {
               .borderRadius(RadiusTokens.SM)
               .backgroundColor(ColorTokens.SURFACE_PRIMARY)
             }, (day: HomeWeeklyPlanDay) => day.dayId)
+          }
+          .width('100%')
+          .padding(SpacingTokens.MD)
+          .borderRadius(RadiusTokens.SM)
+          .backgroundColor(ColorTokens.BG_SECONDARY)
+        }
+
+        if (!this.loading) {
+          Column({ space: SpacingTokens.MD }) {
+            Text('预置训练计划')
+              .fontSize(FontTokens.TITLE_SIZE)
+              .fontWeight(FontTokens.TITLE_WEIGHT)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+
+            Text('至少包含五分化、上下肢分裂、推拉腿、全身训练 3x 和力量举基础。')
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+
+            ForEach(this.presetPlanCards, (plan: HomePresetPlanCard) => {
+              Column({ space: SpacingTokens.SM }) {
+                Row() {
+                  Column({ space: SpacingTokens.XS }) {
+                    Text(plan.name)
+                      .fontSize(FontTokens.BODY_SIZE)
+                      .fontWeight(FontWeight.Medium)
+                      .fontColor(ColorTokens.TEXT_PRIMARY)
+                      .width('100%')
+
+                    Text(plan.targetAudience)
+                      .fontSize(FontTokens.CAPTION_SIZE)
+                      .fontColor(ColorTokens.TEXT_SECONDARY)
+                      .width('100%')
+                  }
+                  .layoutWeight(1)
+                  .alignItems(HorizontalAlign.Start)
+
+                  Text(plan.trainingDayCount.toString() + ' 天')
+                    .fontSize(FontTokens.SMALL_SIZE)
+                    .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+                    .padding({
+                      top: SpacingTokens.XS,
+                      bottom: SpacingTokens.XS,
+                      left: SpacingTokens.SM,
+                      right: SpacingTokens.SM
+                    })
+                    .backgroundColor(plan.coverColor)
+                    .borderRadius(RadiusTokens.FULL)
+                }
+                .width('100%')
+
+                Text(plan.weeklyFrequency)
+                  .fontSize(FontTokens.CAPTION_SIZE)
+                  .fontColor(ColorTokens.TEXT_SECONDARY)
+                  .width('100%')
+
+                Button('查看计划详情')
+                  .width('100%')
+                  .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
+                  .fontSize(FontTokens.BODY_SIZE)
+                  .fontColor(ColorTokens.TEXT_PRIMARY)
+                  .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+                  .borderRadius(RadiusTokens.FULL)
+                  .onClick(() => {
+                    this.openTrainingPlanDetail(plan.presetPlanId)
+                  })
+              }
+              .width('100%')
+              .padding(SpacingTokens.MD)
+              .borderRadius(RadiusTokens.SM)
+              .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+              .border({
+                width: 1,
+                color: plan.coverColor
+              })
+            }, (plan: HomePresetPlanCard) => plan.presetPlanId)
           }
           .width('100%')
           .padding(SpacingTokens.MD)
