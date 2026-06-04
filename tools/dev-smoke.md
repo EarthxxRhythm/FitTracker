@@ -1,10 +1,15 @@
 # FitTracker dev smoke
 
 `tools/dev-smoke.ps1` is a thin wrapper around `tools/midscene-entrypoints-smoke.ps1`.
-By default it runs only the two focused smoke targets:
+By default it runs the current-plan focused smoke target:
+
+- `current-plan`
+
+It also supports the existing focused smoke targets:
 
 - `backup-card`
 - `media-card`
+- `both`
 
 It does not start `tools/midscene-regression.ps1`.
 
@@ -23,15 +28,18 @@ powershell -ExecutionPolicy Bypass -File tools/dev-smoke.ps1 -DeviceId '127.0.0.
 powershell -ExecutionPolicy Bypass -File tools/dev-smoke.ps1 -SkipInstall
 powershell -ExecutionPolicy Bypass -File tools/dev-smoke.ps1 -ResetAppData
 powershell -ExecutionPolicy Bypass -File tools/dev-smoke.ps1 -CheckOnly
+powershell -ExecutionPolicy Bypass -File tools/dev-smoke.ps1 -Target current-plan
 powershell -ExecutionPolicy Bypass -File tools/dev-smoke.ps1 -Target backup-card
 powershell -ExecutionPolicy Bypass -File tools/dev-smoke.ps1 -Target media-card
+powershell -ExecutionPolicy Bypass -File tools/dev-smoke.ps1 -Target both
 ```
 
 ## Behavior
 
 - Prepares Midscene env with `tools/midscene-env.ps1` by default.
 - Delegates execution to `tools/midscene-entrypoints-smoke.ps1`.
-- Uses `Target=both` by default, so one daily run covers `backup-card` and `media-card`.
+- Uses `Target=current-plan` by default, so one daily run only checks `Home -> Preview -> Active`.
+- Keeps `Target=both` available when you want to cover `backup-card` and `media-card` together.
 - Keeps artifacts under `midscene_run/focused/`.
 
 Use `-SkipPrepareEnv` when the current shell already has the required Midscene env vars.

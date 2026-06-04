@@ -42,7 +42,8 @@
 ## 验证建议
 
 - 日常轻量验证优先 `powershell -ExecutionPolicy Bypass -File tools/dev-smoke.ps1`
-- 当前 focused smoke 推荐入口：`backup-card`、`media-card`
+- 当前 focused smoke 默认入口：`current-plan`
+- 补充入口仍为：`backup-card`、`media-card`
 - 只有在路由、持久化或训练主链路准备合并前，再补 `powershell -ExecutionPolicy Bypass -File tools/premerge-regression.ps1`
 
 ## 交付约定
