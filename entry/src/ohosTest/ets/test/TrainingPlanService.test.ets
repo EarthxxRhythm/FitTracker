@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TrainingPlanService 单元测试
  * 覆盖 5 个预设计划结构、getTodayTraining、getTodayLabel、isTrainingDay
  *
@@ -6,7 +6,12 @@
  * 需要 preferences Context，逻辑正确性通过集成测试验证。
  */
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium'
+import { abilityDelegatorRegistry } from '@kit.TestKit'
 import trainingPlanService, { TrainingDay, UserPlan } from '../../../main/ets/common/services/TrainingPlanService'
+
+function getTestContext(): Context {
+  return abilityDelegatorRegistry.getAbilityDelegator().getAppContext()
+}
 
 export default function trainingPlanServiceTest(): void {
   describe('TrainingPlanService', () => {
@@ -226,6 +231,29 @@ export default function trainingPlanServiceTest(): void {
           enabledAt: Date.now()
         }
         expect(trainingPlanService.isTrainingDay(emptyPlan)).assertFalse()
+      })
+    })
+
+    describe('plan persistence', () => {
+      it('enables a preset plan and restores it as current plan', 0, async () => {
+        await trainingPlanService.replaceMyPlans(getTestContext(), [], '')
+
+        const enabledPlan: UserPlan | null = await trainingPlanService.enablePlan(getTestContext(), 'preset_ppl')
+        const currentPlan: UserPlan | null = await trainingPlanService.getCurrentPlan(getTestContext())
+        const currentPlanId: string = await trainingPlanService.getCurrentPlanId(getTestContext())
+        const myPlans: UserPlan[] = await trainingPlanService.getMyPlans(getTestContext())
+
+        expect(enabledPlan !== null).assertTrue()
+        expect(myPlans.length).assertEqual(1)
+        if (enabledPlan !== null && currentPlan !== null) {
+          expect(currentPlanId).assertEqual(enabledPlan.id)
+          expect(currentPlan.id).assertEqual(enabledPlan.id)
+          expect(currentPlan.name).assertEqual('\\u63a8\\u62c9\\u817f\\u5206\\u88c2')
+          expect(currentPlan.days.length).assertEqual(3)
+          expect(currentPlan.id === 'preset_ppl').assertFalse()
+        }
+
+        await trainingPlanService.replaceMyPlans(getTestContext(), [], '')
       })
     })
   })

@@ -3,43 +3,43 @@
     "id": 14,
     "category": "训练计划",
     "description": "首页展示预置训练计划列表，至少包含五分化、上下肢分化、推拉腿、全身训练 3x 和力量举基础。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 15,
     "category": "训练计划",
     "description": "点击任一预置计划后进入计划详情页，可看到计划名称、适用人群、训练频率和按训练日分组的动作列表。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 16,
     "category": "训练计划",
     "description": "计划详情页中的每个训练日显示日标题，以及动作名称、目标肌群和推荐组数次数。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 17,
     "category": "训练计划",
     "description": "点击“开始此计划”后，将预置计划克隆到“我的计划”并设为当前使用计划。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 18,
     "category": "训练计划",
     "description": "重新打开应用后，可从本地存储恢复当前使用计划，而不是要求重新选择。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 19,
     "category": "训练计划",
     "description": "当前计划今天有训练安排时，首页显示今日训练视图，包括星期标签、计划名和动作清单。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 20,
     "category": "训练计划",
     "description": "当前计划今天没有训练安排时，首页显示休息日提示，而不是动作列表。",
-    "passes": false
+    "passes": true
   },
   {
     "id": 27,
