@@ -11,6 +11,7 @@ import goalSetupServiceTest from './GoalSetupService.test'
 import goalAdjustmentPreviewServiceTest from './GoalAdjustmentPreviewService.test'
 import homePlanServiceTest from './HomePlanService.test'
 import userDataBackupServiceTest from './UserDataBackupService.test'
+import systemBackupBridgeServiceTest from './SystemBackupBridgeService.test'
 import workoutPreviewServiceTest from './WorkoutPreviewService.test'
 import activeWorkoutServiceTest from './ActiveWorkoutService.test'
 import workoutSummaryServiceTest from './WorkoutSummaryService.test'
@@ -22,6 +23,7 @@ import planEngineTest from './PlanEngine.test'
 import statsDashboardServiceTest from './StatsDashboardService.test'
 import personalRecordServiceTest from './PersonalRecordService.test'
 import persistenceFallbackServiceTest from './PersistenceFallbackService.test'
+import exerciseMediaResolverServiceTest from './ExerciseMediaResolverService.test'
 import authSessionFlowTest from './AuthSessionFlow.test'
 import targetLoopFlowTest from './TargetLoopFlow.test'
 import authRoutingFlowTest from './AuthRoutingFlow.test'
@@ -40,6 +42,7 @@ export default function testsuite(): void {
   goalAdjustmentPreviewServiceTest()
   homePlanServiceTest()
   userDataBackupServiceTest()
+  systemBackupBridgeServiceTest()
   workoutPreviewServiceTest()
   activeWorkoutServiceTest()
   workoutSummaryServiceTest()
@@ -51,6 +54,7 @@ export default function testsuite(): void {
   statsDashboardServiceTest()
   personalRecordServiceTest()
   persistenceFallbackServiceTest()
+  exerciseMediaResolverServiceTest()
   authSessionFlowTest()
   targetLoopFlowTest()
   authRoutingFlowTest()
