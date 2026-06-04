@@ -127,7 +127,7 @@ export struct HomePage {
     this.todayRestMessage = summary.todayRestMessage
     this.todayExerciseCount = summary.todayExerciseCount
     this.recommendedExercises = this.copyRecommendedExercises(summary.recommendedExercises)
-    this.startButtonText = summary.startButtonText
+    this.startButtonText = this.resolveStartButtonText(summary)
     this.startRoute = summary.startRoute
     this.weeklyPlanDays = this.copyWeeklyPlanDays(summary.weeklyPlanDays)
   }
@@ -154,10 +154,27 @@ export struct HomePage {
       return
     }
     try {
-      router.pushUrl({ url: this.startRoute, params: { dayId: this.todayDayId } })
+      router.pushUrl({
+        url: this.startRoute,
+        params: {
+          dayId: this.todayDayId,
+          flowSource: this.isCurrentPlanDayId(this.todayDayId) ? 'current_plan' : 'goal_plan'
+        }
+      })
     } catch (e) {
       // stay on home
     }
+  }
+
+  isCurrentPlanDayId(dayId: string): boolean {
+    return dayId.indexOf('current_plan_day_') === 0
+  }
+
+  resolveStartButtonText(summary: HomePlanSummary): string {
+    if (summary.startRoute.length > 0 && this.isCurrentPlanDayId(summary.todayDayId)) {
+      return '\u5f00\u59cb\u8bad\u7ec3'
+    }
+    return summary.startButtonText
   }
 
   openReviewHome(): void {

@@ -1,5 +1,6 @@
 import { describe, it, expect } from '@ohos/hypium'
 import { TrainingPlan, UserGoal, WorkoutSession, createUserGoal } from '../../../main/ets/shared/models/TrainingModels'
+import TrainingPlanService, { PresetPlan, UserPlan } from '../../../main/ets/common/services/TrainingPlanService'
 import ActiveWorkoutService, { ActiveWorkoutExercise, ActiveWorkoutState } from '../../../main/ets/shared/services/ActiveWorkoutService'
 import PlanEngine from '../../../main/ets/shared/services/PlanEngine'
 import WorkoutPreviewService, { WorkoutPreviewSummary } from '../../../main/ets/shared/services/WorkoutPreviewService'
@@ -76,6 +77,89 @@ export default function activeWorkoutServiceTest(): void {
       expect(updatedState.exercises[0].sets[0].repsText).assertEqual('10')
       expect(updatedState.exercises[0].sets[0].estimatedOneRepMax).assertEqual(107)
       expect(updatedState.exercises[0].sets[0].oneRepMaxText).assertEqual('1RM 参考 107 kg')
+    })
+
+    it('creates active workout state from the current enabled preset plan preview', 0, () => {
+      const presetPlan: PresetPlan | undefined = TrainingPlanService.getPresetPlanById('preset_upper_lower')
+      expect(presetPlan !== undefined).assertTrue()
+      if (presetPlan !== undefined) {
+        const currentPlan: UserPlan = {
+          id: presetPlan.id,
+          name: presetPlan.name,
+          coverColor: presetPlan.coverColor,
+          targetAudience: presetPlan.targetAudience,
+          weeklyFrequency: presetPlan.weeklyFrequency,
+          days: presetPlan.days,
+          enabledAt: 100
+        }
+        const preview: WorkoutPreviewSummary = WorkoutPreviewService.createPreviewForCurrentPlan(
+          currentPlan,
+          'current_plan_day_1',
+          '周一',
+          currentPlan.days[0]
+        )
+        const state: ActiveWorkoutState = ActiveWorkoutService.createState(preview)
+
+        expect(state.hasWorkout).assertTrue()
+        expect(state.planId).assertEqual(currentPlan.id)
+        expect(state.dayId).assertEqual('current_plan_day_1')
+        expect(state.currentExerciseName).assertEqual(preview.exercises[0].name)
+        expect(state.currentExerciseSetProgress).assertEqual('0/' + preview.exercises[0].targetSets.toString())
+      }
+    })
+
+    it('preserves current-plan identifiers through progress updates and session creation', 0, () => {
+      const presetPlan: PresetPlan | undefined = TrainingPlanService.getPresetPlanById('preset_upper_lower')
+      expect(presetPlan !== undefined).assertTrue()
+      if (presetPlan !== undefined) {
+        const currentPlan: UserPlan = {
+          id: presetPlan.id,
+          name: presetPlan.name,
+          coverColor: presetPlan.coverColor,
+          targetAudience: presetPlan.targetAudience,
+          weeklyFrequency: presetPlan.weeklyFrequency,
+          days: presetPlan.days,
+          enabledAt: 101
+        }
+        const preview: WorkoutPreviewSummary = WorkoutPreviewService.createPreviewForCurrentPlan(
+          currentPlan,
+          'current_plan_day_2',
+          '星期四',
+          currentPlan.days[0]
+        )
+        const state: ActiveWorkoutState = ActiveWorkoutService.createState(preview)
+        const firstExercise: ActiveWorkoutExercise = state.exercises[0]
+        const updatedExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.updateSetEntry(
+          state.exercises,
+          firstExercise.plannedExerciseId,
+          0,
+          '50',
+          '8'
+        )
+        const progressedState: ActiveWorkoutState = ActiveWorkoutService.createStateWithProgress(state, updatedExercises)
+        const session: WorkoutSession = ActiveWorkoutService.createCompletedSession(
+          'session_current_plan_state',
+          progressedState,
+          1000,
+          61000,
+          progressedState.completedSets
+        )
+
+        expect(state.planId).assertEqual(currentPlan.id)
+        expect(state.dayId).assertEqual('current_plan_day_2')
+        expect(state.title).assertEqual(currentPlan.days[1].dayLabel)
+        expect(progressedState.planId).assertEqual(state.planId)
+        expect(progressedState.dayId).assertEqual(state.dayId)
+        expect(progressedState.title).assertEqual(state.title)
+        expect(progressedState.completedSets).assertEqual(1)
+        expect(progressedState.currentExerciseName).assertEqual(firstExercise.name)
+        expect(progressedState.currentExerciseSetProgress).assertEqual('1/' + firstExercise.targetSets.toString())
+        expect(session.planId).assertEqual(currentPlan.id)
+        expect(session.dayId).assertEqual('current_plan_day_2')
+        expect(session.totalSets).assertEqual(1)
+        expect(session.sets.length).assertEqual(1)
+        expect(session.sets[0].setId).assertEqual('current_plan_day_2_exercise_1_set_1')
+      }
     })
 
     it('preserves the latest sibling field when weight and reps are entered separately', 0, () => {

@@ -4,6 +4,7 @@
  */
 import { router } from '@kit.ArkUI'
 import { AppRoutes } from '../../../app/AppRoutes'
+import TrainingPlanService, { UserPlan } from '../../../common/services/TrainingPlanService'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
 import { TrainingPlan, UserGoal, WorkoutSession } from '../../../shared/models/TrainingModels'
 import ActiveWorkoutService, {
@@ -39,6 +40,22 @@ export struct ActiveWorkoutPage {
     this.startedAt = Date.now()
     this.startTimer()
     try {
+      const flowSource: string = this.getRouteParam('flowSource')
+      const currentPlan: UserPlan | null = await TrainingPlanService.getCurrentPlan(getContext(this))
+      if (currentPlan !== null && flowSource !== 'goal_plan') {
+        const preview: WorkoutPreviewSummary = WorkoutPreviewService.createPreviewForCurrentPlan(
+          currentPlan,
+          this.getDayIdParam(),
+          TrainingPlanService.getTodayLabel(),
+          TrainingPlanService.getTodayTraining(currentPlan)
+        )
+        const currentPlanState: ActiveWorkoutState = ActiveWorkoutService.createState(preview)
+        this.applyState(currentPlanState)
+        this.hasGoal = true
+        this.loading = false
+        return
+      }
+
       const goal: UserGoal | undefined = await GoalRepository.loadGoal(getContext(this))
       if (goal === undefined) {
         this.hasGoal = false
@@ -57,6 +74,30 @@ export struct ActiveWorkoutPage {
       this.hasWorkout = false
     }
     this.loading = false
+  }
+
+  getRouteParam(name: string): string {
+    try {
+      const params = router.getParams() as Record<string, string>
+      if (name === 'flowSource' && params.flowSource !== undefined) {
+        return params.flowSource
+      }
+    } catch (e) {
+      return ''
+    }
+    return ''
+  }
+
+  getDayIdParam(): string {
+    try {
+      const params = router.getParams() as Record<string, string>
+      if (params.dayId !== undefined) {
+        return params.dayId
+      }
+    } catch (e) {
+      return ''
+    }
+    return ''
   }
 
   aboutToDisappear(): void {
@@ -286,6 +327,19 @@ export struct ActiveWorkoutPage {
       setEntry.oneRepMaxText
   }
 
+  getDayBadgeText(): string {
+    if (this.dayId.indexOf('current_plan_day_') === 0) {
+      return '第 ' + this.dayId.substring('current_plan_day_'.length) + ' 天'
+    }
+    if (this.dayId.indexOf('day_') === 0) {
+      return '第 ' + this.dayId.substring('day_'.length) + ' 天'
+    }
+    if (this.dayId.length > 0) {
+      return this.dayId
+    }
+    return this.title
+  }
+
   build() {
     Scroll() {
       Column({ space: SpacingTokens.LG }) {
@@ -368,7 +422,7 @@ export struct ActiveWorkoutPage {
                   .fontColor(ColorTokens.TEXT_PRIMARY)
                   .layoutWeight(1)
 
-                Text(this.dayId)
+                Text(this.getDayBadgeText())
                   .fontSize(FontTokens.CAPTION_SIZE)
                   .fontColor(ColorTokens.TEXT_ON_PRIMARY)
                   .padding({

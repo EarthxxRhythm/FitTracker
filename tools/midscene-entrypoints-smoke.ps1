@@ -1,6 +1,6 @@
 param(
-  [ValidateSet('backup-card', 'media-card', 'both')]
-  [string]$Target = 'both',
+  [ValidateSet('backup-card', 'media-card', 'current-plan', 'both')]
+  [string]$Target = 'current-plan',
   [string]$DeviceId = "",
   [string]$BundleName = "com.example.fittracker_opencode",
   [string]$AbilityName = "EntryAbility",
@@ -78,6 +78,9 @@ function Write-SmokeSummary {
     $summaryLines += "- review page backup card"
   } elseif ($Target -eq 'media-card') {
     $summaryLines += "- exercise detail media card"
+  } elseif ($Target -eq 'current-plan') {
+    $summaryLines += "- home current-plan card to workout preview"
+    $summaryLines += "- workout preview to active workout"
   } else {
     $summaryLines += "- review page backup card"
     $summaryLines += "- exercise detail media card"
@@ -226,7 +229,7 @@ function Ensure-AppReady {
 function Ensure-HomeRoute {
   $homeReady = $false
   try {
-    Invoke-VisualAssert -Title "assert home route already visible" -Prompt "The FitTracker home page is visible. It shows a primary workout button, separate buttons for training review and exercise library, and there is no crash dialog."
+    Invoke-VisualAssert -Title "assert home route already visible" -Prompt "The FitTracker home page is visible. It shows the main workout entry with a primary workout button, and there is no crash dialog."
     $homeReady = $true
   } catch {
     $homeReady = $false
@@ -240,12 +243,12 @@ function Ensure-HomeRoute {
   Invoke-Midscene -Title "capture pre-home-route screen" -CommandArgs @("take_screenshot")
   Invoke-VisualActWithRetry `
     -Title "prepare home route" `
-    -PrimaryPrompt "From the current visible screen, reach the FitTracker home page. If the FitTracker app is already open, stay in it and continue. If the system home screen is visible, return to the currently installed FitTracker app. If login or register appears, complete it. If goal setup appears, choose muscle gain, beginner, 3 days per week, and bodyweight or dumbbell equipment, then save. If workout preview, review, or exercise detail is visible, navigate back to the home page. Stop when the FitTracker home page shows the main workout button plus the training review and exercise library buttons." `
+    -PrimaryPrompt "From the current visible screen, reach the FitTracker home page. If the FitTracker app is already open, stay in it and continue. If the system home screen is visible, return to the currently installed FitTracker app. If login or register appears, complete it. If goal setup appears, choose muscle gain, beginner, 3 days per week, and bodyweight or dumbbell equipment, then save. If workout preview, review, or exercise detail is visible, navigate back to the home page. Stop when the home page shows the main workout entry with a primary workout button." `
     -PrimaryAssertTitle "assert home route ready" `
-    -PrimaryAssertPrompt "The FitTracker home page is visible. It shows a primary workout button, separate buttons for training review and exercise library, and there is no crash dialog." `
-    -RetryPrompt "If the FitTracker home page is still not visible, bring the FitTracker app to the foreground if needed, then navigate back until the home page shows the main workout button plus the training review and exercise library buttons. If login or goal setup still appears, complete the minimum required flow and stop on the home page." `
+    -PrimaryAssertPrompt "The FitTracker home page is visible. It shows the main workout entry with a primary workout button, and there is no crash dialog." `
+    -RetryPrompt "If the FitTracker home page is still not visible, bring the FitTracker app to the foreground if needed, then navigate back until the home page shows the main workout entry with a primary workout button. If login or goal setup still appears, complete the minimum required flow and stop on the home page." `
     -RetryAssertTitle "assert home route ready after retry" `
-    -RetryAssertPrompt "The FitTracker home page is visible. It shows a primary workout button, separate buttons for training review and exercise library, and there is no crash dialog."
+    -RetryAssertPrompt "The FitTracker home page is visible. It shows the main workout entry with a primary workout button, and there is no crash dialog."
 }
 
 function Ensure-WorkoutPreviewRoute {
@@ -271,6 +274,35 @@ function Ensure-WorkoutPreviewRoute {
     -RetryPrompt "If the workout preview screen is still not visible, bring the FitTracker app to the foreground if needed, then navigate to today's workout preview from the home page. Complete login or goal setup only if they block the route. Stop when the workout preview screen is visible." `
     -RetryAssertTitle "assert workout preview ready after retry" `
     -RetryAssertPrompt "The workout preview screen for today's training is visible."
+}
+
+function Ensure-CurrentPlanHomeRoute {
+  Ensure-HomeRoute
+  Invoke-VisualAssert -Title "assert current plan home card" -Prompt "The FitTracker home page is visible. It shows the current enabled preset plan or today's training entry with a primary start workout button, and there is no crash dialog or blank screen."
+}
+
+function Ensure-CurrentPlanPreviewRoute {
+  $previewReady = $false
+  try {
+    Invoke-VisualAssert -Title "assert current plan preview already visible" -Prompt "The FitTracker workout preview screen is visible. It shows the workout preview title, a plan name, and a user-friendly day badge such as 第 5 天. There is no crash dialog."
+    $previewReady = $true
+  } catch {
+    $previewReady = $false
+  }
+
+  if ($previewReady) {
+    return
+  }
+
+  Ensure-CurrentPlanHomeRoute
+  Invoke-VisualActWithRetry `
+    -Title "open current plan preview" `
+    -PrimaryPrompt "On the FitTracker home page, tap the main primary workout button for today's training and stop when the workout preview screen is visible. Do not open the training review or exercise library pages." `
+    -PrimaryAssertTitle "assert current plan preview ready" `
+    -PrimaryAssertPrompt "The FitTracker workout preview screen is visible. It shows the workout preview title, a plan name, and a user-friendly day badge such as 第 5 天. There is no crash dialog." `
+    -RetryPrompt "If the workout preview screen is still not visible, return to the FitTracker home page if needed, then tap the main primary workout button again and stop on the workout preview screen." `
+    -RetryAssertTitle "assert current plan preview ready after retry" `
+    -RetryAssertPrompt "The FitTracker workout preview screen is visible. It shows the workout preview title, a plan name, and a user-friendly day badge such as 第 5 天. There is no crash dialog."
 }
 
 function Ensure-ExerciseLibraryRoute {
@@ -305,6 +337,27 @@ function Run-MediaCardSmoke {
     -RetryAssertPrompt "The exercise detail page is visible and there is no crash dialog."
   Invoke-VisualAct -Title "scroll to media card" -Prompt "On the exercise detail page, scroll until the media section is visible. The section may include a media title, cover or video areas, and media metadata rows."
   Invoke-VisualAssert -Title "assert media card" -Prompt "The exercise detail page shows the media section for the exercise, including a media status header plus cover or video metadata rows such as source note, license note, cover metadata, or video metadata."
+}
+
+function Run-CurrentPlanSmoke {
+  Ensure-CurrentPlanHomeRoute
+  Invoke-VisualActWithRetry `
+    -Title "home to current plan preview" `
+    -PrimaryPrompt "On the FitTracker home page, tap the main primary workout button for today's training and stop on the workout preview screen." `
+    -PrimaryAssertTitle "assert current plan preview after home tap" `
+    -PrimaryAssertPrompt "The FitTracker workout preview screen is visible. It shows the workout preview title, a plan name, and a user-friendly day badge such as 第 5 天. There is no crash dialog." `
+    -RetryPrompt "If the workout preview screen is still not visible, return to the FitTracker home page if needed, then tap the main primary workout button again and stop on the workout preview screen." `
+    -RetryAssertTitle "assert current plan preview after retry" `
+    -RetryAssertPrompt "The FitTracker workout preview screen is visible. It shows the workout preview title, a plan name, and a user-friendly day badge such as 第 5 天. There is no crash dialog."
+
+  Invoke-VisualActWithRetry `
+    -Title "current plan preview to active workout" `
+    -PrimaryPrompt "On the workout preview screen, scroll if needed until the 开始训练 button is visible, then tap only that button and stop when the active workout execution screen is visible." `
+    -PrimaryAssertTitle "assert active workout from current plan preview" `
+    -PrimaryAssertPrompt "The active workout execution screen is visible. It shows the title 训练执行, the current exercise area, and input fields or rows for set weight and reps. There is no crash dialog." `
+    -RetryPrompt "If the active workout screen is still not visible, stay on the workout preview screen, scroll until the 开始训练 button is visible, tap only that button again, and stop when the active workout execution screen is visible." `
+    -RetryAssertTitle "assert active workout from current plan preview after retry" `
+    -RetryAssertPrompt "The active workout execution screen is visible. It shows the title 训练执行, the current exercise area, and input fields or rows for set weight and reps. There is no crash dialog."
 }
 
 if (-not $env:MIDSCENE_REPLANNING_CYCLE_LIMIT) {
@@ -344,6 +397,8 @@ try {
     Run-BackupCardSmoke
   } elseif ($Target -eq 'media-card') {
     Run-MediaCardSmoke
+  } elseif ($Target -eq 'current-plan') {
+    Run-CurrentPlanSmoke
   } else {
     Run-BackupCardSmoke
     Launch-AppToForeground -Title "relaunch app between focused targets" -PauseSeconds 2

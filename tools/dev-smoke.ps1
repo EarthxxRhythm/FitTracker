@@ -1,6 +1,6 @@
 param(
-  [ValidateSet('backup-card', 'media-card', 'both')]
-  [string]$Target = 'both',
+  [ValidateSet('backup-card', 'media-card', 'current-plan', 'both')]
+  [string]$Target = 'current-plan',
   [string]$DeviceId = "",
   [string]$BundleName = "com.example.fittracker_opencode",
   [string]$AbilityName = "EntryAbility",
