@@ -10,6 +10,7 @@ Set-StrictMode -Version Latest
 
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 Set-Location $RepoRoot
+$DevEcoEnvScriptPath = Join-Path $PSScriptRoot 'deveco-env.ps1'
 
 function Resolve-RepoPath {
   param([string]$RelativePath)
@@ -44,43 +45,10 @@ function Invoke-CapturedCommand {
 }
 
 function Ensure-DevEcoToolchain {
-  $devEcoRoot = 'C:\Program Files\Huawei\DevEco Studio'
-  $jbrPath = Join-Path $devEcoRoot 'jbr'
-  $sdkPath = Join-Path $devEcoRoot 'sdk'
-  $hvigorPath = Join-Path $devEcoRoot 'tools\hvigor\bin'
-  $toolchainPath = Join-Path $sdkPath 'default\openharmony\toolchains'
-  $jbrBinPath = Join-Path $jbrPath 'bin'
-
-  if (-not (Test-Path $jbrPath)) {
-    throw 'DevEco Studio JBR not found at C:\Program Files\Huawei\DevEco Studio\jbr'
+  if (-not (Test-Path $DevEcoEnvScriptPath)) {
+    throw 'DevEco env helper not found: ' + $DevEcoEnvScriptPath
   }
-  if (-not (Test-Path $sdkPath)) {
-    throw 'DevEco Studio SDK not found at C:\Program Files\Huawei\DevEco Studio\sdk'
-  }
-
-  if ([string]::IsNullOrWhiteSpace($env:JAVA_HOME)) {
-    $env:JAVA_HOME = $jbrPath
-  }
-  if ([string]::IsNullOrWhiteSpace($env:DEVECO_SDK_HOME)) {
-    $env:DEVECO_SDK_HOME = $sdkPath
-  }
-
-  $segments = @()
-  $segments += $jbrBinPath
-  $segments += $hvigorPath
-  $segments += $toolchainPath
-
-  $currentSegments = @($env:PATH -split ';')
-  $prepend = @()
-  foreach ($segment in $segments) {
-    if ((Test-Path $segment) -and (-not ($currentSegments -contains $segment))) {
-      $prepend += $segment
-    }
-  }
-
-  if ($prepend.Count -gt 0) {
-    $env:PATH = ($prepend -join ';') + ';' + $env:PATH
-  }
+  & $DevEcoEnvScriptPath
 }
 
 function Read-TaskSource {

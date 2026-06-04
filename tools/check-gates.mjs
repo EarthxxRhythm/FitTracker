@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
 
 function runCommand(command, args, cwd = process.cwd()) {
   const result = spawnSync(command, args, {
@@ -23,6 +24,8 @@ function parseOutput(raw) {
 }
 
 function main() {
+  const repoRoot = process.cwd()
+  const devEcoEnvScript = resolve(repoRoot, 'tools/deveco-env.ps1')
   const steps = [
     {
       name: 'content build',
@@ -61,6 +64,20 @@ function main() {
     console.warn('[build-gates] 未检测到 hvigorw，已跳过汇编类检查。请在本机安装 DevEco Studio 后重试。')
     return
   }
+
+  const envPrepare = runCommand('powershell', [
+    '-ExecutionPolicy',
+    'Bypass',
+    '-File',
+    devEcoEnvScript
+  ], repoRoot)
+  if (envPrepare.status !== 0) {
+    throw new Error(
+      `[build-gates] DevEco env prepare failed (exit ${envPrepare.status})\n` +
+      `${parseOutput(envPrepare.output)}`
+    )
+  }
+  console.log('[build-gates] DevEco env prepare passed')
   console.log('[build-gates] hvigorw baseline check passed')
 }
 

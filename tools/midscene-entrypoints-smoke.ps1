@@ -226,7 +226,7 @@ function Ensure-AppReady {
 function Ensure-HomeRoute {
   $homeReady = $false
   try {
-    Invoke-VisualAssert -Title "assert home route already visible" -Prompt "The FitTracker home page is visible. It shows a primary workout button labeled 开始训练, plus separate buttons for training review and exercise library, and there is no crash dialog."
+    Invoke-VisualAssert -Title "assert home route already visible" -Prompt "The FitTracker home page is visible. It shows a primary workout button, separate buttons for training review and exercise library, and there is no crash dialog."
     $homeReady = $true
   } catch {
     $homeReady = $false
@@ -242,10 +242,10 @@ function Ensure-HomeRoute {
     -Title "prepare home route" `
     -PrimaryPrompt "From the current visible screen, reach the FitTracker home page. If the FitTracker app is already open, stay in it and continue. If the system home screen is visible, return to the currently installed FitTracker app. If login or register appears, complete it. If goal setup appears, choose muscle gain, beginner, 3 days per week, and bodyweight or dumbbell equipment, then save. If workout preview, review, or exercise detail is visible, navigate back to the home page. Stop when the FitTracker home page shows the main workout button plus the training review and exercise library buttons." `
     -PrimaryAssertTitle "assert home route ready" `
-    -PrimaryAssertPrompt "The FitTracker home page is visible. It shows a primary workout button labeled 开始训练, plus separate buttons for training review and exercise library, and there is no crash dialog." `
+    -PrimaryAssertPrompt "The FitTracker home page is visible. It shows a primary workout button, separate buttons for training review and exercise library, and there is no crash dialog." `
     -RetryPrompt "If the FitTracker home page is still not visible, bring the FitTracker app to the foreground if needed, then navigate back until the home page shows the main workout button plus the training review and exercise library buttons. If login or goal setup still appears, complete the minimum required flow and stop on the home page." `
     -RetryAssertTitle "assert home route ready after retry" `
-    -RetryAssertPrompt "The FitTracker home page is visible. It shows a primary workout button labeled 开始训练, plus separate buttons for training review and exercise library, and there is no crash dialog."
+    -RetryAssertPrompt "The FitTracker home page is visible. It shows a primary workout button, separate buttons for training review and exercise library, and there is no crash dialog."
 }
 
 function Ensure-WorkoutPreviewRoute {
@@ -273,27 +273,38 @@ function Ensure-WorkoutPreviewRoute {
     -RetryAssertPrompt "The workout preview screen for today's training is visible."
 }
 
+function Ensure-ExerciseLibraryRoute {
+  Ensure-HomeRoute
+  Invoke-VisualActWithRetry `
+    -Title "open exercise library" `
+    -PrimaryPrompt "On the FitTracker home page, tap the secondary action button that opens the exercise library. Stop when the exercise library page is visible." `
+    -PrimaryAssertTitle "assert exercise library page" `
+    -PrimaryAssertPrompt "The exercise library page is visible. It shows an exercise list, search input, and filter chips for muscle groups or equipment, and there is no crash dialog." `
+    -RetryPrompt "If the exercise library page is not visible yet, return to the FitTracker home page if needed, then tap the secondary action button that opens the exercise library and stop on that page." `
+    -RetryAssertTitle "assert exercise library page after retry" `
+    -RetryAssertPrompt "The exercise library page is visible. It shows an exercise list, search input, and filter chips for muscle groups or equipment, and there is no crash dialog."
+}
+
 function Run-BackupCardSmoke {
   Ensure-HomeRoute
   Invoke-VisualAct -Title "open review page" -Prompt "On the FitTracker home page, tap the secondary action button that opens the training review page. Stop when the training review page is visible."
   Invoke-VisualAssert -Title "assert review page" -Prompt "The training review page is visible. It shows review content such as history, trends, or records, and there is no crash dialog."
   Invoke-VisualAct -Title "scroll to backup card" -Prompt "On the training review page, scroll until the data backup section is fully visible with the backup text area and action buttons."
-  Invoke-VisualAssert -Title "assert backup card" -Prompt "The 数据备份 section is visible. It shows a text area for backup JSON and buttons labeled 生成备份包 and 导入备份包."
+  Invoke-VisualAssert -Title "assert backup card" -Prompt "The data backup section is visible. It includes a text area for backup JSON and visible action buttons for creating and importing a backup package, and there is no crash dialog."
 }
 
 function Run-MediaCardSmoke {
-  Ensure-WorkoutPreviewRoute
-  Invoke-VisualAct -Title "locate detail entry" -Prompt "On the workout preview screen, scroll until the first exercise detail button is fully visible. Stop there without tapping anything else."
+  Ensure-ExerciseLibraryRoute
   Invoke-VisualActWithRetry `
     -Title "open exercise detail" `
-    -PrimaryPrompt "On the workout preview screen, tap the first visible exercise detail button. If the button is not fully visible yet, scroll slightly until it is visible, then tap it. Stop when the exercise detail page is visible." `
+    -PrimaryPrompt "On the exercise library page, open the first visible exercise detail entry. Prefer tapping the large full-width button inside the first exercise card that opens exercise details. If that button is not fully visible, scroll slightly until the first card is complete, then open its detail page. Stop when the exercise detail page is visible." `
     -PrimaryAssertTitle "assert exercise detail page" `
     -PrimaryAssertPrompt "The exercise detail page is visible and there is no crash dialog." `
-    -RetryPrompt "If the exercise detail page is not visible yet, return to the workout preview list if needed, make sure the first exercise detail button is visible, tap it again, and stop when the exercise detail page is visible." `
+    -RetryPrompt "If the exercise detail page is not visible yet, return to the exercise library page if needed, make sure the first visible exercise card is fully on screen, tap its detail button again, and stop when the exercise detail page is visible." `
     -RetryAssertTitle "assert exercise detail page after retry" `
     -RetryAssertPrompt "The exercise detail page is visible and there is no crash dialog."
   Invoke-VisualAct -Title "scroll to media card" -Prompt "On the exercise detail page, scroll until the media section is visible. The section may include a media title, cover or video areas, and media metadata rows."
-  Invoke-VisualAssert -Title "assert media card" -Prompt "The exercise detail page shows the media card area, including exercise media or media metadata such as cover metadata, video metadata, or media reference information."
+  Invoke-VisualAssert -Title "assert media card" -Prompt "The exercise detail page shows the media section for the exercise, including a media status header plus cover or video metadata rows such as source note, license note, cover metadata, or video metadata."
 }
 
 if (-not $env:MIDSCENE_REPLANNING_CYCLE_LIMIT) {
