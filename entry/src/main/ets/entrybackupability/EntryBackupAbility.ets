@@ -12,6 +12,35 @@ import SystemBackupBridgeService, {
 const DOMAIN = 0x0000
 const TAG = 'FitTrackerBackup'
 
+export function getJsonBooleanText(value: boolean): string {
+  if (value) {
+    return 'true'
+  }
+  return 'false'
+}
+
+export function escapeBackupJsonString(value: string): string {
+  let escapedValue: string = value
+  escapedValue = escapedValue.replace(/\\/g, '\\\\')
+  escapedValue = escapedValue.replace(/"/g, '\\"')
+  escapedValue = escapedValue.replace(/\r/g, '\\r')
+  escapedValue = escapedValue.replace(/\n/g, '\\n')
+  return escapedValue
+}
+
+export function createBackupCallbackResult(operation: string, result: SystemBackupBridgeResult): string {
+  const errorCode: number = result.success ? 0 : 1
+  return '{"type":"' + operation + '","errorCode":' + errorCode.toString() +
+    ',"errorInfo":"' + escapeBackupJsonString(result.detailText) + '"}'
+}
+
+export function createBackupProcessInfo(stage: string, result: SystemBackupBridgeResult): string {
+  return '{"stage":"' + stage + '","statusId":"' + result.statusId +
+    '","success":' + getJsonBooleanText(result.success) +
+    ',"backupFilePath":"' + escapeBackupJsonString(result.backupFilePath) +
+    '","detailText":"' + escapeBackupJsonString(result.detailText) + '"}'
+}
+
 export default class EntryBackupAbility extends BackupExtensionAbility {
   private lastProcessInfo: string = ''
 
@@ -66,7 +95,7 @@ export default class EntryBackupAbility extends BackupExtensionAbility {
   }
 
   private recordProcessInfo(stage: string, result: SystemBackupBridgeResult): void {
-    this.lastProcessInfo = this.createProcessInfo(stage, result)
+    this.lastProcessInfo = createBackupProcessInfo(stage, result)
     if (result.success) {
       hilog.info(
         DOMAIN,
@@ -89,31 +118,18 @@ export default class EntryBackupAbility extends BackupExtensionAbility {
   }
 
   private createCallbackResult(operation: string, result: SystemBackupBridgeResult): string {
-    const errorCode: number = result.success ? 0 : 1
-    return '{"type":"' + operation + '","errorCode":' + errorCode.toString() +
-      ',"errorInfo":"' + this.escapeJsonString(result.detailText) + '"}'
+    return createBackupCallbackResult(operation, result)
   }
 
   private createProcessInfo(stage: string, result: SystemBackupBridgeResult): string {
-    return '{"stage":"' + stage + '","statusId":"' + result.statusId +
-      '","success":' + this.getJsonBooleanText(result.success) +
-      ',"backupFilePath":"' + this.escapeJsonString(result.backupFilePath) +
-      '","detailText":"' + this.escapeJsonString(result.detailText) + '"}'
+    return createBackupProcessInfo(stage, result)
   }
 
   private getJsonBooleanText(value: boolean): string {
-    if (value) {
-      return 'true'
-    }
-    return 'false'
+    return getJsonBooleanText(value)
   }
 
   private escapeJsonString(value: string): string {
-    let escapedValue: string = value
-    escapedValue = escapedValue.replace(/\\/g, '\\\\')
-    escapedValue = escapedValue.replace(/"/g, '\\"')
-    escapedValue = escapedValue.replace(/\r/g, '\\r')
-    escapedValue = escapedValue.replace(/\n/g, '\\n')
-    return escapedValue
+    return escapeBackupJsonString(value)
   }
 }
