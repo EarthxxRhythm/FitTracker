@@ -88,7 +88,11 @@ powershell -ExecutionPolicy Bypass -File tools/task-relay.ps1 -TaskFile docs/tas
 powershell -ExecutionPolicy Bypass -File tools/dev-smoke.ps1
 ```
 
-当前推荐 focused smoke 入口只覆盖：
+当前推荐 focused smoke 入口优先覆盖：
+
+- `current-plan`
+
+补充入口仍包括：
 
 - `backup-card`
 - `media-card`

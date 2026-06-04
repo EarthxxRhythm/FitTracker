@@ -10,20 +10,42 @@ FitTracker 是一个本地优先的 HarmonyOS ArkUI 健身训练记录应用：�
 
 ## 开发进度
 
-- 总体进度：`77%`
+- 总体进度：`97%`
 - 当前阶段：`Phase 3.5`
-- 当前重点：`手动备份/恢复 MVP 已落地，继续补验证与边界收口`
+- 当前重点：`current-plan 流程、轻量 smoke、文档与工具尾项收口`
 
 ```text
 Phase 1 基础训练闭环        [██████████] 100%
 Phase 2 内容与回归工具化    [██████████] 100%
 Phase 3 回顾与修正体验      [██████████] 100%
-Phase 3.5 收口与恢复能力    [███████░░░]  70%
+Phase 3.5 收口与恢复能力    [██████████] 100%
 Phase 4 系统化与扩展能力    [░░░░░░░░░░]   0%
 ```
 
 ## 开发日志
+### 2026-06-05：修通 PackageHap，再把 current-plan 训练链路收成一条短烟雾验证
 
+这一轮的关键不是继续铺新功能，而是把最后几处“明明业务已经能用，但验证和环境还不够稳”的点一口气收住。最直接的卡点是 DevEco 构建环境里反复出现的 `PackageHap -> spawn java ENOENT`。表面上看像是 Java 没配好，实际问题更像是 hvigor 在子进程里看到的 `PATH`、`Path` 和 Node 侧环境并不完全一致。最后的处理没有继续走“手工补 PATH”这条会越来越脆的路，而是把环境准备收敛到 `tools/deveco-env.ps1`，统一规范化 `Path/PATH`，再配合 repo 内的 `tools/java.cmd` 和 `tools/node-java-shim.cjs`，让 hvigor 在 `PackageHap` 阶段拉起 `java` / `javac` 时都能稳定命中 DevEco 自带 JBR。
+
+这件事的价值不只是一条命令终于通过了，而是把“构建环境是否可信”从碰运气，收成了可复用入口。现在只要先跑：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/deveco-env.ps1
+& 'C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat' assembleHap --mode module -p module=entry@default -p product=default --no-parallel
+& 'C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat' assembleHap --mode module -p module=entry@ohosTest -p product=default --no-parallel
+```
+
+两条构建都已经能重新走到 `PackageHap` 成功。对于一个依赖本地 DevEco 工具链的 ArkUI 项目来说，这一步其实和补一个功能差不多重要，因为后面所有回归、安装和视觉验证都建立在它之上。
+
+环境收稳之后，这一轮又顺手把 `current-plan` 这条最常走的训练入口固化成了新的 focused smoke 默认路径。之前的 `backup-card` 和 `media-card` 更像是 phase 3.5 两个新入口的补充守门；现在 `Home -> Preview -> Active` 这条链路已经值得单独被当作“每日最短真实验证”。脚本层面，`tools/dev-smoke.ps1` 和 `tools/midscene-entrypoints-smoke.ps1` 都新增了 `current-plan` 目标，断言刻意避开了容易漂移的内部 id，只盯住首页主训练入口、训练预览标题/计划名/训练日文案，以及训练执行页的动作区和组数输入区。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/dev-smoke.ps1 -Target current-plan -DeviceId 127.0.0.1:5555
+```
+
+这条 2 步链路已经在模拟器上通过，报告落在 `midscene_run/focused/current_plan-20260605-003730-p43936/`。它意味着我们不必每次都重跑整套长回归，也能快速确认“当前启用计划 -> 训练预览 -> 开始训练”这条主线没有被最近的改动带偏。
+
+和前几天相比，项目状态也因此发生了一个挺明确的变化：phase 3.5 不再主要是“补功能”，而是“把已经补到位的功能、验证、环境和文档收成同一个节奏”。训练入口、备份入口、媒体入口、构建环境和 focused smoke 现在终于开始说同一种话了，这比再多长出一页新页面更像真正的收口。
 ### 2026-06-04：手动备份包先落地，恢复链路先做真实可用
 
 今天这一笔更像 phase 3.5 的第一块地基，而不是新页面。FitTracker 先把“用户最怕丢的东西”圈定下来：训练目标、我的计划、当前计划指针，以及训练记录。围绕这四类数据，新加了 `UserDataBackupService`，支持直接导出带 `schemaVersion` 的 JSON 包，并在应用内重新导入。
