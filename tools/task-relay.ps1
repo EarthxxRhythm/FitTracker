@@ -1,5 +1,5 @@
 param(
-  [string]$TaskFile = "tasks.phase2.json",
+  [string]$TaskFile = "",
   [switch]$RunChecks,
   [switch]$WritePrompt,
   [string]$PromptPath = "midscene_run/task-relay-prompt.md"
@@ -15,6 +15,23 @@ $DevEcoEnvScriptPath = Join-Path $PSScriptRoot 'deveco-env.ps1'
 function Resolve-RepoPath {
   param([string]$RelativePath)
   return Join-Path $RepoRoot $RelativePath
+}
+
+function Get-DefaultTaskFile {
+  $candidates = @(
+    'docs/tasks.workout-loop.json',
+    'docs/tasks.content-plan.json',
+    'docs/tasks.regression-flow.json',
+    'tasks.phase2.json'
+  )
+
+  foreach ($candidate in $candidates) {
+    if (Test-Path (Resolve-RepoPath $candidate)) {
+      return $candidate
+    }
+  }
+
+  throw 'No task source found. Pass -TaskFile explicitly.'
 }
 
 function Invoke-CapturedCommand {
@@ -84,7 +101,7 @@ function Format-CommandBlock {
 function Build-RelayPrompt {
   param(
     [object]$Task,
-    [string]$TaskFilePath,
+    [string]$TaskFileLabel,
     [string]$RepoStatus,
     [string]$GitLog,
     [hashtable]$CheckResults
@@ -96,7 +113,7 @@ function Build-RelayPrompt {
   $promptLines += 'You are the Coding Agent for this repo.'
   $promptLines += 'Please complete exactly one task at a time.'
   $promptLines += ''
-  $promptLines += ('Task source: ' + $TaskFilePath)
+  $promptLines += ('Task source: ' + $TaskFileLabel)
   $promptLines += ('Next task id: ' + $Task.id)
   $promptLines += ('Category: ' + $Task.category)
   $promptLines += ('Description: ' + $Task.description)
@@ -113,14 +130,19 @@ function Build-RelayPrompt {
   }
   $promptLines += ''
   $promptLines += 'Execution order:'
-  $promptLines += '1. Read tasks.phase2.json, the project log, git log -5, and git status.'
+  $promptLines += ('1. Read ' + $TaskFileLabel + ', the project log, git log -5, and git status.')
   $promptLines += '2. Run the preflight checks above.'
   $promptLines += '3. Implement only this task.'
   $promptLines += '4. Re-run the checks, update the task flag and project log, then commit.'
   return Format-CommandBlock $promptLines
 }
 
-$taskFilePath = Resolve-RepoPath $TaskFile
+$selectedTaskFile = $TaskFile
+if ([string]::IsNullOrWhiteSpace($selectedTaskFile)) {
+  $selectedTaskFile = Get-DefaultTaskFile
+}
+
+$taskFilePath = Resolve-RepoPath $selectedTaskFile
 $promptFilePath = Resolve-RepoPath $PromptPath
 
 $tasks = Read-TaskSource -Path $taskFilePath
@@ -132,7 +154,7 @@ if ($null -eq $nextTask) {
     $noTaskPrompt = @(
       '# FitTracker task relay prompt',
       '',
-      'All tasks in ' + $taskFilePath + ' are complete.',
+      'All tasks in ' + $selectedTaskFile + ' are complete.',
       'No further coding relay is needed.'
     )
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $promptFilePath) | Out-Null
@@ -177,7 +199,7 @@ if ($RunChecks) {
   $checkSummary['preflight'] = 'not run'
 }
 
-$prompt = Build-RelayPrompt -Task $nextTask -TaskFilePath $taskFilePath -RepoStatus $repoStatus -GitLog $gitLog -CheckResults $checkSummary
+$prompt = Build-RelayPrompt -Task $nextTask -TaskFileLabel $selectedTaskFile -RepoStatus $repoStatus -GitLog $gitLog -CheckResults $checkSummary
 
 Write-Host ('[Task Relay] Next task #' + $nextTask.id + ' (' + $nextTask.category + ')')
 Write-Host ('[Task Relay] Description: ' + $nextTask.description)
