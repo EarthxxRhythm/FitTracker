@@ -12,7 +12,7 @@ FitTracker 是一个本地优先的 HarmonyOS ArkUI 健身训练记录应用：�
 
 - 总体进度：`97%`
 - 当前阶段：`Phase 3.5`
-- 当前重点：`current-plan 流程、轻量 smoke、文档与工具尾项收口`
+- 当前重点：`MVP 内部验收包完成，Phase 4 项保留后续`
 
 ```text
 Phase 1 基础训练闭环        [██████████] 100%
@@ -23,6 +23,16 @@ Phase 4 系统化与扩展能力    [░░░░░░░░░░]   0%
 ```
 
 ## 开发日志
+### 2026-06-05：MVP 内部验收包收官
+
+这一轮不再继续铺新能力，而是把 FitTracker 真正收成一个可交付、可复跑、可复查的 MVP 内部验收包。交付边界被故意收得很清楚：我们认领的是 unsigned HAP、最终验收记录、运行入口说明和延期项边界，不把“正式签名发布”假装成已经完成的工作。这样做的好处是，项目完成态终于和仓库里的真实工程状态对齐了。
+
+收官验收没有回到那种又长又重的整链路回归，而是沿用这一阶段已经证明更高效的轻量真实验证。最终命令集只保留了 `check-gates`、两条 `hvigorw assembleHap --no-parallel`、一条认证回归、以及两条 focused smoke：`current-plan` 和 `both`。其中 `both` 实际覆盖的是回顾页备份卡和动作详情媒体卡，`current-plan` 则覆盖首页当前计划到训练预览再到训练执行的主入口。这样一来，既能确认项目最关键的几条真实路径没有松掉，又不会把收官节奏重新拖回“每次都从头跑完整回归”的模式。
+
+这轮最重要的工程信号其实有两个。第一个是 `PackageHap -> spawn java ENOENT` 没有在最终验收里复发，说明前面收住的 DevEco 环境修复已经不只是“某一次能过”，而是能支撑这轮正式收官。第二个是 auth、current-plan、backup-card、media-card 四条真实入口都在 summary 文件里明确给出了 `passed` 结果，甚至连 Midscene 偶尔会在 stdout 尾部留下的旧断言噪音，这次也被明确降级为“以 summary 为准”的非决定性信息。对一个已经进入维护期准备态的项目来说，这比再多补一页功能更有价值。
+
+最后新增的 `docs/mvp-closeout.md`，相当于给项目留下了一张工程交接单。它把已交付能力、最终验收矩阵、重跑命令、产物路径和延期项放在一页里说清楚。后面不管是你自己回来看，还是交给另一位开发者继续往 Phase 4 推，都不需要再从开发日志里反复拼线索了。
+
 ### 2026-06-05：修通 PackageHap，再把 current-plan 训练链路收成一条短烟雾验证
 
 这一轮的关键不是继续铺新功能，而是把最后几处“明明业务已经能用，但验证和环境还不够稳”的点一口气收住。最直接的卡点是 DevEco 构建环境里反复出现的 `PackageHap -> spawn java ENOENT`。表面上看像是 Java 没配好，实际问题更像是 hvigor 在子进程里看到的 `PATH`、`Path` 和 Node 侧环境并不完全一致。最后的处理没有继续走“手工补 PATH”这条会越来越脆的路，而是把环境准备收敛到 `tools/deveco-env.ps1`，统一规范化 `Path/PATH`，再配合 repo 内的 `tools/java.cmd` 和 `tools/node-java-shim.cjs`，让 hvigor 在 `PackageHap` 阶段拉起 `java` / `javac` 时都能稳定命中 DevEco 自带 JBR。
