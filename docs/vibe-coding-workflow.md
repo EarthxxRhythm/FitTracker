@@ -2,246 +2,165 @@
 
 ## 1. 目标
 
-本工作流用于指导 AI Coding Agent 与人工协作者在 FitTracker 项目中的接力开发。目标不是“让 AI 自由发挥”，而是让 AI 在清晰边界内稳定交付可验证的小功能。
+这份工作流用于约束 AI Coding Agent 和人工协作者在 FitTracker 项目中的接力开发方式。重点不是“自由发挥”，而是让每一轮都围绕一个清晰任务源、一个可验证目标和一组可复用的验证动作推进。
 
-本项目采用：
+当前原则：
 
-- 单功能切片开发
+- 单任务推进
 - 测试优先
 - 小步提交
-- 强交接
+- 明确交接
 - 文档与状态同步
-
-这是一条 **受约束的 vibe coding 工作流**。AI 负责提速，但不能跳过验证、不能跳过记录、不能一次跨越多个功能点。
 
 ## 2. 权威信息源
 
-每次接力前，必须优先读取以下文件：
+每次接力前，优先读取：
 
 1. [AGENTS.md](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/AGENTS.md)
-2. [tasks.phase2.json](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/tasks.phase2.json)
+2. 当前任务源 JSON
 3. [项目开发日志.txt](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/项目开发日志.txt)
 4. 当前要修改的源码文件
 
-说明：
+当前任务源约定：
 
-- 根目录 `tasks.json` 是已完成 MVP 的历史记录，不再作为接力任务源。
-- `tasks.next.json` 是上一阶段任务清单的完成记录，不再作为新的接力任务源。
-- `tasks.phase2.json` 是当前开发任务的唯一任务清单。
-- `docs/tasks.legacy.json` 仅作历史归档，不再作为 Coding Agent 自动读取的任务源。
-- `项目开发日志.txt` 是会话交接记录。
+- 默认主线：[`docs/tasks.workout-loop.json`](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/docs/tasks.workout-loop.json)
+- 并行内容线：[`docs/tasks.content-plan.json`](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/docs/tasks.content-plan.json)
+- 并行回归线：[`docs/tasks.regression-flow.json`](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/docs/tasks.regression-flow.json)
+- `tasks.phase2.json`、`tasks.next.json`、`tasks.json` 仅作为历史阶段记录，不再作为默认接力入口
+- `docs/tasks.legacy.json` 仅作归档，不作为自动接力任务源
 
 ## 3. 核心原则
 
-### 3.1 一次只做一个功能点
+### 3.1 一次只做一个任务点
 
-- 每次只处理 `tasks.phase2.json` 中 `passes: false` 且 `id` 最小的那一项。
-- 不允许顺手完成多个功能。
-- 不允许为了“看起来更完整”而扩大需求范围。
+- 每次只处理所选任务源中 `passes: false` 且 `id` 最小的那一项
+- 不顺手扩展到多个未排期任务
+- 工具化收口可以独立成一轮，但不要伪装成功能已完成
 
-### 3.2 先验证环境，再改代码
+### 3.2 先确认环境，再改代码
 
-- 接手后先检查 git 状态、最近提交、开发日志。
-- 先确认本机工具链可用，再开始写代码。
-- 如果环境坏了，先修环境问题并记录，再进入功能开发。
+- 接手后先看 `git status`、`git log`、开发日志
+- 确认 DevEco / hvigor / SDK / Node 脚本链路可用
+- 如果环境有问题，先修环境并记录
 
-### 3.3 先写失败测试，再写实现
+### 3.3 测试和验证跟改动风险匹配
 
-- 新功能或 bugfix 必须先写失败测试。
-- 必须确认测试是因为目标功能未实现而失败。
-- 然后写最小实现让测试通过。
+- 新增逻辑优先补失败测试再实现
+- 工具脚本优先跑命令级自验证
+- UI 入口优先用短链路 smoke，避免每轮都跑整套长回归
 
-### 3.4 永远留下可交接状态
+### 3.4 离手时留下可接力状态
 
-- 离开时代码必须处于可读、可运行、可合并状态。
-- 必须更新开发日志。
-- 必须明确说明完成内容、验证结果和阻塞项。
+- 代码处于可读、可运行、可合并状态
+- 开发日志同步更新
+- 明确说明完成内容、验证结果和剩余风险
 
-## 4. 标准开发循环
+## 4. 标准循环
 
-每个功能点严格遵循下面的闭环：
+### Step 1. 选定任务源
 
-### Step 1. 接手
-
-1. 读取 `tasks.phase2.json`
-2. 找到下一个 `passes: false` 的功能点
-3. 读取 `项目开发日志.txt`
+1. 选一个任务源文件
+2. 找到下一项 `passes: false`
+3. 读取开发日志
 4. 查看 `git log --oneline -5`
 5. 查看 `git status --short --branch`
 
-输出要求：
+默认可直接用：
 
-- 明确当前要做的功能编号
-- 明确当前仓库是否干净
-- 明确是否存在未解决阻塞
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/task-relay.ps1 -WritePrompt
+```
 
-### Step 2. 环境自检
+并行线请显式指定：
 
-1. 运行项目初始化脚本或等效命令
-2. 检查 HarmonyOS 工具链、`ohpm`、`hvigor`、SDK 路径
-3. 运行一条基础冒烟测试
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/task-relay.ps1 -TaskFile docs/tasks.content-plan.json -WritePrompt
+```
 
-如果失败：
+### Step 2. 跑前置检查
 
-- 先修环境问题
-- 不要带病进入功能开发
-- 将环境问题记入开发日志
+- `node tools/check-gates.mjs`
+- 需要时再加 `powershell -ExecutionPolicy Bypass -File tools/task-relay.ps1 -RunChecks -WritePrompt`
 
-### Step 3. 测试先行
+如果只是做轻量入口验证，优先：
 
-1. 为当前功能写测试
-2. 先让测试失败
-3. 确认失败原因正确
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/dev-smoke.ps1
+```
 
-测试要求：
+当前推荐 focused smoke 入口只覆盖：
 
-- 优先覆盖真实用户行为
-- 页面/流程能力优先写端到端或近端到端测试
-- 纯算法或纯工具函数可补充单元测试
+- `backup-card`
+- `media-card`
 
-### Step 4. 最小实现
+### Step 3. 实现最小改动
 
-1. 只实现当前功能点要求的行为
-2. 避免顺手重构无关模块
-3. 复用现有模式、组件和服务
-4. 遵守 ArkTS 严格模式和项目约束
+- 只实现当前任务要求
+- 优先复用现有服务、组件和路由
+- 遵守 ArkTS 严格模式与项目约束
 
-### Step 5. 回归验证
+### Step 4. 回归验证
 
-至少执行以下验证：
+至少做与改动匹配的验证：
 
 - 新增测试通过
-- 相关旧测试不被破坏
-- 关键用户路径可冒烟
-- 路由、持久化、页面入口链路闭合
+- 相关旧测试未破坏
+- 必要时补短链路 smoke
+- 只有涉及路由、持久化或训练主链路收口时，再跑 `tools/premerge-regression.ps1`
 
-如果工具链不完整导致无法完成正式测试：
-
-- 必须说明具体命令
-- 必须说明失败原因属于环境还是代码
-- 必须补做本地可执行的结构化检查或替代冒烟验证
-
-### Step 6. 记录与提交
+### Step 5. 记录与交接
 
 1. 更新 `项目开发日志.txt`
-2. 仅更新当前功能点状态
-3. 提交 git commit
+2. 只更新当前任务源里对应任务的 `passes`
+3. 提交 commit
 
-提交格式建议：
-
-```text
-feat: implement startup auth routing (feature #1)
-```
-
-或
-
-```text
-fix: complete weekly stats calculation (feature #35)
-```
-
-## 5. 本项目的测试策略
-
-FitTracker 当前是 HarmonyOS ArkUI 本地应用，适合采用“两层验证”：
+## 5. FitTracker 的验证分层
 
 ### 5.1 逻辑层
 
-适用范围：
+适用于：
 
-- 服务层
+- Service
 - 纯函数
-- 公式计算
-- 数据筛选与聚合
+- 统计计算
+- 数据映射与聚合
 
-建议：
-
-- 使用 Hypium 单测
-- 覆盖 `SessionManager`、`TrainingPlanService`、`WorkoutSessionService` 等逻辑
+建议使用 Hypium / ohosTest 覆盖核心逻辑。
 
 ### 5.2 流程层
 
-适用范围：
+适用于：
 
-- 冷启动路由
-- 登录/注册流程
-- 计划启用
-- 开始训练到保存训练
-- 统计展示链路
+- 登录/注册/冷启动
+- 训练计划启用
+- 训练记录保存
+- 回顾页/动作详情入口
 
-建议：
+日常优先短链路验证；只有在合并前或高风险改动后再补长链路回归。
 
-- 优先模拟真实用户路径
-- 如果完整设备级 E2E 受限，可使用“近端到端”方式：
-  - 测试入口函数
-  - 测试页面路由决策
-  - 测试关键配置和状态写入
-
-## 6. 本项目的特殊约束
-
-### 6.1 HarmonyOS / ArkTS 约束
+## 6. 特殊约束
 
 - 禁止 `any` / `unknown`
-- 禁止动态对象索引访问
-- 禁止随意使用未确认的 API
-- 必须优先复用现有单例服务模式
+- 禁止随意动态对象索引访问
+- UI 使用 `DesignTokens.ets`
+- 不要回退他人的未完成改动
+- 不要把文档整理和功能完成混写成同一个结论
 
-### 6.2 UI 约束
+## 7. 推荐交接格式
 
-- 优先使用 `DesignTokens.ets`
-- 避免新增硬编码颜色、字号、间距
-- 页面新增后要同步检查 `main_pages.json`
+交接说明建议包含：
 
-### 6.3 接力约束
+- 完成了哪个任务源里的哪一项
+- 改了哪些核心文件
+- 跑了哪些验证
+- 还有哪些风险或待补动作
 
-- 不要修改未轮到的功能状态
-- 不要重写整个任务清单
-- 不要把“文档修正”混入“功能完成”
+## 8. 节奏建议
 
-## 7. 建议的交接格式
+一轮会话尽量只完成下面三类之一：
 
-每次完成后，交接说明建议包含：
+- 一个小功能点
+- 一个工具/环境修复点
+- 一个关键回归收口点
 
-### 7.1 完成内容
-
-- 本次完成的功能编号
-- 核心代码改动
-- 新增或更新的测试
-
-### 7.2 验证结果
-
-- 跑了哪些命令
-- 哪些通过
-- 哪些因环境阻塞未通过
-
-### 7.3 风险与阻塞
-
-- 当前已知风险
-- 环境问题
-- 与旧文档或旧状态文件的冲突
-
-## 8. 推荐节奏
-
-对于本项目，建议每次会话只完成：
-
-- 1 个小功能点，或
-- 1 个环境修复点，或
-- 1 个关键回归修复点
-
-不建议一次会话同时处理：
-
-- 登录
-- 路由
-- 计划
-- 训练记录
-- 统计
-
-这些链路虽然相关，但同时改动会让 AI 接力失去可验证边界。
-
-## 9. 最终原则
-
-在 FitTracker 项目中，`vibe coding` 不是“想到哪写到哪”，而是：
-
-```text
-读任务 -> 自检环境 -> 先写失败测试 -> 最小实现 -> 回归验证 -> 更新日志 -> 提交交接
-```
-
-只要这条闭环不破，AI 接力开发就能持续推进；一旦跳过测试、跳过记录或一次做太多事，后续成本会迅速上升。
+这样可以让并行开发仍然保持清晰边界。
