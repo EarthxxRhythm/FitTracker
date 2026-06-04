@@ -4,6 +4,7 @@
  */
 import { router } from '@kit.ArkUI'
 import { AppRoutes } from '../../../app/AppRoutes'
+import TrainingPlanService, { UserPlan } from '../../../common/services/TrainingPlanService'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
 import { TrainingPlan, UserGoal } from '../../../shared/models/TrainingModels'
 import GoalRepository from '../../../shared/services/GoalRepository'
@@ -29,14 +30,31 @@ export struct WorkoutPreviewPage {
   @State exercises: WorkoutPreviewExercise[] = []
   @State hasFallback: boolean = false
   @State fallbackNote: string = ''
+  @State usesCurrentPlan: boolean = false
 
   async aboutToAppear(): Promise<void> {
     this.loading = true
     try {
+      const currentPlan: UserPlan | null = await TrainingPlanService.getCurrentPlan(getContext(this))
+      if (currentPlan !== null) {
+        const preview: WorkoutPreviewSummary = WorkoutPreviewService.createPreviewForCurrentPlan(
+          currentPlan,
+          this.getDayIdParam(),
+          TrainingPlanService.getTodayLabel(),
+          TrainingPlanService.getTodayTraining(currentPlan)
+        )
+        this.applyPreview(preview)
+        this.hasGoal = true
+        this.usesCurrentPlan = true
+        this.loading = false
+        return
+      }
+
       const goal: UserGoal | undefined = await GoalRepository.loadGoal(getContext(this))
       if (goal === undefined) {
         this.hasGoal = false
         this.hasWorkout = false
+        this.usesCurrentPlan = false
         this.loading = false
         return
       }
@@ -45,9 +63,11 @@ export struct WorkoutPreviewPage {
       const preview: WorkoutPreviewSummary = WorkoutPreviewService.createPreviewForGoal(goal, plan, this.getTodaySeed())
       this.applyPreview(preview)
       this.hasGoal = true
+      this.usesCurrentPlan = false
     } catch (e) {
       this.hasGoal = false
       this.hasWorkout = false
+      this.usesCurrentPlan = false
     }
     this.loading = false
   }
@@ -73,6 +93,18 @@ export struct WorkoutPreviewPage {
       return 7
     }
     return day
+  }
+
+  getDayIdParam(): string {
+    try {
+      const params = router.getParams() as Record<string, string>
+      if (params.dayId !== undefined) {
+        return params.dayId
+      }
+    } catch (e) {
+      return ''
+    }
+    return ''
   }
 
   openGoalSetup(): void {
@@ -103,7 +135,13 @@ export struct WorkoutPreviewPage {
     }
 
     try {
-      router.pushUrl({ url: targetRoute })
+      router.pushUrl({
+        url: targetRoute,
+        params: {
+          dayId: this.dayId,
+          flowSource: this.usesCurrentPlan ? 'current_plan' : 'goal_plan'
+        }
+      })
     } catch (e) {
       // stay on preview
     }
@@ -125,6 +163,7 @@ export struct WorkoutPreviewPage {
         plannedExerciseId: exercise.plannedExerciseId,
         exerciseId: exercise.exerciseId,
         name: exercise.name,
+        hasExerciseDetail: exercise.hasExerciseDetail,
         targetSets: exercise.targetSets,
         targetReps: exercise.targetReps,
         intensityNote: exercise.intensityNote,
@@ -143,6 +182,40 @@ export struct WorkoutPreviewPage {
       values.push(source[index])
     }
     return values
+  }
+
+  getDayBadgeText(): string {
+    if (this.dayId.indexOf('current_plan_day_') === 0) {
+      return '第 ' + this.dayId.substring('current_plan_day_'.length) + ' 天'
+    }
+    if (this.dayId.indexOf('day_') === 0) {
+      return '第 ' + this.dayId.substring('day_'.length) + ' 天'
+    }
+    if (this.dayId.length > 0) {
+      return this.dayId
+    }
+    return this.title
+  }
+
+  getFallbackBannerText(): string {
+    if (this.fallbackNote === '\u9884\u7f6e\u8ba1\u5212\u52a8\u4f5c\u6682\u672a\u6620\u5c04\u5230\u52a8\u4f5c\u5e93\uff0c\u5c06\u6309\u540d\u79f0\u8bb0\u5f55') {
+      return '\u90e8\u5206\u52a8\u4f5c\u6682\u672a\u6536\u5f55\u8be6\u60c5\uff0c\u672c\u6b21\u53ef\u5148\u6309\u8ba1\u5212\u5b8c\u6210\u8bb0\u5f55\u3002'
+    }
+    return this.fallbackNote
+  }
+
+  getExerciseSelectionText(exercise: WorkoutPreviewExercise): string {
+    if (exercise.selectionNote === '\u9884\u7f6e\u8ba1\u5212\u52a8\u4f5c\u6682\u672a\u6620\u5c04\u5230\u52a8\u4f5c\u5e93\uff0c\u5c06\u6309\u540d\u79f0\u8bb0\u5f55') {
+      return '\u52a8\u4f5c\u8be6\u60c5\u6574\u7406\u4e2d\uff0c\u672c\u6b21\u53ef\u5148\u6309\u8ba1\u5212\u5b8c\u6210\u8bb0\u5f55\u3002'
+    }
+    if (exercise.selectionNote === '\u9884\u7f6e\u8ba1\u5212\u52a8\u4f5c\u5df2\u6620\u5c04\u5230\u52a8\u4f5c\u5e93\uff0c\u53ef\u7ee7\u7eed\u67e5\u770b\u52a8\u4f5c\u8be6\u60c5') {
+      return ''
+    }
+    return exercise.selectionNote
+  }
+
+  shouldShowExerciseDetailButton(exercise: WorkoutPreviewExercise): boolean {
+    return exercise.hasExerciseDetail
   }
 
   build() {
@@ -257,7 +330,7 @@ export struct WorkoutPreviewPage {
                 .backgroundColor(ColorTokens.PRIMARY)
                 .borderRadius(RadiusTokens.FULL)
 
-              Text(this.dayId)
+              Text(this.getDayBadgeText())
                 .fontSize(FontTokens.CAPTION_SIZE)
                 .fontColor(ColorTokens.TEXT_ON_PRIMARY)
                 .padding({
@@ -273,7 +346,7 @@ export struct WorkoutPreviewPage {
             .width('100%')
 
             if (this.hasFallback) {
-              Text(this.fallbackNote)
+              Text(this.getFallbackBannerText())
                 .fontSize(FontTokens.CAPTION_SIZE)
                 .fontColor(ColorTokens.TEXT_SECONDARY)
                 .width('100%')
@@ -305,8 +378,8 @@ export struct WorkoutPreviewPage {
                       .fontColor(ColorTokens.TEXT_SECONDARY)
                       .margin({ top: SpacingTokens.XS })
 
-                    if (exercise.selectionNote.length > 0) {
-                      Text(exercise.selectionNote)
+                    if (this.getExerciseSelectionText(exercise).length > 0) {
+                      Text(this.getExerciseSelectionText(exercise))
                         .fontSize(FontTokens.CAPTION_SIZE)
                         .fontColor(ColorTokens.TEXT_SECONDARY)
                         .margin({ top: SpacingTokens.XS })
@@ -351,8 +424,11 @@ export struct WorkoutPreviewPage {
                   .fontColor(ColorTokens.TEXT_PRIMARY)
                   .backgroundColor(ColorTokens.SURFACE_ELEVATED)
                   .borderRadius(RadiusTokens.FULL)
+                  .enabled(this.shouldShowExerciseDetailButton(exercise))
                   .onClick(() => {
-                    this.openAlternative(exercise.exerciseId)
+                    if (this.shouldShowExerciseDetailButton(exercise)) {
+                      this.openAlternative(exercise.exerciseId)
+                    }
                   })
               }
               .width('100%')

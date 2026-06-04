@@ -190,7 +190,7 @@ class HomePlanService {
       todayExerciseNames: names,
       recommendedExercises: recommendedExercises,
       startButtonText: '训练流程接入中',
-      startRoute: ''
+      startRoute: AppRoutes.WORKOUT_PREVIEW
     }
     return summary
   }
