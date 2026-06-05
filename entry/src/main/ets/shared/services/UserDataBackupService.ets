@@ -12,6 +12,12 @@ import ContentRepository from './ContentRepository'
 import { UserGoal, WorkoutSession, WorkoutSet, createUserGoal, createWorkoutSession, createWorkoutSet } from '../models/TrainingModels'
 
 const BACKUP_SCHEMA_VERSION = 1
+const BACKUP_SCOPE_SUMMARY_TEXT = '仅备份目标、计划和训练记录；不包含训练草稿、内容库和媒体缓存。'
+const BACKUP_USAGE_HINT_TEXT = '适用于换机、清理前导出或手工恢复。'
+const BACKUP_RESTORE_RULE_TEXT = '目标与计划以导入包为准，训练记录按 sessionId 去重合并。'
+const BACKUP_EXPORT_SUCCESS_STATUS_TEXT = '备份包已生成，可用于换机、清理前导出或手工恢复。'
+const BACKUP_EXPORT_FAILURE_STATUS_TEXT = '备份包生成失败，请稍后重试。'
+const BACKUP_IMPORT_EMPTY_STATUS_TEXT = '请先粘贴备份 JSON。'
 
 export interface UserDataBackupContentMeta {
   contentVersion: number
@@ -50,6 +56,30 @@ interface UserDataBackupPlanSelection {
 }
 
 class UserDataBackupService {
+  getScopeSummaryText(): string {
+    return BACKUP_SCOPE_SUMMARY_TEXT
+  }
+
+  getUsageHintText(): string {
+    return BACKUP_USAGE_HINT_TEXT
+  }
+
+  getRestoreRuleText(): string {
+    return BACKUP_RESTORE_RULE_TEXT
+  }
+
+  getExportSuccessStatusText(): string {
+    return BACKUP_EXPORT_SUCCESS_STATUS_TEXT
+  }
+
+  getExportFailureStatusText(): string {
+    return BACKUP_EXPORT_FAILURE_STATUS_TEXT
+  }
+
+  getEmptyImportStatusText(): string {
+    return BACKUP_IMPORT_EMPTY_STATUS_TEXT
+  }
+
   async exportPackage(context: Context): Promise<string> {
     const goal: UserGoal | undefined = await GoalRepository.loadGoal(context)
     const plans: UserPlan[] = await TrainingPlanService.getMyPlans(context)
@@ -253,8 +283,8 @@ class UserDataBackupService {
     mergedSessionCount: number,
     normalizedPlanSelection: UserDataBackupPlanSelection
   ): string {
-    let statusText: string = '备份已导入：' + importedPlanCount.toString() + ' 个计划，' +
-      mergedSessionCount.toString() + ' 条训练记录。'
+    let statusText: string = '备份已导入：目标与计划已按导入包恢复，训练记录已按 sessionId 去重合并。共恢复 ' +
+      importedPlanCount.toString() + ' 个计划，合并后保留 ' + mergedSessionCount.toString() + ' 条训练记录。'
     if (normalizedPlanSelection.usedFallback) {
       if (normalizedPlanSelection.currentPlanId.length > 0) {
         statusText += ' 当前计划指针无效，已回退到首个可用计划。'

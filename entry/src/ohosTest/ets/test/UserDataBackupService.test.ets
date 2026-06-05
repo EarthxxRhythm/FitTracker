@@ -49,6 +49,12 @@ function createSession(sessionId: string, weight: number): WorkoutSession {
   )
 }
 
+async function resetPersistedData(): Promise<void> {
+  await GoalRepository.clearSavedGoal(getTestContext())
+  await TrainingPlanService.replaceMyPlans(getTestContext(), [], '')
+  await WorkoutSessionPersistenceBridgeService.replacePersistedSessions(getTestContext(), [])
+}
+
 export default function userDataBackupServiceTest(): void {
   describe('UserDataBackupService', () => {
     it('parses a valid backup package and keeps key counts', 0, () => {
@@ -135,6 +141,18 @@ export default function userDataBackupServiceTest(): void {
       expect(parsed).assertNull()
     })
 
+    it('returns stable failure result for empty or invalid backup json', 0, async () => {
+      const emptyResult = await UserDataBackupService.importPackage(getTestContext(), '   ')
+      const invalidResult = await UserDataBackupService.importPackage(getTestContext(), '{"schemaVersion":1')
+
+      expect(emptyResult.success).assertFalse()
+      expect(emptyResult.statusId).assertEqual('backup_invalid_json')
+      expect(emptyResult.statusText).assertEqual('备份包格式无效，无法导入。')
+      expect(invalidResult.success).assertFalse()
+      expect(invalidResult.statusId).assertEqual('backup_invalid_json')
+      expect(invalidResult.statusText).assertEqual('备份包格式无效，无法导入。')
+    })
+
     it('normalizes invalid current plan id to the first available imported plan', 0, () => {
       const normalized = UserDataBackupService.normalizePlanSelection(
         [createPlan('plan_first', 1000), createPlan('plan_second', 2000)],
@@ -147,9 +165,7 @@ export default function userDataBackupServiceTest(): void {
     })
 
     it('imports backup package and falls back current plan id when it is missing', 0, async () => {
-      await GoalRepository.clearSavedGoal(getTestContext())
-      await TrainingPlanService.replaceMyPlans(getTestContext(), [], '')
-      await WorkoutSessionPersistenceBridgeService.replacePersistedSessions(getTestContext(), [])
+      await resetPersistedData()
 
       const goal: UserGoal = GoalSetupService.createGoalFromSelection(
         'goal_backup_import',
@@ -182,9 +198,48 @@ export default function userDataBackupServiceTest(): void {
       expect(sessions.length).assertEqual(1)
       expect(sessions[0].sessionId).assertEqual('session_import_1')
 
-      await GoalRepository.clearSavedGoal(getTestContext())
-      await TrainingPlanService.replaceMyPlans(getTestContext(), [], '')
-      await WorkoutSessionPersistenceBridgeService.replacePersistedSessions(getTestContext(), [])
+      await resetPersistedData()
+    })
+
+    it('imports backup package with goal override semantics and session dedupe merge', 0, async () => {
+      await resetPersistedData()
+
+      const localGoal: UserGoal = GoalSetupService.createGoalFromSelection(
+        'goal_local_existing',
+        'fat_loss',
+        'beginner',
+        2,
+        30,
+        ['eq_bodyweight'],
+        [],
+        4000
+      )
+      await GoalRepository.saveGoal(getTestContext(), localGoal)
+      await TrainingPlanService.replaceMyPlans(getTestContext(), [createPlan('plan_local_existing', 1000)], 'plan_local_existing')
+      await WorkoutSessionPersistenceBridgeService.replacePersistedSessions(getTestContext(), [createSession('session_same', 70)])
+
+      const backupPackage: UserDataBackupPackage = UserDataBackupService.createPackage(
+        null,
+        [createPlan('plan_import_override', 3000)],
+        'plan_import_override',
+        [createSession('session_same', 95)],
+        7000
+      )
+
+      const importResult = await UserDataBackupService.importPackage(getTestContext(), JSON.stringify(backupPackage))
+      const savedGoal: UserGoal | undefined = await GoalRepository.loadGoal(getTestContext())
+      const currentPlanId: string = await TrainingPlanService.getCurrentPlanId(getTestContext())
+      const sessions: WorkoutSession[] = await WorkoutSessionPersistenceBridgeService.loadPersistedSessions(getTestContext())
+
+      expect(importResult.success).assertTrue()
+      expect(importResult.usedPlanFallback).assertFalse()
+      expect(savedGoal).assertUndefined()
+      expect(currentPlanId).assertEqual('plan_import_override')
+      expect(sessions.length).assertEqual(1)
+      expect(sessions[0].sessionId).assertEqual('session_same')
+      expect(sessions[0].totalVolume).assertEqual(760)
+
+      await resetPersistedData()
     })
   })
 }

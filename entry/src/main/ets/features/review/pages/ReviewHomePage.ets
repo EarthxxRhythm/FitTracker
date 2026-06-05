@@ -364,10 +364,10 @@ export struct ReviewHomePage {
     this.backupStatusTone = 'info'
     try {
       this.backupPackageText = await UserDataBackupService.exportPackage(getContext(this))
-      this.backupStatusText = '备份包已生成，可直接复制 JSON。'
+      this.backupStatusText = UserDataBackupService.getExportSuccessStatusText()
       this.backupStatusTone = 'success'
     } catch (e) {
-      this.backupStatusText = '备份包生成失败，请稍后重试。'
+      this.backupStatusText = UserDataBackupService.getExportFailureStatusText()
       this.backupStatusTone = 'error'
     }
     this.backupBusy = false
@@ -378,7 +378,7 @@ export struct ReviewHomePage {
       return
     }
     if (this.backupPackageText.trim().length === 0) {
-      this.backupStatusText = '请先粘贴备份 JSON。'
+      this.backupStatusText = UserDataBackupService.getEmptyImportStatusText()
       this.backupStatusTone = 'warning'
       return
     }
@@ -1263,7 +1263,17 @@ export struct ReviewHomePage {
         .fontWeight(FontTokens.TITLE_WEIGHT)
         .fontColor(ColorTokens.TEXT_PRIMARY)
 
-      Text('目标与计划以导入包为准，训练记录按 sessionId 去重合并。')
+      Text(UserDataBackupService.getUsageHintText())
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .width('100%')
+
+      Text(UserDataBackupService.getScopeSummaryText())
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .width('100%')
+
+      Text(UserDataBackupService.getRestoreRuleText())
         .fontSize(FontTokens.CAPTION_SIZE)
         .fontColor(ColorTokens.TEXT_SECONDARY)
         .width('100%')
@@ -1308,7 +1318,7 @@ export struct ReviewHomePage {
       }
       .width('100%')
 
-      Button('清空文本')
+      Button('清空输入区')
         .width('100%')
         .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
         .fontSize(FontTokens.BODY_SIZE)
