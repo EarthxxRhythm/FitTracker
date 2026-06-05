@@ -41,6 +41,10 @@ export function createBackupProcessInfo(stage: string, result: SystemBackupBridg
     '","detailText":"' + escapeBackupJsonString(result.detailText) + '"}'
 }
 
+export function createIdleBackupProcessInfo(): string {
+  return '{"stage":"idle","statusId":"idle","success":false,"backupFilePath":"","detailText":"no backup activity yet"}'
+}
+
 export default class EntryBackupAbility extends BackupExtensionAbility {
   private lastProcessInfo: string = ''
 
@@ -84,7 +88,7 @@ export default class EntryBackupAbility extends BackupExtensionAbility {
 
   onProcess(): string {
     if (this.lastProcessInfo.length === 0) {
-      return '{"stage":"idle","status":"unknown","detailText":"no backup activity yet"}'
+      return createIdleBackupProcessInfo()
     }
     return this.lastProcessInfo
   }

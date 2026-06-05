@@ -6,7 +6,8 @@ import GoalRepository from '../../../main/ets/shared/services/GoalRepository'
 import GoalSetupService from '../../../main/ets/shared/services/GoalSetupService'
 import {
   createBackupCallbackResult,
-  createBackupProcessInfo
+  createBackupProcessInfo,
+  createIdleBackupProcessInfo
 } from '../../../main/ets/entrybackupability/EntryBackupAbility'
 import SystemBackupBridgeService, {
   SystemBackupBridgeResult
@@ -151,16 +152,33 @@ export default function systemBackupBridgeServiceTest(): void {
       expect(importResult.backupFilePath).assertEqual(SystemBackupBridgeService.getBackupFilePath(backupDir))
     })
 
+    it('reports backup read failure with stable status text', 0, async () => {
+      const backupDir: string = createBackupDirPath('read-failed')
+      await fileIo.mkdir(backupDir, true)
+      await fileIo.mkdir(SystemBackupBridgeService.getBackupFilePath(backupDir), true)
+
+      const importResult = await SystemBackupBridgeService.importBackupPackageFromDirectory(getTestContext(), backupDir)
+
+      expect(importResult.success).assertFalse()
+      expect(importResult.statusId).assertEqual('backup_read_failed')
+      expect(importResult.detailText).assertEqual('系统备份包读取失败。')
+      expect(importResult.importedResult).assertNull()
+    })
+
     it('formats callback and process payloads for EntryBackupAbility', 0, () => {
       const result: SystemBackupBridgeResult = createBridgeResult(false, 'line 1\n"quoted" path')
       const callbackPayload: string = createBackupCallbackResult('restore', result)
       const processPayload: string = createBackupProcessInfo('restore_ex', result)
+      const idlePayload: string = createIdleBackupProcessInfo()
 
       expect(callbackPayload).assertEqual(
         '{"type":"restore","errorCode":1,"errorInfo":"line 1\\n\\"quoted\\" path"}'
       )
       expect(processPayload).assertEqual(
         '{"stage":"restore_ex","statusId":"backup_failed","success":false,"backupFilePath":"C:\\\\backup\\\\fittracker-user-data-backup.json","detailText":"line 1\\n\\"quoted\\" path"}'
+      )
+      expect(idlePayload).assertEqual(
+        '{"stage":"idle","statusId":"idle","success":false,"backupFilePath":"","detailText":"no backup activity yet"}'
       )
     })
   })
