@@ -1,11 +1,39 @@
 import { abilityDelegatorRegistry } from '@kit.TestKit'
-import { describe, expect, it } from '@ohos/hypium'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from '@ohos/hypium'
 import TrainingPlanService, { UserPlan } from '../../../main/ets/common/services/TrainingPlanService'
+import WorkoutSessionService, { SessionPreferencesStore } from '../../../main/ets/common/services/WorkoutSessionService'
 import GoalRepository from '../../../main/ets/shared/services/GoalRepository'
 import UserDataBackupService, { UserDataBackupPackage } from '../../../main/ets/shared/services/UserDataBackupService'
 import GoalSetupService from '../../../main/ets/shared/services/GoalSetupService'
+import WorkoutRepository from '../../../main/ets/shared/services/WorkoutRepository'
 import WorkoutSessionPersistenceBridgeService from '../../../main/ets/features/workout/services/WorkoutSessionPersistenceBridgeService'
 import { UserGoal, WorkoutSession, createWorkoutSession, createWorkoutSet } from '../../../main/ets/shared/models/TrainingModels'
+
+const KEY_SESSIONS = 'sessions'
+
+class FakePreferencesStore extends SessionPreferencesStore {
+  private sessionsJson: string = '[]'
+
+  async get(key: string, defaultValue: string): Promise<string> {
+    if (key === KEY_SESSIONS) {
+      return this.sessionsJson
+    }
+    return defaultValue
+  }
+
+  async put(key: string, value: string): Promise<void> {
+    if (key === KEY_SESSIONS) {
+      this.sessionsJson = value
+    }
+  }
+
+  async flush(): Promise<void> {
+  }
+
+  clear(): void {
+    this.sessionsJson = '[]'
+  }
+}
 
 function getTestContext(): Context {
   return abilityDelegatorRegistry.getAbilityDelegator().getAppContext()
@@ -50,13 +78,28 @@ function createSession(sessionId: string, weight: number): WorkoutSession {
 }
 
 async function resetPersistedData(): Promise<void> {
+  WorkoutRepository.clear()
   await GoalRepository.clearSavedGoal(getTestContext())
   await TrainingPlanService.replaceMyPlans(getTestContext(), [], '')
   await WorkoutSessionPersistenceBridgeService.replacePersistedSessions(getTestContext(), [])
 }
 
 export default function userDataBackupServiceTest(): void {
+  const fakeStore = new FakePreferencesStore()
   describe('UserDataBackupService', () => {
+    beforeAll(() => {
+      WorkoutSessionService.setStoreForTesting(fakeStore)
+    })
+
+    beforeEach(() => {
+      fakeStore.clear()
+      WorkoutRepository.clear()
+    })
+
+    afterAll(() => {
+      WorkoutSessionService.setStoreForTesting(null)
+    })
+
     it('parses a valid backup package and keeps key counts', 0, () => {
       const goal: UserGoal = GoalSetupService.createGoalFromSelection(
         'goal_backup',
@@ -139,6 +182,58 @@ export default function userDataBackupServiceTest(): void {
       const parsed: UserDataBackupPackage | null = UserDataBackupService.parsePackageJson(unsupportedJson)
 
       expect(parsed).assertNull()
+    })
+
+    it('rejects unsupported schema imports without mutating existing local data', 0, async () => {
+      await resetPersistedData()
+
+      const localGoal: UserGoal = GoalSetupService.createGoalFromSelection(
+        'goal_local_protected',
+        'fat_loss',
+        'beginner',
+        2,
+        30,
+        ['eq_bodyweight'],
+        [],
+        4000
+      )
+      await GoalRepository.saveGoal(getTestContext(), localGoal)
+      await TrainingPlanService.replaceMyPlans(getTestContext(), [createPlan('plan_local_protected', 1000)], 'plan_local_protected')
+      await WorkoutSessionPersistenceBridgeService.replacePersistedSessions(getTestContext(), [createSession('session_local_protected', 70)])
+
+      const backupPackage: UserDataBackupPackage = UserDataBackupService.createPackage(
+        null,
+        [createPlan('plan_import_unsupported', 3000)],
+        'plan_import_unsupported',
+        [createSession('session_import_unsupported', 95)],
+        7000
+      )
+      const unsupportedPackage: UserDataBackupPackage = {
+        schemaVersion: 99,
+        exportedAt: backupPackage.exportedAt,
+        goal: backupPackage.goal,
+        plans: backupPackage.plans,
+        currentPlanId: backupPackage.currentPlanId,
+        sessions: backupPackage.sessions,
+        contentMeta: backupPackage.contentMeta
+      }
+
+      const importResult = await UserDataBackupService.importPackage(getTestContext(), JSON.stringify(unsupportedPackage))
+      const savedGoal: UserGoal | undefined = await GoalRepository.loadGoal(getTestContext())
+      const currentPlanId: string = await TrainingPlanService.getCurrentPlanId(getTestContext())
+      const sessions: WorkoutSession[] = await WorkoutSessionPersistenceBridgeService.loadPersistedSessions(getTestContext())
+
+      expect(importResult.success).assertFalse()
+      expect(importResult.statusId).assertEqual('backup_schema_unsupported')
+      expect(savedGoal !== undefined).assertTrue()
+      if (savedGoal !== undefined) {
+        expect(savedGoal.goalId).assertEqual('goal_local_protected')
+      }
+      expect(currentPlanId).assertEqual('plan_local_protected')
+      expect(sessions.length).assertEqual(1)
+      expect(sessions[0].sessionId).assertEqual('session_local_protected')
+
+      await resetPersistedData()
     })
 
     it('returns stable failure result for empty or invalid backup json', 0, async () => {

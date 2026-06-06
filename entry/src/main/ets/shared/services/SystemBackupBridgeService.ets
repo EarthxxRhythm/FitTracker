@@ -49,7 +49,12 @@ class SystemBackupBridgeService {
       return this.createResult(false, 'backup_read_failed', '系统备份包读取失败。', backupFilePath, null)
     }
 
-    const importedResult: UserDataBackupImportResult = await UserDataBackupService.importPackage(context, packageText)
+    let importedResult: UserDataBackupImportResult
+    try {
+      importedResult = await UserDataBackupService.importPackage(context, packageText)
+    } catch (e) {
+      return this.createResult(false, 'backup_restore_failed', '系统备份恢复失败。', backupFilePath, null)
+    }
     return this.createResult(
       importedResult.success,
       importedResult.success ? 'backup_restored' : importedResult.statusId,
