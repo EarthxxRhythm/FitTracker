@@ -255,6 +255,9 @@ function getDayNumberFromLabel(label: string): number {
 // ============================================================
 
 class TrainingPlanService {
+  private localPlans: UserPlan[] = []
+  private localCurrentPlanId: string = ''
+
   getAllPresetPlans(): PresetPlan[] {
     return PRESET_PLANS
   }
@@ -283,10 +286,7 @@ class TrainingPlanService {
     }
     const myPlans = await this.getMyPlans(context)
     myPlans.push(userPlan)
-    const prefs = await preferences.getPreferences(context, STORE_NAME)
-    await prefs.put(KEY_MY_PLANS, JSON.stringify(myPlans))
-    await prefs.put(KEY_CURRENT_PLAN_ID, userPlan.id)
-    await prefs.flush()
+    await this.replaceMyPlans(context, myPlans, userPlan.id)
     return userPlan
   }
 
@@ -294,16 +294,17 @@ class TrainingPlanService {
     try {
       const prefs = await preferences.getPreferences(context, STORE_NAME)
       const json = await prefs.get(KEY_MY_PLANS, '[]') as string
-      return JSON.parse(json) as UserPlan[]
+      const plans = this.copyUserPlans(JSON.parse(json) as UserPlan[])
+      this.localPlans = this.copyUserPlans(plans)
+      return plans
     } catch (e) {
-      return []
+      return this.copyUserPlans(this.localPlans)
     }
   }
 
   async getCurrentPlan(context: Context): Promise<UserPlan | null> {
     try {
-      const prefs = await preferences.getPreferences(context, STORE_NAME)
-      const currentId = await prefs.get(KEY_CURRENT_PLAN_ID, '') as string
+      const currentId = await this.getCurrentPlanId(context)
       if (!currentId) {
         return null
       }
@@ -317,9 +318,11 @@ class TrainingPlanService {
   async getCurrentPlanId(context: Context): Promise<string> {
     try {
       const prefs = await preferences.getPreferences(context, STORE_NAME)
-      return await prefs.get(KEY_CURRENT_PLAN_ID, '') as string
+      const currentPlanId = await prefs.get(KEY_CURRENT_PLAN_ID, '') as string
+      this.localCurrentPlanId = currentPlanId
+      return currentPlanId
     } catch (e) {
-      return ''
+      return this.localCurrentPlanId
     }
   }
 
@@ -330,28 +333,37 @@ class TrainingPlanService {
       nextCurrentPlanId = nextPlans.length > 0 ? nextPlans[0].id : ''
     }
 
-    const prefs = await preferences.getPreferences(context, STORE_NAME)
-    await prefs.put(KEY_MY_PLANS, JSON.stringify(nextPlans))
-    await prefs.put(KEY_CURRENT_PLAN_ID, nextCurrentPlanId)
-    await prefs.flush()
+    this.localPlans = this.copyUserPlans(nextPlans)
+    this.localCurrentPlanId = nextCurrentPlanId
+
+    try {
+      const prefs = await preferences.getPreferences(context, STORE_NAME)
+      await prefs.put(KEY_MY_PLANS, JSON.stringify(nextPlans))
+      await prefs.put(KEY_CURRENT_PLAN_ID, nextCurrentPlanId)
+      await prefs.flush()
+    } catch (e) {
+    }
   }
 
   async setCurrentPlan(context: Context, planId: string): Promise<void> {
-    const prefs = await preferences.getPreferences(context, STORE_NAME)
-    await prefs.put(KEY_CURRENT_PLAN_ID, planId)
-    await prefs.flush()
+    this.localCurrentPlanId = planId
+    try {
+      const prefs = await preferences.getPreferences(context, STORE_NAME)
+      await prefs.put(KEY_CURRENT_PLAN_ID, planId)
+      await prefs.flush()
+    } catch (e) {
+    }
   }
 
   async removeMyPlan(context: Context, planId: string): Promise<void> {
     let myPlans = await this.getMyPlans(context)
     myPlans = myPlans.filter(p => p.id !== planId)
-    const prefs = await preferences.getPreferences(context, STORE_NAME)
-    const currentId = await prefs.get(KEY_CURRENT_PLAN_ID, '') as string
+    const currentId = await this.getCurrentPlanId(context)
+    let nextCurrentPlanId: string = currentId
     if (currentId === planId) {
-      await prefs.put(KEY_CURRENT_PLAN_ID, myPlans.length > 0 ? myPlans[0].id : '')
+      nextCurrentPlanId = myPlans.length > 0 ? myPlans[0].id : ''
     }
-    await prefs.put(KEY_MY_PLANS, JSON.stringify(myPlans))
-    await prefs.flush()
+    await this.replaceMyPlans(context, myPlans, nextCurrentPlanId)
   }
 
   async hasMyPlans(context: Context): Promise<boolean> {

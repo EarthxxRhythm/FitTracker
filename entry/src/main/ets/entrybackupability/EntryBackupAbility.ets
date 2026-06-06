@@ -31,7 +31,11 @@ export function escapeBackupJsonString(value: string): string {
 export function createBackupCallbackResult(operation: string, result: SystemBackupBridgeResult): string {
   const errorCode: number = result.success ? 0 : 1
   return '{"type":"' + operation + '","errorCode":' + errorCode.toString() +
-    ',"errorInfo":"' + escapeBackupJsonString(result.detailText) + '"}'
+    ',"errorInfo":"' + escapeBackupJsonString(result.detailText) +
+    '","statusId":"' + escapeBackupJsonString(result.statusId) +
+    '","success":' + getJsonBooleanText(result.success) +
+    ',"backupFilePath":"' + escapeBackupJsonString(result.backupFilePath) +
+    '","detailText":"' + escapeBackupJsonString(result.detailText) + '"}'
 }
 
 export function createBackupProcessInfo(stage: string, result: SystemBackupBridgeResult): string {

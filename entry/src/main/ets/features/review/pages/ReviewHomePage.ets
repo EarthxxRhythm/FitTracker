@@ -85,6 +85,7 @@ export struct ReviewHomePage {
   @State backupStatusText: string = ''
   @State backupStatusTone: string = 'info'
   @State backupBusy: boolean = false
+  @State backupFlow: string = 'idle'
   @State hasAdjustmentPreview: boolean = false
   @State adjustmentPreviewOverviewText: string = ''
   @State adjustmentPreviewArrangementText: string = ''
@@ -359,6 +360,7 @@ export struct ReviewHomePage {
     if (this.backupBusy) {
       return
     }
+    this.backupFlow = 'export'
     this.backupBusy = true
     this.backupStatusText = ''
     this.backupStatusTone = 'info'
@@ -377,6 +379,7 @@ export struct ReviewHomePage {
     if (this.backupBusy) {
       return
     }
+    this.backupFlow = 'import'
     if (this.backupPackageText.trim().length === 0) {
       this.backupStatusText = UserDataBackupService.getEmptyImportStatusText()
       this.backupStatusTone = 'warning'
@@ -397,6 +400,7 @@ export struct ReviewHomePage {
     this.backupPackageText = ''
     this.backupStatusText = ''
     this.backupStatusTone = 'info'
+    this.backupFlow = 'idle'
   }
 
   resolveBackupStatusTone(success: boolean, usedPlanFallback: boolean): string {
@@ -420,6 +424,185 @@ export struct ReviewHomePage {
       return ColorTokens.SUCCESS
     }
     return ColorTokens.TEXT_SECONDARY
+  }
+
+  hasBackupPackageText(): boolean {
+    return this.backupPackageText.trim().length > 0
+  }
+
+  canImportBackup(): boolean {
+    return !this.backupBusy && this.hasBackupPackageText()
+  }
+
+  getBackupStatusTitle(): string {
+    if (this.backupBusy) {
+      if (this.backupFlow === 'import') {
+        return '正在导入备份'
+      }
+      return '正在生成备份'
+    }
+    if (this.backupStatusText.length > 0) {
+      if (this.backupStatusTone === 'success') {
+        if (this.backupFlow === 'import') {
+          return '备份恢复完成'
+        }
+        return '备份已生成'
+      }
+      if (this.backupStatusTone === 'warning') {
+        return '请先确认备份内容'
+      }
+      if (this.backupStatusTone === 'error') {
+        return '备份处理失败'
+      }
+    }
+    if (this.hasBackupPackageText()) {
+      return '备份内容已就绪'
+    }
+    return '导出或导入本地数据'
+  }
+
+  getBackupStatusDescription(): string {
+    if (this.backupBusy) {
+      if (this.backupFlow === 'import') {
+        return '请保持在当前页面，导入完成后会自动刷新回顾页数据。'
+      }
+      return '正在整理当前本地数据，完成后可直接复制下方备份包。'
+    }
+    if (this.backupStatusText.length > 0) {
+      return this.backupStatusText
+    }
+    if (this.hasBackupPackageText()) {
+      return '下方输入区已有备份内容，可复制保存，或直接执行导入恢复。'
+    }
+    return '先生成当前设备上的备份包，或粘贴已有备份 JSON 后执行恢复。'
+  }
+
+  getBackupStatusBackgroundColor(): string {
+    if (this.backupBusy) {
+      return ColorTokens.OVERLAY_PRIMARY
+    }
+    if (this.backupStatusTone === 'success') {
+      return ColorTokens.SUCCESS_BG
+    }
+    if (this.backupStatusTone === 'warning') {
+      return ColorTokens.OVERLAY_ACCENT
+    }
+    if (this.backupStatusTone === 'error') {
+      return ColorTokens.SURFACE_PRIMARY
+    }
+    if (this.hasBackupPackageText()) {
+      return ColorTokens.OVERLAY_PRIMARY
+    }
+    return ColorTokens.SURFACE_PRIMARY
+  }
+
+  getBackupStatusBorderColor(): string {
+    if (this.backupBusy) {
+      return ColorTokens.PRIMARY
+    }
+    if (this.backupStatusTone === 'success') {
+      return ColorTokens.SUCCESS
+    }
+    if (this.backupStatusTone === 'warning') {
+      return ColorTokens.WARNING
+    }
+    if (this.backupStatusTone === 'error') {
+      return ColorTokens.ERROR
+    }
+    if (this.hasBackupPackageText()) {
+      return ColorTokens.PRIMARY_DISABLED
+    }
+    return ColorTokens.SURFACE_ELEVATED
+  }
+
+  getBackupStatusTagText(): string {
+    if (this.backupBusy) {
+      return '处理中'
+    }
+    if (this.backupStatusTone === 'success') {
+      return this.backupFlow === 'import' ? '已恢复' : '已生成'
+    }
+    if (this.backupStatusTone === 'warning') {
+      return '待确认'
+    }
+    if (this.backupStatusTone === 'error') {
+      return '失败'
+    }
+    if (this.hasBackupPackageText()) {
+      return '可导入'
+    }
+    return '未开始'
+  }
+
+  getBackupPackageCountText(): string {
+    const count: number = this.backupPackageText.trim().length
+    if (count <= 0) {
+      return '当前输入区为空'
+    }
+    return '当前已载入 ' + count.toString() + ' 个字符'
+  }
+
+  getBackupPackageHelperText(): string {
+    if (this.backupBusy) {
+      if (this.backupFlow === 'import') {
+        return '导入时会按现有备份规则处理数据。'
+      }
+      return '生成完成后，备份内容会自动写入下方输入区。'
+    }
+    if (this.hasBackupPackageText()) {
+      return '建议先确认内容来源，再执行导入恢复。'
+    }
+    return '支持两种方式：生成当前备份，或粘贴已有备份包。'
+  }
+
+  getBackupImportButtonColor(): string {
+    if (this.backupBusy && this.backupFlow === 'import') {
+      return ColorTokens.ACCENT
+    }
+    if (this.canImportBackup()) {
+      return ColorTokens.ACCENT
+    }
+    return ColorTokens.SURFACE_ELEVATED
+  }
+
+  getBackupImportButtonTextColor(): string {
+    if (this.backupBusy && this.backupFlow === 'import') {
+      return ColorTokens.TEXT_ON_PRIMARY
+    }
+    if (this.canImportBackup()) {
+      return ColorTokens.TEXT_ON_PRIMARY
+    }
+    return ColorTokens.TEXT_SECONDARY
+  }
+
+  getBackupInputBorderColor(): string {
+    if (this.backupStatusTone === 'error') {
+      return ColorTokens.ERROR
+    }
+    if (this.backupStatusTone === 'warning') {
+      return ColorTokens.WARNING
+    }
+    if (this.hasBackupPackageText()) {
+      return ColorTokens.PRIMARY_DISABLED
+    }
+    return ColorTokens.SURFACE_ELEVATED
+  }
+
+  @Builder
+  buildBackupGuideItem(title: string, description: string) {
+    Column({ space: SpacingTokens.XS }) {
+      Text(title)
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+
+      Text(description)
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .width('100%')
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
   }
 
   getProfileWeightUnitDescription(): string {
@@ -1344,6 +1527,190 @@ export struct ReviewHomePage {
     .alignItems(HorizontalAlign.Start)
   }
 
+  @Builder
+  buildBackupEntrySection() {
+    Column({ space: SpacingTokens.MD }) {
+      Column({ space: SpacingTokens.XS }) {
+        Text('数据备份')
+          .fontSize(FontTokens.TITLE_SIZE)
+          .fontWeight(FontTokens.TITLE_WEIGHT)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+
+        Text('导出当前本地训练数据，或粘贴已有备份包恢复到这台设备。')
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .width('100%')
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+
+      Column({ space: SpacingTokens.SM }) {
+        Row() {
+          Column({ space: SpacingTokens.XS }) {
+            Text(this.getBackupStatusTitle())
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+
+            Text(this.getBackupStatusDescription())
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(this.getBackupStatusColor())
+              .width('100%')
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+
+          Text(this.getBackupStatusTagText())
+            .fontSize(FontTokens.SMALL_SIZE)
+            .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+            .padding({
+              top: SpacingTokens.XS,
+              bottom: SpacingTokens.XS,
+              left: SpacingTokens.SM,
+              right: SpacingTokens.SM
+            })
+            .backgroundColor(this.getBackupStatusBorderColor())
+            .borderRadius(RadiusTokens.FULL)
+        }
+        .width('100%')
+
+        Text(this.getBackupPackageCountText())
+          .fontSize(FontTokens.SMALL_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+
+        Text(this.getBackupPackageHelperText())
+          .fontSize(FontTokens.SMALL_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .width('100%')
+      }
+      .width('100%')
+      .padding(SpacingTokens.MD)
+      .borderRadius(RadiusTokens.SM)
+      .backgroundColor(this.getBackupStatusBackgroundColor())
+      .border({
+        width: 1,
+        color: this.getBackupStatusBorderColor()
+      })
+      .alignItems(HorizontalAlign.Start)
+
+      Column({ space: SpacingTokens.SM }) {
+        Text('操作前说明')
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+
+        this.buildBackupGuideItem('包含范围', UserDataBackupService.getScopeSummaryText())
+        this.buildBackupGuideItem('导入规则', UserDataBackupService.getRestoreRuleText())
+        this.buildBackupGuideItem('使用提醒', UserDataBackupService.getUsageHintText())
+      }
+      .width('100%')
+      .padding(SpacingTokens.MD)
+      .borderRadius(RadiusTokens.SM)
+      .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+      .alignItems(HorizontalAlign.Start)
+
+      Column({ space: SpacingTokens.SM }) {
+        Row() {
+          Column({ space: SpacingTokens.XS }) {
+            Text('备份包内容')
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+
+            Text('生成后可复制保存；粘贴现有 JSON 后可直接导入恢复。')
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+              .width('100%')
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+
+          Text(this.hasBackupPackageText() ? '已载入' : '待输入')
+            .fontSize(FontTokens.SMALL_SIZE)
+            .fontColor(this.hasBackupPackageText() ? ColorTokens.TEXT_ON_PRIMARY : ColorTokens.TEXT_SECONDARY)
+            .padding({
+              top: SpacingTokens.XS,
+              bottom: SpacingTokens.XS,
+              left: SpacingTokens.SM,
+              right: SpacingTokens.SM
+            })
+            .backgroundColor(this.hasBackupPackageText() ? ColorTokens.PRIMARY : ColorTokens.SURFACE_ELEVATED)
+            .borderRadius(RadiusTokens.FULL)
+        }
+        .width('100%')
+
+        TextArea({ text: $$this.backupPackageText, placeholder: '生成备份后会显示在这里，或在此粘贴备份 JSON' })
+          .width('100%')
+          .height(180)
+          .fontSize(FontTokens.SMALL_SIZE)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+          .placeholderColor(ColorTokens.TEXT_DISABLED)
+          .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+          .borderRadius(RadiusTokens.SM)
+          .border({
+            width: 1,
+            color: this.getBackupInputBorderColor()
+          })
+
+        Row({ space: SpacingTokens.SM }) {
+          Button(this.backupBusy && this.backupFlow === 'export' ? '生成中...' : '生成当前备份')
+            .layoutWeight(1)
+            .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+            .backgroundColor(ColorTokens.PRIMARY)
+            .borderRadius(RadiusTokens.FULL)
+            .enabled(!this.backupBusy)
+            .onClick(() => {
+              this.exportBackupPackage()
+            })
+
+          Button(this.backupBusy && this.backupFlow === 'import' ? '导入中...' : '导入并恢复数据')
+            .layoutWeight(1)
+            .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontColor(this.getBackupImportButtonTextColor())
+            .backgroundColor(this.getBackupImportButtonColor())
+            .borderRadius(RadiusTokens.FULL)
+            .enabled(this.canImportBackup())
+            .onClick(() => {
+              this.importBackupPackage()
+            })
+        }
+        .width('100%')
+
+        Button('清空输入区')
+          .width('100%')
+          .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+          .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+          .borderRadius(RadiusTokens.FULL)
+          .enabled(!this.backupBusy && this.hasBackupPackageText())
+          .onClick(() => {
+            this.clearBackupPackageText()
+          })
+
+        if (this.backupStatusText.length > 0) {
+          Text('结果反馈：' + this.backupStatusText)
+            .fontSize(FontTokens.CAPTION_SIZE)
+            .fontColor(this.getBackupStatusColor())
+            .width('100%')
+        }
+      }
+      .width('100%')
+      .padding(SpacingTokens.MD)
+      .borderRadius(RadiusTokens.SM)
+      .backgroundColor(ColorTokens.BG_SECONDARY)
+      .alignItems(HorizontalAlign.Start)
+    }
+    .width('100%')
+    .padding(SpacingTokens.MD)
+    .borderRadius(RadiusTokens.SM)
+    .backgroundColor(ColorTokens.BG_SECONDARY)
+    .alignItems(HorizontalAlign.Start)
+  }
+
   build() {
     Scroll() {
       Column({ space: SpacingTokens.LG }) {
@@ -1519,7 +1886,7 @@ export struct ReviewHomePage {
 
         if (!this.loading) {
           this.buildProfileSettings()
-          this.buildBackupSection()
+          this.buildBackupEntrySection()
         }
       }
       .width('100%')
