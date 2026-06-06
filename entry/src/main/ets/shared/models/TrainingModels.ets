@@ -103,7 +103,39 @@ export interface ContentSyncStatus {
   localVersion: number
   remoteVersion: number
   lastCheckedAt: number
+  lastSyncAttemptAt: number
+  lastAppliedAt: number
+  activeSourceId: string
+  activeSourceName: string
+  fallbackSourceId: string
   status: string
+  failureReason: string
+}
+
+export interface ContentSyncManifest {
+  syncSchemaVersion: number
+  packageKind: string
+  packageVersion: number
+  packageUrl: string
+  packageChecksum: string
+  packageSizeBytes: number
+  generatedAt: number
+  exerciseCount: number
+  releaseChannel: string
+  sourceNote: string
+}
+
+export interface ContentSyncMetadata {
+  syncSchemaVersion: number
+  localVersion: number
+  lastKnownRemoteVersion: number
+  lastCheckedAt: number
+  lastSyncAttemptAt: number
+  lastAppliedAt: number
+  activeSourceId: string
+  fallbackSourceId: string
+  status: string
+  failureReason: string
 }
 
 export function createUserGoal(
@@ -306,13 +338,79 @@ export function createContentSyncStatus(
   localVersion: number,
   remoteVersion: number,
   lastCheckedAt: number,
-  status: string
+  lastSyncAttemptAt: number,
+  lastAppliedAt: number,
+  activeSourceId: string,
+  activeSourceName: string,
+  fallbackSourceId: string,
+  status: string,
+  failureReason: string
 ): ContentSyncStatus {
   const item: ContentSyncStatus = {
     localVersion: localVersion,
     remoteVersion: remoteVersion,
     lastCheckedAt: lastCheckedAt,
-    status: status
+    lastSyncAttemptAt: lastSyncAttemptAt,
+    lastAppliedAt: lastAppliedAt,
+    activeSourceId: activeSourceId,
+    activeSourceName: activeSourceName,
+    fallbackSourceId: fallbackSourceId,
+    status: status,
+    failureReason: failureReason
+  }
+  return item
+}
+
+export function createContentSyncManifest(
+  syncSchemaVersion: number,
+  packageKind: string,
+  packageVersion: number,
+  packageUrl: string,
+  packageChecksum: string,
+  packageSizeBytes: number,
+  generatedAt: number,
+  exerciseCount: number,
+  releaseChannel: string,
+  sourceNote: string
+): ContentSyncManifest {
+  const item: ContentSyncManifest = {
+    syncSchemaVersion: syncSchemaVersion,
+    packageKind: packageKind,
+    packageVersion: packageVersion,
+    packageUrl: packageUrl,
+    packageChecksum: packageChecksum,
+    packageSizeBytes: packageSizeBytes,
+    generatedAt: generatedAt,
+    exerciseCount: exerciseCount,
+    releaseChannel: releaseChannel,
+    sourceNote: sourceNote
+  }
+  return item
+}
+
+export function createContentSyncMetadata(
+  syncSchemaVersion: number,
+  localVersion: number,
+  lastKnownRemoteVersion: number,
+  lastCheckedAt: number,
+  lastSyncAttemptAt: number,
+  lastAppliedAt: number,
+  activeSourceId: string,
+  fallbackSourceId: string,
+  status: string,
+  failureReason: string
+): ContentSyncMetadata {
+  const item: ContentSyncMetadata = {
+    syncSchemaVersion: syncSchemaVersion,
+    localVersion: localVersion,
+    lastKnownRemoteVersion: lastKnownRemoteVersion,
+    lastCheckedAt: lastCheckedAt,
+    lastSyncAttemptAt: lastSyncAttemptAt,
+    lastAppliedAt: lastAppliedAt,
+    activeSourceId: activeSourceId,
+    fallbackSourceId: fallbackSourceId,
+    status: status,
+    failureReason: failureReason
   }
   return item
 }

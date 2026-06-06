@@ -139,3 +139,14 @@ node tools/content/export-db-seed.mjs
 - `loadDatabaseAndUse(context)`：读取已存在的 RDB 内容，读到动作后切换 `ContentRepository`，否则保持 JSONL 种子源。
 
 当前默认启动路径仍使用 JSONL 种子源。等模拟器视觉回归稳定后，再决定是否在启动阶段自动调用数据库导入。
+
+## Phase 4 内容同步基础边界
+
+Phase 4 第一版内容同步不直接改动 `ContentRepository` 的对外读取 API，而是在现有本地数据库导入链路上新增“远端整包导入”能力：
+
+- `SyncService` 负责 manifest 检查、版本比较、元信息持久化和失败状态记录
+- `ContentDatabaseService` 负责把校验通过的内容包导入 `fittracker_content.db`
+- `ContentRepository` 继续只暴露统一读取接口，导入成功后切换到 `DatabaseContentDataSource`
+- 导入失败时保持旧数据库源；旧库不可用时回退 `JsonlSeedContentDataSource`
+
+内容同步基础的最小模型与流程约定见：[content-sync-foundation.md](./content-sync-foundation.md)。
