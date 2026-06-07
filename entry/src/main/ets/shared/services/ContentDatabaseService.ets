@@ -1,11 +1,12 @@
 /**
  * ContentDatabaseService -- initializes and imports local exercise content database.
  *
- * Next-stage task: import validated JSONL seed content into a local RDB store.
+ * Phase 4: bundled content sync package can be imported into the local RDB store.
  */
 import { Context } from '@kit.AbilityKit'
 import { relationalStore } from '@kit.ArkData'
 import {
+  ContentSyncManifest,
   EquipmentItem,
   ExerciseContent,
   MuscleGroup,
@@ -13,51 +14,151 @@ import {
   createExerciseContent,
   createMuscleGroup
 } from '../models/TrainingModels'
+import {
+  BUNDLED_CONTENT_SYNC_EQUIPMENT,
+  BUNDLED_CONTENT_SYNC_EXERCISES,
+  BUNDLED_CONTENT_SYNC_MANIFEST,
+  BUNDLED_CONTENT_SYNC_MUSCLES
+} from '../../generated/LocalContentSyncPackage'
 import ContentRepository from './ContentRepository'
 import { DatabaseContentDataSource } from './DatabaseContentDataSource'
 
-const DB_NAME: string = 'fittracker_content.db'
+const DEFAULT_DB_NAME: string = 'fittracker_content.db'
 
 class ContentDatabaseServiceImpl {
+  private testDbName: string = ''
+  private lastImportFailureReason: string = ''
+
+  getLastImportFailureReason(): string {
+    return this.lastImportFailureReason
+  }
+
+  setDatabaseNameForTesting(name: string): void {
+    this.testDbName = name
+  }
+
+  async clearDatabaseForTesting(context: Context): Promise<void> {
+    const store: relationalStore.RdbStore = await this.openStore(context)
+    await this.createTables(store)
+    await this.clearTables(store)
+  }
+
   async importSeedAndUseDatabase(context: Context): Promise<boolean> {
+    return this.importPackageAndUseDatabase(
+      context,
+      BUNDLED_CONTENT_SYNC_MANIFEST,
+      BUNDLED_CONTENT_SYNC_MUSCLES,
+      BUNDLED_CONTENT_SYNC_EQUIPMENT,
+      BUNDLED_CONTENT_SYNC_EXERCISES
+    )
+  }
+
+  async importPackageAndUseDatabase(
+    context: Context,
+    manifest: ContentSyncManifest,
+    muscles: MuscleGroup[],
+    equipment: EquipmentItem[],
+    exercises: ExerciseContent[]
+  ): Promise<boolean> {
+    const keepCurrentSource: boolean = ContentRepository.getContentSourceInfo().databaseBacked
+    this.lastImportFailureReason = ''
+
     try {
+      this.validateExerciseCollection(exercises, manifest)
       const store: relationalStore.RdbStore = await this.openStore(context)
       await this.createTables(store)
-      await this.clearTables(store)
-      await this.insertMuscles(store, ContentRepository.getMuscles())
-      await this.insertEquipment(store, ContentRepository.getEquipment())
-      await this.insertExercises(store, ContentRepository.getExercises())
-      const dataSource: DatabaseContentDataSource = await this.loadDatabaseDataSource(store)
-      ContentRepository.useContentDataSource(dataSource)
-      return true
-    } catch (e) {
-      ContentRepository.useJsonlSeedSource()
-      return false
+      store.beginTransaction()
+      try {
+        await this.clearTables(store)
+        await this.insertMuscles(store, muscles)
+        await this.insertEquipment(store, equipment)
+        await this.insertExercises(store, exercises)
+        store.commit()
+        const dataSource: DatabaseContentDataSource = await this.loadDatabaseDataSource(store)
+        this.validateImportedPackage(dataSource, manifest)
+        ContentRepository.useContentDataSource(dataSource)
+        this.lastImportFailureReason = ''
+        return true
+      } catch (error) {
+        this.rollbackQuietly(store)
+      }
+    } catch (error) {
     }
+
+    if (this.lastImportFailureReason.length === 0) {
+      this.lastImportFailureReason = 'import_failed'
+    }
+    if (!keepCurrentSource) {
+      ContentRepository.useJsonlSeedSource()
+    }
+    return false
   }
 
   async loadDatabaseAndUse(context: Context): Promise<boolean> {
+    this.lastImportFailureReason = ''
     try {
       const store: relationalStore.RdbStore = await this.openStore(context)
       await this.createTables(store)
       const dataSource: DatabaseContentDataSource = await this.loadDatabaseDataSource(store)
       if (dataSource.getExercises().length === 0) {
+        ContentRepository.useJsonlSeedSource()
         return false
       }
+      this.validateImportedPackage(dataSource, BUNDLED_CONTENT_SYNC_MANIFEST)
       ContentRepository.useContentDataSource(dataSource)
+      this.lastImportFailureReason = ''
       return true
-    } catch (e) {
+    } catch (error) {
       ContentRepository.useJsonlSeedSource()
       return false
     }
   }
 
+  private rollbackQuietly(store: relationalStore.RdbStore): void {
+    try {
+      store.rollBack()
+    } catch (error) {
+    }
+  }
+
+  private validateImportedPackage(dataSource: DatabaseContentDataSource, manifest: ContentSyncManifest): void {
+    this.validateExerciseCollection(dataSource.getExercises(), manifest)
+  }
+
+  private validateExerciseCollection(exercises: ExerciseContent[], manifest: ContentSyncManifest): void {
+    if (exercises.length !== manifest.exerciseCount) {
+      this.lastImportFailureReason = 'exercise_count_mismatch'
+      throw new Error('exercise_count_mismatch')
+    }
+    if (this.getHighestContentVersion(exercises) !== manifest.packageVersion) {
+      this.lastImportFailureReason = 'content_version_mismatch'
+      throw new Error('content_version_mismatch')
+    }
+  }
+
+  private getHighestContentVersion(exercises: ExerciseContent[]): number {
+    let version: number = 0
+    for (let index = 0; index < exercises.length; index++) {
+      if (exercises[index].contentVersion > version) {
+        version = exercises[index].contentVersion
+      }
+    }
+    return version
+  }
+
   private async openStore(context: Context): Promise<relationalStore.RdbStore> {
     const config: relationalStore.StoreConfig = {
-      name: DB_NAME,
+      name: this.getStoreName(),
       securityLevel: relationalStore.SecurityLevel.S1
     }
     return relationalStore.getRdbStore(context, config)
+  }
+
+  private getStoreName(): string {
+    if (this.testDbName.length > 0) {
+      return this.testDbName
+    }
+    return DEFAULT_DB_NAME
   }
 
   private async createTables(store: relationalStore.RdbStore): Promise<void> {
@@ -202,7 +303,7 @@ class ContentDatabaseServiceImpl {
   ): Promise<void> {
     try {
       await store.executeSql('ALTER TABLE exercises ADD COLUMN ' + columnName + ' ' + columnDefinition)
-    } catch (e) {
+    } catch (error) {
     }
   }
 

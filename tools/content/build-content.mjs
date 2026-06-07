@@ -1,10 +1,13 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const contentDir = resolve(root, 'content/exercises')
 const outputPath = resolve(root, 'entry/src/main/ets/generated/LocalExerciseContent.ets')
+const syncPackageOutputPath = resolve(root, 'entry/src/main/ets/generated/LocalContentSyncPackage.ets')
+const manifestSourceFileName = 'content-sync.manifest.json'
 const sourceFileKey = '__sourceFile'
 const sourceLineKey = '__sourceLine'
 const minimumExerciseCount = 30
@@ -39,6 +42,24 @@ function readJsonl(fileName) {
     }
   }
   return rows
+}
+
+function readManifestSource() {
+  const path = resolve(contentDir, manifestSourceFileName)
+  const text = readFileSync(path, 'utf8')
+  let record
+  try {
+    record = JSON.parse(text)
+  } catch (error) {
+    throw new Error(`${manifestSourceFileName} is not valid JSON: ${error.message}`)
+  }
+  if (record === null || Array.isArray(record) || typeof record !== 'object') {
+    throw new Error(`${manifestSourceFileName} must be a JSON object`)
+  }
+  requireString(record, 'releaseChannel', 'contentSyncManifest')
+  requireString(record, 'sourceNote', 'contentSyncManifest')
+  requirePositiveInteger(record, 'generatedAt', 'contentSyncManifest')
+  return record
 }
 
 function requireString(record, field, label) {
@@ -344,11 +365,96 @@ function render(muscles, equipment, exercises) {
   return lines.join('\n')
 }
 
+function getPackageVersion(exercises) {
+  let version = 0
+  for (const exercise of exercises) {
+    const currentVersion = Number(exercise.contentVersion || 0)
+    if (currentVersion > version) {
+      version = currentVersion
+    }
+  }
+  return version
+}
+
+function createPackageChecksum(fileContents) {
+  const hash = createHash('sha256')
+  for (const fileContent of fileContents) {
+    hash.update(fileContent)
+  }
+  return `sha256:${hash.digest('hex')}`
+}
+
+function getPackageSizeBytes(fileContents) {
+  let size = 0
+  for (const fileContent of fileContents) {
+    size += Buffer.byteLength(fileContent, 'utf8')
+  }
+  return size
+}
+
+function renderSyncPackage(manifestSource, muscles, equipment, exercises, packageChecksum, packageSizeBytes) {
+  const packageVersion = getPackageVersion(exercises)
+  const lines = []
+  lines.push('/**')
+  lines.push(' * LocalContentSyncPackage -- generated bundled content sync package.')
+  lines.push(' * Run: node tools/content/build-content.mjs')
+  lines.push(' */')
+  lines.push(
+    "import { EquipmentItem, ExerciseContent, MuscleGroup, ContentSyncManifest, createContentSyncManifest } from '../shared/models/TrainingModels'"
+  )
+  lines.push("import { LOCAL_EQUIPMENT, LOCAL_EXERCISES, LOCAL_MUSCLES } from './LocalExerciseContent'")
+  lines.push('')
+  lines.push('export const BUNDLED_CONTENT_SYNC_MANIFEST: ContentSyncManifest = createContentSyncManifest(')
+  lines.push('  1,')
+  lines.push(`  ${q('full')},`)
+  lines.push(`  ${packageVersion},`)
+  lines.push(`  ${q('local://content-package')},`)
+  lines.push(`  ${q(packageChecksum)},`)
+  lines.push(`  ${packageSizeBytes},`)
+  lines.push(`  ${manifestSource.generatedAt},`)
+  lines.push(`  ${exercises.length},`)
+  lines.push(`  ${q(manifestSource.releaseChannel)},`)
+  lines.push(`  ${q(manifestSource.sourceNote)}`)
+  lines.push(')')
+  lines.push('')
+  lines.push('export const BUNDLED_CONTENT_SYNC_MUSCLES: MuscleGroup[] = LOCAL_MUSCLES')
+  lines.push('export const BUNDLED_CONTENT_SYNC_EQUIPMENT: EquipmentItem[] = LOCAL_EQUIPMENT')
+  lines.push('export const BUNDLED_CONTENT_SYNC_EXERCISES: ExerciseContent[] = LOCAL_EXERCISES')
+  lines.push('')
+  return lines.join('\n')
+}
+
+function writeFileIfChanged(path, nextText) {
+  if (existsSync(path)) {
+    const currentText = readFileSync(path, 'utf8')
+    if (currentText === nextText) {
+      return false
+    }
+  }
+  writeFileSync(path, nextText, 'utf8')
+  return true
+}
+
+const muscleFileText = readFileSync(resolve(contentDir, 'muscles.zh-CN.jsonl'), 'utf8')
+const equipmentFileText = readFileSync(resolve(contentDir, 'equipment.zh-CN.jsonl'), 'utf8')
+const exerciseFileText = readFileSync(resolve(contentDir, 'exercises.zh-CN.jsonl'), 'utf8')
+const manifestSource = readManifestSource()
 const muscles = readJsonl('muscles.zh-CN.jsonl')
 const equipment = readJsonl('equipment.zh-CN.jsonl')
 const exercises = readJsonl('exercises.zh-CN.jsonl')
 validate(muscles, equipment, exercises)
 mkdirSync(dirname(outputPath), { recursive: true })
-writeFileSync(outputPath, render(muscles, equipment, exercises), 'utf8')
+const exerciseContentText = render(muscles, equipment, exercises)
+const syncPackageText = renderSyncPackage(
+  manifestSource,
+  muscles,
+  equipment,
+  exercises,
+  createPackageChecksum([muscleFileText, equipmentFileText, exerciseFileText]),
+  getPackageSizeBytes([muscleFileText, equipmentFileText, exerciseFileText])
+)
+writeFileIfChanged(outputPath, exerciseContentText)
+writeFileIfChanged(syncPackageOutputPath, syncPackageText)
 console.log(formatCoverageReport(createCoverageReport(muscles, equipment, exercises)))
 console.log(`Generated ${outputPath}`)
+console.log(`Generated ${syncPackageOutputPath}`)

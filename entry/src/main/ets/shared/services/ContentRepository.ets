@@ -350,7 +350,14 @@ class ContentRepositoryImpl {
   }
 
   getLocalContentVersion(): number {
-    return 1
+    let version: number = 0
+    const sourceExercises: ExerciseContent[] = this.dataSource.getExercises()
+    for (let index = 0; index < sourceExercises.length; index++) {
+      if (sourceExercises[index].contentVersion > version) {
+        version = sourceExercises[index].contentVersion
+      }
+    }
+    return version
   }
 
   private matchesExercise(exercise: ExerciseContent, normalizedQuery: string): boolean {
