@@ -4,7 +4,9 @@ param(
   [string]$ModuleName = "entry_test",
   [string]$TestRunner = "OpenHarmonyTestRunner",
   [Alias('ClassFilter')]
-  [string[]]$ClassNames = @('UserDataBackupService', 'SystemBackupBridgeService'),
+  [string[]]$ClassNames = @(),
+  [ValidateSet('backup', 'content-sync', 'full')]
+  [string]$Preset = 'content-sync',
   [string]$DefaultHapPath = "entry/build/default/outputs/default/entry-default-unsigned.hap",
   [string]$TestHapPath = "entry/build/default/outputs/ohosTest/entry-ohosTest-unsigned.hap",
   [string]$RunRoot = "",
@@ -39,6 +41,12 @@ $RunRoot = [System.IO.Path]::GetFullPath($RunRoot)
 $RunSummaryPath = Join-Path $RunRoot $SummaryFileName
 $RunLogPath = Join-Path $RunRoot $LogFileName
 $HvigorwPath = "C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat"
+
+$PresetClassMap = @{
+  'backup' = @('UserDataBackupService', 'SystemBackupBridgeService')
+  'content-sync' = @('ContentDatabaseService', 'SyncService')
+  'full' = @()
+}
 
 function New-RunArtifacts {
   New-Item -ItemType Directory -Force -Path $RunRoot | Out-Null
@@ -185,6 +193,41 @@ function Invoke-HdcCommand {
   $fullArgs += Get-HdcPrefixArgs
   $fullArgs += $Arguments
   return Invoke-LoggedCommand -Title $Title -FilePath 'hdc' -Arguments $fullArgs -AllowFailure:$AllowFailure
+}
+
+function Resolve-ClassNames {
+  $filtered = @($ClassNames | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+  if ($filtered.Count -gt 0) {
+    return $filtered
+  }
+  if ($PresetClassMap.ContainsKey($Preset)) {
+    return @($PresetClassMap[$Preset])
+  }
+  return @()
+}
+
+function Test-HdcTargetsAvailable {
+  param([string]$RawOutput)
+
+  if ([string]::IsNullOrWhiteSpace($RawOutput)) {
+    return $false
+  }
+
+  $lines = $RawOutput -split "`r?`n"
+  for ($index = 0; $index -lt $lines.Length; $index++) {
+    $line = $lines[$index].Trim()
+    if ($line.Length -eq 0) {
+      continue
+    }
+    if ($line -eq '[Empty]') {
+      continue
+    }
+    if ($line.StartsWith('[List')) {
+      continue
+    }
+    return $true
+  }
+  return $false
 }
 
 function Ensure-DevEcoEnvironment {
@@ -365,7 +408,8 @@ function Write-TestSummary {
   $summaryLines += '- bundle: ' + $BundleName
   $summaryLines += '- module: ' + $ModuleName
   $summaryLines += '- test runner: ' + $TestRunner
-  $summaryLines += '- class filter: ' + (($ClassNames | Where-Object { $_.Length -gt 0 }) -join ', ')
+  $summaryLines += '- preset: ' + $Preset
+  $summaryLines += '- class filter: ' + ((Resolve-ClassNames) -join ', ')
   $summaryLines += '- default hap: ' + $DefaultHapPath
   $summaryLines += '- test hap: ' + $TestHapPath
   $summaryLines += '- run root: ' + $RunRoot
@@ -402,7 +446,7 @@ function Write-TestSummary {
 }
 
 function Get-RequestedClassFilter {
-  $filtered = @($ClassNames | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+  $filtered = @(Resolve-ClassNames)
   if ($filtered.Count -eq 0) {
     return ''
   }
@@ -417,7 +461,10 @@ $report = New-TestReport
 
 try {
   Ensure-DevEcoEnvironment
-  Invoke-HdcCommand -Title 'check hdc targets' -Arguments @('list', 'targets') | Out-Null
+  $targetsResult = Invoke-HdcCommand -Title 'check hdc targets' -Arguments @('list', 'targets')
+  if (-not (Test-HdcTargetsAvailable -RawOutput $targetsResult.Output)) {
+    throw 'No HDC targets are connected. Connect a device or simulator before running ohosTest.'
+  }
 
   if ($CheckOnly) {
     if (-not $SkipBuild) {
@@ -478,6 +525,9 @@ try {
   $report = Parse-TestOutput -RawOutput $testResult.Output
 
   if ($report.TestsRun -eq 0 -and $report.FailureCases.Count -eq 0) {
+    if ($testResult.Output -match 'Not match target founded') {
+      throw 'HDC target was not found while installing or running ohosTest.'
+    }
     throw 'No Hypium test result was parsed from aa test output.'
   }
 

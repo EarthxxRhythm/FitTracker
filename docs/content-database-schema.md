@@ -150,3 +150,29 @@ Phase 4 第一版内容同步不直接改动 `ContentRepository` 的对外读取
 - 导入失败时保持旧数据库源；旧库不可用时回退 `JsonlSeedContentDataSource`
 
 内容同步基础的最小模型与流程约定见：[content-sync-foundation.md](./content-sync-foundation.md)。
+
+## Phase 4 本地整包同步落地
+
+当前仓库已经把 Phase 4 第一版内容同步落到“本地整包闭环”：
+
+- `tools/content/build-content.mjs` 会同时生成：
+  - `entry/src/main/ets/generated/LocalExerciseContent.ets`
+  - `entry/src/main/ets/generated/LocalContentSyncPackage.ets`
+- 本地同步包由以下输入组成：
+  - `content/exercises/muscles.zh-CN.jsonl`
+  - `content/exercises/equipment.zh-CN.jsonl`
+  - `content/exercises/exercises.zh-CN.jsonl`
+  - `content/exercises/content-sync.manifest.json`
+- `SyncService` 当前只消费 app 内置整包，不发起 HTTP 下载；它负责：
+  - 读取/写入 `fit_tracker_content_sync`
+  - 比较 bundled manifest 与当前本地内容版本
+  - 在版本更高时触发 `ContentDatabaseService.importPackageAndUseDatabase(...)`
+- `ContentDatabaseService` 的导入已改为事务式：
+  - 导入后校验动作数量和内容版本
+  - 校验失败时回滚，避免污染现有数据库内容
+- `StartupPage` 当前顺序为：
+  1. 先尝试加载已有数据库内容
+  2. 再检查并应用 app 内置 bundled package
+  3. 若仍无数据库内容，再回退到 JSONL 种子导入
+
+这一版仍然不包含远端请求、zip 包下载、缓存目录和增量更新；下一阶段再在这个闭环之上扩远端同步。

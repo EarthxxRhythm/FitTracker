@@ -3,12 +3,15 @@
  * Function #8: target-driven workout loop.
  */
 import { router } from '@kit.ArkUI'
+import { Context } from '@kit.AbilityKit'
 import { ColorTokens, FontTokens, SpacingTokens } from '../common/styles/DesignTokens'
 import { StartupDecision } from './AppState'
 import { AppRoutes } from './AppRoutes'
 import ContentDatabaseService from '../shared/services/ContentDatabaseService'
+import ContentRepository from '../shared/services/ContentRepository'
 import GoalRepository from '../shared/services/GoalRepository'
 import PersistenceFallbackService from '../shared/services/PersistenceFallbackService'
+import SyncService from '../shared/services/SyncService'
 import SessionManager from '../common/services/SessionManager'
 
 @Entry
@@ -16,16 +19,22 @@ import SessionManager from '../common/services/SessionManager'
 export struct StartupPage {
   async aboutToAppear(): Promise<void> {
     try {
-      const isLoggedIn: boolean = await SessionManager.isLoggedIn(getContext(this))
+      const context: Context = getContext(this)
+      const isLoggedIn: boolean = await SessionManager.isLoggedIn(context)
       if (!isLoggedIn) {
         router.replaceUrl({ url: AppRoutes.LOGIN })
         return
       }
-      const contentLoaded: boolean = await ContentDatabaseService.loadDatabaseAndUse(getContext(this))
-      if (!contentLoaded) {
-        await ContentDatabaseService.importSeedAndUseDatabase(getContext(this))
+      try {
+        await ContentDatabaseService.loadDatabaseAndUse(context)
+        await SyncService.applyBundledPackageIfNeeded(context)
+        if (!ContentRepository.getContentSourceInfo().databaseBacked) {
+          await ContentDatabaseService.importSeedAndUseDatabase(context)
+        }
+      } catch (error) {
+        ContentRepository.useJsonlSeedSource()
       }
-      const hasGoal: boolean = await GoalRepository.hasSavedGoal(getContext(this))
+      const hasGoal: boolean = await GoalRepository.hasSavedGoal(context)
       if (!hasGoal && GoalRepository.getLastPersistenceError().length > 0) {
         PersistenceFallbackService.recordFallback(
           'goal',
