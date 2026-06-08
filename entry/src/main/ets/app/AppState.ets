@@ -7,6 +7,7 @@ import { AppRoutes } from './AppRoutes'
 
 export class FitTrackerStores {
   static readonly GOAL: string = 'fit_tracker_goal'
+  static readonly MONETIZATION: string = 'fit_tracker_entitlement'
   static readonly CONTENT: string = 'fit_tracker_content'
   static readonly CONTENT_SYNC: string = 'fit_tracker_content_sync'
   static readonly PLANS: string = 'fit_tracker_plans'
