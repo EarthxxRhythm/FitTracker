@@ -12,12 +12,21 @@ import TrainingPlanService, {
   TrainingDay
 } from '../../../common/services/TrainingPlanService'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
+import MonetizationGateService from '../../../shared/services/MonetizationGateService'
+import { MonetizationTier } from '../../../shared/models/MonetizationModels'
+import AdvancedPlanVariantsService, {
+  AdvancedPlanVariantCardViewModel,
+  AdvancedPlanVariantId,
+  AdvancedPlanVariantsPresentation,
+  AdvancedPlanVariantDraft
+} from '../../../shared/services/AdvancedPlanVariantsService'
 
 @Entry
 @Component
 export struct TrainingPlanDetailPage {
   @State loading: boolean = true
   @State enabling: boolean = false
+  @State enablingVariantId: string = ''
   @State hasPlan: boolean = false
   @State presetPlanId: string = ''
   @State title: string = ''
@@ -26,8 +35,14 @@ export struct TrainingPlanDetailPage {
   @State coverColor: string = ColorTokens.PRIMARY
   @State days: TrainingDay[] = []
   @State actionMessage: string = ''
+  @State advancedPlansPresentation: AdvancedPlanVariantsPresentation = AdvancedPlanVariantsService.createDefaultPresentation()
+  @State advancedPlansTier: MonetizationTier = 'free'
 
   aboutToAppear(): void {
+    this.loadPage()
+  }
+
+  async loadPage(): Promise<void> {
     const presetPlanId: string = this.getPresetPlanId()
     if (presetPlanId.length === 0) {
       this.loading = false
@@ -43,6 +58,7 @@ export struct TrainingPlanDetailPage {
     }
 
     this.applyPlan(presetPlan)
+    await this.loadAdvancedPlansPresentation(presetPlan)
     this.loading = false
   }
 
@@ -130,6 +146,55 @@ export struct TrainingPlanDetailPage {
     }
   }
 
+  async loadAdvancedPlansPresentation(plan: PresetPlan): Promise<void> {
+    try {
+      const gateResult = await MonetizationGateService.getGateResult(getContext(this), 'advanced_plans')
+      this.advancedPlansTier = gateResult.activeTier
+      this.advancedPlansPresentation = AdvancedPlanVariantsService.createPresentation(
+        plan,
+        !gateResult.allowed,
+        gateResult.activeTier
+      )
+    } catch (e) {
+      this.advancedPlansTier = 'free'
+      this.advancedPlansPresentation = AdvancedPlanVariantsService.createPresentation(plan, true, 'free')
+    }
+  }
+
+  async enableAdvancedVariant(variantId: AdvancedPlanVariantId): Promise<void> {
+    if (this.enablingVariantId.length > 0 || this.presetPlanId.length === 0) {
+      return
+    }
+    const presetPlan: PresetPlan | undefined = TrainingPlanService.getPresetPlanById(this.presetPlanId)
+    if (presetPlan === undefined) {
+      return
+    }
+
+    this.enablingVariantId = variantId
+    this.actionMessage = ''
+    const draft: AdvancedPlanVariantDraft = AdvancedPlanVariantsService.createVariantDraft(presetPlan, variantId)
+    const enabledPlan = await TrainingPlanService.enableCustomPlan(
+      getContext(this),
+      draft.name,
+      presetPlan.coverColor,
+      draft.targetAudience,
+      draft.weeklyFrequency,
+      draft.days
+    )
+    this.enablingVariantId = ''
+    if (enabledPlan === null) {
+      this.actionMessage = '启用高级变体失败，请稍后重试。'
+      return
+    }
+
+    this.actionMessage = '高级计划变体已启用，正在返回首页。'
+    try {
+      router.replaceUrl({ url: AppRoutes.HOME })
+    } catch (e) {
+      // stay on current page with success message
+    }
+  }
+
   openBack(): void {
     try {
       router.back()
@@ -140,6 +205,121 @@ export struct TrainingPlanDetailPage {
         // stay on current page
       }
     }
+  }
+
+  openMonetizationHub(): void {
+    try {
+      router.pushUrl({ url: AppRoutes.MONETIZATION_HUB })
+    } catch (e) {
+      // stay on current page
+    }
+  }
+
+  @Builder
+  buildAdvancedPlansSection() {
+    Column({ space: SpacingTokens.MD }) {
+      Row() {
+        Column({ space: SpacingTokens.XS }) {
+          Text(this.advancedPlansPresentation.title)
+            .fontSize(FontTokens.TITLE_SIZE)
+            .fontWeight(FontTokens.TITLE_WEIGHT)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
+            .width('100%')
+
+          Text(this.advancedPlansPresentation.description)
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+            .width('100%')
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
+
+        Text(this.advancedPlansPresentation.statusLabel)
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(this.advancedPlansPresentation.locked ? ColorTokens.WARNING : ColorTokens.SUCCESS)
+          .padding({
+            left: SpacingTokens.SM,
+            right: SpacingTokens.SM,
+            top: SpacingTokens.XS,
+            bottom: SpacingTokens.XS
+          })
+          .backgroundColor(this.advancedPlansPresentation.locked ? ColorTokens.WARNING_BG : ColorTokens.SUCCESS_BG)
+          .borderRadius(RadiusTokens.FULL)
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Top)
+
+      ForEach(this.advancedPlansPresentation.cards, (card: AdvancedPlanVariantCardViewModel) => {
+        Column({ space: SpacingTokens.SM }) {
+          Row() {
+            Text(card.badgeText)
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(card.locked ? ColorTokens.WARNING : ColorTokens.INFO)
+              .padding({
+                left: SpacingTokens.SM,
+                right: SpacingTokens.SM,
+                top: SpacingTokens.XS,
+                bottom: SpacingTokens.XS
+              })
+              .backgroundColor(card.locked ? ColorTokens.WARNING_BG : ColorTokens.INFO_BG)
+              .borderRadius(RadiusTokens.FULL)
+
+            Blank()
+
+            if (card.locked) {
+              Text('预览')
+                .fontSize(FontTokens.CAPTION_SIZE)
+                .fontColor(ColorTokens.TEXT_TERTIARY)
+            }
+          }
+          .width('100%')
+
+          Text(card.title)
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
+            .width('100%')
+
+          Text(card.summary)
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+            .width('100%')
+
+          Text(card.detail)
+            .fontSize(FontTokens.CAPTION_SIZE)
+            .fontColor(ColorTokens.TEXT_TERTIARY)
+            .width('100%')
+
+          Button(this.enablingVariantId === card.variantId ? '启用中...' : card.actionText)
+            .width('100%')
+            .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(card.locked ? ColorTokens.TEXT_PRIMARY : ColorTokens.TEXT_ON_PRIMARY)
+            .backgroundColor(card.locked ? ColorTokens.SURFACE_BUTTON_SECONDARY : this.coverColor)
+            .borderRadius(RadiusTokens.FULL)
+            .enabled(this.enablingVariantId.length === 0)
+            .onClick(() => {
+              if (card.locked) {
+                this.openMonetizationHub()
+                return
+              }
+              this.enableAdvancedVariant(card.variantId)
+            })
+        }
+        .width('100%')
+        .padding(SpacingTokens.MD)
+        .borderRadius(RadiusTokens.SM)
+        .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+        .border({
+          width: 1,
+          color: card.locked ? ColorTokens.BORDER_ACCENT : this.coverColor
+        })
+        .alignItems(HorizontalAlign.Start)
+      }, (card: AdvancedPlanVariantCardViewModel) => card.variantId)
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
   }
 
   build() {
@@ -218,6 +398,8 @@ export struct TrainingPlanDetailPage {
               color: this.coverColor
             })
             .alignItems(HorizontalAlign.Start)
+
+            this.buildAdvancedPlansSection()
 
             ForEach(this.days, (day: TrainingDay, dayIndex: number) => {
               Column({ space: SpacingTokens.SM }) {

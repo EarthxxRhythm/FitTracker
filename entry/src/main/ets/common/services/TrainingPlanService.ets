@@ -275,19 +275,40 @@ class TrainingPlanService {
     if (!preset) {
       return null
     }
-    const userPlan: UserPlan = {
-      id: `user_plan_${Date.now()}`,
-      name: preset.name,
-      coverColor: preset.coverColor,
-      targetAudience: preset.targetAudience,
-      weeklyFrequency: preset.weeklyFrequency,
-      days: JSON.parse(JSON.stringify(preset.days)),
-      enabledAt: Date.now()
-    }
+    const userPlan: UserPlan = this.createUserPlan(
+      preset.name,
+      preset.coverColor,
+      preset.targetAudience,
+      preset.weeklyFrequency,
+      preset.days
+    )
+    return this.enableUserPlan(context, userPlan)
+  }
+
+  async enableCustomPlan(
+    context: Context,
+    name: string,
+    coverColor: string,
+    targetAudience: string,
+    weeklyFrequency: string,
+    days: TrainingDay[]
+  ): Promise<UserPlan | null> {
+    const userPlan: UserPlan = this.createUserPlan(
+      name,
+      coverColor,
+      targetAudience,
+      weeklyFrequency,
+      days
+    )
+    return this.enableUserPlan(context, userPlan)
+  }
+
+  async enableUserPlan(context: Context, userPlan: UserPlan): Promise<UserPlan | null> {
     const myPlans = await this.getMyPlans(context)
-    myPlans.push(userPlan)
-    await this.replaceMyPlans(context, myPlans, userPlan.id)
-    return userPlan
+    const nextPlan: UserPlan = this.copyUserPlan(userPlan)
+    myPlans.push(nextPlan)
+    await this.replaceMyPlans(context, myPlans, nextPlan.id)
+    return nextPlan
   }
 
   async getMyPlans(context: Context): Promise<UserPlan[]> {
@@ -406,6 +427,25 @@ class TrainingPlanService {
       }
     }
     return false
+  }
+
+  private createUserPlan(
+    name: string,
+    coverColor: string,
+    targetAudience: string,
+    weeklyFrequency: string,
+    days: TrainingDay[]
+  ): UserPlan {
+    const plan: UserPlan = {
+      id: 'user_plan_' + Date.now().toString(),
+      name: name,
+      coverColor: coverColor,
+      targetAudience: targetAudience,
+      weeklyFrequency: weeklyFrequency,
+      days: this.copyTrainingDays(days),
+      enabledAt: Date.now()
+    }
+    return plan
   }
 
   private copyUserPlans(source: UserPlan[]): UserPlan[] {
