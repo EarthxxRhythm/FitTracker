@@ -66,13 +66,20 @@ class PremiumExerciseContentService {
     activeTier: MonetizationTier,
     detail: ExerciseDetailViewModel
   ): PremiumExerciseContentPresentation {
+    const statusLabel: string = activeTier === 'plus' ? 'Plus 已解锁' : '当前权益已解锁'
+    const description: string = activeTier === 'plus'
+      ? '当前 Plus 权益已解锁这部分高级训练指导。你现在可以直接按当前动作特征查看放置建议、进阶焦点和替代策略。'
+      : '当前权益已解锁这部分高级训练指导。你现在可以直接按当前动作特征查看放置建议、进阶焦点和替代策略。'
+    const supportingText: string = activeTier === 'plus'
+      ? '这部分训练指导由 Plus 提供，不改动当前免费动作详情。'
+      : '这部分训练指导已随当前权益开放，不改动当前免费动作详情。'
     const presentation: PremiumExerciseContentPresentation = {
       locked: false,
-      statusLabel: activeTier === 'plus' ? 'Plus 已解锁' : '已解锁',
+      statusLabel: statusLabel,
       title: '高级训练内容',
-      description: '这个动作的高级训练内容已开放。你现在可以直接按当前动作特征查看放置建议、进阶焦点和替代策略。',
-      actionText: '当前已解锁',
-      supportingText: '这部分只增强训练理解，不改动当前免费动作详情。',
+      description: description,
+      actionText: '查看当前权益',
+      supportingText: supportingText,
       tiles: [
         this.createTile('placement', '训练放置', this.getPlacementValue(detail), this.getPlacementNote(detail)),
         this.createTile('progression', '进阶焦点', this.getProgressionValue(detail), this.getProgressionNote(detail)),

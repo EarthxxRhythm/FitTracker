@@ -42,6 +42,8 @@ export default function premiumExerciseContentServiceTest(): void {
 
       expect(presentation.locked).assertFalse()
       expect(presentation.statusLabel).assertEqual('Plus 已解锁')
+      expect(presentation.description).assertContain('Plus 权益')
+      expect(presentation.actionText).assertEqual('查看当前权益')
       expect(presentation.tiles[0].label).assertEqual('训练放置')
       expect(presentation.tiles[0].value).assertEqual('安排在主训练前段')
       expect(presentation.tiles[1].value).assertEqual('下放要稳，推起时保持肩胛稳定')
