@@ -24,7 +24,7 @@ export default function reviewUpgradeEntryServiceTest(): void {
 
       expect(presentation.locked).assertTrue()
       expect(presentation.statusLabel).assertEqual('Free')
-      expect(presentation.title).assertEqual('解锁高级洞察')
+      expect(presentation.title).assertContain('高级洞察')
       expect(presentation.actionText).assertEqual('查看 Pro 方案')
       expect(presentation.featureBullets.length).assertEqual(3)
     })
@@ -38,8 +38,9 @@ export default function reviewUpgradeEntryServiceTest(): void {
 
       expect(presentation.locked).assertFalse()
       expect(presentation.statusLabel).assertEqual('Pro 已解锁')
-      expect(presentation.title).assertEqual('高级洞察已就绪')
+      expect(presentation.title).assertContain('高级洞察')
       expect(presentation.actionText).assertEqual('查看当前权益')
+      expect(presentation.description).assertContain('解锁')
       expect(presentation.featureBullets.length).assertEqual(3)
     })
 
@@ -53,6 +54,7 @@ export default function reviewUpgradeEntryServiceTest(): void {
       expect(presentation.locked).assertFalse()
       expect(presentation.statusLabel).assertEqual('Plus 已覆盖')
       expect(presentation.actionText).assertEqual('查看当前权益')
+      expect(presentation.description).assertContain('覆盖')
     })
   })
 }

@@ -78,7 +78,7 @@ class ReviewUpgradeEntryService {
     if (activeTier === 'plus') {
       return '当前 Plus 权益已覆盖高级洞察与后续扩展回顾能力。'
     }
-    return '当前 Pro 权益已覆盖高级洞察入口，后续增强分析会优先接到这里。'
+    return '当前 Pro 权益已解锁高级洞察入口，后续增强分析会优先接到这里。'
   }
 
   private createLockedDescription(sessionCount: number): string {

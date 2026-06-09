@@ -754,7 +754,7 @@ class MonetizationHubService {
       return '当前账号已拥有这一层级'
     }
     if (entitlement.tier === 'plus' && product.tier === 'pro') {
-      return '当前更高层级已覆盖这部分价值'
+      return '当前 Plus 权益已覆盖这部分能力'
     }
     if (entitlement.tier === 'pro' && product.tier === 'plus') {
       return '适合作为下一步升级方向'
