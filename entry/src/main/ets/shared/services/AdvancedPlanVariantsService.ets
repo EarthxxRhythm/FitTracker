@@ -155,7 +155,7 @@ class AdvancedPlanVariantsService {
   private createRecoveryCard(locked: boolean): AdvancedPlanVariantCardViewModel {
     const card: AdvancedPlanVariantCardViewModel = {
       variantId: 'recovery_friendly',
-      badgeText: 'Plus',
+      badgeText: 'Pro',
       title: '恢复优先变体',
       summary: '降低辅助动作负荷，优先保留技术与节奏。',
       detail: '适合疲劳偏高、睡眠不足或想把训练周做得更稳的时候使用。',
@@ -265,7 +265,7 @@ class AdvancedPlanVariantsService {
       return 'Free'
     }
     if (activeTier === 'plus') {
-      return 'Plus 已解锁'
+      return 'Plus 已覆盖'
     }
     return 'Pro 已解锁'
   }
@@ -276,7 +276,7 @@ class AdvancedPlanVariantsService {
       return planName + ' 现在可以继续直接使用。升级后，你可以在不改动训练主链的前提下切换不同训练策略。'
     }
     if (activeTier === 'plus') {
-      return '当前权益已解锁 ' + planName + ' 的高级计划变体。选一个更适合本周状态的版本，再启用到首页主训练入口。'
+      return '当前权益已覆盖 ' + planName + ' 的高级计划变体。选一个更适合本周状态的版本，再启用到首页主训练入口。'
     }
     return '当前权益已解锁 ' + planName + ' 的高级计划变体。你可以继续沿用原计划，也可以切成更聚焦的本周版本。'
   }

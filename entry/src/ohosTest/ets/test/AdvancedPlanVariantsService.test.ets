@@ -26,6 +26,7 @@ export default function advancedPlanVariantsServiceTest(): void {
       expect(presentation.statusLabel).assertEqual('Free')
       expect(presentation.cards.length).assertEqual(3)
       expect(presentation.cards[0].actionText).assertEqual('升级解锁')
+      expect(presentation.cards[2].badgeText).assertEqual('Pro')
     })
 
     it('creates an unlocked presentation for pro users', 0, () => {
@@ -35,6 +36,15 @@ export default function advancedPlanVariantsServiceTest(): void {
       expect(presentation.statusLabel).assertEqual('Pro 已解锁')
       expect(presentation.cards[1].locked).assertFalse()
       expect(presentation.cards[1].actionText).assertEqual('启用高密度')
+    })
+
+    it('marks plus as covering the same advanced-plan capability', 0, () => {
+      const presentation = AdvancedPlanVariantsService.createPresentation(getPresetPlan(), false, 'plus')
+
+      expect(presentation.locked).assertFalse()
+      expect(presentation.statusLabel).assertEqual('Plus 已覆盖')
+      expect(presentation.cards[0].badgeText).assertEqual('Pro')
+      expect(presentation.cards[2].badgeText).assertEqual('Pro')
     })
 
     it('builds a volume variant with additional top-exercise sets', 0, () => {
