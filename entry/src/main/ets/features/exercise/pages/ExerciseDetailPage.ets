@@ -17,6 +17,7 @@ import PremiumExerciseContentService, {
   PremiumExerciseContentTile
 } from '../../../shared/services/PremiumExerciseContentService'
 import { AppRoutes } from '../../../app/AppRoutes'
+import { MonetizationCapability } from '../../../shared/models/MonetizationModels'
 
 function createEmptyExerciseMediaMetadata(): ExerciseMediaMetadata {
   const metadata: ExerciseMediaMetadata = {
@@ -259,9 +260,15 @@ export struct ExerciseDetailPage {
     return '暂无训练提示'
   }
 
-  openMonetizationHub(): void {
+  openMonetizationHub(capability: MonetizationCapability, sourceLabel: string): void {
     try {
-      router.pushUrl({ url: AppRoutes.MONETIZATION_HUB })
+      router.pushUrl({
+        url: AppRoutes.MONETIZATION_HUB,
+        params: {
+          focusCapability: capability,
+          focusSourceLabel: sourceLabel
+        }
+      })
     } catch (e) {
       // stay on current page
     }
@@ -543,7 +550,7 @@ export struct ExerciseDetailPage {
             .backgroundColor(ColorTokens.SURFACE_BUTTON_SECONDARY)
             .borderRadius(RadiusTokens.FULL)
             .onClick(() => {
-              this.openMonetizationHub()
+              this.openMonetizationHub('premium_content', '动作详情')
             })
         }
       }

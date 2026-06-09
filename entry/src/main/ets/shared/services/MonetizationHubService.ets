@@ -7,6 +7,7 @@
 import { Context } from '@kit.AbilityKit'
 import {
   MonetizationBillingEnvironment,
+  MonetizationCapability,
   MonetizationEntitlement,
   MonetizationProduct,
   MonetizationTier,
@@ -51,12 +52,21 @@ export interface MonetizationPreviewOptionViewModel {
   selected: boolean
 }
 
+export interface MonetizationHubFocusContextViewModel {
+  active: boolean
+  sourceLabel: string
+  title: string
+  description: string
+  recommendedTierText: string
+}
+
 export interface MonetizationHubViewModel {
   tierText: string
   heroTitle: string
   heroDescription: string
   environmentText: string
   noticeText: string
+  focusContext: MonetizationHubFocusContextViewModel
   freeIncludedBullets: string[]
   currentEntitlementRows: MonetizationInfoRowViewModel[]
   previewEnabled: boolean
@@ -195,6 +205,23 @@ function copyPreviewOptions(source: MonetizationPreviewOptionViewModel[]): Monet
   return options
 }
 
+function createFocusContextViewModel(
+  active: boolean,
+  sourceLabel: string,
+  title: string,
+  description: string,
+  recommendedTierText: string
+): MonetizationHubFocusContextViewModel {
+  const item: MonetizationHubFocusContextViewModel = {
+    active: active,
+    sourceLabel: sourceLabel,
+    title: title,
+    description: description,
+    recommendedTierText: recommendedTierText
+  }
+  return item
+}
+
 function createMonetizationHubViewModel(
   tierText: string,
   heroTitle: string,
@@ -209,14 +236,20 @@ function createMonetizationHubViewModel(
   previewStatusText: string,
   previewOptions: MonetizationPreviewOptionViewModel[],
   offerCards: MonetizationOfferCardViewModel[],
-  roadmapItems: MonetizationRoadmapItemViewModel[]
+  roadmapItems: MonetizationRoadmapItemViewModel[],
+  focusContext?: MonetizationHubFocusContextViewModel
 ): MonetizationHubViewModel {
+  let resolvedFocusContext: MonetizationHubFocusContextViewModel = createFocusContextViewModel(false, '', '', '', '')
+  if (focusContext !== undefined) {
+    resolvedFocusContext = focusContext
+  }
   const item: MonetizationHubViewModel = {
     tierText: tierText,
     heroTitle: heroTitle,
     heroDescription: heroDescription,
     environmentText: environmentText,
     noticeText: noticeText,
+    focusContext: resolvedFocusContext,
     freeIncludedBullets: copyStringArray(freeIncludedBullets),
     currentEntitlementRows: copyInfoRows(currentEntitlementRows),
     previewEnabled: previewEnabled,
@@ -250,10 +283,15 @@ class MonetizationHubService {
     )
   }
 
-  async createViewModel(context: Context): Promise<MonetizationHubViewModel> {
+  async createViewModel(
+    context: Context,
+    focusCapability: MonetizationCapability | '' = '',
+    sourceLabel: string = ''
+  ): Promise<MonetizationHubViewModel> {
     const entitlement: MonetizationEntitlement = await MonetizationEntitlementService.readEntitlement(context)
     const products: MonetizationProduct[] = MonetizationCatalogService.getProducts()
     const environment: MonetizationBillingEnvironment = MonetizationCatalogService.getBillingEnvironment()
+    const focusContext: MonetizationHubFocusContextViewModel = this.createFocusContext(focusCapability, sourceLabel)
     return createMonetizationHubViewModel(
       this.getTierText(entitlement.tier),
       this.getHeroTitle(entitlement.tier),
@@ -271,8 +309,9 @@ class MonetizationHubService {
       '当前环境未接支付，可直接切换 Free / Pro / Plus 预览态，用来验证入口文案、降级态和后续页面消费逻辑。',
       this.getPreviewStatusText(entitlement),
       this.createPreviewOptions(entitlement.tier, environment),
-      this.createOfferCards(products, entitlement),
-      this.createRoadmapItems()
+      this.createOfferCards(products, entitlement, focusCapability),
+      this.createRoadmapItems(focusCapability),
+      focusContext
     )
   }
 
@@ -357,22 +396,24 @@ class MonetizationHubService {
 
   private createOfferCards(
     products: MonetizationProduct[],
-    entitlement: MonetizationEntitlement
+    entitlement: MonetizationEntitlement,
+    focusCapability: MonetizationCapability | ''
   ): MonetizationOfferCardViewModel[] {
     const cards: MonetizationOfferCardViewModel[] = []
     for (let index = 0; index < products.length; index++) {
       const product: MonetizationProduct = products[index]
-      cards.push(this.createOfferCard(product, entitlement))
+      cards.push(this.createOfferCard(product, entitlement, focusCapability))
     }
     return cards
   }
 
   private createOfferCard(
     product: MonetizationProduct,
-    entitlement: MonetizationEntitlement
+    entitlement: MonetizationEntitlement,
+    focusCapability: MonetizationCapability | ''
   ): MonetizationOfferCardViewModel {
     const current: boolean = entitlement.productId.length > 0 && entitlement.productId === product.productId
-    const highlighted: boolean = this.isHighlightedOffer(product, entitlement.tier)
+    const highlighted: boolean = this.isHighlightedOffer(product, entitlement.tier, focusCapability)
     return createOfferCardViewModel(
       product.productId,
       this.getOfferTitle(product.productId),
@@ -387,7 +428,7 @@ class MonetizationHubService {
     )
   }
 
-  private createRoadmapItems(): MonetizationRoadmapItemViewModel[] {
+  private createRoadmapItems(focusCapability: MonetizationCapability | ''): MonetizationRoadmapItemViewModel[] {
     const items: MonetizationRoadmapItemViewModel[] = []
     items.push(createRoadmapItemViewModel(
       'advanced_insights',
@@ -424,7 +465,82 @@ class MonetizationHubService {
       '后续阶段',
       '适合放在持续服务层，而不是本地买断层。'
     ))
+    if (focusCapability.length > 0) {
+      const sortedItems: MonetizationRoadmapItemViewModel[] = []
+      for (let index = 0; index < items.length; index++) {
+        if (items[index].capabilityKey === focusCapability) {
+          sortedItems.push(items[index])
+        }
+      }
+      for (let index = 0; index < items.length; index++) {
+        if (items[index].capabilityKey !== focusCapability) {
+          sortedItems.push(items[index])
+        }
+      }
+      return sortedItems
+    }
     return items
+  }
+
+  private createFocusContext(
+    focusCapability: MonetizationCapability | '',
+    sourceLabel: string
+  ): MonetizationHubFocusContextViewModel {
+    if (focusCapability === '') {
+      return createFocusContextViewModel(false, '', '', '', '')
+    }
+    if (focusCapability === 'advanced_plans') {
+      return createFocusContextViewModel(
+        true,
+        this.getFocusSourceLabel(sourceLabel, '训练计划详情'),
+        '继续当前计划，解锁高级变体',
+        '当前预置计划已经可以直接使用；升级后可在同一套计划上切到高容量、高密度或恢复优先版本。',
+        'Pro'
+      )
+    }
+    if (focusCapability === 'premium_content') {
+      return createFocusContextViewModel(
+        true,
+        this.getFocusSourceLabel(sourceLabel, '动作详情'),
+        '在动作详情里获得更深指导',
+        '基础动作说明保持免费；升级后可查看训练放置、进阶焦点、替代策略和更细的训练清单。',
+        'Plus'
+      )
+    }
+    if (focusCapability === 'unlimited_history') {
+      return createFocusContextViewModel(
+        true,
+        this.getFocusSourceLabel(sourceLabel, '训练回顾'),
+        '查看完整训练历史',
+        '当前回顾页优先保留近期训练可读性；升级后可放开完整历史筛选，支持更长周期复盘。',
+        'Pro'
+      )
+    }
+    if (focusCapability === 'advanced_insights') {
+      return createFocusContextViewModel(
+        true,
+        this.getFocusSourceLabel(sourceLabel, '训练回顾'),
+        '解锁更深的训练洞察',
+        '基础回顾仍然可用；升级后可继续查看更细的周趋势、动作 PR 线索和训练解释。',
+        'Pro'
+      )
+    }
+    if (focusCapability === 'cloud_sync') {
+      return createFocusContextViewModel(
+        true,
+        this.getFocusSourceLabel(sourceLabel, '设置与同步'),
+        '跨设备连续使用',
+        '这部分适合放在持续服务层，用来承接云同步、多设备延续和远端内容更新。',
+        'Plus'
+      )
+    }
+    return createFocusContextViewModel(
+      true,
+      this.getFocusSourceLabel(sourceLabel, '会员入口'),
+      '解锁更多高级能力',
+      '当前训练主链保持可用；升级层只承接更深分析、更强工具和后续持续服务。',
+      'Pro'
+    )
   }
 
   private isPreviewEnabled(environment: MonetizationBillingEnvironment): boolean {
@@ -530,7 +646,15 @@ class MonetizationHubService {
     return '当前显示真实默认态；切换后只影响本地预览，不改变免费主链边界。'
   }
 
-  private isHighlightedOffer(product: MonetizationProduct, tier: MonetizationTier): boolean {
+  private isHighlightedOffer(
+    product: MonetizationProduct,
+    tier: MonetizationTier,
+    focusCapability: MonetizationCapability | ''
+  ): boolean {
+    const focusedProductId: string = this.getFocusedProductId(focusCapability, tier)
+    if (focusedProductId.length > 0) {
+      return product.productId === focusedProductId
+    }
     if (tier === 'free') {
       return product.productId === 'fittracker_pro_lifetime'
     }
@@ -538,6 +662,37 @@ class MonetizationHubService {
       return product.productId === 'fittracker_plus_yearly'
     }
     return false
+  }
+
+  private getFocusedProductId(focusCapability: MonetizationCapability | '', tier: MonetizationTier): string {
+    if (tier === 'plus') {
+      return ''
+    }
+    if (focusCapability === 'premium_content' || focusCapability === 'cloud_sync') {
+      if (tier === 'free') {
+        return 'fittracker_plus_monthly'
+      }
+      return 'fittracker_plus_yearly'
+    }
+    if (
+      focusCapability === 'advanced_plans' ||
+      focusCapability === 'advanced_insights' ||
+      focusCapability === 'unlimited_history' ||
+      focusCapability === 'enhanced_goal_adjustment'
+    ) {
+      if (tier === 'free') {
+        return 'fittracker_pro_lifetime'
+      }
+      return 'fittracker_plus_yearly'
+    }
+    return ''
+  }
+
+  private getFocusSourceLabel(sourceLabel: string, fallbackLabel: string): string {
+    if (sourceLabel.length > 0) {
+      return sourceLabel
+    }
+    return fallbackLabel
   }
 
   private getOfferTitle(productId: string): string {

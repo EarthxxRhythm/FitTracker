@@ -10,6 +10,7 @@ import { AppButton } from '../../../components/AppButton'
 import { AppCard } from '../../../components/AppCard'
 import { PageHeader } from '../../../components/PageHeader'
 import { PrimaryDestinationStrip } from '../../../components/PrimaryDestinationStrip'
+import { MonetizationCapability } from '../../../shared/models/MonetizationModels'
 import MonetizationHubService, {
   MonetizationHubViewModel,
   MonetizationInfoRowViewModel,
@@ -25,19 +26,58 @@ export struct MonetizationHubPage {
   @State previewBusy: boolean = false
   @State previewActionStatusText: string = ''
   @State viewModel: MonetizationHubViewModel = MonetizationHubService.createEmptyViewModel()
+  @State focusCapability: MonetizationCapability | '' = ''
+  @State focusSourceLabel: string = ''
 
   async aboutToAppear(): Promise<void> {
+    this.readRouteContext()
     await this.reloadViewModel()
   }
 
   async reloadViewModel(): Promise<void> {
     this.loading = true
     try {
-      this.viewModel = await MonetizationHubService.createViewModel(getContext(this))
+      this.viewModel = await MonetizationHubService.createViewModel(
+        getContext(this),
+        this.focusCapability,
+        this.focusSourceLabel
+      )
     } catch (error) {
       this.viewModel = MonetizationHubService.createEmptyViewModel()
     }
     this.loading = false
+  }
+
+  readRouteContext(): void {
+    this.focusCapability = this.getFocusCapabilityFromParams()
+    this.focusSourceLabel = this.getFocusSourceLabelFromParams()
+  }
+
+  getFocusCapabilityFromParams(): MonetizationCapability | '' {
+    try {
+      const params = router.getParams() as Record<string, string>
+      const capability: string = params.focusCapability
+      if (capability === 'advanced_insights' || capability === 'unlimited_history' ||
+        capability === 'advanced_plans' || capability === 'cloud_sync' ||
+        capability === 'premium_content' || capability === 'enhanced_goal_adjustment') {
+        return capability
+      }
+    } catch (error) {
+      return ''
+    }
+    return ''
+  }
+
+  getFocusSourceLabelFromParams(): string {
+    try {
+      const params = router.getParams() as Record<string, string>
+      if (params.focusSourceLabel !== undefined) {
+        return params.focusSourceLabel
+      }
+    } catch (error) {
+      return ''
+    }
+    return ''
   }
 
   backToReview(): void {
@@ -119,6 +159,20 @@ export struct MonetizationHubPage {
     return ColorTokens.TEXT_PRIMARY
   }
 
+  getFocusTierBadgeBackgroundColor(): string {
+    if (this.viewModel.focusContext.recommendedTierText === 'Plus') {
+      return ColorTokens.OVERLAY_ACCENT
+    }
+    return ColorTokens.OVERLAY_PRIMARY
+  }
+
+  getFocusTierBadgeTextColor(): string {
+    if (this.viewModel.focusContext.recommendedTierText === 'Plus') {
+      return ColorTokens.ACCENT
+    }
+    return ColorTokens.PRIMARY
+  }
+
   async applyPreviewTier(tier: 'free' | 'pro' | 'plus'): Promise<void> {
     if (this.previewBusy) {
       return
@@ -145,6 +199,9 @@ export struct MonetizationHubPage {
         Column({ space: SpacingTokens.LG }) {
           PrimaryDestinationStrip({ currentKey: 'membership' })
           this.buildHeroSection()
+          if (this.viewModel.focusContext.active) {
+            this.buildFocusContextSection()
+          }
           this.buildCurrentEntitlementSection()
           if (this.viewModel.previewEnabled) {
             this.buildPreviewSection()
@@ -243,6 +300,52 @@ export struct MonetizationHubPage {
         ForEach(this.viewModel.currentEntitlementRows, (item: MonetizationInfoRowViewModel) => {
           this.buildInfoRow(item.label, item.value)
         }, (item: MonetizationInfoRowViewModel) => item.label)
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
+  }
+
+  @Builder
+  buildFocusContextSection() {
+    AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.MD }) {
+        Row() {
+          Column({ space: SpacingTokens.XS }) {
+            Text(this.viewModel.focusContext.sourceLabel)
+              .fontSize(FontTokens.MICRO_SIZE)
+              .fontWeight(FontTokens.MICRO_WEIGHT)
+              .fontColor(ColorTokens.TEXT_TERTIARY)
+
+            Text(this.viewModel.focusContext.title)
+              .fontSize(FontTokens.TITLE_SIZE)
+              .fontWeight(FontTokens.TITLE_WEIGHT)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+              .width('100%')
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+
+          Text(this.viewModel.focusContext.recommendedTierText)
+            .fontSize(FontTokens.SMALL_SIZE)
+            .fontColor(this.getFocusTierBadgeTextColor())
+            .padding({
+              top: SpacingTokens.XS,
+              bottom: SpacingTokens.XS,
+              left: SpacingTokens.SM,
+              right: SpacingTokens.SM
+            })
+            .backgroundColor(this.getFocusTierBadgeBackgroundColor())
+            .borderRadius(RadiusTokens.FULL)
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Top)
+
+        Text(this.viewModel.focusContext.description)
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+          .width('100%')
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)

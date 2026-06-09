@@ -47,7 +47,7 @@ import StatsDashboardService, {
 } from '../../../shared/services/StatsDashboardService'
 import WorkoutRepository from '../../../shared/services/WorkoutRepository'
 import { TrainingPlan, UserGoal, WorkoutSession } from '../../../shared/models/TrainingModels'
-import { MonetizationTier } from '../../../shared/models/MonetizationModels'
+import { MonetizationCapability, MonetizationTier } from '../../../shared/models/MonetizationModels'
 import SessionManager from '../../../common/services/SessionManager'
 import UserProfileService, { UserProfile, WeightUnit } from '../../../common/services/UserProfileService'
 import WorkoutSessionPersistenceBridgeService from '../../workout/services/WorkoutSessionPersistenceBridgeService'
@@ -320,9 +320,15 @@ export struct ReviewHomePage {
     }
   }
 
-  openMonetizationHub(): void {
+  openMonetizationHub(capability: MonetizationCapability, sourceLabel: string): void {
     try {
-      router.pushUrl({ url: AppRoutes.MONETIZATION_HUB })
+      router.pushUrl({
+        url: AppRoutes.MONETIZATION_HUB,
+        params: {
+          focusCapability: capability,
+          focusSourceLabel: sourceLabel
+        }
+      })
     } catch (e) {
       // stay on review
     }
@@ -332,7 +338,7 @@ export struct ReviewHomePage {
     const option: ReviewRecentSessionFilterOption | undefined = this.findRecentFilterOption(filterId)
     if (option !== undefined && option.locked) {
       this.historyUpgradeHintText = '全部历史记录已作为 Pro 权益开放。'
-      this.openMonetizationHub()
+      this.openMonetizationHub('unlimited_history', '最近训练筛选')
       return
     }
     this.selectedRecentFilterId = filterId
@@ -1332,7 +1338,7 @@ export struct ReviewHomePage {
           buttonSize: 'medium',
           block: true,
           onButtonClick: () => {
-            this.openMonetizationHub()
+            this.openMonetizationHub('advanced_insights', '训练回顾')
           }
         })
 
@@ -1423,7 +1429,7 @@ export struct ReviewHomePage {
             buttonSize: 'medium',
             block: true,
             onButtonClick: () => {
-              this.openMonetizationHub()
+              this.openMonetizationHub('advanced_insights', '训练回顾')
             }
           })
 
@@ -1483,7 +1489,7 @@ export struct ReviewHomePage {
               buttonSize: 'medium',
               block: true,
               onButtonClick: () => {
-                this.openMonetizationHub()
+                this.openMonetizationHub('advanced_insights', '训练回顾')
               }
             })
           }
