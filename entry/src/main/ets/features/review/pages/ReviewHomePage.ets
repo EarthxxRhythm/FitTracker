@@ -31,6 +31,10 @@ import ReviewInsightsService, {
   ReviewRecentSessionFilterOption,
   ReviewWeeklyTrendItem
 } from '../../../shared/services/ReviewInsightsService'
+import MonetizationGateService from '../../../shared/services/MonetizationGateService'
+import ReviewUpgradeEntryService, {
+  ReviewUpgradeEntryPresentation
+} from '../../../shared/services/ReviewUpgradeEntryService'
 import StatsDashboardService, {
   CalendarHeatmapDay,
   CalendarHeatmapRow,
@@ -94,6 +98,8 @@ export struct ReviewHomePage {
   @State adjustmentPreviewCurrentSummaryText: string = ''
   @State adjustmentPreviewNextSummaryText: string = ''
   @State adjustmentPreviewHighlights: string[] = []
+  @State advancedInsightsEntry: ReviewUpgradeEntryPresentation =
+    ReviewUpgradeEntryService.createDefaultAdvancedInsightsPresentation()
   currentGoal: UserGoal | undefined = undefined
   currentAdjustmentAction: ReviewGoalAdjustmentAction = ReviewDashboardService.createEmptyGoalAdjustmentAction()
   sessions: WorkoutSession[] = []
@@ -130,6 +136,7 @@ export struct ReviewHomePage {
     }
     this.refreshAdjustmentPreview()
     await this.loadProfile()
+    await this.loadAdvancedInsightsEntry()
     this.loading = false
   }
 
@@ -246,6 +253,19 @@ export struct ReviewHomePage {
     this.profileNickname = profile.nickname
     this.profileAvatar = profile.avatar
     this.profileWeightUnit = profile.weightUnit
+  }
+
+  async loadAdvancedInsightsEntry(): Promise<void> {
+    try {
+      const gateResult = await MonetizationGateService.getGateResult(getContext(this), 'advanced_insights')
+      this.advancedInsightsEntry = ReviewUpgradeEntryService.createAdvancedInsightsPresentation(
+        gateResult,
+        this.sessionCount,
+        this.weeklySessionCount
+      )
+    } catch (e) {
+      this.advancedInsightsEntry = ReviewUpgradeEntryService.createDefaultAdvancedInsightsPresentation()
+    }
   }
 
   selectRecentFilter(filterId: string): void {
@@ -1118,6 +1138,87 @@ export struct ReviewHomePage {
           this.buildMetric('完成率趋势', this.trendSummary.completionTrendText)
         }
         .width('100%')
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
+  }
+
+  getAdvancedInsightsStatusColor(): string {
+    if (this.advancedInsightsEntry.locked) {
+      return ColorTokens.WARNING
+    }
+    return ColorTokens.SUCCESS
+  }
+
+  getAdvancedInsightsStatusBackgroundColor(): string {
+    if (this.advancedInsightsEntry.locked) {
+      return ColorTokens.WARNING_BG
+    }
+    return ColorTokens.SUCCESS_BG
+  }
+
+  @Builder
+  buildAdvancedInsightsEntrySection() {
+    AppCard({ variant: 'panel', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.MD }) {
+        Row() {
+          Column({ space: SpacingTokens.XS }) {
+            Text('高级洞察入口')
+              .fontSize(FontTokens.MICRO_SIZE)
+              .fontWeight(FontTokens.MICRO_WEIGHT)
+              .fontColor(ColorTokens.TEXT_TERTIARY)
+
+            Text(this.advancedInsightsEntry.title)
+              .fontSize(FontTokens.TITLE_SIZE)
+              .fontWeight(FontTokens.TITLE_WEIGHT)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+
+          Text(this.advancedInsightsEntry.statusLabel)
+            .fontSize(FontTokens.SMALL_SIZE)
+            .fontColor(this.getAdvancedInsightsStatusColor())
+            .padding({
+              top: SpacingTokens.XS,
+              bottom: SpacingTokens.XS,
+              left: SpacingTokens.SM,
+              right: SpacingTokens.SM
+            })
+            .backgroundColor(this.getAdvancedInsightsStatusBackgroundColor())
+            .borderRadius(RadiusTokens.FULL)
+        }
+        .width('100%')
+
+        Text(this.advancedInsightsEntry.description)
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .width('100%')
+
+        Column({ space: SpacingTokens.XS }) {
+          ForEach(this.advancedInsightsEntry.featureBullets, (item: string) => {
+            Text('- ' + item)
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+              .width('100%')
+          }, (item: string) => item)
+        }
+        .width('100%')
+        .padding(SpacingTokens.MD)
+        .borderRadius(RadiusTokens.SM)
+        .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+        .alignItems(HorizontalAlign.Start)
+
+        Text(this.advancedInsightsEntry.actionText)
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+
+        Text(this.advancedInsightsEntry.supportingText)
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.TEXT_TERTIARY)
+          .width('100%')
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)
@@ -2149,6 +2250,7 @@ export struct ReviewHomePage {
 
             this.buildRecentTrainingSection()
             this.buildTrendSummary()
+            this.buildAdvancedInsightsEntrySection()
             this.buildWeeklyTrendSectionLab()
             this.buildRecordDetailSectionLab()
 
