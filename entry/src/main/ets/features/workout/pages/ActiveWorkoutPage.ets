@@ -18,6 +18,7 @@ import GoalRepository from '../../../shared/services/GoalRepository'
 import PlanEngine from '../../../shared/services/PlanEngine'
 import WorkoutPreviewService, { WorkoutPreviewSummary } from '../../../shared/services/WorkoutPreviewService'
 import WorkoutRepository from '../../../shared/services/WorkoutRepository'
+import WorkoutSessionPersistenceBridgeService from '../services/WorkoutSessionPersistenceBridgeService'
 
 @Entry
 @Component
@@ -201,19 +202,19 @@ export struct ActiveWorkoutPage {
     this.applyState(nextState)
   }
 
-  finishCurrentProgress(): void {
-    this.saveWorkout(this.exercises, this.completedSets)
+  async finishCurrentProgress(): Promise<void> {
+    await this.saveWorkout(this.exercises, this.completedSets)
   }
 
-  finishAllSets(): void {
+  async finishAllSets(): Promise<void> {
     const completedExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.markAllComplete(this.exercises)
     const completedSets: number = ActiveWorkoutService.countCompletedSets(completedExercises)
     this.exercises = completedExercises
     this.completedSets = completedSets
-    this.saveWorkout(completedExercises, completedSets)
+    await this.saveWorkout(completedExercises, completedSets)
   }
 
-  saveWorkout(exercises: ActiveWorkoutExercise[], completedSets: number): void {
+  async saveWorkout(exercises: ActiveWorkoutExercise[], completedSets: number): Promise<void> {
     if (!this.hasWorkout || completedSets <= 0) {
       return
     }
@@ -238,7 +239,11 @@ export struct ActiveWorkoutPage {
       endedAt,
       completedSets
     )
-    WorkoutRepository.saveSession(session)
+    try {
+      await WorkoutSessionPersistenceBridgeService.persistActiveWorkoutCompletion(getContext(this), session)
+    } catch (e) {
+      WorkoutRepository.saveSession(session)
+    }
     this.openSummary(sessionId)
   }
 

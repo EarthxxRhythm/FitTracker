@@ -14,6 +14,13 @@ import WorkoutSessionService, {
 } from '../../../common/services/WorkoutSessionService'
 
 class WorkoutSessionPersistenceBridgeService {
+  async persistActiveWorkoutCompletion(context: Context, session: WorkoutSession): Promise<void> {
+    await this.saveOrUpdateSession(context, session)
+    if (!WorkoutRepository.updateSession(session)) {
+      WorkoutRepository.saveSession(session)
+    }
+  }
+
   async saveOrUpdateSession(context: Context, session: WorkoutSession): Promise<void> {
     const legacySession: LegacyWorkoutSession = this.createLegacySession(session)
     const updated: boolean = await WorkoutSessionService.updateSession(context, legacySession)
