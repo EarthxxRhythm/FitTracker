@@ -17,6 +17,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 $ScriptRoot = $PSScriptRoot
+$HdcTargetsScriptPath = Join-Path $ScriptRoot "hdc-targets.ps1"
 $DefaultRunBase = Join-Path $ScriptRoot "..\midscene_run\focused"
 $TargetToken = $Target.Replace('-', '_')
 if ([string]::IsNullOrWhiteSpace($RunTag)) {
@@ -28,6 +29,11 @@ if ([string]::IsNullOrWhiteSpace($RunRoot)) {
 $RunRoot = [System.IO.Path]::GetFullPath($RunRoot)
 $RunSummaryPath = Join-Path $RunRoot $SummaryFileName
 $env:MIDSCENE_RUN_DIR = $RunRoot
+
+if (-not (Test-Path $HdcTargetsScriptPath)) {
+  throw ('Required script not found: ' + $HdcTargetsScriptPath)
+}
+. $HdcTargetsScriptPath
 
 function Get-LatestMidsceneReportHtmlPath {
   if (-not (Test-Path $RunRoot)) {
@@ -106,9 +112,17 @@ function Invoke-Step {
   Write-Host ('[FitTracker Focused Smoke] ' + $Title)
   $exe = $Command[0]
   $argsList = @($Command | Select-Object -Skip 1)
-  & $exe @argsList
+  $rawOutput = & $exe @argsList 2>&1
+  $outputText = (@($rawOutput) | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+  if ($outputText.Length -gt 0) {
+    Write-Host $outputText
+  }
   if ($LASTEXITCODE -ne 0) {
     throw ('Step failed: ' + $Title)
+  }
+  return @{
+    Output = $outputText
+    ExitCode = $LASTEXITCODE
   }
 }
 
@@ -368,7 +382,8 @@ $runStatus = "failed"
 $failureReason = ""
 
 try {
-  Invoke-Step -Title "check hdc targets" -Command @("hdc", "list", "targets")
+  $targetsResult = Invoke-Step -Title "check hdc targets" -Command @("hdc", "list", "targets", "-v")
+  Assert-HdcTargetsReady -RawOutput $targetsResult.Output -DeviceId $DeviceId
 
   if ($CheckOnly) {
     if (-not $SkipInstall -and -not (Test-Path $HapPath)) {
