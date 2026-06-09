@@ -81,6 +81,8 @@ export struct ReviewHomePage {
   @State heatmapRows: CalendarHeatmapRow[] = []
   @State recentFilterOptions: ReviewRecentSessionFilterOption[] = []
   @State selectedRecentFilterId: string = 'recent_7_days'
+  @State unlimitedHistoryUnlocked: boolean = false
+  @State historyUpgradeHintText: string = ''
   @State filteredRecentRecords: ReviewRecentSessionRecord[] = []
   @State weeklyTrends: ReviewWeeklyTrendItem[] = []
   @State selectedWeekId: string = ''
@@ -131,6 +133,7 @@ export struct ReviewHomePage {
     const statsSummary: StatsDashboardSummary = StatsDashboardService.createSummary(this.sessions, this.currentNow)
     this.applySummary(summary)
     this.applyStatsSummary(statsSummary)
+    await this.loadUnlimitedHistoryAccess()
     this.applyReviewInsights(this.sessions, this.currentNow)
     try {
       const goal: UserGoal | undefined = await GoalRepository.loadGoal(getContext(this))
@@ -151,13 +154,26 @@ export struct ReviewHomePage {
   }
 
   applyReviewInsights(sessions: WorkoutSession[], now: number): void {
-    const filters: ReviewRecentSessionFilterOption[] = ReviewInsightsService.createRecentFilters(sessions, now)
+    const filters: ReviewRecentSessionFilterOption[] = ReviewInsightsService.createRecentFilters(
+      sessions,
+      now,
+      this.unlimitedHistoryUnlocked
+    )
     this.recentFilterOptions = this.copyRecentFilterOptions(filters)
     if (!this.hasFilter(this.recentFilterOptions, this.selectedRecentFilterId)) {
       this.selectedRecentFilterId = this.recentFilterOptions.length > 0 ? this.recentFilterOptions[0].filterId : 'recent_7_days'
     }
+    this.selectedRecentFilterId = ReviewInsightsService.resolveFilterId(
+      this.selectedRecentFilterId,
+      this.unlimitedHistoryUnlocked
+    )
     this.filteredRecentRecords = this.copyRecentRecords(
-      ReviewInsightsService.filterRecentRecords(sessions, this.selectedRecentFilterId, now)
+      ReviewInsightsService.filterRecentRecords(
+        sessions,
+        this.selectedRecentFilterId,
+        now,
+        this.unlimitedHistoryUnlocked
+      )
     )
 
     const trendItems: ReviewWeeklyTrendItem[] = ReviewInsightsService.createWeeklyTrendItems(sessions, now)
@@ -187,6 +203,16 @@ export struct ReviewHomePage {
       }
     }
     return false
+  }
+
+  findRecentFilterOption(filterId: string): ReviewRecentSessionFilterOption | undefined {
+    for (let index = 0; index < this.recentFilterOptions.length; index++) {
+      const option: ReviewRecentSessionFilterOption = this.recentFilterOptions[index]
+      if (option.filterId === filterId) {
+        return option
+      }
+    }
+    return undefined
   }
 
   applyStatsSummary(summary: StatsDashboardSummary): void {
@@ -266,6 +292,15 @@ export struct ReviewHomePage {
     this.profileWeightUnit = profile.weightUnit
   }
 
+  async loadUnlimitedHistoryAccess(): Promise<void> {
+    try {
+      const gateResult = await MonetizationGateService.getGateResult(getContext(this), 'unlimited_history')
+      this.unlimitedHistoryUnlocked = gateResult.allowed
+    } catch (e) {
+      this.unlimitedHistoryUnlocked = false
+    }
+  }
+
   async loadAdvancedInsightsEntry(): Promise<void> {
     try {
       const gateResult = await MonetizationGateService.getGateResult(getContext(this), 'advanced_insights')
@@ -294,9 +329,21 @@ export struct ReviewHomePage {
   }
 
   selectRecentFilter(filterId: string): void {
+    const option: ReviewRecentSessionFilterOption | undefined = this.findRecentFilterOption(filterId)
+    if (option !== undefined && option.locked) {
+      this.historyUpgradeHintText = '全部历史记录已作为 Pro 权益开放。'
+      this.openMonetizationHub()
+      return
+    }
     this.selectedRecentFilterId = filterId
+    this.historyUpgradeHintText = ''
     this.filteredRecentRecords = this.copyRecentRecords(
-      ReviewInsightsService.filterRecentRecords(this.sessions, filterId, this.currentNow)
+      ReviewInsightsService.filterRecentRecords(
+        this.sessions,
+        filterId,
+        this.currentNow,
+        this.unlimitedHistoryUnlocked
+      )
     )
   }
 
@@ -803,7 +850,8 @@ export struct ReviewHomePage {
         filterId: option.filterId,
         label: option.label,
         description: option.description,
-        matchedSessionCount: option.matchedSessionCount
+        matchedSessionCount: option.matchedSessionCount,
+        locked: option.locked
       })
     }
     return options
@@ -976,16 +1024,16 @@ export struct ReviewHomePage {
   }
 
   @Builder
-  buildFilterButton(label: string, selected: boolean, countText: string, onTap: () => void) {
+  buildFilterButton(label: string, selected: boolean, countText: string, locked: boolean, onTap: () => void) {
     Button(label + ' · ' + countText)
       .height(TouchTokens.BUTTON_HEIGHT_SMALL)
       .fontSize(FontTokens.CAPTION_SIZE)
-      .fontColor(selected ? ColorTokens.TEXT_ON_PRIMARY : ColorTokens.TEXT_PRIMARY)
-      .backgroundColor(selected ? ColorTokens.PRIMARY : ColorTokens.SURFACE_SECONDARY)
+      .fontColor(selected ? ColorTokens.TEXT_ON_PRIMARY : (locked ? ColorTokens.WARNING : ColorTokens.TEXT_PRIMARY))
+      .backgroundColor(selected ? ColorTokens.PRIMARY : (locked ? ColorTokens.WARNING_BG : ColorTokens.SURFACE_SECONDARY))
       .borderRadius(RadiusTokens.MD)
       .border({
         width: 1,
-        color: selected ? ColorTokens.PRIMARY : ColorTokens.BORDER_SUBTLE
+        color: selected ? ColorTokens.PRIMARY : (locked ? ColorTokens.WARNING : ColorTokens.BORDER_SUBTLE)
       })
       .padding({ left: SpacingTokens.SM, right: SpacingTokens.SM })
       .margin({ right: SpacingTokens.SM, bottom: SpacingTokens.SM })
@@ -1140,7 +1188,8 @@ export struct ReviewHomePage {
           this.buildFilterButton(
             option.label,
             option.filterId === this.selectedRecentFilterId,
-            option.matchedSessionCount.toString(),
+            option.locked ? 'Pro' : option.matchedSessionCount.toString(),
+            option.locked,
             () => {
               this.selectRecentFilter(option.filterId)
             }
@@ -1148,6 +1197,13 @@ export struct ReviewHomePage {
         }, (option: ReviewRecentSessionFilterOption) => option.filterId)
       }
       .width('100%')
+
+      if (this.historyUpgradeHintText.length > 0) {
+        Text(this.historyUpgradeHintText)
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.WARNING)
+          .width('100%')
+      }
 
       if (this.filteredRecentRecords.length === 0) {
         Text('当前筛选条件下还没有训练记录。')
@@ -1553,6 +1609,7 @@ export struct ReviewHomePage {
             detail.exerciseName,
             detail.exerciseId === this.selectedExerciseId,
             detail.bestOneRepMax.toString() + 'kg',
+            false,
             () => {
               this.selectExerciseRecord(detail.exerciseId)
             }
@@ -1769,6 +1826,7 @@ export struct ReviewHomePage {
               detail.exerciseName,
               detail.exerciseId === this.selectedExerciseId,
               detail.bestOneRepMax.toString() + 'kg',
+              false,
               () => {
                 this.selectExerciseRecord(detail.exerciseId)
               }
