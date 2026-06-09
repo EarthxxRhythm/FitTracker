@@ -27,6 +27,7 @@ import persistenceFallbackServiceTest from './PersistenceFallbackService.test'
 import exerciseMediaResolverServiceTest from './ExerciseMediaResolverService.test'
 import monetizationEntitlementServiceTest from './MonetizationEntitlementService.test'
 import monetizationGateServiceTest from './MonetizationGateService.test'
+import reviewUpgradeEntryServiceTest from './ReviewUpgradeEntryService.test'
 import syncServiceTest from './SyncService.test'
 import startupContentSyncFlowTest from './StartupContentSyncFlow.test'
 import authSessionFlowTest from './AuthSessionFlow.test'
@@ -63,6 +64,7 @@ export default function testsuite(): void {
   exerciseMediaResolverServiceTest()
   monetizationEntitlementServiceTest()
   monetizationGateServiceTest()
+  reviewUpgradeEntryServiceTest()
   syncServiceTest()
   startupContentSyncFlowTest()
   authSessionFlowTest()

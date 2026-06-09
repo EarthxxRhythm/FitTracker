@@ -41,7 +41,7 @@
     "id": "performance-lab-001",
     "title": "恢复 HDC 后重跑主训练 focused smoke",
     "lane": "performance-lab",
-    "status": "blocked",
+    "status": "done",
     "priority": 30,
     "dependsOn": [],
     "requires": ["device"],
@@ -80,11 +80,12 @@
     "status": "blocked",
     "priority": 50,
     "dependsOn": [],
-    "requires": ["decision"],
+    "requires": ["repo-only"],
     "summary": "明确第一批 UI 接点是 advanced insights、premium content 还是 cloud sync gate。",
     "validation": [
-      "docs/monetization-spec-v1.md",
-      "docs/monetization-technical-design-v1.md"
+      "node tools/check-gates.mjs",
+      "powershell -ExecutionPolicy Bypass -Command \"& { . .\\tools\\deveco-env.ps1; & 'C:\\Program Files\\Huawei\\DevEco Studio\\tools\\hvigor\\bin\\hvigorw.bat' --stop-daemon; & 'C:\\Program Files\\Huawei\\DevEco Studio\\tools\\hvigor\\bin\\hvigorw.bat' assembleHap --mode module -p module=entry@default -p product=default --no-parallel }\"",
+      "powershell -ExecutionPolicy Bypass -Command \"& { . .\\tools\\deveco-env.ps1; & 'C:\\Program Files\\Huawei\\DevEco Studio\\tools\\hvigor\\bin\\hvigorw.bat' --stop-daemon; & 'C:\\Program Files\\Huawei\\DevEco Studio\\tools\\hvigor\\bin\\hvigorw.bat' assembleHap --mode module -p module=entry@ohosTest -p product=default --no-parallel }\""
     ],
     "doneDefinition": [
       "确定首批页面接点",
