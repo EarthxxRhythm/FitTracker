@@ -44,7 +44,7 @@ $HvigorwPath = "C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.b
 
 $PresetClassMap = @{
   'backup' = @('UserDataBackupService', 'SystemBackupBridgeService')
-  'content-sync' = @('ContentDatabaseService', 'SyncService')
+  'content-sync' = @('ContentDatabaseService', 'SyncService', 'StartupContentSyncFlow')
   'full' = @()
 }
 
@@ -461,11 +461,6 @@ $report = New-TestReport
 
 try {
   Ensure-DevEcoEnvironment
-  $targetsResult = Invoke-HdcCommand -Title 'check hdc targets' -Arguments @('list', 'targets')
-  if (-not (Test-HdcTargetsAvailable -RawOutput $targetsResult.Output)) {
-    throw 'No HDC targets are connected. Connect a device or simulator before running ohosTest.'
-  }
-
   if ($CheckOnly) {
     if (-not $SkipBuild) {
       if (-not (Test-Path $HvigorwPath)) {
@@ -481,6 +476,11 @@ try {
     Write-Host '[FitTracker OhosTest] Check-only passed. Run without -CheckOnly to execute Hypium tests.'
     $runStatus = 'check-only'
     return
+  }
+
+  $targetsResult = Invoke-HdcCommand -Title 'check hdc targets' -Arguments @('list', 'targets')
+  if (-not (Test-HdcTargetsAvailable -RawOutput $targetsResult.Output)) {
+    throw 'No HDC targets are connected. Connect a device or simulator before running ohosTest.'
   }
 
   if (Test-ShouldBuild) {

@@ -1,3 +1,6 @@
+/**
+ * StartupContentSyncFlow.test -- startup content sync orchestration coverage.
+ */
 import { abilityDelegatorRegistry } from '@kit.TestKit'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from '@ohos/hypium'
 import {
@@ -5,7 +8,6 @@ import {
   ContentSyncMetadata,
   ExerciseContent,
   createContentSyncManifest,
-  createContentSyncMetadata,
   createExerciseContent
 } from '../../../main/ets/shared/models/TrainingModels'
 import {
@@ -16,9 +18,10 @@ import {
 } from '../../../main/ets/generated/LocalContentSyncPackage'
 import ContentDatabaseService from '../../../main/ets/shared/services/ContentDatabaseService'
 import ContentRepository from '../../../main/ets/shared/services/ContentRepository'
+import StartupContentSyncService from '../../../main/ets/shared/services/StartupContentSyncService'
 import SyncService, { ContentSyncMetadataStore } from '../../../main/ets/shared/services/SyncService'
 
-const SYNC_SERVICE_TEST_DB_NAME: string = 'fittracker_content_sync_service_test_' + Date.now().toString() + '.db'
+const STARTUP_CONTENT_SYNC_TEST_DB_NAME: string = 'fittracker_startup_content_sync_test_' + Date.now().toString() + '.db'
 
 class FakeContentSyncMetadataStore extends ContentSyncMetadataStore {
   private metadataJson: string = ''
@@ -91,14 +94,12 @@ function createVersionedExercises(contentVersion: number): ExerciseContent[] {
 }
 
 function createManifest(
-  syncSchemaVersion: number,
-  packageKind: string,
   packageVersion: number,
   exerciseCount: number
 ): ContentSyncManifest {
   return createContentSyncManifest(
-    syncSchemaVersion,
-    packageKind,
+    BUNDLED_CONTENT_SYNC_MANIFEST.syncSchemaVersion,
+    BUNDLED_CONTENT_SYNC_MANIFEST.packageKind,
     packageVersion,
     BUNDLED_CONTENT_SYNC_MANIFEST.packageUrl,
     BUNDLED_CONTENT_SYNC_MANIFEST.packageChecksum,
@@ -110,18 +111,20 @@ function createManifest(
   )
 }
 
-export default function syncServiceTest(): void {
+export default function startupContentSyncFlowTest(): void {
   const fakeStore = new FakeContentSyncMetadataStore()
 
-  describe('SyncService', () => {
+  describe('StartupContentSyncFlow', () => {
     beforeAll(() => {
-      ContentDatabaseService.setDatabaseNameForTesting(SYNC_SERVICE_TEST_DB_NAME)
+      ContentDatabaseService.setDatabaseNameForTesting(STARTUP_CONTENT_SYNC_TEST_DB_NAME)
       SyncService.setStoreForTesting(fakeStore)
     })
 
     beforeEach(async () => {
       fakeStore.clear()
       SyncService.clearBundledPackageForTesting()
+      ContentDatabaseService.clearSeedPackageForTesting()
+      StartupContentSyncService.setFailBeforeSyncForTesting(false)
       ContentRepository.useJsonlSeedSource()
       await ContentDatabaseService.clearDatabaseForTesting(getTestContext())
     })
@@ -129,118 +132,104 @@ export default function syncServiceTest(): void {
     afterAll(() => {
       SyncService.clearBundledPackageForTesting()
       SyncService.setStoreForTesting(null)
+      ContentDatabaseService.clearSeedPackageForTesting()
+      StartupContentSyncService.setFailBeforeSyncForTesting(false)
       ContentRepository.useJsonlSeedSource()
       ContentDatabaseService.setDatabaseNameForTesting('')
     })
 
-    it('returns local available status when no metadata has been stored yet', 0, async () => {
-      const metadata: ContentSyncMetadata = await SyncService.readMetadata(getTestContext())
-      const status = await SyncService.getSyncStatus(getTestContext())
-
-      expect(metadata.status).assertEqual('local_available')
-      expect(status.status).assertEqual('local_available')
-      expect(status.activeSourceId).assertEqual('jsonl_seed')
-      expect(status.remoteVersion).assertEqual(BUNDLED_CONTENT_SYNC_MANIFEST.packageVersion)
-    })
-
-    it('records manifest unsupported status when bundled schema is invalid', 0, async () => {
-      SyncService.setBundledPackageForTesting(
-        createManifest(99, 'full', 2, BUNDLED_CONTENT_SYNC_EXERCISES.length),
-        BUNDLED_CONTENT_SYNC_MUSCLES,
-        BUNDLED_CONTENT_SYNC_EQUIPMENT,
-        createVersionedExercises(2)
-      )
-
-      const status = await SyncService.applyBundledPackageIfNeeded(getTestContext())
-      const metadata: ContentSyncMetadata = await SyncService.readMetadata(getTestContext())
-
-      expect(status.status).assertEqual('manifest_unsupported')
-      expect(status.failureReason).assertEqual('unsupported_schema')
-      expect(metadata.status).assertEqual('manifest_unsupported')
-      expect(ContentRepository.getContentSourceInfo().sourceId).assertEqual('jsonl_seed')
-    })
-
-    it('records manifest unsupported status when bundled package kind is not supported', 0, async () => {
-      SyncService.setBundledPackageForTesting(
-        createManifest(1, 'delta', 2, BUNDLED_CONTENT_SYNC_EXERCISES.length),
-        BUNDLED_CONTENT_SYNC_MUSCLES,
-        BUNDLED_CONTENT_SYNC_EQUIPMENT,
-        createVersionedExercises(2)
-      )
-
-      const status = await SyncService.applyBundledPackageIfNeeded(getTestContext())
-      const metadata: ContentSyncMetadata = await SyncService.readMetadata(getTestContext())
-
-      expect(status.status).assertEqual('manifest_unsupported')
-      expect(status.failureReason).assertEqual('unsupported_kind')
-      expect(metadata.status).assertEqual('manifest_unsupported')
-      expect(metadata.failureReason).assertEqual('unsupported_kind')
-      expect(ContentRepository.getContentSourceInfo().sourceId).assertEqual('jsonl_seed')
-    })
-
-    it('records manifest unsupported status when bundled manifest fields are invalid', 0, async () => {
-      SyncService.setBundledPackageForTesting(
-        createManifest(1, 'full', 0, BUNDLED_CONTENT_SYNC_EXERCISES.length),
-        BUNDLED_CONTENT_SYNC_MUSCLES,
-        BUNDLED_CONTENT_SYNC_EQUIPMENT,
-        createVersionedExercises(2)
-      )
-
-      const status = await SyncService.applyBundledPackageIfNeeded(getTestContext())
-      const metadata: ContentSyncMetadata = await SyncService.readMetadata(getTestContext())
-
-      expect(status.status).assertEqual('manifest_unsupported')
-      expect(status.failureReason).assertEqual('invalid_manifest')
-      expect(metadata.status).assertEqual('manifest_unsupported')
-      expect(metadata.failureReason).assertEqual('invalid_manifest')
-      expect(ContentRepository.getContentSourceInfo().sourceId).assertEqual('jsonl_seed')
-    })
-
-    it('marks bundled package as up to date when version does not exceed current local content', 0, async () => {
-      const status = await SyncService.applyBundledPackageIfNeeded(getTestContext())
-      const metadata: ContentSyncMetadata = await SyncService.readMetadata(getTestContext())
-
-      expect(status.status).assertEqual('up_to_date')
-      expect(metadata.status).assertEqual('up_to_date')
-      expect(ContentRepository.getContentSourceInfo().sourceId).assertEqual('jsonl_seed')
-    })
-
-    it('imports a higher bundled package version and persists applied metadata', 0, async () => {
-      const upgradedExercises: ExerciseContent[] = createVersionedExercises(2)
-      SyncService.setBundledPackageForTesting(
-        createManifest(1, 'full', 2, upgradedExercises.length),
-        BUNDLED_CONTENT_SYNC_MUSCLES,
-        BUNDLED_CONTENT_SYNC_EQUIPMENT,
-        upgradedExercises
-      )
-
-      const status = await SyncService.applyBundledPackageIfNeeded(getTestContext())
+    it('imports bundled content on first startup and records applied metadata', 0, async () => {
+      const status = await StartupContentSyncService.prepareContent(getTestContext())
       const metadata: ContentSyncMetadata = await SyncService.readMetadata(getTestContext())
 
       expect(status.status).assertEqual('sync_applied')
       expect(status.activeSourceId).assertEqual('local_database')
-      expect(status.localVersion).assertEqual(2)
       expect(metadata.status).assertEqual('sync_applied')
       expect(metadata.lastAppliedAt > 0).assertTrue()
+      expect(ContentRepository.getContentSourceInfo().sourceId).assertEqual('local_database')
+      expect(ContentRepository.getExercises().length).assertEqual(BUNDLED_CONTENT_SYNC_MANIFEST.exerciseCount)
     })
 
-    it('records sync failure when package import self-check fails', 0, async () => {
+    it('loads the existing database on the next startup pass and stays up to date', 0, async () => {
+      await StartupContentSyncService.prepareContent(getTestContext())
+
+      ContentRepository.useJsonlSeedSource()
+      const status = await StartupContentSyncService.prepareContent(getTestContext())
+      const metadata: ContentSyncMetadata = await SyncService.readMetadata(getTestContext())
+
+      expect(status.status).assertEqual('up_to_date')
+      expect(status.activeSourceId).assertEqual('local_database')
+      expect(metadata.status).assertEqual('up_to_date')
+      expect(ContentRepository.getContentSourceInfo().sourceId).assertEqual('local_database')
+    })
+
+    it('keeps the existing database when a startup upgrade attempt fails', 0, async () => {
+      await StartupContentSyncService.prepareContent(getTestContext())
+
       const upgradedExercises: ExerciseContent[] = createVersionedExercises(2)
       SyncService.setBundledPackageForTesting(
-        createManifest(1, 'full', 3, upgradedExercises.length),
+        createManifest(3, upgradedExercises.length),
         BUNDLED_CONTENT_SYNC_MUSCLES,
         BUNDLED_CONTENT_SYNC_EQUIPMENT,
         upgradedExercises
       )
 
-      const status = await SyncService.applyBundledPackageIfNeeded(getTestContext())
+      ContentRepository.useJsonlSeedSource()
+      const status = await StartupContentSyncService.prepareContent(getTestContext())
+      const metadata: ContentSyncMetadata = await SyncService.readMetadata(getTestContext())
+
+      expect(status.status).assertEqual('sync_failed')
+      expect(status.failureReason).assertEqual('content_version_mismatch')
+      expect(status.activeSourceId).assertEqual('local_database')
+      expect(metadata.status).assertEqual('sync_failed')
+      expect(ContentRepository.getContentSourceInfo().sourceId).assertEqual('local_database')
+      expect(ContentRepository.getExercises().length).assertEqual(BUNDLED_CONTENT_SYNC_MANIFEST.exerciseCount)
+    })
+
+    it('falls back to JSONL when startup has no database and bundled imports fail', 0, async () => {
+      const upgradedExercises: ExerciseContent[] = createVersionedExercises(2)
+      const mismatchedManifest: ContentSyncManifest = createManifest(3, upgradedExercises.length)
+      SyncService.setBundledPackageForTesting(
+        mismatchedManifest,
+        BUNDLED_CONTENT_SYNC_MUSCLES,
+        BUNDLED_CONTENT_SYNC_EQUIPMENT,
+        upgradedExercises
+      )
+      ContentDatabaseService.setSeedPackageForTesting(
+        mismatchedManifest,
+        BUNDLED_CONTENT_SYNC_MUSCLES,
+        BUNDLED_CONTENT_SYNC_EQUIPMENT,
+        upgradedExercises
+      )
+
+      const status = await StartupContentSyncService.prepareContent(getTestContext())
       const metadata: ContentSyncMetadata = await SyncService.readMetadata(getTestContext())
 
       expect(status.status).assertEqual('sync_failed')
       expect(status.failureReason).assertEqual('content_version_mismatch')
       expect(status.activeSourceId).assertEqual('jsonl_seed')
       expect(metadata.status).assertEqual('sync_failed')
-      expect(metadata.failureReason).assertEqual('content_version_mismatch')
+      expect(ContentRepository.getContentSourceInfo().sourceId).assertEqual('jsonl_seed')
+    })
+
+    it('falls back to JSONL sync status when startup orchestration throws before sync application', 0, async () => {
+      await ContentDatabaseService.importPackageAndUseDatabase(
+        getTestContext(),
+        BUNDLED_CONTENT_SYNC_MANIFEST,
+        BUNDLED_CONTENT_SYNC_MUSCLES,
+        BUNDLED_CONTENT_SYNC_EQUIPMENT,
+        BUNDLED_CONTENT_SYNC_EXERCISES
+      )
+
+      ContentRepository.useJsonlSeedSource()
+      StartupContentSyncService.setFailBeforeSyncForTesting(true)
+      const status = await StartupContentSyncService.prepareContent(getTestContext())
+      const metadata: ContentSyncMetadata = await SyncService.readMetadata(getTestContext())
+
+      expect(status.status).assertEqual('local_available')
+      expect(status.activeSourceId).assertEqual('jsonl_seed')
+      expect(metadata.status).assertEqual('local_available')
+      expect(ContentRepository.getContentSourceInfo().sourceId).assertEqual('jsonl_seed')
     })
   })
 }

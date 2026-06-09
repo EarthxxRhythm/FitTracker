@@ -7,11 +7,10 @@ import { Context } from '@kit.AbilityKit'
 import { ColorTokens, FontTokens, SpacingTokens } from '../common/styles/DesignTokens'
 import { StartupDecision } from './AppState'
 import { AppRoutes } from './AppRoutes'
-import ContentDatabaseService from '../shared/services/ContentDatabaseService'
 import ContentRepository from '../shared/services/ContentRepository'
 import GoalRepository from '../shared/services/GoalRepository'
 import PersistenceFallbackService from '../shared/services/PersistenceFallbackService'
-import SyncService from '../shared/services/SyncService'
+import StartupContentSyncService from '../shared/services/StartupContentSyncService'
 import SessionManager from '../common/services/SessionManager'
 
 @Entry
@@ -26,11 +25,7 @@ export struct StartupPage {
         return
       }
       try {
-        await ContentDatabaseService.loadDatabaseAndUse(context)
-        await SyncService.applyBundledPackageIfNeeded(context)
-        if (!ContentRepository.getContentSourceInfo().databaseBacked) {
-          await ContentDatabaseService.importSeedAndUseDatabase(context)
-        }
+        await StartupContentSyncService.prepareContent(context)
       } catch (error) {
         ContentRepository.useJsonlSeedSource()
       }

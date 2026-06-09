@@ -129,6 +129,15 @@ export default function contentDatabaseServiceTest(): void {
       expect(ContentRepository.getExercises().length).assertEqual(BUNDLED_CONTENT_SYNC_MANIFEST.exerciseCount)
     })
 
+    it('returns false and keeps JSONL when startup load sees an empty database', 0, async () => {
+      const loaded: boolean = await ContentDatabaseService.loadDatabaseAndUse(getTestContext())
+
+      expect(loaded).assertFalse()
+      expect(ContentDatabaseService.getLastImportFailureReason()).assertEqual('')
+      expect(ContentRepository.getContentSourceInfo().sourceId).assertEqual('jsonl_seed')
+      expect(ContentRepository.getExercises().length).assertEqual(BUNDLED_CONTENT_SYNC_MANIFEST.exerciseCount)
+    })
+
     it('rejects stored database content when the bundled manifest self-check fails on startup', 0, async () => {
       const upgradedVersion: number = BUNDLED_CONTENT_SYNC_MANIFEST.packageVersion + 1
       const upgradedExercises: ExerciseContent[] = createVersionedExercises(upgradedVersion)
@@ -201,6 +210,38 @@ export default function contentDatabaseServiceTest(): void {
       expect(ContentDatabaseService.getLastImportFailureReason()).assertEqual('content_version_mismatch')
       expect(ContentRepository.getContentSourceInfo().sourceId).assertEqual('jsonl_seed')
       expect(ContentRepository.getLocalContentVersion()).assertEqual(BUNDLED_CONTENT_SYNC_MANIFEST.packageVersion)
+    })
+
+    it('does not pollute the stored database when staged import validation fails', 0, async () => {
+      await ContentDatabaseService.importPackageAndUseDatabase(
+        getTestContext(),
+        BUNDLED_CONTENT_SYNC_MANIFEST,
+        BUNDLED_CONTENT_SYNC_MUSCLES,
+        BUNDLED_CONTENT_SYNC_EQUIPMENT,
+        BUNDLED_CONTENT_SYNC_EXERCISES
+      )
+
+      const versionedExercises: ExerciseContent[] = createVersionedExercises(2)
+      const mismatchedVersionManifest: ContentSyncManifest = createManifest(3, versionedExercises.length)
+      const imported: boolean = await ContentDatabaseService.importPackageAndUseDatabase(
+        getTestContext(),
+        mismatchedVersionManifest,
+        BUNDLED_CONTENT_SYNC_MUSCLES,
+        BUNDLED_CONTENT_SYNC_EQUIPMENT,
+        versionedExercises
+      )
+
+      expect(imported).assertFalse()
+      expect(ContentDatabaseService.getLastImportFailureReason()).assertEqual('content_version_mismatch')
+      expect(ContentRepository.getContentSourceInfo().sourceId).assertEqual('local_database')
+
+      ContentRepository.useJsonlSeedSource()
+      const loaded: boolean = await ContentDatabaseService.loadDatabaseAndUse(getTestContext())
+
+      expect(loaded).assertTrue()
+      expect(ContentRepository.getContentSourceInfo().sourceId).assertEqual('local_database')
+      expect(ContentRepository.getLocalContentVersion()).assertEqual(BUNDLED_CONTENT_SYNC_MANIFEST.packageVersion)
+      expect(ContentRepository.getExercises().length).assertEqual(BUNDLED_CONTENT_SYNC_MANIFEST.exerciseCount)
     })
   })
 }
