@@ -1,5 +1,5 @@
 /**
- * ReviewInsightsService —— training review insights for weekly trends and filtered recent sessions.
+ * ReviewInsightsService -- training review insights for weekly trends and filtered recent sessions.
  *
  * Function #14: recent workout filters and weekly trend details.
  */
@@ -13,6 +13,7 @@ export class ReviewRecentSessionFilterOption {
   label: string = ''
   description: string = ''
   matchedSessionCount: number = 0
+  locked: boolean = false
 }
 
 export class ReviewWeeklyTrendItem {
@@ -35,21 +36,38 @@ class ReviewInsightsService {
   private readonly weeklyTrendLimit: number = 6
   private currentReferenceTime: number = 0
 
-  createRecentFilters(sessions: WorkoutSession[], now: number): ReviewRecentSessionFilterOption[] {
+  createRecentFilters(
+    sessions: WorkoutSession[],
+    now: number,
+    unlimitedHistoryUnlocked: boolean
+  ): ReviewRecentSessionFilterOption[] {
     this.currentReferenceTime = now
     const filters: ReviewRecentSessionFilterOption[] = []
-    filters.push(this.createFilterOption('recent_7_days', '最近 7 天', '聚焦最近一周训练', sessions, now))
-    filters.push(this.createFilterOption('recent_30_days', '最近 30 天', '看近一个月节奏', sessions, now))
-    filters.push(this.createFilterOption('all_sessions', '全部记录', '查看所有已保存训练', sessions, now))
+    filters.push(this.createFilterOption('recent_7_days', '最近 7 天', '聚焦最近一周训练', sessions, now, false))
+    filters.push(this.createFilterOption('recent_30_days', '最近 30 天', '看近一个月节奏', sessions, now, false))
+    filters.push(this.createFilterOption(
+      'all_sessions',
+      '全部记录',
+      unlimitedHistoryUnlocked ? '查看所有已保存训练' : '升级 Pro 后查看全部历史记录',
+      sessions,
+      now,
+      !unlimitedHistoryUnlocked
+    ))
     return filters
   }
 
-  filterRecentRecords(sessions: WorkoutSession[], filterId: string, now: number): ReviewRecentSessionRecord[] {
+  filterRecentRecords(
+    sessions: WorkoutSession[],
+    filterId: string,
+    now: number,
+    unlimitedHistoryUnlocked: boolean
+  ): ReviewRecentSessionRecord[] {
     this.currentReferenceTime = now
+    const resolvedFilterId: string = this.resolveFilterId(filterId, unlimitedHistoryUnlocked)
     const filteredSessions: WorkoutSession[] = []
     for (let index = sessions.length - 1; index >= 0; index--) {
       const session: WorkoutSession = sessions[index]
-      if (this.matchesFilter(session, filterId, now)) {
+      if (this.matchesFilter(session, resolvedFilterId, now)) {
         filteredSessions.push(session)
       }
       if (filteredSessions.length >= this.recentRecordLimit) {
@@ -62,6 +80,13 @@ class ReviewInsightsService {
       records.push(this.createRecentRecord(filteredSessions[index]))
     }
     return records
+  }
+
+  resolveFilterId(filterId: string, unlimitedHistoryUnlocked: boolean): string {
+    if (filterId === 'all_sessions' && !unlimitedHistoryUnlocked) {
+      return 'recent_30_days'
+    }
+    return filterId
   }
 
   createWeeklyTrendItems(sessions: WorkoutSession[], now: number): ReviewWeeklyTrendItem[] {
@@ -98,7 +123,7 @@ class ReviewInsightsService {
       completionText: '0/0 组',
       averageSessionText: '0 分钟/次',
       dominantDayId: '',
-      summaryText: '完成训练后，这里会开始累计周趋势。'
+      summaryText: '完成训练后，这里会开始累积周趋势。'
     }
     return item
   }
@@ -108,7 +133,8 @@ class ReviewInsightsService {
     label: string,
     description: string,
     sessions: WorkoutSession[],
-    now: number
+    now: number,
+    locked: boolean
   ): ReviewRecentSessionFilterOption {
     let matchedSessionCount: number = 0
     for (let index = 0; index < sessions.length; index++) {
@@ -120,7 +146,8 @@ class ReviewInsightsService {
       filterId: filterId,
       label: label,
       description: description,
-      matchedSessionCount: matchedSessionCount
+      matchedSessionCount: matchedSessionCount,
+      locked: locked
     }
     return option
   }
@@ -246,7 +273,7 @@ class ReviewInsightsService {
     if (weekId === nowWeekStart) {
       return '本周'
     }
-    return '第 ' + this.getWeekOffsetLabel(timestamp) + ' 周前'
+    return '' + this.getWeekOffsetLabel(timestamp) + ' 周前'
   }
 
   private getWeekOffsetLabel(timestamp: number): string {

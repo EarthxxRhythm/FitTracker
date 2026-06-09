@@ -19,6 +19,7 @@ import workoutSummaryServiceTest from './WorkoutSummaryService.test'
 import workoutRepositoryTest from './WorkoutRepository.test'
 import workoutSessionEditServiceTest from './WorkoutSessionEditService.test'
 import reviewDashboardServiceTest from './ReviewDashboardService.test'
+import reviewInsightsServiceTest from './ReviewInsightsService.test'
 import userProfileServiceTest from './UserProfileService.test'
 import planEngineTest from './PlanEngine.test'
 import statsDashboardServiceTest from './StatsDashboardService.test'
@@ -58,6 +59,7 @@ export default function testsuite(): void {
   workoutRepositoryTest()
   workoutSessionEditServiceTest()
   reviewDashboardServiceTest()
+  reviewInsightsServiceTest()
   userProfileServiceTest()
   planEngineTest()
   statsDashboardServiceTest()
