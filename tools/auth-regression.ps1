@@ -96,17 +96,34 @@ function Invoke-Step {
   Write-Host ('[FitTracker Midscene Auth] ' + $Title)
   $exe = $Command[0]
   $argsList = @($Command | Select-Object -Skip 1)
-  $rawOutput = & $exe @argsList 2>&1
-  $outputText = (@($rawOutput) | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
-  if ($outputText.Length -gt 0) {
-    Write-Host $outputText
+  $maxAttempts = 1
+  if ($exe -eq 'npx.cmd') {
+    $maxAttempts = 3
   }
-  if ($LASTEXITCODE -ne 0) {
-    throw ('Step failed: ' + $Title)
-  }
-  return @{
-    Output = $outputText
-    ExitCode = $LASTEXITCODE
+
+  for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+    $rawOutput = & $exe @argsList 2>&1
+    $outputText = (@($rawOutput) | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+    if ($outputText.Length -gt 0) {
+      Write-Host $outputText
+    }
+    if ($LASTEXITCODE -eq 0) {
+      return @{
+        Output = $outputText
+        ExitCode = $LASTEXITCODE
+      }
+    }
+
+    $isRetryableMidsceneFailure = $exe -eq 'npx.cmd' -and (
+      $outputText.IndexOf('Invalid image: failed to decode base64 data', [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -or
+      $outputText.IndexOf('error while capturing screenshot', [System.StringComparison]::OrdinalIgnoreCase) -ge 0
+    )
+    if (-not $isRetryableMidsceneFailure -or $attempt -eq $maxAttempts) {
+      throw ('Step failed: ' + $Title)
+    }
+
+    Write-Host ('[FitTracker Midscene Auth] retry transient Midscene failure: ' + $Title + ' (attempt ' + ($attempt + 1).ToString() + '/' + $maxAttempts.ToString() + ')')
+    Start-Sleep -Seconds 2
   }
 }
 

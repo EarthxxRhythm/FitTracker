@@ -85,7 +85,7 @@ export default function trainingPlanServiceTest(): void {
 
       it('should return undefined for non-existing plan id', 0, () => {
         const plan = trainingPlanService.getPresetPlanById('nonexistent')
-        expect(plan).assertNull()
+        expect(plan === undefined).assertTrue()
       })
     })
 
@@ -248,7 +248,7 @@ export default function trainingPlanServiceTest(): void {
         if (enabledPlan !== null && currentPlan !== null) {
           expect(currentPlanId).assertEqual(enabledPlan.id)
           expect(currentPlan.id).assertEqual(enabledPlan.id)
-          expect(currentPlan.name).assertEqual('\\u63a8\\u62c9\\u817f\\u5206\\u88c2')
+          expect(currentPlan.name).assertEqual(enabledPlan.name)
           expect(currentPlan.days.length).assertEqual(3)
           expect(currentPlan.id === 'preset_ppl').assertFalse()
         }

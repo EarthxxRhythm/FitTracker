@@ -1,13 +1,14 @@
 /**
- * UserProfileService 单元测试
- * 覆盖功能 #23：昵称、头像和体重单位偏好保存后可再次读取。
+ * UserProfileService unit test
+ * Covers feature #23: nickname, avatar, and weight unit persistence.
  */
 import { abilityDelegatorRegistry } from '@kit.TestKit'
 import { describe, beforeEach, afterEach, it, expect } from '@ohos/hypium'
 import UserProfileService, { UserProfile } from '../../../main/ets/common/services/UserProfileService'
 
 function getTestContext(): Context {
-  return abilityDelegatorRegistry.getAbilityDelegator().getAppContext()
+  const appContext: Context = abilityDelegatorRegistry.getAbilityDelegator().getAppContext()
+  return appContext.getApplicationContext().createModuleContext('entry')
 }
 
 export default function userProfileServiceTest(): void {
@@ -22,7 +23,7 @@ export default function userProfileServiceTest(): void {
 
     it('saves and reloads nickname avatar and weight unit preferences', 0, async () => {
       const savedProfile: UserProfile = {
-        nickname: '力量训练者',
+        nickname: 'Power Tester',
         avatar: 'avatar_strength_blue',
         weightUnit: 'lbs'
       }
@@ -30,7 +31,7 @@ export default function userProfileServiceTest(): void {
       await UserProfileService.saveProfile(getTestContext(), savedProfile)
       const reloadedProfile: UserProfile = await UserProfileService.loadProfile(getTestContext())
 
-      expect(reloadedProfile.nickname).assertEqual('力量训练者')
+      expect(reloadedProfile.nickname).assertEqual('Power Tester')
       expect(reloadedProfile.avatar).assertEqual('avatar_strength_blue')
       expect(reloadedProfile.weightUnit).assertEqual('lbs')
       expect(UserProfileService.getLastPersistenceError()).assertEqual('')
@@ -38,7 +39,7 @@ export default function userProfileServiceTest(): void {
 
     it('returns default profile after persisted preferences are cleared', 0, async () => {
       const savedProfile: UserProfile = {
-        nickname: '临时用户',
+        nickname: 'Temp User',
         avatar: 'avatar_power_red',
         weightUnit: 'kg'
       }

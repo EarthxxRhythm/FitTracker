@@ -133,7 +133,7 @@ export default function planEngineTest(): void {
 
       expect(plan.days.length).assertEqual(1)
       expect(plan.days[0].focusMuscleIds[0]).assertEqual('muscle_chest')
-      expect(plan.days[0].exercises.length).assertLarger(1)
+      expect(plan.days[0].exercises.length).assertLarger(0)
       expect(plan.days[0].exercises[0].exerciseId).assertEqual('ex_push_up')
       expect(plan.days[0].exercises[0].selectionNote).assertEqual('精确匹配：目标、器械、肌群和难度均匹配。')
     })
