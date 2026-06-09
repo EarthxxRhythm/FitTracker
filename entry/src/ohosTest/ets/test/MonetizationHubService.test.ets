@@ -130,6 +130,68 @@ export default function monetizationHubServiceTest(): void {
       expect(viewModel.offerCards[1].highlighted).assertFalse()
     })
 
+    it('builds a focused premium-content upgrade context for exercise detail', 0, async () => {
+      MonetizationEntitlementService.setEntitlementForTesting(
+        createMonetizationEntitlement(
+          '13500135000',
+          'free',
+          'local_default',
+          'active',
+          '',
+          '',
+          0,
+          0,
+          0,
+          0,
+          1
+        )
+      )
+
+      const viewModel = await MonetizationHubService.createViewModel(
+        getTestContext(),
+        'premium_content',
+        '动作详情'
+      )
+
+      expect(viewModel.focusContext.active).assertTrue()
+      expect(viewModel.focusContext.sourceLabel).assertEqual('动作详情')
+      expect(viewModel.focusContext.recommendedTierText).assertEqual('Plus')
+      expect(viewModel.offerCards[1].productId).assertEqual('fittracker_plus_monthly')
+      expect(viewModel.offerCards[1].highlighted).assertTrue()
+      expect(viewModel.roadmapItems[0].capabilityKey).assertEqual('premium_content')
+    })
+
+    it('builds a focused pro upsell context for advanced plan variants', 0, async () => {
+      MonetizationEntitlementService.setEntitlementForTesting(
+        createMonetizationEntitlement(
+          '13400134000',
+          'free',
+          'local_default',
+          'active',
+          '',
+          '',
+          0,
+          0,
+          0,
+          0,
+          1
+        )
+      )
+
+      const viewModel = await MonetizationHubService.createViewModel(
+        getTestContext(),
+        'advanced_plans',
+        '训练计划详情'
+      )
+
+      expect(viewModel.focusContext.active).assertTrue()
+      expect(viewModel.focusContext.sourceLabel).assertEqual('训练计划详情')
+      expect(viewModel.focusContext.recommendedTierText).assertEqual('Pro')
+      expect(viewModel.offerCards[0].productId).assertEqual('fittracker_pro_lifetime')
+      expect(viewModel.offerCards[0].highlighted).assertTrue()
+      expect(viewModel.roadmapItems[0].capabilityKey).assertEqual('advanced_plans')
+    })
+
     it('applies local preview tiers through entitlement storage', 0, async () => {
       const token: string = SessionManager.generateToken('13600136000')
       await SessionManager.saveToken(getTestContext(), token)

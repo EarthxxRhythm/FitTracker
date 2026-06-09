@@ -13,7 +13,7 @@ import TrainingPlanService, {
 } from '../../../common/services/TrainingPlanService'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
 import MonetizationGateService from '../../../shared/services/MonetizationGateService'
-import { MonetizationTier } from '../../../shared/models/MonetizationModels'
+import { MonetizationCapability, MonetizationTier } from '../../../shared/models/MonetizationModels'
 import AdvancedPlanVariantsService, {
   AdvancedPlanVariantCardViewModel,
   AdvancedPlanVariantId,
@@ -207,9 +207,15 @@ export struct TrainingPlanDetailPage {
     }
   }
 
-  openMonetizationHub(): void {
+  openMonetizationHub(capability: MonetizationCapability, sourceLabel: string): void {
     try {
-      router.pushUrl({ url: AppRoutes.MONETIZATION_HUB })
+      router.pushUrl({
+        url: AppRoutes.MONETIZATION_HUB,
+        params: {
+          focusCapability: capability,
+          focusSourceLabel: sourceLabel
+        }
+      })
     } catch (e) {
       // stay on current page
     }
@@ -301,7 +307,7 @@ export struct TrainingPlanDetailPage {
             .enabled(this.enablingVariantId.length === 0)
             .onClick(() => {
               if (card.locked) {
-                this.openMonetizationHub()
+                this.openMonetizationHub('advanced_plans', '训练计划详情')
                 return
               }
               this.enableAdvancedVariant(card.variantId)
