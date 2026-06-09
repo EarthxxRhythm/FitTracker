@@ -1,7 +1,8 @@
 /**
  * PageHeader —— 页面标题栏
+ * 功能 #26
  */
-import { ColorTokens, FontTokens, SpacingTokens } from '../common/styles/DesignTokens'
+import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../common/styles/DesignTokens'
 import router from '@ohos.router'
 
 @Component
@@ -10,23 +11,36 @@ export struct PageHeader {
   @Prop showBack: boolean = true
   onBackClick?: () => void
 
+  private handleBack(): void {
+    if (this.onBackClick) {
+      this.onBackClick()
+      return
+    }
+    router.back()
+  }
+
   build() {
-    // DESIGN: Standard page header. Back arrow uses ← character (no icon dependency).
-    // Padding top: LG (24vp) accounts for status bar clearance on HarmonyOS.
-    // To add a right action button: extend with a @BuilderParam rightAction slot.
     Row() {
       if (this.showBack) {
-        Text('←')
-          .fontSize(FontTokens.HEADLINE_SIZE)
-          .fontColor(ColorTokens.TEXT_PRIMARY)
-          .padding({ right: SpacingTokens.SM })
-          .onClick(() => {
-            if (this.onBackClick) {
-              this.onBackClick()
-            } else {
-              router.back()
-            }
-          })
+        Row() {
+          Text('<')
+            .fontSize(FontTokens.TITLE_SIZE)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
+        }
+        .width(TouchTokens.MIN_TARGET)
+        .height(TouchTokens.MIN_TARGET)
+        .justifyContent(FlexAlign.Center)
+        .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+        .borderRadius(RadiusTokens.MD)
+        .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+        .onClick(() => {
+          this.handleBack()
+        })
+      } else {
+        Blank()
+          .width(TouchTokens.MIN_TARGET)
+          .height(TouchTokens.MIN_TARGET)
       }
 
       Text(this.title)
@@ -36,16 +50,23 @@ export struct PageHeader {
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .layoutWeight(1)
+        .margin({ left: SpacingTokens.MD, right: SpacingTokens.MD })
 
       Blank()
+        .width(TouchTokens.MIN_TARGET)
+        .height(TouchTokens.MIN_TARGET)
     }
     .width('100%')
-    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+    .backgroundColor(ColorTokens.SURFACE_HEADER)
     .padding({
       left: SpacingTokens.MD,
       right: SpacingTokens.MD,
       top: SpacingTokens.LG,
       bottom: SpacingTokens.MD
+    })
+    .border({
+      width: 1,
+      color: ColorTokens.DIVIDER
     })
   }
 }

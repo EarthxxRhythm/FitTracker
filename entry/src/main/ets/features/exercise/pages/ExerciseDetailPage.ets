@@ -4,6 +4,7 @@
  */
 import { router } from '@kit.ArkUI'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
+import { AppCard } from '../../../components/AppCard'
 import ContentRepository, { ExerciseDetailViewModel } from '../../../shared/services/ContentRepository'
 import ExerciseMediaResolverService, {
   ExerciseMediaAssetInfo,
@@ -23,7 +24,9 @@ function createEmptyExerciseMediaMetadata(): ExerciseMediaMetadata {
 @Entry
 @Component
 export struct ExerciseDetailPage {
-  mediaPresentation: ExerciseMediaPresentation = ExerciseMediaResolverService.resolve('', '', '', createEmptyExerciseMediaMetadata())
+  mediaPresentation: ExerciseMediaPresentation =
+    ExerciseMediaResolverService.resolve('', '', '', createEmptyExerciseMediaMetadata())
+
   @State hasExercise: boolean = false
   @State exerciseId: string = ''
   @State name: string = ''
@@ -114,6 +117,39 @@ export struct ExerciseDetailPage {
     return values
   }
 
+  getMuscleSummary(): string {
+    if (this.primaryMuscleNames.length === 0) {
+      return '目标肌群待补充'
+    }
+    return this.primaryMuscleNames.join(' / ')
+  }
+
+  getEquipmentSummary(): string {
+    if (this.equipmentNames.length === 0) {
+      return '器械要求待补充'
+    }
+    return this.equipmentNames.join(' / ')
+  }
+
+  getHeroSummary(): string {
+    const focusText: string = this.getMuscleSummary()
+    const equipmentText: string = this.getEquipmentSummary()
+    if (this.cues.length > 0) {
+      return focusText + ' | ' + equipmentText + ' | ' + this.cues[0]
+    }
+    if (this.safetyNotes.length > 0) {
+      return focusText + ' | ' + equipmentText + ' | ' + this.safetyNotes[0]
+    }
+    return focusText + ' | ' + equipmentText + ' | 先确认动作路径和发力顺序'
+  }
+
+  getMetaSummary(): string {
+    if (this.nameEn.length > 0) {
+      return this.nameEn
+    }
+    return '动作编号 ' + this.exerciseId
+  }
+
   getMediaToneColor(tone: string): string {
     if (tone === 'primary') {
       return ColorTokens.PRIMARY
@@ -124,46 +160,393 @@ export struct ExerciseDetailPage {
     return ColorTokens.TEXT_DISABLED
   }
 
+  getMediaToneBackgroundColor(tone: string): string {
+    if (tone === 'primary') {
+      return ColorTokens.OVERLAY_PRIMARY
+    }
+    if (tone === 'accent') {
+      return ColorTokens.OVERLAY_ACCENT
+    }
+    return ColorTokens.BORDER_SUBTLE
+  }
+
   getMediaPreviewLabel(media: ExerciseMediaPresentation): string {
     if (media.cover.canRenderInline) {
       return '封面预览'
     }
     if (media.video.canRenderInline) {
-      return '视频就绪'
+      return '视频资源已就绪'
     }
     if (media.cover.hasReference || media.video.hasReference) {
-      return '引用已登记'
+      return '资源引用已登记'
     }
-    return '媒体待补齐'
+    return '媒体待补充'
+  }
+
+  getAssetAvailabilityLabel(asset: ExerciseMediaAssetInfo): string {
+    if (asset.canRenderInline) {
+      return '可内联'
+    }
+    if (asset.hasReference) {
+      return '仅引用'
+    }
+    return '缺失'
+  }
+
+  getAssetAvailabilityColor(asset: ExerciseMediaAssetInfo): string {
+    if (asset.canRenderInline) {
+      return ColorTokens.SUCCESS
+    }
+    if (asset.hasReference) {
+      return ColorTokens.ACCENT
+    }
+    return ColorTokens.TEXT_DISABLED
+  }
+
+  getStatusPanelColor(tone: string): string {
+    if (tone === 'warning') {
+      return ColorTokens.WARNING
+    }
+    if (tone === 'error') {
+      return ColorTokens.ERROR
+    }
+    return ColorTokens.INFO
+  }
+
+  getStatusPanelBackgroundColor(tone: string): string {
+    if (tone === 'warning') {
+      return ColorTokens.WARNING_BG
+    }
+    if (tone === 'error') {
+      return ColorTokens.ERROR_BG
+    }
+    return ColorTokens.INFO_BG
+  }
+
+  getStatusEmptyText(tone: string): string {
+    if (tone === 'warning') {
+      return '暂无安全注意'
+    }
+    if (tone === 'error') {
+      return '暂无常见错误'
+    }
+    return '暂无训练提示'
+  }
+
+  build() {
+    Scroll() {
+      Column({ space: SpacingTokens.LG }) {
+        if (!this.hasExercise) {
+          AppCard({ variant: 'panel', cardPadding: 'default' }) {
+            Column({ space: SpacingTokens.MD }) {
+              Text('动作详情')
+                .fontSize(FontTokens.MICRO_SIZE)
+                .fontWeight(FontTokens.MICRO_WEIGHT)
+                .fontColor(ColorTokens.TEXT_TERTIARY)
+
+              Text('未找到动作')
+                .fontSize(FontTokens.DISPLAY_SIZE)
+                .fontWeight(FontTokens.DISPLAY_WEIGHT)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+
+              Text('当前入口没有带上有效的动作信息，请从训练预览页或训练回顾页重新进入。')
+                .fontSize(FontTokens.BODY_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
+                .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+          }
+        }
+
+        if (this.hasExercise) {
+          this.buildHeroSection()
+          this.buildMediaSection()
+          this.buildTechniqueSection()
+          this.buildAlternativeSection()
+          this.buildMetadataSection()
+        }
+      }
+      .width('100%')
+      .padding(SpacingTokens.LG)
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(ColorTokens.BG_PRIMARY)
   }
 
   @Builder
-  buildTag(label: string) {
+  buildHeroSection() {
+    AppCard({ variant: 'panel', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.MD }) {
+        Row() {
+          Column({ space: SpacingTokens.XS }) {
+            Text('动作详情')
+              .fontSize(FontTokens.MICRO_SIZE)
+              .fontWeight(FontTokens.MICRO_WEIGHT)
+              .fontColor(ColorTokens.TEXT_TERTIARY)
+
+            Text(this.name)
+              .fontSize(FontTokens.DISPLAY_SIZE)
+              .fontWeight(FontTokens.DISPLAY_WEIGHT)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+              .maxLines(2)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+            Text(this.getMetaSummary())
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+              .maxLines(2)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+
+          Text(this.mediaPresentation.badgeText)
+            .fontSize(FontTokens.SMALL_SIZE)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
+            .padding({
+              top: SpacingTokens.XS,
+              bottom: SpacingTokens.XS,
+              left: SpacingTokens.SM,
+              right: SpacingTokens.SM
+            })
+            .backgroundColor(this.getMediaToneBackgroundColor(this.mediaPresentation.tone))
+            .borderRadius(RadiusTokens.FULL)
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Top)
+
+        Text(this.getHeroSummary())
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+          .maxLines(3)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+        Flex({ wrap: FlexWrap.Wrap }) {
+          this.buildTag(this.difficultyText, ColorTokens.OVERLAY_ACCENT, ColorTokens.ACCENT)
+          ForEach(this.primaryMuscleNames, (muscleName: string) => {
+            this.buildTag(muscleName, ColorTokens.OVERLAY_PRIMARY, ColorTokens.PRIMARY)
+          }, (muscleName: string) => 'muscle_' + muscleName)
+          ForEach(this.equipmentNames, (equipmentName: string) => {
+            this.buildTag(equipmentName, ColorTokens.SURFACE_ELEVATED, ColorTokens.TEXT_SECONDARY)
+          }, (equipmentName: string) => 'equipment_' + equipmentName)
+        }
+        .width('100%')
+
+        Row({ space: SpacingTokens.MD }) {
+          this.buildMetricTile('步骤', this.steps.length.toString(), '执行序列')
+          this.buildMetricTile('替代', this.alternativeNames.length.toString(), '同类分流')
+        }
+        .width('100%')
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
+  }
+
+  @Builder
+  buildMediaSection() {
+    AppCard({ variant: 'panel', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.MD }) {
+        Row() {
+          Column({ space: SpacingTokens.XS }) {
+            Text('动作演示')
+              .fontSize(FontTokens.TITLE_SIZE)
+              .fontWeight(FontTokens.TITLE_WEIGHT)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+
+            Text(this.mediaPresentation.statusText)
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+
+          Text(this.getMediaPreviewLabel(this.mediaPresentation))
+            .fontSize(FontTokens.SMALL_SIZE)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
+            .padding({
+              top: SpacingTokens.XS,
+              bottom: SpacingTokens.XS,
+              left: SpacingTokens.SM,
+              right: SpacingTokens.SM
+            })
+            .backgroundColor(this.getMediaToneBackgroundColor(this.mediaPresentation.tone))
+            .borderRadius(RadiusTokens.FULL)
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
+
+        this.buildMediaPreview(this.mediaPresentation)
+
+        Text(this.mediaPresentation.summaryText)
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+          .width('100%')
+
+        Text(this.mediaPresentation.detailText)
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+          .width('100%')
+
+        this.buildInfoRow('统一来源', this.mediaPresentation.sourceNote)
+        this.buildInfoRow('统一授权', this.mediaPresentation.licenseNote)
+
+        this.buildMediaAssetBlock('封面资源', this.mediaPresentation.cover)
+        this.buildMediaAssetBlock('视频资源', this.mediaPresentation.video)
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
+  }
+
+  @Builder
+  buildTechniqueSection() {
+    AppCard({ variant: 'elevated', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.MD }) {
+        Text('执行要点')
+          .fontSize(FontTokens.TITLE_SIZE)
+          .fontWeight(FontTokens.TITLE_WEIGHT)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+
+        this.buildNumberedSection('动作步骤', this.steps, '暂无动作步骤')
+        this.buildDivider()
+        this.buildStatusPanel('训练提示', this.cues, 'info')
+        this.buildStatusPanel('常见错误', this.commonMistakes, 'error')
+        this.buildStatusPanel('安全注意', this.safetyNotes, 'warning')
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
+  }
+
+  @Builder
+  buildAlternativeSection() {
+    AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.MD }) {
+        Text('替代动作')
+          .fontSize(FontTokens.TITLE_SIZE)
+          .fontWeight(FontTokens.TITLE_WEIGHT)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+
+        Text('如果当前器械条件不匹配，或你想降低动作门槛，可以先从这里选择同目标动作。')
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+
+        if (this.alternativeNames.length === 0) {
+          Text('当前没有登记替代动作，可先按当前动作完成训练。')
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+            .width('100%')
+        }
+
+        ForEach(this.alternativeNames, (alternativeName: string, index: number) => {
+          Row({ space: SpacingTokens.SM }) {
+            Text((index + 1).toString())
+              .fontSize(FontTokens.SMALL_SIZE)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+              .width(24)
+              .height(24)
+              .textAlign(TextAlign.Center)
+              .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+              .borderRadius(RadiusTokens.FULL)
+
+            Text(alternativeName)
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+              .layoutWeight(1)
+              .maxLines(2)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+          }
+          .width('100%')
+          .padding(SpacingTokens.MD)
+          .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+          .borderRadius(RadiusTokens.MD)
+        }, (alternativeName: string, index: number) => 'alternative_' + alternativeName + '_' + index.toString())
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
+  }
+
+  @Builder
+  buildMetadataSection() {
+    AppCard({ variant: 'outlined', cardPadding: 'compact' }) {
+      Column({ space: SpacingTokens.SM }) {
+        Text('资料元信息')
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontWeight(FontTokens.TITLE_WEIGHT)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+
+        this.buildInfoRow('动作编号', this.exerciseId)
+
+        if (this.nameEn.length > 0) {
+          this.buildInfoRow('英文名称', this.nameEn)
+        }
+
+        this.buildInfoRow('目标肌群', this.getMuscleSummary())
+        this.buildInfoRow('器械要求', this.getEquipmentSummary())
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
+  }
+
+  @Builder
+  buildTag(label: string, backgroundColor: string, textColor: string) {
     Text(label)
       .fontSize(FontTokens.CAPTION_SIZE)
-      .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+      .fontColor(textColor)
       .padding({
         top: SpacingTokens.XS,
         bottom: SpacingTokens.XS,
         left: SpacingTokens.SM,
         right: SpacingTokens.SM
       })
-      .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+      .backgroundColor(backgroundColor)
       .borderRadius(RadiusTokens.FULL)
       .margin({ right: SpacingTokens.SM, bottom: SpacingTokens.SM })
   }
 
   @Builder
-  buildMediaMetaRow(label: string, value: string) {
+  buildMetricTile(label: string, value: string, note: string) {
+    Column({ space: SpacingTokens.XS }) {
+      Text(label)
+        .fontSize(FontTokens.SMALL_SIZE)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
+
+      Text(value)
+        .fontSize(FontTokens.HEADLINE_SIZE)
+        .fontWeight(FontTokens.HEADLINE_WEIGHT)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+
+      Text(note)
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+    }
+    .layoutWeight(1)
+    .padding(SpacingTokens.MD)
+    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+    .borderRadius(RadiusTokens.MD)
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  buildInfoRow(label: string, value: string) {
     Row() {
       Text(label)
         .fontSize(FontTokens.SMALL_SIZE)
-        .fontColor(ColorTokens.TEXT_SECONDARY)
-        .width(84)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
+        .width(72)
 
       Text(value)
-        .fontSize(FontTokens.SMALL_SIZE)
-        .fontColor(ColorTokens.TEXT_PRIMARY)
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
         .layoutWeight(1)
         .maxLines(3)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -179,23 +562,26 @@ export struct ExerciseDetailPage {
         Image(media.cover.resolvedUrl)
           .width('100%')
           .height(TouchTokens.HERO_HEIGHT)
-          .borderRadius(RadiusTokens.SM)
+          .borderRadius(RadiusTokens.MD)
           .objectFit(ImageFit.Cover)
 
         Column({ space: SpacingTokens.XS }) {
-          Text('封面预览')
+          Text('动作预览')
             .fontSize(FontTokens.CAPTION_SIZE)
             .fontWeight(FontTokens.TITLE_WEIGHT)
-            .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
 
           Text(media.cover.stateText)
             .fontSize(FontTokens.SMALL_SIZE)
-            .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
+            .maxLines(2)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
         }
         .padding(SpacingTokens.MD)
         .alignItems(HorizontalAlign.Start)
         .backgroundColor(ColorTokens.OVERLAY_PRIMARY)
         .borderRadius(RadiusTokens.SM)
+        .margin(SpacingTokens.MD)
       }
       .width('100%')
       .height(TouchTokens.HERO_HEIGHT)
@@ -204,148 +590,96 @@ export struct ExerciseDetailPage {
         Text(this.getMediaPreviewLabel(media))
           .fontSize(FontTokens.TITLE_SIZE)
           .fontWeight(FontTokens.TITLE_WEIGHT)
-          .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
 
         Text(media.statusText)
           .fontSize(FontTokens.CAPTION_SIZE)
-          .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
           .textAlign(TextAlign.Center)
       }
       .width('100%')
       .height(TouchTokens.HERO_HEIGHT)
       .padding(SpacingTokens.LG)
-      .borderRadius(RadiusTokens.SM)
-      .backgroundColor(this.getMediaToneColor(media.tone))
+      .borderRadius(RadiusTokens.MD)
+      .backgroundColor(ColorTokens.SURFACE_SECONDARY)
       .justifyContent(FlexAlign.Center)
     }
   }
 
   @Builder
   buildMediaAssetBlock(title: string, asset: ExerciseMediaAssetInfo) {
-    Column({ space: SpacingTokens.SM }) {
-      Row() {
-        Column({ space: SpacingTokens.XS }) {
-          Text(title)
-            .fontSize(FontTokens.TITLE_SIZE)
-            .fontWeight(FontTokens.TITLE_WEIGHT)
+    AppCard({ variant: 'outlined', cardPadding: 'compact' }) {
+      Column({ space: SpacingTokens.SM }) {
+        Row() {
+          Column({ space: SpacingTokens.XS }) {
+            Text(title)
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+
+            Text(asset.stateText)
+              .fontSize(FontTokens.SMALL_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+
+          Text(this.getAssetAvailabilityLabel(asset))
+            .fontSize(FontTokens.SMALL_SIZE)
             .fontColor(ColorTokens.TEXT_PRIMARY)
-
-          Text(asset.stateText)
-            .fontSize(FontTokens.CAPTION_SIZE)
-            .fontColor(ColorTokens.TEXT_SECONDARY)
+            .padding({
+              top: SpacingTokens.XS,
+              bottom: SpacingTokens.XS,
+              left: SpacingTokens.SM,
+              right: SpacingTokens.SM
+            })
+            .backgroundColor(this.getMediaToneBackgroundColor(asset.canRenderInline ? 'primary' : (asset.hasReference ? 'accent' : 'default')))
+            .borderRadius(RadiusTokens.FULL)
         }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Start)
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
 
-        Text(asset.canRenderInline ? '可用' : (asset.hasReference ? '降级' : '缺失'))
+        Text(asset.primaryText)
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+          .width('100%')
+
+        Text(asset.secondaryText)
           .fontSize(FontTokens.SMALL_SIZE)
-          .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-          .padding({
-            top: SpacingTokens.XS,
-            bottom: SpacingTokens.XS,
-            left: SpacingTokens.SM,
-            right: SpacingTokens.SM
-          })
-          .backgroundColor(asset.canRenderInline ? ColorTokens.PRIMARY : (asset.hasReference ? ColorTokens.ACCENT : ColorTokens.TEXT_DISABLED))
-          .borderRadius(RadiusTokens.FULL)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .width('100%')
+
+        if (asset.originalUrl.length > 0) {
+          this.buildInfoRow('资源引用', asset.originalUrl)
+        }
+        this.buildInfoRow('来源说明', asset.sourceLabel)
+        this.buildInfoRow('授权口径', asset.licenseLabel)
       }
       .width('100%')
-      .alignItems(VerticalAlign.Center)
-
-      Text(asset.primaryText)
-        .fontSize(FontTokens.BODY_SIZE)
-        .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
-        .fontColor(ColorTokens.TEXT_PRIMARY)
-
-      Text(asset.secondaryText)
-        .fontSize(FontTokens.CAPTION_SIZE)
-        .fontColor(ColorTokens.TEXT_SECONDARY)
-        .width('100%')
-
-      if (asset.originalUrl.length > 0) {
-        this.buildMediaMetaRow('资源引用', asset.originalUrl)
-      }
-      this.buildMediaMetaRow('来源说明', asset.sourceLabel)
-      this.buildMediaMetaRow('授权口径', asset.licenseLabel)
+      .alignItems(HorizontalAlign.Start)
     }
-    .width('100%')
-    .padding(SpacingTokens.MD)
-    .borderRadius(RadiusTokens.SM)
-    .backgroundColor(ColorTokens.BG_SECONDARY)
-    .alignItems(HorizontalAlign.Start)
   }
 
   @Builder
-  buildMediaSection() {
-    Column({ space: SpacingTokens.MD }) {
-      Row() {
-        Column({ space: SpacingTokens.XS }) {
-          Text('动作演示')
-            .fontSize(FontTokens.TITLE_SIZE)
-            .fontWeight(FontTokens.TITLE_WEIGHT)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-
-          Text(this.mediaPresentation.statusText)
-            .fontSize(FontTokens.CAPTION_SIZE)
-            .fontColor(ColorTokens.TEXT_SECONDARY)
-        }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Start)
-
-        Text(this.mediaPresentation.badgeText)
-          .fontSize(FontTokens.SMALL_SIZE)
-          .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-          .padding({
-            top: SpacingTokens.XS,
-            bottom: SpacingTokens.XS,
-            left: SpacingTokens.SM,
-            right: SpacingTokens.SM
-          })
-          .backgroundColor(this.getMediaToneColor(this.mediaPresentation.tone))
-          .borderRadius(RadiusTokens.FULL)
-      }
-      .width('100%')
-      .alignItems(VerticalAlign.Center)
-
-      this.buildMediaPreview(this.mediaPresentation)
-
-      Text(this.mediaPresentation.summaryText)
-        .fontSize(FontTokens.BODY_SIZE)
-        .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
-        .fontColor(ColorTokens.TEXT_PRIMARY)
-        .width('100%')
-
-      Text(this.mediaPresentation.detailText)
-        .fontSize(FontTokens.CAPTION_SIZE)
-        .fontColor(ColorTokens.TEXT_SECONDARY)
-        .width('100%')
-
-      this.buildMediaMetaRow('统一来源', this.mediaPresentation.sourceNote)
-      this.buildMediaMetaRow('统一授权', this.mediaPresentation.licenseNote)
-
-      this.buildMediaAssetBlock('封面', this.mediaPresentation.cover)
-      this.buildMediaAssetBlock('视频', this.mediaPresentation.video)
-    }
-    .width('100%')
-    .padding(SpacingTokens.MD)
-    .borderRadius(RadiusTokens.SM)
-    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-    .alignItems(HorizontalAlign.Start)
-  }
-
-  @Builder
-  buildNumberedSection(title: string, values: string[]) {
+  buildNumberedSection(title: string, values: string[], emptyText: string) {
     Column({ space: SpacingTokens.SM }) {
       Text(title)
-        .fontSize(FontTokens.TITLE_SIZE)
-        .fontWeight(FontTokens.TITLE_WEIGHT)
+        .fontSize(FontTokens.BODY_SIZE)
+        .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
         .fontColor(ColorTokens.TEXT_PRIMARY)
 
+      if (values.length === 0) {
+        Text(emptyText)
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .width('100%')
+      }
+
       ForEach(values, (value: string, index: number) => {
-        Row() {
+        Row({ space: SpacingTokens.SM }) {
           Text((index + 1).toString())
             .fontSize(FontTokens.SMALL_SIZE)
-            .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
             .width(24)
             .height(24)
             .textAlign(TextAlign.Center)
@@ -355,114 +689,61 @@ export struct ExerciseDetailPage {
           Text(value)
             .fontSize(FontTokens.BODY_SIZE)
             .fontColor(ColorTokens.TEXT_PRIMARY)
+            .lineHeight(FontTokens.BODY_LINE_HEIGHT)
             .layoutWeight(1)
-            .margin({ left: SpacingTokens.SM })
         }
         .width('100%')
         .alignItems(VerticalAlign.Top)
-      }, (value: string, index: number) => title + value + index.toString())
+      }, (value: string, index: number) => title + '_' + value + '_' + index.toString())
     }
     .width('100%')
-    .padding(SpacingTokens.MD)
-    .borderRadius(RadiusTokens.SM)
-    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
     .alignItems(HorizontalAlign.Start)
   }
 
   @Builder
-  buildPlainSection(title: string, values: string[], emptyText: string) {
+  buildStatusPanel(title: string, values: string[], tone: string) {
     Column({ space: SpacingTokens.SM }) {
       Text(title)
-        .fontSize(FontTokens.TITLE_SIZE)
-        .fontWeight(FontTokens.TITLE_WEIGHT)
+        .fontSize(FontTokens.BODY_SIZE)
+        .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
         .fontColor(ColorTokens.TEXT_PRIMARY)
 
       if (values.length === 0) {
-        Text(emptyText)
+        Text(this.getStatusEmptyText(tone))
           .fontSize(FontTokens.BODY_SIZE)
           .fontColor(ColorTokens.TEXT_SECONDARY)
+          .width('100%')
       }
 
-      ForEach(values, (value: string) => {
-        Text(value)
-          .fontSize(FontTokens.BODY_SIZE)
-          .fontColor(ColorTokens.TEXT_PRIMARY)
-          .width('100%')
-      }, (value: string) => title + value)
+      ForEach(values, (value: string, index: number) => {
+        Row({ space: SpacingTokens.SM }) {
+          Text('·')
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontColor(this.getStatusPanelColor(tone))
+            .margin({ top: SpacingTokens.XS })
+
+          Text(value)
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
+            .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+            .layoutWeight(1)
+        }
+        .width('100%')
+        .padding(SpacingTokens.MD)
+        .backgroundColor(this.getStatusPanelBackgroundColor(tone))
+        .borderRadius(RadiusTokens.MD)
+        .alignItems(VerticalAlign.Top)
+      }, (value: string, index: number) => title + '_' + value + '_' + index.toString())
     }
     .width('100%')
-    .padding(SpacingTokens.MD)
-    .borderRadius(RadiusTokens.SM)
-    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
     .alignItems(HorizontalAlign.Start)
   }
 
-  build() {
-    Scroll() {
-      Column({ space: SpacingTokens.LG }) {
-        if (!this.hasExercise) {
-          Column({ space: SpacingTokens.SM }) {
-            Text('动作详情')
-              .fontSize(FontTokens.DISPLAY_SIZE)
-              .fontWeight(FontTokens.DISPLAY_WEIGHT)
-              .fontColor(ColorTokens.TEXT_PRIMARY)
-
-            Text('没有找到这个动作，请从训练预览页重新进入。')
-              .fontSize(FontTokens.BODY_SIZE)
-              .fontColor(ColorTokens.TEXT_SECONDARY)
-          }
-          .width('100%')
-          .padding(SpacingTokens.MD)
-          .borderRadius(RadiusTokens.SM)
-          .backgroundColor(ColorTokens.BG_SECONDARY)
-          .alignItems(HorizontalAlign.Start)
-        }
-
-        if (this.hasExercise) {
-          Column({ space: SpacingTokens.SM }) {
-            Text(this.name)
-              .fontSize(FontTokens.DISPLAY_SIZE)
-              .fontWeight(FontTokens.DISPLAY_WEIGHT)
-              .fontColor(ColorTokens.TEXT_PRIMARY)
-
-            Text(this.exerciseId)
-              .fontSize(FontTokens.CAPTION_SIZE)
-              .fontColor(ColorTokens.TEXT_SECONDARY)
-
-            Text(this.nameEn)
-              .fontSize(FontTokens.CAPTION_SIZE)
-              .fontColor(ColorTokens.TEXT_SECONDARY)
-
-            Flex({ wrap: FlexWrap.Wrap }) {
-              this.buildTag(this.difficultyText)
-              ForEach(this.primaryMuscleNames, (muscleName: string) => {
-                this.buildTag(muscleName)
-              }, (muscleName: string) => muscleName)
-              ForEach(this.equipmentNames, (equipmentName: string) => {
-                this.buildTag(equipmentName)
-              }, (equipmentName: string) => equipmentName)
-            }
-            .width('100%')
-          }
-          .width('100%')
-          .padding(SpacingTokens.MD)
-          .borderRadius(RadiusTokens.SM)
-          .backgroundColor(ColorTokens.BG_SECONDARY)
-          .alignItems(HorizontalAlign.Start)
-
-          this.buildNumberedSection('动作步骤', this.steps)
-          this.buildPlainSection('注意事项', this.safetyNotes, '暂无额外注意事项')
-          this.buildPlainSection('替代动作', this.alternativeNames, '暂无替代动作')
-          this.buildPlainSection('训练提示', this.cues, '暂无训练提示')
-          this.buildPlainSection('常见错误', this.commonMistakes, '暂无常见错误记录')
-          this.buildMediaSection()
-        }
-      }
+  @Builder
+  buildDivider() {
+    Row()
       .width('100%')
-      .padding(SpacingTokens.LG)
-    }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(ColorTokens.BG_PRIMARY)
+      .height(1)
+      .backgroundColor(ColorTokens.DIVIDER)
   }
 }
