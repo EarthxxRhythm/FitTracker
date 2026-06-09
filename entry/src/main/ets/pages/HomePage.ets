@@ -11,6 +11,7 @@ import { AppRoutes } from '../app/AppRoutes'
 import TrainingPlanService, { PresetPlan, UserPlan } from '../common/services/TrainingPlanService'
 import WorkoutDraftService, { hasWorkoutDraftProgress, WorkoutDraftSnapshot } from '../common/services/WorkoutDraftService'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../common/styles/DesignTokens'
+import { PrimaryDestinationStrip } from '../components/PrimaryDestinationStrip'
 import { TrainingPlan, UserGoal } from '../shared/models/TrainingModels'
 import GoalRepository from '../shared/services/GoalRepository'
 import HomePlanService, {
@@ -358,6 +359,8 @@ export struct HomePage {
         }
         .width('100%')
         .alignItems(HorizontalAlign.Start)
+
+        PrimaryDestinationStrip({ currentKey: 'home' })
 
         Column({ space: SpacingTokens.MD }) {
           Row() {

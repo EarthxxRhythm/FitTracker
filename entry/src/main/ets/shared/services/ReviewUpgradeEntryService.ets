@@ -9,7 +9,7 @@ export class ReviewUpgradeEntryPresentation {
   statusLabel: string = 'Free'
   title: string = '解锁高级洞察'
   description: string = '升级后可查看更长周期趋势、动作 PR 细节与后续增强回顾能力。'
-  actionText: string = 'Pro 入口预留中'
+  actionText: string = '查看 Pro 方案'
   supportingText: string = '购买入口会在正式发布链路稳定后开放。'
   locked: boolean = true
   featureBullets: string[] = []
@@ -21,7 +21,7 @@ class ReviewUpgradeEntryService {
       'Free',
       '解锁高级洞察',
       '升级后可查看更长周期趋势、动作 PR 细节与后续增强回顾能力。',
-      'Pro 入口预留中',
+      '查看 Pro 方案',
       '购买入口会在正式发布链路稳定后开放。',
       true,
       [
@@ -40,9 +40,7 @@ class ReviewUpgradeEntryService {
     if (gateResult.allowed) {
       const statusLabel: string = gateResult.activeTier === 'plus' ? 'Plus 已覆盖' : 'Pro 已解锁'
       const description: string = this.createUnlockedDescription(gateResult.activeTier, weeklySessionCount)
-      const actionText: string = gateResult.activeTier === 'plus'
-        ? '当前 Plus 已覆盖全部回顾权益'
-        : '当前 Pro 已覆盖高级洞察权益'
+      const actionText: string = '查看当前权益'
       return this.createPresentation(
         statusLabel,
         '高级洞察已就绪',
@@ -62,7 +60,7 @@ class ReviewUpgradeEntryService {
       'Free',
       '解锁高级洞察',
       this.createLockedDescription(sessionCount),
-      '升级到 Pro 后开放',
+      '查看 Pro 方案',
       '先保持当前训练节奏，回顾页会继续累积可升级的历史价值。',
       true,
       [

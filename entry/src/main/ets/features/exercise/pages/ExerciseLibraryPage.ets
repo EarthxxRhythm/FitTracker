@@ -4,6 +4,7 @@
  */
 import { router } from '@kit.ArkUI'
 import { AppRoutes } from '../../../app/AppRoutes'
+import { PrimaryDestinationStrip } from '../../../components/PrimaryDestinationStrip'
 import { SearchBar } from '../../../components/SearchBar'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
 import { EquipmentItem, MuscleGroup } from '../../../shared/models/TrainingModels'
@@ -256,6 +257,7 @@ export struct ExerciseLibraryPage {
       Scroll() {
         Column({ space: SpacingTokens.LG }) {
           this.buildTitle()
+          PrimaryDestinationStrip({ currentKey: 'library' })
 
           Column({ space: SpacingTokens.MD }) {
             SearchBar({ query: this.query, placeholder: '\u641c\u7d22\u52a8\u4f5c\u540d\u79f0\u3001\u82f1\u6587\u540d\u6216\u522b\u540d' })
