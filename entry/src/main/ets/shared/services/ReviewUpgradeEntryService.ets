@@ -43,7 +43,7 @@ class ReviewUpgradeEntryService {
       const actionText: string = '查看当前权益'
       return this.createPresentation(
         statusLabel,
-        '高级洞察已就绪',
+        '高级洞察已解锁',
         description,
         actionText,
         '后续更深的周报和 PR 解释会优先接到这里。',

@@ -24,7 +24,7 @@ export default function reviewUpgradeEntryServiceTest(): void {
 
       expect(presentation.locked).assertTrue()
       expect(presentation.statusLabel).assertEqual('Free')
-      expect(presentation.title).assertContain('高级洞察')
+      expect(presentation.title).assertEqual('高级洞察已解锁')
       expect(presentation.actionText).assertEqual('查看 Pro 方案')
       expect(presentation.featureBullets.length).assertEqual(3)
     })
