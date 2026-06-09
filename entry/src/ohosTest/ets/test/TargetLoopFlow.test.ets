@@ -1,6 +1,10 @@
 import { describe, it, expect } from '@ohos/hypium'
 import { AppRoutes } from '../../../main/ets/app/AppRoutes'
 import { StartupDecision } from '../../../main/ets/app/AppState'
+import WorkoutSessionService, {
+  SessionPreferencesStore,
+  WorkoutSession as LegacyWorkoutSession
+} from '../../../main/ets/common/services/WorkoutSessionService'
 import {
   TrainingPlan,
   UserGoal,
@@ -22,6 +26,48 @@ import ReviewDashboardService, {
 import WorkoutPreviewService, { WorkoutPreviewSummary } from '../../../main/ets/shared/services/WorkoutPreviewService'
 import WorkoutRepository from '../../../main/ets/shared/services/WorkoutRepository'
 import WorkoutSummaryService, { WorkoutSummary } from '../../../main/ets/shared/services/WorkoutSummaryService'
+import WorkoutSessionPersistenceBridgeService from '../../../main/ets/features/workout/services/WorkoutSessionPersistenceBridgeService'
+
+class FakeTargetLoopPreferencesStore extends SessionPreferencesStore {
+  private sessionsJson: string = '[]'
+
+  async get(key: string, defaultValue: string): Promise<string> {
+    if (key === 'sessions') {
+      return this.sessionsJson
+    }
+    return defaultValue
+  }
+
+  async put(key: string, value: string): Promise<void> {
+    if (key === 'sessions') {
+      this.sessionsJson = value
+    }
+  }
+
+  async flush(): Promise<void> {
+  }
+
+  clear(): void {
+    this.sessionsJson = '[]'
+  }
+
+  readSessions(): LegacyWorkoutSession[] {
+    return JSON.parse(this.sessionsJson) as LegacyWorkoutSession[]
+  }
+}
+
+class ThrowingTargetLoopPreferencesStore extends SessionPreferencesStore {
+  async get(key: string, defaultValue: string): Promise<string> {
+    return defaultValue
+  }
+
+  async put(key: string, value: string): Promise<void> {
+    throw new Error('persist_failed')
+  }
+
+  async flush(): Promise<void> {
+  }
+}
 
 export default function targetLoopFlowTest(): void {
   describe('TargetLoopFlow', () => {
@@ -107,6 +153,118 @@ export default function targetLoopFlowTest(): void {
       expect(regeneration.adjustedGoal.goalId).assertEqual(savedGoal.goalId)
       expect(regeneration.regeneratedPlan.goalId).assertEqual(savedGoal.goalId)
       expect(regeneration.regeneratedPlan.days.length).assertLarger(0)
+    })
+
+    it('persists an active workout completion before review reloads from persistence', 0, async () => {
+      const fakeStore = new FakeTargetLoopPreferencesStore()
+      const testContext: Context = {} as Context
+      GoalRepository.clearLocal()
+      WorkoutRepository.clear()
+      fakeStore.clear()
+      WorkoutSessionService.setStoreForTesting(fakeStore)
+
+      try {
+        const goal: UserGoal = GoalSetupService.createCurrentGoalFromSelection(
+          'hypertrophy',
+          'beginner',
+          3,
+          45,
+          ['eq_bodyweight'],
+          [],
+          1000
+        )
+        GoalRepository.saveLocalGoal(goal)
+        const plan: TrainingPlan = PlanEngine.generatePlan(goal)
+        const preview: WorkoutPreviewSummary = WorkoutPreviewService.createPreviewForGoal(goal, plan, 1)
+        const activeState: ActiveWorkoutState = ActiveWorkoutService.createState(preview)
+        const firstExercise: ActiveWorkoutExercise = activeState.exercises[0]
+        const updatedExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.updateSetEntry(
+          activeState.exercises,
+          firstExercise.plannedExerciseId,
+          0,
+          '60',
+          '10'
+        )
+        const progressedState: ActiveWorkoutState = ActiveWorkoutService.createStateWithProgress(activeState, updatedExercises)
+        const session: WorkoutSession = ActiveWorkoutService.createCompletedSession(
+          'session_target_loop_persisted',
+          progressedState,
+          1000,
+          121000,
+          progressedState.completedSets
+        )
+
+        await WorkoutSessionPersistenceBridgeService.persistActiveWorkoutCompletion(testContext, session)
+        WorkoutRepository.clear()
+
+        const reloadedSessions: WorkoutSession[] = await WorkoutSessionPersistenceBridgeService.syncRepositoryFromPersistence(testContext)
+        const review: ReviewDashboardSummary = ReviewDashboardService.createSummary(reloadedSessions)
+
+        expect(fakeStore.readSessions().length).assertEqual(1)
+        expect(reloadedSessions.length).assertEqual(1)
+        expect(reloadedSessions[0].sessionId).assertEqual('session_target_loop_persisted')
+        expect(review.hasSessions).assertTrue()
+        expect(review.sessionCount).assertEqual(1)
+        expect(review.latestSessionId).assertEqual('session_target_loop_persisted')
+      } finally {
+        WorkoutSessionService.setStoreForTesting(null)
+        GoalRepository.clearLocal()
+        WorkoutRepository.clear()
+      }
+    })
+
+    it('does not duplicate repository sessions when persistence fails and caller falls back locally', 0, async () => {
+      const throwingStore = new ThrowingTargetLoopPreferencesStore()
+      const testContext: Context = {} as Context
+      GoalRepository.clearLocal()
+      WorkoutRepository.clear()
+      WorkoutSessionService.setStoreForTesting(throwingStore)
+
+      try {
+        const goal: UserGoal = GoalSetupService.createCurrentGoalFromSelection(
+          'hypertrophy',
+          'beginner',
+          3,
+          45,
+          ['eq_bodyweight'],
+          [],
+          1000
+        )
+        GoalRepository.saveLocalGoal(goal)
+        const plan: TrainingPlan = PlanEngine.generatePlan(goal)
+        const preview: WorkoutPreviewSummary = WorkoutPreviewService.createPreviewForGoal(goal, plan, 1)
+        const activeState: ActiveWorkoutState = ActiveWorkoutService.createState(preview)
+        const firstExercise: ActiveWorkoutExercise = activeState.exercises[0]
+        const updatedExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.updateSetEntry(
+          activeState.exercises,
+          firstExercise.plannedExerciseId,
+          0,
+          '60',
+          '10'
+        )
+        const progressedState: ActiveWorkoutState = ActiveWorkoutService.createStateWithProgress(activeState, updatedExercises)
+        const session: WorkoutSession = ActiveWorkoutService.createCompletedSession(
+          'session_target_loop_fallback',
+          progressedState,
+          1000,
+          121000,
+          progressedState.completedSets
+        )
+
+        try {
+          await WorkoutSessionPersistenceBridgeService.persistActiveWorkoutCompletion(testContext, session)
+        } catch (e) {
+          WorkoutRepository.saveSession(session)
+        }
+
+        const sessions: WorkoutSession[] = WorkoutRepository.getSessions()
+        expect(sessions.length).assertEqual(1)
+        expect(sessions[0].sessionId).assertEqual('session_target_loop_fallback')
+      } finally {
+        WorkoutSessionService.setStoreForTesting(null)
+        GoalRepository.clearLocal()
+        WorkoutRepository.clear()
+      }
     })
   })
 }
