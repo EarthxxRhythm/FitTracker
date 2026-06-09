@@ -6,6 +6,8 @@ import { router } from '@kit.ArkUI'
 import { AppRoutes } from '../../../app/AppRoutes'
 import TrainingPlanService, { UserPlan } from '../../../common/services/TrainingPlanService'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
+import { AppButton } from '../../../components/AppButton'
+import { AppCard } from '../../../components/AppCard'
 import { TrainingPlan, UserGoal } from '../../../shared/models/TrainingModels'
 import GoalRepository from '../../../shared/services/GoalRepository'
 import PlanEngine from '../../../shared/services/PlanEngine'
@@ -184,6 +186,47 @@ export struct WorkoutPreviewPage {
     return values
   }
 
+  getPreviewSubtitle(): string {
+    if (this.loading) {
+      return '正在整理今天的训练安排与动作明细'
+    }
+    if (!this.hasGoal) {
+      return '先设定训练目标，系统才会生成今天的训练预览'
+    }
+    if (!this.hasWorkout) {
+      return '当前计划没有可执行动作，先回到目标设置调整范围'
+    }
+    return '开始前先确认主动作、组数、强度和替代动作'
+  }
+
+  getPlanSourceText(): string {
+    if (this.usesCurrentPlan) {
+      return '当前启用计划'
+    }
+    return '今日生成计划'
+  }
+
+  getPreviewStatusText(): string {
+    if (this.hasFallback) {
+      return '存在替代提示'
+    }
+    return '可直接开始'
+  }
+
+  getPreviewStatusColor(): string {
+    if (this.hasFallback) {
+      return ColorTokens.WARNING
+    }
+    return ColorTokens.SUCCESS
+  }
+
+  getPreviewStatusBackgroundColor(): string {
+    if (this.hasFallback) {
+      return ColorTokens.OVERLAY_ACCENT
+    }
+    return ColorTokens.OVERLAY_SUCCESS
+  }
+
   getDayBadgeText(): string {
     if (this.dayId.indexOf('current_plan_day_') === 0) {
       return '第 ' + this.dayId.substring('current_plan_day_'.length) + ' 天'
@@ -198,17 +241,17 @@ export struct WorkoutPreviewPage {
   }
 
   getFallbackBannerText(): string {
-    if (this.fallbackNote === '\u9884\u7f6e\u8ba1\u5212\u52a8\u4f5c\u6682\u672a\u6620\u5c04\u5230\u52a8\u4f5c\u5e93\uff0c\u5c06\u6309\u540d\u79f0\u8bb0\u5f55') {
-      return '\u90e8\u5206\u52a8\u4f5c\u6682\u672a\u6536\u5f55\u8be6\u60c5\uff0c\u672c\u6b21\u53ef\u5148\u6309\u8ba1\u5212\u5b8c\u6210\u8bb0\u5f55\u3002'
+    if (this.fallbackNote === '预置计划动作暂未映射到动作库，将按名称记录') {
+      return '部分动作暂未收录详情，本次可先按计划完成记录。'
     }
     return this.fallbackNote
   }
 
   getExerciseSelectionText(exercise: WorkoutPreviewExercise): string {
-    if (exercise.selectionNote === '\u9884\u7f6e\u8ba1\u5212\u52a8\u4f5c\u6682\u672a\u6620\u5c04\u5230\u52a8\u4f5c\u5e93\uff0c\u5c06\u6309\u540d\u79f0\u8bb0\u5f55') {
-      return '\u52a8\u4f5c\u8be6\u60c5\u6574\u7406\u4e2d\uff0c\u672c\u6b21\u53ef\u5148\u6309\u8ba1\u5212\u5b8c\u6210\u8bb0\u5f55\u3002'
+    if (exercise.selectionNote === '预置计划动作暂未映射到动作库，将按名称记录') {
+      return '动作详情整理中，本次可先按计划完成记录。'
     }
-    if (exercise.selectionNote === '\u9884\u7f6e\u8ba1\u5212\u52a8\u4f5c\u5df2\u6620\u5c04\u5230\u52a8\u4f5c\u5e93\uff0c\u53ef\u7ee7\u7eed\u67e5\u770b\u52a8\u4f5c\u8be6\u60c5') {
+    if (exercise.selectionNote === '预置计划动作已映射到动作库，可继续查看动作详情') {
       return ''
     }
     return exercise.selectionNote
@@ -221,238 +264,303 @@ export struct WorkoutPreviewPage {
   build() {
     Scroll() {
       Column({ space: SpacingTokens.LG }) {
-        Column({ space: SpacingTokens.SM }) {
-          Text('训练预览')
-            .fontSize(FontTokens.DISPLAY_SIZE)
-            .fontWeight(FontTokens.DISPLAY_WEIGHT)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
+        AppCard({ variant: 'panel', cardPadding: 'default' }) {
+          Column({ space: SpacingTokens.SM }) {
+            Text('训练前确认')
+              .fontSize(FontTokens.MICRO_SIZE)
+              .fontWeight(FontTokens.MICRO_WEIGHT)
+              .fontColor(ColorTokens.TEXT_TERTIARY)
 
-          Text(this.loading ? '正在准备今日训练' : '开始前确认动作、组数和替代动作')
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontColor(ColorTokens.TEXT_SECONDARY)
-        }
-        .width('100%')
-        .alignItems(HorizontalAlign.Start)
-
-        if (!this.loading && !this.hasGoal) {
-          Column({ space: SpacingTokens.MD }) {
-            Text('还没有训练目标')
-              .fontSize(FontTokens.TITLE_SIZE)
-              .fontWeight(FontTokens.TITLE_WEIGHT)
+            Text('训练预览')
+              .fontSize(FontTokens.DISPLAY_SIZE)
+              .fontWeight(FontTokens.DISPLAY_WEIGHT)
               .fontColor(ColorTokens.TEXT_PRIMARY)
 
-            Text('先完成目标设置，再生成今日训练预览。')
+            Text(this.getPreviewSubtitle())
               .fontSize(FontTokens.BODY_SIZE)
               .fontColor(ColorTokens.TEXT_SECONDARY)
-
-            Button('设置训练目标')
-              .width('100%')
-              .height(TouchTokens.BUTTON_HEIGHT_LARGE)
-              .fontSize(FontTokens.BODY_SIZE)
-              .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-              .backgroundColor(ColorTokens.PRIMARY)
-              .borderRadius(RadiusTokens.FULL)
-              .onClick(() => {
-                this.openGoalSetup()
-              })
           }
           .width('100%')
-          .padding(SpacingTokens.MD)
-          .borderRadius(RadiusTokens.SM)
-          .backgroundColor(ColorTokens.BG_SECONDARY)
+          .alignItems(HorizontalAlign.Start)
+        }
+
+        if (!this.loading && !this.hasGoal) {
+          AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+            Column({ space: SpacingTokens.MD }) {
+              Text('还没有训练目标')
+                .fontSize(FontTokens.TITLE_SIZE)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+
+              Text('先完成目标设置，再生成今天的训练预览。')
+                .fontSize(FontTokens.BODY_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
+
+              AppButton({
+                text: '设置训练目标',
+                type: 'primary',
+                buttonSize: 'large',
+                block: true,
+                onButtonClick: () => {
+                  this.openGoalSetup()
+                }
+              })
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+          }
         }
 
         if (!this.loading && this.hasGoal && !this.hasWorkout) {
-          Column({ space: SpacingTokens.MD }) {
-            Text('今天没有可用训练')
-              .fontSize(FontTokens.TITLE_SIZE)
-              .fontWeight(FontTokens.TITLE_WEIGHT)
-              .fontColor(ColorTokens.TEXT_PRIMARY)
+          AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+            Column({ space: SpacingTokens.MD }) {
+              Text('今天没有可用训练')
+                .fontSize(FontTokens.TITLE_SIZE)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
 
-            Text('当前目标生成的计划没有匹配动作，可以回到目标设置调整器械。')
-              .fontSize(FontTokens.BODY_SIZE)
-              .fontColor(ColorTokens.TEXT_SECONDARY)
+              Text('当前目标生成的计划没有匹配动作，可以先回到目标设置调整训练范围。')
+                .fontSize(FontTokens.BODY_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
 
-            Button('调整目标')
-              .width('100%')
-              .height(TouchTokens.BUTTON_HEIGHT_LARGE)
-              .fontSize(FontTokens.BODY_SIZE)
-              .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-              .backgroundColor(ColorTokens.PRIMARY)
-              .borderRadius(RadiusTokens.FULL)
-              .onClick(() => {
-                this.openGoalSetup()
+              AppButton({
+                text: '调整目标',
+                type: 'primary',
+                buttonSize: 'large',
+                block: true,
+                onButtonClick: () => {
+                  this.openGoalSetup()
+                }
               })
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
           }
-          .width('100%')
-          .padding(SpacingTokens.MD)
-          .borderRadius(RadiusTokens.SM)
-          .backgroundColor(ColorTokens.BG_SECONDARY)
         }
 
         if (!this.loading && this.hasGoal && this.hasWorkout) {
           Column({ space: SpacingTokens.MD }) {
-            Column({ space: SpacingTokens.SM }) {
-              Text(this.planName)
-                .fontSize(FontTokens.TITLE_SIZE)
-                .fontWeight(FontTokens.TITLE_WEIGHT)
-                .fontColor(ColorTokens.TEXT_PRIMARY)
-
-              Text(this.goalSummary)
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(ColorTokens.TEXT_SECONDARY)
-
-              Text(this.scheduleSummary)
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(ColorTokens.TEXT_SECONDARY)
-            }
-            .width('100%')
-            .alignItems(HorizontalAlign.Start)
-            .padding(SpacingTokens.MD)
-            .borderRadius(RadiusTokens.SM)
-            .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-
-            Text(this.title)
-              .fontSize(FontTokens.HEADLINE_SIZE)
-              .fontWeight(FontTokens.HEADLINE_WEIGHT)
-              .fontColor(ColorTokens.TEXT_PRIMARY)
-
-            Row() {
-              Text(this.exerciseCount.toString() + ' 个动作')
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-                .padding({
-                  top: SpacingTokens.XS,
-                  bottom: SpacingTokens.XS,
-                  left: SpacingTokens.SM,
-                  right: SpacingTokens.SM
-                })
-                .backgroundColor(ColorTokens.PRIMARY)
-                .borderRadius(RadiusTokens.FULL)
-
-              Text(this.getDayBadgeText())
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-                .padding({
-                  top: SpacingTokens.XS,
-                  bottom: SpacingTokens.XS,
-                  left: SpacingTokens.SM,
-                  right: SpacingTokens.SM
-                })
-                .backgroundColor(ColorTokens.ACCENT)
-                .borderRadius(RadiusTokens.FULL)
-                .margin({ left: SpacingTokens.SM })
-            }
-            .width('100%')
-
-            if (this.hasFallback) {
-              Text(this.getFallbackBannerText())
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontColor(ColorTokens.TEXT_SECONDARY)
-                .width('100%')
-                .padding(SpacingTokens.SM)
-                .borderRadius(RadiusTokens.SM)
-                .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-            }
-
-            ForEach(this.exercises, (exercise: WorkoutPreviewExercise, index: number) => {
-              Column({ space: SpacingTokens.SM }) {
+            AppCard({ variant: 'panel', cardPadding: 'default' }) {
+              Column({ space: SpacingTokens.MD }) {
                 Row() {
-                  Text((index + 1).toString())
-                    .fontSize(FontTokens.SMALL_SIZE)
-                    .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-                    .width(26)
-                    .height(26)
-                    .textAlign(TextAlign.Center)
-                    .backgroundColor(ColorTokens.PRIMARY)
-                    .borderRadius(RadiusTokens.FULL)
+                  Column({ space: SpacingTokens.XS }) {
+                    Text(this.getPlanSourceText())
+                      .fontSize(FontTokens.MICRO_SIZE)
+                      .fontWeight(FontTokens.MICRO_WEIGHT)
+                      .fontColor(ColorTokens.TEXT_TERTIARY)
 
-                  Column() {
-                    Text(exercise.name)
-                      .fontSize(FontTokens.BODY_SIZE)
-                      .fontWeight(FontWeight.Medium)
+                    Text(this.planName)
+                      .fontSize(FontTokens.TITLE_SIZE)
+                      .fontWeight(FontWeight.Bold)
                       .fontColor(ColorTokens.TEXT_PRIMARY)
 
-                    Text(exercise.targetSets.toString() + ' 组 x ' + exercise.targetReps + ' | ' + exercise.intensityNote)
-                      .fontSize(FontTokens.CAPTION_SIZE)
+                    Text(this.goalSummary)
+                      .fontSize(FontTokens.BODY_SIZE)
                       .fontColor(ColorTokens.TEXT_SECONDARY)
-                      .margin({ top: SpacingTokens.XS })
 
-                    if (this.getExerciseSelectionText(exercise).length > 0) {
-                      Text(this.getExerciseSelectionText(exercise))
-                        .fontSize(FontTokens.CAPTION_SIZE)
-                        .fontColor(ColorTokens.TEXT_SECONDARY)
-                        .margin({ top: SpacingTokens.XS })
-                    }
+                    Text(this.scheduleSummary)
+                      .fontSize(FontTokens.SMALL_SIZE)
+                      .fontColor(ColorTokens.TEXT_TERTIARY)
                   }
                   .layoutWeight(1)
                   .alignItems(HorizontalAlign.Start)
-                  .margin({ left: SpacingTokens.SM })
+
+                  Text(this.getPreviewStatusText())
+                    .fontSize(FontTokens.SMALL_SIZE)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(this.getPreviewStatusColor())
+                    .padding({
+                      top: SpacingTokens.XS,
+                      bottom: SpacingTokens.XS,
+                      left: SpacingTokens.SM,
+                      right: SpacingTokens.SM
+                    })
+                    .backgroundColor(this.getPreviewStatusBackgroundColor())
+                    .borderRadius(RadiusTokens.FULL)
                 }
                 .width('100%')
 
-                if (exercise.alternativeNames.length > 0) {
-                  Column({ space: SpacingTokens.XS }) {
-                    Text('替代动作')
-                      .fontSize(FontTokens.SMALL_SIZE)
-                      .fontColor(ColorTokens.TEXT_SECONDARY)
+                Column({ space: SpacingTokens.XS }) {
+                  Text(this.title)
+                    .fontSize(FontTokens.HERO_SIZE)
+                    .fontWeight(FontWeight.Bold)
+                    .fontColor(ColorTokens.TEXT_PRIMARY)
 
-                    Flex({ wrap: FlexWrap.Wrap }) {
-                      ForEach(exercise.alternativeNames, (name: string, alternativeIndex: number) => {
-                        Button(name)
-                          .height(TouchTokens.BUTTON_HEIGHT_SMALL)
-                          .fontSize(FontTokens.SMALL_SIZE)
-                          .fontColor(ColorTokens.TEXT_PRIMARY)
-                          .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-                          .borderRadius(RadiusTokens.FULL)
-                          .margin({ right: SpacingTokens.SM, bottom: SpacingTokens.SM })
-                          .onClick(() => {
-                            if (alternativeIndex < exercise.alternativeExerciseIds.length) {
-                              this.openAlternative(exercise.alternativeExerciseIds[alternativeIndex])
-                            }
-                          })
-                      }, (name: string, alternativeIndex: number) => name + alternativeIndex.toString())
-                    }
-                    .width('100%')
+                  Text('确认今天的训练安排后再进入正式记录')
+                    .fontSize(FontTokens.SMALL_SIZE)
+                    .fontColor(ColorTokens.TEXT_TERTIARY)
+                }
+                .width('100%')
+                .alignItems(HorizontalAlign.Start)
+
+                Row({ space: SpacingTokens.SM }) {
+                  Column({ space: SpacingTokens.XS }) {
+                    Text(this.exerciseCount.toString())
+                      .fontSize(FontTokens.TITLE_SIZE)
+                      .fontWeight(FontWeight.Bold)
+                      .fontColor(ColorTokens.DATA_HIGHLIGHT)
+
+                    Text('计划动作数')
+                      .fontSize(FontTokens.SMALL_SIZE)
+                      .fontColor(ColorTokens.TEXT_TERTIARY)
+                  }
+                  .layoutWeight(1)
+                  .padding(SpacingTokens.MD)
+                  .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+                  .borderRadius(RadiusTokens.MD)
+                  .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+                  .alignItems(HorizontalAlign.Start)
+
+                  Column({ space: SpacingTokens.XS }) {
+                    Text(this.getDayBadgeText())
+                      .fontSize(FontTokens.TITLE_SIZE)
+                      .fontWeight(FontWeight.Bold)
+                      .fontColor(ColorTokens.TEXT_PRIMARY)
+                      .maxLines(1)
+                      .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+                    Text('训练日')
+                      .fontSize(FontTokens.SMALL_SIZE)
+                      .fontColor(ColorTokens.TEXT_TERTIARY)
+                  }
+                  .layoutWeight(1)
+                  .padding(SpacingTokens.MD)
+                  .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+                  .borderRadius(RadiusTokens.MD)
+                  .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+                  .alignItems(HorizontalAlign.Start)
+                }
+                .width('100%')
+
+                if (this.hasFallback) {
+                  Column({ space: SpacingTokens.XS }) {
+                    Text('替代动作提示')
+                      .fontSize(FontTokens.MICRO_SIZE)
+                      .fontWeight(FontTokens.MICRO_WEIGHT)
+                      .fontColor(ColorTokens.WARNING)
+
+                    Text(this.getFallbackBannerText())
+                      .fontSize(FontTokens.CAPTION_SIZE)
+                      .fontColor(ColorTokens.TEXT_SECONDARY)
                   }
                   .width('100%')
+                  .padding(SpacingTokens.MD)
+                  .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+                  .borderRadius(RadiusTokens.MD)
+                  .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+                  .alignItems(HorizontalAlign.Start)
                 }
 
-                Button('查看动作详情')
-                  .height(TouchTokens.BUTTON_HEIGHT_SMALL)
-                  .fontSize(FontTokens.SMALL_SIZE)
-                  .fontColor(ColorTokens.TEXT_PRIMARY)
-                  .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-                  .borderRadius(RadiusTokens.FULL)
-                  .enabled(this.shouldShowExerciseDetailButton(exercise))
-                  .onClick(() => {
-                    if (this.shouldShowExerciseDetailButton(exercise)) {
-                      this.openAlternative(exercise.exerciseId)
-                    }
-                  })
+                AppButton({
+                  text: '开始训练',
+                  type: 'primary',
+                  buttonSize: 'large',
+                  block: true,
+                  onButtonClick: () => {
+                    this.startWorkout()
+                  }
+                })
               }
               .width('100%')
-              .padding(SpacingTokens.MD)
-              .borderRadius(RadiusTokens.SM)
-              .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-            }, (exercise: WorkoutPreviewExercise) => exercise.plannedExerciseId)
+              .alignItems(HorizontalAlign.Start)
+            }
 
-            Button('开始训练')
-              .width('100%')
-              .height(TouchTokens.BUTTON_HEIGHT_LARGE)
-              .fontSize(FontTokens.BODY_SIZE)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-              .backgroundColor(ColorTokens.PRIMARY)
-              .borderRadius(RadiusTokens.FULL)
-              .onClick(() => {
-                this.startWorkout()
-              })
+            ForEach(this.exercises, (exercise: WorkoutPreviewExercise, index: number) => {
+              AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+                Column({ space: SpacingTokens.SM }) {
+                  Row() {
+                    Text((index + 1).toString())
+                      .fontSize(FontTokens.SMALL_SIZE)
+                      .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+                      .width(28)
+                      .height(28)
+                      .textAlign(TextAlign.Center)
+                      .backgroundColor(ColorTokens.PRIMARY)
+                      .borderRadius(RadiusTokens.FULL)
+
+                    Column({ space: SpacingTokens.XS }) {
+                      Text(exercise.name)
+                        .fontSize(FontTokens.BODY_SIZE)
+                        .fontWeight(FontWeight.Medium)
+                        .fontColor(ColorTokens.TEXT_PRIMARY)
+
+                      Text(exercise.targetSets.toString() + ' 组 x ' + exercise.targetReps + ' | ' + exercise.intensityNote)
+                        .fontSize(FontTokens.CAPTION_SIZE)
+                        .fontColor(ColorTokens.TEXT_SECONDARY)
+                    }
+                    .layoutWeight(1)
+                    .alignItems(HorizontalAlign.Start)
+                    .margin({ left: SpacingTokens.SM })
+                  }
+                  .width('100%')
+
+                  if (this.getExerciseSelectionText(exercise).length > 0) {
+                    Column({ space: SpacingTokens.XS }) {
+                      Text('动作说明')
+                        .fontSize(FontTokens.MICRO_SIZE)
+                        .fontWeight(FontTokens.MICRO_WEIGHT)
+                        .fontColor(ColorTokens.TEXT_TERTIARY)
+
+                      Text(this.getExerciseSelectionText(exercise))
+                        .fontSize(FontTokens.CAPTION_SIZE)
+                        .fontColor(ColorTokens.TEXT_SECONDARY)
+                    }
+                    .width('100%')
+                    .padding(SpacingTokens.MD)
+                    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+                    .borderRadius(RadiusTokens.MD)
+                    .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+                    .alignItems(HorizontalAlign.Start)
+                  }
+
+                  if (exercise.alternativeNames.length > 0) {
+                    Column({ space: SpacingTokens.XS }) {
+                      Text('替代动作')
+                        .fontSize(FontTokens.MICRO_SIZE)
+                        .fontWeight(FontTokens.MICRO_WEIGHT)
+                        .fontColor(ColorTokens.TEXT_TERTIARY)
+
+                      Flex({ wrap: FlexWrap.Wrap }) {
+                        ForEach(exercise.alternativeNames, (name: string, alternativeIndex: number) => {
+                          Button(name)
+                            .height(TouchTokens.BUTTON_HEIGHT_SMALL)
+                            .fontSize(FontTokens.SMALL_SIZE)
+                            .fontColor(ColorTokens.TEXT_PRIMARY)
+                            .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+                            .borderRadius(RadiusTokens.MD)
+                            .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+                            .margin({ right: SpacingTokens.SM, bottom: SpacingTokens.SM })
+                            .onClick(() => {
+                              if (alternativeIndex < exercise.alternativeExerciseIds.length) {
+                                this.openAlternative(exercise.alternativeExerciseIds[alternativeIndex])
+                              }
+                            })
+                        }, (name: string, alternativeIndex: number) => name + alternativeIndex.toString())
+                      }
+                      .width('100%')
+                    }
+                    .width('100%')
+                    .alignItems(HorizontalAlign.Start)
+                  }
+
+                  AppButton({
+                    text: '查看动作详情',
+                    type: 'secondary',
+                    buttonSize: 'small',
+                    disabled: !this.shouldShowExerciseDetailButton(exercise),
+                    onButtonClick: () => {
+                      if (this.shouldShowExerciseDetailButton(exercise)) {
+                        this.openAlternative(exercise.exerciseId)
+                      }
+                    }
+                  })
+                }
+                .width('100%')
+                .alignItems(HorizontalAlign.Start)
+              }
+            }, (exercise: WorkoutPreviewExercise) => exercise.plannedExerciseId)
           }
           .width('100%')
-          .padding(SpacingTokens.MD)
-          .borderRadius(RadiusTokens.SM)
-          .backgroundColor(ColorTokens.BG_SECONDARY)
         }
       }
       .width('100%')

@@ -6,6 +6,8 @@
 import { router } from '@kit.ArkUI'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
+import { AppButton } from '../../../components/AppButton'
+import { AppCard } from '../../../components/AppCard'
 import { AppInput } from '../../../components/AppInput'
 import { WorkoutSession } from '../../../shared/models/TrainingModels'
 import ContentRepository from '../../../shared/services/ContentRepository'
@@ -28,10 +30,12 @@ export struct WorkoutSummaryPage {
   @State sessionId: string = ''
   @State dayId: string = ''
   @State durationText: string = '0 分钟'
+  @State durationSeconds: number = 0
   @State completedSets: number = 0
   @State targetSets: number = 0
   @State completionRate: number = 0
   @State totalVolume: number = 0
+  @State fatigueScore: number = 0
   @State exerciseRecords: WorkoutSummaryExerciseRecord[] = []
   @State isEditMode: boolean = false
   @State showUndoConfirm: boolean = false
@@ -106,10 +110,12 @@ export struct WorkoutSummaryPage {
     this.sessionId = summary.sessionId
     this.dayId = summary.dayId
     this.durationText = summary.durationText
+    this.durationSeconds = summary.durationSeconds
     this.completedSets = summary.completedSets
     this.targetSets = summary.targetSets
     this.completionRate = summary.completionRate
     this.totalVolume = summary.totalVolume
+    this.fatigueScore = summary.fatigueScore
     this.exerciseRecords = this.copyExerciseRecords(summary.exerciseRecords)
   }
 
@@ -175,7 +181,7 @@ export struct WorkoutSummaryPage {
     this.applyEditModel(model)
     this.isEditMode = true
     this.showUndoConfirm = false
-    this.actionMessage = '已进入编辑模式，可直接修正组数、重量、次数与备注。'
+    this.actionMessage = '已进入编辑模式，可修正组数、重量、次数和备注。'
     this.actionMessageType = 'info'
   }
 
@@ -188,14 +194,14 @@ export struct WorkoutSummaryPage {
   cancelEditMode(): void {
     this.isEditMode = false
     this.savingEdit = false
-    this.actionMessage = '已取消编辑，本次训练仍保持当前保存结果。'
+    this.actionMessage = '已取消编辑，本次训练保留当前保存结果。'
     this.actionMessageType = 'info'
   }
 
   showUndoPanel(): void {
     this.showUndoConfirm = true
     this.isEditMode = false
-    this.actionMessage = '确认后会移除当前训练记录，仍可在本页立即恢复。'
+    this.actionMessage = '确认后会移除当前训练记录，但仍可在本页立即恢复。'
     this.actionMessageType = 'warning'
   }
 
@@ -265,7 +271,7 @@ export struct WorkoutSummaryPage {
     }
     const targetSetsValue: number = this.getParsedTargetSets()
     if (targetSetsValue <= 0) {
-      this.actionMessage = '目标组数需要大于 0，保存前请先修正。'
+      this.actionMessage = '目标总组数需要大于 0，保存前请先修正。'
       this.actionMessageType = 'warning'
       return
     }
@@ -296,7 +302,7 @@ export struct WorkoutSummaryPage {
       this.applySummary(summary)
       this.isEditMode = false
       this.showUndoConfirm = false
-      this.actionMessage = syncSucceeded ? '训练记录已更新。' : '训练记录已更新，旧持久层同步失败。'
+      this.actionMessage = syncSucceeded ? '训练记录已更新。' : '训练记录已更新，但旧持久层同步失败。'
       this.actionMessageType = syncSucceeded ? 'success' : 'warning'
     } finally {
       this.savingEdit = false
@@ -371,6 +377,86 @@ export struct WorkoutSummaryPage {
     this.actionMessageType = syncSucceeded ? 'success' : 'warning'
   }
 
+  getPageSubtitle(): string {
+    if (this.loading) {
+      return '正在整理本次训练结果与记录状态'
+    }
+    if (!this.hasSession) {
+      if (this.canRestoreRemovedSession) {
+        return '本次记录已撤销，但你仍可以在这里立即恢复'
+      }
+      return '没有找到可展示的训练记录，先回到主流程开始训练'
+    }
+    return '先确认这次训练的完成情况，再决定是否修正记录或进入回顾'
+  }
+
+  getHeroBadgeText(): string {
+    if (this.loading) {
+      return '同步中'
+    }
+    if (this.canRestoreRemovedSession && !this.hasSession) {
+      return '可恢复'
+    }
+    if (this.isEditMode) {
+      return '编辑中'
+    }
+    if (this.showUndoConfirm) {
+      return '待确认'
+    }
+    if (this.hasSession) {
+      return '已保存'
+    }
+    return '无记录'
+  }
+
+  getHeroBadgeBackgroundColor(): string {
+    if (this.canRestoreRemovedSession && !this.hasSession) {
+      return ColorTokens.OVERLAY_ACCENT
+    }
+    if (this.isEditMode) {
+      return ColorTokens.OVERLAY_PRIMARY
+    }
+    if (this.showUndoConfirm) {
+      return ColorTokens.WARNING_BG
+    }
+    if (this.hasSession) {
+      return ColorTokens.OVERLAY_SUCCESS
+    }
+    return ColorTokens.SURFACE_ELEVATED
+  }
+
+  getHeroTitle(): string {
+    if (!this.hasSession) {
+      return '训练总结'
+    }
+    return this.getDayLabel()
+  }
+
+  getDayLabel(): string {
+    if (this.dayId.indexOf('current_plan_day_') === 0) {
+      return '当前计划 第 ' + this.dayId.substring('current_plan_day_'.length) + ' 天'
+    }
+    if (this.dayId.indexOf('day_') === 0) {
+      return '训练日 第 ' + this.dayId.substring('day_'.length) + ' 天'
+    }
+    if (this.dayId.length > 0) {
+      return this.dayId
+    }
+    return '训练完成'
+  }
+
+  getHeroSummary(): string {
+    if (!this.hasSession) {
+      return '这次训练记录当前不可见，你可以返回首页继续训练，或恢复刚撤销的记录。'
+    }
+    let prText: string = '暂无 PR 亮点'
+    if (this.exerciseRecords.length > 0) {
+      prText = '本次新增 ' + this.exerciseRecords.length.toString() + ' 条动作纪录亮点'
+    }
+    return this.durationText + ' | 完成 ' + this.completedSets.toString() + '/' + this.targetSets.toString() +
+      ' 组 | 训练量 ' + this.totalVolume.toString() + ' | ' + prText
+  }
+
   getCompletionText(): string {
     return this.completionRate.toString() + '%'
   }
@@ -392,16 +478,26 @@ export struct WorkoutSummaryPage {
     if (this.actionMessageType === 'success') {
       return ColorTokens.SUCCESS
     }
-    return ColorTokens.TEXT_SECONDARY
+    return ColorTokens.INFO
+  }
+
+  getActionMessageBackgroundColor(): string {
+    if (this.actionMessageType === 'warning') {
+      return ColorTokens.WARNING_BG
+    }
+    if (this.actionMessageType === 'success') {
+      return ColorTokens.SUCCESS_BG
+    }
+    return ColorTokens.INFO_BG
   }
 
   getEditScopeText(): string {
-    const completedSets: number = this.countCompletedEditSets(this.editSets)
-    return '当前已识别 ' + completedSets.toString() + ' 组完成记录，可逐组修正重量、次数与备注。'
+    const completed: number = this.countCompletedEditSets(this.editSets)
+    return '当前识别到 ' + completed.toString() + ' 组已完成记录，可逐组修正重量、次数与备注。'
   }
 
   getUndoDescriptionText(): string {
-    return '建议仅在刚保存且确认有误时使用。撤销后会从当前训练记录中移除，并提供一次恢复入口。'
+    return '建议只在刚保存且确认有误时使用。撤销后会从当前训练记录中移除，并保留一次立即恢复入口。'
   }
 
   getExerciseName(exerciseId: string): string {
@@ -419,76 +515,305 @@ export struct WorkoutSummaryPage {
     return '未完成'
   }
 
-  getSetStatusColor(set: WorkoutSessionEditSet): string {
+  getSetStatusBackgroundColor(set: WorkoutSessionEditSet): string {
+    if (set.isComplete) {
+      return ColorTokens.OVERLAY_SUCCESS
+    }
+    return ColorTokens.SURFACE_ELEVATED
+  }
+
+  getSetStatusTextColor(set: WorkoutSessionEditSet): string {
     if (set.isComplete) {
       return ColorTokens.SUCCESS
     }
-    return ColorTokens.TEXT_DISABLED
+    return ColorTokens.TEXT_SECONDARY
   }
 
   getSetOneRepMaxText(set: WorkoutSessionEditSet): string {
     if (set.estimatedOneRepMax <= 0) {
-      return '录入重量和次数后显示 1RM'
+      return '录入重量和次数后显示参考 1RM'
     }
     return '参考 1RM ' + set.estimatedOneRepMax.toString() + ' kg'
   }
 
+  getVolumeText(): string {
+    return this.totalVolume.toString()
+  }
+
+  getFatigueText(): string {
+    if (this.fatigueScore <= 0) {
+      return '未记录'
+    }
+    return this.fatigueScore.toString()
+  }
+
   @Builder
-  buildMetric(label: string, value: string) {
+  buildHeroSection() {
+    AppCard({ variant: 'panel', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.MD }) {
+        Row() {
+          Column({ space: SpacingTokens.XS }) {
+            Text('训练收官')
+              .fontSize(FontTokens.MICRO_SIZE)
+              .fontWeight(FontTokens.MICRO_WEIGHT)
+              .fontColor(ColorTokens.TEXT_TERTIARY)
+
+            Text(this.getHeroTitle())
+              .fontSize(FontTokens.DISPLAY_SIZE)
+              .fontWeight(FontTokens.DISPLAY_WEIGHT)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+              .maxLines(2)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+            Text(this.getPageSubtitle())
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+              .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+        }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+
+          Text(this.getHeroBadgeText())
+            .fontSize(FontTokens.SMALL_SIZE)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
+            .padding({
+              top: SpacingTokens.XS,
+              bottom: SpacingTokens.XS,
+              left: SpacingTokens.SM,
+              right: SpacingTokens.SM
+            })
+            .backgroundColor(this.getHeroBadgeBackgroundColor())
+            .borderRadius(RadiusTokens.FULL)
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Top)
+
+        if (this.hasSession) {
+          Text(this.getHeroSummary())
+            .fontSize(FontTokens.CAPTION_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+            .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+            .width('100%')
+
+          Row({ space: SpacingTokens.MD }) {
+            this.buildMetricTile('完成率', this.getCompletionText(), '本次训练')
+            this.buildMetricTile('已完成', this.completedSets.toString() + '/' + this.targetSets.toString(), '目标组数')
+          }
+          .width('100%')
+
+          Row({ space: SpacingTokens.MD }) {
+            this.buildMetricTile('训练时长', this.durationText, '本次耗时')
+            this.buildMetricTile('训练量', this.getVolumeText(), '累计重量')
+          }
+          .width('100%')
+        }
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
+  }
+
+  @Builder
+  buildMetricTile(label: string, value: string, note: string) {
     Column({ space: SpacingTokens.XS }) {
+      Text(label)
+        .fontSize(FontTokens.SMALL_SIZE)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
+
       Text(value)
         .fontSize(FontTokens.HEADLINE_SIZE)
         .fontWeight(FontTokens.HEADLINE_WEIGHT)
         .fontColor(ColorTokens.TEXT_PRIMARY)
-        .maxLines(1)
+        .maxLines(2)
 
-      Text(label)
+      Text(note)
         .fontSize(FontTokens.CAPTION_SIZE)
         .fontColor(ColorTokens.TEXT_SECONDARY)
         .maxLines(1)
     }
     .layoutWeight(1)
     .padding(SpacingTokens.MD)
-    .borderRadius(RadiusTokens.SM)
-    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-    .alignItems(HorizontalAlign.Center)
+    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+    .borderRadius(RadiusTokens.MD)
+    .alignItems(HorizontalAlign.Start)
   }
 
   @Builder
-  buildRecordMetric(label: string, value: string) {
-    Column({ space: SpacingTokens.XS }) {
-      Text(value)
-        .fontSize(FontTokens.BODY_BOLD_SIZE)
-        .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
-        .fontColor(ColorTokens.TEXT_PRIMARY)
-        .maxLines(1)
+  buildMessagePanel() {
+    if (this.actionMessage.length > 0) {
+      Column({ space: SpacingTokens.XS }) {
+        Text('记录状态')
+          .fontSize(FontTokens.SMALL_SIZE)
+          .fontColor(this.getActionMessageColor())
 
-      Text(label)
-        .fontSize(FontTokens.SMALL_SIZE)
-        .fontColor(ColorTokens.TEXT_SECONDARY)
-        .maxLines(1)
+        Text(this.actionMessage)
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+          .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+      }
+      .width('100%')
+      .padding(SpacingTokens.MD)
+      .backgroundColor(this.getActionMessageBackgroundColor())
+      .borderRadius(RadiusTokens.MD)
+      .alignItems(HorizontalAlign.Start)
     }
-    .layoutWeight(1)
-    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  buildNoSessionState() {
+    AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.MD }) {
+        Text('没有找到训练记录')
+          .fontSize(FontTokens.TITLE_SIZE)
+          .fontWeight(FontTokens.TITLE_WEIGHT)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+
+        Text(
+          this.canRestoreRemovedSession ?
+            '刚撤销的训练记录仍可恢复，恢复后会重新回到本页。' :
+            '可能是从复盘页直接进入，或当前仓库里没有可展示的训练记录。'
+        )
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+
+        if (this.canRestoreRemovedSession) {
+          AppButton({
+            text: '恢复刚撤销的记录',
+            type: 'primary',
+            buttonSize: 'large',
+            block: true,
+            onButtonClick: () => {
+              this.restoreRemovedSession()
+            }
+          })
+        }
+
+        AppButton({
+          text: '回到首页',
+          type: 'secondary',
+          buttonSize: 'large',
+          block: true,
+          onButtonClick: () => {
+            this.openHome()
+          }
+        })
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
+  }
+
+  @Builder
+  buildProgressSection() {
+    AppCard({ variant: 'panel', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.MD }) {
+        Row() {
+          Column({ space: SpacingTokens.XS }) {
+            Text('完成度')
+              .fontSize(FontTokens.TITLE_SIZE)
+              .fontWeight(FontTokens.TITLE_WEIGHT)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+
+            Text('本次训练的执行结果已经落库，可在这里做最终校对。')
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+
+          Text(this.getCompletionText())
+            .fontSize(FontTokens.TITLE_SIZE)
+            .fontWeight(FontTokens.TITLE_WEIGHT)
+            .fontColor(ColorTokens.PRIMARY)
+        }
+        .width('100%')
+
+        Stack({ alignContent: Alignment.Start }) {
+          Row()
+            .width('100%')
+            .height(TouchTokens.PROGRESS_BAR_HEIGHT)
+            .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+            .borderRadius(RadiusTokens.FULL)
+
+          Row()
+            .width(this.getProgressWidth())
+            .height(TouchTokens.PROGRESS_BAR_HEIGHT)
+            .backgroundColor(ColorTokens.PRIMARY)
+            .borderRadius(RadiusTokens.FULL)
+        }
+        .width('100%')
+        .height(TouchTokens.PROGRESS_BAR_HEIGHT)
+
+        Row({ space: SpacingTokens.MD }) {
+          this.buildMetricTile('训练日', this.getDayLabel(), '当前入口')
+          this.buildMetricTile('疲劳分', this.getFatigueText(), '主观负荷')
+        }
+        .width('100%')
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
+  }
+
+  @Builder
+  buildRecordSection() {
+    AppCard({ variant: 'elevated', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.MD }) {
+        Text('本次亮点')
+          .fontSize(FontTokens.TITLE_SIZE)
+          .fontWeight(FontTokens.TITLE_WEIGHT)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+
+        if (this.exerciseRecords.length === 0) {
+          Text('本次没有新的动作纪录亮点，但训练记录已经完整保存。')
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+            .width('100%')
+        }
+
+        ForEach(this.exerciseRecords, (record: WorkoutSummaryExerciseRecord) => {
+          this.buildExerciseRecord(record)
+        }, (record: WorkoutSummaryExerciseRecord) => record.exerciseId)
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
   }
 
   @Builder
   buildExerciseRecord(record: WorkoutSummaryExerciseRecord) {
     Column({ space: SpacingTokens.SM }) {
       Row() {
-        Text(record.exerciseName)
-          .fontSize(FontTokens.BODY_BOLD_SIZE)
-          .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
-          .fontColor(ColorTokens.TEXT_PRIMARY)
-          .maxLines(1)
-          .layoutWeight(1)
+        Column({ space: SpacingTokens.XS }) {
+          Text(record.exerciseName)
+            .fontSize(FontTokens.BODY_BOLD_SIZE)
+            .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
+            .maxLines(2)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
 
-        Text(record.dateText)
-          .fontSize(FontTokens.CAPTION_SIZE)
-          .fontColor(ColorTokens.TEXT_SECONDARY)
-          .maxLines(1)
+          Text(record.dateText)
+            .fontSize(FontTokens.CAPTION_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
+
+        Text('PR')
+          .fontSize(FontTokens.SMALL_SIZE)
+          .fontColor(ColorTokens.NEW_RECORD)
+          .padding({
+            top: SpacingTokens.XS,
+            bottom: SpacingTokens.XS,
+            left: SpacingTokens.SM,
+            right: SpacingTokens.SM
+          })
+          .backgroundColor(ColorTokens.NEW_RECORD_BG)
+          .borderRadius(RadiusTokens.FULL)
       }
       .width('100%')
+      .alignItems(VerticalAlign.Top)
 
       Row({ space: SpacingTokens.SM }) {
         this.buildRecordMetric('最佳 1RM', record.bestOneRepMax.toString() + ' kg')
@@ -499,23 +824,161 @@ export struct WorkoutSummaryPage {
     }
     .width('100%')
     .padding(SpacingTokens.MD)
-    .borderRadius(RadiusTokens.SM)
-    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+    .borderRadius(RadiusTokens.MD)
+    .alignItems(HorizontalAlign.Start)
   }
 
   @Builder
-  buildActionNotice() {
-    if (this.actionMessage.length > 0) {
-      Row() {
-        Text(this.actionMessage)
+  buildRecordMetric(label: string, value: string) {
+    Column({ space: SpacingTokens.XS }) {
+      Text(label)
+        .fontSize(FontTokens.SMALL_SIZE)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
+
+      Text(value)
+        .fontSize(FontTokens.BODY_BOLD_SIZE)
+        .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+        .maxLines(2)
+    }
+    .layoutWeight(1)
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  buildMetadataSection() {
+    AppCard({ variant: 'outlined', cardPadding: 'compact' }) {
+      Column({ space: SpacingTokens.SM }) {
+        Text('记录元信息')
           .fontSize(FontTokens.CAPTION_SIZE)
-          .fontColor(this.getActionMessageColor())
-          .layoutWeight(1)
+          .fontWeight(FontTokens.TITLE_WEIGHT)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+
+        this.buildInfoRow('记录编号', this.sessionId)
+        this.buildInfoRow('训练日', this.getDayLabel())
+        this.buildInfoRow('训练时长', this.durationText)
+        this.buildInfoRow('训练量', this.getVolumeText())
       }
       .width('100%')
-      .padding(SpacingTokens.MD)
-      .borderRadius(RadiusTokens.SM)
-      .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+      .alignItems(HorizontalAlign.Start)
+    }
+  }
+
+  @Builder
+  buildInfoRow(label: string, value: string) {
+    Row() {
+      Text(label)
+        .fontSize(FontTokens.SMALL_SIZE)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
+        .width(72)
+
+      Text(value)
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .layoutWeight(1)
+        .maxLines(3)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+    }
+    .width('100%')
+    .alignItems(VerticalAlign.Top)
+  }
+
+  @Builder
+  buildActionSection() {
+    AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.MD }) {
+        Text('修正记录')
+          .fontSize(FontTokens.TITLE_SIZE)
+          .fontWeight(FontTokens.TITLE_WEIGHT)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+
+        Text('如果刚才录入有误，可以在这里修正组数、重量、次数与备注；撤销保存会移除整条记录。')
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+
+        AppButton({
+          text: this.isEditMode ? '正在编辑本次训练' : '编辑本次训练',
+          type: 'primary',
+          buttonSize: 'large',
+          block: true,
+          disabled: this.isEditMode,
+          onButtonClick: () => {
+            this.enterEditMode()
+          }
+        })
+
+        AppButton({
+          text: '撤销本次保存',
+          type: 'secondary',
+          buttonSize: 'large',
+          block: true,
+          onButtonClick: () => {
+            this.showUndoPanel()
+          }
+        })
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
+  }
+
+  @Builder
+  buildEditShell() {
+    AppCard({ variant: 'elevated', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.MD }) {
+        Text('编辑本次训练')
+          .fontSize(FontTokens.TITLE_SIZE)
+          .fontWeight(FontTokens.TITLE_WEIGHT)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+
+        Text(this.getEditScopeText())
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+
+        AppInput({
+          value: $editTargetSetsText,
+          placeholder: '目标总组数',
+          type: 'number'
+        })
+
+        AppInput({
+          value: $editCustomNotes,
+          placeholder: '训练备注，可留空',
+          type: 'text',
+          showClear: true
+        })
+
+        ForEach(this.editSets, (set: WorkoutSessionEditSet, index: number) => {
+          this.buildEditSetCard(set, index + 1)
+        }, (set: WorkoutSessionEditSet) => set.setId)
+
+        AppButton({
+          text: this.savingEdit ? '保存中...' : '提交编辑',
+          type: 'primary',
+          buttonSize: 'large',
+          block: true,
+          loading: this.savingEdit,
+          onButtonClick: () => {
+            this.submitEditDraft()
+          }
+        })
+
+        AppButton({
+          text: '取消编辑',
+          type: 'secondary',
+          buttonSize: 'large',
+          block: true,
+          disabled: this.savingEdit,
+          onButtonClick: () => {
+            this.cancelEditMode()
+          }
+        })
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
     }
   }
 
@@ -538,17 +1001,18 @@ export struct WorkoutSummaryPage {
 
         Text(this.getSetStatusText(set))
           .fontSize(FontTokens.SMALL_SIZE)
-          .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+          .fontColor(this.getSetStatusTextColor(set))
           .padding({
             top: SpacingTokens.XS,
             bottom: SpacingTokens.XS,
             left: SpacingTokens.SM,
             right: SpacingTokens.SM
           })
-          .backgroundColor(this.getSetStatusColor(set))
+          .backgroundColor(this.getSetStatusBackgroundColor(set))
           .borderRadius(RadiusTokens.FULL)
       }
       .width('100%')
+      .alignItems(VerticalAlign.Center)
 
       Row({ space: SpacingTokens.SM }) {
         Column({ space: SpacingTokens.XS }) {
@@ -597,70 +1061,8 @@ export struct WorkoutSummaryPage {
     }
     .width('100%')
     .padding(SpacingTokens.MD)
-    .borderRadius(RadiusTokens.SM)
-    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-    .alignItems(HorizontalAlign.Start)
-  }
-
-  @Builder
-  buildEditShell() {
-    Column({ space: SpacingTokens.MD }) {
-      Text('编辑本次训练')
-        .fontSize(FontTokens.TITLE_SIZE)
-        .fontWeight(FontTokens.TITLE_WEIGHT)
-        .fontColor(ColorTokens.TEXT_PRIMARY)
-
-      Text(this.getEditScopeText())
-        .fontSize(FontTokens.BODY_SIZE)
-        .fontColor(ColorTokens.TEXT_SECONDARY)
-
-      AppInput({
-        value: $editTargetSetsText,
-        placeholder: '目标总组数',
-        type: 'number'
-      })
-
-      AppInput({
-        value: $editCustomNotes,
-        placeholder: '训练备注，可留空',
-        type: 'text',
-        showClear: true
-      })
-
-      ForEach(this.editSets, (set: WorkoutSessionEditSet, index: number) => {
-        this.buildEditSetCard(set, index + 1)
-      }, (set: WorkoutSessionEditSet) => set.setId)
-
-      Button(this.savingEdit ? '保存中...' : '提交编辑')
-        .width('100%')
-        .height(TouchTokens.BUTTON_HEIGHT_LARGE)
-        .fontSize(FontTokens.BODY_SIZE)
-        .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-        .backgroundColor(ColorTokens.PRIMARY)
-        .borderRadius(RadiusTokens.FULL)
-        .enabled(!this.savingEdit)
-        .opacity(this.savingEdit ? 0.6 : 1)
-        .onClick(() => {
-          this.submitEditDraft()
-        })
-
-      Button('取消编辑')
-        .width('100%')
-        .height(TouchTokens.BUTTON_HEIGHT_LARGE)
-        .fontSize(FontTokens.BODY_SIZE)
-        .fontColor(ColorTokens.TEXT_PRIMARY)
-        .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-        .borderRadius(RadiusTokens.FULL)
-        .enabled(!this.savingEdit)
-        .opacity(this.savingEdit ? 0.6 : 1)
-        .onClick(() => {
-          this.cancelEditMode()
-        })
-    }
-    .width('100%')
-    .padding(SpacingTokens.MD)
-    .borderRadius(RadiusTokens.SM)
-    .backgroundColor(ColorTokens.BG_SECONDARY)
+    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+    .borderRadius(RadiusTokens.MD)
     .alignItems(HorizontalAlign.Start)
   }
 
@@ -676,106 +1078,73 @@ export struct WorkoutSummaryPage {
         Text(this.getUndoDescriptionText())
           .fontSize(FontTokens.BODY_SIZE)
           .fontColor(ColorTokens.TEXT_SECONDARY)
+          .lineHeight(FontTokens.BODY_LINE_HEIGHT)
 
-        Text('记录编号：' + this.sessionId)
-          .fontSize(FontTokens.CAPTION_SIZE)
-          .fontColor(ColorTokens.TEXT_SECONDARY)
+        this.buildInfoRow('记录编号', this.sessionId)
 
-        Button(this.undoingSession ? '撤销中...' : '确认撤销')
-          .width('100%')
-          .height(TouchTokens.BUTTON_HEIGHT_LARGE)
-          .fontSize(FontTokens.BODY_SIZE)
-          .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-          .backgroundColor(ColorTokens.WARNING)
-          .borderRadius(RadiusTokens.FULL)
-          .enabled(!this.undoingSession)
-          .opacity(this.undoingSession ? 0.6 : 1)
-          .onClick(() => {
+        AppButton({
+          text: this.undoingSession ? '撤销中...' : '确认撤销',
+          type: 'primary',
+          buttonSize: 'large',
+          block: true,
+          loading: this.undoingSession,
+          onButtonClick: () => {
             this.confirmUndoSave()
-          })
+          }
+        })
 
-        Button('先保留记录')
-          .width('100%')
-          .height(TouchTokens.BUTTON_HEIGHT_LARGE)
-          .fontSize(FontTokens.BODY_SIZE)
-          .fontColor(ColorTokens.TEXT_PRIMARY)
-          .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-          .borderRadius(RadiusTokens.FULL)
-          .enabled(!this.undoingSession)
-          .opacity(this.undoingSession ? 0.6 : 1)
-          .onClick(() => {
+        AppButton({
+          text: '先保留记录',
+          type: 'secondary',
+          buttonSize: 'large',
+          block: true,
+          disabled: this.undoingSession,
+          onButtonClick: () => {
             this.hideUndoPanel()
-          })
+          }
+        })
       }
       .width('100%')
-      .padding(SpacingTokens.MD)
-      .borderRadius(RadiusTokens.SM)
-      .backgroundColor(ColorTokens.BG_SECONDARY)
+      .padding(SpacingTokens.LG)
+      .backgroundColor(ColorTokens.WARNING_BG)
+      .borderRadius(RadiusTokens.MD)
       .alignItems(HorizontalAlign.Start)
     }
   }
 
   @Builder
-  buildNoSessionState() {
-    Column({ space: SpacingTokens.MD }) {
-      Text('没有找到训练记录')
-        .fontSize(FontTokens.TITLE_SIZE)
-        .fontWeight(FontTokens.TITLE_WEIGHT)
-        .fontColor(ColorTokens.TEXT_PRIMARY)
+  buildNextStepSection() {
+    Column({ space: SpacingTokens.SM }) {
+      AppButton({
+        text: '查看训练回顾',
+        type: 'primary',
+        buttonSize: 'large',
+        block: true,
+        onButtonClick: () => {
+          this.openReview()
+        }
+      })
 
-      Text(this.canRestoreRemovedSession ? '刚撤销的训练记录仍可恢复。' : '可能是从复盘页直接进入，先回到首页开始一次训练。')
-        .fontSize(FontTokens.BODY_SIZE)
-        .fontColor(ColorTokens.TEXT_SECONDARY)
-
-      if (this.canRestoreRemovedSession) {
-        Button('恢复刚撤销的记录')
-          .width('100%')
-          .height(TouchTokens.BUTTON_HEIGHT_LARGE)
-          .fontSize(FontTokens.BODY_SIZE)
-          .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-          .backgroundColor(ColorTokens.PRIMARY)
-          .borderRadius(RadiusTokens.FULL)
-          .onClick(() => {
-            this.restoreRemovedSession()
-          })
-      }
-
-      Button('回到首页')
-        .width('100%')
-        .height(TouchTokens.BUTTON_HEIGHT_LARGE)
-        .fontSize(FontTokens.BODY_SIZE)
-        .fontColor(ColorTokens.TEXT_PRIMARY)
-        .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-        .borderRadius(RadiusTokens.FULL)
-        .onClick(() => {
+      AppButton({
+        text: '回到首页',
+        type: 'secondary',
+        buttonSize: 'large',
+        block: true,
+        onButtonClick: () => {
           this.openHome()
-        })
+        }
+      })
     }
     .width('100%')
-    .padding(SpacingTokens.MD)
-    .borderRadius(RadiusTokens.SM)
-    .backgroundColor(ColorTokens.BG_SECONDARY)
-    .alignItems(HorizontalAlign.Start)
   }
 
   build() {
     Scroll() {
       Column({ space: SpacingTokens.LG }) {
-        Column({ space: SpacingTokens.SM }) {
-          Text('训练复盘')
-            .fontSize(FontTokens.DISPLAY_SIZE)
-            .fontWeight(FontTokens.DISPLAY_WEIGHT)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-
-          Text(this.loading ? '正在整理本次训练' : '本次训练已经保存到本地记录')
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontColor(ColorTokens.TEXT_SECONDARY)
-        }
-        .width('100%')
-        .alignItems(HorizontalAlign.Start)
+        this.buildHeroSection()
 
         if (!this.loading) {
-          this.buildActionNotice()
+          this.buildMessagePanel()
         }
 
         if (!this.loading && !this.hasSession) {
@@ -783,152 +1152,17 @@ export struct WorkoutSummaryPage {
         }
 
         if (!this.loading && this.hasSession) {
-          Column({ space: SpacingTokens.MD }) {
-            Column({ space: SpacingTokens.SM }) {
-              Row() {
-                Text('完成度')
-                  .fontSize(FontTokens.TITLE_SIZE)
-                  .fontWeight(FontTokens.TITLE_WEIGHT)
-                  .fontColor(ColorTokens.TEXT_PRIMARY)
-                  .layoutWeight(1)
+          this.buildProgressSection()
+          this.buildRecordSection()
+          this.buildMetadataSection()
+          this.buildActionSection()
 
-                Text(this.getCompletionText())
-                  .fontSize(FontTokens.TITLE_SIZE)
-                  .fontWeight(FontTokens.TITLE_WEIGHT)
-                  .fontColor(ColorTokens.PRIMARY)
-              }
-              .width('100%')
-
-              Stack({ alignContent: Alignment.Start }) {
-                Row()
-                  .width('100%')
-                  .height(TouchTokens.PROGRESS_BAR_HEIGHT)
-                  .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-                  .borderRadius(RadiusTokens.FULL)
-
-                Row()
-                  .width(this.getProgressWidth())
-                  .height(TouchTokens.PROGRESS_BAR_HEIGHT)
-                  .backgroundColor(ColorTokens.PRIMARY)
-                  .borderRadius(RadiusTokens.FULL)
-              }
-              .width('100%')
-              .height(TouchTokens.PROGRESS_BAR_HEIGHT)
-            }
-            .width('100%')
-            .padding(SpacingTokens.MD)
-            .borderRadius(RadiusTokens.SM)
-            .backgroundColor(ColorTokens.BG_SECONDARY)
-
-            Column({ space: SpacingTokens.SM }) {
-              Text('记录操作')
-                .fontSize(FontTokens.TITLE_SIZE)
-                .fontWeight(FontTokens.TITLE_WEIGHT)
-                .fontColor(ColorTokens.TEXT_PRIMARY)
-
-              Text('支持修正本次训练的组数、重量、次数与备注，也可以直接撤销并恢复。')
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(ColorTokens.TEXT_SECONDARY)
-
-              Button(this.isEditMode ? '正在编辑本次训练' : '编辑本次训练')
-                .width('100%')
-                .height(TouchTokens.BUTTON_HEIGHT_LARGE)
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-                .backgroundColor(ColorTokens.PRIMARY)
-                .borderRadius(RadiusTokens.FULL)
-                .enabled(!this.isEditMode)
-                .opacity(this.isEditMode ? 0.6 : 1)
-                .onClick(() => {
-                  this.enterEditMode()
-                })
-
-              Button('撤销本次保存')
-                .width('100%')
-                .height(TouchTokens.BUTTON_HEIGHT_LARGE)
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(ColorTokens.TEXT_PRIMARY)
-                .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-                .borderRadius(RadiusTokens.FULL)
-                .onClick(() => {
-                  this.showUndoPanel()
-                })
-            }
-            .width('100%')
-            .padding(SpacingTokens.MD)
-            .borderRadius(RadiusTokens.SM)
-            .backgroundColor(ColorTokens.BG_SECONDARY)
-            .alignItems(HorizontalAlign.Start)
-
-            if (this.isEditMode) {
-              this.buildEditShell()
-            }
-
-            this.buildUndoShell()
-
-            Row({ space: SpacingTokens.SM }) {
-              this.buildMetric('完成组数', this.completedSets.toString() + '/' + this.targetSets.toString())
-              this.buildMetric('训练时长', this.durationText)
-            }
-            .width('100%')
-
-            Row({ space: SpacingTokens.SM }) {
-              this.buildMetric('训练日', this.dayId)
-              this.buildMetric('训练容量', this.totalVolume.toString())
-            }
-            .width('100%')
-
-            Column({ space: SpacingTokens.SM }) {
-              Text('动作最佳记录')
-                .fontSize(FontTokens.TITLE_SIZE)
-                .fontWeight(FontTokens.TITLE_WEIGHT)
-                .fontColor(ColorTokens.TEXT_PRIMARY)
-
-              ForEach(this.exerciseRecords, (record: WorkoutSummaryExerciseRecord) => {
-                this.buildExerciseRecord(record)
-              }, (record: WorkoutSummaryExerciseRecord) => record.exerciseId)
-            }
-            .width('100%')
-            .alignItems(HorizontalAlign.Start)
-
-            Column({ space: SpacingTokens.SM }) {
-              Text('记录编号')
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontColor(ColorTokens.TEXT_SECONDARY)
-
-              Text(this.sessionId)
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontColor(ColorTokens.TEXT_PRIMARY)
-            }
-            .width('100%')
-            .padding(SpacingTokens.MD)
-            .borderRadius(RadiusTokens.SM)
-            .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-            .alignItems(HorizontalAlign.Start)
-
-            Button('回到首页')
-              .width('100%')
-              .height(TouchTokens.BUTTON_HEIGHT_LARGE)
-              .fontSize(FontTokens.BODY_SIZE)
-              .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-              .backgroundColor(ColorTokens.PRIMARY)
-              .borderRadius(RadiusTokens.FULL)
-              .onClick(() => {
-                this.openHome()
-              })
-
-            Button('查看训练回顾')
-              .width('100%')
-              .height(TouchTokens.BUTTON_HEIGHT_LARGE)
-              .fontSize(FontTokens.BODY_SIZE)
-              .fontColor(ColorTokens.TEXT_PRIMARY)
-              .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-              .borderRadius(RadiusTokens.FULL)
-              .onClick(() => {
-                this.openReview()
-              })
+          if (this.isEditMode) {
+            this.buildEditShell()
           }
-          .width('100%')
+
+          this.buildUndoShell()
+          this.buildNextStepSection()
         }
       }
       .width('100%')

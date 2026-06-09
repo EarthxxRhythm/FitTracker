@@ -1,21 +1,20 @@
 /**
- * FitTracker Design Tokens
- * 全局设计令牌 —— 所有视觉属性均定义于此，组件禁止硬编码色值/字号/间距。
- * 产品原型主色调：蓝色 (#1E88E5)，深色主题为默认模式。
+ * DesignTokens —— 全局视觉设计令牌
+ * 功能 #26
  */
 // ============================================================
 // 1. 颜色 Token
 // ============================================================
 export class ColorTokens {
-  /* 品牌主色 — 蓝色系 */
-  static readonly PRIMARY: string = '#1E88E5'
-  static readonly PRIMARY_HOVER: string = '#42A5F5'
-  static readonly PRIMARY_PRESSED: string = '#1565C0'
-  static readonly PRIMARY_DISABLED: string = '#90CAF9'
+  /* 品牌主色 */
+  static readonly PRIMARY: string = '#4D9DFF'
+  static readonly PRIMARY_HOVER: string = '#66ABFF'
+  static readonly PRIMARY_PRESSED: string = '#3D82D8'
+  static readonly PRIMARY_DISABLED: string = '#5C7294'
 
-  /* 强调色 — 橙色 (统计数据、星标) */
-  static readonly ACCENT: string = '#FF9800'
-  static readonly ACCENT_LIGHT: string = '#FFB74D'
+  /* 强调色 */
+  static readonly ACCENT: string = '#F6B356'
+  static readonly ACCENT_LIGHT: string = '#F9C97F'
 
   /* 中性色 */
   static readonly WHITE: string = '#FFFFFF'
@@ -28,41 +27,59 @@ export class ColorTokens {
   static readonly NEUTRAL_500: string = '#000000'
 
   /* 语义色 */
-  static readonly SUCCESS: string = '#4cd964'
-  static readonly SUCCESS_LIGHT: string = '#81C784'
-  static readonly WARNING: string = '#FF9800'
-  static readonly ERROR: string = '#F44336'
-  static readonly INFO: string = '#1E88E5'
-  static readonly NEW_RECORD: string = '#FFD700'
-  static readonly NEW_RECORD_BG: string = 'rgba(255,215,0,0.15)'
-  static readonly SUCCESS_BG: string = 'rgba(76,175,80,0.15)'
+  static readonly SUCCESS: string = '#53C48A'
+  static readonly SUCCESS_LIGHT: string = '#78D6A3'
+  static readonly WARNING: string = '#E9A847'
+  static readonly ERROR: string = '#F06A6A'
+  static readonly INFO: string = '#67B2FF'
+  static readonly NEW_RECORD: string = '#F4D36D'
+  static readonly NEW_RECORD_BG: string = 'rgba(244,211,109,0.16)'
+  static readonly SUCCESS_BG: string = 'rgba(83,196,138,0.16)'
+  static readonly WARNING_BG: string = 'rgba(233,168,71,0.16)'
+  static readonly ERROR_BG: string = 'rgba(240,106,106,0.16)'
+  static readonly INFO_BG: string = 'rgba(103,178,255,0.16)'
+  static readonly DATA_HIGHLIGHT: string = '#7DE6AA'
+  static readonly DATA_HIGHLIGHT_BG: string = 'rgba(125,230,170,0.16)'
 
-  /* 背景与表面 — 深色主题为默认 */
-  static readonly BG_PRIMARY: string = '#0D1117'
-  static readonly BG_SECONDARY: string = '#161B22'
-  static readonly SURFACE_PRIMARY: string = '#2c2c2e'
-  static readonly SURFACE_SECONDARY: string = '#212838'
-  static readonly SURFACE_ELEVATED: string = '#2A3245'
+  /* 背景与表面 */
+  static readonly BG_PRIMARY: string = '#091018'
+  static readonly BG_SECONDARY: string = '#0E1620'
+  static readonly SURFACE_PRIMARY: string = '#121B26'
+  static readonly SURFACE_SECONDARY: string = '#182331'
+  static readonly SURFACE_ELEVATED: string = '#223246'
+  static readonly SURFACE_TERTIARY: string = '#26384F'
+  static readonly SURFACE_PANEL: string = '#101923'
+  static readonly SURFACE_PANEL_RAISED: string = '#172231'
+  static readonly SURFACE_HEADER: string = '#0F1721'
+  static readonly SURFACE_BUTTON_SECONDARY: string = '#162131'
+  static readonly SURFACE_BUTTON_SECONDARY_PRESSED: string = '#1E2C40'
+  static readonly SURFACE_BUTTON_GHOST_PRESSED: string = 'rgba(103,178,255,0.12)'
+  static readonly BORDER_SUBTLE: string = 'rgba(196,214,255,0.10)'
+  static readonly BORDER_STRONG: string = 'rgba(196,214,255,0.18)'
+  static readonly BORDER_ACCENT: string = 'rgba(103,178,255,0.28)'
+  static readonly DIVIDER: string = 'rgba(196,214,255,0.08)'
+  static readonly FOCUS_RING: string = 'rgba(103,178,255,0.22)'
 
   /* 文字色 */
-  static readonly TEXT_PRIMARY: string = '#FFFFFF'
-  static readonly TEXT_SECONDARY: string = '#A0AEC0'
-  static readonly TEXT_DISABLED: string = '#555555'
-  static readonly TEXT_ON_PRIMARY: string = '#FFFFFF'
+  static readonly TEXT_PRIMARY: string = '#F5F8FC'
+  static readonly TEXT_SECONDARY: string = '#9CACBE'
+  static readonly TEXT_TERTIARY: string = '#6E8094'
+  static readonly TEXT_DISABLED: string = '#5D6B7B'
+  static readonly TEXT_ON_PRIMARY: string = '#F5F8FC'
 
   /* 半透明背景 */
-  static readonly OVERLAY_PRIMARY: string = 'rgba(30,136,229,0.15)'
-  static readonly OVERLAY_SUCCESS: string = 'rgba(76,175,80,0.15)'
-  static readonly OVERLAY_ACCENT: string = 'rgba(255,152,0,0.15)'
+  static readonly OVERLAY_PRIMARY: string = 'rgba(103,178,255,0.14)'
+  static readonly OVERLAY_SUCCESS: string = 'rgba(83,196,138,0.14)'
+  static readonly OVERLAY_ACCENT: string = 'rgba(233,168,71,0.14)'
 
-  /* 肌群标签色 — 装饰性标识色 */
-  static readonly MUSCLE_CHEST: string = '#1E88E5'
-  static readonly MUSCLE_BACK: string = '#43A047'
-  static readonly MUSCLE_LEGS: string = '#FB8C00'
-  static readonly MUSCLE_SHOULDERS: string = '#8E24AA'
-  static readonly MUSCLE_ARMS: string = '#E53935'
-  static readonly MUSCLE_ABS: string = '#00897B'
-  static readonly MUSCLE_DEFAULT: string = '#999999'
+  /* 肌群标签色 */
+  static readonly MUSCLE_CHEST: string = '#5EA5F7'
+  static readonly MUSCLE_BACK: string = '#5ABF7D'
+  static readonly MUSCLE_LEGS: string = '#F0A65C'
+  static readonly MUSCLE_SHOULDERS: string = '#A37EF3'
+  static readonly MUSCLE_ARMS: string = '#E77A7A'
+  static readonly MUSCLE_ABS: string = '#52BEB0'
+  static readonly MUSCLE_DEFAULT: string = '#7F93AA'
 }
 
 // ============================================================
@@ -132,10 +149,10 @@ export class SpacingTokens {
 // ============================================================
 export class RadiusTokens {
   static readonly XS: number = 4
-  static readonly SM: number = 8
-  static readonly MD: number = 12
-  static readonly LG: number = 16
-  static readonly XL: number = 24
+  static readonly SM: number = 6
+  static readonly MD: number = 8
+  static readonly LG: number = 12
+  static readonly XL: number = 16
   static readonly FULL: number = 9999
 }
 
@@ -151,22 +168,22 @@ export interface ShadowConfig {
 
 export class ShadowTokens {
   static readonly SM: ShadowConfig = {
-    radius: 4,
-    color: 'rgba(0,0,0,0.3)',
+    radius: 10,
+    color: 'rgba(0,0,0,0.22)',
     offsetX: 0,
     offsetY: 2
   }
   static readonly MD: ShadowConfig = {
-    radius: 8,
-    color: 'rgba(0,0,0,0.4)',
+    radius: 18,
+    color: 'rgba(0,0,0,0.28)',
     offsetX: 0,
-    offsetY: 4
+    offsetY: 6
   }
   static readonly LG: ShadowConfig = {
-    radius: 16,
-    color: 'rgba(0,0,0,0.5)',
+    radius: 24,
+    color: 'rgba(0,0,0,0.34)',
     offsetX: 0,
-    offsetY: 8
+    offsetY: 10
   }
   static readonly NONE: ShadowConfig = {
     radius: 0,
@@ -240,28 +257,21 @@ export class MuscleColorMap {
 }
 
 // ============================================================
-// 10. 秒表计时器 Token — Precision Instrument 风格
+// 10. 秒表计时器 Token
 // ============================================================
 export class StopwatchTokens {
-  // 表盘深度层次
-  static readonly DIAL_BASE: string = '#1a1e2b'
-  static readonly DIAL_OVERLAY: string = 'rgba(30,136,229,0.04)'
-  static readonly DIAL_INNER: string = 'rgba(30,136,229,0.025)'
-  // 外表圈
-  static readonly BEZEL_STROKE: string = 'rgba(255,255,255,0.06)'
-  // 指针
-  static readonly SECOND_HAND: string = '#4FC3F7'
-  static readonly MINUTE_HAND: string = '#FFFFFF'
-  // 刻度
-  static readonly TICK_MAJOR: string = 'rgba(255,255,255,0.90)'
-  static readonly TICK_MINOR: string = 'rgba(255,255,255,0.20)'
-  // 子表盘
-  static readonly SUBDIAL_FILL: string = '#1e2130'
-  static readonly SUBDIAL_STROKE: string = 'rgba(255,255,255,0.06)'
-  // 中心枢纽
-  static readonly CENTER_RING: string = 'rgba(30,136,229,0.25)'
-  static readonly RUNNING_GLOW: string = 'rgba(255,152,0,0.30)'
-  // 布局
+  static readonly DIAL_BASE: string = '#161E2B'
+  static readonly DIAL_OVERLAY: string = 'rgba(103,178,255,0.04)'
+  static readonly DIAL_INNER: string = 'rgba(103,178,255,0.025)'
+  static readonly BEZEL_STROKE: string = 'rgba(196,214,255,0.08)'
+  static readonly SECOND_HAND: string = '#67B2FF'
+  static readonly MINUTE_HAND: string = '#F5F8FC'
+  static readonly TICK_MAJOR: string = 'rgba(245,248,252,0.90)'
+  static readonly TICK_MINOR: string = 'rgba(245,248,252,0.20)'
+  static readonly SUBDIAL_FILL: string = '#121A26'
+  static readonly SUBDIAL_STROKE: string = 'rgba(196,214,255,0.08)'
+  static readonly CENTER_RING: string = 'rgba(103,178,255,0.24)'
+  static readonly RUNNING_GLOW: string = 'rgba(233,168,71,0.30)'
   static readonly CASE_SIZE: number = 280
   static readonly CONTAINER_HEIGHT: number = 320
 }

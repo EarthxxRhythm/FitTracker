@@ -7,6 +7,8 @@
 import { router } from '@kit.ArkUI'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
+import { AppButton } from '../../../components/AppButton'
+import { AppCard } from '../../../components/AppCard'
 import { AppInput } from '../../../components/AppInput'
 import PlanEngine from '../../../shared/services/PlanEngine'
 import GoalRepository from '../../../shared/services/GoalRepository'
@@ -830,26 +832,69 @@ export struct ReviewHomePage {
     return values
   }
 
+  getReviewSubtitle(): string {
+    if (this.loading) {
+      return '正在整理最近训练、周趋势和动作纪录'
+    }
+    if (!this.hasSessions) {
+      return '先完成一次训练，回顾页会开始生成你的训练节奏与趋势信号'
+    }
+    return '把最近训练、周趋势和动作 PR 放在同一块面板里看'
+  }
+
+  getCompletionStatusText(): string {
+    if (this.averageCompletionRate >= 90) {
+      return '执行稳定'
+    }
+    if (this.averageCompletionRate >= 70) {
+      return '节奏在线'
+    }
+    return '还有提升空间'
+  }
+
+  getCompletionStatusColor(): string {
+    if (this.averageCompletionRate >= 90) {
+      return ColorTokens.SUCCESS
+    }
+    if (this.averageCompletionRate >= 70) {
+      return ColorTokens.PRIMARY
+    }
+    return ColorTokens.WARNING
+  }
+
+  getCompletionStatusBackgroundColor(): string {
+    if (this.averageCompletionRate >= 90) {
+      return ColorTokens.OVERLAY_SUCCESS
+    }
+    if (this.averageCompletionRate >= 70) {
+      return ColorTokens.OVERLAY_PRIMARY
+    }
+    return ColorTokens.OVERLAY_ACCENT
+  }
+
   @Builder
   buildMetric(label: string, value: string) {
     Column({ space: SpacingTokens.XS }) {
       Text(value)
-        .fontSize(FontTokens.HEADLINE_SIZE)
-        .fontWeight(FontTokens.HEADLINE_WEIGHT)
+        .fontSize(FontTokens.TITLE_SIZE)
+        .fontWeight(FontWeight.Bold)
         .fontColor(ColorTokens.TEXT_PRIMARY)
-        .textAlign(TextAlign.Center)
+        .textAlign(TextAlign.Start)
         .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
 
       Text(label)
-        .fontSize(FontTokens.CAPTION_SIZE)
-        .fontColor(ColorTokens.TEXT_SECONDARY)
-        .textAlign(TextAlign.Center)
+        .fontSize(FontTokens.MICRO_SIZE)
+        .fontWeight(FontTokens.MICRO_WEIGHT)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
+        .textAlign(TextAlign.Start)
     }
     .layoutWeight(1)
     .padding(SpacingTokens.MD)
-    .borderRadius(RadiusTokens.SM)
-    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-    .alignItems(HorizontalAlign.Center)
+    .borderRadius(RadiusTokens.MD)
+    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+    .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+    .alignItems(HorizontalAlign.Start)
   }
 
   @Builder
@@ -861,8 +906,10 @@ export struct ReviewHomePage {
         .fontColor(ColorTokens.TEXT_PRIMARY)
 
       Text(description)
-        .fontSize(FontTokens.CAPTION_SIZE)
-        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .fontSize(FontTokens.SMALL_SIZE)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
+        .maxLines(2)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
     }
     .width('100%')
     .alignItems(HorizontalAlign.Start)
@@ -874,8 +921,12 @@ export struct ReviewHomePage {
       .height(TouchTokens.BUTTON_HEIGHT_SMALL)
       .fontSize(FontTokens.CAPTION_SIZE)
       .fontColor(selected ? ColorTokens.TEXT_ON_PRIMARY : ColorTokens.TEXT_PRIMARY)
-      .backgroundColor(selected ? ColorTokens.PRIMARY : ColorTokens.SURFACE_ELEVATED)
-      .borderRadius(RadiusTokens.FULL)
+      .backgroundColor(selected ? ColorTokens.PRIMARY : ColorTokens.SURFACE_SECONDARY)
+      .borderRadius(RadiusTokens.MD)
+      .border({
+        width: 1,
+        color: selected ? ColorTokens.PRIMARY : ColorTokens.BORDER_SUBTLE
+      })
       .padding({ left: SpacingTokens.SM, right: SpacingTokens.SM })
       .margin({ right: SpacingTokens.SM, bottom: SpacingTokens.SM })
       .onClick(onTap)
@@ -883,33 +934,41 @@ export struct ReviewHomePage {
 
   @Builder
   buildWeeklyStats() {
-    Column({ space: SpacingTokens.MD }) {
-      Row() {
-        this.buildSectionTitle('本周训练统计', this.weeklyDateRangeText)
-        Text(this.weeklySessionCount.toString() + ' 次')
-          .fontSize(FontTokens.TITLE_SIZE)
-          .fontWeight(FontTokens.TITLE_WEIGHT)
-          .fontColor(ColorTokens.PRIMARY)
-      }
-      .width('100%')
+    AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.MD }) {
+        Row() {
+          this.buildSectionTitle('本周训练统计', this.weeklyDateRangeText)
 
-      Row({ space: SpacingTokens.SM }) {
-        this.buildMetric('本周时长', this.weeklyDurationText)
-        this.buildMetric('本周组数', this.weeklyTotalSets.toString())
-      }
-      .width('100%')
+          Text(this.weeklySessionCount.toString() + ' 次')
+            .fontSize(FontTokens.SMALL_SIZE)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(ColorTokens.PRIMARY)
+            .padding({
+              top: SpacingTokens.XS,
+              bottom: SpacingTokens.XS,
+              left: SpacingTokens.SM,
+              right: SpacingTokens.SM
+            })
+            .backgroundColor(ColorTokens.OVERLAY_PRIMARY)
+            .borderRadius(RadiusTokens.FULL)
+        }
+        .width('100%')
 
-      Row({ space: SpacingTokens.SM }) {
-        this.buildMetric('本周训练量', this.weeklyTotalVolume.toString() + ' kg')
-        this.buildMetric('训练天数', this.weeklySessionCount.toString())
+        Row({ space: SpacingTokens.SM }) {
+          this.buildMetric('本周时长', this.weeklyDurationText)
+          this.buildMetric('本周组数', this.weeklyTotalSets.toString())
+        }
+        .width('100%')
+
+        Row({ space: SpacingTokens.SM }) {
+          this.buildMetric('本周训练量', this.weeklyTotalVolume.toString() + ' kg')
+          this.buildMetric('训练天数', this.weeklySessionCount.toString())
+        }
+        .width('100%')
       }
       .width('100%')
+      .alignItems(HorizontalAlign.Start)
     }
-    .width('100%')
-    .padding(SpacingTokens.MD)
-    .borderRadius(RadiusTokens.SM)
-    .backgroundColor(ColorTokens.BG_SECONDARY)
-    .alignItems(HorizontalAlign.Start)
   }
 
   @Builder
@@ -926,92 +985,89 @@ export struct ReviewHomePage {
 
   @Builder
   buildCalendarHeatmap() {
-    Column({ space: SpacingTokens.SM }) {
-      Row() {
-        Text('训练日历热力图')
-          .fontSize(FontTokens.TITLE_SIZE)
-          .fontWeight(FontTokens.TITLE_WEIGHT)
-          .fontColor(ColorTokens.TEXT_PRIMARY)
-          .layoutWeight(1)
+    AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.SM }) {
+        Row() {
+          this.buildSectionTitle('训练日历热力图', '颜色越亮，代表当天训练量越高')
 
-        Text(this.heatmapMonthTitle)
-          .fontSize(FontTokens.CAPTION_SIZE)
-          .fontColor(ColorTokens.TEXT_SECONDARY)
-      }
-      .width('100%')
-
-      Row({ space: SpacingTokens.XS }) {
-        Text('一').fontSize(FontTokens.SMALL_SIZE).fontColor(ColorTokens.TEXT_SECONDARY).width(TouchTokens.CALENDAR_CELL).textAlign(TextAlign.Center)
-        Text('二').fontSize(FontTokens.SMALL_SIZE).fontColor(ColorTokens.TEXT_SECONDARY).width(TouchTokens.CALENDAR_CELL).textAlign(TextAlign.Center)
-        Text('三').fontSize(FontTokens.SMALL_SIZE).fontColor(ColorTokens.TEXT_SECONDARY).width(TouchTokens.CALENDAR_CELL).textAlign(TextAlign.Center)
-        Text('四').fontSize(FontTokens.SMALL_SIZE).fontColor(ColorTokens.TEXT_SECONDARY).width(TouchTokens.CALENDAR_CELL).textAlign(TextAlign.Center)
-        Text('五').fontSize(FontTokens.SMALL_SIZE).fontColor(ColorTokens.TEXT_SECONDARY).width(TouchTokens.CALENDAR_CELL).textAlign(TextAlign.Center)
-        Text('六').fontSize(FontTokens.SMALL_SIZE).fontColor(ColorTokens.TEXT_SECONDARY).width(TouchTokens.CALENDAR_CELL).textAlign(TextAlign.Center)
-        Text('日').fontSize(FontTokens.SMALL_SIZE).fontColor(ColorTokens.TEXT_SECONDARY).width(TouchTokens.CALENDAR_CELL).textAlign(TextAlign.Center)
-      }
-      .width('100%')
-
-      ForEach(this.heatmapRows, (row: CalendarHeatmapRow) => {
-        Row({ space: SpacingTokens.XS }) {
-          ForEach(row.days, (day: CalendarHeatmapDay) => {
-            this.buildHeatmapDay(day)
-          }, (day: CalendarHeatmapDay) => day.dateText)
+          Text(this.heatmapMonthTitle)
+            .fontSize(FontTokens.SMALL_SIZE)
+            .fontColor(ColorTokens.TEXT_TERTIARY)
         }
         .width('100%')
-      }, (row: CalendarHeatmapRow) => row.rowId)
 
-      Text('颜色越亮代表当天训练量越高。')
-        .fontSize(FontTokens.CAPTION_SIZE)
-        .fontColor(ColorTokens.TEXT_SECONDARY)
+        Column({ space: SpacingTokens.XS }) {
+          Row({ space: SpacingTokens.XS }) {
+            Text('一').fontSize(FontTokens.SMALL_SIZE).fontColor(ColorTokens.TEXT_TERTIARY).width(TouchTokens.CALENDAR_CELL).textAlign(TextAlign.Center)
+            Text('二').fontSize(FontTokens.SMALL_SIZE).fontColor(ColorTokens.TEXT_TERTIARY).width(TouchTokens.CALENDAR_CELL).textAlign(TextAlign.Center)
+            Text('三').fontSize(FontTokens.SMALL_SIZE).fontColor(ColorTokens.TEXT_TERTIARY).width(TouchTokens.CALENDAR_CELL).textAlign(TextAlign.Center)
+            Text('四').fontSize(FontTokens.SMALL_SIZE).fontColor(ColorTokens.TEXT_TERTIARY).width(TouchTokens.CALENDAR_CELL).textAlign(TextAlign.Center)
+            Text('五').fontSize(FontTokens.SMALL_SIZE).fontColor(ColorTokens.TEXT_TERTIARY).width(TouchTokens.CALENDAR_CELL).textAlign(TextAlign.Center)
+            Text('六').fontSize(FontTokens.SMALL_SIZE).fontColor(ColorTokens.TEXT_TERTIARY).width(TouchTokens.CALENDAR_CELL).textAlign(TextAlign.Center)
+            Text('日').fontSize(FontTokens.SMALL_SIZE).fontColor(ColorTokens.TEXT_TERTIARY).width(TouchTokens.CALENDAR_CELL).textAlign(TextAlign.Center)
+          }
+          .width('100%')
+
+          ForEach(this.heatmapRows, (row: CalendarHeatmapRow) => {
+            Row({ space: SpacingTokens.XS }) {
+              ForEach(row.days, (day: CalendarHeatmapDay) => {
+                this.buildHeatmapDay(day)
+              }, (day: CalendarHeatmapDay) => day.dateText)
+            }
+            .width('100%')
+          }, (row: CalendarHeatmapRow) => row.rowId)
+        }
+        .width('100%')
+        .padding(SpacingTokens.SM)
+        .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+        .borderRadius(RadiusTokens.MD)
+        .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
     }
-    .width('100%')
-    .padding(SpacingTokens.MD)
-    .borderRadius(RadiusTokens.SM)
-    .backgroundColor(ColorTokens.BG_SECONDARY)
-    .alignItems(HorizontalAlign.Start)
   }
 
   @Builder
   buildRecentRecord(record: ReviewRecentSessionRecord) {
-    Column({ space: SpacingTokens.SM }) {
-      Row() {
-        Column({ space: SpacingTokens.XS }) {
-          Text(record.dayId)
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
+    AppCard({ variant: 'outlined', cardPadding: 'compact' }) {
+      Column({ space: SpacingTokens.SM }) {
+        Row() {
+          Column({ space: SpacingTokens.XS }) {
+            Text(record.dayId)
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
 
-          Text(record.dateText + ' · ' + record.durationText)
+            Text(record.dateText + ' · ' + record.durationText)
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_TERTIARY)
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+
+          Text(record.completionRate.toString() + '%')
+            .fontSize(FontTokens.TITLE_SIZE)
+            .fontWeight(FontTokens.TITLE_WEIGHT)
+            .fontColor(ColorTokens.PRIMARY)
+        }
+        .width('100%')
+
+        Row() {
+          Text(record.completionText)
             .fontSize(FontTokens.CAPTION_SIZE)
             .fontColor(ColorTokens.TEXT_SECONDARY)
+            .layoutWeight(1)
+
+          Text(record.volumeText)
+            .fontSize(FontTokens.CAPTION_SIZE)
+            .fontColor(ColorTokens.ACCENT_LIGHT)
         }
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Start)
-
-        Text(record.completionRate.toString() + '%')
-          .fontSize(FontTokens.TITLE_SIZE)
-          .fontWeight(FontTokens.TITLE_WEIGHT)
-          .fontColor(ColorTokens.PRIMARY)
+        .width('100%')
       }
       .width('100%')
-
-      Row() {
-        Text(record.completionText)
-          .fontSize(FontTokens.CAPTION_SIZE)
-          .fontColor(ColorTokens.TEXT_SECONDARY)
-          .layoutWeight(1)
-
-        Text(record.volumeText)
-          .fontSize(FontTokens.CAPTION_SIZE)
-          .fontColor(ColorTokens.ACCENT_LIGHT)
-      }
-      .width('100%')
+      .alignItems(HorizontalAlign.Start)
     }
-    .width('100%')
-    .padding(SpacingTokens.MD)
-    .borderRadius(RadiusTokens.SM)
-    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-    .alignItems(HorizontalAlign.Start)
   }
 
   @Builder
@@ -1053,27 +1109,19 @@ export struct ReviewHomePage {
 
   @Builder
   buildTrendSummary() {
-    Column({ space: SpacingTokens.SM }) {
-      Text('历史训练趋势')
-        .fontSize(FontTokens.TITLE_SIZE)
-        .fontWeight(FontTokens.TITLE_WEIGHT)
-        .fontColor(ColorTokens.TEXT_PRIMARY)
+    AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.SM }) {
+        this.buildSectionTitle('历史训练趋势', this.trendSummary.summaryText)
 
-      Text(this.trendSummary.summaryText)
-        .fontSize(FontTokens.BODY_SIZE)
-        .fontColor(ColorTokens.TEXT_SECONDARY)
-
-      Row({ space: SpacingTokens.SM }) {
-        this.buildMetric('训练量趋势', this.trendSummary.volumeTrendText)
-        this.buildMetric('完成率趋势', this.trendSummary.completionTrendText)
+        Row({ space: SpacingTokens.SM }) {
+          this.buildMetric('训练量趋势', this.trendSummary.volumeTrendText)
+          this.buildMetric('完成率趋势', this.trendSummary.completionTrendText)
+        }
+        .width('100%')
       }
       .width('100%')
+      .alignItems(HorizontalAlign.Start)
     }
-    .width('100%')
-    .padding(SpacingTokens.MD)
-    .borderRadius(RadiusTokens.SM)
-    .backgroundColor(ColorTokens.BG_SECONDARY)
-    .alignItems(HorizontalAlign.Start)
   }
 
   @Builder
@@ -1275,6 +1323,238 @@ export struct ReviewHomePage {
     }
     .width('100%')
     .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  buildWeeklyTrendCardLab(item: ReviewWeeklyTrendItem) {
+    Column() {
+      AppCard({
+        variant: this.selectedWeekId === item.weekId ? 'panel' : 'outlined',
+        cardPadding: 'compact'
+      }) {
+        Column({ space: SpacingTokens.SM }) {
+          Row() {
+            Column({ space: SpacingTokens.XS }) {
+              Text(item.weekLabel)
+                .fontSize(FontTokens.BODY_SIZE)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+
+              Text(item.dateRangeText)
+                .fontSize(FontTokens.CAPTION_SIZE)
+                .fontColor(ColorTokens.TEXT_TERTIARY)
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
+
+            Text(item.sessionCount.toString() + ' 次')
+              .fontSize(FontTokens.SMALL_SIZE)
+              .fontColor(ColorTokens.PRIMARY)
+              .padding({
+                top: SpacingTokens.XS,
+                bottom: SpacingTokens.XS,
+                left: SpacingTokens.SM,
+                right: SpacingTokens.SM
+              })
+              .backgroundColor(ColorTokens.OVERLAY_PRIMARY)
+              .borderRadius(RadiusTokens.FULL)
+          }
+          .width('100%')
+
+          Row({ space: SpacingTokens.SM }) {
+            this.buildMetric('训练量', item.totalVolume.toString() + ' kg')
+            this.buildMetric('完成率', item.completionRate.toString() + '%')
+          }
+          .width('100%')
+
+          Text(item.summaryText)
+            .fontSize(FontTokens.CAPTION_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Start)
+      }
+    }
+    .width('100%')
+    .onClick(() => {
+      this.selectWeekTrend(item.weekId)
+    })
+  }
+
+  @Builder
+  buildWeeklyTrendSectionLab() {
+    AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.SM }) {
+        this.buildSectionTitle('按周趋势查看', '最近 6 周训练节奏与完成情况')
+
+        if (this.weeklyTrends.length === 0) {
+          Column() {
+            Text('完成训练后，这里会开始积累周趋势。')
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+          }
+          .width('100%')
+          .padding(SpacingTokens.MD)
+          .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+          .borderRadius(RadiusTokens.MD)
+          .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+          .alignItems(HorizontalAlign.Start)
+        }
+
+        ForEach(this.weeklyTrends, (item: ReviewWeeklyTrendItem) => {
+          this.buildWeeklyTrendCardLab(item)
+        }, (item: ReviewWeeklyTrendItem) => item.weekId)
+
+        if (this.selectedWeekTrend.weekId.length > 0) {
+          AppCard({ variant: 'panel', cardPadding: 'compact' }) {
+            Column({ space: SpacingTokens.SM }) {
+              Text('本周明细')
+                .fontSize(FontTokens.BODY_SIZE)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+
+              Row({ space: SpacingTokens.SM }) {
+                this.buildMetric('总时长', this.selectedWeekTrend.totalDurationText)
+                this.buildMetric('平均单次', this.selectedWeekTrend.averageSessionText)
+              }
+              .width('100%')
+
+              Row({ space: SpacingTokens.SM }) {
+                this.buildMetric('完成组数', this.selectedWeekTrend.completionText)
+                this.buildMetric(
+                  '训练重点日',
+                  this.selectedWeekTrend.dominantDayId.length > 0 ? this.selectedWeekTrend.dominantDayId : '暂无'
+                )
+              }
+              .width('100%')
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+          }
+        }
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
+  }
+
+  @Builder
+  buildRecordDetailSectionLab() {
+    AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.SM }) {
+        this.buildSectionTitle('按动作查看个人纪录', '切换动作查看 PR、最近表现与训练频率')
+
+        Flex({ wrap: FlexWrap.Wrap }) {
+          ForEach(this.recordDetails, (detail: ExercisePersonalRecordDetail) => {
+            this.buildFilterButton(
+              detail.exerciseName,
+              detail.exerciseId === this.selectedExerciseId,
+              detail.bestOneRepMax.toString() + 'kg',
+              () => {
+                this.selectExerciseRecord(detail.exerciseId)
+              }
+            )
+          }, (detail: ExercisePersonalRecordDetail) => detail.exerciseId)
+        }
+        .width('100%')
+
+        if (this.recordDetails.length === 0) {
+          Column() {
+            Text('完成正式组训练后，这里会显示动作个人纪录。')
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+          }
+          .width('100%')
+          .padding(SpacingTokens.MD)
+          .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+          .borderRadius(RadiusTokens.MD)
+          .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+          .alignItems(HorizontalAlign.Start)
+        }
+
+        if (this.recordDetails.length > 0) {
+          AppCard({ variant: 'panel', cardPadding: 'default' }) {
+            Column({ space: SpacingTokens.SM }) {
+              Row() {
+                Column({ space: SpacingTokens.XS }) {
+                  Text(this.selectedRecordDetail.exerciseName)
+                    .fontSize(FontTokens.TITLE_SIZE)
+                    .fontWeight(FontTokens.TITLE_WEIGHT)
+                    .fontColor(ColorTokens.TEXT_PRIMARY)
+
+                  Text('PR 记录于 ' + this.selectedRecordDetail.bestDateText)
+                    .fontSize(FontTokens.CAPTION_SIZE)
+                    .fontColor(ColorTokens.TEXT_TERTIARY)
+                }
+                .layoutWeight(1)
+                .alignItems(HorizontalAlign.Start)
+
+                Text(this.selectedRecordDetail.bestOneRepMax.toString() + ' kg')
+                  .fontSize(FontTokens.HEADLINE_SIZE)
+                  .fontWeight(FontTokens.HEADLINE_WEIGHT)
+                  .fontColor(ColorTokens.PRIMARY)
+              }
+              .width('100%')
+
+              Row({ space: SpacingTokens.SM }) {
+                this.buildMetric('最佳重量', this.selectedRecordDetail.bestWeight.toString() + ' kg')
+                this.buildMetric('最佳次数', this.selectedRecordDetail.bestReps.toString())
+              }
+              .width('100%')
+
+              Row({ space: SpacingTokens.SM }) {
+                this.buildMetric('训练次数', this.selectedRecordDetail.sessionCount.toString())
+                this.buildMetric('累计正式组', this.selectedRecordDetail.performedSetCount.toString())
+              }
+              .width('100%')
+
+              Row({ space: SpacingTokens.SM }) {
+                this.buildMetric('最近 1RM', this.selectedRecordDetail.recentOneRepMax.toString() + ' kg')
+                this.buildMetric('最近训练量', this.selectedRecordDetail.recentVolume.toString() + ' kg')
+              }
+              .width('100%')
+
+              Column({ space: SpacingTokens.XS }) {
+                Text('最近训练')
+                  .fontSize(FontTokens.MICRO_SIZE)
+                  .fontWeight(FontTokens.MICRO_WEIGHT)
+                  .fontColor(ColorTokens.TEXT_TERTIARY)
+
+                Text(this.selectedRecordDetail.lastPerformedDateText + ' · ' +
+                  this.selectedRecordDetail.recentWeight.toString() + ' kg × ' +
+                  this.selectedRecordDetail.recentReps.toString())
+                  .fontSize(FontTokens.CAPTION_SIZE)
+                  .fontColor(ColorTokens.TEXT_SECONDARY)
+              }
+              .width('100%')
+              .padding(SpacingTokens.MD)
+              .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+              .borderRadius(RadiusTokens.MD)
+              .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+              .alignItems(HorizontalAlign.Start)
+
+              Text(this.selectedRecordDetail.trendText)
+                .fontSize(FontTokens.BODY_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
+
+              AppButton({
+                text: '查看动作详情',
+                type: 'primary',
+                buttonSize: 'medium',
+                block: true,
+                onButtonClick: () => {
+                  this.openExerciseDetail()
+                }
+              })
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+          }
+        }
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
   }
 
   @Builder
@@ -1714,88 +1994,146 @@ export struct ReviewHomePage {
   build() {
     Scroll() {
       Column({ space: SpacingTokens.LG }) {
-        Column({ space: SpacingTokens.SM }) {
-          Text('训练回顾')
-            .fontSize(FontTokens.DISPLAY_SIZE)
-            .fontWeight(FontTokens.DISPLAY_WEIGHT)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
+        AppCard({ variant: 'panel', cardPadding: 'default' }) {
+          Column({ space: SpacingTokens.SM }) {
+            Text('回顾控制台')
+              .fontSize(FontTokens.MICRO_SIZE)
+              .fontWeight(FontTokens.MICRO_WEIGHT)
+              .fontColor(ColorTokens.TEXT_TERTIARY)
 
-          Text(this.loading ? '正在整理训练记录' : '把最近训练、周趋势和动作 PR 放在一起看')
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontColor(ColorTokens.TEXT_SECONDARY)
+            Text('训练回顾')
+              .fontSize(FontTokens.DISPLAY_SIZE)
+              .fontWeight(FontTokens.DISPLAY_WEIGHT)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+
+            Text(this.getReviewSubtitle())
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
         }
-        .width('100%')
-        .alignItems(HorizontalAlign.Start)
 
         this.buildWeeklyStats()
         this.buildCalendarHeatmap()
 
         if (!this.loading && !this.hasSessions) {
-          Column({ space: SpacingTokens.MD }) {
-            Text('还没有训练记录')
-              .fontSize(FontTokens.TITLE_SIZE)
-              .fontWeight(FontTokens.TITLE_WEIGHT)
-              .fontColor(ColorTokens.TEXT_PRIMARY)
+          AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+            Column({ space: SpacingTokens.MD }) {
+              Text('还没有训练记录')
+                .fontSize(FontTokens.TITLE_SIZE)
+                .fontWeight(FontTokens.TITLE_WEIGHT)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
 
-            Text(this.adjustmentText)
-              .fontSize(FontTokens.BODY_SIZE)
-              .fontColor(ColorTokens.TEXT_SECONDARY)
+              Text(this.adjustmentText)
+                .fontSize(FontTokens.BODY_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
 
-            Button('开始今日训练')
-              .width('100%')
-              .height(TouchTokens.BUTTON_HEIGHT_LARGE)
-              .fontSize(FontTokens.BODY_SIZE)
-              .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-              .backgroundColor(ColorTokens.PRIMARY)
-              .borderRadius(RadiusTokens.FULL)
-              .onClick(() => {
-                this.openHome()
+              AppButton({
+                text: '开始今日训练',
+                type: 'primary',
+                buttonSize: 'large',
+                block: true,
+                onButtonClick: () => {
+                  this.openHome()
+                }
               })
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
           }
-          .width('100%')
-          .padding(SpacingTokens.MD)
-          .borderRadius(RadiusTokens.SM)
-          .backgroundColor(ColorTokens.BG_SECONDARY)
-          .alignItems(HorizontalAlign.Start)
         }
 
         if (!this.loading && this.hasSessions) {
           Column({ space: SpacingTokens.MD }) {
-            Column({ space: SpacingTokens.SM }) {
-              Row() {
-                Text('平均完成率')
-                  .fontSize(FontTokens.TITLE_SIZE)
-                  .fontWeight(FontTokens.TITLE_WEIGHT)
-                  .fontColor(ColorTokens.TEXT_PRIMARY)
+            AppCard({ variant: 'panel', cardPadding: 'default' }) {
+              Column({ space: SpacingTokens.MD }) {
+                Row() {
+                  Column({ space: SpacingTokens.XS }) {
+                    Text('回顾总览')
+                      .fontSize(FontTokens.MICRO_SIZE)
+                      .fontWeight(FontTokens.MICRO_WEIGHT)
+                      .fontColor(ColorTokens.TEXT_TERTIARY)
+
+                    Text('平均完成率')
+                      .fontSize(FontTokens.TITLE_SIZE)
+                      .fontWeight(FontWeight.Bold)
+                      .fontColor(ColorTokens.TEXT_PRIMARY)
+                  }
                   .layoutWeight(1)
+                  .alignItems(HorizontalAlign.Start)
 
-                Text(this.getCompletionText())
-                  .fontSize(FontTokens.TITLE_SIZE)
-                  .fontWeight(FontTokens.TITLE_WEIGHT)
-                  .fontColor(ColorTokens.PRIMARY)
+                  Text(this.getCompletionStatusText())
+                    .fontSize(FontTokens.SMALL_SIZE)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(this.getCompletionStatusColor())
+                    .padding({
+                      top: SpacingTokens.XS,
+                      bottom: SpacingTokens.XS,
+                      left: SpacingTokens.SM,
+                      right: SpacingTokens.SM
+                    })
+                    .backgroundColor(this.getCompletionStatusBackgroundColor())
+                    .borderRadius(RadiusTokens.FULL)
+                }
+                .width('100%')
+
+                Row({ space: SpacingTokens.SM }) {
+                  Column({ space: SpacingTokens.XS }) {
+                    Text(this.getCompletionText())
+                      .fontSize(FontTokens.HERO_SIZE)
+                      .fontWeight(FontWeight.Bold)
+                      .fontColor(ColorTokens.TEXT_PRIMARY)
+
+                    Text('训练完成率')
+                      .fontSize(FontTokens.SMALL_SIZE)
+                      .fontColor(ColorTokens.TEXT_TERTIARY)
+                  }
+                  .layoutWeight(1)
+                  .padding(SpacingTokens.MD)
+                  .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+                  .borderRadius(RadiusTokens.MD)
+                  .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+                  .alignItems(HorizontalAlign.Start)
+
+                  Column({ space: SpacingTokens.XS }) {
+                    Text(this.sessionCount.toString())
+                      .fontSize(FontTokens.TITLE_SIZE)
+                      .fontWeight(FontWeight.Bold)
+                      .fontColor(ColorTokens.DATA_HIGHLIGHT)
+
+                    Text('累计训练次数')
+                      .fontSize(FontTokens.SMALL_SIZE)
+                      .fontColor(ColorTokens.TEXT_TERTIARY)
+                  }
+                  .layoutWeight(1)
+                  .padding(SpacingTokens.MD)
+                  .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+                  .borderRadius(RadiusTokens.MD)
+                  .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+                  .alignItems(HorizontalAlign.Start)
+                }
+                .width('100%')
+
+                Stack({ alignContent: Alignment.Start }) {
+                  Row()
+                    .width('100%')
+                    .height(TouchTokens.PROGRESS_BAR_HEIGHT)
+                    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+                    .borderRadius(RadiusTokens.FULL)
+
+                  Row()
+                    .width(this.getProgressWidth())
+                    .height(TouchTokens.PROGRESS_BAR_HEIGHT)
+                    .backgroundColor(ColorTokens.PRIMARY)
+                    .borderRadius(RadiusTokens.FULL)
+                }
+                .width('100%')
+                .height(TouchTokens.PROGRESS_BAR_HEIGHT)
               }
               .width('100%')
-
-              Stack({ alignContent: Alignment.Start }) {
-                Row()
-                  .width('100%')
-                  .height(TouchTokens.PROGRESS_BAR_HEIGHT)
-                  .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-                  .borderRadius(RadiusTokens.FULL)
-
-                Row()
-                  .width(this.getProgressWidth())
-                  .height(TouchTokens.PROGRESS_BAR_HEIGHT)
-                  .backgroundColor(ColorTokens.PRIMARY)
-                  .borderRadius(RadiusTokens.FULL)
-              }
-              .width('100%')
-              .height(TouchTokens.PROGRESS_BAR_HEIGHT)
+              .alignItems(HorizontalAlign.Start)
             }
-            .width('100%')
-            .padding(SpacingTokens.MD)
-            .borderRadius(RadiusTokens.SM)
-            .backgroundColor(ColorTokens.BG_SECONDARY)
 
             Row({ space: SpacingTokens.SM }) {
               this.buildMetric('训练次数', this.sessionCount.toString())
@@ -1811,8 +2149,8 @@ export struct ReviewHomePage {
 
             this.buildRecentTrainingSection()
             this.buildTrendSummary()
-            this.buildWeeklyTrendSection()
-            this.buildRecordDetailSection()
+            this.buildWeeklyTrendSectionLab()
+            this.buildRecordDetailSectionLab()
 
             Column({ space: SpacingTokens.SM }) {
               Text('下次调整建议')
@@ -1859,27 +2197,25 @@ export struct ReviewHomePage {
             .backgroundColor(ColorTokens.SURFACE_PRIMARY)
             .alignItems(HorizontalAlign.Start)
 
-            Button('调整下次计划')
-              .width('100%')
-              .height(TouchTokens.BUTTON_HEIGHT_LARGE)
-              .fontSize(FontTokens.BODY_SIZE)
-              .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-              .backgroundColor(ColorTokens.PRIMARY)
-              .borderRadius(RadiusTokens.FULL)
-              .onClick(() => {
+            AppButton({
+              text: '调整下次计划',
+              type: 'primary',
+              buttonSize: 'large',
+              block: true,
+              onButtonClick: () => {
                 this.openGoalSetup()
-              })
+              }
+            })
 
-            Button('查看最近复盘')
-              .width('100%')
-              .height(TouchTokens.BUTTON_HEIGHT_LARGE)
-              .fontSize(FontTokens.BODY_SIZE)
-              .fontColor(ColorTokens.TEXT_PRIMARY)
-              .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-              .borderRadius(RadiusTokens.FULL)
-              .onClick(() => {
+            AppButton({
+              text: '查看最近复盘',
+              type: 'secondary',
+              buttonSize: 'large',
+              block: true,
+              onButtonClick: () => {
                 this.openLatestSummary()
-              })
+              }
+            })
           }
           .width('100%')
         }
