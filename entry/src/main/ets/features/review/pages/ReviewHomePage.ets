@@ -10,6 +10,7 @@ import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } fro
 import { AppButton } from '../../../components/AppButton'
 import { AppCard } from '../../../components/AppCard'
 import { AppInput } from '../../../components/AppInput'
+import { PrimaryDestinationStrip } from '../../../components/PrimaryDestinationStrip'
 import PlanEngine from '../../../shared/services/PlanEngine'
 import GoalRepository from '../../../shared/services/GoalRepository'
 import GoalSetupService, { GoalSetupPrefill } from '../../../shared/services/GoalSetupService'
@@ -31,6 +32,10 @@ import ReviewInsightsService, {
   ReviewRecentSessionFilterOption,
   ReviewWeeklyTrendItem
 } from '../../../shared/services/ReviewInsightsService'
+import ReviewAdvancedInsightsPanelService, {
+  ReviewAdvancedInsightsPanelPresentation,
+  ReviewAdvancedInsightsPreviewTile
+} from '../../../shared/services/ReviewAdvancedInsightsPanelService'
 import MonetizationGateService from '../../../shared/services/MonetizationGateService'
 import ReviewUpgradeEntryService, {
   ReviewUpgradeEntryPresentation
@@ -42,6 +47,7 @@ import StatsDashboardService, {
 } from '../../../shared/services/StatsDashboardService'
 import WorkoutRepository from '../../../shared/services/WorkoutRepository'
 import { TrainingPlan, UserGoal, WorkoutSession } from '../../../shared/models/TrainingModels'
+import { MonetizationTier } from '../../../shared/models/MonetizationModels'
 import SessionManager from '../../../common/services/SessionManager'
 import UserProfileService, { UserProfile, WeightUnit } from '../../../common/services/UserProfileService'
 import WorkoutSessionPersistenceBridgeService from '../../workout/services/WorkoutSessionPersistenceBridgeService'
@@ -100,6 +106,10 @@ export struct ReviewHomePage {
   @State adjustmentPreviewHighlights: string[] = []
   @State advancedInsightsEntry: ReviewUpgradeEntryPresentation =
     ReviewUpgradeEntryService.createDefaultAdvancedInsightsPresentation()
+  @State advancedInsightsPanel: ReviewAdvancedInsightsPanelPresentation =
+    ReviewAdvancedInsightsPanelService.createDefaultPresentation()
+  @State advancedInsightsLocked: boolean = true
+  @State advancedInsightsActiveTier: MonetizationTier = 'free'
   currentGoal: UserGoal | undefined = undefined
   currentAdjustmentAction: ReviewGoalAdjustmentAction = ReviewDashboardService.createEmptyGoalAdjustmentAction()
   sessions: WorkoutSession[] = []
@@ -167,6 +177,7 @@ export struct ReviewHomePage {
       this.selectedExerciseId = ''
       this.selectedRecordDetail = PersonalRecordService.createEmptyRecordDetail()
     }
+    this.refreshAdvancedInsightsPanel()
   }
 
   hasFilter(filters: ReviewRecentSessionFilterOption[], filterId: string): boolean {
@@ -258,13 +269,27 @@ export struct ReviewHomePage {
   async loadAdvancedInsightsEntry(): Promise<void> {
     try {
       const gateResult = await MonetizationGateService.getGateResult(getContext(this), 'advanced_insights')
+      this.advancedInsightsLocked = !gateResult.allowed
+      this.advancedInsightsActiveTier = gateResult.activeTier
       this.advancedInsightsEntry = ReviewUpgradeEntryService.createAdvancedInsightsPresentation(
         gateResult,
         this.sessionCount,
         this.weeklySessionCount
       )
+      this.refreshAdvancedInsightsPanel()
     } catch (e) {
+      this.advancedInsightsLocked = true
+      this.advancedInsightsActiveTier = 'free'
       this.advancedInsightsEntry = ReviewUpgradeEntryService.createDefaultAdvancedInsightsPresentation()
+      this.refreshAdvancedInsightsPanel()
+    }
+  }
+
+  openMonetizationHub(): void {
+    try {
+      router.pushUrl({ url: AppRoutes.MONETIZATION_HUB })
+    } catch (e) {
+      // stay on review
     }
   }
 
@@ -281,10 +306,12 @@ export struct ReviewHomePage {
       const item: ReviewWeeklyTrendItem = this.weeklyTrends[index]
       if (item.weekId === weekId) {
         this.selectedWeekTrend = this.copyWeeklyTrend(item)
+        this.refreshAdvancedInsightsPanel()
         return
       }
     }
     this.selectedWeekTrend = ReviewInsightsService.createEmptyWeeklyTrendItem()
+    this.refreshAdvancedInsightsPanel()
   }
 
   selectExerciseRecord(exerciseId: string): void {
@@ -293,10 +320,23 @@ export struct ReviewHomePage {
       const detail: ExercisePersonalRecordDetail = this.recordDetails[index]
       if (detail.exerciseId === exerciseId) {
         this.selectedRecordDetail = this.copyRecordDetail(detail)
+        this.refreshAdvancedInsightsPanel()
         return
       }
     }
     this.selectedRecordDetail = PersonalRecordService.createEmptyRecordDetail()
+    this.refreshAdvancedInsightsPanel()
+  }
+
+  refreshAdvancedInsightsPanel(): void {
+    this.advancedInsightsPanel = ReviewAdvancedInsightsPanelService.createPresentation(
+      this.advancedInsightsLocked,
+      this.advancedInsightsActiveTier,
+      this.weeklyTrends.length,
+      this.selectedWeekTrend,
+      this.recordDetails.length,
+      this.selectedRecordDetail
+    )
   }
 
   openHome(): void {
@@ -1158,6 +1198,26 @@ export struct ReviewHomePage {
     return ColorTokens.SUCCESS_BG
   }
 
+  getAdvancedInsightsPanelStatusColor(): string {
+    if (this.advancedInsightsPanel.locked) {
+      return ColorTokens.WARNING
+    }
+    if (this.advancedInsightsActiveTier === 'plus') {
+      return ColorTokens.ACCENT
+    }
+    return ColorTokens.SUCCESS
+  }
+
+  getAdvancedInsightsPanelStatusBackgroundColor(): string {
+    if (this.advancedInsightsPanel.locked) {
+      return ColorTokens.WARNING_BG
+    }
+    if (this.advancedInsightsActiveTier === 'plus') {
+      return ColorTokens.OVERLAY_ACCENT
+    }
+    return ColorTokens.SUCCESS_BG
+  }
+
   @Builder
   buildAdvancedInsightsEntrySection() {
     AppCard({ variant: 'panel', cardPadding: 'default' }) {
@@ -1210,15 +1270,173 @@ export struct ReviewHomePage {
         .backgroundColor(ColorTokens.SURFACE_PRIMARY)
         .alignItems(HorizontalAlign.Start)
 
-        Text(this.advancedInsightsEntry.actionText)
-          .fontSize(FontTokens.BODY_SIZE)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(ColorTokens.TEXT_PRIMARY)
+        AppButton({
+          text: this.advancedInsightsEntry.actionText,
+          type: this.advancedInsightsEntry.locked ? 'primary' : 'secondary',
+          buttonSize: 'medium',
+          block: true,
+          onButtonClick: () => {
+            this.openMonetizationHub()
+          }
+        })
 
         Text(this.advancedInsightsEntry.supportingText)
           .fontSize(FontTokens.CAPTION_SIZE)
           .fontColor(ColorTokens.TEXT_TERTIARY)
           .width('100%')
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
+  }
+
+  @Builder
+  buildAdvancedInsightsPreviewTile(tile: ReviewAdvancedInsightsPreviewTile) {
+    Column({ space: SpacingTokens.XS }) {
+      Text(tile.label)
+        .fontSize(FontTokens.MICRO_SIZE)
+        .fontWeight(FontTokens.MICRO_WEIGHT)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
+
+      Text(tile.value)
+        .fontSize(FontTokens.BODY_SIZE)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+      Text(tile.note)
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .width('100%')
+    }
+    .width('100%')
+    .padding(SpacingTokens.MD)
+    .borderRadius(RadiusTokens.MD)
+    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+    .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  buildAdvancedInsightsPanelSection() {
+    if (this.advancedInsightsPanel.locked) {
+      AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+        Column({ space: SpacingTokens.SM }) {
+          Row() {
+            Column({ space: SpacingTokens.XS }) {
+              Text('高级洞察面板')
+                .fontSize(FontTokens.MICRO_SIZE)
+                .fontWeight(FontTokens.MICRO_WEIGHT)
+                .fontColor(ColorTokens.TEXT_TERTIARY)
+
+              Text(this.advancedInsightsPanel.title)
+                .fontSize(FontTokens.TITLE_SIZE)
+                .fontWeight(FontTokens.TITLE_WEIGHT)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
+
+            Text(this.advancedInsightsPanel.statusLabel)
+              .fontSize(FontTokens.SMALL_SIZE)
+              .fontColor(this.getAdvancedInsightsPanelStatusColor())
+              .padding({
+                top: SpacingTokens.XS,
+                bottom: SpacingTokens.XS,
+                left: SpacingTokens.SM,
+                right: SpacingTokens.SM
+              })
+              .backgroundColor(this.getAdvancedInsightsPanelStatusBackgroundColor())
+              .borderRadius(RadiusTokens.FULL)
+          }
+          .width('100%')
+
+          Text(this.advancedInsightsPanel.description)
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+            .width('100%')
+
+          ForEach(this.advancedInsightsPanel.tiles, (tile: ReviewAdvancedInsightsPreviewTile) => {
+            this.buildAdvancedInsightsPreviewTile(tile)
+          }, (tile: ReviewAdvancedInsightsPreviewTile) => tile.tileId)
+
+          AppButton({
+            text: this.advancedInsightsPanel.actionText,
+            type: 'primary',
+            buttonSize: 'medium',
+            block: true,
+            onButtonClick: () => {
+              this.openMonetizationHub()
+            }
+          })
+
+          Text(this.advancedInsightsPanel.supportingText)
+            .fontSize(FontTokens.CAPTION_SIZE)
+            .fontColor(ColorTokens.TEXT_TERTIARY)
+            .width('100%')
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Start)
+      }
+    } else {
+      Column({ space: SpacingTokens.SM }) {
+        AppCard({ variant: 'panel', cardPadding: 'default' }) {
+          Column({ space: SpacingTokens.SM }) {
+            Row() {
+              Column({ space: SpacingTokens.XS }) {
+                Text('高级洞察面板')
+                  .fontSize(FontTokens.MICRO_SIZE)
+                  .fontWeight(FontTokens.MICRO_WEIGHT)
+                  .fontColor(ColorTokens.TEXT_TERTIARY)
+
+                Text(this.advancedInsightsPanel.title)
+                  .fontSize(FontTokens.TITLE_SIZE)
+                  .fontWeight(FontTokens.TITLE_WEIGHT)
+                  .fontColor(ColorTokens.TEXT_PRIMARY)
+              }
+              .layoutWeight(1)
+              .alignItems(HorizontalAlign.Start)
+
+              Text(this.advancedInsightsPanel.statusLabel)
+                .fontSize(FontTokens.SMALL_SIZE)
+                .fontColor(this.getAdvancedInsightsPanelStatusColor())
+                .padding({
+                  top: SpacingTokens.XS,
+                  bottom: SpacingTokens.XS,
+                  left: SpacingTokens.SM,
+                  right: SpacingTokens.SM
+                })
+                .backgroundColor(this.getAdvancedInsightsPanelStatusBackgroundColor())
+                .borderRadius(RadiusTokens.FULL)
+            }
+            .width('100%')
+
+            Text(this.advancedInsightsPanel.description)
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+              .width('100%')
+
+            ForEach(this.advancedInsightsPanel.tiles, (tile: ReviewAdvancedInsightsPreviewTile) => {
+              this.buildAdvancedInsightsPreviewTile(tile)
+            }, (tile: ReviewAdvancedInsightsPreviewTile) => tile.tileId)
+
+            AppButton({
+              text: this.advancedInsightsPanel.actionText,
+              type: 'secondary',
+              buttonSize: 'medium',
+              block: true,
+              onButtonClick: () => {
+                this.openMonetizationHub()
+              }
+            })
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
+        }
+
+        this.buildWeeklyTrendSectionLab()
+        this.buildRecordDetailSectionLab()
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)
@@ -2115,6 +2333,8 @@ export struct ReviewHomePage {
           .alignItems(HorizontalAlign.Start)
         }
 
+        PrimaryDestinationStrip({ currentKey: 'review' })
+
         this.buildWeeklyStats()
         this.buildCalendarHeatmap()
 
@@ -2251,8 +2471,7 @@ export struct ReviewHomePage {
             this.buildRecentTrainingSection()
             this.buildTrendSummary()
             this.buildAdvancedInsightsEntrySection()
-            this.buildWeeklyTrendSectionLab()
-            this.buildRecordDetailSectionLab()
+            this.buildAdvancedInsightsPanelSection()
 
             Column({ space: SpacingTokens.SM }) {
               Text('下次调整建议')

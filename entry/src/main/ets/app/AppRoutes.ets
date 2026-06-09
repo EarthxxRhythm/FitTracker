@@ -10,6 +10,7 @@ export class AppRoutes {
   static readonly HOME: string = 'pages/HomePage'
   static readonly EXERCISE_LIBRARY: string = 'features/exercise/pages/ExerciseLibraryPage'
   static readonly EXERCISE_DETAIL: string = 'features/exercise/pages/ExerciseDetailPage'
+  static readonly MONETIZATION_HUB: string = 'features/monetization/pages/MonetizationHubPage'
   static readonly TRAINING_PLAN_DETAIL: string = 'features/workout/pages/TrainingPlanDetailPage'
   static readonly WORKOUT_PREVIEW: string = 'features/workout/pages/WorkoutPreviewPage'
   static readonly ACTIVE_WORKOUT: string = 'features/workout/pages/ActiveWorkoutPage'

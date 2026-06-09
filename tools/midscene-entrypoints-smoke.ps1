@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('backup-card', 'media-card', 'current-plan', 'both')]
+  [ValidateSet('backup-card', 'media-card', 'current-plan', 'membership', 'both')]
   [string]$Target = 'current-plan',
   [string]$DeviceId = "",
   [string]$BundleName = "com.example.fittracker_opencode",
@@ -87,6 +87,9 @@ function Write-SmokeSummary {
   } elseif ($Target -eq 'current-plan') {
     $summaryLines += "- home current-plan card to workout preview"
     $summaryLines += "- workout preview to active workout"
+  } elseif ($Target -eq 'membership') {
+    $summaryLines += "- review advanced insights entry to membership hub"
+    $summaryLines += "- membership local preview tier switch"
   } else {
     $summaryLines += "- review page backup card"
     $summaryLines += "- exercise detail media card"
@@ -391,6 +394,41 @@ function Run-CurrentPlanSmoke {
     -RetryAssertPrompt "The active workout execution screen is visible. It shows the title 训练执行, the current exercise area, and input fields or rows for set weight and reps. There is no crash dialog."
 }
 
+function Run-MembershipSmoke {
+  Ensure-HomeRoute
+  Invoke-VisualActWithRetry `
+    -Title "open review page for membership flow" `
+    -PrimaryPrompt "On the FitTracker home page, open the training review page. Prefer the primary destination strip item for review if visible. Otherwise tap the secondary action that opens the training review page. Stop when the training review page is visible." `
+    -PrimaryAssertTitle "assert review page for membership flow" `
+    -PrimaryAssertPrompt "The training review page is visible. It shows review content such as history, trends, records, or backup sections, and there is no crash dialog." `
+    -RetryPrompt "If the training review page is still not visible, return to the FitTracker home page if needed and open the training review page again. Stop when the training review page is visible." `
+    -RetryAssertTitle "assert review page for membership flow after retry" `
+    -RetryAssertPrompt "The training review page is visible. It shows review content such as history, trends, records, or backup sections, and there is no crash dialog."
+
+  Invoke-VisualAct -Title "scroll to advanced insights entry" -Prompt "On the training review page, scroll until the advanced insights upgrade entry is fully visible. It should mention advanced insights, locked or unlocked status, feature bullets, and a main action button that opens the membership or entitlement page."
+  Invoke-VisualAssert -Title "assert advanced insights upgrade entry" -Prompt "The advanced insights upgrade entry is visible on the training review page. It includes a title for advanced insights, a visible status badge, several feature bullets, and a main action button that opens the membership page."
+
+  Invoke-VisualActWithRetry `
+    -Title "open membership hub from review" `
+    -PrimaryPrompt "On the advanced insights upgrade entry, tap the main action button that opens the membership or entitlement page. Stop when the membership page is visible." `
+    -PrimaryAssertTitle "assert membership hub page" `
+    -PrimaryAssertPrompt "The membership page is visible. It shows a title for membership or entitlements, current entitlement status, product or tier cards, and there is no crash dialog." `
+    -RetryPrompt "If the membership page is still not visible, stay inside the FitTracker app, return to the training review page if needed, and tap the advanced insights entry action button again. Stop when the membership page is visible." `
+    -RetryAssertTitle "assert membership hub page after retry" `
+    -RetryAssertPrompt "The membership page is visible. It shows a title for membership or entitlements, current entitlement status, product or tier cards, and there is no crash dialog."
+
+  Invoke-VisualAssert -Title "assert membership preview section" -Prompt "The membership page shows a local entitlement preview section with options for Free, Pro, and Plus, and a current entitlement status area."
+
+  Invoke-VisualActWithRetry `
+    -Title "switch membership preview tier to pro" `
+    -PrimaryPrompt "On the membership page, in the local entitlement preview section, tap the Pro preview option and stop after the page updates." `
+    -PrimaryAssertTitle "assert membership preview switched to pro" `
+    -PrimaryAssertPrompt "The membership page remains visible and shows that the current entitlement or preview state is Pro. A short status message confirming the preview switch may also be visible." `
+    -RetryPrompt "If the membership page still does not show Pro as the current entitlement, stay on the same page, tap the Pro preview option again, and stop after the page updates." `
+    -RetryAssertTitle "assert membership preview switched to pro after retry" `
+    -RetryAssertPrompt "The membership page remains visible and shows that the current entitlement or preview state is Pro. A short status message confirming the preview switch may also be visible."
+}
+
 if (-not $env:MIDSCENE_REPLANNING_CYCLE_LIMIT) {
   $env:MIDSCENE_REPLANNING_CYCLE_LIMIT = "60"
 }
@@ -400,17 +438,18 @@ $failureReason = ""
 
 try {
   $targetsResult = Invoke-Step -Title "check hdc targets" -Command @("hdc", "list", "targets", "-v")
-  Assert-HdcTargetsReady -RawOutput $targetsResult.Output -DeviceId $DeviceId
 
   if ($CheckOnly) {
     if (-not $SkipInstall -and -not (Test-Path $HapPath)) {
       throw ('HAP not found: ' + $HapPath + '. Build entry@default before running this script.')
     }
     Write-Host ""
-    Write-Host ('[FitTracker Focused Smoke] Check-only passed for target ' + $Target + '. Run without -CheckOnly to execute the smoke flow.')
+    Write-Host ('[FitTracker Focused Smoke] Check-only passed for target ' + $Target + '. Device readiness is not required in check-only mode. Run without -CheckOnly to execute the smoke flow.')
     $runStatus = "check-only"
     return
   }
+
+  Assert-HdcTargetsReady -RawOutput $targetsResult.Output -DeviceId $DeviceId
 
   Assert-MidsceneEnvironment
 
@@ -431,6 +470,8 @@ try {
     Run-MediaCardSmoke
   } elseif ($Target -eq 'current-plan') {
     Run-CurrentPlanSmoke
+  } elseif ($Target -eq 'membership') {
+    Run-MembershipSmoke
   } else {
     Run-BackupCardSmoke
     Launch-AppToForeground -Title "relaunch app between focused targets" -PauseSeconds 2
@@ -446,7 +487,7 @@ catch {
 }
 finally {
   Write-SmokeSummary -Status $runStatus -FailureReason $failureReason
-  if (-not $SkipDisconnect) {
+  if (-not $SkipDisconnect -and $runStatus -ne "check-only") {
     try {
       Invoke-Midscene -Title "disconnect device" -CommandArgs @("disconnect")
     } catch {

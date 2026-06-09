@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('backup-card', 'media-card', 'current-plan', 'both')]
+  [ValidateSet('backup-card', 'media-card', 'current-plan', 'membership', 'both')]
   [string]$Target = 'current-plan',
   [string]$DeviceId = "",
   [string]$BundleName = "com.example.fittracker_opencode",
@@ -47,7 +47,9 @@ if ($LASTEXITCODE -ne 0) {
   throw 'Failed to query HDC targets.'
 }
 $hdcText = (@($hdcRawOutput) | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
-Assert-HdcTargetsReady -RawOutput $hdcText -DeviceId $DeviceId
+if (-not $CheckOnly) {
+  Assert-HdcTargetsReady -RawOutput $hdcText -DeviceId $DeviceId
+}
 
 if (-not $SkipPrepareEnv) {
   & $EnvScriptPath `
