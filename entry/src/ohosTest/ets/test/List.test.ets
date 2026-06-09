@@ -25,9 +25,10 @@ import statsDashboardServiceTest from './StatsDashboardService.test'
 import personalRecordServiceTest from './PersonalRecordService.test'
 import persistenceFallbackServiceTest from './PersistenceFallbackService.test'
 import exerciseMediaResolverServiceTest from './ExerciseMediaResolverService.test'
-import syncServiceTest from './SyncService.test'
 import monetizationEntitlementServiceTest from './MonetizationEntitlementService.test'
 import monetizationGateServiceTest from './MonetizationGateService.test'
+import syncServiceTest from './SyncService.test'
+import startupContentSyncFlowTest from './StartupContentSyncFlow.test'
 import authSessionFlowTest from './AuthSessionFlow.test'
 import targetLoopFlowTest from './TargetLoopFlow.test'
 import authRoutingFlowTest from './AuthRoutingFlow.test'
@@ -60,9 +61,10 @@ export default function testsuite(): void {
   personalRecordServiceTest()
   persistenceFallbackServiceTest()
   exerciseMediaResolverServiceTest()
-  syncServiceTest()
   monetizationEntitlementServiceTest()
   monetizationGateServiceTest()
+  syncServiceTest()
+  startupContentSyncFlowTest()
   authSessionFlowTest()
   targetLoopFlowTest()
   authRoutingFlowTest()

@@ -25,9 +25,17 @@ import { DatabaseContentDataSource } from './DatabaseContentDataSource'
 
 const DEFAULT_DB_NAME: string = 'fittracker_content.db'
 
+interface SeedPackageData {
+  manifest: ContentSyncManifest
+  muscles: MuscleGroup[]
+  equipment: EquipmentItem[]
+  exercises: ExerciseContent[]
+}
+
 class ContentDatabaseServiceImpl {
   private testDbName: string = ''
   private lastImportFailureReason: string = ''
+  private testSeedPackage: SeedPackageData | null = null
 
   getLastImportFailureReason(): string {
     return this.lastImportFailureReason
@@ -37,6 +45,24 @@ class ContentDatabaseServiceImpl {
     this.testDbName = name
   }
 
+  setSeedPackageForTesting(
+    manifest: ContentSyncManifest,
+    muscles: MuscleGroup[],
+    equipment: EquipmentItem[],
+    exercises: ExerciseContent[]
+  ): void {
+    this.testSeedPackage = {
+      manifest: manifest,
+      muscles: muscles,
+      equipment: equipment,
+      exercises: exercises
+    }
+  }
+
+  clearSeedPackageForTesting(): void {
+    this.testSeedPackage = null
+  }
+
   async clearDatabaseForTesting(context: Context): Promise<void> {
     const store: relationalStore.RdbStore = await this.openStore(context)
     await this.createTables(store)
@@ -44,12 +70,13 @@ class ContentDatabaseServiceImpl {
   }
 
   async importSeedAndUseDatabase(context: Context): Promise<boolean> {
+    const seedPackage: SeedPackageData = this.getSeedPackage()
     return this.importPackageAndUseDatabase(
       context,
-      BUNDLED_CONTENT_SYNC_MANIFEST,
-      BUNDLED_CONTENT_SYNC_MUSCLES,
-      BUNDLED_CONTENT_SYNC_EQUIPMENT,
-      BUNDLED_CONTENT_SYNC_EXERCISES
+      seedPackage.manifest,
+      seedPackage.muscles,
+      seedPackage.equipment,
+      seedPackage.exercises
     )
   }
 
@@ -73,9 +100,9 @@ class ContentDatabaseServiceImpl {
         await this.insertMuscles(store, muscles)
         await this.insertEquipment(store, equipment)
         await this.insertExercises(store, exercises)
-        store.commit()
         const dataSource: DatabaseContentDataSource = await this.loadDatabaseDataSource(store)
         this.validateImportedPackage(dataSource, manifest)
+        store.commit()
         ContentRepository.useContentDataSource(dataSource)
         this.lastImportFailureReason = ''
         return true
@@ -159,6 +186,18 @@ class ContentDatabaseServiceImpl {
       return this.testDbName
     }
     return DEFAULT_DB_NAME
+  }
+
+  private getSeedPackage(): SeedPackageData {
+    if (this.testSeedPackage !== null) {
+      return this.testSeedPackage
+    }
+    return {
+      manifest: BUNDLED_CONTENT_SYNC_MANIFEST,
+      muscles: BUNDLED_CONTENT_SYNC_MUSCLES,
+      equipment: BUNDLED_CONTENT_SYNC_EQUIPMENT,
+      exercises: BUNDLED_CONTENT_SYNC_EXERCISES
+    }
   }
 
   private async createTables(store: relationalStore.RdbStore): Promise<void> {

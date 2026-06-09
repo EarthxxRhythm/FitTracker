@@ -160,6 +160,42 @@ export default function syncServiceTest(): void {
       expect(ContentRepository.getContentSourceInfo().sourceId).assertEqual('jsonl_seed')
     })
 
+    it('records manifest unsupported status when bundled package kind is not supported', 0, async () => {
+      SyncService.setBundledPackageForTesting(
+        createManifest(1, 'delta', 2, BUNDLED_CONTENT_SYNC_EXERCISES.length),
+        BUNDLED_CONTENT_SYNC_MUSCLES,
+        BUNDLED_CONTENT_SYNC_EQUIPMENT,
+        createVersionedExercises(2)
+      )
+
+      const status = await SyncService.applyBundledPackageIfNeeded(getTestContext())
+      const metadata: ContentSyncMetadata = await SyncService.readMetadata(getTestContext())
+
+      expect(status.status).assertEqual('manifest_unsupported')
+      expect(status.failureReason).assertEqual('unsupported_kind')
+      expect(metadata.status).assertEqual('manifest_unsupported')
+      expect(metadata.failureReason).assertEqual('unsupported_kind')
+      expect(ContentRepository.getContentSourceInfo().sourceId).assertEqual('jsonl_seed')
+    })
+
+    it('records manifest unsupported status when bundled manifest fields are invalid', 0, async () => {
+      SyncService.setBundledPackageForTesting(
+        createManifest(1, 'full', 0, BUNDLED_CONTENT_SYNC_EXERCISES.length),
+        BUNDLED_CONTENT_SYNC_MUSCLES,
+        BUNDLED_CONTENT_SYNC_EQUIPMENT,
+        createVersionedExercises(2)
+      )
+
+      const status = await SyncService.applyBundledPackageIfNeeded(getTestContext())
+      const metadata: ContentSyncMetadata = await SyncService.readMetadata(getTestContext())
+
+      expect(status.status).assertEqual('manifest_unsupported')
+      expect(status.failureReason).assertEqual('invalid_manifest')
+      expect(metadata.status).assertEqual('manifest_unsupported')
+      expect(metadata.failureReason).assertEqual('invalid_manifest')
+      expect(ContentRepository.getContentSourceInfo().sourceId).assertEqual('jsonl_seed')
+    })
+
     it('marks bundled package as up to date when version does not exceed current local content', 0, async () => {
       const status = await SyncService.applyBundledPackageIfNeeded(getTestContext())
       const metadata: ContentSyncMetadata = await SyncService.readMetadata(getTestContext())
