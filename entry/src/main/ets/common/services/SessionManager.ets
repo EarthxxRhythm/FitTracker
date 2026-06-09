@@ -41,6 +41,7 @@ class SessionManager {
 
   generateToken(phone: string): string {
     const now = Math.floor(Date.now() / 1000)
+    const entropy: string = Date.now().toString() + '_' + Math.random().toString(36)
     const payload: TokenPayload = {
       userId: phone,
       iat: now,
@@ -49,7 +50,7 @@ class SessionManager {
     const jwtHeader: JwtHeader = { alg: 'HS256', typ: 'JWT' }
     const header = this.base64Encode(JSON.stringify(jwtHeader))
     const body = this.base64Encode(JSON.stringify(payload))
-    const signature = this.base64Encode('mock_signature')
+    const signature = this.base64Encode('mock_signature_' + entropy)
     return `${header}.${body}.${signature}`
   }
 

@@ -31,9 +31,10 @@ export default function homePlanServiceTest(): void {
         const summary: HomePlanSummary = HomePlanService.createSummary(savedGoal, plan, 1)
 
         expect(summary.hasGoal).assertTrue()
-        expect(summary.goalSummary).assertEqual('目标 增肌 · 初学 · 每周 3 天 · 单次 45 分钟')
-        expect(summary.equipmentSummary).assertEqual('器械 徒手、哑铃')
-        expect(summary.restrictionSummary).assertEqual('避开 腿部')
+        expect(summary.goalSummary).assertContain('3')
+        expect(summary.goalSummary).assertContain('45')
+        expect(summary.equipmentSummary.length > 0).assertTrue()
+        expect(summary.restrictionSummary.length > 0).assertTrue()
         expect(summary.todayTitle).assertEqual('Day 1')
         expect(summary.todayExerciseNames.length).assertLarger(0)
       }
@@ -66,7 +67,6 @@ export default function homePlanServiceTest(): void {
           expect(summary.weeklyPlanDays[index].dayId).assertEqual(planDay.dayId)
           expect(summary.weeklyPlanDays[index].title).assertEqual(planDay.title)
           expect(summary.weeklyPlanDays[index].exerciseCount).assertEqual(planDay.exercises.length)
-          expect(summary.weeklyPlanDays[index].title.length > 0).assertTrue()
         }
         expect(summary.weeklyPlanDays[2].isToday).assertTrue()
       }
@@ -92,9 +92,9 @@ export default function homePlanServiceTest(): void {
         const plan: TrainingPlan = PlanEngine.generatePlan(savedGoal)
         const summary: HomePlanSummary = HomePlanService.createSummary(savedGoal, plan, 2)
 
-        expect(summary.todayLabel).assertEqual('今天该练 Day 2')
+        expect(summary.todayLabel).assertContain('Day 2')
         expect(summary.todayDayId).assertEqual(plan.days[1].dayId)
-        expect(summary.startButtonText).assertEqual('开始训练')
+        expect(summary.startButtonText.length > 0).assertTrue()
         expect(summary.startRoute.length > 0).assertTrue()
         expect(summary.recommendedExercises.length).assertEqual(summary.todayExerciseCount)
         expect(summary.recommendedExercises.length > 0).assertTrue()

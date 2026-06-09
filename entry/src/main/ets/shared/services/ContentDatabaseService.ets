@@ -100,15 +100,17 @@ class ContentDatabaseServiceImpl {
         await this.insertMuscles(store, muscles)
         await this.insertEquipment(store, equipment)
         await this.insertExercises(store, exercises)
-        const dataSource: DatabaseContentDataSource = await this.loadDatabaseDataSource(store)
-        this.validateImportedPackage(dataSource, manifest)
         store.commit()
-        ContentRepository.useContentDataSource(dataSource)
-        this.lastImportFailureReason = ''
-        return true
       } catch (error) {
         this.rollbackQuietly(store)
+        throw new Error('content_database_write_failed')
       }
+
+      const dataSource: DatabaseContentDataSource = await this.loadDatabaseDataSource(store)
+      this.validateImportedPackage(dataSource, manifest)
+      ContentRepository.useContentDataSource(dataSource)
+      this.lastImportFailureReason = ''
+      return true
     } catch (error) {
     }
 

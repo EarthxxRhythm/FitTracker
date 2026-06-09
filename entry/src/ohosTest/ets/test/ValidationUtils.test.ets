@@ -66,9 +66,9 @@ export default function validationUtilsTest(): void {
         expect(result.valid).assertFalse()
       })
 
-      it('should return invalid for invalid prefix (199)', 0, () => {
+      it('should accept valid 199 prefix', 0, () => {
         const result = validatePhone('19999999999')
-        expect(result.valid).assertFalse()
+        expect(result.valid).assertTrue()
       })
 
       it('should return invalid for letters in phone', 0, () => {
@@ -147,9 +147,9 @@ export default function validationUtilsTest(): void {
         expect(result.valid).assertFalse()
       })
 
-      it('should return valid when both are empty', 0, () => {
+      it('should return invalid when both are empty', 0, () => {
         const result = validateConfirmPassword('', '')
-        expect(result.valid).assertTrue()
+        expect(result.valid).assertFalse()
       })
     })
 
