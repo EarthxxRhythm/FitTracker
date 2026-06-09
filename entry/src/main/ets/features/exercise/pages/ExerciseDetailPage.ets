@@ -11,6 +11,12 @@ import ExerciseMediaResolverService, {
   ExerciseMediaMetadata,
   ExerciseMediaPresentation
 } from '../../../shared/services/ExerciseMediaResolverService'
+import MonetizationGateService from '../../../shared/services/MonetizationGateService'
+import PremiumExerciseContentService, {
+  PremiumExerciseContentPresentation,
+  PremiumExerciseContentTile
+} from '../../../shared/services/PremiumExerciseContentService'
+import { AppRoutes } from '../../../app/AppRoutes'
 
 function createEmptyExerciseMediaMetadata(): ExerciseMediaMetadata {
   const metadata: ExerciseMediaMetadata = {
@@ -45,8 +51,14 @@ export struct ExerciseDetailPage {
   @State videoSourceLabel: string = ''
   @State mediaLicenseText: string = ''
   @State videoPlaceholder: string = ''
+  @State premiumContentPresentation: PremiumExerciseContentPresentation =
+    PremiumExerciseContentService.createDefaultPresentation()
 
   aboutToAppear(): void {
+    this.loadPage()
+  }
+
+  async loadPage(): Promise<void> {
     const routeExerciseId: string = this.getRouteExerciseId()
     if (routeExerciseId.length === 0) {
       this.hasExercise = false
@@ -59,6 +71,7 @@ export struct ExerciseDetailPage {
       return
     }
     this.applyDetail(detail)
+    await this.loadPremiumContent(detail)
   }
 
   getRouteExerciseId(): string {
@@ -107,6 +120,19 @@ export struct ExerciseDetailPage {
       mediaLicenseText: this.mediaLicenseText
     }
     return metadata
+  }
+
+  async loadPremiumContent(detail: ExerciseDetailViewModel): Promise<void> {
+    try {
+      const gateResult = await MonetizationGateService.getGateResult(getContext(this), 'premium_content')
+      this.premiumContentPresentation = PremiumExerciseContentService.createPresentation(
+        !gateResult.allowed,
+        gateResult.activeTier,
+        detail
+      )
+    } catch (e) {
+      this.premiumContentPresentation = PremiumExerciseContentService.createPresentation(true, 'free', detail)
+    }
   }
 
   copyStringArray(source: string[]): string[] {
@@ -233,6 +259,14 @@ export struct ExerciseDetailPage {
     return '暂无训练提示'
   }
 
+  openMonetizationHub(): void {
+    try {
+      router.pushUrl({ url: AppRoutes.MONETIZATION_HUB })
+    } catch (e) {
+      // stay on current page
+    }
+  }
+
   build() {
     Scroll() {
       Column({ space: SpacingTokens.LG }) {
@@ -262,6 +296,7 @@ export struct ExerciseDetailPage {
         if (this.hasExercise) {
           this.buildHeroSection()
           this.buildMediaSection()
+          this.buildPremiumContentSection()
           this.buildTechniqueSection()
           this.buildAlternativeSection()
           this.buildMetadataSection()
@@ -398,6 +433,119 @@ export struct ExerciseDetailPage {
 
         this.buildMediaAssetBlock('封面资源', this.mediaPresentation.cover)
         this.buildMediaAssetBlock('视频资源', this.mediaPresentation.video)
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
+  }
+
+  @Builder
+  buildPremiumContentSection() {
+    AppCard({ variant: this.premiumContentPresentation.locked ? 'outlined' : 'panel', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.MD }) {
+        Row() {
+          Column({ space: SpacingTokens.XS }) {
+            Text(this.premiumContentPresentation.title)
+              .fontSize(FontTokens.TITLE_SIZE)
+              .fontWeight(FontTokens.TITLE_WEIGHT)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+
+            Text(this.premiumContentPresentation.description)
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+              .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+              .width('100%')
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+
+          Text(this.premiumContentPresentation.statusLabel)
+            .fontSize(FontTokens.SMALL_SIZE)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
+            .padding({
+              top: SpacingTokens.XS,
+              bottom: SpacingTokens.XS,
+              left: SpacingTokens.SM,
+              right: SpacingTokens.SM
+            })
+            .backgroundColor(
+              this.getMediaToneBackgroundColor(this.premiumContentPresentation.locked ? 'accent' : 'primary')
+            )
+            .borderRadius(RadiusTokens.FULL)
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Top)
+
+        ForEach(this.premiumContentPresentation.tiles, (tile: PremiumExerciseContentTile) => {
+          Column({ space: SpacingTokens.XS }) {
+            Text(tile.label)
+              .fontSize(FontTokens.SMALL_SIZE)
+              .fontColor(ColorTokens.TEXT_TERTIARY)
+
+            Text(tile.value)
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+              .width('100%')
+
+            Text(tile.note)
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+              .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+              .width('100%')
+          }
+          .width('100%')
+          .padding(SpacingTokens.MD)
+          .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+          .borderRadius(RadiusTokens.MD)
+          .alignItems(HorizontalAlign.Start)
+        }, (tile: PremiumExerciseContentTile) => tile.tileId)
+
+        Column({ space: SpacingTokens.SM }) {
+          Text('训练清单')
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
+
+          ForEach(this.premiumContentPresentation.checklist, (item: string, index: number) => {
+            Row({ space: SpacingTokens.SM }) {
+              Text('路')
+                .fontSize(FontTokens.BODY_SIZE)
+                .fontColor(this.premiumContentPresentation.locked ? ColorTokens.ACCENT : ColorTokens.PRIMARY)
+                .margin({ top: SpacingTokens.XS })
+
+              Text(item)
+                .fontSize(FontTokens.BODY_SIZE)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+                .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+                .layoutWeight(1)
+            }
+            .width('100%')
+            .alignItems(VerticalAlign.Top)
+          }, (item: string, index: number) => 'premium_check_' + index.toString() + '_' + item)
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Start)
+
+        Text(this.premiumContentPresentation.supportingText)
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+          .width('100%')
+
+        if (this.premiumContentPresentation.locked) {
+          Button(this.premiumContentPresentation.actionText)
+            .width('100%')
+            .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
+            .backgroundColor(ColorTokens.SURFACE_BUTTON_SECONDARY)
+            .borderRadius(RadiusTokens.FULL)
+            .onClick(() => {
+              this.openMonetizationHub()
+            })
+        }
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)

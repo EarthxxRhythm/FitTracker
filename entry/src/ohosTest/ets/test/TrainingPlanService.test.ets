@@ -255,6 +255,46 @@ export default function trainingPlanServiceTest(): void {
 
         await trainingPlanService.replaceMyPlans(getTestContext(), [], '')
       })
+
+      it('enables a custom advanced-plan variant and persists the customized fields', 0, async () => {
+        await trainingPlanService.replaceMyPlans(getTestContext(), [], '')
+
+        const customDays: TrainingDay[] = [
+          {
+            dayLabel: '高容量推日',
+            dayOfWeek: [1],
+            exercises: [
+              {
+                name: '杠铃平板卧推',
+                targetMuscle: '胸部',
+                sets: 5,
+                reps: '6-10'
+              }
+            ]
+          }
+        ]
+
+        const enabledPlan: UserPlan | null = await trainingPlanService.enableCustomPlan(
+          getTestContext(),
+          '推拉腿分裂 · 高容量',
+          '#FB8C00',
+          '初中高级通用 · 适合恢复良好时冲量',
+          '3-6天/周 · 主动作额外加组',
+          customDays
+        )
+        const currentPlan: UserPlan | null = await trainingPlanService.getCurrentPlan(getTestContext())
+
+        expect(enabledPlan !== null).assertTrue()
+        if (enabledPlan !== null && currentPlan !== null) {
+          expect(currentPlan.id).assertEqual(enabledPlan.id)
+          expect(currentPlan.name).assertEqual('推拉腿分裂 · 高容量')
+          expect(currentPlan.days.length).assertEqual(1)
+          expect(currentPlan.days[0].exercises[0].sets).assertEqual(5)
+          expect(currentPlan.weeklyFrequency).assertEqual('3-6天/周 · 主动作额外加组')
+        }
+
+        await trainingPlanService.replaceMyPlans(getTestContext(), [], '')
+      })
     })
   })
 }
