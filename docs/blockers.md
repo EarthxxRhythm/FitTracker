@@ -7,7 +7,7 @@ Use this file to record only the blockers that should change task routing.
 - `device.hdc_unavailable`
   - status: active
   - scope: `performance-lab`, `ohosTest`, `focused-smoke`
-  - note: `hdc list targets -v` is not reaching a usable `Ready` / `Connected` target on this machine right now. Empty output and `Unknown` targets should both be treated as blocked.
+  - note: `hdc list targets -v` is not reaching a usable `Ready` / `Connected` target on this machine right now. Empty output, `Unknown`, and `Offline` targets should all be treated as blocked.
 
 ## Inactive / Cleared
 

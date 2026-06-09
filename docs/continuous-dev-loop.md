@@ -107,9 +107,13 @@ Avoid long regression unless the task actually touches a shared risky path.
 
 Current practical order:
 
-1. `content-sync` repo-only closure
-2. `performance-lab` focused validation / commit once device is available
-3. `monetization` next repo-only scaffolding task
+1. repo-only validation/tooling hardening while device state is blocked
+2. restore a usable HDC target (`Ready` or `Connected`)
+3. rerun final short device-backed acceptance:
+   - `tools/auth-regression.ps1`
+   - `tools/dev-smoke.ps1 -Target current-plan`
+   - `tools/dev-smoke.ps1 -Target both`
+4. final closeout audit
 
 ## Dry Run Usage
 

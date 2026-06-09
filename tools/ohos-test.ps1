@@ -77,6 +77,25 @@ function Convert-ToCmdLiteral {
   return $Value
 }
 
+function Resolve-CommandPath {
+  param([string]$FilePath)
+
+  if ([string]::IsNullOrWhiteSpace($FilePath)) {
+    throw 'Command path is empty.'
+  }
+
+  if (Test-Path $FilePath) {
+    return (Resolve-Path $FilePath).Path
+  }
+
+  $commandInfo = Get-Command $FilePath -ErrorAction SilentlyContinue
+  if ($null -ne $commandInfo -and -not [string]::IsNullOrWhiteSpace($commandInfo.Source)) {
+    return $commandInfo.Source
+  }
+
+  return $FilePath
+}
+
 function Invoke-LoggedCommand {
   param(
     [string]$Title,
@@ -97,7 +116,7 @@ function Invoke-LoggedCommand {
   $exitCode = 0
   $text = ''
   try {
-    $resolvedFilePath = $FilePath
+    $resolvedFilePath = Resolve-CommandPath -FilePath $FilePath
     $resolvedArguments = $Arguments
     $extension = [System.IO.Path]::GetExtension($FilePath).ToLowerInvariant()
     if ($extension -eq '.bat' -or $extension -eq '.cmd') {

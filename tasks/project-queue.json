@@ -59,7 +59,7 @@
     "id": "performance-lab-002",
     "title": "整理 Performance Lab 聚焦提交",
     "lane": "performance-lab",
-    "status": "todo",
+    "status": "done",
     "priority": 40,
     "dependsOn": ["performance-lab-001"],
     "requires": ["repo-only"],
@@ -77,7 +77,7 @@
     "id": "monetization-001",
     "title": "确定商业化第一批页面接点",
     "lane": "monetization",
-    "status": "blocked",
+    "status": "done",
     "priority": 50,
     "dependsOn": [],
     "requires": ["repo-only"],
@@ -90,6 +90,26 @@
     "doneDefinition": [
       "确定首批页面接点",
       "更新设计与实现边界"
+    ]
+  },
+  {
+    "id": "closeout-validation-001",
+    "title": "恢复 HDC 后补跑最终短链验收",
+    "lane": "closeout",
+    "status": "todo",
+    "priority": 60,
+    "dependsOn": ["performance-lab-002", "monetization-001"],
+    "requires": ["device"],
+    "summary": "在可用 HDC target 恢复后，重跑 auth-regression、current-plan focused smoke 和 both focused smoke，证明 Performance Lab 视觉刷新与回顾页升级入口在设备端仍然稳定。",
+    "validation": [
+      "powershell -NoProfile -ExecutionPolicy Bypass -File tools/auth-regression.ps1 -DeviceId 127.0.0.1:5555 -SkipInstall",
+      "powershell -NoProfile -ExecutionPolicy Bypass -File tools/dev-smoke.ps1 -Target current-plan -DeviceId 127.0.0.1:5555 -SkipInstall",
+      "powershell -NoProfile -ExecutionPolicy Bypass -File tools/dev-smoke.ps1 -Target both -DeviceId 127.0.0.1:5555 -SkipInstall"
+    ],
+    "doneDefinition": [
+      "auth regression passed after latest UI and monetization changes",
+      "current-plan focused smoke passed after latest UI and monetization changes",
+      "both focused smoke passed after latest UI and monetization changes"
     ]
   }
 ]
