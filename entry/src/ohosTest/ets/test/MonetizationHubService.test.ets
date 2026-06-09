@@ -128,6 +128,7 @@ export default function monetizationHubServiceTest(): void {
       expect(viewModel.offerCards[2].current).assertTrue()
       expect(viewModel.offerCards[0].highlighted).assertFalse()
       expect(viewModel.offerCards[1].highlighted).assertFalse()
+      expect(viewModel.offerCards[0].statusText).assertContain('Plus 权益已覆盖')
     })
 
     it('builds a focused premium-content upgrade context for exercise detail', 0, async () => {
