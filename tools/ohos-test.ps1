@@ -28,6 +28,7 @@ Set-StrictMode -Version Latest
 $ScriptRoot = $PSScriptRoot
 $RepoRoot = [System.IO.Path]::GetFullPath((Join-Path $ScriptRoot ".."))
 $DevEcoEnvScriptPath = Join-Path $ScriptRoot "deveco-env.ps1"
+$HdcTargetsScriptPath = Join-Path $ScriptRoot "hdc-targets.ps1"
 $DefaultRunBase = Join-Path $RepoRoot "test_run\ohosTest"
 
 if ([string]::IsNullOrWhiteSpace($RunTag)) {
@@ -47,6 +48,11 @@ $PresetClassMap = @{
   'content-sync' = @('ContentDatabaseService', 'SyncService', 'StartupContentSyncFlow')
   'full' = @()
 }
+
+if (-not (Test-Path $HdcTargetsScriptPath)) {
+  throw ('Required script not found: ' + $HdcTargetsScriptPath)
+}
+. $HdcTargetsScriptPath
 
 function New-RunArtifacts {
   New-Item -ItemType Directory -Force -Path $RunRoot | Out-Null
@@ -104,13 +110,26 @@ function Invoke-LoggedCommand {
       $resolvedArguments = @('/d', '/c', ($commandParts -join ' '))
     }
 
-    $process = Start-Process -FilePath $resolvedFilePath `
-      -ArgumentList $resolvedArguments `
-      -WorkingDirectory $RepoRoot `
-      -NoNewWindow `
-      -PassThru `
-      -RedirectStandardOutput $stdoutPath `
-      -RedirectStandardError $stderrPath
+    $uppercasePathValue = ''
+    $hadUppercasePath = Test-Path Env:PATH
+    if ($hadUppercasePath) {
+      $uppercasePathValue = $env:PATH
+      Remove-Item Env:PATH
+    }
+
+    try {
+      $process = Start-Process -FilePath $resolvedFilePath `
+        -ArgumentList $resolvedArguments `
+        -WorkingDirectory $RepoRoot `
+        -NoNewWindow `
+        -PassThru `
+        -RedirectStandardOutput $stdoutPath `
+        -RedirectStandardError $stderrPath
+    } finally {
+      if ($hadUppercasePath) {
+        $env:PATH = $uppercasePathValue
+      }
+    }
 
     if ($TimeoutSec -gt 0) {
       $finished = $process.WaitForExit($TimeoutSec * 1000)
@@ -204,30 +223,6 @@ function Resolve-ClassNames {
     return @($PresetClassMap[$Preset])
   }
   return @()
-}
-
-function Test-HdcTargetsAvailable {
-  param([string]$RawOutput)
-
-  if ([string]::IsNullOrWhiteSpace($RawOutput)) {
-    return $false
-  }
-
-  $lines = $RawOutput -split "`r?`n"
-  for ($index = 0; $index -lt $lines.Length; $index++) {
-    $line = $lines[$index].Trim()
-    if ($line.Length -eq 0) {
-      continue
-    }
-    if ($line -eq '[Empty]') {
-      continue
-    }
-    if ($line.StartsWith('[List')) {
-      continue
-    }
-    return $true
-  }
-  return $false
 }
 
 function Ensure-DevEcoEnvironment {
@@ -478,10 +473,8 @@ try {
     return
   }
 
-  $targetsResult = Invoke-HdcCommand -Title 'check hdc targets' -Arguments @('list', 'targets')
-  if (-not (Test-HdcTargetsAvailable -RawOutput $targetsResult.Output)) {
-    throw 'No HDC targets are connected. Connect a device or simulator before running ohosTest.'
-  }
+  $targetsResult = Invoke-LoggedCommand -Title 'check hdc targets' -FilePath 'hdc' -Arguments @('list', 'targets', '-v')
+  Assert-HdcTargetsReady -RawOutput $targetsResult.Output -DeviceId $DeviceId
 
   if (Test-ShouldBuild) {
     Invoke-HvigorBuild -ModuleTarget 'entry@default' -Label 'entry@default' -ExpectedHapPath $DefaultHapPath

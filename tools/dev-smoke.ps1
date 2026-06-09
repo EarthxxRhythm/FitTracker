@@ -27,6 +27,7 @@ Set-StrictMode -Version Latest
 $ScriptRoot = $PSScriptRoot
 $EnvScriptPath = Join-Path $ScriptRoot "midscene-env.ps1"
 $SmokeScriptPath = Join-Path $ScriptRoot "midscene-entrypoints-smoke.ps1"
+$HdcTargetsScriptPath = Join-Path $ScriptRoot "hdc-targets.ps1"
 
 if (-not (Test-Path $EnvScriptPath)) {
   throw ('Required script not found: ' + $EnvScriptPath)
@@ -35,6 +36,18 @@ if (-not (Test-Path $EnvScriptPath)) {
 if (-not (Test-Path $SmokeScriptPath)) {
   throw ('Required script not found: ' + $SmokeScriptPath)
 }
+
+if (-not (Test-Path $HdcTargetsScriptPath)) {
+  throw ('Required script not found: ' + $HdcTargetsScriptPath)
+}
+. $HdcTargetsScriptPath
+
+$hdcRawOutput = & hdc list targets -v
+if ($LASTEXITCODE -ne 0) {
+  throw 'Failed to query HDC targets.'
+}
+$hdcText = (@($hdcRawOutput) | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+Assert-HdcTargetsReady -RawOutput $hdcText -DeviceId $DeviceId
 
 if (-not $SkipPrepareEnv) {
   & $EnvScriptPath `

@@ -7,7 +7,7 @@ Use this file to record only the blockers that should change task routing.
 - `device.hdc_unavailable`
   - status: active
   - scope: `performance-lab`, `ohosTest`, `focused-smoke`
-  - note: `hdc list targets` currently returns empty, so device-backed validation cannot run on this machine right now.
+  - note: `hdc list targets -v` is not reaching a usable `Ready` / `Connected` target on this machine right now. Empty output and `Unknown` targets should both be treated as blocked.
 
 ## Inactive / Cleared
 
