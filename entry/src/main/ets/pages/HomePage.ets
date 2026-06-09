@@ -11,6 +11,8 @@ import { AppRoutes } from '../app/AppRoutes'
 import TrainingPlanService, { PresetPlan, UserPlan } from '../common/services/TrainingPlanService'
 import WorkoutDraftService, { hasWorkoutDraftProgress, WorkoutDraftSnapshot } from '../common/services/WorkoutDraftService'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../common/styles/DesignTokens'
+import { AppButton } from '../components/AppButton'
+import { AppCard } from '../components/AppCard'
 import { PrimaryDestinationStrip } from '../components/PrimaryDestinationStrip'
 import { TrainingPlan, UserGoal } from '../shared/models/TrainingModels'
 import GoalRepository from '../shared/services/GoalRepository'
@@ -344,11 +346,39 @@ export struct HomePage {
     return items
   }
 
+  resolveHeroEyebrow(): string {
+    if (this.loading) {
+      return '正在准备'
+    }
+    if (this.hasRecoverableDraft) {
+      return '恢复训练'
+    }
+    if (!this.hasGoal) {
+      return '开始配置'
+    }
+    if (this.hasTodayWorkout) {
+      return '今日主线'
+    }
+    return '恢复日'
+  }
+
+  resolveWeeklySectionDescription(): string {
+    if (this.hasTodayWorkout) {
+      return '先完成今天的训练，再回到回顾页看趋势和动作表现。'
+    }
+    return '今天优先恢复和调整，下一次训练已经排进本周节奏里。'
+  }
+
   build() {
     Scroll() {
       Column({ space: SpacingTokens.LG }) {
-        Column({ space: SpacingTokens.SM }) {
-          Text('\u8bad\u7ec3\u4eea\u8868\u9996\u9875')
+        Column({ space: SpacingTokens.XS }) {
+          Text('\u8bad\u7ec3\u9996\u9875')
+            .fontSize(FontTokens.MICRO_SIZE)
+            .fontWeight(FontTokens.MICRO_WEIGHT)
+            .fontColor(ColorTokens.TEXT_TERTIARY)
+
+          Text('\u4eca\u5929\u8bad\u7ec3')
             .fontSize(FontTokens.DISPLAY_SIZE)
             .fontWeight(FontTokens.DISPLAY_WEIGHT)
             .fontColor(ColorTokens.TEXT_PRIMARY)
@@ -362,239 +392,12 @@ export struct HomePage {
 
         PrimaryDestinationStrip({ currentKey: 'home' })
 
-        Column({ space: SpacingTokens.MD }) {
-          Row() {
-            Text('\u4eca\u65e5\u8bad\u7ec3')
-              .fontSize(FontTokens.SMALL_SIZE)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-              .padding({
-                top: SpacingTokens.XS,
-                bottom: SpacingTokens.XS,
-                left: SpacingTokens.SM,
-                right: SpacingTokens.SM
-              })
-              .backgroundColor(ColorTokens.PRIMARY)
-              .borderRadius(RadiusTokens.FULL)
-
-            if (!this.loading && this.hasRecoverableDraft) {
-              Text('\u672a\u5b8c\u6210\u8fdb\u5ea6')
-                .fontSize(FontTokens.SMALL_SIZE)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(ColorTokens.TEXT_PRIMARY)
-                .padding({
-                  top: SpacingTokens.XS,
-                  bottom: SpacingTokens.XS,
-                  left: SpacingTokens.SM,
-                  right: SpacingTokens.SM
-                })
-                .backgroundColor(ColorTokens.OVERLAY_ACCENT)
-                .borderRadius(RadiusTokens.FULL)
-                .margin({ left: SpacingTokens.SM })
-            }
-          }
-          .width('100%')
-
-          Text(this.resolveHeroTitle())
-            .fontSize(FontTokens.HERO_SIZE)
-            .fontWeight(FontTokens.HERO_WEIGHT)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-            .width('100%')
-
-          Text(this.resolveHeroDescription())
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontColor(ColorTokens.TEXT_SECONDARY)
-            .width('100%')
-
-          if (!this.loading && this.hasGoal) {
-            Row() {
-              Column({ space: SpacingTokens.XS }) {
-                Text('\u5f53\u524d\u8ba1\u5212')
-                  .fontSize(FontTokens.SMALL_SIZE)
-                  .fontColor(ColorTokens.TEXT_SECONDARY)
-
-                Text(this.planName)
-                  .fontSize(FontTokens.BODY_SIZE)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor(ColorTokens.TEXT_PRIMARY)
-                  .maxLines(2)
-              }
-              .layoutWeight(1)
-              .alignItems(HorizontalAlign.Start)
-
-              Column({ space: SpacingTokens.XS }) {
-                Text('\u9891\u7387')
-                  .fontSize(FontTokens.SMALL_SIZE)
-                  .fontColor(ColorTokens.TEXT_SECONDARY)
-
-                Text(this.weeklyDays.toString() + ' \u5929/\u5468')
-                  .fontSize(FontTokens.BODY_SIZE)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor(ColorTokens.TEXT_PRIMARY)
-              }
-              .alignItems(HorizontalAlign.Start)
-
-              Column({ space: SpacingTokens.XS }) {
-                Text('\u9884\u8ba1\u65f6\u957f')
-                  .fontSize(FontTokens.SMALL_SIZE)
-                  .fontColor(ColorTokens.TEXT_SECONDARY)
-
-                Text(this.sessionMinutes.toString() + ' \u5206\u949f')
-                  .fontSize(FontTokens.BODY_SIZE)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor(ColorTokens.TEXT_PRIMARY)
-              }
-              .alignItems(HorizontalAlign.Start)
-            }
-            .width('100%')
-          }
-
-          if (!this.loading && this.hasGoal) {
-            Column({ space: SpacingTokens.SM }) {
-              Text(this.hasTodayWorkout ? '\u4eca\u65e5\u52a8\u4f5c' : '\u6062\u590d\u5efa\u8bae')
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(ColorTokens.TEXT_PRIMARY)
-
-              if (this.hasTodayWorkout) {
-                ForEach(this.getVisibleRecommendedExercises(), (exercise: HomeRecommendedExercise, index: number) => {
-                  Row() {
-                    Text((index + 1).toString())
-                      .fontSize(FontTokens.SMALL_SIZE)
-                      .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-                      .width(24)
-                      .height(24)
-                      .textAlign(TextAlign.Center)
-                      .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-                      .borderRadius(RadiusTokens.FULL)
-
-                    Column({ space: SpacingTokens.XS }) {
-                      Text(exercise.name)
-                        .fontSize(FontTokens.BODY_SIZE)
-                        .fontWeight(FontWeight.Medium)
-                        .fontColor(ColorTokens.TEXT_PRIMARY)
-
-                      Text(exercise.prescription + ' | ' + exercise.intensityNote)
-                        .fontSize(FontTokens.CAPTION_SIZE)
-                        .fontColor(ColorTokens.TEXT_SECONDARY)
-                        .maxLines(2)
-                    }
-                    .layoutWeight(1)
-                    .alignItems(HorizontalAlign.Start)
-                    .margin({ left: SpacingTokens.SM })
-                  }
-                  .width('100%')
-                }, (exercise: HomeRecommendedExercise) => exercise.exerciseId)
-
-                if (this.recommendedExercises.length > 3) {
-                  Text('\u5176\u4f59\u52a8\u4f5c\u53ef\u5728\u4eca\u65e5\u8be6\u60c5\u4e2d\u7ee7\u7eed\u67e5\u770b\u3002')
-                    .fontSize(FontTokens.CAPTION_SIZE)
-                    .fontColor(ColorTokens.TEXT_SECONDARY)
-                    .width('100%')
-                }
-              } else {
-                Text(this.todayRestMessage)
-                  .fontSize(FontTokens.BODY_SIZE)
-                  .fontColor(ColorTokens.TEXT_SECONDARY)
-                  .width('100%')
-              }
-            }
-            .width('100%')
-            .padding(SpacingTokens.MD)
-            .borderRadius(RadiusTokens.SM)
-            .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-          }
-
-          Button(this.resolvePrimaryActionText())
-            .width('100%')
-            .height(TouchTokens.BUTTON_HEIGHT_LARGE)
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-            .backgroundColor(this.isPrimaryActionEnabled() ? ColorTokens.PRIMARY : ColorTokens.PRIMARY_DISABLED)
-            .borderRadius(RadiusTokens.FULL)
-            .enabled(this.isPrimaryActionEnabled())
-            .onClick(() => {
-              this.handlePrimaryAction()
-            })
-
-          if (!this.loading && this.hasGoal) {
-            Row({ space: SpacingTokens.SM }) {
-              Button('\u67e5\u770b\u4eca\u65e5\u8be6\u60c5')
-                .layoutWeight(1)
-                .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(ColorTokens.TEXT_PRIMARY)
-                .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-                .borderRadius(RadiusTokens.FULL)
-                .onClick(() => {
-                  this.openWorkoutPreview()
-                })
-
-              Button('\u8bad\u7ec3\u56de\u987e')
-                .layoutWeight(1)
-                .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(ColorTokens.TEXT_PRIMARY)
-                .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-                .borderRadius(RadiusTokens.FULL)
-                .onClick(() => {
-                  this.openReviewHome()
-                })
-            }
-            .width('100%')
-          }
-        }
-        .width('100%')
-        .padding(SpacingTokens.LG)
-        .borderRadius(RadiusTokens.LG)
-        .backgroundColor(ColorTokens.BG_SECONDARY)
-
-        if (!this.loading && !this.hasGoal) {
-          Column({ space: SpacingTokens.MD }) {
-            Text('\u5b8c\u6210\u76ee\u6807\u8bbe\u7f6e\u540e\uff0c\u8fd9\u91cc\u4f1a\u5c55\u793a\u672c\u5468\u5b89\u6392\u3001\u4eca\u65e5\u52a8\u4f5c\u548c\u6062\u590d\u5165\u53e3\u3002')
-              .fontSize(FontTokens.BODY_SIZE)
-              .fontColor(ColorTokens.TEXT_SECONDARY)
-              .width('100%')
-
-            Button('\u67e5\u770b\u52a8\u4f5c\u5e93')
-              .width('100%')
-              .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
-              .fontSize(FontTokens.BODY_SIZE)
-              .fontColor(ColorTokens.TEXT_PRIMARY)
-              .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-              .borderRadius(RadiusTokens.FULL)
-              .onClick(() => {
-                this.openExerciseLibrary()
-              })
-          }
-          .width('100%')
-          .padding(SpacingTokens.MD)
-          .borderRadius(RadiusTokens.SM)
-          .backgroundColor(ColorTokens.BG_SECONDARY)
-        }
-
-        if (!this.loading && this.hasGoal) {
+        AppCard({ variant: 'panel', cardPadding: 'default' }) {
           Column({ space: SpacingTokens.MD }) {
             Row() {
-              Column({ space: SpacingTokens.XS }) {
-                Text('\u4e0b\u4e00\u6b65')
-                  .fontSize(FontTokens.CAPTION_SIZE)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor(ColorTokens.TEXT_PRIMARY)
-
-                Text(this.hasTodayWorkout ?
-                  '\u5148\u5b8c\u6210\u4eca\u5929\u7684\u8bad\u7ec3\uff0c\u518d\u8fdb\u5165\u56de\u987e\u8c03\u6574\u3002' :
-                  '\u4eca\u5929\u5b89\u6392\u6062\u590d\uff0c\u5148\u770b\u770b\u672c\u5468\u8ba1\u5212\u548c\u540e\u7eed\u8bad\u7ec3\u8282\u594f\u3002')
-                  .fontSize(FontTokens.BODY_SIZE)
-                  .fontColor(ColorTokens.TEXT_SECONDARY)
-                  .width('100%')
-              }
-              .layoutWeight(1)
-              .alignItems(HorizontalAlign.Start)
-
-              Text(this.primaryMetaText)
+              Text(this.resolveHeroEyebrow())
                 .fontSize(FontTokens.SMALL_SIZE)
+                .fontWeight(FontWeight.Medium)
                 .fontColor(ColorTokens.TEXT_ON_PRIMARY)
                 .padding({
                   top: SpacingTokens.XS,
@@ -604,75 +407,328 @@ export struct HomePage {
                 })
                 .backgroundColor(ColorTokens.PRIMARY)
                 .borderRadius(RadiusTokens.FULL)
-            }
-            .width('100%')
 
-            Text('\u672c\u5468\u5b89\u6392')
-              .fontSize(FontTokens.TITLE_SIZE)
-              .fontWeight(FontTokens.TITLE_WEIGHT)
-              .fontColor(ColorTokens.TEXT_PRIMARY)
-
-            ForEach(this.weeklyPlanDays, (day: HomeWeeklyPlanDay) => {
-              Row() {
-                Column({ space: SpacingTokens.XS }) {
-                  Text(day.title)
-                    .fontSize(FontTokens.BODY_SIZE)
-                    .fontWeight(FontWeight.Medium)
-                    .fontColor(ColorTokens.TEXT_PRIMARY)
-
-                  Text(day.exerciseCount.toString() + ' \u4e2a\u52a8\u4f5c')
-                    .fontSize(FontTokens.CAPTION_SIZE)
-                    .fontColor(ColorTokens.TEXT_SECONDARY)
-                }
-                .layoutWeight(1)
-                .alignItems(HorizontalAlign.Start)
-
-                Text(day.isToday ? '\u4eca\u5929' : '\u8ba1\u5212')
+              if (!this.loading && this.hasRecoverableDraft) {
+                Text('\u672a\u5b8c\u6210\u8fdb\u5ea6')
                   .fontSize(FontTokens.SMALL_SIZE)
-                  .fontColor(day.isToday ? ColorTokens.TEXT_ON_PRIMARY : ColorTokens.TEXT_PRIMARY)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(ColorTokens.ACCENT_LIGHT)
                   .padding({
                     top: SpacingTokens.XS,
                     bottom: SpacingTokens.XS,
                     left: SpacingTokens.SM,
                     right: SpacingTokens.SM
                   })
-                  .backgroundColor(day.isToday ? ColorTokens.SUCCESS : ColorTokens.SURFACE_ELEVATED)
+                  .backgroundColor(ColorTokens.OVERLAY_ACCENT)
                   .borderRadius(RadiusTokens.FULL)
+                  .margin({ left: SpacingTokens.SM })
+              }
+            }
+            .width('100%')
+
+            Text(this.resolveHeroTitle())
+              .fontSize(FontTokens.HERO_SIZE)
+              .fontWeight(FontTokens.HERO_WEIGHT)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+              .width('100%')
+
+            Text(this.resolveHeroDescription())
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+              .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+              .width('100%')
+
+            if (!this.loading && this.hasGoal) {
+              Row({ space: SpacingTokens.SM }) {
+                Column({ space: SpacingTokens.XS }) {
+                  Text('\u5f53\u524d\u8ba1\u5212')
+                    .fontSize(FontTokens.MICRO_SIZE)
+                    .fontWeight(FontTokens.MICRO_WEIGHT)
+                    .fontColor(ColorTokens.TEXT_TERTIARY)
+
+                  Text(this.planName)
+                    .fontSize(FontTokens.BODY_SIZE)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(ColorTokens.TEXT_PRIMARY)
+                    .maxLines(2)
+                }
+                .layoutWeight(1)
+                .padding(SpacingTokens.MD)
+                .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+                .borderRadius(RadiusTokens.MD)
+                .alignItems(HorizontalAlign.Start)
+
+                Column({ space: SpacingTokens.XS }) {
+                  Text('\u9891\u7387')
+                    .fontSize(FontTokens.MICRO_SIZE)
+                    .fontWeight(FontTokens.MICRO_WEIGHT)
+                    .fontColor(ColorTokens.TEXT_TERTIARY)
+
+                  Text(this.weeklyDays.toString() + ' \u5929/\u5468')
+                    .fontSize(FontTokens.BODY_SIZE)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(ColorTokens.TEXT_PRIMARY)
+                }
+                .padding(SpacingTokens.MD)
+                .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+                .borderRadius(RadiusTokens.MD)
+                .alignItems(HorizontalAlign.Start)
+
+                Column({ space: SpacingTokens.XS }) {
+                  Text('\u65f6\u957f')
+                    .fontSize(FontTokens.MICRO_SIZE)
+                    .fontWeight(FontTokens.MICRO_WEIGHT)
+                    .fontColor(ColorTokens.TEXT_TERTIARY)
+
+                  Text(this.sessionMinutes.toString() + ' \u5206\u949f')
+                    .fontSize(FontTokens.BODY_SIZE)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(ColorTokens.TEXT_PRIMARY)
+                }
+                .padding(SpacingTokens.MD)
+                .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+                .borderRadius(RadiusTokens.MD)
+                .alignItems(HorizontalAlign.Start)
+              }
+              .width('100%')
+            }
+
+            if (!this.loading && this.hasGoal) {
+              Column({ space: SpacingTokens.SM }) {
+                Text(this.hasTodayWorkout ? '\u4eca\u65e5\u52a8\u4f5c' : '\u6062\u590d\u5efa\u8bae')
+                  .fontSize(FontTokens.SMALL_SIZE)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(ColorTokens.TEXT_TERTIARY)
+
+                if (this.hasTodayWorkout) {
+                  ForEach(this.getVisibleRecommendedExercises(), (exercise: HomeRecommendedExercise, index: number) => {
+                    Row({ space: SpacingTokens.SM }) {
+                      Text((index + 1).toString())
+                        .fontSize(FontTokens.SMALL_SIZE)
+                        .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+                        .width(24)
+                        .height(24)
+                        .textAlign(TextAlign.Center)
+                        .backgroundColor(ColorTokens.PRIMARY)
+                        .borderRadius(RadiusTokens.FULL)
+
+                      Column({ space: SpacingTokens.XS }) {
+                        Text(exercise.name)
+                          .fontSize(FontTokens.BODY_SIZE)
+                          .fontWeight(FontWeight.Medium)
+                          .fontColor(ColorTokens.TEXT_PRIMARY)
+
+                        Text(exercise.prescription + ' | ' + exercise.intensityNote)
+                          .fontSize(FontTokens.CAPTION_SIZE)
+                          .fontColor(ColorTokens.TEXT_SECONDARY)
+                          .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+                          .maxLines(2)
+                      }
+                      .layoutWeight(1)
+                      .alignItems(HorizontalAlign.Start)
+                    }
+                    .width('100%')
+                  }, (exercise: HomeRecommendedExercise) => exercise.exerciseId)
+
+                  if (this.recommendedExercises.length > 3) {
+                    Text('\u5176\u4f59\u52a8\u4f5c\u4f1a\u5728\u4eca\u65e5\u8be6\u60c5\u91cc\u7ee7\u7eed\u5c55\u5f00\u3002')
+                      .fontSize(FontTokens.CAPTION_SIZE)
+                      .fontColor(ColorTokens.TEXT_SECONDARY)
+                      .width('100%')
+                  }
+                } else {
+                  Text(this.todayRestMessage)
+                    .fontSize(FontTokens.BODY_SIZE)
+                    .fontColor(ColorTokens.TEXT_SECONDARY)
+                    .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+                    .width('100%')
+                }
               }
               .width('100%')
               .padding(SpacingTokens.MD)
-              .borderRadius(RadiusTokens.SM)
               .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-            }, (day: HomeWeeklyPlanDay) => day.dayId)
+              .borderRadius(RadiusTokens.MD)
+              .alignItems(HorizontalAlign.Start)
+            }
 
-            Column({ space: SpacingTokens.XS }) {
+            AppButton({
+              text: this.resolvePrimaryActionText(),
+              type: 'primary',
+              buttonSize: 'large',
+              block: true,
+              disabled: !this.isPrimaryActionEnabled(),
+              onButtonClick: () => {
+                this.handlePrimaryAction()
+              }
+            })
+
+            if (!this.loading && this.hasGoal) {
+              Row({ space: SpacingTokens.SM }) {
+                Column() {
+                  AppButton({
+                    text: '\u67e5\u770b\u4eca\u65e5\u8be6\u60c5',
+                    type: 'secondary',
+                    buttonSize: 'medium',
+                    block: true,
+                    onButtonClick: () => {
+                      this.openWorkoutPreview()
+                    }
+                  })
+                }
+                .layoutWeight(1)
+
+                Column() {
+                  AppButton({
+                    text: '\u8bad\u7ec3\u56de\u987e',
+                    type: 'ghost',
+                    buttonSize: 'medium',
+                    block: true,
+                    onButtonClick: () => {
+                      this.openReviewHome()
+                    }
+                  })
+                }
+                .layoutWeight(1)
+              }
+              .width('100%')
+            }
+
+            if (!this.loading && !this.hasGoal) {
+              AppButton({
+                text: '\u67e5\u770b\u52a8\u4f5c\u5e93',
+                type: 'secondary',
+                buttonSize: 'medium',
+                block: true,
+                onButtonClick: () => {
+                  this.openExerciseLibrary()
+                }
+              })
+            }
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
+        }
+
+        if (!this.loading && !this.hasGoal) {
+          AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+            Column({ space: SpacingTokens.SM }) {
+              Text('\u4e3b\u7ebf\u5c06\u4f1a\u51fa\u73b0\u5728\u8fd9\u91cc')
+                .fontSize(FontTokens.TITLE_SIZE)
+                .fontWeight(FontTokens.TITLE_WEIGHT)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+
+              Text('\u5b8c\u6210\u76ee\u6807\u8bbe\u7f6e\u540e\uff0c\u9996\u9875\u4f1a\u76f4\u63a5\u5c55\u793a\u4eca\u65e5\u8bad\u7ec3\u3001\u6062\u590d\u5165\u53e3\u548c\u672c\u5468\u8282\u594f\u3002')
+                .fontSize(FontTokens.BODY_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
+                .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+                .width('100%')
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+          }
+        }
+
+        if (!this.loading && this.hasGoal) {
+          AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+            Column({ space: SpacingTokens.MD }) {
+              Row() {
+                Column({ space: SpacingTokens.XS }) {
+                  Text('\u672c\u5468\u5b89\u6392')
+                    .fontSize(FontTokens.TITLE_SIZE)
+                    .fontWeight(FontTokens.TITLE_WEIGHT)
+                    .fontColor(ColorTokens.TEXT_PRIMARY)
+
+                  Text(this.resolveWeeklySectionDescription())
+                    .fontSize(FontTokens.CAPTION_SIZE)
+                    .fontColor(ColorTokens.TEXT_SECONDARY)
+                    .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+                    .width('100%')
+                }
+                .layoutWeight(1)
+                .alignItems(HorizontalAlign.Start)
+
+                Text(this.primaryMetaText)
+                  .fontSize(FontTokens.SMALL_SIZE)
+                  .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+                  .padding({
+                    top: SpacingTokens.XS,
+                    bottom: SpacingTokens.XS,
+                    left: SpacingTokens.SM,
+                    right: SpacingTokens.SM
+                  })
+                  .backgroundColor(ColorTokens.PRIMARY)
+                  .borderRadius(RadiusTokens.FULL)
+              }
+              .width('100%')
+
+              ForEach(this.weeklyPlanDays, (day: HomeWeeklyPlanDay) => {
+                Row() {
+                  Column({ space: SpacingTokens.XS }) {
+                    Text(day.title)
+                      .fontSize(FontTokens.BODY_SIZE)
+                      .fontWeight(FontWeight.Medium)
+                      .fontColor(ColorTokens.TEXT_PRIMARY)
+
+                    Text(day.exerciseCount.toString() + ' \u4e2a\u52a8\u4f5c')
+                      .fontSize(FontTokens.CAPTION_SIZE)
+                      .fontColor(ColorTokens.TEXT_SECONDARY)
+                  }
+                  .layoutWeight(1)
+                  .alignItems(HorizontalAlign.Start)
+
+                  Text(day.isToday ? '\u4eca\u5929' : '\u8ba1\u5212')
+                    .fontSize(FontTokens.SMALL_SIZE)
+                    .fontColor(day.isToday ? ColorTokens.TEXT_ON_PRIMARY : ColorTokens.TEXT_PRIMARY)
+                    .padding({
+                      top: SpacingTokens.XS,
+                      bottom: SpacingTokens.XS,
+                      left: SpacingTokens.SM,
+                      right: SpacingTokens.SM
+                    })
+                    .backgroundColor(day.isToday ? ColorTokens.SUCCESS : ColorTokens.SURFACE_ELEVATED)
+                    .borderRadius(RadiusTokens.FULL)
+                }
+                .width('100%')
+                .padding(SpacingTokens.MD)
+                .borderRadius(RadiusTokens.SM)
+                .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+              }, (day: HomeWeeklyPlanDay) => day.dayId)
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+          }
+
+          AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+            Column({ space: SpacingTokens.SM }) {
               Text('\u8ba1\u5212\u6458\u8981')
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontWeight(FontWeight.Medium)
+                .fontSize(FontTokens.TITLE_SIZE)
+                .fontWeight(FontTokens.TITLE_WEIGHT)
                 .fontColor(ColorTokens.TEXT_PRIMARY)
 
               Text(this.goalSummary)
                 .fontSize(FontTokens.BODY_SIZE)
                 .fontColor(ColorTokens.TEXT_SECONDARY)
+                .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+                .width('100%')
 
               Text(this.secondaryMetaText)
                 .fontSize(FontTokens.CAPTION_SIZE)
                 .fontColor(ColorTokens.TEXT_SECONDARY)
+                .width('100%')
 
               Text(this.equipmentSummary)
                 .fontSize(FontTokens.CAPTION_SIZE)
                 .fontColor(ColorTokens.TEXT_SECONDARY)
+                .width('100%')
 
               Text(this.restrictionSummary)
                 .fontSize(FontTokens.CAPTION_SIZE)
                 .fontColor(ColorTokens.TEXT_SECONDARY)
+                .width('100%')
             }
             .width('100%')
+            .alignItems(HorizontalAlign.Start)
           }
-          .width('100%')
-          .padding(SpacingTokens.MD)
-          .borderRadius(RadiusTokens.LG)
-          .backgroundColor(ColorTokens.BG_SECONDARY)
         }
 
         if (!this.loading) {
@@ -709,61 +765,56 @@ export struct HomePage {
               .width('100%')
 
             ForEach(this.presetPlanCards, (plan: HomePresetPlanCard) => {
-              Column({ space: SpacingTokens.SM }) {
-                Row() {
-                  Column({ space: SpacingTokens.XS }) {
-                    Text(plan.name)
-                      .fontSize(FontTokens.BODY_SIZE)
-                      .fontWeight(FontWeight.Medium)
-                      .fontColor(ColorTokens.TEXT_PRIMARY)
-                      .width('100%')
+              AppCard({ variant: 'outlined', cardPadding: 'compact' }) {
+                Column({ space: SpacingTokens.SM }) {
+                  Row() {
+                    Column({ space: SpacingTokens.XS }) {
+                      Text(plan.name)
+                        .fontSize(FontTokens.BODY_SIZE)
+                        .fontWeight(FontWeight.Medium)
+                        .fontColor(ColorTokens.TEXT_PRIMARY)
+                        .width('100%')
 
-                    Text(plan.targetAudience)
-                      .fontSize(FontTokens.CAPTION_SIZE)
-                      .fontColor(ColorTokens.TEXT_SECONDARY)
-                      .width('100%')
+                      Text(plan.targetAudience)
+                        .fontSize(FontTokens.CAPTION_SIZE)
+                        .fontColor(ColorTokens.TEXT_SECONDARY)
+                        .width('100%')
+                    }
+                    .layoutWeight(1)
+                    .alignItems(HorizontalAlign.Start)
+
+                    Text(plan.trainingDayCount.toString() + ' \u5929')
+                      .fontSize(FontTokens.SMALL_SIZE)
+                      .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+                      .padding({
+                        top: SpacingTokens.XS,
+                        bottom: SpacingTokens.XS,
+                        left: SpacingTokens.SM,
+                        right: SpacingTokens.SM
+                      })
+                      .backgroundColor(plan.coverColor)
+                      .borderRadius(RadiusTokens.FULL)
                   }
-                  .layoutWeight(1)
-                  .alignItems(HorizontalAlign.Start)
+                  .width('100%')
 
-                  Text(plan.trainingDayCount.toString() + ' \u5929')
-                    .fontSize(FontTokens.SMALL_SIZE)
-                    .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-                    .padding({
-                      top: SpacingTokens.XS,
-                      bottom: SpacingTokens.XS,
-                      left: SpacingTokens.SM,
-                      right: SpacingTokens.SM
-                    })
-                    .backgroundColor(plan.coverColor)
-                    .borderRadius(RadiusTokens.FULL)
+                  Text(plan.weeklyFrequency)
+                    .fontSize(FontTokens.CAPTION_SIZE)
+                    .fontColor(ColorTokens.TEXT_SECONDARY)
+                    .width('100%')
+
+                  AppButton({
+                    text: '\u67e5\u770b\u8ba1\u5212\u8be6\u60c5',
+                    type: 'secondary',
+                    buttonSize: 'medium',
+                    block: true,
+                    onButtonClick: () => {
+                      this.openTrainingPlanDetail(plan.presetPlanId)
+                    }
+                  })
                 }
                 .width('100%')
-
-                Text(plan.weeklyFrequency)
-                  .fontSize(FontTokens.CAPTION_SIZE)
-                  .fontColor(ColorTokens.TEXT_SECONDARY)
-                  .width('100%')
-
-                Button('\u67e5\u770b\u8ba1\u5212\u8be6\u60c5')
-                  .width('100%')
-                  .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
-                  .fontSize(FontTokens.BODY_SIZE)
-                  .fontColor(ColorTokens.TEXT_PRIMARY)
-                  .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-                  .borderRadius(RadiusTokens.FULL)
-                  .onClick(() => {
-                    this.openTrainingPlanDetail(plan.presetPlanId)
-                  })
+                .alignItems(HorizontalAlign.Start)
               }
-              .width('100%')
-              .padding(SpacingTokens.MD)
-              .borderRadius(RadiusTokens.SM)
-              .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-              .border({
-                width: 1,
-                color: plan.coverColor
-              })
             }, (plan: HomePresetPlanCard) => plan.presetPlanId)
           }
           .width('100%')
