@@ -54,7 +54,7 @@ import WorkoutSessionPersistenceBridgeService from '../../workout/services/Worko
 
 @Entry
 @Component
-export struct ReviewHomePage {
+struct ReviewHomePage {
   @State loading: boolean = true
   @State hasSessions: boolean = false
   @State sessionCount: number = 0
@@ -2329,30 +2329,35 @@ export struct ReviewHomePage {
         PrimaryDestinationStrip({ currentKey: 'review' })
 
         if (!this.loading && !this.hasSessions) {
-          AppCard({ variant: 'outlined', cardPadding: 'default' }) {
-            Column({ space: SpacingTokens.MD }) {
-              Text('还没有训练记录')
-                .fontSize(FontTokens.TITLE_SIZE)
-                .fontWeight(FontTokens.TITLE_WEIGHT)
-                .fontColor(ColorTokens.TEXT_PRIMARY)
+          Column({ space: SpacingTokens.MD }) {
+            AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+              Column({ space: SpacingTokens.MD }) {
+                Text('还没有训练记录')
+                  .fontSize(FontTokens.TITLE_SIZE)
+                  .fontWeight(FontTokens.TITLE_WEIGHT)
+                  .fontColor(ColorTokens.TEXT_PRIMARY)
 
-              Text(this.adjustmentText)
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(ColorTokens.TEXT_SECONDARY)
+                Text(this.adjustmentText)
+                  .fontSize(FontTokens.BODY_SIZE)
+                  .fontColor(ColorTokens.TEXT_SECONDARY)
 
-              AppButton({
-                text: '开始今日训练',
-                type: 'primary',
-                buttonSize: 'large',
-                block: true,
-                onButtonClick: () => {
-                  this.openHome()
-                }
-              })
+                AppButton({
+                  text: '开始今日训练',
+                  type: 'primary',
+                  buttonSize: 'large',
+                  block: true,
+                  onButtonClick: () => {
+                    this.openHome()
+                  }
+                })
+              }
+              .width('100%')
+              .alignItems(HorizontalAlign.Start)
             }
-            .width('100%')
-            .alignItems(HorizontalAlign.Start)
+
+            this.buildAdvancedInsightsEntrySection()
           }
+          .width('100%')
         }
 
         if (!this.loading && this.hasSessions) {
