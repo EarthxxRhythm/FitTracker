@@ -956,6 +956,16 @@ export struct ReviewHomePage {
     return '把最近训练、周趋势和动作 PR 放在同一块面板里看'
   }
 
+  getReviewHeroEyebrow(): string {
+    if (this.loading) {
+      return '正在整理'
+    }
+    if (!this.hasSessions) {
+      return '等待首条记录'
+    }
+    return '基础复盘'
+  }
+
   getCompletionStatusText(): string {
     if (this.averageCompletionRate >= 90) {
       return '执行稳定'
@@ -1282,7 +1292,7 @@ export struct ReviewHomePage {
 
   @Builder
   buildAdvancedInsightsEntrySection() {
-    AppCard({ variant: 'panel', cardPadding: 'default' }) {
+    AppCard({ variant: 'outlined', cardPadding: 'default' }) {
       Column({ space: SpacingTokens.MD }) {
         Row() {
           Column({ space: SpacingTokens.XS }) {
@@ -1499,6 +1509,117 @@ export struct ReviewHomePage {
 
         this.buildWeeklyTrendSectionLab()
         this.buildRecordDetailSectionLab()
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
+  }
+
+  @Builder
+  buildAdjustmentSection() {
+    AppCard({ variant: 'panel', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.MD }) {
+        Row() {
+          Column({ space: SpacingTokens.XS }) {
+            Text('下一步')
+              .fontSize(FontTokens.MICRO_SIZE)
+              .fontWeight(FontTokens.MICRO_WEIGHT)
+              .fontColor(ColorTokens.TEXT_TERTIARY)
+
+            Text('调整下一次计划')
+              .fontSize(FontTokens.TITLE_SIZE)
+              .fontWeight(FontTokens.TITLE_WEIGHT)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+
+          Text(this.canApplyAdjustment ? '可应用' : '先观察')
+            .fontSize(FontTokens.SMALL_SIZE)
+            .fontColor(this.canApplyAdjustment ? ColorTokens.TEXT_ON_PRIMARY : ColorTokens.TEXT_PRIMARY)
+            .padding({
+              top: SpacingTokens.XS,
+              bottom: SpacingTokens.XS,
+              left: SpacingTokens.SM,
+              right: SpacingTokens.SM
+            })
+            .backgroundColor(this.canApplyAdjustment ? ColorTokens.PRIMARY : ColorTokens.SURFACE_ELEVATED)
+            .borderRadius(RadiusTokens.FULL)
+        }
+        .width('100%')
+
+        Text(this.adjustmentText)
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+          .width('100%')
+
+        Column({ space: SpacingTokens.XS }) {
+          Text(this.adjustmentTitle)
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
+
+          Text(this.adjustmentDescription)
+            .fontSize(FontTokens.CAPTION_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+            .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+            .width('100%')
+        }
+        .width('100%')
+        .padding(SpacingTokens.MD)
+        .borderRadius(RadiusTokens.MD)
+        .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+        .alignItems(HorizontalAlign.Start)
+
+        this.buildAdjustmentPreviewSection()
+
+        if (this.adjustmentStatusText.length > 0) {
+          Text(this.adjustmentStatusText)
+            .fontSize(FontTokens.CAPTION_SIZE)
+            .fontColor(ColorTokens.PRIMARY)
+            .width('100%')
+        }
+
+        AppButton({
+          text: this.applyingAdjustment ? '保存调整中...' : this.adjustmentButtonText,
+          type: 'primary',
+          buttonSize: 'medium',
+          block: true,
+          disabled: !this.canApplyAdjustment || this.applyingAdjustment,
+          onButtonClick: () => {
+            this.applyGoalAdjustment()
+          }
+        })
+
+        Row({ space: SpacingTokens.SM }) {
+          Column() {
+            AppButton({
+              text: '调整目标设置',
+              type: 'secondary',
+              buttonSize: 'medium',
+              block: true,
+              onButtonClick: () => {
+                this.openGoalSetup()
+              }
+            })
+          }
+          .layoutWeight(1)
+
+          Column() {
+            AppButton({
+              text: '查看最近复盘',
+              type: 'ghost',
+              buttonSize: 'medium',
+              block: true,
+              onButtonClick: () => {
+                this.openLatestSummary()
+              }
+            })
+          }
+          .layoutWeight(1)
+        }
+        .width('100%')
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)
@@ -2379,7 +2500,7 @@ export struct ReviewHomePage {
       Column({ space: SpacingTokens.LG }) {
         AppCard({ variant: 'panel', cardPadding: 'default' }) {
           Column({ space: SpacingTokens.SM }) {
-            Text('回顾控制台')
+            Text(this.getReviewHeroEyebrow())
               .fontSize(FontTokens.MICRO_SIZE)
               .fontWeight(FontTokens.MICRO_WEIGHT)
               .fontColor(ColorTokens.TEXT_TERTIARY)
@@ -2398,9 +2519,6 @@ export struct ReviewHomePage {
         }
 
         PrimaryDestinationStrip({ currentKey: 'review' })
-
-        this.buildWeeklyStats()
-        this.buildCalendarHeatmap()
 
         if (!this.loading && !this.hasSessions) {
           AppCard({ variant: 'outlined', cardPadding: 'default' }) {
@@ -2532,82 +2650,20 @@ export struct ReviewHomePage {
             }
             .width('100%')
 
+            this.buildAdjustmentSection()
             this.buildRecentTrainingSection()
+            this.buildWeeklyStats()
+            this.buildCalendarHeatmap()
             this.buildTrendSummary()
             this.buildAdvancedInsightsEntrySection()
             this.buildAdvancedInsightsPanelSection()
-
-            Column({ space: SpacingTokens.SM }) {
-              Text('下次调整建议')
-                .fontSize(FontTokens.TITLE_SIZE)
-                .fontWeight(FontTokens.TITLE_WEIGHT)
-                .fontColor(ColorTokens.TEXT_PRIMARY)
-
-              Text(this.adjustmentText)
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(ColorTokens.TEXT_SECONDARY)
-
-              Text(this.adjustmentTitle)
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(ColorTokens.TEXT_PRIMARY)
-
-              Text(this.adjustmentDescription)
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontColor(ColorTokens.TEXT_SECONDARY)
-
-              this.buildAdjustmentPreviewSection()
-
-              if (this.adjustmentStatusText.length > 0) {
-                Text(this.adjustmentStatusText)
-                  .fontSize(FontTokens.CAPTION_SIZE)
-                  .fontColor(ColorTokens.PRIMARY)
-              }
-
-              Button(this.applyingAdjustment ? '保存调整中...' : this.adjustmentButtonText)
-                .width('100%')
-                .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-                .backgroundColor(this.canApplyAdjustment ? ColorTokens.PRIMARY : ColorTokens.PRIMARY_DISABLED)
-                .borderRadius(RadiusTokens.FULL)
-                .enabled(this.canApplyAdjustment && !this.applyingAdjustment)
-                .onClick(() => {
-                  this.applyGoalAdjustment()
-                })
-            }
-            .width('100%')
-            .padding(SpacingTokens.MD)
-            .borderRadius(RadiusTokens.SM)
-            .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-            .alignItems(HorizontalAlign.Start)
-
-            AppButton({
-              text: '调整下次计划',
-              type: 'primary',
-              buttonSize: 'large',
-              block: true,
-              onButtonClick: () => {
-                this.openGoalSetup()
-              }
-            })
-
-            AppButton({
-              text: '查看最近复盘',
-              type: 'secondary',
-              buttonSize: 'large',
-              block: true,
-              onButtonClick: () => {
-                this.openLatestSummary()
-              }
-            })
           }
           .width('100%')
         }
 
         if (!this.loading) {
-          this.buildProfileSettings()
           this.buildBackupEntrySection()
+          this.buildProfileSettings()
         }
       }
       .width('100%')
