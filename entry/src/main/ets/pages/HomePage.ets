@@ -747,15 +747,14 @@ export struct HomePage {
               .layoutWeight(1)
               .alignItems(HorizontalAlign.Start)
 
-              Button('\u52a8\u4f5c\u5e93')
-                .height(TouchTokens.BUTTON_HEIGHT_SMALL)
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontColor(ColorTokens.TEXT_PRIMARY)
-                .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-                .borderRadius(RadiusTokens.FULL)
-                .onClick(() => {
+              AppButton({
+                text: '动作库',
+                type: 'secondary',
+                buttonSize: 'small',
+                onButtonClick: () => {
                   this.openExerciseLibrary()
-                })
+                }
+              })
             }
             .width('100%')
 
