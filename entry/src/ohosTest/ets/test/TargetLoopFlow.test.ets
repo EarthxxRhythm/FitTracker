@@ -26,6 +26,7 @@ import ReviewDashboardService, {
 import WorkoutPreviewService, { WorkoutPreviewSummary } from '../../../main/ets/shared/services/WorkoutPreviewService'
 import WorkoutRepository from '../../../main/ets/shared/services/WorkoutRepository'
 import WorkoutSummaryService, { WorkoutSummary } from '../../../main/ets/shared/services/WorkoutSummaryService'
+import PersonalRecordService, { ExercisePersonalRecord } from '../../../main/ets/shared/services/PersonalRecordService'
 import WorkoutSessionPersistenceBridgeService from '../../../main/ets/features/workout/services/WorkoutSessionPersistenceBridgeService'
 
 class FakeTargetLoopPreferencesStore extends SessionPreferencesStore {
@@ -263,6 +264,62 @@ export default function targetLoopFlowTest(): void {
       } finally {
         WorkoutSessionService.setStoreForTesting(null)
         GoalRepository.clearLocal()
+        WorkoutRepository.clear()
+      }
+    })
+
+    it('preserves warmup markers across persistence reload so personal records ignore warmup sets', 0, async () => {
+      const fakeStore = new FakeTargetLoopPreferencesStore()
+      const testContext: Context = {} as Context
+      WorkoutRepository.clear()
+      fakeStore.clear()
+      WorkoutSessionService.setStoreForTesting(fakeStore)
+
+      try {
+        const warmupHeavySession: WorkoutSession = {
+          sessionId: 'session_target_loop_warmup',
+          planId: 'plan_target_loop_warmup',
+          dayId: 'day_1',
+          startedAt: 1716163200000,
+          endedAt: 1716165000000,
+          durationSeconds: 1800,
+          totalSets: 2,
+          totalVolume: 1180,
+          fatigueScore: 0,
+          notes: 'warmup-pr-check',
+          sets: [
+            {
+              setId: 'set_warmup_heavy',
+              exerciseId: 'ex_barbell_bench_press',
+              weight: 100,
+              reps: 1,
+              rpe: 5,
+              isWarmup: true
+            },
+            {
+              setId: 'set_working',
+              exerciseId: 'ex_barbell_bench_press',
+              weight: 60,
+              reps: 3,
+              rpe: 8,
+              isWarmup: false
+            }
+          ]
+        }
+
+        await WorkoutSessionPersistenceBridgeService.persistActiveWorkoutCompletion(testContext, warmupHeavySession)
+        WorkoutRepository.clear()
+
+        const reloadedSessions: WorkoutSession[] = await WorkoutSessionPersistenceBridgeService.syncRepositoryFromPersistence(testContext)
+        const records: ExercisePersonalRecord[] = PersonalRecordService.createRecords(reloadedSessions)
+
+        expect(reloadedSessions.length).assertEqual(1)
+        expect(records.length).assertEqual(1)
+        expect(records[0].exerciseId).assertEqual('ex_barbell_bench_press')
+        expect(records[0].bestWeight).assertEqual(60)
+        expect(records[0].bestOneRepMax).assertEqual(66)
+      } finally {
+        WorkoutSessionService.setStoreForTesting(null)
         WorkoutRepository.clear()
       }
     })

@@ -12,6 +12,7 @@ import { preferences } from '@kit.ArkData'
 export interface SavedSet {
   weight: number
   reps: number
+  isWarmup: boolean
 }
 
 export interface SavedExercise {
@@ -160,10 +161,54 @@ class WorkoutSessionService {
     try {
       const prefs = await this.getStore(context)
       const json = await prefs.get(KEY_SESSIONS, '[]')
-      return JSON.parse(json) as WorkoutSession[]
+      const sessions = JSON.parse(json) as WorkoutSession[]
+      return this.normalizeSessions(sessions)
     } catch (e) {
       return []
     }
+  }
+
+  private normalizeSessions(source: WorkoutSession[]): WorkoutSession[] {
+    const sessions: WorkoutSession[] = []
+    for (let sessionIndex = 0; sessionIndex < source.length; sessionIndex++) {
+      const sourceSession: WorkoutSession = source[sessionIndex]
+      const exercises: SavedExercise[] = []
+      for (let exerciseIndex = 0; exerciseIndex < sourceSession.exercises.length; exerciseIndex++) {
+        const sourceExercise: SavedExercise = sourceSession.exercises[exerciseIndex]
+        const sets: SavedSet[] = []
+        for (let setIndex = 0; setIndex < sourceExercise.sets.length; setIndex++) {
+          const sourceSet: SavedSet = sourceExercise.sets[setIndex]
+          const set: SavedSet = {
+            weight: sourceSet.weight,
+            reps: sourceSet.reps,
+            isWarmup: sourceSet.isWarmup === true
+          }
+          sets.push(set)
+        }
+        const exercise: SavedExercise = {
+          name: sourceExercise.name,
+          targetMuscle: sourceExercise.targetMuscle,
+          sets: sets
+        }
+        exercises.push(exercise)
+      }
+      const session: WorkoutSession = {
+        id: sourceSession.id,
+        planId: sourceSession.planId,
+        planName: sourceSession.planName,
+        dayLabel: sourceSession.dayLabel,
+        startTime: sourceSession.startTime,
+        endTime: sourceSession.endTime,
+        durationSeconds: sourceSession.durationSeconds,
+        totalSets: sourceSession.totalSets,
+        totalVolume: sourceSession.totalVolume,
+        notes: sourceSession.notes,
+        exercises: exercises,
+        createdAt: sourceSession.createdAt
+      }
+      sessions.push(session)
+    }
+    return sessions
   }
 
   private async writeSessions(context: Context, sessions: WorkoutSession[]): Promise<void> {
@@ -222,7 +267,7 @@ class WorkoutSessionService {
           continue
         }
         for (const set of exercise.sets) {
-          if (set.weight <= 0 || set.reps <= 0) {
+          if (set.isWarmup || set.weight <= 0 || set.reps <= 0) {
             continue
           }
           // Epley formula: 1RM = weight * (1 + reps / 30)
