@@ -525,6 +525,83 @@ export struct ActiveWorkoutPage {
       setEntry.oneRepMaxText
   }
 
+  @Builder
+  buildStageRail() {
+    Row({ space: SpacingTokens.SM }) {
+      this.buildStageChip('预览', false)
+      this.buildStageChip('执行', true)
+      this.buildStageChip('回顾', false)
+    }
+    .width('100%')
+  }
+
+  @Builder
+  buildStageChip(label: string, active: boolean) {
+    Text(label)
+      .fontSize(FontTokens.SMALL_SIZE)
+      .fontWeight(active ? FontWeight.Medium : FontTokens.SMALL_WEIGHT)
+      .fontColor(active ? ColorTokens.TEXT_PRIMARY : ColorTokens.TEXT_TERTIARY)
+      .padding({
+        top: SpacingTokens.XS,
+        bottom: SpacingTokens.XS,
+        left: SpacingTokens.SM,
+        right: SpacingTokens.SM
+      })
+      .backgroundColor(active ? ColorTokens.SURFACE_ELEVATED : ColorTokens.SURFACE_SECONDARY)
+      .borderRadius(RadiusTokens.FULL)
+      .border({
+        width: 1,
+        color: active ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
+      })
+  }
+
+  @Builder
+  buildSessionMetricTile(label: string, value: string, note: string, accentColor: string) {
+    Column({ space: SpacingTokens.XS }) {
+      Text(label)
+        .fontSize(FontTokens.SMALL_SIZE)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
+
+      Text(value)
+        .fontSize(FontTokens.TITLE_SIZE)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(accentColor)
+        .maxLines(2)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+      Text(note)
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .maxLines(2)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+    }
+    .layoutWeight(1)
+    .padding(SpacingTokens.MD)
+    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+    .borderRadius(RadiusTokens.MD)
+    .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  buildMetaPill(text: string, useAccent: boolean) {
+    Text(text)
+      .fontSize(FontTokens.CAPTION_SIZE)
+      .fontColor(useAccent ? ColorTokens.ACCENT_LIGHT : ColorTokens.TEXT_SECONDARY)
+      .padding({
+        top: SpacingTokens.XS,
+        bottom: SpacingTokens.XS,
+        left: SpacingTokens.SM,
+        right: SpacingTokens.SM
+      })
+      .backgroundColor(useAccent ? ColorTokens.OVERLAY_ACCENT : ColorTokens.SURFACE_PRIMARY)
+      .borderRadius(RadiusTokens.FULL)
+      .border({
+        width: 1,
+        color: useAccent ? ColorTokens.WARNING_BG : ColorTokens.BORDER_SUBTLE
+      })
+  }
+
   getDayBadgeText(): string {
     if (this.dayId.indexOf('current_plan_day_') === 0) {
       return '\u7b2c ' + this.dayId.substring('current_plan_day_'.length) + ' \u5929'
@@ -542,20 +619,48 @@ export struct ActiveWorkoutPage {
     Scroll() {
       Column({ space: SpacingTokens.LG }) {
         AppCard({ variant: 'panel', cardPadding: 'default' }) {
-          Column({ space: SpacingTokens.SM }) {
-            Text(this.getHeroEyebrow())
-              .fontSize(FontTokens.MICRO_SIZE)
-              .fontWeight(FontTokens.MICRO_WEIGHT)
-              .fontColor(ColorTokens.TEXT_TERTIARY)
+          Column({ space: SpacingTokens.MD }) {
+            Row() {
+              Column({ space: SpacingTokens.XS }) {
+                Text(this.getHeroEyebrow())
+                  .fontSize(FontTokens.MICRO_SIZE)
+                  .fontWeight(FontTokens.MICRO_WEIGHT)
+                  .fontColor(ColorTokens.TEXT_TERTIARY)
 
-            Text(this.getHeroTitle())
-              .fontSize(FontTokens.DISPLAY_SIZE)
-              .fontWeight(FontTokens.DISPLAY_WEIGHT)
-              .fontColor(ColorTokens.TEXT_PRIMARY)
+                Text(this.getHeroTitle())
+                  .fontSize(FontTokens.DISPLAY_SIZE)
+                  .fontWeight(FontTokens.DISPLAY_WEIGHT)
+                  .fontColor(ColorTokens.TEXT_PRIMARY)
 
-            Text(this.getHeroDescription())
-              .fontSize(FontTokens.BODY_SIZE)
-              .fontColor(ColorTokens.TEXT_SECONDARY)
+                Text(this.getHeroDescription())
+                  .fontSize(FontTokens.BODY_SIZE)
+                  .fontColor(ColorTokens.TEXT_SECONDARY)
+                  .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+              }
+              .layoutWeight(1)
+              .alignItems(HorizontalAlign.Start)
+
+              if (this.hasGoal && this.hasWorkout) {
+                Text(this.getSessionStatusText())
+                  .fontSize(FontTokens.SMALL_SIZE)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(this.getSessionStatusColor())
+                  .padding({
+                    top: SpacingTokens.XS,
+                    bottom: SpacingTokens.XS,
+                    left: SpacingTokens.SM,
+                    right: SpacingTokens.SM
+                  })
+                  .backgroundColor(this.getSessionStatusBackground())
+                  .borderRadius(RadiusTokens.FULL)
+              }
+            }
+            .width('100%')
+            .alignItems(VerticalAlign.Top)
+
+            if (this.hasGoal && this.hasWorkout) {
+              this.buildStageRail()
+            }
           }
           .width('100%')
           .alignItems(HorizontalAlign.Start)
@@ -619,37 +724,26 @@ export struct ActiveWorkoutPage {
           Column({ space: SpacingTokens.MD }) {
             AppCard({ variant: 'panel', cardPadding: 'default' }) {
               Column({ space: SpacingTokens.MD }) {
-                Row() {
-                  Column({ space: SpacingTokens.XS }) {
-                    Text('\u5f53\u524d\u6267\u884c')
-                      .fontSize(FontTokens.MICRO_SIZE)
-                      .fontWeight(FontTokens.MICRO_WEIGHT)
-                      .fontColor(ColorTokens.TEXT_TERTIARY)
+                Column({ space: SpacingTokens.XS }) {
+                  Text('\u5f53\u524d\u6267\u884c')
+                    .fontSize(FontTokens.MICRO_SIZE)
+                    .fontWeight(FontTokens.MICRO_WEIGHT)
+                    .fontColor(ColorTokens.TEXT_TERTIARY)
 
-                    Text(this.title)
-                      .fontSize(FontTokens.HEADLINE_SIZE)
-                      .fontWeight(FontWeight.Bold)
-                      .fontColor(ColorTokens.TEXT_PRIMARY)
+                  Text(this.title)
+                    .fontSize(FontTokens.HEADLINE_SIZE)
+                    .fontWeight(FontWeight.Bold)
+                    .fontColor(ColorTokens.TEXT_PRIMARY)
+                    .maxLines(2)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+                }
+                .width('100%')
+                .alignItems(HorizontalAlign.Start)
 
-                    Text('\u7b2c ' + this.getCurrentExerciseIndexText() + ' \u4e2a\u52a8\u4f5c')
-                      .fontSize(FontTokens.CAPTION_SIZE)
-                      .fontColor(ColorTokens.TEXT_TERTIARY)
-                  }
-                  .layoutWeight(1)
-                  .alignItems(HorizontalAlign.Start)
-
-                  Text(this.getSessionStatusText())
-                    .fontSize(FontTokens.SMALL_SIZE)
-                    .fontWeight(FontWeight.Medium)
-                    .fontColor(this.getSessionStatusColor())
-                    .padding({
-                      top: SpacingTokens.XS,
-                      bottom: SpacingTokens.XS,
-                      left: SpacingTokens.SM,
-                      right: SpacingTokens.SM
-                    })
-                    .backgroundColor(this.getSessionStatusBackground())
-                    .borderRadius(RadiusTokens.FULL)
+                Flex({ wrap: FlexWrap.Wrap }) {
+                  this.buildMetaPill(this.getDayBadgeText(), true)
+                  this.buildMetaPill('\u8fdb\u5ea6 ' + this.getCurrentExerciseIndexText(), false)
+                  this.buildMetaPill(this.getProgressText(), false)
                 }
                 .width('100%')
 
@@ -674,64 +768,12 @@ export struct ActiveWorkoutPage {
                 .padding(SpacingTokens.MD)
                 .backgroundColor(ColorTokens.SURFACE_SECONDARY)
                 .borderRadius(RadiusTokens.MD)
+                .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
                 .alignItems(HorizontalAlign.Start)
 
                 Row({ space: SpacingTokens.SM }) {
-                  Column({ space: SpacingTokens.XS }) {
-                    Text('\u8bad\u7ec3\u8ba1\u65f6')
-                      .fontSize(FontTokens.MICRO_SIZE)
-                      .fontWeight(FontTokens.MICRO_WEIGHT)
-                      .fontColor(ColorTokens.TEXT_TERTIARY)
-
-                    Text(this.getElapsedText())
-                      .fontSize(FontTokens.HERO_SIZE)
-                      .fontWeight(FontWeight.Bold)
-                      .fontColor(ColorTokens.TEXT_PRIMARY)
-                  }
-                  .layoutWeight(1)
-                  .padding(SpacingTokens.MD)
-                  .backgroundColor(ColorTokens.SURFACE_SECONDARY)
-                  .borderRadius(RadiusTokens.MD)
-                  .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
-                  .alignItems(HorizontalAlign.Start)
-
-                  Column({ space: SpacingTokens.XS }) {
-                    Text('\u5b8c\u6210\u7ec4\u6570')
-                      .fontSize(FontTokens.MICRO_SIZE)
-                      .fontWeight(FontTokens.MICRO_WEIGHT)
-                      .fontColor(ColorTokens.TEXT_TERTIARY)
-
-                    Text(this.getProgressText())
-                      .fontSize(FontTokens.TITLE_SIZE)
-                      .fontWeight(FontWeight.Bold)
-                      .fontColor(ColorTokens.DATA_HIGHLIGHT)
-                  }
-                  .layoutWeight(1)
-                  .padding(SpacingTokens.MD)
-                  .backgroundColor(ColorTokens.SURFACE_SECONDARY)
-                  .borderRadius(RadiusTokens.MD)
-                  .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
-                  .alignItems(HorizontalAlign.Start)
-                }
-                .width('100%')
-
-                Row() {
-                  Text(this.getDayBadgeText())
-                    .fontSize(FontTokens.SMALL_SIZE)
-                    .fontColor(ColorTokens.ACCENT_LIGHT)
-                    .padding({
-                      top: SpacingTokens.XS,
-                      bottom: SpacingTokens.XS,
-                      left: SpacingTokens.SM,
-                      right: SpacingTokens.SM
-                    })
-                    .backgroundColor(ColorTokens.OVERLAY_ACCENT)
-                    .borderRadius(RadiusTokens.FULL)
-
-                  Text(this.getProgressText())
-                    .fontSize(FontTokens.SMALL_SIZE)
-                    .fontColor(ColorTokens.TEXT_TERTIARY)
-                    .margin({ left: SpacingTokens.SM })
+                  this.buildSessionMetricTile('\u8bad\u7ec3\u8ba1\u65f6', this.getElapsedText(), '\u5f53\u524d\u8282\u594f', ColorTokens.TEXT_PRIMARY)
+                  this.buildSessionMetricTile('\u5b8c\u6210\u7ec4\u6570', this.getProgressText(), '\u6b63\u5f0f\u8bb0\u5f55\u8fdb\u5ea6', ColorTokens.DATA_HIGHLIGHT)
                 }
                 .width('100%')
 
@@ -820,6 +862,26 @@ export struct ActiveWorkoutPage {
                   .width('100%')
                   .height(6)
 
+                  Row() {
+                    Text('\u91cd\u91cf kg')
+                      .fontSize(FontTokens.SMALL_SIZE)
+                      .fontColor(ColorTokens.TEXT_TERTIARY)
+                      .layoutWeight(1)
+                      .textAlign(TextAlign.Center)
+
+                    Text('\u6b21\u6570')
+                      .fontSize(FontTokens.SMALL_SIZE)
+                      .fontColor(ColorTokens.TEXT_TERTIARY)
+                      .layoutWeight(1)
+                      .textAlign(TextAlign.Center)
+
+                    Text('\u53c2\u80031RM')
+                      .fontSize(FontTokens.SMALL_SIZE)
+                      .fontColor(ColorTokens.TEXT_TERTIARY)
+                      .width(72)
+                  }
+                  .width('100%')
+
                   ForEach(exercise.sets, (setEntry: ActiveWorkoutSetEntry) => {
                     Column({ space: SpacingTokens.XS }) {
                       Row({ space: SpacingTokens.SM }) {
@@ -853,12 +915,13 @@ export struct ActiveWorkoutPage {
                           .onChange((value: string) => {
                             this.updateSetReps(exercise, setEntry, value)
                           })
+
+                        Text(setEntry.oneRepMaxText)
+                          .fontSize(FontTokens.SMALL_SIZE)
+                          .fontColor(setEntry.isComplete ? ColorTokens.ACCENT_LIGHT : ColorTokens.TEXT_SECONDARY)
+                          .width(72)
                       }
                       .width('100%')
-
-                      Text(setEntry.oneRepMaxText)
-                        .fontSize(FontTokens.SMALL_SIZE)
-                        .fontColor(setEntry.isComplete ? ColorTokens.ACCENT_LIGHT : ColorTokens.TEXT_SECONDARY)
                     }
                     .width('100%')
                     .padding(SpacingTokens.SM)
