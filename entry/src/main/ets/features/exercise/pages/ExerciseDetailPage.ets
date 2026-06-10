@@ -340,9 +340,12 @@ export struct ExerciseDetailPage {
 
         if (this.hasExercise) {
           this.buildHeroSection()
+          this.buildDetailLaneHeader('媒体与演示', '先确认媒体资源和演示状态，再决定直接训练还是查看更深内容。')
           this.buildMediaSection()
+          this.buildDetailLaneHeader('执行与替代', '把动作步骤、关键提醒和替代动作放在同一段，方便训练前快速过一遍。')
           this.buildTechniqueSection()
           this.buildAlternativeSection()
+          this.buildDetailLaneHeader('扩展与资料', '把高级内容预埋和资料元信息收在尾部，不干扰前面的主任务。')
           this.buildPremiumContentSection()
           this.buildMetadataSection()
         }
@@ -460,6 +463,12 @@ export struct ExerciseDetailPage {
         .alignItems(VerticalAlign.Center)
 
         this.buildMediaPreview(this.mediaPresentation)
+
+        Row({ space: SpacingTokens.MD }) {
+          this.buildMetricTile('封面', this.getAssetAvailabilityLabel(this.mediaPresentation.cover), '静态预览')
+          this.buildMetricTile('视频', this.getAssetAvailabilityLabel(this.mediaPresentation.video), '动态演示')
+        }
+        .width('100%')
 
         Text(this.mediaPresentation.summaryText)
           .fontSize(FontTokens.BODY_SIZE)
@@ -712,6 +721,24 @@ export struct ExerciseDetailPage {
       .backgroundColor(backgroundColor)
       .borderRadius(RadiusTokens.FULL)
       .margin({ right: SpacingTokens.SM, bottom: SpacingTokens.SM })
+  }
+
+  @Builder
+  buildDetailLaneHeader(title: string, description: string) {
+    Column({ space: SpacingTokens.XS }) {
+      Text(title)
+        .fontSize(FontTokens.TITLE_SIZE)
+        .fontWeight(FontTokens.TITLE_WEIGHT)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+
+      Text(description)
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+        .width('100%')
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
   }
 
   @Builder
