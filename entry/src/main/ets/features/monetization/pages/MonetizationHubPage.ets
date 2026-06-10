@@ -282,6 +282,54 @@ export struct MonetizationHubPage {
     return this.viewModel.previewEnabled && !offer.current
   }
 
+  @Builder
+  buildStageRail() {
+    Row({ space: SpacingTokens.SM }) {
+      this.buildStageChip('回顾', false)
+      this.buildStageChip('权益', true)
+      this.buildStageChip('比较', false)
+    }
+    .width('100%')
+  }
+
+  @Builder
+  buildStageChip(label: string, active: boolean) {
+    Text(label)
+      .fontSize(FontTokens.SMALL_SIZE)
+      .fontWeight(active ? FontWeight.Medium : FontTokens.SMALL_WEIGHT)
+      .fontColor(active ? ColorTokens.TEXT_PRIMARY : ColorTokens.TEXT_TERTIARY)
+      .padding({
+        top: SpacingTokens.XS,
+        bottom: SpacingTokens.XS,
+        left: SpacingTokens.SM,
+        right: SpacingTokens.SM
+      })
+      .backgroundColor(active ? ColorTokens.SURFACE_ELEVATED : ColorTokens.SURFACE_SECONDARY)
+      .borderRadius(RadiusTokens.FULL)
+      .border({
+        width: 1,
+        color: active ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
+      })
+  }
+
+  @Builder
+  buildLaneHeader(title: string, description: string) {
+    Column({ space: SpacingTokens.XS }) {
+      Text(title)
+        .fontSize(FontTokens.TITLE_SIZE)
+        .fontWeight(FontTokens.TITLE_WEIGHT)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+
+      Text(description)
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+        .width('100%')
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
+  }
+
   build() {
     Column() {
       PageHeader({ title: '会员与权益', showBack: true, onBackClick: () => {
@@ -291,16 +339,23 @@ export struct MonetizationHubPage {
       Scroll() {
         Column({ space: SpacingTokens.LG }) {
           PrimaryDestinationStrip({ currentKey: 'membership' })
+          this.buildStageRail()
           this.buildHeroSection()
           if (this.viewModel.focusContext.active) {
+            this.buildLaneHeader('当前入口', '先确认你是从哪条能力入口进入的，再决定是否要看更高层级的覆盖范围。')
             this.buildFocusContextSection()
           }
+          this.buildLaneHeader('当前权益', '把当前层级、商品归属和本地预览状态放在同一层，避免误把预览态当成真实生效。')
           this.buildCurrentEntitlementSection()
           if (this.viewModel.previewEnabled) {
+            this.buildLaneHeader('本地预览', '这里只切换本地演示态，不会触发真实支付或修改正式会员状态。')
             this.buildPreviewSection()
           }
+          this.buildLaneHeader('方案比较', '先看当前最相关的升级方案，再往下比较不同层级的定价和能力边界。')
           this.buildOfferSection()
+          this.buildLaneHeader('Free 边界', '明确哪些能力始终留在免费主链里，避免把训练主流程和会员增量能力混在一起。')
           this.buildFreeBoundarySection()
+          this.buildLaneHeader('接入顺序', '这里记录会员能力按什么顺序落地，方便判断哪些是已接入入口，哪些仍只是规划。')
           this.buildRoadmapSection()
 
           AppButton({
