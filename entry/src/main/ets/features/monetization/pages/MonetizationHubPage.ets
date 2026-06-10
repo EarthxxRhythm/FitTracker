@@ -200,6 +200,27 @@ export struct MonetizationHubPage {
     return ColorTokens.PRIMARY
   }
 
+  getHeroGuideText(): string {
+    if (this.loading) {
+      return '先确认当前层级和本次入口对应的能力，再决定是否继续查看升级方案。'
+    }
+    if (this.viewModel.focusContext.active) {
+      return '你是从' + this.viewModel.focusContext.sourceLabel +
+        '进入的。先看当前权益是否已经覆盖这项能力，再决定是否继续比较升级方案。'
+    }
+    if (this.viewModel.previewEnabled) {
+      return '先确认当前权益和本地预览状态，再决定是否继续比较不同层级。'
+    }
+    return '先确认当前层级覆盖范围，再决定是否继续查看后续升级方案。'
+  }
+
+  getReturnActionText(): string {
+    if (this.focusSourceLabel.length > 0) {
+      return '返回' + this.focusSourceLabel
+    }
+    return '返回上一页'
+  }
+
   async applyPreviewTier(tier: 'free' | 'pro' | 'plus'): Promise<void> {
     if (this.previewBusy) {
       return
@@ -229,16 +250,16 @@ export struct MonetizationHubPage {
           if (this.viewModel.focusContext.active) {
             this.buildFocusContextSection()
           }
-          this.buildOfferSection()
           this.buildCurrentEntitlementSection()
           if (this.viewModel.previewEnabled) {
             this.buildPreviewSection()
           }
+          this.buildOfferSection()
           this.buildFreeBoundarySection()
           this.buildRoadmapSection()
 
           AppButton({
-            text: '返回训练回顾',
+            text: this.getReturnActionText(),
             type: 'secondary',
             buttonSize: 'large',
             block: true,
@@ -300,7 +321,7 @@ export struct MonetizationHubPage {
         .width('100%')
         .alignItems(VerticalAlign.Top)
 
-        Text('先确认当前层级和本次入口对应的能力，再决定是否继续查看升级方案。')
+        Text(this.getHeroGuideText())
           .fontSize(FontTokens.CAPTION_SIZE)
           .fontColor(ColorTokens.TEXT_TERTIARY)
           .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
