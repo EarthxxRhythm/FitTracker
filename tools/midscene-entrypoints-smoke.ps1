@@ -261,6 +261,27 @@ function Launch-AppToForeground {
   Start-Sleep -Seconds $PauseSeconds
 }
 
+function Ensure-FitTrackerForegroundAfterLaunch {
+  param(
+    [string]$TitlePrefix = "restore app",
+    [int]$PauseSeconds = 2
+  )
+
+  $foregroundPrompt = "A visible FitTracker screen is in the foreground. It may be the startup page, login page, register page, goal setup page, home page, workout preview page, review page, or exercise detail page. There is no system home screen covering the app."
+
+  Launch-AppToForeground -Title $TitlePrefix -PauseSeconds $PauseSeconds
+  Invoke-Midscene -Title "capture foreground after launch" -CommandArgs @("take_screenshot")
+  try {
+    Invoke-VisualAssert -Title "assert FitTracker foreground after launch" -Prompt $foregroundPrompt
+    return
+  } catch {
+  }
+
+  Launch-AppToForeground -Title ($TitlePrefix + " retry") -PauseSeconds ($PauseSeconds + 1)
+  Invoke-Midscene -Title "capture foreground after launch retry" -CommandArgs @("take_screenshot")
+  Invoke-VisualAssert -Title "assert FitTracker foreground after launch retry" -Prompt $foregroundPrompt
+}
+
 function Invoke-VisualAssert {
   param(
     [string]$Title,
@@ -332,14 +353,14 @@ function Ensure-HomeRoute {
     return
   }
 
-  Launch-AppToForeground -Title "restore app before home route" -PauseSeconds 2
+  Ensure-FitTrackerForegroundAfterLaunch -TitlePrefix "restore app before home route" -PauseSeconds 2
   Invoke-Midscene -Title "capture pre-home-route screen" -CommandArgs @("take_screenshot")
   Invoke-VisualActWithRetry `
     -Title "prepare home route" `
-    -PrimaryPrompt "From the current visible screen, reach the FitTracker home page. If the FitTracker app is already open, stay in it and continue. If the system home screen is visible, return to the currently installed FitTracker app. If login or register appears, complete it. If goal setup appears, choose muscle gain, beginner, 3 days per week, and bodyweight or dumbbell equipment, then save. If workout preview, review, or exercise detail is visible, navigate back to the home page. Stop when the home page shows the main workout entry with a primary workout button." `
+    -PrimaryPrompt "From the current visible FitTracker screen, reach the FitTracker home page. Stay inside the FitTracker app flow and do not use any system launch action. If login or register appears, complete it. If goal setup appears, choose muscle gain, beginner, 3 days per week, and bodyweight or dumbbell equipment, then save. If workout preview, review, or exercise detail is visible, navigate back to the home page. Stop when the home page shows the main workout entry with a primary workout button." `
     -PrimaryAssertTitle "assert home route ready" `
     -PrimaryAssertPrompt "The FitTracker home page is visible. It shows the main workout entry with a primary workout button, and there is no crash dialog." `
-    -RetryPrompt "If the FitTracker home page is still not visible, bring the FitTracker app to the foreground if needed, then navigate back until the home page shows the main workout entry with a primary workout button. If login or goal setup still appears, complete the minimum required flow and stop on the home page." `
+    -RetryPrompt "If the FitTracker home page is still not visible, stay inside the FitTracker app and navigate back until the home page shows the main workout entry with a primary workout button. If login or goal setup still appears, complete the minimum required flow and stop on the home page. Do not use any system launch action." `
     -RetryAssertTitle "assert home route ready after retry" `
     -RetryAssertPrompt "The FitTracker home page is visible. It shows the main workout entry with a primary workout button, and there is no crash dialog."
 }
@@ -357,14 +378,14 @@ function Ensure-WorkoutPreviewRoute {
     return
   }
 
-  Launch-AppToForeground -Title "restore app before preview route" -PauseSeconds 2
+  Ensure-FitTrackerForegroundAfterLaunch -TitlePrefix "restore app before preview route" -PauseSeconds 2
   Invoke-Midscene -Title "capture pre-preview-route screen" -CommandArgs @("take_screenshot")
   Invoke-VisualActWithRetry `
     -Title "prepare preview route" `
-    -PrimaryPrompt "From the current visible screen, reach the FitTracker workout preview screen for today's training. If the FitTracker app is already open, stay in it. If the system home screen is visible, return to the currently installed FitTracker app. If login or register appears, complete it. If goal setup appears, choose muscle gain, beginner, 3 days per week, and bodyweight or dumbbell equipment, then save. If the home page is visible, tap the main primary training button that opens today's workout preview. Do not open the training review or exercise library routes. Stop when the workout preview screen is visible." `
+    -PrimaryPrompt "From the current visible FitTracker screen, reach the FitTracker workout preview screen for today's training. Stay inside the FitTracker app and do not use any system launch action. If login or register appears, complete it. If goal setup appears, choose muscle gain, beginner, 3 days per week, and bodyweight or dumbbell equipment, then save. If the home page is visible, tap the main primary training button that opens today's workout preview. Do not open the training review or exercise library routes. Stop when the workout preview screen is visible." `
     -PrimaryAssertTitle "assert workout preview ready" `
     -PrimaryAssertPrompt "The workout preview screen for today's training is visible." `
-    -RetryPrompt "If the workout preview screen is still not visible, bring the FitTracker app to the foreground if needed, then navigate to today's workout preview from the home page. Complete login or goal setup only if they block the route. Stop when the workout preview screen is visible." `
+    -RetryPrompt "If the workout preview screen is still not visible, stay inside the FitTracker app and navigate to today's workout preview from the home page. Complete login or goal setup only if they block the route. Do not use any system launch action. Stop when the workout preview screen is visible." `
     -RetryAssertTitle "assert workout preview ready after retry" `
     -RetryAssertPrompt "The workout preview screen for today's training is visible."
 }
@@ -534,8 +555,9 @@ try {
     Run-MembershipSmoke
   } else {
     Run-BackupCardSmoke
-    Launch-AppToForeground -Title "relaunch app between focused targets" -PauseSeconds 2
-    Invoke-Midscene -Title "capture relaunch screen" -CommandArgs @("take_screenshot")
+    Invoke-Hdc -Title "clean app data between focused targets" -CommandArgs @("shell", "bm", "clean", "-n", $BundleName, "-d", "-c", "-u", "0")
+    Start-Sleep -Seconds 1
+    Ensure-AppReady
     Run-MediaCardSmoke
   }
 

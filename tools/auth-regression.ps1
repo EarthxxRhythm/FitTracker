@@ -303,10 +303,10 @@ try {
   Invoke-VisualAssert -Title 'assert reopen screen' -Prompt 'After reopening, the app shows a valid FitTracker screen such as startup, login, goal setup, or home.'
 
   Invoke-VisualAct -Title 'recover session' -Prompt ('If the startup page is visible, let it continue. If the login page is visible, enter phone ' + $TestPhone + ' and password ' + $TestPassword + ' and tap login. Stop when either the home page or the goal setup page is visible.')
-  Invoke-VisualAssert -Title 'assert session recovered' -Prompt 'The app shows either the home page or the goal setup page, which means the saved session has been restored.'
+  Invoke-VisualAssert -Title 'assert session recovered' -Prompt 'The app is no longer on the login page or the register page. It shows either the FitTracker home page with today training, current plan, or start training actions, or the goal setup page with training goal, weekly training days, session duration, and the generate training plan action.'
 
-  Invoke-VisualAct -Title 'verify home or goal branch' -Prompt 'Confirm the current screen is either the home page or the goal setup page. If the home page is visible, stop. If the goal setup page is visible, stop. Do not navigate further.'
-  Invoke-VisualAssert -Title 'assert home or goal page' -Prompt 'The current screen is a valid FitTracker main page and not the login or register page.'
+  Invoke-VisualAct -Title 'verify home or goal branch' -Prompt 'Confirm the current screen is either the FitTracker home page or the goal setup page. The home page shows today training, current plan, or start training actions. The goal setup page shows training goal, weekly training days, session duration, or generate training plan. If one of those two pages is visible, stop and do not navigate further.'
+  Invoke-VisualAssert -Title 'assert home or goal page' -Prompt 'The current screen is either the FitTracker home page with today training or current plan actions, or the goal setup page with training goal, weekly training days, session duration, or generate training plan. It is not the login page or the register page.'
 
   $runStatus = 'passed'
 }
