@@ -2,7 +2,6 @@
  * StartupPage -- application startup router.
  * Function #8: target-driven workout loop.
  */
-import { router } from '@kit.ArkUI'
 import { Context } from '@kit.AbilityKit'
 import { ColorTokens, FontTokens, SpacingTokens } from '../common/styles/DesignTokens'
 import { StartupDecision } from './AppState'
@@ -16,12 +15,24 @@ import SessionManager from '../common/services/SessionManager'
 @Entry
 @Component
 export struct StartupPage {
+  private getHostContextOrNull(): Context | null {
+    const hostContext = this.getUIContext().getHostContext()
+    if (hostContext === undefined || hostContext === null) {
+      return null
+    }
+    return hostContext as Context
+  }
+
   async aboutToAppear(): Promise<void> {
     try {
-      const context: Context = getContext(this)
+      const context: Context | null = this.getHostContextOrNull()
+      if (context === null) {
+        return
+      }
+      const pageRouter = this.getUIContext().getRouter()
       const isLoggedIn: boolean = await SessionManager.isLoggedIn(context)
       if (!isLoggedIn) {
-        router.replaceUrl({ url: AppRoutes.LOGIN })
+        pageRouter.replaceUrl({ url: AppRoutes.LOGIN })
         return
       }
       try {
@@ -38,11 +49,11 @@ export struct StartupPage {
           Date.now()
         )
         GoalRepository.saveLocalGoal(PersistenceFallbackService.createDefaultGoal(Date.now()))
-        router.replaceUrl({ url: StartupDecision.getInitialRoute(true) })
+        pageRouter.replaceUrl({ url: StartupDecision.getInitialRoute(true) })
         return
       }
       const initialRoute: string = StartupDecision.getInitialRoute(hasGoal)
-      router.replaceUrl({ url: initialRoute })
+      pageRouter.replaceUrl({ url: initialRoute })
     } catch (e) {
       // Keep the startup screen visible if route replacement fails.
     }

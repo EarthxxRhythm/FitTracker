@@ -8,7 +8,7 @@
  *          中部手机号输入框（带+86前缀）与密码输入框，
  *          底部全宽"登录"主按钮，下方"注册"文字链接跳转。
  */
-import { router } from '@kit.ArkUI'
+import { Context } from '@kit.AbilityKit'
 import { AppButton } from '../components/AppButton'
 import { AppInput } from '../components/AppInput'
 import { validateLoginForm } from '../common/utils/ValidationUtils'
@@ -27,6 +27,14 @@ struct LoginPage {
   @State generalError: string = ''
   @State loading: boolean = false
 
+  private getHostContextOrNull(): Context | null {
+    const hostContext = this.getUIContext().getHostContext()
+    if (hostContext === undefined || hostContext === null) {
+      return null
+    }
+    return hostContext as Context
+  }
+
   handleLogin(): void {
     this.generalError = ''
     const result = validateLoginForm(this.phone, this.password)
@@ -39,11 +47,17 @@ struct LoginPage {
 
     this.loading = true
     setTimeout(async () => {
-      const authResult = await AuthService.loginLocal(getContext(this), this.phone, this.password)
+      const context: Context | null = this.getHostContextOrNull()
+      if (context === null) {
+        this.loading = false
+        this.generalError = '当前页面上下文不可用，请重试。'
+        return
+      }
+      const authResult = await AuthService.loginLocal(context, this.phone, this.password)
       this.loading = false
       if (authResult.success) {
-        await SessionManager.saveToken(getContext(this), authResult.token)
-        router.replaceUrl({ url: AppRoutes.STARTUP })
+        await SessionManager.saveToken(context, authResult.token)
+        this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.STARTUP })
       } else {
         this.generalError = authResult.message
       }
@@ -125,7 +139,7 @@ struct LoginPage {
             .fontColor(ColorTokens.PRIMARY)
             .fontWeight(FontWeight.Medium)
             .onClick(() => {
-              router.replaceUrl({ url: AppRoutes.REGISTER })
+              this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.REGISTER })
             })
         }
         .margin({ top: SpacingTokens.MD })

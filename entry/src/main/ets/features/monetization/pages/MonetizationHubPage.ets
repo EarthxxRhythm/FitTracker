@@ -3,7 +3,7 @@
  *
  * Phase 4: expose a real monetization destination without faking a live payment flow.
  */
-import { router } from '@kit.ArkUI'
+import { Context } from '@kit.AbilityKit'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens } from '../../../common/styles/DesignTokens'
 import { AppButton } from '../../../components/AppButton'
@@ -29,6 +29,14 @@ export struct MonetizationHubPage {
   @State focusCapability: MonetizationCapability | '' = ''
   @State focusSourceLabel: string = ''
 
+  private getHostContextOrNull(): Context | null {
+    const hostContext = this.getUIContext().getHostContext()
+    if (hostContext === undefined || hostContext === null) {
+      return null
+    }
+    return hostContext as Context
+  }
+
   async aboutToAppear(): Promise<void> {
     this.readRouteContext()
     await this.reloadViewModel()
@@ -37,8 +45,14 @@ export struct MonetizationHubPage {
   async reloadViewModel(): Promise<void> {
     this.loading = true
     try {
+      const context: Context | null = this.getHostContextOrNull()
+      if (context === null) {
+        this.viewModel = MonetizationHubService.createEmptyViewModel()
+        this.loading = false
+        return
+      }
       this.viewModel = await MonetizationHubService.createViewModel(
-        getContext(this),
+        context,
         this.focusCapability,
         this.focusSourceLabel
       )
@@ -55,7 +69,7 @@ export struct MonetizationHubPage {
 
   getFocusCapabilityFromParams(): MonetizationCapability | '' {
     try {
-      const params = router.getParams() as Record<string, string>
+      const params = this.getUIContext().getRouter().getParams() as Record<string, string>
       const capability: string = params.focusCapability
       if (capability === 'advanced_insights' || capability === 'unlimited_history' ||
         capability === 'advanced_plans' || capability === 'cloud_sync' ||
@@ -70,7 +84,7 @@ export struct MonetizationHubPage {
 
   getFocusSourceLabelFromParams(): string {
     try {
-      const params = router.getParams() as Record<string, string>
+      const params = this.getUIContext().getRouter().getParams() as Record<string, string>
       if (params.focusSourceLabel !== undefined) {
         return params.focusSourceLabel
       }
@@ -82,9 +96,9 @@ export struct MonetizationHubPage {
 
   backToReview(): void {
     try {
-      router.back()
+      this.getUIContext().getRouter().back()
     } catch (error) {
-      router.replaceUrl({ url: AppRoutes.REVIEW_HOME })
+      this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.REVIEW_HOME })
     }
   }
 
@@ -228,7 +242,13 @@ export struct MonetizationHubPage {
     this.previewBusy = true
     this.previewActionStatusText = ''
     try {
-      await MonetizationHubService.applyPreviewTier(getContext(this), tier)
+      const context: Context | null = this.getHostContextOrNull()
+      if (context === null) {
+        this.previewActionStatusText = '当前页面上下文不可用，请重试。'
+        this.previewBusy = false
+        return
+      }
+      await MonetizationHubService.applyPreviewTier(context, tier)
       await this.reloadViewModel()
       this.previewActionStatusText = '已切换到 ' + this.viewModel.tierText + ' 预览态'
     } catch (error) {
