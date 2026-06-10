@@ -2,13 +2,16 @@
  * Index —— 旧首页历史壳
  * 功能 #6：页面治理后保留的兼容入口，仅用于提示已迁移。
  */
-import { router } from '@kit.ArkUI'
 import { AppRoutes } from '../app/AppRoutes'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens } from '../common/styles/DesignTokens'
 
 @Entry
 @Component
 export struct Index {
+  private openHome(): void {
+    this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.HOME })
+  }
+
   build() {
     Column() {
       Column() {
@@ -38,7 +41,7 @@ export struct Index {
         .borderRadius(RadiusTokens.MD)
         .margin({ left: SpacingTokens.MD, right: SpacingTokens.MD, top: SpacingTokens.LG })
         .onClick(() => {
-          router.replaceUrl({ url: AppRoutes.HOME })
+          this.openHome()
         })
     }
     .width('100%')
