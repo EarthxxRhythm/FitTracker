@@ -6,7 +6,7 @@
  * Function #19: current preset plan today view.
  * Function #20: current preset plan rest-day view.
  */
-import { router } from '@kit.ArkUI'
+import { Context } from '@kit.AbilityKit'
 import { AppRoutes } from '../app/AppRoutes'
 import TrainingPlanService, { PresetPlan, UserPlan } from '../common/services/TrainingPlanService'
 import WorkoutDraftService, { hasWorkoutDraftProgress, WorkoutDraftSnapshot } from '../common/services/WorkoutDraftService'
@@ -60,13 +60,27 @@ export struct HomePage {
   @State hasRecoverableDraft: boolean = false
   @State recoverDraftSummary: string = ''
 
+  private getHostContextOrNull(): Context | null {
+    const hostContext = this.getUIContext().getHostContext()
+    if (hostContext === undefined || hostContext === null) {
+      return null
+    }
+    return hostContext as Context
+  }
+
   async aboutToAppear(): Promise<void> {
     this.loading = true
     try {
+      const context: Context | null = this.getHostContextOrNull()
+      if (context === null) {
+        this.hasGoal = false
+        this.loading = false
+        return
+      }
       this.loadPresetPlanCards()
-      await this.loadWorkoutDraft()
+      await this.loadWorkoutDraft(context)
 
-      const currentPlan: UserPlan | null = await TrainingPlanService.getCurrentPlan(getContext(this))
+      const currentPlan: UserPlan | null = await TrainingPlanService.getCurrentPlan(context)
       if (currentPlan !== null) {
         const summary: HomePlanSummary = HomePlanService.createSummaryFromCurrentPlan(
           currentPlan,
@@ -78,7 +92,7 @@ export struct HomePage {
         return
       }
 
-      const goal: UserGoal | undefined = await GoalRepository.loadGoal(getContext(this))
+      const goal: UserGoal | undefined = await GoalRepository.loadGoal(context)
       if (goal === undefined) {
         this.hasGoal = false
         this.loading = false
@@ -99,8 +113,8 @@ export struct HomePage {
     this.presetPlanCards = this.copyPresetPlanCards(TrainingPlanService.getAllPresetPlans())
   }
 
-  async loadWorkoutDraft(): Promise<void> {
-    const snapshot: WorkoutDraftSnapshot | null = await WorkoutDraftService.getDraft(getContext(this))
+  async loadWorkoutDraft(context: Context): Promise<void> {
+    const snapshot: WorkoutDraftSnapshot | null = await WorkoutDraftService.getDraft(context)
     if (snapshot === null || !hasWorkoutDraftProgress(snapshot)) {
       this.hasRecoverableDraft = false
       this.recoverDraftSummary = ''
@@ -146,7 +160,7 @@ export struct HomePage {
 
   openGoalSetup(): void {
     try {
-      router.replaceUrl({ url: AppRoutes.GOAL_SETUP })
+      this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.GOAL_SETUP })
     } catch (e) {
       // stay on home
     }
@@ -157,7 +171,7 @@ export struct HomePage {
       return
     }
     try {
-      router.pushUrl({
+      this.getUIContext().getRouter().pushUrl({
         url: this.startRoute,
         params: {
           dayId: this.todayDayId,
@@ -182,7 +196,7 @@ export struct HomePage {
 
   openReviewHome(): void {
     try {
-      router.pushUrl({ url: AppRoutes.REVIEW_HOME })
+      this.getUIContext().getRouter().pushUrl({ url: AppRoutes.REVIEW_HOME })
     } catch (e) {
       // stay on home
     }
@@ -190,7 +204,7 @@ export struct HomePage {
 
   openActiveWorkout(): void {
     try {
-      router.pushUrl({ url: AppRoutes.ACTIVE_WORKOUT })
+      this.getUIContext().getRouter().pushUrl({ url: AppRoutes.ACTIVE_WORKOUT })
     } catch (e) {
       // stay on home
     }
@@ -198,7 +212,7 @@ export struct HomePage {
 
   openExerciseLibrary(): void {
     try {
-      router.pushUrl({ url: AppRoutes.EXERCISE_LIBRARY })
+      this.getUIContext().getRouter().pushUrl({ url: AppRoutes.EXERCISE_LIBRARY })
     } catch (e) {
       // stay on home
     }
@@ -206,7 +220,7 @@ export struct HomePage {
 
   openTrainingPlanDetail(presetPlanId: string): void {
     try {
-      router.pushUrl({ url: AppRoutes.TRAINING_PLAN_DETAIL, params: { presetPlanId: presetPlanId } })
+      this.getUIContext().getRouter().pushUrl({ url: AppRoutes.TRAINING_PLAN_DETAIL, params: { presetPlanId: presetPlanId } })
     } catch (e) {
       // stay on home
     }

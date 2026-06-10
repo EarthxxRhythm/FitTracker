@@ -2,7 +2,7 @@
  * GoalSetupPage -- target training goal questionnaire.
  * Function #7: real goal setup questionnaire.
  */
-import { router } from '@kit.ArkUI'
+import { Context } from '@kit.AbilityKit'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
 import { UserGoal } from '../../../shared/models/TrainingModels'
@@ -66,9 +66,22 @@ export struct GoalSetupPage {
   @State selectedEquipmentIds: string[] = ['eq_bodyweight', 'eq_dumbbell']
   @State selectedRestrictedMuscleIds: string[] = []
 
+  private getHostContextOrNull(): Context | null {
+    const hostContext = this.getUIContext().getHostContext()
+    if (hostContext === undefined || hostContext === null) {
+      return null
+    }
+    return hostContext as Context
+  }
+
   async aboutToAppear(): Promise<void> {
     try {
-      const goal: UserGoal | undefined = await GoalRepository.loadGoal(getContext(this))
+      const context: Context | null = this.getHostContextOrNull()
+      if (context === null) {
+        this.hasExistingGoal = false
+        return
+      }
+      const goal: UserGoal | undefined = await GoalRepository.loadGoal(context)
       if (goal !== undefined) {
         const prefill: GoalSetupPrefill = GoalSetupService.createPrefillFromGoal(goal)
         this.hasExistingGoal = true
@@ -118,8 +131,13 @@ export struct GoalSetupPage {
     }
 
     try {
-      await GoalRepository.saveGoal(getContext(this), goal)
-      router.replaceUrl({ url: AppRoutes.HOME })
+      const context: Context | null = this.getHostContextOrNull()
+      if (context === null) {
+        this.saving = false
+        return
+      }
+      await GoalRepository.saveGoal(context, goal)
+      this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.HOME })
     } catch (e) {
       this.saving = false
     }

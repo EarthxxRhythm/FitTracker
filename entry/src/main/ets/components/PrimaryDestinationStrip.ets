@@ -1,7 +1,6 @@
 /**
  * PrimaryDestinationStrip -- compact navigation strip for the four main product surfaces.
  */
-import { router } from '@kit.ArkUI'
 import { AppRoutes } from '../app/AppRoutes'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../common/styles/DesignTokens'
 
@@ -75,7 +74,7 @@ export struct PrimaryDestinationStrip {
       return
     }
     try {
-      router.replaceUrl({ url: item.route })
+      this.getUIContext().getRouter().replaceUrl({ url: item.route })
     } catch (error) {
       // stay on current page
     }
