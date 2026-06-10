@@ -4,6 +4,7 @@
  */
 import { AppRoutes } from '../../../app/AppRoutes'
 import { AppCard } from '../../../components/AppCard'
+import { PageHeader } from '../../../components/PageHeader'
 import { PrimaryDestinationStrip } from '../../../components/PrimaryDestinationStrip'
 import { SearchBar } from '../../../components/SearchBar'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
@@ -210,6 +211,71 @@ export struct ExerciseLibraryPage {
     return this.selectedEquipmentId.length > 0
   }
 
+  getActiveFilterCount(): number {
+    let count: number = 0
+    if (this.query.trim().length > 0) {
+      count += 1
+    }
+    if (this.selectedMuscleId.length > 0) {
+      count += 1
+    }
+    if (this.selectedEquipmentId.length > 0) {
+      count += 1
+    }
+    return count
+  }
+
+  getFilterSummaryText(): string {
+    if (!this.hasActiveFilter()) {
+      return '当前展示完整动作库，先按目标肌群或器械缩小范围，再进入动作详情。'
+    }
+
+    let summary: string = '已启用'
+    if (this.query.trim().length > 0) {
+      summary += ' 关键词'
+    }
+    if (this.selectedMuscleId.length > 0) {
+      summary += ' / 肌群'
+    }
+    if (this.selectedEquipmentId.length > 0) {
+      summary += ' / 器械'
+    }
+    return summary + ' 筛选，当前结果更适合直接做动作对比。'
+  }
+
+  getDifficultyBadgeBackgroundColor(difficulty: string): string {
+    if (difficulty === 'beginner') {
+      return ColorTokens.OVERLAY_SUCCESS
+    }
+    if (difficulty === 'advanced') {
+      return ColorTokens.OVERLAY_ACCENT
+    }
+    return ColorTokens.OVERLAY_PRIMARY
+  }
+
+  getDifficultyBadgeTextColor(difficulty: string): string {
+    if (difficulty === 'beginner') {
+      return ColorTokens.SUCCESS
+    }
+    if (difficulty === 'advanced') {
+      return ColorTokens.ACCENT
+    }
+    return ColorTokens.PRIMARY
+  }
+
+  getGoalTagLabel(goalTag: string): string {
+    if (goalTag === 'hypertrophy') {
+      return '增肌'
+    }
+    if (goalTag === 'strength') {
+      return '力量'
+    }
+    if (goalTag === 'fat_loss') {
+      return '减脂'
+    }
+    return goalTag
+  }
+
   @Builder
   buildFilterSectionTitle(title: string) {
     Text(title)
@@ -282,25 +348,71 @@ export struct ExerciseLibraryPage {
     .alignItems(HorizontalAlign.Start)
   }
 
+  @Builder
+  buildMetricTile(label: string, value: string, note: string) {
+    Column({ space: SpacingTokens.XS }) {
+      Text(label)
+        .fontSize(FontTokens.SMALL_SIZE)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
+
+      Text(value)
+        .fontSize(FontTokens.TITLE_SIZE)
+        .fontWeight(FontTokens.TITLE_WEIGHT)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+
+      Text(note)
+        .fontSize(FontTokens.SMALL_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+    }
+    .layoutWeight(1)
+    .padding(SpacingTokens.MD)
+    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+    .borderRadius(RadiusTokens.MD)
+    .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  buildFilterPill(label: string, emphasized: boolean) {
+    Text(label)
+      .fontSize(FontTokens.SMALL_SIZE)
+      .fontWeight(emphasized ? FontWeight.Medium : FontTokens.SMALL_WEIGHT)
+      .fontColor(emphasized ? ColorTokens.PRIMARY : ColorTokens.TEXT_SECONDARY)
+      .padding({
+        top: SpacingTokens.XS,
+        bottom: SpacingTokens.XS,
+        left: SpacingTokens.SM,
+        right: SpacingTokens.SM
+      })
+      .backgroundColor(emphasized ? ColorTokens.OVERLAY_PRIMARY : ColorTokens.SURFACE_SECONDARY)
+      .borderRadius(RadiusTokens.FULL)
+      .border({
+        width: 1,
+        color: emphasized ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
+      })
+  }
+
+  @Builder
+  buildGoalTag(goalTag: string) {
+    Text(this.getGoalTagLabel(goalTag))
+      .fontSize(FontTokens.SMALL_SIZE)
+      .fontColor(ColorTokens.TEXT_SECONDARY)
+      .padding({
+        top: SpacingTokens.XS,
+        bottom: SpacingTokens.XS,
+        left: SpacingTokens.SM,
+        right: SpacingTokens.SM
+      })
+      .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+      .borderRadius(RadiusTokens.FULL)
+      .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+  }
+
   build() {
     Column() {
-      Row() {
-        Text('\u8fd4\u56de')
-          .fontSize(FontTokens.BODY_SIZE)
-          .fontColor(ColorTokens.PRIMARY)
-          .onClick(() => {
-            this.getUIContext().getRouter().back()
-          })
-
-        Blank()
-      }
-      .width('100%')
-      .padding({
-        left: SpacingTokens.LG,
-        right: SpacingTokens.LG,
-        top: SpacingTokens.LG,
-        bottom: SpacingTokens.SM
-      })
+      PageHeader({ title: '\u52a8\u4f5c\u5e93', showBack: true })
 
       Scroll() {
         Column({ space: SpacingTokens.LG }) {
@@ -310,6 +422,24 @@ export struct ExerciseLibraryPage {
             Column({ space: SpacingTokens.MD }) {
               this.buildTitle()
               this.buildStageRail()
+              Row({ space: SpacingTokens.SM }) {
+                this.buildMetricTile('结果', this.filteredExercises.length.toString(), '当前可扫读动作数')
+                this.buildMetricTile('筛选', this.getActiveFilterCount().toString(), '已启用条件')
+              }
+              .width('100%')
+
+              Flex({ wrap: FlexWrap.Wrap }) {
+                this.buildFilterPill('搜索', this.query.trim().length > 0)
+                this.buildFilterPill('肌群', this.selectedMuscleId.length > 0)
+                this.buildFilterPill('器械', this.selectedEquipmentId.length > 0)
+              }
+              .width('100%')
+
+              Text(this.getFilterSummaryText())
+                .fontSize(FontTokens.CAPTION_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
+                .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+                .width('100%')
             }
             .width('100%')
             .alignItems(HorizontalAlign.Start)
@@ -379,9 +509,10 @@ export struct ExerciseLibraryPage {
               Button('\u6e05\u7a7a\u7b5b\u9009')
                 .height(TouchTokens.BUTTON_HEIGHT_SMALL)
                 .fontSize(FontTokens.SMALL_SIZE)
-                .fontColor(ColorTokens.TEXT_PRIMARY)
-                .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+                .fontColor(ColorTokens.PRIMARY)
+                .backgroundColor(ColorTokens.OVERLAY_PRIMARY)
                 .borderRadius(RadiusTokens.FULL)
+                .border({ width: 1, color: ColorTokens.BORDER_ACCENT })
                 .onClick(() => {
                   this.clearFilters()
                 })
@@ -399,17 +530,31 @@ export struct ExerciseLibraryPage {
               Text('\u8bd5\u8bd5\u66f4\u77ed\u7684\u5173\u952e\u8bcd\uff0c\u6216\u79fb\u9664\u90e8\u5206\u7b5b\u9009\u6761\u4ef6\u3002')
                 .fontSize(FontTokens.BODY_SIZE)
                 .fontColor(ColorTokens.TEXT_SECONDARY)
+
+              if (this.hasActiveFilter()) {
+                Button('\u91cd\u7f6e\u7b5b\u9009')
+                  .height(TouchTokens.BUTTON_HEIGHT_SMALL)
+                  .fontSize(FontTokens.SMALL_SIZE)
+                  .fontColor(ColorTokens.PRIMARY)
+                  .backgroundColor(ColorTokens.OVERLAY_PRIMARY)
+                  .borderRadius(RadiusTokens.FULL)
+                  .border({ width: 1, color: ColorTokens.BORDER_ACCENT })
+                  .onClick(() => {
+                    this.clearFilters()
+                  })
+              }
             }
             .width('100%')
             .padding(SpacingTokens.LG)
-            .borderRadius(RadiusTokens.SM)
-            .backgroundColor(ColorTokens.BG_SECONDARY)
-            .alignItems(HorizontalAlign.Center)
+            .borderRadius(RadiusTokens.MD)
+            .backgroundColor(ColorTokens.SURFACE_PANEL)
+            .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+            .alignItems(HorizontalAlign.Start)
           }
 
           ForEach(this.filteredExercises, (exercise: ExerciseLibraryItem) => {
             AppCard({ variant: 'outlined', cardPadding: 'default' }) {
-              Column({ space: SpacingTokens.SM }) {
+              Column({ space: SpacingTokens.MD }) {
                 Row() {
                   Column({ space: SpacingTokens.XS }) {
                     Text(exercise.name)
@@ -428,23 +573,49 @@ export struct ExerciseLibraryPage {
 
                   Text(exercise.difficultyText)
                     .fontSize(FontTokens.SMALL_SIZE)
-                    .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+                    .fontColor(this.getDifficultyBadgeTextColor(exercise.difficulty))
                     .padding({
                       left: SpacingTokens.SM,
                       right: SpacingTokens.SM,
                       top: SpacingTokens.XS,
                       bottom: SpacingTokens.XS
                     })
-                    .backgroundColor(ColorTokens.ACCENT)
+                    .backgroundColor(this.getDifficultyBadgeBackgroundColor(exercise.difficulty))
                     .borderRadius(RadiusTokens.FULL)
+                    .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
                 }
                 .width('100%')
                 .alignItems(VerticalAlign.Top)
 
-                Text(exercise.primaryMuscleName + ' | ' + exercise.equipmentText)
-                  .fontSize(FontTokens.BODY_SIZE)
-                  .fontColor(ColorTokens.TEXT_PRIMARY)
+                Row({ space: SpacingTokens.SM }) {
+                  Text(exercise.primaryMuscleName)
+                    .fontSize(FontTokens.BODY_SIZE)
+                    .fontColor(ColorTokens.TEXT_PRIMARY)
+                    .padding({
+                      top: SpacingTokens.XS,
+                      bottom: SpacingTokens.XS,
+                      left: SpacingTokens.SM,
+                      right: SpacingTokens.SM
+                    })
+                    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+                    .borderRadius(RadiusTokens.FULL)
+
+                  Text(exercise.equipmentText)
+                    .fontSize(FontTokens.BODY_SIZE)
+                    .fontColor(ColorTokens.TEXT_SECONDARY)
+                    .layoutWeight(1)
+                }
+                .width('100%')
+                .alignItems(VerticalAlign.Center)
+
+                if (exercise.goalTags.length > 0) {
+                  Flex({ wrap: FlexWrap.Wrap }) {
+                    ForEach(exercise.goalTags, (goalTag: string) => {
+                      this.buildGoalTag(goalTag)
+                    }, (goalTag: string) => goalTag)
+                  }
                   .width('100%')
+                }
 
                 if (exercise.aliases.length > 0) {
                   Text('\u522b\u540d\uff1a' + this.getAliasText(exercise.aliases))
@@ -457,8 +628,8 @@ export struct ExerciseLibraryPage {
                   .width('100%')
                   .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
                   .fontSize(FontTokens.BODY_SIZE)
-                  .fontColor(ColorTokens.TEXT_PRIMARY)
-                  .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+                  .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+                  .backgroundColor(ColorTokens.PRIMARY)
                   .borderRadius(RadiusTokens.FULL)
                   .onClick(() => {
                     this.openExerciseDetail(exercise.exerciseId)
