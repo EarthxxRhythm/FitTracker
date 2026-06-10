@@ -70,6 +70,7 @@ export interface MonetizationHubViewModel {
   freeIncludedBullets: string[]
   currentEntitlementRows: MonetizationInfoRowViewModel[]
   previewEnabled: boolean
+  previewActive: boolean
   previewTitle: string
   previewDescription: string
   previewStatusText: string
@@ -231,6 +232,7 @@ function createMonetizationHubViewModel(
   freeIncludedBullets: string[],
   currentEntitlementRows: MonetizationInfoRowViewModel[],
   previewEnabled: boolean,
+  previewActive: boolean,
   previewTitle: string,
   previewDescription: string,
   previewStatusText: string,
@@ -253,6 +255,7 @@ function createMonetizationHubViewModel(
     freeIncludedBullets: copyStringArray(freeIncludedBullets),
     currentEntitlementRows: copyInfoRows(currentEntitlementRows),
     previewEnabled: previewEnabled,
+    previewActive: previewActive,
     previewTitle: previewTitle,
     previewDescription: previewDescription,
     previewStatusText: previewStatusText,
@@ -273,6 +276,7 @@ class MonetizationHubService {
       '当前页面用于说明权益边界与本地预览状态。',
       [],
       [],
+      false,
       false,
       '',
       '',
@@ -305,11 +309,12 @@ class MonetizationHubService {
       ],
       this.createCurrentEntitlementRows(entitlement),
       this.isPreviewEnabled(environment),
+      entitlement.source === 'debug_override',
       '本地权益预览',
       '当前环境未接支付，可直接切换 Free / Pro / Plus 预览态，用来验证入口文案、降级态和后续页面消费逻辑。',
       this.getPreviewStatusText(entitlement),
       this.createPreviewOptions(entitlement.tier, environment),
-      this.createOfferCards(products, entitlement, focusCapability),
+      this.createOfferCards(products, entitlement, focusCapability, environment),
       this.createRoadmapItems(focusCapability),
       focusContext
     )
@@ -397,12 +402,13 @@ class MonetizationHubService {
   private createOfferCards(
     products: MonetizationProduct[],
     entitlement: MonetizationEntitlement,
-    focusCapability: MonetizationCapability | ''
+    focusCapability: MonetizationCapability | '',
+    environment: MonetizationBillingEnvironment
   ): MonetizationOfferCardViewModel[] {
     const cards: MonetizationOfferCardViewModel[] = []
     for (let index = 0; index < products.length; index++) {
       const product: MonetizationProduct = products[index]
-      cards.push(this.createOfferCard(product, entitlement, focusCapability))
+      cards.push(this.createOfferCard(product, entitlement, focusCapability, environment))
     }
     return cards
   }
@@ -410,7 +416,8 @@ class MonetizationHubService {
   private createOfferCard(
     product: MonetizationProduct,
     entitlement: MonetizationEntitlement,
-    focusCapability: MonetizationCapability | ''
+    focusCapability: MonetizationCapability | '',
+    environment: MonetizationBillingEnvironment
   ): MonetizationOfferCardViewModel {
     const current: boolean = entitlement.productId.length > 0 && entitlement.productId === product.productId
     const highlighted: boolean = this.isHighlightedOffer(product, entitlement.tier, focusCapability)
@@ -421,7 +428,7 @@ class MonetizationHubService {
       this.getOfferPriceText(product.productId),
       this.getBillingText(product.productId),
       this.getOfferDescription(product.productId),
-      this.getOfferStatusText(product, entitlement, current),
+      this.getOfferStatusText(product, entitlement, current, this.isPreviewEnabled(environment)),
       highlighted,
       current,
       this.getOfferBullets(product.productId)
@@ -748,7 +755,8 @@ class MonetizationHubService {
   private getOfferStatusText(
     product: MonetizationProduct,
     entitlement: MonetizationEntitlement,
-    current: boolean
+    current: boolean,
+    previewEnabled: boolean
   ): string {
     if (current) {
       return '当前账号已拥有这一层级'
@@ -759,10 +767,16 @@ class MonetizationHubService {
     if (entitlement.tier === 'pro' && product.tier === 'plus') {
       return '适合作为下一步升级方向'
     }
+    if (previewEnabled) {
+      if (product.tier === 'pro') {
+        return '可先启用 Pro 本地预览，验证首个付费点的入口与权益说明'
+      }
+      return '可先启用 Plus 本地预览，检查持续服务层的入口与能力边界'
+    }
     if (entitlement.tier === 'free' && product.productId === 'fittracker_pro_lifetime') {
       return '最适合先落地的首个付费商品'
     }
-    return '支付入口待接入，当前先展示权益结构'
+    return '正式支付入口待接入，当前先展示权益结构'
   }
 
   private getOfferBullets(productId: string): string[] {
