@@ -1290,6 +1290,23 @@ export struct ReviewHomePage {
     return ColorTokens.SUCCESS_BG
   }
 
+  getAdvancedInsightsGuideText(locked: boolean): string {
+    if (locked) {
+      return '先用当前回顾判断是否真的需要更深复盘，再决定是否比较 Pro 方案。'
+    }
+    if (this.advancedInsightsActiveTier === 'plus') {
+      return '当前权益已经覆盖高级洞察入口，这里主要用来确认已解锁范围和后续能力边界。'
+    }
+    return '当前权益已经覆盖高级洞察，先确认现有范围，再决定是否继续查看后续升级能力。'
+  }
+
+  getAdvancedInsightsActionText(locked: boolean): string {
+    if (locked) {
+      return '比较 Pro 方案'
+    }
+    return '查看当前权益边界'
+  }
+
   @Builder
   buildAdvancedInsightsEntrySection() {
     AppCard({ variant: 'outlined', cardPadding: 'default' }) {
@@ -1328,6 +1345,11 @@ export struct ReviewHomePage {
           .fontColor(ColorTokens.TEXT_SECONDARY)
           .width('100%')
 
+        Text(this.getAdvancedInsightsGuideText(this.advancedInsightsEntry.locked))
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.TEXT_TERTIARY)
+          .width('100%')
+
         Column({ space: SpacingTokens.XS }) {
           ForEach(this.advancedInsightsEntry.featureBullets, (item: string) => {
             Text('- ' + item)
@@ -1343,7 +1365,7 @@ export struct ReviewHomePage {
         .alignItems(HorizontalAlign.Start)
 
         AppButton({
-          text: this.advancedInsightsEntry.actionText,
+          text: this.getAdvancedInsightsActionText(this.advancedInsightsEntry.locked),
           type: this.advancedInsightsEntry.locked ? 'primary' : 'secondary',
           buttonSize: 'medium',
           block: true,
@@ -1429,12 +1451,17 @@ export struct ReviewHomePage {
             .fontColor(ColorTokens.TEXT_SECONDARY)
             .width('100%')
 
+          Text(this.getAdvancedInsightsGuideText(true))
+            .fontSize(FontTokens.CAPTION_SIZE)
+            .fontColor(ColorTokens.TEXT_TERTIARY)
+            .width('100%')
+
           ForEach(this.advancedInsightsPanel.tiles, (tile: ReviewAdvancedInsightsPreviewTile) => {
             this.buildAdvancedInsightsPreviewTile(tile)
           }, (tile: ReviewAdvancedInsightsPreviewTile) => tile.tileId)
 
           AppButton({
-            text: this.advancedInsightsPanel.actionText,
+            text: this.getAdvancedInsightsActionText(true),
             type: 'primary',
             buttonSize: 'medium',
             block: true,
@@ -1489,12 +1516,17 @@ export struct ReviewHomePage {
               .fontColor(ColorTokens.TEXT_SECONDARY)
               .width('100%')
 
+            Text(this.getAdvancedInsightsGuideText(false))
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_TERTIARY)
+              .width('100%')
+
             ForEach(this.advancedInsightsPanel.tiles, (tile: ReviewAdvancedInsightsPreviewTile) => {
               this.buildAdvancedInsightsPreviewTile(tile)
             }, (tile: ReviewAdvancedInsightsPreviewTile) => tile.tileId)
 
             AppButton({
-              text: this.advancedInsightsPanel.actionText,
+              text: this.getAdvancedInsightsActionText(false),
               type: 'secondary',
               buttonSize: 'medium',
               block: true,

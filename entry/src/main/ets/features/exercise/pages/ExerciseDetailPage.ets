@@ -4,6 +4,7 @@
  */
 import { router } from '@kit.ArkUI'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
+import { AppButton } from '../../../components/AppButton'
 import { AppCard } from '../../../components/AppCard'
 import ContentRepository, { ExerciseDetailViewModel } from '../../../shared/services/ContentRepository'
 import ExerciseMediaResolverService, {
@@ -284,6 +285,20 @@ export struct ExerciseDetailPage {
     }
   }
 
+  getMediaCapabilityGuideText(): string {
+    if (this.premiumContentPresentation.locked) {
+      return '基础演示和动作要点继续保留在免费主链里；更深训练清单和进阶内容再按需要解锁。'
+    }
+    return '当前权益已经覆盖更深训练清单；基础演示和进阶内容都可以继续直接查看。'
+  }
+
+  getPremiumActionText(): string {
+    if (this.premiumContentPresentation.locked) {
+      return '查看 Plus 权益'
+    }
+    return '查看当前权益边界'
+  }
+
   build() {
     Scroll() {
       Column({ space: SpacingTokens.LG }) {
@@ -445,6 +460,16 @@ export struct ExerciseDetailPage {
           .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
           .width('100%')
 
+        Text(this.getMediaCapabilityGuideText())
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.TEXT_TERTIARY)
+          .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+          .width('100%')
+          .padding(SpacingTokens.MD)
+          .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+          .borderRadius(RadiusTokens.MD)
+          .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+
         this.buildInfoRow('统一来源', this.mediaPresentation.sourceNote)
         this.buildInfoRow('统一授权', this.mediaPresentation.licenseNote)
 
@@ -551,17 +576,15 @@ export struct ExerciseDetailPage {
           .width('100%')
 
         if (this.premiumContentPresentation.locked) {
-          Button(this.premiumContentPresentation.actionText)
-            .width('100%')
-            .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-            .backgroundColor(ColorTokens.SURFACE_BUTTON_SECONDARY)
-            .borderRadius(RadiusTokens.FULL)
-            .onClick(() => {
+          AppButton({
+            text: this.getPremiumActionText(),
+            type: 'primary',
+            buttonSize: 'medium',
+            block: true,
+            onButtonClick: () => {
               this.openMonetizationHub('premium_content', '动作详情')
-            })
+            }
+          })
         }
       }
       .width('100%')
