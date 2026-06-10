@@ -10,7 +10,7 @@ export class ReviewUpgradeEntryPresentation {
   title: string = '解锁高级洞察'
   description: string = '升级后可查看更长周期趋势、动作 PR 细节与后续增强回顾能力。'
   actionText: string = '查看 Pro 方案'
-  supportingText: string = '购买入口会在正式发布链路稳定后开放。'
+  supportingText: string = '当前可先在本地预览权益结构，再决定是否接入正式购买链路。'
   locked: boolean = true
   featureBullets: string[] = []
 }
@@ -22,7 +22,7 @@ class ReviewUpgradeEntryService {
       '解锁高级洞察',
       '升级后可查看更长周期趋势、动作 PR 细节与后续增强回顾能力。',
       '查看 Pro 方案',
-      '购买入口会在正式发布链路稳定后开放。',
+      '当前可先在本地预览权益结构，再决定是否接入正式购买链路。',
       true,
       [
         '更长历史周期趋势',
@@ -46,10 +46,10 @@ class ReviewUpgradeEntryService {
         '高级洞察已解锁',
         description,
         actionText,
-        '后续更深的周报和 PR 解释会优先接到这里。',
+        '更长周期趋势和 PR 解释会继续收敛到这里。',
         false,
         [
-          '更长周期趋势已预留接入位',
+          '更长周期趋势会汇总到这一入口',
           '深度 PR 细节将优先落在回顾页',
           '不影响当前免费训练闭环'
         ]
@@ -73,7 +73,7 @@ class ReviewUpgradeEntryService {
 
   private createUnlockedDescription(activeTier: string, weeklySessionCount: number): string {
     if (weeklySessionCount > 0) {
-      return '本周已完成 ' + weeklySessionCount.toString() + ' 次训练，高级洞察入口已为后续更深分析能力预留。'
+      return '本周已完成 ' + weeklySessionCount.toString() + ' 次训练，这里会继续承接更长周期趋势和 PR 解释。'
     }
     if (activeTier === 'plus') {
       return '当前 Plus 权益已覆盖高级洞察与后续扩展回顾能力。'
