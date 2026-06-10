@@ -4,7 +4,7 @@
  * 功能 #12：训练回顾与目标调整建议。
  * 功能 #14：最近训练筛选、按周趋势查看与按动作查看个人纪录。
  */
-import { router } from '@kit.ArkUI'
+import { Context } from '@kit.AbilityKit'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
 import { AppButton } from '../../../components/AppButton'
@@ -116,6 +116,14 @@ export struct ReviewHomePage {
   sessions: WorkoutSession[] = []
   currentNow: number = 0
 
+  private getHostContextOrNull(): Context | null {
+    const hostContext = this.getUIContext().getHostContext()
+    if (hostContext === undefined || hostContext === null) {
+      return null
+    }
+    return hostContext as Context
+  }
+
   async aboutToAppear(): Promise<void> {
     await this.reloadReviewData()
   }
@@ -123,8 +131,13 @@ export struct ReviewHomePage {
   async reloadReviewData(): Promise<void> {
     this.loading = true
     this.currentNow = Date.now()
+    const context: Context | null = this.getHostContextOrNull()
     try {
-      this.sessions = await WorkoutSessionPersistenceBridgeService.syncRepositoryFromPersistence(getContext(this))
+      if (context !== null) {
+        this.sessions = await WorkoutSessionPersistenceBridgeService.syncRepositoryFromPersistence(context)
+      } else {
+        this.sessions = WorkoutRepository.getSessions()
+      }
     } catch (e) {
       this.sessions = WorkoutRepository.getSessions()
     }
@@ -135,7 +148,7 @@ export struct ReviewHomePage {
     await this.loadUnlimitedHistoryAccess()
     this.applyReviewInsights(this.sessions, this.currentNow)
     try {
-      const goal: UserGoal | undefined = await GoalRepository.loadGoal(getContext(this))
+      const goal: UserGoal | undefined = context !== null ? await GoalRepository.loadGoal(context) : undefined
       this.currentGoal = goal
       if (goal !== undefined) {
         this.applyAdjustmentAction(ReviewDashboardService.createGoalAdjustmentAction(summary, goal))
@@ -285,14 +298,22 @@ export struct ReviewHomePage {
   }
 
   async loadProfile(): Promise<void> {
-    const profile: UserProfile = await UserProfileService.loadProfile(getContext(this))
+    const context: Context | null = this.getHostContextOrNull()
+    const profile: UserProfile = context !== null
+      ? await UserProfileService.loadProfile(context)
+      : UserProfileService.getDefaultProfile()
     this.profileNickname = profile.nickname
     this.profileWeightUnit = profile.weightUnit
   }
 
   async loadUnlimitedHistoryAccess(): Promise<void> {
     try {
-      const gateResult = await MonetizationGateService.getGateResult(getContext(this), 'unlimited_history')
+      const context: Context | null = this.getHostContextOrNull()
+      if (context === null) {
+        this.unlimitedHistoryUnlocked = false
+        return
+      }
+      const gateResult = await MonetizationGateService.getGateResult(context, 'unlimited_history')
       this.unlimitedHistoryUnlocked = gateResult.allowed
     } catch (e) {
       this.unlimitedHistoryUnlocked = false
@@ -301,7 +322,15 @@ export struct ReviewHomePage {
 
   async loadAdvancedInsightsEntry(): Promise<void> {
     try {
-      const gateResult = await MonetizationGateService.getGateResult(getContext(this), 'advanced_insights')
+      const context: Context | null = this.getHostContextOrNull()
+      if (context === null) {
+        this.advancedInsightsLocked = true
+        this.advancedInsightsActiveTier = 'free'
+        this.advancedInsightsEntry = ReviewUpgradeEntryService.createDefaultAdvancedInsightsPresentation()
+        this.refreshAdvancedInsightsPanel()
+        return
+      }
+      const gateResult = await MonetizationGateService.getGateResult(context, 'advanced_insights')
       this.advancedInsightsLocked = !gateResult.allowed
       this.advancedInsightsActiveTier = gateResult.activeTier
       this.advancedInsightsEntry = ReviewUpgradeEntryService.createAdvancedInsightsPresentation(
@@ -320,7 +349,7 @@ export struct ReviewHomePage {
 
   openMonetizationHub(capability: MonetizationCapability, sourceLabel: string): void {
     try {
-      router.pushUrl({
+      this.getUIContext().getRouter().pushUrl({
         url: AppRoutes.MONETIZATION_HUB,
         params: {
           focusCapability: capability,
@@ -392,7 +421,7 @@ export struct ReviewHomePage {
 
   openHome(): void {
     try {
-      router.replaceUrl({ url: AppRoutes.HOME })
+      this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.HOME })
     } catch (e) {
       // stay on current page
     }
@@ -400,7 +429,7 @@ export struct ReviewHomePage {
 
   openGoalSetup(): void {
     try {
-      router.pushUrl({ url: AppRoutes.GOAL_SETUP })
+      this.getUIContext().getRouter().pushUrl({ url: AppRoutes.GOAL_SETUP })
     } catch (e) {
       // stay on current page
     }
@@ -411,7 +440,7 @@ export struct ReviewHomePage {
       return
     }
     try {
-      router.pushUrl({ url: AppRoutes.WORKOUT_SUMMARY, params: { sessionId: this.latestSessionId } })
+      this.getUIContext().getRouter().pushUrl({ url: AppRoutes.WORKOUT_SUMMARY, params: { sessionId: this.latestSessionId } })
     } catch (e) {
       // stay on current page
     }
@@ -422,7 +451,7 @@ export struct ReviewHomePage {
       return
     }
     try {
-      router.pushUrl({
+      this.getUIContext().getRouter().pushUrl({
         url: AppRoutes.EXERCISE_DETAIL,
         params: { exerciseId: this.selectedRecordDetail.exerciseId }
       })
@@ -436,7 +465,13 @@ export struct ReviewHomePage {
     this.profileNickname = nickname
     this.profileLoading = true
     this.profileStatusText = ''
-    await UserProfileService.saveNickname(getContext(this), nickname)
+    const context: Context | null = this.getHostContextOrNull()
+    if (context === null) {
+      this.profileStatusText = '当前页面上下文不可用'
+      this.profileLoading = false
+      return
+    }
+    await UserProfileService.saveNickname(context, nickname)
     this.profileStatusText = UserProfileService.getLastPersistenceError().length > 0 ? '昵称保存失败' : '昵称已保存'
     this.profileLoading = false
   }
@@ -448,7 +483,13 @@ export struct ReviewHomePage {
     this.profileLoading = true
     this.profileStatusText = ''
     this.profileWeightUnit = unit
-    await UserProfileService.saveWeightUnit(getContext(this), unit)
+    const context: Context | null = this.getHostContextOrNull()
+    if (context === null) {
+      this.profileStatusText = '当前页面上下文不可用'
+      this.profileLoading = false
+      return
+    }
+    await UserProfileService.saveWeightUnit(context, unit)
     this.profileStatusText = UserProfileService.getLastPersistenceError().length > 0 ? '重量单位保存失败' : '重量单位已保存'
     this.profileLoading = false
   }
@@ -456,14 +497,20 @@ export struct ReviewHomePage {
   async logout(): Promise<void> {
     this.profileLoading = true
     this.profileStatusText = ''
-    await SessionManager.clearToken(getContext(this))
+    const context: Context | null = this.getHostContextOrNull()
+    if (context === null) {
+      this.profileLoading = false
+      this.profileStatusText = '当前页面上下文不可用'
+      return
+    }
+    await SessionManager.clearToken(context)
     this.profileLoading = false
     if (SessionManager.getLastPersistenceError().length > 0) {
       this.profileStatusText = '退出登录失败'
       return
     }
     try {
-      router.replaceUrl({ url: AppRoutes.LOGIN })
+      this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.LOGIN })
     } catch (e) {
       this.profileStatusText = '跳转登录页失败'
     }
@@ -478,7 +525,11 @@ export struct ReviewHomePage {
     this.backupStatusText = ''
     this.backupStatusTone = 'info'
     try {
-      this.backupPackageText = await UserDataBackupService.exportPackage(getContext(this))
+      const context: Context | null = this.getHostContextOrNull()
+      if (context === null) {
+        throw new Error('context unavailable')
+      }
+      this.backupPackageText = await UserDataBackupService.exportPackage(context)
       this.backupStatusText = UserDataBackupService.getExportSuccessStatusText()
       this.backupStatusTone = 'success'
     } catch (e) {
@@ -500,7 +551,14 @@ export struct ReviewHomePage {
     }
 
     this.backupBusy = true
-    const result = await UserDataBackupService.importPackage(getContext(this), this.backupPackageText)
+    const context: Context | null = this.getHostContextOrNull()
+    if (context === null) {
+      this.backupStatusText = '当前页面上下文不可用'
+      this.backupStatusTone = 'error'
+      this.backupBusy = false
+      return
+    }
+    const result = await UserDataBackupService.importPackage(context, this.backupPackageText)
     this.backupStatusText = result.statusText
     this.backupStatusTone = this.resolveBackupStatusTone(result.success, result.usedPlanFallback)
     this.backupBusy = false
@@ -737,7 +795,11 @@ export struct ReviewHomePage {
         this.currentAdjustmentAction,
         Date.now()
       )
-      await GoalRepository.saveGoal(getContext(this), result.adjustedGoal)
+      const context: Context | null = this.getHostContextOrNull()
+      if (context === null) {
+        throw new Error('context unavailable')
+      }
+      await GoalRepository.saveGoal(context, result.adjustedGoal)
       this.currentGoal = result.adjustedGoal
       this.adjustmentStatusText = result.statusText
       this.applyAdjustmentAction(

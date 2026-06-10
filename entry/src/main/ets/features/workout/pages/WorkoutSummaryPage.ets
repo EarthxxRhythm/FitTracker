@@ -3,7 +3,7 @@
  * Function #11: workout summary review.
  * Function #13: exercise personal best records in workout summary.
  */
-import { router } from '@kit.ArkUI'
+import { Context } from '@kit.AbilityKit'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
 import { AppButton } from '../../../components/AppButton'
@@ -51,6 +51,14 @@ export struct WorkoutSummaryPage {
   currentSession: WorkoutSession | undefined = undefined
   lastRemovedSession: WorkoutSession | undefined = undefined
 
+  private getHostContextOrNull(): Context | null {
+    const hostContext = this.getUIContext().getHostContext()
+    if (hostContext === undefined || hostContext === null) {
+      return null
+    }
+    return hostContext as Context
+  }
+
   async aboutToAppear(): Promise<void> {
     this.loading = true
     this.isEditMode = false
@@ -62,7 +70,10 @@ export struct WorkoutSummaryPage {
     this.loadSummarySession()
     if (this.currentSession !== undefined) {
       try {
-        await WorkoutSessionPersistenceBridgeService.saveOrUpdateSession(getContext(this), this.currentSession)
+        const context: Context | null = this.getHostContextOrNull()
+        if (context !== null) {
+          await WorkoutSessionPersistenceBridgeService.saveOrUpdateSession(context, this.currentSession)
+        }
       } catch (e) {
         // Keep summary visible even if legacy persistence sync fails.
       }
@@ -95,7 +106,7 @@ export struct WorkoutSummaryPage {
 
   getRouteSessionId(): string {
     try {
-      const params = router.getParams() as Record<string, string>
+      const params = this.getUIContext().getRouter().getParams() as Record<string, string>
       if (params.sessionId !== undefined) {
         return params.sessionId
       }
@@ -159,7 +170,7 @@ export struct WorkoutSummaryPage {
 
   openHome(): void {
     try {
-      router.replaceUrl({ url: AppRoutes.HOME })
+      this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.HOME })
     } catch (e) {
       // stay on summary
     }
@@ -167,7 +178,7 @@ export struct WorkoutSummaryPage {
 
   openReview(): void {
     try {
-      router.pushUrl({ url: AppRoutes.REVIEW_HOME })
+      this.getUIContext().getRouter().pushUrl({ url: AppRoutes.REVIEW_HOME })
     } catch (e) {
       // stay on summary
     }
@@ -290,7 +301,12 @@ export struct WorkoutSummaryPage {
 
       this.currentSession = correctedSession
       try {
-        await WorkoutSessionPersistenceBridgeService.saveOrUpdateSession(getContext(this), correctedSession)
+        const context: Context | null = this.getHostContextOrNull()
+        if (context !== null) {
+          await WorkoutSessionPersistenceBridgeService.saveOrUpdateSession(context, correctedSession)
+        } else {
+          syncSucceeded = false
+        }
       } catch (e) {
         syncSucceeded = false
       }
@@ -332,7 +348,12 @@ export struct WorkoutSummaryPage {
       this.applySummary(WorkoutSummaryService.createEmptySummary())
 
       try {
-        await WorkoutSessionPersistenceBridgeService.removeSession(getContext(this), removedSession.sessionId)
+        const context: Context | null = this.getHostContextOrNull()
+        if (context !== null) {
+          await WorkoutSessionPersistenceBridgeService.removeSession(context, removedSession.sessionId)
+        } else {
+          syncSucceeded = false
+        }
       } catch (e) {
         syncSucceeded = false
       }
@@ -363,7 +384,12 @@ export struct WorkoutSummaryPage {
 
     let syncSucceeded: boolean = true
     try {
-      await WorkoutSessionPersistenceBridgeService.restoreSession(getContext(this), sessionToRestore)
+      const context: Context | null = this.getHostContextOrNull()
+      if (context !== null) {
+        await WorkoutSessionPersistenceBridgeService.restoreSession(context, sessionToRestore)
+      } else {
+        syncSucceeded = false
+      }
     } catch (e) {
       syncSucceeded = false
     }

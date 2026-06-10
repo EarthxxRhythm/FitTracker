@@ -2,7 +2,6 @@
  * ExerciseLibraryPage -- exercise library main entry with search and filters.
  * Function #13-17: exercise list, search, muscle filter, equipment filter, detail navigation.
  */
-import { router } from '@kit.ArkUI'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { PrimaryDestinationStrip } from '../../../components/PrimaryDestinationStrip'
 import { SearchBar } from '../../../components/SearchBar'
@@ -169,7 +168,7 @@ export struct ExerciseLibraryPage {
 
   openExerciseDetail(exerciseId: string): void {
     try {
-      router.pushUrl({ url: AppRoutes.EXERCISE_DETAIL, params: { exerciseId: exerciseId } })
+      this.getUIContext().getRouter().pushUrl({ url: AppRoutes.EXERCISE_DETAIL, params: { exerciseId: exerciseId } })
     } catch (e) {
       // stay on current page
     }
@@ -241,7 +240,7 @@ export struct ExerciseLibraryPage {
           .fontSize(FontTokens.BODY_SIZE)
           .fontColor(ColorTokens.PRIMARY)
           .onClick(() => {
-            router.back()
+            this.getUIContext().getRouter().back()
           })
 
         Blank()

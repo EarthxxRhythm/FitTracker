@@ -2,7 +2,7 @@
  * WorkoutPreviewPage -- workout preview before active training.
  * Function #9: workout preview before active training.
  */
-import { router } from '@kit.ArkUI'
+import { Context } from '@kit.AbilityKit'
 import { AppRoutes } from '../../../app/AppRoutes'
 import TrainingPlanService, { UserPlan } from '../../../common/services/TrainingPlanService'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
@@ -34,10 +34,26 @@ export struct WorkoutPreviewPage {
   @State fallbackNote: string = ''
   @State usesCurrentPlan: boolean = false
 
+  private getHostContextOrNull(): Context | null {
+    const hostContext = this.getUIContext().getHostContext()
+    if (hostContext === undefined || hostContext === null) {
+      return null
+    }
+    return hostContext as Context
+  }
+
   async aboutToAppear(): Promise<void> {
     this.loading = true
     try {
-      const currentPlan: UserPlan | null = await TrainingPlanService.getCurrentPlan(getContext(this))
+      const context: Context | null = this.getHostContextOrNull()
+      if (context === null) {
+        this.hasGoal = false
+        this.hasWorkout = false
+        this.usesCurrentPlan = false
+        this.loading = false
+        return
+      }
+      const currentPlan: UserPlan | null = await TrainingPlanService.getCurrentPlan(context)
       if (currentPlan !== null) {
         const preview: WorkoutPreviewSummary = WorkoutPreviewService.createPreviewForCurrentPlan(
           currentPlan,
@@ -52,7 +68,7 @@ export struct WorkoutPreviewPage {
         return
       }
 
-      const goal: UserGoal | undefined = await GoalRepository.loadGoal(getContext(this))
+      const goal: UserGoal | undefined = await GoalRepository.loadGoal(context)
       if (goal === undefined) {
         this.hasGoal = false
         this.hasWorkout = false
@@ -99,7 +115,7 @@ export struct WorkoutPreviewPage {
 
   getDayIdParam(): string {
     try {
-      const params = router.getParams() as Record<string, string>
+      const params = this.getUIContext().getRouter().getParams() as Record<string, string>
       if (params.dayId !== undefined) {
         return params.dayId
       }
@@ -111,7 +127,7 @@ export struct WorkoutPreviewPage {
 
   openGoalSetup(): void {
     try {
-      router.replaceUrl({ url: AppRoutes.GOAL_SETUP })
+      this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.GOAL_SETUP })
     } catch (e) {
       // stay on preview
     }
@@ -137,7 +153,7 @@ export struct WorkoutPreviewPage {
     }
 
     try {
-      router.pushUrl({
+      this.getUIContext().getRouter().pushUrl({
         url: targetRoute,
         params: {
           dayId: this.dayId,
@@ -151,7 +167,7 @@ export struct WorkoutPreviewPage {
 
   openAlternative(exerciseId: string): void {
     try {
-      router.pushUrl({ url: AppRoutes.EXERCISE_DETAIL, params: { exerciseId: exerciseId } })
+      this.getUIContext().getRouter().pushUrl({ url: AppRoutes.EXERCISE_DETAIL, params: { exerciseId: exerciseId } })
     } catch (e) {
       // stay on preview
     }
