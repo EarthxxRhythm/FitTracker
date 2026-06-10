@@ -38,7 +38,7 @@ class SystemBackupBridgeService {
 
   async importBackupPackageFromDirectory(context: Context, backupDir: string): Promise<SystemBackupBridgeResult> {
     const backupFilePath: string = this.getBackupFilePath(backupDir)
-    if (!fileIo.accessSync(backupFilePath)) {
+    if (!this.pathExists(backupFilePath)) {
       return this.createResult(false, 'backup_file_missing', '备份目录中没有找到可恢复的 JSON 包。', backupFilePath, null)
     }
 
@@ -65,21 +65,40 @@ class SystemBackupBridgeService {
   }
 
   private async ensureDirectory(backupDir: string): Promise<void> {
-    if (fileIo.accessSync(backupDir)) {
+    if (this.pathExists(backupDir)) {
       return
     }
-    await fileIo.mkdir(backupDir, true)
+    try {
+      await fileIo.mkdir(backupDir, true)
+    } catch (error) {
+      throw new Error('backup_dir_create_failed')
+    }
   }
 
   private writeTextFile(filePath: string, value: string): void {
-    const file = fileIo.openSync(
-      filePath,
-      fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE | fileIo.OpenMode.TRUNC
-    )
     try {
-      fileIo.writeSync(file.fd, value)
-    } finally {
-      fileIo.closeSync(file.fd)
+      const file = fileIo.openSync(
+        filePath,
+        fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE | fileIo.OpenMode.TRUNC
+      )
+      try {
+        fileIo.writeSync(file.fd, value)
+      } finally {
+        try {
+          fileIo.closeSync(file.fd)
+        } catch (error) {
+        }
+      }
+    } catch (error) {
+      throw new Error('backup_file_write_failed')
+    }
+  }
+
+  private pathExists(filePath: string): boolean {
+    try {
+      return fileIo.accessSync(filePath)
+    } catch (error) {
+      return false
     }
   }
 

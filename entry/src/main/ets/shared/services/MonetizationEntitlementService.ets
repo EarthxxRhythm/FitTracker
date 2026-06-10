@@ -31,15 +31,27 @@ class ArkPreferencesMonetizationEntitlementStore extends MonetizationEntitlement
   }
 
   async get(key: string, defaultValue: string): Promise<string> {
-    return await this.prefs.get(key, defaultValue) as string
+    try {
+      return await this.prefs.get(key, defaultValue) as string
+    } catch (error) {
+      throw new Error('monetization_store_get_failed')
+    }
   }
 
   async put(key: string, value: string): Promise<void> {
-    await this.prefs.put(key, value)
+    try {
+      await this.prefs.put(key, value)
+    } catch (error) {
+      throw new Error('monetization_store_put_failed')
+    }
   }
 
   async flush(): Promise<void> {
-    await this.prefs.flush()
+    try {
+      await this.prefs.flush()
+    } catch (error) {
+      throw new Error('monetization_store_flush_failed')
+    }
   }
 }
 
@@ -56,9 +68,13 @@ class MonetizationEntitlementService {
   }
 
   async clearEntitlementForTesting(context: Context): Promise<void> {
-    const store: MonetizationEntitlementStore = await this.getStore(context)
-    await store.put(KEY_USER_ENTITLEMENTS, '[]')
-    await store.flush()
+    try {
+      const store: MonetizationEntitlementStore = await this.getStore(context)
+      await store.put(KEY_USER_ENTITLEMENTS, '[]')
+      await store.flush()
+    } catch (error) {
+      throw new Error('monetization_store_clear_failed')
+    }
     this.testEntitlement = null
   }
 
@@ -197,8 +213,12 @@ class MonetizationEntitlementService {
     if (this.testStore !== null) {
       return this.testStore
     }
-    const prefs: preferences.Preferences = await preferences.getPreferences(context, FitTrackerStores.MONETIZATION)
-    return new ArkPreferencesMonetizationEntitlementStore(prefs)
+    try {
+      const prefs: preferences.Preferences = await preferences.getPreferences(context, FitTrackerStores.MONETIZATION)
+      return new ArkPreferencesMonetizationEntitlementStore(prefs)
+    } catch (error) {
+      throw new Error('monetization_store_open_failed')
+    }
   }
 
   private copyEntitlements(source: MonetizationEntitlement[]): MonetizationEntitlement[] {

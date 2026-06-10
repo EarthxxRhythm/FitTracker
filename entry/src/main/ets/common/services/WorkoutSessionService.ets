@@ -65,15 +65,27 @@ class ArkPreferencesSessionStore extends SessionPreferencesStore {
   }
 
   async get(key: string, defaultValue: string): Promise<string> {
-    return await this.prefs.get(key, defaultValue) as string
+    try {
+      return await this.prefs.get(key, defaultValue) as string
+    } catch (error) {
+      throw new Error('session_store_get_failed')
+    }
   }
 
   async put(key: string, value: string): Promise<void> {
-    await this.prefs.put(key, value)
+    try {
+      await this.prefs.put(key, value)
+    } catch (error) {
+      throw new Error('session_store_put_failed')
+    }
   }
 
   async flush(): Promise<void> {
-    await this.prefs.flush()
+    try {
+      await this.prefs.flush()
+    } catch (error) {
+      throw new Error('session_store_flush_failed')
+    }
   }
 }
 
@@ -164,8 +176,12 @@ class WorkoutSessionService {
     if (this.testStore !== null) {
       return this.testStore
     }
-    const prefs = await preferences.getPreferences(context, STORE_NAME)
-    return new ArkPreferencesSessionStore(prefs)
+    try {
+      const prefs = await preferences.getPreferences(context, STORE_NAME)
+      return new ArkPreferencesSessionStore(prefs)
+    } catch (error) {
+      throw new Error('session_store_open_failed')
+    }
   }
 
   async getWeeklyStats(context: Context): Promise<WeeklyStats> {

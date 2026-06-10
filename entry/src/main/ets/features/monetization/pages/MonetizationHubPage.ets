@@ -98,7 +98,10 @@ export struct MonetizationHubPage {
     try {
       this.getUIContext().getRouter().back()
     } catch (error) {
-      this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.REVIEW_HOME })
+      try {
+        this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.REVIEW_HOME })
+      } catch (innerError) {
+      }
     }
   }
 

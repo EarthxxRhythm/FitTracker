@@ -58,15 +58,27 @@ class ArkPreferencesContentSyncStore extends ContentSyncMetadataStore {
   }
 
   async get(key: string, defaultValue: string): Promise<string> {
-    return await this.prefs.get(key, defaultValue) as string
+    try {
+      return await this.prefs.get(key, defaultValue) as string
+    } catch (error) {
+      throw new Error('content_sync_store_get_failed')
+    }
   }
 
   async put(key: string, value: string): Promise<void> {
-    await this.prefs.put(key, value)
+    try {
+      await this.prefs.put(key, value)
+    } catch (error) {
+      throw new Error('content_sync_store_put_failed')
+    }
   }
 
   async flush(): Promise<void> {
-    await this.prefs.flush()
+    try {
+      await this.prefs.flush()
+    } catch (error) {
+      throw new Error('content_sync_store_flush_failed')
+    }
   }
 }
 
@@ -366,8 +378,12 @@ class SyncService {
     if (this.testStore !== null) {
       return this.testStore
     }
-    const prefs = await preferences.getPreferences(context, FitTrackerStores.CONTENT_SYNC)
-    return new ArkPreferencesContentSyncStore(prefs)
+    try {
+      const prefs = await preferences.getPreferences(context, FitTrackerStores.CONTENT_SYNC)
+      return new ArkPreferencesContentSyncStore(prefs)
+    } catch (error) {
+      throw new Error('content_sync_store_open_failed')
+    }
   }
 
   private getBundledPackage(): BundledContentSyncPackageData {
