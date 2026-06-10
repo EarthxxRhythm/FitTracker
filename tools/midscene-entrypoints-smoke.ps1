@@ -417,6 +417,7 @@ function Run-MembershipSmoke {
     -RetryAssertTitle "assert membership hub page after retry" `
     -RetryAssertPrompt "The membership page is visible. It shows a title for membership or entitlements, current entitlement status, product or tier cards, and there is no crash dialog."
 
+  Invoke-VisualAct -Title "scroll to membership preview section" -Prompt "On the membership page, scroll until the local entitlement preview section is fully visible. The section should show preview options for Free, Pro, and Plus together with the current entitlement status area."
   Invoke-VisualAssert -Title "assert membership preview section" -Prompt "The membership page shows a local entitlement preview section with options for Free, Pro, and Plus, and a current entitlement status area."
 
   Invoke-VisualActWithRetry `
