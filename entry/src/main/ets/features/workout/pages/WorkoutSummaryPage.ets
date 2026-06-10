@@ -574,6 +574,36 @@ export struct WorkoutSummaryPage {
   }
 
   @Builder
+  buildStageRail() {
+    Row({ space: SpacingTokens.SM }) {
+      this.buildStageChip('预览', false)
+      this.buildStageChip('执行', false)
+      this.buildStageChip('回顾', true)
+    }
+    .width('100%')
+  }
+
+  @Builder
+  buildStageChip(label: string, active: boolean) {
+    Text(label)
+      .fontSize(FontTokens.SMALL_SIZE)
+      .fontWeight(active ? FontWeight.Medium : FontTokens.SMALL_WEIGHT)
+      .fontColor(active ? ColorTokens.TEXT_PRIMARY : ColorTokens.TEXT_TERTIARY)
+      .padding({
+        top: SpacingTokens.XS,
+        bottom: SpacingTokens.XS,
+        left: SpacingTokens.SM,
+        right: SpacingTokens.SM
+      })
+      .backgroundColor(active ? ColorTokens.SURFACE_ELEVATED : ColorTokens.SURFACE_SECONDARY)
+      .borderRadius(RadiusTokens.FULL)
+      .border({
+        width: 1,
+        color: active ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
+      })
+  }
+
+  @Builder
   buildHeroSection() {
     AppCard({ variant: 'panel', cardPadding: 'default' }) {
       Column({ space: SpacingTokens.MD }) {
@@ -615,6 +645,8 @@ export struct WorkoutSummaryPage {
         .alignItems(VerticalAlign.Top)
 
         if (this.hasSession) {
+          this.buildStageRail()
+
           Text(this.getHeroSummary())
             .fontSize(FontTokens.CAPTION_SIZE)
             .fontColor(ColorTokens.TEXT_SECONDARY)
@@ -661,6 +693,7 @@ export struct WorkoutSummaryPage {
     .padding(SpacingTokens.MD)
     .backgroundColor(ColorTokens.SURFACE_SECONDARY)
     .borderRadius(RadiusTokens.MD)
+    .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
     .alignItems(HorizontalAlign.Start)
   }
 
