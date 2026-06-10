@@ -180,7 +180,11 @@ class ContentDatabaseServiceImpl {
       name: this.getStoreName(),
       securityLevel: relationalStore.SecurityLevel.S1
     }
-    return relationalStore.getRdbStore(context, config)
+    try {
+      return relationalStore.getRdbStore(context, config)
+    } catch (error) {
+      throw new Error('content_database_open_failed')
+    }
   }
 
   private getStoreName(): string {
@@ -203,24 +207,25 @@ class ContentDatabaseServiceImpl {
   }
 
   private async createTables(store: relationalStore.RdbStore): Promise<void> {
-    await store.executeSql('CREATE TABLE IF NOT EXISTS muscles (muscle_id TEXT PRIMARY KEY, name_zh TEXT NOT NULL, region TEXT NOT NULL)')
-    await store.executeSql('CREATE TABLE IF NOT EXISTS equipment (equipment_id TEXT PRIMARY KEY, name_zh TEXT NOT NULL, category TEXT)')
-    await store.executeSql('CREATE TABLE IF NOT EXISTS exercises (exercise_id TEXT PRIMARY KEY, name_zh TEXT NOT NULL, name_en TEXT NOT NULL, aliases_json TEXT NOT NULL, primary_muscle_ids_json TEXT NOT NULL, secondary_muscle_ids_json TEXT NOT NULL, equipment_ids_json TEXT NOT NULL, difficulty TEXT NOT NULL, goal_tags_json TEXT NOT NULL, video_url TEXT NOT NULL, cover_url TEXT NOT NULL, cover_source_label TEXT NOT NULL DEFAULT \'\', video_source_label TEXT NOT NULL DEFAULT \'\', media_license_text TEXT NOT NULL DEFAULT \'\', steps_json TEXT NOT NULL, cues_json TEXT NOT NULL, common_mistakes_json TEXT NOT NULL, safety_notes_json TEXT NOT NULL, alternative_exercise_ids_json TEXT NOT NULL, content_version INTEGER NOT NULL)')
+    await this.executeSql(store, 'CREATE TABLE IF NOT EXISTS muscles (muscle_id TEXT PRIMARY KEY, name_zh TEXT NOT NULL, region TEXT NOT NULL)')
+    await this.executeSql(store, 'CREATE TABLE IF NOT EXISTS equipment (equipment_id TEXT PRIMARY KEY, name_zh TEXT NOT NULL, category TEXT)')
+    await this.executeSql(store, 'CREATE TABLE IF NOT EXISTS exercises (exercise_id TEXT PRIMARY KEY, name_zh TEXT NOT NULL, name_en TEXT NOT NULL, aliases_json TEXT NOT NULL, primary_muscle_ids_json TEXT NOT NULL, secondary_muscle_ids_json TEXT NOT NULL, equipment_ids_json TEXT NOT NULL, difficulty TEXT NOT NULL, goal_tags_json TEXT NOT NULL, video_url TEXT NOT NULL, cover_url TEXT NOT NULL, cover_source_label TEXT NOT NULL DEFAULT \'\', video_source_label TEXT NOT NULL DEFAULT \'\', media_license_text TEXT NOT NULL DEFAULT \'\', steps_json TEXT NOT NULL, cues_json TEXT NOT NULL, common_mistakes_json TEXT NOT NULL, safety_notes_json TEXT NOT NULL, alternative_exercise_ids_json TEXT NOT NULL, content_version INTEGER NOT NULL)')
     await this.ensureExerciseColumns(store)
   }
 
   private async clearTables(store: relationalStore.RdbStore): Promise<void> {
-    await store.executeSql('DELETE FROM exercises')
-    await store.executeSql('DELETE FROM equipment')
-    await store.executeSql('DELETE FROM muscles')
+    await this.executeSql(store, 'DELETE FROM exercises')
+    await this.executeSql(store, 'DELETE FROM equipment')
+    await this.executeSql(store, 'DELETE FROM muscles')
   }
 
   private async insertMuscles(store: relationalStore.RdbStore, muscles: MuscleGroup[]): Promise<void> {
     for (let index = 0; index < muscles.length; index++) {
       const muscle: MuscleGroup = muscles[index]
-      await store.executeSql(
+      await this.executeSql(
+        store,
         'INSERT INTO muscles (muscle_id, name_zh, region) VALUES (?, ?, ?)',
-        [muscle.muscleId, muscle.nameZh, muscle.region]
+        [muscle.muscleId, muscle.nameZh, muscle.region],
       )
     }
   }
@@ -228,9 +233,10 @@ class ContentDatabaseServiceImpl {
   private async insertEquipment(store: relationalStore.RdbStore, equipment: EquipmentItem[]): Promise<void> {
     for (let index = 0; index < equipment.length; index++) {
       const item: EquipmentItem = equipment[index]
-      await store.executeSql(
+      await this.executeSql(
+        store,
         'INSERT INTO equipment (equipment_id, name_zh, category) VALUES (?, ?, ?)',
-        [item.equipmentId, item.nameZh, '']
+        [item.equipmentId, item.nameZh, ''],
       )
     }
   }
@@ -238,7 +244,8 @@ class ContentDatabaseServiceImpl {
   private async insertExercises(store: relationalStore.RdbStore, exercises: ExerciseContent[]): Promise<void> {
     for (let index = 0; index < exercises.length; index++) {
       const exercise: ExerciseContent = exercises[index]
-      await store.executeSql(
+      await this.executeSql(
+        store,
         'INSERT INTO exercises (exercise_id, name_zh, name_en, aliases_json, primary_muscle_ids_json, secondary_muscle_ids_json, equipment_ids_json, difficulty, goal_tags_json, video_url, cover_url, cover_source_label, video_source_label, media_license_text, steps_json, cues_json, common_mistakes_json, safety_notes_json, alternative_exercise_ids_json, content_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           exercise.exerciseId,
@@ -275,59 +282,68 @@ class ContentDatabaseServiceImpl {
 
   private async queryMuscles(store: relationalStore.RdbStore): Promise<MuscleGroup[]> {
     const rows: MuscleGroup[] = []
-    const resultSet: relationalStore.ResultSet = await store.querySql('SELECT muscle_id, name_zh, region FROM muscles ORDER BY muscle_id')
-    while (resultSet.goToNextRow()) {
-      rows.push(createMuscleGroup(
-        resultSet.getString(resultSet.getColumnIndex('muscle_id')),
-        resultSet.getString(resultSet.getColumnIndex('name_zh')),
-        resultSet.getString(resultSet.getColumnIndex('region'))
-      ))
+    const resultSet: relationalStore.ResultSet = await this.querySql(store, 'SELECT muscle_id, name_zh, region FROM muscles ORDER BY muscle_id')
+    try {
+      while (this.goToNextRow(resultSet)) {
+        rows.push(createMuscleGroup(
+          this.getStringColumn(resultSet, 'muscle_id'),
+          this.getStringColumn(resultSet, 'name_zh'),
+          this.getStringColumn(resultSet, 'region')
+        ))
+      }
+    } finally {
+      this.closeResultSet(resultSet)
     }
-    resultSet.close()
     return rows
   }
 
   private async queryEquipment(store: relationalStore.RdbStore): Promise<EquipmentItem[]> {
     const rows: EquipmentItem[] = []
-    const resultSet: relationalStore.ResultSet = await store.querySql('SELECT equipment_id, name_zh FROM equipment ORDER BY equipment_id')
-    while (resultSet.goToNextRow()) {
-      rows.push(createEquipmentItem(
-        resultSet.getString(resultSet.getColumnIndex('equipment_id')),
-        resultSet.getString(resultSet.getColumnIndex('name_zh'))
-      ))
+    const resultSet: relationalStore.ResultSet = await this.querySql(store, 'SELECT equipment_id, name_zh FROM equipment ORDER BY equipment_id')
+    try {
+      while (this.goToNextRow(resultSet)) {
+        rows.push(createEquipmentItem(
+          this.getStringColumn(resultSet, 'equipment_id'),
+          this.getStringColumn(resultSet, 'name_zh')
+        ))
+      }
+    } finally {
+      this.closeResultSet(resultSet)
     }
-    resultSet.close()
     return rows
   }
 
   private async queryExercises(store: relationalStore.RdbStore): Promise<ExerciseContent[]> {
     const rows: ExerciseContent[] = []
-    const resultSet: relationalStore.ResultSet = await store.querySql('SELECT exercise_id, name_zh, name_en, aliases_json, primary_muscle_ids_json, secondary_muscle_ids_json, equipment_ids_json, difficulty, goal_tags_json, video_url, cover_url, cover_source_label, video_source_label, media_license_text, steps_json, cues_json, common_mistakes_json, safety_notes_json, alternative_exercise_ids_json, content_version FROM exercises ORDER BY exercise_id')
-    while (resultSet.goToNextRow()) {
-      rows.push(createExerciseContent(
-        resultSet.getString(resultSet.getColumnIndex('exercise_id')),
-        resultSet.getString(resultSet.getColumnIndex('name_zh')),
-        resultSet.getString(resultSet.getColumnIndex('name_en')),
-        this.decodeStringArray(resultSet.getString(resultSet.getColumnIndex('aliases_json'))),
-        this.decodeStringArray(resultSet.getString(resultSet.getColumnIndex('primary_muscle_ids_json'))),
-        this.decodeStringArray(resultSet.getString(resultSet.getColumnIndex('secondary_muscle_ids_json'))),
-        this.decodeStringArray(resultSet.getString(resultSet.getColumnIndex('equipment_ids_json'))),
-        resultSet.getString(resultSet.getColumnIndex('difficulty')),
-        this.decodeStringArray(resultSet.getString(resultSet.getColumnIndex('goal_tags_json'))),
-        resultSet.getString(resultSet.getColumnIndex('video_url')),
-        resultSet.getString(resultSet.getColumnIndex('cover_url')),
-        resultSet.getString(resultSet.getColumnIndex('cover_source_label')),
-        resultSet.getString(resultSet.getColumnIndex('video_source_label')),
-        resultSet.getString(resultSet.getColumnIndex('media_license_text')),
-        this.decodeStringArray(resultSet.getString(resultSet.getColumnIndex('steps_json'))),
-        this.decodeStringArray(resultSet.getString(resultSet.getColumnIndex('cues_json'))),
-        this.decodeStringArray(resultSet.getString(resultSet.getColumnIndex('common_mistakes_json'))),
-        this.decodeStringArray(resultSet.getString(resultSet.getColumnIndex('safety_notes_json'))),
-        this.decodeStringArray(resultSet.getString(resultSet.getColumnIndex('alternative_exercise_ids_json'))),
-        Number(resultSet.getLong(resultSet.getColumnIndex('content_version')))
-      ))
+    const resultSet: relationalStore.ResultSet = await this.querySql(store, 'SELECT exercise_id, name_zh, name_en, aliases_json, primary_muscle_ids_json, secondary_muscle_ids_json, equipment_ids_json, difficulty, goal_tags_json, video_url, cover_url, cover_source_label, video_source_label, media_license_text, steps_json, cues_json, common_mistakes_json, safety_notes_json, alternative_exercise_ids_json, content_version FROM exercises ORDER BY exercise_id')
+    try {
+      while (this.goToNextRow(resultSet)) {
+        rows.push(createExerciseContent(
+          this.getStringColumn(resultSet, 'exercise_id'),
+          this.getStringColumn(resultSet, 'name_zh'),
+          this.getStringColumn(resultSet, 'name_en'),
+          this.decodeStringArray(this.getStringColumn(resultSet, 'aliases_json')),
+          this.decodeStringArray(this.getStringColumn(resultSet, 'primary_muscle_ids_json')),
+          this.decodeStringArray(this.getStringColumn(resultSet, 'secondary_muscle_ids_json')),
+          this.decodeStringArray(this.getStringColumn(resultSet, 'equipment_ids_json')),
+          this.getStringColumn(resultSet, 'difficulty'),
+          this.decodeStringArray(this.getStringColumn(resultSet, 'goal_tags_json')),
+          this.getStringColumn(resultSet, 'video_url'),
+          this.getStringColumn(resultSet, 'cover_url'),
+          this.getStringColumn(resultSet, 'cover_source_label'),
+          this.getStringColumn(resultSet, 'video_source_label'),
+          this.getStringColumn(resultSet, 'media_license_text'),
+          this.decodeStringArray(this.getStringColumn(resultSet, 'steps_json')),
+          this.decodeStringArray(this.getStringColumn(resultSet, 'cues_json')),
+          this.decodeStringArray(this.getStringColumn(resultSet, 'common_mistakes_json')),
+          this.decodeStringArray(this.getStringColumn(resultSet, 'safety_notes_json')),
+          this.decodeStringArray(this.getStringColumn(resultSet, 'alternative_exercise_ids_json')),
+          Number(this.getLongColumn(resultSet, 'content_version'))
+        ))
+      }
+    } finally {
+      this.closeResultSet(resultSet)
     }
-    resultSet.close()
     return rows
   }
 
@@ -343,7 +359,62 @@ class ContentDatabaseServiceImpl {
     columnDefinition: string
   ): Promise<void> {
     try {
-      await store.executeSql('ALTER TABLE exercises ADD COLUMN ' + columnName + ' ' + columnDefinition)
+      await this.executeSql(store, 'ALTER TABLE exercises ADD COLUMN ' + columnName + ' ' + columnDefinition)
+    } catch (error) {
+    }
+  }
+
+  private async executeSql(
+    store: relationalStore.RdbStore,
+    sql: string,
+    bindArgs?: relationalStore.ValueType[]
+  ): Promise<void> {
+    try {
+      if (bindArgs === undefined) {
+        await store.executeSql(sql)
+        return
+      }
+      await store.executeSql(sql, bindArgs)
+    } catch (error) {
+      throw new Error('content_database_sql_failed')
+    }
+  }
+
+  private async querySql(store: relationalStore.RdbStore, sql: string): Promise<relationalStore.ResultSet> {
+    try {
+      return await store.querySql(sql)
+    } catch (error) {
+      throw new Error('content_database_query_failed')
+    }
+  }
+
+  private goToNextRow(resultSet: relationalStore.ResultSet): boolean {
+    try {
+      return resultSet.goToNextRow()
+    } catch (error) {
+      throw new Error('content_database_cursor_failed')
+    }
+  }
+
+  private getStringColumn(resultSet: relationalStore.ResultSet, columnName: string): string {
+    try {
+      return resultSet.getString(resultSet.getColumnIndex(columnName))
+    } catch (error) {
+      throw new Error('content_database_read_failed')
+    }
+  }
+
+  private getLongColumn(resultSet: relationalStore.ResultSet, columnName: string): number {
+    try {
+      return resultSet.getLong(resultSet.getColumnIndex(columnName))
+    } catch (error) {
+      throw new Error('content_database_read_failed')
+    }
+  }
+
+  private closeResultSet(resultSet: relationalStore.ResultSet): void {
+    try {
+      resultSet.close()
     } catch (error) {
     }
   }

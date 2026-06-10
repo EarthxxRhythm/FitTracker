@@ -23,7 +23,7 @@ import AdvancedPlanVariantsService, {
 
 @Entry
 @Component
-export struct TrainingPlanDetailPage {
+struct TrainingPlanDetailPage {
   @State loading: boolean = true
   @State enabling: boolean = false
   @State enablingVariantId: string = ''
