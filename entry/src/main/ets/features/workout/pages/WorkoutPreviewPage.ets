@@ -188,29 +188,36 @@ export struct WorkoutPreviewPage {
 
   getPreviewSubtitle(): string {
     if (this.loading) {
-      return '正在整理今天的训练安排与动作明细'
+      return '\u6b63\u5728\u6574\u7406\u4eca\u5929\u7684\u8bad\u7ec3\u5b89\u6392\u4e0e\u52a8\u4f5c\u660e\u7ec6'
     }
     if (!this.hasGoal) {
-      return '先设定训练目标，系统才会生成今天的训练预览'
+      return '\u5148\u8bbe\u5b9a\u8bad\u7ec3\u76ee\u6807\uff0c\u7cfb\u7edf\u624d\u4f1a\u751f\u6210\u4eca\u5929\u7684\u8bad\u7ec3\u9884\u89c8'
     }
     if (!this.hasWorkout) {
-      return '当前计划没有可执行动作，先回到目标设置调整范围'
+      return '\u5f53\u524d\u8ba1\u5212\u6ca1\u6709\u53ef\u6267\u884c\u52a8\u4f5c\uff0c\u53ef\u4ee5\u5148\u8fd4\u56de\u76ee\u6807\u8bbe\u7f6e\u8c03\u6574\u8303\u56f4'
     }
-    return '开始前先确认主动作、组数、强度和替代动作'
+    return '\u5148\u786e\u8ba4\u4eca\u65e5\u8bad\u7ec3\u5185\u5bb9\uff0c\u518d\u8fdb\u5165\u6b63\u5f0f\u8bb0\u5f55'
+  }
+
+  getPreviewHeroEyebrow(): string {
+    if (this.usesCurrentPlan) {
+      return '\u5f53\u524d\u542f\u7528\u8ba1\u5212'
+    }
+    return '\u8bad\u7ec3\u524d\u786e\u8ba4'
   }
 
   getPlanSourceText(): string {
     if (this.usesCurrentPlan) {
-      return '当前启用计划'
+      return '\u5f53\u524d\u542f\u7528\u8ba1\u5212'
     }
-    return '今日生成计划'
+    return '\u4eca\u65e5\u751f\u6210\u8ba1\u5212'
   }
 
   getPreviewStatusText(): string {
     if (this.hasFallback) {
-      return '存在替代提示'
+      return '\u6709\u5907\u9009\u63d0\u793a'
     }
-    return '可直接开始'
+    return '\u53ef\u76f4\u63a5\u5f00\u59cb'
   }
 
   getPreviewStatusColor(): string {
@@ -229,10 +236,10 @@ export struct WorkoutPreviewPage {
 
   getDayBadgeText(): string {
     if (this.dayId.indexOf('current_plan_day_') === 0) {
-      return '第 ' + this.dayId.substring('current_plan_day_'.length) + ' 天'
+      return '\u7b2c ' + this.dayId.substring('current_plan_day_'.length) + ' \u5929'
     }
     if (this.dayId.indexOf('day_') === 0) {
-      return '第 ' + this.dayId.substring('day_'.length) + ' 天'
+      return '\u7b2c ' + this.dayId.substring('day_'.length) + ' \u5929'
     }
     if (this.dayId.length > 0) {
       return this.dayId
@@ -241,20 +248,42 @@ export struct WorkoutPreviewPage {
   }
 
   getFallbackBannerText(): string {
-    if (this.fallbackNote === '预置计划动作暂未映射到动作库，将按名称记录') {
-      return '部分动作暂未收录详情，本次可先按计划完成记录。'
+    if (this.fallbackNote.length === 0) {
+      return '\u90e8\u5206\u52a8\u4f5c\u6682\u672a\u6536\u5f55\u8be6\u60c5\uff0c\u672c\u6b21\u53ef\u5148\u6309\u8ba1\u5212\u5b8c\u6210\u8bb0\u5f55\u3002'
     }
     return this.fallbackNote
   }
 
   getExerciseSelectionText(exercise: WorkoutPreviewExercise): string {
-    if (exercise.selectionNote === '预置计划动作暂未映射到动作库，将按名称记录') {
-      return '动作详情整理中，本次可先按计划完成记录。'
-    }
-    if (exercise.selectionNote === '预置计划动作已映射到动作库，可继续查看动作详情') {
+    if (exercise.selectionNote.length === 0 || exercise.hasExerciseDetail) {
       return ''
     }
     return exercise.selectionNote
+  }
+
+  getExerciseSectionTitle(): string {
+    if (this.usesCurrentPlan) {
+      return '\u4eca\u65e5\u52a8\u4f5c\u5b89\u6392'
+    }
+    return '\u672c\u6b21\u8bad\u7ec3\u52a8\u4f5c'
+  }
+
+  getExerciseSectionSubtitle(): string {
+    if (this.hasFallback) {
+      return '\u4f18\u5148\u5b8c\u6210\u4e3b\u8981\u52a8\u4f5c\uff0c\u672a\u6536\u5f55\u8be6\u60c5\u7684\u5185\u5bb9\u53ef\u5148\u6309\u8ba1\u5212\u8bb0\u5f55\u3002'
+    }
+    return '\u6309\u987a\u5e8f\u5b8c\u6210\u52a8\u4f5c\uff0c\u5f00\u59cb\u524d\u53ef\u5148\u67e5\u770b\u8be6\u60c5\u4e0e\u66ff\u4ee3\u52a8\u4f5c\u3002'
+  }
+
+  getExercisePrescriptionText(exercise: WorkoutPreviewExercise): string {
+    return exercise.targetSets.toString() + ' \u7ec4 x ' + exercise.targetReps + ' \u6b21 | ' + exercise.intensityNote
+  }
+
+  getExerciseDetailButtonText(exercise: WorkoutPreviewExercise): string {
+    if (this.shouldShowExerciseDetailButton(exercise)) {
+      return '\u67e5\u770b\u52a8\u4f5c\u8be6\u60c5'
+    }
+    return '\u8be6\u60c5\u6574\u7406\u4e2d'
   }
 
   shouldShowExerciseDetailButton(exercise: WorkoutPreviewExercise): boolean {
@@ -266,12 +295,12 @@ export struct WorkoutPreviewPage {
       Column({ space: SpacingTokens.LG }) {
         AppCard({ variant: 'panel', cardPadding: 'default' }) {
           Column({ space: SpacingTokens.SM }) {
-            Text('训练前确认')
+            Text(this.getPreviewHeroEyebrow())
               .fontSize(FontTokens.MICRO_SIZE)
               .fontWeight(FontTokens.MICRO_WEIGHT)
               .fontColor(ColorTokens.TEXT_TERTIARY)
 
-            Text('训练预览')
+            Text('\u8bad\u7ec3\u9884\u89c8')
               .fontSize(FontTokens.DISPLAY_SIZE)
               .fontWeight(FontTokens.DISPLAY_WEIGHT)
               .fontColor(ColorTokens.TEXT_PRIMARY)
@@ -287,17 +316,17 @@ export struct WorkoutPreviewPage {
         if (!this.loading && !this.hasGoal) {
           AppCard({ variant: 'outlined', cardPadding: 'default' }) {
             Column({ space: SpacingTokens.MD }) {
-              Text('还没有训练目标')
+              Text('\u8fd8\u6ca1\u6709\u8bad\u7ec3\u76ee\u6807')
                 .fontSize(FontTokens.TITLE_SIZE)
                 .fontWeight(FontWeight.Bold)
                 .fontColor(ColorTokens.TEXT_PRIMARY)
 
-              Text('先完成目标设置，再生成今天的训练预览。')
+              Text('\u5148\u5b8c\u6210\u76ee\u6807\u8bbe\u7f6e\uff0c\u518d\u751f\u6210\u4eca\u5929\u7684\u8bad\u7ec3\u9884\u89c8\u3002')
                 .fontSize(FontTokens.BODY_SIZE)
                 .fontColor(ColorTokens.TEXT_SECONDARY)
 
               AppButton({
-                text: '设置训练目标',
+                text: '\u8bbe\u7f6e\u8bad\u7ec3\u76ee\u6807',
                 type: 'primary',
                 buttonSize: 'large',
                 block: true,
@@ -314,17 +343,17 @@ export struct WorkoutPreviewPage {
         if (!this.loading && this.hasGoal && !this.hasWorkout) {
           AppCard({ variant: 'outlined', cardPadding: 'default' }) {
             Column({ space: SpacingTokens.MD }) {
-              Text('今天没有可用训练')
+              Text('\u4eca\u5929\u6ca1\u6709\u53ef\u7528\u8bad\u7ec3')
                 .fontSize(FontTokens.TITLE_SIZE)
                 .fontWeight(FontWeight.Bold)
                 .fontColor(ColorTokens.TEXT_PRIMARY)
 
-              Text('当前目标生成的计划没有匹配动作，可以先回到目标设置调整训练范围。')
+              Text('\u5f53\u524d\u76ee\u6807\u751f\u6210\u7684\u8ba1\u5212\u6ca1\u6709\u5339\u914d\u52a8\u4f5c\uff0c\u53ef\u4ee5\u5148\u56de\u5230\u76ee\u6807\u8bbe\u7f6e\u8c03\u6574\u8bad\u7ec3\u8303\u56f4\u3002')
                 .fontSize(FontTokens.BODY_SIZE)
                 .fontColor(ColorTokens.TEXT_SECONDARY)
 
               AppButton({
-                text: '调整目标',
+                text: '\u8c03\u6574\u76ee\u6807',
                 type: 'primary',
                 buttonSize: 'large',
                 block: true,
@@ -386,12 +415,22 @@ export struct WorkoutPreviewPage {
                     .fontWeight(FontWeight.Bold)
                     .fontColor(ColorTokens.TEXT_PRIMARY)
 
-                  Text('确认今天的训练安排后再进入正式记录')
+                  Text('\u786e\u8ba4\u8bad\u7ec3\u8282\u594f\u4e0e\u52a8\u4f5c\u5b89\u6392\u540e\uff0c\u518d\u8fdb\u5165\u6b63\u5f0f\u8bb0\u5f55')
                     .fontSize(FontTokens.SMALL_SIZE)
                     .fontColor(ColorTokens.TEXT_TERTIARY)
                 }
                 .width('100%')
                 .alignItems(HorizontalAlign.Start)
+
+                AppButton({
+                  text: '\u5f00\u59cb\u8bad\u7ec3',
+                  type: 'primary',
+                  buttonSize: 'large',
+                  block: true,
+                  onButtonClick: () => {
+                    this.startWorkout()
+                  }
+                })
 
                 Row({ space: SpacingTokens.SM }) {
                   Column({ space: SpacingTokens.XS }) {
@@ -400,7 +439,7 @@ export struct WorkoutPreviewPage {
                       .fontWeight(FontWeight.Bold)
                       .fontColor(ColorTokens.DATA_HIGHLIGHT)
 
-                    Text('计划动作数')
+                    Text('\u8ba1\u5212\u52a8\u4f5c\u6570')
                       .fontSize(FontTokens.SMALL_SIZE)
                       .fontColor(ColorTokens.TEXT_TERTIARY)
                   }
@@ -419,7 +458,7 @@ export struct WorkoutPreviewPage {
                       .maxLines(1)
                       .textOverflow({ overflow: TextOverflow.Ellipsis })
 
-                    Text('训练日')
+                    Text('\u8bad\u7ec3\u65e5')
                       .fontSize(FontTokens.SMALL_SIZE)
                       .fontColor(ColorTokens.TEXT_TERTIARY)
                   }
@@ -434,7 +473,7 @@ export struct WorkoutPreviewPage {
 
                 if (this.hasFallback) {
                   Column({ space: SpacingTokens.XS }) {
-                    Text('替代动作提示')
+                    Text('\u5907\u9009\u52a8\u4f5c\u63d0\u793a')
                       .fontSize(FontTokens.MICRO_SIZE)
                       .fontWeight(FontTokens.MICRO_WEIGHT)
                       .fontColor(ColorTokens.WARNING)
@@ -450,20 +489,23 @@ export struct WorkoutPreviewPage {
                   .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
                   .alignItems(HorizontalAlign.Start)
                 }
-
-                AppButton({
-                  text: '开始训练',
-                  type: 'primary',
-                  buttonSize: 'large',
-                  block: true,
-                  onButtonClick: () => {
-                    this.startWorkout()
-                  }
-                })
               }
               .width('100%')
               .alignItems(HorizontalAlign.Start)
             }
+
+            Column({ space: SpacingTokens.XS }) {
+              Text(this.getExerciseSectionTitle())
+                .fontSize(FontTokens.TITLE_SIZE)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+
+              Text(this.getExerciseSectionSubtitle())
+                .fontSize(FontTokens.SMALL_SIZE)
+                .fontColor(ColorTokens.TEXT_TERTIARY)
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
 
             ForEach(this.exercises, (exercise: WorkoutPreviewExercise, index: number) => {
               AppCard({ variant: 'outlined', cardPadding: 'default' }) {
@@ -484,7 +526,7 @@ export struct WorkoutPreviewPage {
                         .fontWeight(FontWeight.Medium)
                         .fontColor(ColorTokens.TEXT_PRIMARY)
 
-                      Text(exercise.targetSets.toString() + ' 组 x ' + exercise.targetReps + ' | ' + exercise.intensityNote)
+                      Text(this.getExercisePrescriptionText(exercise))
                         .fontSize(FontTokens.CAPTION_SIZE)
                         .fontColor(ColorTokens.TEXT_SECONDARY)
                     }
@@ -496,7 +538,7 @@ export struct WorkoutPreviewPage {
 
                   if (this.getExerciseSelectionText(exercise).length > 0) {
                     Column({ space: SpacingTokens.XS }) {
-                      Text('动作说明')
+                      Text('\u52a8\u4f5c\u8bf4\u660e')
                         .fontSize(FontTokens.MICRO_SIZE)
                         .fontWeight(FontTokens.MICRO_WEIGHT)
                         .fontColor(ColorTokens.TEXT_TERTIARY)
@@ -515,7 +557,7 @@ export struct WorkoutPreviewPage {
 
                   if (exercise.alternativeNames.length > 0) {
                     Column({ space: SpacingTokens.XS }) {
-                      Text('替代动作')
+                      Text('\u66ff\u4ee3\u52a8\u4f5c')
                         .fontSize(FontTokens.MICRO_SIZE)
                         .fontWeight(FontTokens.MICRO_WEIGHT)
                         .fontColor(ColorTokens.TEXT_TERTIARY)
@@ -544,7 +586,7 @@ export struct WorkoutPreviewPage {
                   }
 
                   AppButton({
-                    text: '查看动作详情',
+                    text: this.getExerciseDetailButtonText(exercise),
                     type: 'secondary',
                     buttonSize: 'small',
                     disabled: !this.shouldShowExerciseDetailButton(exercise),

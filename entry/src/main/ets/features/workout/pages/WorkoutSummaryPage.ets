@@ -569,7 +569,7 @@ export struct WorkoutSummaryPage {
               .fontSize(FontTokens.BODY_SIZE)
               .fontColor(ColorTokens.TEXT_SECONDARY)
               .lineHeight(FontTokens.BODY_LINE_HEIGHT)
-        }
+          }
           .layoutWeight(1)
           .alignItems(HorizontalAlign.Start)
 
@@ -847,44 +847,6 @@ export struct WorkoutSummaryPage {
   }
 
   @Builder
-  buildMetadataSection() {
-    AppCard({ variant: 'outlined', cardPadding: 'compact' }) {
-      Column({ space: SpacingTokens.SM }) {
-        Text('记录元信息')
-          .fontSize(FontTokens.CAPTION_SIZE)
-          .fontWeight(FontTokens.TITLE_WEIGHT)
-          .fontColor(ColorTokens.TEXT_PRIMARY)
-
-        this.buildInfoRow('记录编号', this.sessionId)
-        this.buildInfoRow('训练日', this.getDayLabel())
-        this.buildInfoRow('训练时长', this.durationText)
-        this.buildInfoRow('训练量', this.getVolumeText())
-      }
-      .width('100%')
-      .alignItems(HorizontalAlign.Start)
-    }
-  }
-
-  @Builder
-  buildInfoRow(label: string, value: string) {
-    Row() {
-      Text(label)
-        .fontSize(FontTokens.SMALL_SIZE)
-        .fontColor(ColorTokens.TEXT_TERTIARY)
-        .width(72)
-
-      Text(value)
-        .fontSize(FontTokens.CAPTION_SIZE)
-        .fontColor(ColorTokens.TEXT_SECONDARY)
-        .layoutWeight(1)
-        .maxLines(3)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-    }
-    .width('100%')
-    .alignItems(VerticalAlign.Top)
-  }
-
-  @Builder
   buildActionSection() {
     AppCard({ variant: 'outlined', cardPadding: 'default' }) {
       Column({ space: SpacingTokens.MD }) {
@@ -922,6 +884,44 @@ export struct WorkoutSummaryPage {
       .width('100%')
       .alignItems(HorizontalAlign.Start)
     }
+  }
+
+  @Builder
+  buildMetadataSection() {
+    AppCard({ variant: 'outlined', cardPadding: 'compact' }) {
+      Column({ space: SpacingTokens.SM }) {
+        Text('记录元信息')
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontWeight(FontTokens.TITLE_WEIGHT)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+
+        this.buildInfoRow('记录编号', this.sessionId)
+        this.buildInfoRow('训练日', this.getDayLabel())
+        this.buildInfoRow('训练时长', this.durationText)
+        this.buildInfoRow('训练量', this.getVolumeText())
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
+  }
+
+  @Builder
+  buildInfoRow(label: string, value: string) {
+    Row() {
+      Text(label)
+        .fontSize(FontTokens.SMALL_SIZE)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
+        .width(72)
+
+      Text(value)
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .layoutWeight(1)
+        .maxLines(3)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+    }
+    .width('100%')
+    .alignItems(VerticalAlign.Top)
   }
 
   @Builder
@@ -987,7 +987,7 @@ export struct WorkoutSummaryPage {
     Column({ space: SpacingTokens.SM }) {
       Row() {
         Column({ space: SpacingTokens.XS }) {
-          Text(this.getExerciseName(set.exerciseId) + ' · 第 ' + displayIndex.toString() + ' 组')
+          Text(this.getExerciseName(set.exerciseId) + ' | 第 ' + displayIndex.toString() + ' 组')
             .fontSize(FontTokens.BODY_BOLD_SIZE)
             .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
             .fontColor(ColorTokens.TEXT_PRIMARY)
@@ -1069,73 +1069,85 @@ export struct WorkoutSummaryPage {
   @Builder
   buildUndoShell() {
     if (this.showUndoConfirm) {
-      Column({ space: SpacingTokens.MD }) {
-        Text('撤销本次保存')
-          .fontSize(FontTokens.TITLE_SIZE)
-          .fontWeight(FontTokens.TITLE_WEIGHT)
-          .fontColor(ColorTokens.TEXT_PRIMARY)
+      AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+        Column({ space: SpacingTokens.MD }) {
+          Text('撤销本次保存')
+            .fontSize(FontTokens.TITLE_SIZE)
+            .fontWeight(FontTokens.TITLE_WEIGHT)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
 
-        Text(this.getUndoDescriptionText())
-          .fontSize(FontTokens.BODY_SIZE)
-          .fontColor(ColorTokens.TEXT_SECONDARY)
-          .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+          Text(this.getUndoDescriptionText())
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+            .lineHeight(FontTokens.BODY_LINE_HEIGHT)
 
-        this.buildInfoRow('记录编号', this.sessionId)
+          this.buildInfoRow('记录编号', this.sessionId)
 
-        AppButton({
-          text: this.undoingSession ? '撤销中...' : '确认撤销',
-          type: 'primary',
-          buttonSize: 'large',
-          block: true,
-          loading: this.undoingSession,
-          onButtonClick: () => {
-            this.confirmUndoSave()
-          }
-        })
+          AppButton({
+            text: this.undoingSession ? '撤销中...' : '确认撤销',
+            type: 'primary',
+            buttonSize: 'large',
+            block: true,
+            loading: this.undoingSession,
+            onButtonClick: () => {
+              this.confirmUndoSave()
+            }
+          })
 
-        AppButton({
-          text: '先保留记录',
-          type: 'secondary',
-          buttonSize: 'large',
-          block: true,
-          disabled: this.undoingSession,
-          onButtonClick: () => {
-            this.hideUndoPanel()
-          }
-        })
+          AppButton({
+            text: '先保留记录',
+            type: 'secondary',
+            buttonSize: 'large',
+            block: true,
+            disabled: this.undoingSession,
+            onButtonClick: () => {
+              this.hideUndoPanel()
+            }
+          })
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Start)
       }
-      .width('100%')
-      .padding(SpacingTokens.LG)
-      .backgroundColor(ColorTokens.WARNING_BG)
-      .borderRadius(RadiusTokens.MD)
-      .alignItems(HorizontalAlign.Start)
     }
   }
 
   @Builder
   buildNextStepSection() {
-    Column({ space: SpacingTokens.SM }) {
-      AppButton({
-        text: '查看训练回顾',
-        type: 'primary',
-        buttonSize: 'large',
-        block: true,
-        onButtonClick: () => {
-          this.openReview()
-        }
-      })
+    AppCard({ variant: 'panel', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.SM }) {
+        Text('下一步')
+          .fontSize(FontTokens.TITLE_SIZE)
+          .fontWeight(FontTokens.TITLE_WEIGHT)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
 
-      AppButton({
-        text: '回到首页',
-        type: 'secondary',
-        buttonSize: 'large',
-        block: true,
-        onButtonClick: () => {
-          this.openHome()
-        }
-      })
+        Text('确认记录无误后，可以直接进入训练回顾，或先回到首页继续下一轮安排。')
+          .fontSize(FontTokens.SMALL_SIZE)
+          .fontColor(ColorTokens.TEXT_TERTIARY)
+          .lineHeight(FontTokens.SMALL_LINE_HEIGHT)
+
+        AppButton({
+          text: '查看训练回顾',
+          type: 'primary',
+          buttonSize: 'large',
+          block: true,
+          onButtonClick: () => {
+            this.openReview()
+          }
+        })
+
+        AppButton({
+          text: '回到首页',
+          type: 'secondary',
+          buttonSize: 'large',
+          block: true,
+          onButtonClick: () => {
+            this.openHome()
+          }
+        })
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
     }
-    .width('100%')
   }
 
   build() {
@@ -1154,7 +1166,6 @@ export struct WorkoutSummaryPage {
         if (!this.loading && this.hasSession) {
           this.buildProgressSection()
           this.buildRecordSection()
-          this.buildMetadataSection()
           this.buildActionSection()
 
           if (this.isEditMode) {
@@ -1162,6 +1173,7 @@ export struct WorkoutSummaryPage {
           }
 
           this.buildUndoShell()
+          this.buildMetadataSection()
           this.buildNextStepSection()
         }
       }

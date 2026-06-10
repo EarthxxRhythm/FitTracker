@@ -264,7 +264,7 @@ export struct ActiveWorkoutPage {
   }
 
   getProgressText(): string {
-    return this.completedSets.toString() + '/' + this.totalTargetSets.toString() + ' 组'
+    return this.completedSets.toString() + '/' + this.totalTargetSets.toString() + ' \u7ec4'
   }
 
   getProgressWidth(): string {
@@ -287,15 +287,55 @@ export struct ActiveWorkoutPage {
 
   getPageSubtitle(): string {
     if (this.loading) {
-      return '正在校准训练面板与当前动作'
+      return '\u6b63\u5728\u6821\u51c6\u8bad\u7ec3\u9762\u677f\u4e0e\u5f53\u524d\u52a8\u4f5c'
     }
     if (!this.hasGoal) {
-      return '先完成目标设定，再进入训练执行'
+      return '\u5148\u5b8c\u6210\u76ee\u6807\u8bbe\u5b9a\uff0c\u518d\u8fdb\u5165\u8bad\u7ec3\u6267\u884c'
     }
     if (!this.hasWorkout) {
-      return '当前没有可执行训练，请先调整目标或计划'
+      return '\u5f53\u524d\u6ca1\u6709\u53ef\u6267\u884c\u8bad\u7ec3\uff0c\u8bf7\u5148\u8c03\u6574\u76ee\u6807\u6216\u8ba1\u5212'
     }
-    return '保持节奏，逐组记录，训练结束后进入复盘'
+    return '\u4fdd\u6301\u8282\u594f\uff0c\u9010\u7ec4\u8bb0\u5f55\uff0c\u8bad\u7ec3\u7ed3\u675f\u540e\u8fdb\u5165\u590d\u76d8'
+  }
+
+  getHeroEyebrow(): string {
+    if (this.loading) {
+      return '\u6b63\u5728\u51c6\u5907'
+    }
+    if (!this.hasGoal) {
+      return '\u8bad\u7ec3\u6267\u884c'
+    }
+    if (!this.hasWorkout) {
+      return '\u4eca\u65e5\u8c03\u6574'
+    }
+    return '\u8bad\u7ec3\u8fdb\u884c\u4e2d'
+  }
+
+  getHeroTitle(): string {
+    if (this.loading) {
+      return '\u8bad\u7ec3\u63a7\u5236\u53f0'
+    }
+    if (!this.hasGoal) {
+      return '\u5148\u8bbe\u5b9a\u4eca\u65e5\u8bad\u7ec3'
+    }
+    if (!this.hasWorkout) {
+      return '\u4eca\u5929\u6682\u65e0\u53ef\u6267\u884c\u52a8\u4f5c'
+    }
+    return this.title
+  }
+
+  getHeroDescription(): string {
+    if (this.loading) {
+      return '\u6b63\u5728\u8bfb\u53d6\u4eca\u65e5\u8bad\u7ec3\u5b89\u6392\u3001\u8fdb\u5ea6\u548c\u5f53\u524d\u52a8\u4f5c\u3002'
+    }
+    if (!this.hasGoal) {
+      return '\u5b8c\u6210\u76ee\u6807\u8bbe\u7f6e\u540e\uff0c\u7cfb\u7edf\u624d\u4f1a\u751f\u6210\u8bad\u7ec3\u6267\u884c\u9762\u677f\u3002'
+    }
+    if (!this.hasWorkout) {
+      return '\u5f53\u524d\u8ba1\u5212\u6ca1\u6709\u5339\u914d\u5230\u53ef\u6267\u884c\u52a8\u4f5c\uff0c\u53ef\u4ee5\u8fd4\u56de\u8c03\u6574\u76ee\u6807\u4e0e\u5668\u68b0\u8303\u56f4\u3002'
+    }
+    return '\u5f53\u524d\u91cd\u70b9\uff1a' + this.getCurrentExerciseNameText() + ' | ' +
+      this.getCurrentExerciseGuidanceText()
   }
 
   getCurrentExerciseIndexText(): string {
@@ -310,14 +350,34 @@ export struct ActiveWorkoutPage {
     return this.exercises.length.toString() + '/' + this.exercises.length.toString()
   }
 
-  getSessionStatusText(): string {
-    if (!this.hasWorkout) {
-      return '待校准'
+  getCurrentExerciseNameText(): string {
+    if (this.currentExerciseName.length > 0) {
+      return this.currentExerciseName
     }
     if (this.completedSets >= this.totalTargetSets && this.totalTargetSets > 0) {
-      return '可收官'
+      return '\u5168\u90e8\u52a8\u4f5c\u5df2\u5b8c\u6210'
     }
-    return '进行中'
+    return '\u6b63\u5728\u8bfb\u53d6\u5f53\u524d\u52a8\u4f5c'
+  }
+
+  getCurrentExerciseGuidanceText(): string {
+    if (this.currentExerciseSetProgress.length > 0) {
+      return this.currentExerciseSetProgress
+    }
+    if (this.completedSets >= this.totalTargetSets && this.totalTargetSets > 0) {
+      return '\u53ef\u4ee5\u76f4\u63a5\u4fdd\u5b58\u672c\u6b21\u8bad\u7ec3'
+    }
+    return '\u4ece\u7b2c\u4e00\u7ec4\u5f00\u59cb\u8bb0\u5f55'
+  }
+
+  getSessionStatusText(): string {
+    if (!this.hasWorkout) {
+      return '\u5f85\u6821\u51c6'
+    }
+    if (this.completedSets >= this.totalTargetSets && this.totalTargetSets > 0) {
+      return '\u53ef\u6536\u5b98'
+    }
+    return '\u8fdb\u884c\u4e2d'
   }
 
   getSessionStatusColor(): string {
@@ -341,7 +401,7 @@ export struct ActiveWorkoutPage {
   }
 
   getExerciseStatusText(exercise: ActiveWorkoutExercise): string {
-    return exercise.completedSets.toString() + '/' + exercise.targetSets.toString() + ' 组'
+    return exercise.completedSets.toString() + '/' + exercise.targetSets.toString() + ' \u7ec4'
   }
 
   getExerciseProgressWidth(exercise: ActiveWorkoutExercise): string {
@@ -350,6 +410,50 @@ export struct ActiveWorkoutPage {
     }
     const percent: number = Math.floor((exercise.completedSets * 100) / exercise.targetSets)
     return percent.toString() + '%'
+  }
+
+  getExerciseSectionTitle(): string {
+    return '\u9010\u7ec4\u8bb0\u5f55'
+  }
+
+  getExerciseSectionSubtitle(): string {
+    if (this.completedSets >= this.totalTargetSets && this.totalTargetSets > 0) {
+      return '\u6240\u6709\u52a8\u4f5c\u5df2\u5230\u6536\u5c3e\u9636\u6bb5\uff0c\u786e\u8ba4\u6570\u636e\u540e\u53ef\u76f4\u63a5\u4fdd\u5b58\u3002'
+    }
+    return '\u4f18\u5148\u586b\u5199\u91cd\u91cf\u4e0e\u6b21\u6570\uff0c\u987a\u5e8f\u5b8c\u6210\u5404\u7ec4\u8bb0\u5f55\u3002'
+  }
+
+  getExercisePrescriptionText(exercise: ActiveWorkoutExercise): string {
+    return exercise.targetSets.toString() + ' \u7ec4 x ' + exercise.targetReps + ' \u6b21 | ' + exercise.intensityNote
+  }
+
+  getSetLabelText(setEntry: ActiveWorkoutSetEntry): string {
+    return '\u7b2c ' + (setEntry.setIndex + 1).toString() + ' \u7ec4'
+  }
+
+  getWeightPlaceholderText(): string {
+    return '\u91cd\u91cf kg'
+  }
+
+  getRepsPlaceholderText(): string {
+    return '\u6b21\u6570'
+  }
+
+  getSaveSectionTitle(): string {
+    if (this.completedSets >= this.totalTargetSets && this.totalTargetSets > 0) {
+      return '\u8bad\u7ec3\u5b8c\u6210'
+    }
+    return '\u8bad\u7ec3\u6536\u53e3'
+  }
+
+  getSaveSectionSubtitle(): string {
+    if (this.completedSets <= 0) {
+      return '\u81f3\u5c11\u5b8c\u6210\u4e00\u7ec4\u540e\u624d\u53ef\u4fdd\u5b58\u672c\u6b21\u8fdb\u5ea6\u3002'
+    }
+    if (this.completedSets >= this.totalTargetSets && this.totalTargetSets > 0) {
+      return '\u672c\u6b21\u8bad\u7ec3\u5df2\u8fbe\u5230\u76ee\u6807\u7ec4\u6570\uff0c\u53ef\u4ee5\u76f4\u63a5\u5b8c\u6210\u5e76\u8fdb\u5165\u590d\u76d8\u3002'
+    }
+    return '\u53ef\u5148\u4fdd\u5b58\u5f53\u524d\u8fdb\u5ea6\uff0c\u4e5f\u53ef\u76f4\u63a5\u8865\u5168\u5168\u90e8\u76ee\u6807\u7ec4\u6570\u540e\u4fdd\u5b58\u3002'
   }
 
   copyActiveExercises(source: ActiveWorkoutExercise[]): ActiveWorkoutExercise[] {
@@ -403,10 +507,10 @@ export struct ActiveWorkoutPage {
 
   getDayBadgeText(): string {
     if (this.dayId.indexOf('current_plan_day_') === 0) {
-      return '第 ' + this.dayId.substring('current_plan_day_'.length) + ' 天'
+      return '\u7b2c ' + this.dayId.substring('current_plan_day_'.length) + ' \u5929'
     }
     if (this.dayId.indexOf('day_') === 0) {
-      return '第 ' + this.dayId.substring('day_'.length) + ' 天'
+      return '\u7b2c ' + this.dayId.substring('day_'.length) + ' \u5929'
     }
     if (this.dayId.length > 0) {
       return this.dayId
@@ -417,38 +521,40 @@ export struct ActiveWorkoutPage {
   build() {
     Scroll() {
       Column({ space: SpacingTokens.LG }) {
-        Column({ space: SpacingTokens.XS }) {
-          Text('训练执行')
-            .fontSize(FontTokens.MICRO_SIZE)
-            .fontWeight(FontTokens.MICRO_WEIGHT)
-            .fontColor(ColorTokens.TEXT_TERTIARY)
+        AppCard({ variant: 'panel', cardPadding: 'default' }) {
+          Column({ space: SpacingTokens.SM }) {
+            Text(this.getHeroEyebrow())
+              .fontSize(FontTokens.MICRO_SIZE)
+              .fontWeight(FontTokens.MICRO_WEIGHT)
+              .fontColor(ColorTokens.TEXT_TERTIARY)
 
-          Text('训练控制台')
-            .fontSize(FontTokens.DISPLAY_SIZE)
-            .fontWeight(FontTokens.DISPLAY_WEIGHT)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
+            Text(this.getHeroTitle())
+              .fontSize(FontTokens.DISPLAY_SIZE)
+              .fontWeight(FontTokens.DISPLAY_WEIGHT)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
 
-          Text(this.getPageSubtitle())
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontColor(ColorTokens.TEXT_SECONDARY)
+            Text(this.getHeroDescription())
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
         }
-        .width('100%')
-        .alignItems(HorizontalAlign.Start)
 
         if (!this.loading && !this.hasGoal) {
           AppCard({ variant: 'outlined', cardPadding: 'default' }) {
             Column({ space: SpacingTokens.MD }) {
-              Text('还没有训练目标')
+              Text('\u8fd8\u6ca1\u6709\u8bad\u7ec3\u76ee\u6807')
                 .fontSize(FontTokens.TITLE_SIZE)
                 .fontWeight(FontWeight.Bold)
                 .fontColor(ColorTokens.TEXT_PRIMARY)
 
-              Text('先完成目标设置，再开始今天的训练执行。')
+              Text('\u5148\u5b8c\u6210\u76ee\u6807\u8bbe\u7f6e\uff0c\u518d\u5f00\u59cb\u4eca\u5929\u7684\u8bad\u7ec3\u6267\u884c\u3002')
                 .fontSize(FontTokens.BODY_SIZE)
                 .fontColor(ColorTokens.TEXT_SECONDARY)
 
               AppButton({
-                text: '设置训练目标',
+                text: '\u8bbe\u7f6e\u8bad\u7ec3\u76ee\u6807',
                 type: 'primary',
                 buttonSize: 'large',
                 block: true,
@@ -458,23 +564,24 @@ export struct ActiveWorkoutPage {
               })
             }
             .width('100%')
+            .alignItems(HorizontalAlign.Start)
           }
         }
 
         if (!this.loading && this.hasGoal && !this.hasWorkout) {
           AppCard({ variant: 'outlined', cardPadding: 'default' }) {
             Column({ space: SpacingTokens.MD }) {
-              Text('今天没有可执行训练')
+              Text('\u4eca\u5929\u6ca1\u6709\u53ef\u6267\u884c\u8bad\u7ec3')
                 .fontSize(FontTokens.TITLE_SIZE)
                 .fontWeight(FontWeight.Bold)
                 .fontColor(ColorTokens.TEXT_PRIMARY)
 
-              Text('当前计划没有匹配到动作，可以返回目标设置调整器械与安排。')
+              Text('\u5f53\u524d\u8ba1\u5212\u6ca1\u6709\u5339\u914d\u5230\u52a8\u4f5c\uff0c\u53ef\u4ee5\u8fd4\u56de\u76ee\u6807\u8bbe\u7f6e\u8c03\u6574\u5668\u68b0\u4e0e\u5b89\u6392\u3002')
                 .fontSize(FontTokens.BODY_SIZE)
                 .fontColor(ColorTokens.TEXT_SECONDARY)
 
               AppButton({
-                text: '调整目标',
+                text: '\u8c03\u6574\u76ee\u6807',
                 type: 'primary',
                 buttonSize: 'large',
                 block: true,
@@ -484,6 +591,7 @@ export struct ActiveWorkoutPage {
               })
             }
             .width('100%')
+            .alignItems(HorizontalAlign.Start)
           }
         }
 
@@ -493,12 +601,17 @@ export struct ActiveWorkoutPage {
               Column({ space: SpacingTokens.MD }) {
                 Row() {
                   Column({ space: SpacingTokens.XS }) {
+                    Text('\u5f53\u524d\u6267\u884c')
+                      .fontSize(FontTokens.MICRO_SIZE)
+                      .fontWeight(FontTokens.MICRO_WEIGHT)
+                      .fontColor(ColorTokens.TEXT_TERTIARY)
+
                     Text(this.title)
                       .fontSize(FontTokens.HEADLINE_SIZE)
                       .fontWeight(FontWeight.Bold)
                       .fontColor(ColorTokens.TEXT_PRIMARY)
 
-                    Text('当前第 ' + this.getCurrentExerciseIndexText() + ' 个动作')
+                    Text('\u7b2c ' + this.getCurrentExerciseIndexText() + ' \u4e2a\u52a8\u4f5c')
                       .fontSize(FontTokens.CAPTION_SIZE)
                       .fontColor(ColorTokens.TEXT_TERTIARY)
                   }
@@ -520,9 +633,32 @@ export struct ActiveWorkoutPage {
                 }
                 .width('100%')
 
+                Column({ space: SpacingTokens.XS }) {
+                  Text('\u5f53\u524d\u52a8\u4f5c')
+                    .fontSize(FontTokens.MICRO_SIZE)
+                    .fontWeight(FontTokens.MICRO_WEIGHT)
+                    .fontColor(ColorTokens.TEXT_TERTIARY)
+
+                  Text(this.getCurrentExerciseNameText())
+                    .fontSize(FontTokens.TITLE_SIZE)
+                    .fontWeight(FontWeight.Bold)
+                    .fontColor(ColorTokens.TEXT_PRIMARY)
+                    .maxLines(2)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+                  Text(this.getCurrentExerciseGuidanceText())
+                    .fontSize(FontTokens.CAPTION_SIZE)
+                    .fontColor(ColorTokens.PRIMARY_HOVER)
+                }
+                .width('100%')
+                .padding(SpacingTokens.MD)
+                .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+                .borderRadius(RadiusTokens.MD)
+                .alignItems(HorizontalAlign.Start)
+
                 Row({ space: SpacingTokens.SM }) {
                   Column({ space: SpacingTokens.XS }) {
-                    Text('训练计时')
+                    Text('\u8bad\u7ec3\u8ba1\u65f6')
                       .fontSize(FontTokens.MICRO_SIZE)
                       .fontWeight(FontTokens.MICRO_WEIGHT)
                       .fontColor(ColorTokens.TEXT_TERTIARY)
@@ -536,10 +672,11 @@ export struct ActiveWorkoutPage {
                   .padding(SpacingTokens.MD)
                   .backgroundColor(ColorTokens.SURFACE_SECONDARY)
                   .borderRadius(RadiusTokens.MD)
+                  .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
                   .alignItems(HorizontalAlign.Start)
 
                   Column({ space: SpacingTokens.XS }) {
-                    Text('完成组数')
+                    Text('\u5b8c\u6210\u7ec4\u6570')
                       .fontSize(FontTokens.MICRO_SIZE)
                       .fontWeight(FontTokens.MICRO_WEIGHT)
                       .fontColor(ColorTokens.TEXT_TERTIARY)
@@ -553,31 +690,10 @@ export struct ActiveWorkoutPage {
                   .padding(SpacingTokens.MD)
                   .backgroundColor(ColorTokens.SURFACE_SECONDARY)
                   .borderRadius(RadiusTokens.MD)
+                  .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
                   .alignItems(HorizontalAlign.Start)
                 }
                 .width('100%')
-
-                Column({ space: SpacingTokens.XS }) {
-                  Text('当前动作')
-                    .fontSize(FontTokens.MICRO_SIZE)
-                    .fontWeight(FontTokens.MICRO_WEIGHT)
-                    .fontColor(ColorTokens.TEXT_TERTIARY)
-
-                  Text(this.currentExerciseName)
-                    .fontSize(FontTokens.TITLE_SIZE)
-                    .fontWeight(FontWeight.Bold)
-                    .fontColor(ColorTokens.TEXT_PRIMARY)
-                    .maxLines(1)
-                    .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-                  Text(this.currentExerciseSetProgress)
-                    .fontSize(FontTokens.CAPTION_SIZE)
-                    .fontColor(ColorTokens.PRIMARY_HOVER)
-                }
-                .width('100%')
-                .padding(SpacingTokens.MD)
-                .backgroundColor(ColorTokens.SURFACE_SECONDARY)
-                .borderRadius(RadiusTokens.MD)
 
                 Row() {
                   Text(this.getDayBadgeText())
@@ -616,7 +732,21 @@ export struct ActiveWorkoutPage {
                 .height(TouchTokens.PROGRESS_BAR_HEIGHT)
               }
               .width('100%')
+              .alignItems(HorizontalAlign.Start)
             }
+
+            Column({ space: SpacingTokens.XS }) {
+              Text(this.getExerciseSectionTitle())
+                .fontSize(FontTokens.TITLE_SIZE)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+
+              Text(this.getExerciseSectionSubtitle())
+                .fontSize(FontTokens.SMALL_SIZE)
+                .fontColor(ColorTokens.TEXT_TERTIARY)
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
 
             ForEach(this.exercises, (exercise: ActiveWorkoutExercise, index: number) => {
               AppCard({ variant: 'outlined', cardPadding: 'default' }) {
@@ -638,7 +768,7 @@ export struct ActiveWorkoutPage {
                         .fontWeight(FontWeight.Medium)
                         .fontColor(ColorTokens.TEXT_PRIMARY)
 
-                      Text(exercise.targetSets.toString() + ' 组 x ' + exercise.targetReps + ' | ' + exercise.intensityNote)
+                      Text(this.getExercisePrescriptionText(exercise))
                         .fontSize(FontTokens.CAPTION_SIZE)
                         .fontColor(ColorTokens.TEXT_SECONDARY)
                         .maxLines(1)
@@ -673,12 +803,12 @@ export struct ActiveWorkoutPage {
                   ForEach(exercise.sets, (setEntry: ActiveWorkoutSetEntry) => {
                     Column({ space: SpacingTokens.XS }) {
                       Row({ space: SpacingTokens.SM }) {
-                        Text('第 ' + (setEntry.setIndex + 1).toString() + ' 组')
+                        Text(this.getSetLabelText(setEntry))
                           .fontSize(FontTokens.CAPTION_SIZE)
                           .fontColor(ColorTokens.TEXT_SECONDARY)
-                          .width(44)
+                          .width(52)
 
-                        TextInput({ text: setEntry.weightText, placeholder: '重量kg' })
+                        TextInput({ text: setEntry.weightText, placeholder: this.getWeightPlaceholderText() })
                           .type(InputType.Number)
                           .fontSize(FontTokens.CAPTION_SIZE)
                           .fontColor(ColorTokens.TEXT_PRIMARY)
@@ -691,7 +821,7 @@ export struct ActiveWorkoutPage {
                             this.updateSetWeight(exercise, setEntry, value)
                           })
 
-                        TextInput({ text: setEntry.repsText, placeholder: '次数' })
+                        TextInput({ text: setEntry.repsText, placeholder: this.getRepsPlaceholderText() })
                           .type(InputType.Number)
                           .fontSize(FontTokens.CAPTION_SIZE)
                           .fontColor(ColorTokens.TEXT_PRIMARY)
@@ -711,35 +841,52 @@ export struct ActiveWorkoutPage {
                         .fontColor(setEntry.isComplete ? ColorTokens.ACCENT_LIGHT : ColorTokens.TEXT_SECONDARY)
                     }
                     .width('100%')
+                    .padding(SpacingTokens.SM)
+                    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+                    .borderRadius(RadiusTokens.MD)
+                    .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
                   }, (setEntry: ActiveWorkoutSetEntry) => this.createSetEntryRenderKey(setEntry))
                 }
                 .width('100%')
+                .alignItems(HorizontalAlign.Start)
               }
             }, (exercise: ActiveWorkoutExercise) => this.createExerciseRenderKey(exercise))
 
-            Column({ space: SpacingTokens.SM }) {
-              AppButton({
-                text: '保存当前进度',
-                type: 'primary',
-                buttonSize: 'large',
-                block: true,
-                disabled: this.completedSets <= 0,
-                onButtonClick: () => {
-                  this.finishCurrentProgress()
-                }
-              })
+            AppCard({ variant: 'panel', cardPadding: 'default' }) {
+              Column({ space: SpacingTokens.SM }) {
+                Text(this.getSaveSectionTitle())
+                  .fontSize(FontTokens.TITLE_SIZE)
+                  .fontWeight(FontWeight.Bold)
+                  .fontColor(ColorTokens.TEXT_PRIMARY)
 
-              AppButton({
-                text: '完成全部并保存',
-                type: 'secondary',
-                buttonSize: 'large',
-                block: true,
-                onButtonClick: () => {
-                  this.finishAllSets()
-                }
-              })
+                Text(this.getSaveSectionSubtitle())
+                  .fontSize(FontTokens.SMALL_SIZE)
+                  .fontColor(ColorTokens.TEXT_TERTIARY)
+
+                AppButton({
+                  text: '\u4fdd\u5b58\u5f53\u524d\u8fdb\u5ea6',
+                  type: 'primary',
+                  buttonSize: 'large',
+                  block: true,
+                  disabled: this.completedSets <= 0,
+                  onButtonClick: () => {
+                    this.finishCurrentProgress()
+                  }
+                })
+
+                AppButton({
+                  text: '\u5b8c\u6210\u5168\u90e8\u5e76\u4fdd\u5b58',
+                  type: 'secondary',
+                  buttonSize: 'large',
+                  block: true,
+                  onButtonClick: () => {
+                    this.finishAllSets()
+                  }
+                })
+              }
+              .width('100%')
+              .alignItems(HorizontalAlign.Start)
             }
-            .width('100%')
           }
           .width('100%')
         }
