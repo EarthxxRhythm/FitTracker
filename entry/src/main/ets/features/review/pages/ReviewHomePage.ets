@@ -1838,16 +1838,15 @@ export struct ReviewHomePage {
             .fontSize(FontTokens.BODY_SIZE)
             .fontColor(ColorTokens.TEXT_SECONDARY)
 
-          Button('查看动作详情')
-            .width('100%')
-            .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-            .backgroundColor(ColorTokens.PRIMARY)
-            .borderRadius(RadiusTokens.FULL)
-            .onClick(() => {
+          AppButton({
+            text: '查看动作详情',
+            type: 'primary',
+            buttonSize: 'medium',
+            block: true,
+            onButtonClick: () => {
               this.openExerciseDetail()
-            })
+            }
+          })
         }
         .width('100%')
         .padding(SpacingTokens.MD)
