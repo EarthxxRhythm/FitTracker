@@ -442,7 +442,7 @@ class MonetizationHubService {
       '高级洞察入口',
       'Pro',
       '已接入入口',
-      '回顾页已经可以进入权益说明，后续会在这里承接更深趋势和 PR 解释。'
+      '回顾页已经可以进入权益说明，这里会承接更深趋势和 PR 解释。'
     ))
     items.push(createRoadmapItemViewModel(
       'unlimited_history',
@@ -455,7 +455,7 @@ class MonetizationHubService {
       'advanced_plans',
       '更多自定义计划',
       'Pro',
-      '待接入',
+      '规划中',
       '适合承接多目标、多阶段训练用户，是最贴近本地工具价值的下一个付费点。'
     ))
     items.push(createRoadmapItemViewModel(
@@ -602,9 +602,9 @@ class MonetizationHubService {
       return '当前正在使用本地预览态；它只用于验证会员入口和功能降级，不代表真实支付结果。'
     }
     if (this.isPreviewEnabled(environment)) {
-      return '正式支付入口尚未接入；当前页面用于明确免费主链、商品结构和本地预览状态。'
+      return '当前为本地预览环境；你可以先验证免费主链、商品结构和权益切换。'
     }
-    return '正式支付入口尚未接入；当前页面用于明确免费主链与已规划商品结构。'
+    return '当前先展示商品结构与权益边界，正式支付会在后续接入。'
   }
 
   private getSourceText(source: string): string {
@@ -776,7 +776,7 @@ class MonetizationHubService {
     if (entitlement.tier === 'free' && product.productId === 'fittracker_pro_lifetime') {
       return '最适合先落地的首个付费商品'
     }
-    return '正式支付入口待接入，当前先展示权益结构'
+    return '当前可先本地预览权益切换与商品结构'
   }
 
   private getOfferBullets(productId: string): string[] {

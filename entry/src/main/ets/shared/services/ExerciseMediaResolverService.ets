@@ -124,11 +124,11 @@ class ExerciseMediaResolverServiceImpl {
     }
 
     if (videoPlaceholder.length > 0) {
-      presentation.badgeText = '占位'
+      presentation.badgeText = '图文'
       presentation.tone = 'accent'
-      presentation.statusText = '媒体位已预留，等待后续补齐'
+      presentation.statusText = '当前先提供图文讲解，视频素材会随内容包逐步补齐'
       presentation.summaryText = videoPlaceholder
-      presentation.detailText = '当前版本保留媒体语义与说明位，避免后续接入真实资源时再重做页面结构。'
+      presentation.detailText = '现阶段优先保证动作要点、来源和训练说明可直接使用；后续补入视频后可沿用同一页面结构。'
       return
     }
 

@@ -584,9 +584,9 @@ class ContentRepositoryImpl {
 
   private getVideoPlaceholder(exercise: ExerciseContent): string {
     if (this.hasVideoAsset(exercise)) {
-      return '视频占位：本地动作库已有视频素材'
+      return '本地动作库已收录视频素材'
     }
-    return '视频占位：本地动作库暂未接入视频素材'
+    return '当前动作库先提供图文讲解，视频素材会后续补充'
   }
 
   private getDifficultyText(difficulty: string): string {
