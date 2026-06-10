@@ -4,7 +4,7 @@
  * 功能 #17: 动作详情（大图占位、动作要领/参与肌群标签页）
  * 功能 #18: 个人纪录展示（最佳1RM、最佳重量×次数、纪录日期）
  */
-import { router } from '@kit.ArkUI'
+import { Context } from '@kit.AbilityKit'
 import { AppCard } from '../components/AppCard'
 import ExerciseService, { Exercise } from '../common/services/ExerciseService'
 import WorkoutSessionService, { ExerciseRecord } from '../common/services/WorkoutSessionService'
@@ -23,15 +23,27 @@ struct ExerciseDetailPage {
   @State best1RM: number = 0
   @State bestRecord: ExerciseRecord | null = null
 
+  private getHostContextOrNull(): Context | null {
+    const hostContext = this.getUIContext().getHostContext()
+    if (hostContext === undefined || hostContext === null) {
+      return null
+    }
+    return hostContext as Context
+  }
+
   async aboutToAppear(): Promise<void> {
     try {
-      const params = router.getParams() as Record<string, string>
-      const id = params['exerciseId'] as string
+      const params = this.getUIContext().getRouter().getParams() as Record<string, string>
+      const id = params.exerciseId
       if (id) {
         this.exercise = ExerciseService.getById(id) || null
         if (this.exercise) {
-          const records = await WorkoutSessionService.getAllExerciseRecords(getContext(this))
-          const match = records.find(r => r.exerciseName === this.exercise!.name)
+          const context: Context | null = this.getHostContextOrNull()
+          const records: ExerciseRecord[] = context !== null
+            ? await WorkoutSessionService.getAllExerciseRecords(context)
+            : []
+          const exerciseName: string = this.exercise.name
+          const match = records.find(r => r.exerciseName === exerciseName)
           if (match) {
             this.best1RM = match.best1RM
             this.bestRecord = match
@@ -60,7 +72,7 @@ struct ExerciseDetailPage {
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
         }
-        .onClick(() => { router.back() })
+        .onClick(() => { this.getUIContext().getRouter().back() })
         Blank()
       }
       .width('100%')

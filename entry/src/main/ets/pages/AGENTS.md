@@ -29,16 +29,16 @@ pages/
 ## CONVENTIONS
 
 - **Page structure**: `@Entry @Component struct XxxPage { @State variables; async aboutToAppear() { load data }; build() { Column() { ... } } }`
-- **Navigation**: main-line routes should use `AppRoutes` or feature paths. Legacy page shells stay out of new navigation. Params read via `router.getParams() as Record<string, T>` in `aboutToAppear()`.
+- **Navigation**: main-line routes should use `AppRoutes` or feature paths. Legacy page shells stay out of new navigation. Use `this.getUIContext().getRouter()` for route params and navigation, and wrap param reads in `try-catch`.
 - **Navigation params**: Always wrapped in `try-catch`. Use type assertion with fallback defaults.
 - **Data loading**: Async operations in `aboutToAppear()`, not in constructors. Results stored in @State.
-- **Services**: Imported as singletons (e.g., `import WorkoutSessionService from '...'`). Call with `getContext(this)`.
+- **Services**: Imported as singletons (e.g., `import WorkoutSessionService from '...'`). When persistence or system APIs need a context, prefer `this.getUIContext().getHostContext()` with a null guard.
 - **Builder methods**: Use `@Builder` for repeated UI fragments (e.g., `summaryItem`, `statItem`).
 
 ## ANTI-PATTERNS
 
 - **DO NOT** create pages without registering in `main_pages.json`.
-- **DO NOT** use `router.replaceUrl` for normal navigation — use `pushUrl`.
+- **DO NOT** import deprecated page-level `router` helpers or call `getContext(this)` in active pages.
 - **DO NOT** forget to stop timers/intervals in `aboutToDisappear()`.
 - **DO NOT** hardcode navigation URLs — always reference from `main_pages.json` entries.
 - **DO NOT** re-register legacy page shells such as `Index` or `ProfilePage` into the main route.
