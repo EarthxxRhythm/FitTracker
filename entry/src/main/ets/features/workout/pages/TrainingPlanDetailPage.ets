@@ -4,7 +4,7 @@
  * Function #16: each training day shows exercise list and prescription.
  * Function #17: enable preset plan and set it as current plan.
  */
-import { router } from '@kit.ArkUI'
+import { Context } from '@kit.AbilityKit'
 import { AppRoutes } from '../../../app/AppRoutes'
 import TrainingPlanService, {
   ExerciseRef,
@@ -38,6 +38,14 @@ export struct TrainingPlanDetailPage {
   @State advancedPlansPresentation: AdvancedPlanVariantsPresentation = AdvancedPlanVariantsService.createDefaultPresentation()
   @State advancedPlansTier: MonetizationTier = 'free'
 
+  private getHostContextOrNull(): Context | null {
+    const hostContext = this.getUIContext().getHostContext()
+    if (hostContext === undefined || hostContext === null) {
+      return null
+    }
+    return hostContext as Context
+  }
+
   aboutToAppear(): void {
     this.loadPage()
   }
@@ -64,7 +72,7 @@ export struct TrainingPlanDetailPage {
 
   getPresetPlanId(): string {
     try {
-      const params = router.getParams() as Record<string, string>
+      const params = this.getUIContext().getRouter().getParams() as Record<string, string>
       if (params.presetPlanId !== undefined) {
         return params.presetPlanId
       }
@@ -131,7 +139,13 @@ export struct TrainingPlanDetailPage {
 
     this.enabling = true
     this.actionMessage = ''
-    const enabledPlan = await TrainingPlanService.enablePlan(getContext(this), this.presetPlanId)
+    const context: Context | null = this.getHostContextOrNull()
+    if (context === null) {
+      this.enabling = false
+      this.actionMessage = '当前页面上下文不可用，请稍后重试。'
+      return
+    }
+    const enabledPlan = await TrainingPlanService.enablePlan(context, this.presetPlanId)
     this.enabling = false
     if (enabledPlan === null) {
       this.actionMessage = '\u542f\u7528\u8ba1\u5212\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5\u3002'
@@ -140,7 +154,7 @@ export struct TrainingPlanDetailPage {
 
     this.actionMessage = '\u8ba1\u5212\u5df2\u542f\u7528\uff0c\u6b63\u5728\u8fd4\u56de\u9996\u9875\u3002'
     try {
-      router.replaceUrl({ url: AppRoutes.HOME })
+      this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.HOME })
     } catch (e) {
       // stay on current page with success message
     }
@@ -148,7 +162,13 @@ export struct TrainingPlanDetailPage {
 
   async loadAdvancedPlansPresentation(plan: PresetPlan): Promise<void> {
     try {
-      const gateResult = await MonetizationGateService.getGateResult(getContext(this), 'advanced_plans')
+      const context: Context | null = this.getHostContextOrNull()
+      if (context === null) {
+        this.advancedPlansTier = 'free'
+        this.advancedPlansPresentation = AdvancedPlanVariantsService.createPresentation(plan, true, 'free')
+        return
+      }
+      const gateResult = await MonetizationGateService.getGateResult(context, 'advanced_plans')
       this.advancedPlansTier = gateResult.activeTier
       this.advancedPlansPresentation = AdvancedPlanVariantsService.createPresentation(
         plan,
@@ -173,8 +193,14 @@ export struct TrainingPlanDetailPage {
     this.enablingVariantId = variantId
     this.actionMessage = ''
     const draft: AdvancedPlanVariantDraft = AdvancedPlanVariantsService.createVariantDraft(presetPlan, variantId)
+    const context: Context | null = this.getHostContextOrNull()
+    if (context === null) {
+      this.enablingVariantId = ''
+      this.actionMessage = '当前页面上下文不可用，请稍后重试。'
+      return
+    }
     const enabledPlan = await TrainingPlanService.enableCustomPlan(
-      getContext(this),
+      context,
       draft.name,
       presetPlan.coverColor,
       draft.targetAudience,
@@ -189,7 +215,7 @@ export struct TrainingPlanDetailPage {
 
     this.actionMessage = '高级计划变体已启用，正在返回首页。'
     try {
-      router.replaceUrl({ url: AppRoutes.HOME })
+      this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.HOME })
     } catch (e) {
       // stay on current page with success message
     }
@@ -197,10 +223,10 @@ export struct TrainingPlanDetailPage {
 
   openBack(): void {
     try {
-      router.back()
+      this.getUIContext().getRouter().back()
     } catch (e) {
       try {
-        router.replaceUrl({ url: AppRoutes.HOME })
+        this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.HOME })
       } catch (innerError) {
         // stay on current page
       }
@@ -209,7 +235,7 @@ export struct TrainingPlanDetailPage {
 
   openMonetizationHub(capability: MonetizationCapability, sourceLabel: string): void {
     try {
-      router.pushUrl({
+      this.getUIContext().getRouter().pushUrl({
         url: AppRoutes.MONETIZATION_HUB,
         params: {
           focusCapability: capability,

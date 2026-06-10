@@ -2,7 +2,7 @@
  * ExerciseDetailPage -- local exercise detail from the self-owned action library.
  * Function #17: exercise detail with steps, notes, alternatives, and media section.
  */
-import { router } from '@kit.ArkUI'
+import { Context } from '@kit.AbilityKit'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
 import { AppButton } from '../../../components/AppButton'
 import { AppCard } from '../../../components/AppCard'
@@ -56,6 +56,14 @@ export struct ExerciseDetailPage {
   @State premiumContentPresentation: PremiumExerciseContentPresentation =
     PremiumExerciseContentService.createDefaultPresentation()
 
+  private getHostContextOrNull(): Context | null {
+    const hostContext = this.getUIContext().getHostContext()
+    if (hostContext === undefined || hostContext === null) {
+      return null
+    }
+    return hostContext as Context
+  }
+
   aboutToAppear(): void {
     this.loadPage()
   }
@@ -78,7 +86,7 @@ export struct ExerciseDetailPage {
 
   getRouteExerciseId(): string {
     try {
-      const params = router.getParams() as Record<string, string>
+      const params = this.getUIContext().getRouter().getParams() as Record<string, string>
       if (params.exerciseId !== undefined) {
         return params.exerciseId
       }
@@ -126,7 +134,12 @@ export struct ExerciseDetailPage {
 
   async loadPremiumContent(detail: ExerciseDetailViewModel): Promise<void> {
     try {
-      const gateResult = await MonetizationGateService.getGateResult(getContext(this), 'premium_content')
+      const context: Context | null = this.getHostContextOrNull()
+      if (context === null) {
+        this.premiumContentPresentation = PremiumExerciseContentService.createPresentation(true, 'free', detail)
+        return
+      }
+      const gateResult = await MonetizationGateService.getGateResult(context, 'premium_content')
       this.premiumContentPresentation = PremiumExerciseContentService.createPresentation(
         !gateResult.allowed,
         gateResult.activeTier,
@@ -273,7 +286,7 @@ export struct ExerciseDetailPage {
 
   openMonetizationHub(capability: MonetizationCapability, sourceLabel: string): void {
     try {
-      router.pushUrl({
+      this.getUIContext().getRouter().pushUrl({
         url: AppRoutes.MONETIZATION_HUB,
         params: {
           focusCapability: capability,

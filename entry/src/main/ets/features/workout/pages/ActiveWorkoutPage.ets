@@ -2,7 +2,7 @@
  * ActiveWorkoutPage -- active workout execution.
  * Function #10: active workout execution.
  */
-import { router } from '@kit.ArkUI'
+import { Context } from '@kit.AbilityKit'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { AppButton } from '../../../components/AppButton'
 import { AppCard } from '../../../components/AppCard'
@@ -38,13 +38,28 @@ export struct ActiveWorkoutPage {
   @State exercises: ActiveWorkoutExercise[] = []
   private timerId: number = -1
 
+  private getHostContextOrNull(): Context | null {
+    const hostContext = this.getUIContext().getHostContext()
+    if (hostContext === undefined || hostContext === null) {
+      return null
+    }
+    return hostContext as Context
+  }
+
   async aboutToAppear(): Promise<void> {
     this.loading = true
     this.startedAt = Date.now()
     this.startTimer()
     try {
       const flowSource: string = this.getRouteParam('flowSource')
-      const currentPlan: UserPlan | null = await TrainingPlanService.getCurrentPlan(getContext(this))
+      const context: Context | null = this.getHostContextOrNull()
+      if (context === null) {
+        this.hasGoal = false
+        this.hasWorkout = false
+        this.loading = false
+        return
+      }
+      const currentPlan: UserPlan | null = await TrainingPlanService.getCurrentPlan(context)
       if (currentPlan !== null && flowSource !== 'goal_plan') {
         const preview: WorkoutPreviewSummary = WorkoutPreviewService.createPreviewForCurrentPlan(
           currentPlan,
@@ -59,7 +74,7 @@ export struct ActiveWorkoutPage {
         return
       }
 
-      const goal: UserGoal | undefined = await GoalRepository.loadGoal(getContext(this))
+      const goal: UserGoal | undefined = await GoalRepository.loadGoal(context)
       if (goal === undefined) {
         this.hasGoal = false
         this.hasWorkout = false
@@ -81,7 +96,7 @@ export struct ActiveWorkoutPage {
 
   getRouteParam(name: string): string {
     try {
-      const params = router.getParams() as Record<string, string>
+      const params = this.getUIContext().getRouter().getParams() as Record<string, string>
       if (name === 'flowSource' && params.flowSource !== undefined) {
         return params.flowSource
       }
@@ -93,7 +108,7 @@ export struct ActiveWorkoutPage {
 
   getDayIdParam(): string {
     try {
-      const params = router.getParams() as Record<string, string>
+      const params = this.getUIContext().getRouter().getParams() as Record<string, string>
       if (params.dayId !== undefined) {
         return params.dayId
       }
@@ -240,7 +255,12 @@ export struct ActiveWorkoutPage {
       completedSets
     )
     try {
-      await WorkoutSessionPersistenceBridgeService.persistActiveWorkoutCompletion(getContext(this), session)
+      const context: Context | null = this.getHostContextOrNull()
+      if (context !== null) {
+        await WorkoutSessionPersistenceBridgeService.persistActiveWorkoutCompletion(context, session)
+      } else {
+        WorkoutRepository.saveSession(session)
+      }
     } catch (e) {
       WorkoutRepository.saveSession(session)
     }
@@ -249,7 +269,7 @@ export struct ActiveWorkoutPage {
 
   openGoalSetup(): void {
     try {
-      router.replaceUrl({ url: AppRoutes.GOAL_SETUP })
+      this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.GOAL_SETUP })
     } catch (e) {
       // stay on active workout
     }
@@ -257,7 +277,7 @@ export struct ActiveWorkoutPage {
 
   openSummary(sessionId: string): void {
     try {
-      router.replaceUrl({ url: AppRoutes.WORKOUT_SUMMARY, params: { sessionId: sessionId } })
+      this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.WORKOUT_SUMMARY, params: { sessionId: sessionId } })
     } catch (e) {
       // stay on active workout
     }

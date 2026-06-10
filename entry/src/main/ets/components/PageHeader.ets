@@ -3,7 +3,6 @@
  * 功能 #26
  */
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../common/styles/DesignTokens'
-import router from '@ohos.router'
 
 @Component
 export struct PageHeader {
@@ -16,7 +15,7 @@ export struct PageHeader {
       this.onBackClick()
       return
     }
-    router.back()
+    this.getUIContext().getRouter().back()
   }
 
   build() {
