@@ -1100,6 +1100,54 @@ struct ReviewHomePage {
   }
 
   @Builder
+  buildStageRail() {
+    Row({ space: SpacingTokens.SM }) {
+      this.buildStageChip('预览', false)
+      this.buildStageChip('执行', false)
+      this.buildStageChip('回顾', true)
+    }
+    .width('100%')
+  }
+
+  @Builder
+  buildStageChip(label: string, active: boolean) {
+    Text(label)
+      .fontSize(FontTokens.SMALL_SIZE)
+      .fontWeight(active ? FontWeight.Medium : FontTokens.SMALL_WEIGHT)
+      .fontColor(active ? ColorTokens.TEXT_PRIMARY : ColorTokens.TEXT_TERTIARY)
+      .padding({
+        top: SpacingTokens.XS,
+        bottom: SpacingTokens.XS,
+        left: SpacingTokens.SM,
+        right: SpacingTokens.SM
+      })
+      .backgroundColor(active ? ColorTokens.SURFACE_ELEVATED : ColorTokens.SURFACE_SECONDARY)
+      .borderRadius(RadiusTokens.FULL)
+      .border({
+        width: 1,
+        color: active ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
+      })
+  }
+
+  @Builder
+  buildReviewLaneHeader(title: string, description: string) {
+    Column({ space: SpacingTokens.XS }) {
+      Text(title)
+        .fontSize(FontTokens.TITLE_SIZE)
+        .fontWeight(FontTokens.TITLE_WEIGHT)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+
+      Text(description)
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+        .width('100%')
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
   buildFilterButton(label: string, selected: boolean, countText: string, locked: boolean, onTap: () => void) {
     Button(label + ' · ' + countText)
       .height(TouchTokens.BUTTON_HEIGHT_SMALL)
@@ -2328,6 +2376,10 @@ struct ReviewHomePage {
 
         PrimaryDestinationStrip({ currentKey: 'review' })
 
+        if (!this.loading) {
+          this.buildStageRail()
+        }
+
         if (!this.loading && !this.hasSessions) {
           Column({ space: SpacingTokens.MD }) {
             AppCard({ variant: 'outlined', cardPadding: 'default' }) {
@@ -2355,6 +2407,7 @@ struct ReviewHomePage {
               .alignItems(HorizontalAlign.Start)
             }
 
+            this.buildReviewLaneHeader('增强入口', '训练记录还没建立之前，先把高级洞察和后续扩展入口收在这里。')
             this.buildAdvancedInsightsEntrySection()
           }
           .width('100%')
@@ -2463,11 +2516,13 @@ struct ReviewHomePage {
             }
             .width('100%')
 
+            this.buildReviewLaneHeader('复盘主线', '先看总结与调整，再顺着最近训练、周统计和趋势继续下钻。')
             this.buildAdjustmentSection()
             this.buildRecentTrainingSection()
             this.buildWeeklyStats()
             this.buildCalendarHeatmap()
             this.buildTrendSummary()
+            this.buildReviewLaneHeader('Performance Lab', '把按周趋势、动作 PR 和高级洞察预埋收在同一层，方便连续浏览。')
             this.buildAdvancedInsightsEntrySection()
             this.buildAdvancedInsightsPanelSection()
           }
