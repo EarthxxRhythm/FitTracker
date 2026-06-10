@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('backup-card', 'media-card', 'current-plan', 'summary-page', 'membership', 'both')]
+  [ValidateSet('backup-card', 'media-card', 'current-plan', 'summary-page', 'plan-detail', 'membership', 'both')]
   [string]$Target = 'current-plan',
   [string]$DeviceId = "",
   [string]$BundleName = "com.example.fittracker_opencode",
@@ -91,6 +91,8 @@ function Write-SmokeSummary {
     $summaryLines += "- home current-plan card to workout preview"
     $summaryLines += "- workout preview to active workout"
     $summaryLines += "- active workout save flow to workout summary"
+  } elseif ($Target -eq 'plan-detail') {
+    $summaryLines += "- home preset plan card to training plan detail"
   } elseif ($Target -eq 'membership') {
     $summaryLines += "- review advanced insights entry to membership hub"
     $summaryLines += "- membership local preview tier switch"
@@ -507,6 +509,18 @@ function Run-SummaryPageSmoke {
     -RetryAssertPrompt "The workout summary page is visible. It shows a workout summary or training day header, completion metrics such as completion rate or completed sets, and visible next actions like edit workout record, view training review, or return home. There is no crash dialog."
 }
 
+function Run-PlanDetailSmoke {
+  Ensure-HomeRoute
+  Invoke-VisualActWithRetry `
+    -Title "open training plan detail from home" `
+    -PrimaryPrompt "On the FitTracker home page, scroll to the more training plans section if needed. Open the first visible preset training plan by tapping the button that views its plan details. Stop when the training plan detail page is visible." `
+    -PrimaryAssertTitle "assert training plan detail page" `
+    -PrimaryAssertPrompt "The training plan detail page is visible. It shows a preset plan title, training day counts or total exercise counts, a list of training days, and an action to start or enable this plan. There is no crash dialog." `
+    -RetryPrompt "If the training plan detail page is still not visible, return to the FitTracker home page if needed, scroll to the more training plans section, tap the first visible view plan details button again, and stop when the training plan detail page is visible." `
+    -RetryAssertTitle "assert training plan detail page after retry" `
+    -RetryAssertPrompt "The training plan detail page is visible. It shows a preset plan title, training day counts or total exercise counts, a list of training days, and an action to start or enable this plan. There is no crash dialog."
+}
+
 function Run-MembershipSmoke {
   Ensure-HomeRoute
   Invoke-VisualActWithRetry `
@@ -586,6 +600,8 @@ try {
     Run-CurrentPlanSmoke
   } elseif ($Target -eq 'summary-page') {
     Run-SummaryPageSmoke
+  } elseif ($Target -eq 'plan-detail') {
+    Run-PlanDetailSmoke
   } elseif ($Target -eq 'membership') {
     Run-MembershipSmoke
   } else {
