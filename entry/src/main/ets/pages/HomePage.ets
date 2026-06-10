@@ -612,12 +612,12 @@ export struct HomePage {
         if (!this.loading && !this.hasGoal) {
           AppCard({ variant: 'outlined', cardPadding: 'default' }) {
             Column({ space: SpacingTokens.SM }) {
-              Text('\u4e3b\u7ebf\u5c06\u4f1a\u51fa\u73b0\u5728\u8fd9\u91cc')
+              Text('\u5148\u5b8c\u6210\u8bad\u7ec3\u76ee\u6807\u8bbe\u7f6e')
                 .fontSize(FontTokens.TITLE_SIZE)
                 .fontWeight(FontTokens.TITLE_WEIGHT)
                 .fontColor(ColorTokens.TEXT_PRIMARY)
 
-              Text('\u5b8c\u6210\u76ee\u6807\u8bbe\u7f6e\u540e\uff0c\u9996\u9875\u4f1a\u76f4\u63a5\u5c55\u793a\u4eca\u65e5\u8bad\u7ec3\u3001\u6062\u590d\u5165\u53e3\u548c\u672c\u5468\u8282\u594f\u3002')
+              Text('\u8bbe\u7f6e\u5b8c\u6210\u540e\uff0c\u9996\u9875\u4f1a\u76f4\u63a5\u627f\u63a5\u4eca\u65e5\u8bad\u7ec3\u3001\u6062\u590d\u5165\u53e3\u548c\u672c\u5468\u8282\u594f\uff1b\u52a8\u4f5c\u5e93\u5165\u53e3\u4f1a\u7ee7\u7eed\u4fdd\u7559\u5728\u4e0b\u65b9\u3002')
                 .fontSize(FontTokens.BODY_SIZE)
                 .fontColor(ColorTokens.TEXT_SECONDARY)
                 .lineHeight(FontTokens.BODY_LINE_HEIGHT)
