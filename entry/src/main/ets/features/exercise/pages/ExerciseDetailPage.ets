@@ -170,6 +170,16 @@ export struct ExerciseDetailPage {
     return focusText + ' | ' + equipmentText + ' | 先确认动作路径和发力顺序'
   }
 
+  getHeroEyebrow(): string {
+    if (this.mediaPresentation.cover.canRenderInline || this.mediaPresentation.video.canRenderInline) {
+      return '动作学习'
+    }
+    if (this.mediaPresentation.cover.hasReference || this.mediaPresentation.video.hasReference) {
+      return '动作资料'
+    }
+    return '动作详情'
+  }
+
   getMetaSummary(): string {
     if (this.nameEn.length > 0) {
       return this.nameEn
@@ -303,9 +313,9 @@ export struct ExerciseDetailPage {
         if (this.hasExercise) {
           this.buildHeroSection()
           this.buildMediaSection()
-          this.buildPremiumContentSection()
           this.buildTechniqueSection()
           this.buildAlternativeSection()
+          this.buildPremiumContentSection()
           this.buildMetadataSection()
         }
       }
@@ -323,7 +333,7 @@ export struct ExerciseDetailPage {
       Column({ space: SpacingTokens.MD }) {
         Row() {
           Column({ space: SpacingTokens.XS }) {
-            Text('动作详情')
+            Text(this.getHeroEyebrow())
               .fontSize(FontTokens.MICRO_SIZE)
               .fontWeight(FontTokens.MICRO_WEIGHT)
               .fontColor(ColorTokens.TEXT_TERTIARY)
@@ -379,7 +389,7 @@ export struct ExerciseDetailPage {
 
         Row({ space: SpacingTokens.MD }) {
           this.buildMetricTile('步骤', this.steps.length.toString(), '执行序列')
-          this.buildMetricTile('替代', this.alternativeNames.length.toString(), '同类分流')
+          this.buildMetricTile('提示', this.cues.length.toString(), '关键提醒')
         }
         .width('100%')
       }
