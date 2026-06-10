@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('backup-card', 'media-card', 'current-plan', 'membership', 'both')]
+  [ValidateSet('backup-card', 'media-card', 'current-plan', 'summary-page', 'membership', 'both')]
   [string]$Target = 'current-plan',
   [string]$DeviceId = "",
   [string]$BundleName = "com.example.fittracker_opencode",
@@ -87,6 +87,10 @@ function Write-SmokeSummary {
   } elseif ($Target -eq 'current-plan') {
     $summaryLines += "- home current-plan card to workout preview"
     $summaryLines += "- workout preview to active workout"
+  } elseif ($Target -eq 'summary-page') {
+    $summaryLines += "- home current-plan card to workout preview"
+    $summaryLines += "- workout preview to active workout"
+    $summaryLines += "- active workout save flow to workout summary"
   } elseif ($Target -eq 'membership') {
     $summaryLines += "- review advanced insights entry to membership hub"
     $summaryLines += "- membership local preview tier switch"
@@ -267,7 +271,7 @@ function Ensure-FitTrackerForegroundAfterLaunch {
     [int]$PauseSeconds = 2
   )
 
-  $foregroundPrompt = "A visible FitTracker screen is in the foreground. It may be the startup page, login page, register page, goal setup page, home page, workout preview page, review page, or exercise detail page. There is no system home screen covering the app."
+  $foregroundPrompt = "A visible FitTracker screen is in the foreground. It may be the startup page, login page, register page, goal setup page, home page, workout preview page, review page, membership or entitlement page, or exercise detail page. There is no system home screen covering the app."
 
   Launch-AppToForeground -Title $TitlePrefix -PauseSeconds $PauseSeconds
   Invoke-Midscene -Title "capture foreground after launch" -CommandArgs @("take_screenshot")
@@ -279,7 +283,15 @@ function Ensure-FitTrackerForegroundAfterLaunch {
 
   Launch-AppToForeground -Title ($TitlePrefix + " retry") -PauseSeconds ($PauseSeconds + 1)
   Invoke-Midscene -Title "capture foreground after launch retry" -CommandArgs @("take_screenshot")
-  Invoke-VisualAssert -Title "assert FitTracker foreground after launch retry" -Prompt $foregroundPrompt
+  try {
+    Invoke-VisualAssert -Title "assert FitTracker foreground after launch retry" -Prompt $foregroundPrompt
+    return
+  } catch {
+  }
+
+  Invoke-VisualAct -Title "restore FitTracker foreground by visual recovery" -Prompt "If the FitTracker app is not clearly in the foreground, bring it back to the foreground now and stop on any visible FitTracker screen. It may be startup, login, register, goal setup, home, workout preview, review, or exercise detail. Do not remain on the system launcher or a blank screen."
+  Invoke-Midscene -Title "capture foreground after visual recovery" -CommandArgs @("take_screenshot")
+  Invoke-VisualAssert -Title "assert FitTracker foreground after visual recovery" -Prompt $foregroundPrompt
 }
 
 function Invoke-VisualAssert {
@@ -357,10 +369,10 @@ function Ensure-HomeRoute {
   Invoke-Midscene -Title "capture pre-home-route screen" -CommandArgs @("take_screenshot")
   Invoke-VisualActWithRetry `
     -Title "prepare home route" `
-    -PrimaryPrompt "From the current visible FitTracker screen, reach the FitTracker home page. Stay inside the FitTracker app flow and do not use any system launch action. If login or register appears, complete it. If goal setup appears, choose muscle gain, beginner, 3 days per week, and bodyweight or dumbbell equipment, then save. If workout preview, review, or exercise detail is visible, navigate back to the home page. Stop when the home page shows the main workout entry with a primary workout button." `
+    -PrimaryPrompt "From the current visible FitTracker screen, reach the FitTracker home page. Prefer staying inside the FitTracker app flow. If the system home screen appears by mistake, reopen FitTracker and continue. If login or register appears, complete it. If goal setup appears, choose muscle gain, beginner, 3 days per week, and bodyweight or dumbbell equipment, then save. If workout preview, review, or exercise detail is visible, navigate back to the home page. Stop when the home page shows the main workout entry with a primary workout button." `
     -PrimaryAssertTitle "assert home route ready" `
     -PrimaryAssertPrompt "The FitTracker home page is visible. It shows the main workout entry with a primary workout button, and there is no crash dialog." `
-    -RetryPrompt "If the FitTracker home page is still not visible, stay inside the FitTracker app and navigate back until the home page shows the main workout entry with a primary workout button. If login or goal setup still appears, complete the minimum required flow and stop on the home page. Do not use any system launch action." `
+    -RetryPrompt "If the FitTracker home page is still not visible, navigate back until the home page shows the main workout entry with a primary workout button. If the system home screen appears, reopen FitTracker and continue. If login or goal setup still appears, complete the minimum required flow and stop on the home page." `
     -RetryAssertTitle "assert home route ready after retry" `
     -RetryAssertPrompt "The FitTracker home page is visible. It shows the main workout entry with a primary workout button, and there is no crash dialog."
 }
@@ -382,10 +394,10 @@ function Ensure-WorkoutPreviewRoute {
   Invoke-Midscene -Title "capture pre-preview-route screen" -CommandArgs @("take_screenshot")
   Invoke-VisualActWithRetry `
     -Title "prepare preview route" `
-    -PrimaryPrompt "From the current visible FitTracker screen, reach the FitTracker workout preview screen for today's training. Stay inside the FitTracker app and do not use any system launch action. If login or register appears, complete it. If goal setup appears, choose muscle gain, beginner, 3 days per week, and bodyweight or dumbbell equipment, then save. If the home page is visible, tap the main primary training button that opens today's workout preview. Do not open the training review or exercise library routes. Stop when the workout preview screen is visible." `
+    -PrimaryPrompt "From the current visible FitTracker screen, reach the FitTracker workout preview screen for today's training. Prefer staying inside the FitTracker app flow. If the system home screen appears by mistake, reopen FitTracker and continue. If login or register appears, complete it. If goal setup appears, choose muscle gain, beginner, 3 days per week, and bodyweight or dumbbell equipment, then save. If the home page is visible, tap the main primary training button that opens today's workout preview. Do not open the training review or exercise library routes. Stop when the workout preview screen is visible." `
     -PrimaryAssertTitle "assert workout preview ready" `
     -PrimaryAssertPrompt "The workout preview screen for today's training is visible." `
-    -RetryPrompt "If the workout preview screen is still not visible, stay inside the FitTracker app and navigate to today's workout preview from the home page. Complete login or goal setup only if they block the route. Do not use any system launch action. Stop when the workout preview screen is visible." `
+    -RetryPrompt "If the workout preview screen is still not visible, navigate to today's workout preview from the home page. If the system home screen appears, reopen FitTracker and continue. Complete login or goal setup only if they block the route. Stop when the workout preview screen is visible." `
     -RetryAssertTitle "assert workout preview ready after retry" `
     -RetryAssertPrompt "The workout preview screen for today's training is visible."
 }
@@ -474,6 +486,27 @@ function Run-CurrentPlanSmoke {
     -RetryAssertPrompt "The active workout execution screen is visible. It shows the title 训练执行, the current exercise area, and input fields or rows for set weight and reps. There is no crash dialog."
 }
 
+function Run-SummaryPageSmoke {
+  Ensure-CurrentPlanPreviewRoute
+  Invoke-VisualActWithRetry `
+    -Title "summary flow preview to active stable" `
+    -PrimaryPrompt "On the workout preview screen, scroll if needed until the main start workout button is fully visible, tap only that button, and stop when the active workout execution screen is visible." `
+    -PrimaryAssertTitle "assert summary flow active workout screen stable" `
+    -PrimaryAssertPrompt "The active workout execution screen is visible. It shows the current exercise area and input fields or rows for set weight and reps. There is no crash dialog." `
+    -RetryPrompt "If the active workout execution screen is still not visible, stay on the workout preview screen, scroll until the main start workout button is fully visible, tap it again, and stop on the active workout execution screen." `
+    -RetryAssertTitle "assert summary flow active workout screen stable after retry" `
+    -RetryAssertPrompt "The active workout execution screen is visible. It shows the current exercise area and input fields or rows for set weight and reps. There is no crash dialog."
+
+  Invoke-VisualActWithRetry `
+    -Title "summary flow save all sets stable" `
+    -PrimaryPrompt "On the active workout execution screen, scroll to the final save section, tap the action that completes all remaining sets and saves the workout, and stop when the workout summary page is visible." `
+    -PrimaryAssertTitle "assert workout summary page stable" `
+    -PrimaryAssertPrompt "The workout summary page is visible. It shows a workout summary or training day header, completion metrics such as completion rate or completed sets, and visible next actions like edit workout record, view training review, or return home. There is no crash dialog." `
+    -RetryPrompt "If the workout summary page is still not visible, stay inside the FitTracker app, return to the final save section if needed, tap the action that completes all remaining sets and saves the workout again, and stop when the workout summary page is visible." `
+    -RetryAssertTitle "assert workout summary page stable after retry" `
+    -RetryAssertPrompt "The workout summary page is visible. It shows a workout summary or training day header, completion metrics such as completion rate or completed sets, and visible next actions like edit workout record, view training review, or return home. There is no crash dialog."
+}
+
 function Run-MembershipSmoke {
   Ensure-HomeRoute
   Invoke-VisualActWithRetry `
@@ -502,10 +535,10 @@ function Run-MembershipSmoke {
 
   Invoke-VisualActWithRetry `
     -Title "switch membership preview tier to pro" `
-    -PrimaryPrompt "On the membership page, in the local entitlement preview section, tap the Pro preview option and stop after the page updates." `
+    -PrimaryPrompt "On the membership page, in the local entitlement preview section that shows three choices Free, Pro, and Plus, tap the middle Pro option card only. Wait for the current entitlement status area on the same page to update, then stop." `
     -PrimaryAssertTitle "assert membership preview switched to pro" `
     -PrimaryAssertPrompt "The membership page remains visible and shows that the current entitlement or preview state is Pro. A short status message confirming the preview switch may also be visible." `
-    -RetryPrompt "If the membership page still does not show Pro as the current entitlement, stay on the same page, tap the Pro preview option again, and stop after the page updates." `
+    -RetryPrompt "If the membership page still does not show Pro as the current entitlement, stay on the same page, find the local entitlement preview section with Free, Pro, and Plus, tap the middle Pro option again, wait for the status area to update, and stop." `
     -RetryAssertTitle "assert membership preview switched to pro after retry" `
     -RetryAssertPrompt "The membership page remains visible and shows that the current entitlement or preview state is Pro. A short status message confirming the preview switch may also be visible."
 }
@@ -551,6 +584,8 @@ try {
     Run-MediaCardSmoke
   } elseif ($Target -eq 'current-plan') {
     Run-CurrentPlanSmoke
+  } elseif ($Target -eq 'summary-page') {
+    Run-SummaryPageSmoke
   } elseif ($Target -eq 'membership') {
     Run-MembershipSmoke
   } else {

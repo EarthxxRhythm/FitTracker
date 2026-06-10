@@ -313,8 +313,13 @@ export struct MonetizationHubPage {
   }
 
   @Builder
-  buildLaneHeader(title: string, description: string) {
+  buildLaneHeader(eyebrow: string, title: string, description: string) {
     Column({ space: SpacingTokens.XS }) {
+      Text(eyebrow)
+        .fontSize(FontTokens.MICRO_SIZE)
+        .fontWeight(FontTokens.MICRO_WEIGHT)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
+
       Text(title)
         .fontSize(FontTokens.TITLE_SIZE)
         .fontWeight(FontTokens.TITLE_WEIGHT)
@@ -330,6 +335,28 @@ export struct MonetizationHubPage {
     .alignItems(HorizontalAlign.Start)
   }
 
+  @Builder
+  buildLabMetricTile(label: string, value: string, emphasize: boolean = false) {
+    Column({ space: SpacingTokens.XS }) {
+      Text(label)
+        .fontSize(FontTokens.MICRO_SIZE)
+        .fontWeight(FontTokens.MICRO_WEIGHT)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
+
+      Text(value)
+        .fontSize(FontTokens.BODY_SIZE)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(emphasize ? ColorTokens.PRIMARY : ColorTokens.TEXT_PRIMARY)
+        .maxLines(2)
+    }
+    .layoutWeight(1)
+    .padding(SpacingTokens.SM)
+    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+    .borderRadius(RadiusTokens.SM)
+    .border({ width: 1, color: emphasize ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE })
+    .alignItems(HorizontalAlign.Start)
+  }
+
   build() {
     Column() {
       PageHeader({ title: '会员与权益', showBack: true, onBackClick: () => {
@@ -342,20 +369,20 @@ export struct MonetizationHubPage {
           this.buildStageRail()
           this.buildHeroSection()
           if (this.viewModel.focusContext.active) {
-            this.buildLaneHeader('当前入口', '先确认你是从哪条能力入口进入的，再决定是否要看更高层级的覆盖范围。')
+            this.buildLaneHeader('入口上下文', '当前入口', '先确认你是从哪条能力入口进入的，再决定是否要看更高层级的覆盖范围。')
             this.buildFocusContextSection()
           }
-          this.buildLaneHeader('当前权益', '把当前层级、商品归属和本地预览状态放在同一层，避免误把预览态当成真实生效。')
+          this.buildLaneHeader('当前状态', '当前权益', '把当前层级、商品归属和本地预览状态放在同一层，避免误把预览态当成真实生效。')
           this.buildCurrentEntitlementSection()
           if (this.viewModel.previewEnabled) {
-            this.buildLaneHeader('本地预览', '这里只切换本地演示态，不会触发真实支付或修改正式会员状态。')
+            this.buildLaneHeader('本地模拟', '本地预览', '这里只切换本地演示态，不会触发真实支付或修改正式会员状态。')
             this.buildPreviewSection()
           }
-          this.buildLaneHeader('方案比较', '先看当前最相关的升级方案，再往下比较不同层级的定价和能力边界。')
+          this.buildLaneHeader('方案比较', '升级方案', '先看当前最相关的升级方案，再往下比较不同层级的定价和能力边界。')
           this.buildOfferSection()
-          this.buildLaneHeader('Free 边界', '明确哪些能力始终留在免费主链里，避免把训练主流程和会员增量能力混在一起。')
+          this.buildLaneHeader('免费主链', 'Free 边界', '明确哪些能力始终留在免费主链里，避免把训练主流程和会员增量能力混在一起。')
           this.buildFreeBoundarySection()
-          this.buildLaneHeader('接入顺序', '这里记录会员能力按什么顺序落地，方便判断哪些是已接入入口，哪些仍只是规划。')
+          this.buildLaneHeader('落地顺序', '接入顺序', '这里记录会员能力按什么顺序落地，方便判断哪些是已接入入口，哪些仍只是规划。')
           this.buildRoadmapSection()
 
           AppButton({
@@ -427,10 +454,23 @@ export struct MonetizationHubPage {
           .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
           .width('100%')
 
-        Column({ space: SpacingTokens.SM }) {
-          this.buildInfoRow('当前层级', this.viewModel.tierText)
-          this.buildInfoRow('支付环境', this.viewModel.environmentText)
-          this.buildInfoRow('当前说明', this.viewModel.noticeText)
+        Row({ space: SpacingTokens.SM }) {
+          this.buildLabMetricTile('当前层级', this.viewModel.tierText, true)
+          this.buildLabMetricTile('支付环境', this.viewModel.environmentText)
+        }
+        .width('100%')
+
+        Column({ space: SpacingTokens.XS }) {
+          Text('当前说明')
+            .fontSize(FontTokens.MICRO_SIZE)
+            .fontWeight(FontTokens.MICRO_WEIGHT)
+            .fontColor(ColorTokens.TEXT_TERTIARY)
+
+          Text(this.viewModel.noticeText)
+            .fontSize(FontTokens.CAPTION_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+            .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+            .width('100%')
         }
         .width('100%')
         .padding(SpacingTokens.MD)
@@ -446,22 +486,6 @@ export struct MonetizationHubPage {
   buildCurrentEntitlementSection() {
     AppCard({ variant: 'outlined', cardPadding: 'default' }) {
       Column({ space: SpacingTokens.MD }) {
-        Text('当前状态')
-          .fontSize(FontTokens.MICRO_SIZE)
-          .fontWeight(FontTokens.MICRO_WEIGHT)
-          .fontColor(ColorTokens.TEXT_TERTIARY)
-
-        Text('当前权益状态')
-          .fontSize(FontTokens.TITLE_SIZE)
-          .fontWeight(FontTokens.TITLE_WEIGHT)
-          .fontColor(ColorTokens.TEXT_PRIMARY)
-
-        Text('这里显示当前账号层级、来源和商品归属，方便确认你正在看的是默认态还是本地预览态。')
-          .fontSize(FontTokens.CAPTION_SIZE)
-          .fontColor(ColorTokens.TEXT_SECONDARY)
-          .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
-          .width('100%')
-
         ForEach(this.viewModel.currentEntitlementRows, (item: MonetizationInfoRowViewModel) => {
           this.buildInfoRow(item.label, item.value)
         }, (item: MonetizationInfoRowViewModel) => item.label)
@@ -511,6 +535,12 @@ export struct MonetizationHubPage {
           .fontColor(ColorTokens.TEXT_SECONDARY)
           .lineHeight(FontTokens.BODY_LINE_HEIGHT)
           .width('100%')
+
+        Row({ space: SpacingTokens.SM }) {
+          this.buildLabMetricTile('来源入口', this.viewModel.focusContext.sourceLabel, true)
+          this.buildLabMetricTile('建议层级', this.viewModel.focusContext.recommendedTierText)
+        }
+        .width('100%')
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)
@@ -521,16 +551,6 @@ export struct MonetizationHubPage {
   buildPreviewSection() {
     AppCard({ variant: 'outlined', cardPadding: 'default' }) {
       Column({ space: SpacingTokens.MD }) {
-        Text('本地预览')
-          .fontSize(FontTokens.MICRO_SIZE)
-          .fontWeight(FontTokens.MICRO_WEIGHT)
-          .fontColor(ColorTokens.TEXT_TERTIARY)
-
-        Text(this.viewModel.previewTitle)
-          .fontSize(FontTokens.TITLE_SIZE)
-          .fontWeight(FontTokens.TITLE_WEIGHT)
-          .fontColor(ColorTokens.TEXT_PRIMARY)
-
         Text(this.viewModel.previewDescription)
           .fontSize(FontTokens.BODY_SIZE)
           .fontColor(ColorTokens.TEXT_SECONDARY)
@@ -654,7 +674,7 @@ export struct MonetizationHubPage {
         .fontColor(ColorTokens.TEXT_TERTIARY)
         .width('100%')
 
-      Text('商品结构')
+      Text('商品矩阵')
         .fontSize(FontTokens.TITLE_SIZE)
         .fontWeight(FontTokens.TITLE_WEIGHT)
         .fontColor(ColorTokens.TEXT_PRIMARY)
@@ -745,8 +765,8 @@ export struct MonetizationHubPage {
       .alignItems(VerticalAlign.Top)
 
       Row({ space: SpacingTokens.SM }) {
-        this.buildMetricTile('价格区间', offer.priceText)
-        this.buildMetricTile('计费方式', offer.billingText)
+        this.buildLabMetricTile('价格区间', offer.priceText, offer.highlighted)
+        this.buildLabMetricTile('计费方式', offer.billingText)
       }
       .width('100%')
 
@@ -815,13 +835,7 @@ export struct MonetizationHubPage {
   @Builder
   buildRoadmapSection() {
     Column({ space: SpacingTokens.MD }) {
-      Text('后续能力')
-        .fontSize(FontTokens.MICRO_SIZE)
-        .fontWeight(FontTokens.MICRO_WEIGHT)
-        .fontColor(ColorTokens.TEXT_TERTIARY)
-        .width('100%')
-
-      Text('能力接入顺序')
+      Text('能力接入矩阵')
         .fontSize(FontTokens.TITLE_SIZE)
         .fontWeight(FontTokens.TITLE_WEIGHT)
         .fontColor(ColorTokens.TEXT_PRIMARY)
