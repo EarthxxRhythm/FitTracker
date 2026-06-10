@@ -11,7 +11,9 @@ import TrainingPlanService, {
   PresetPlan,
   TrainingDay
 } from '../../../common/services/TrainingPlanService'
-import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
+import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens } from '../../../common/styles/DesignTokens'
+import { AppButton } from '../../../components/AppButton'
+import { AppCard } from '../../../components/AppCard'
 import MonetizationGateService from '../../../shared/services/MonetizationGateService'
 import { MonetizationCapability, MonetizationTier } from '../../../shared/models/MonetizationModels'
 import AdvancedPlanVariantsService, {
@@ -247,6 +249,175 @@ struct TrainingPlanDetailPage {
     }
   }
 
+  getHeroSubtitle(): string {
+    if (this.loading) {
+      return '正在整理计划结构、训练频率和可选变体，稍后会把启用入口恢复到同一条主线。'
+    }
+    if (!this.hasPlan) {
+      return '当前没有找到对应的预置计划，请返回首页重新选择。'
+    }
+    return '先确认适用人群、训练频率和每个训练日的动作密度，再决定是否直接启用或切换高级变体。'
+  }
+
+  getPlanStatusText(): string {
+    if (this.loading) {
+      return '加载中'
+    }
+    if (!this.hasPlan) {
+      return '未找到'
+    }
+    return '可启用'
+  }
+
+  getTrainingDayCount(): number {
+    return this.days.length
+  }
+
+  getTotalExerciseCount(): number {
+    let total: number = 0
+    for (let index = 0; index < this.days.length; index++) {
+      total += this.days[index].exercises.length
+    }
+    return total
+  }
+
+  getExerciseCountText(day: TrainingDay): string {
+    return day.exercises.length.toString() + ' 个动作'
+  }
+
+  getExercisePrescriptionText(exercise: ExerciseRef): string {
+    return exercise.targetMuscle + ' | ' + exercise.sets.toString() + ' 组 x ' + exercise.reps
+  }
+
+  getWeekdayLabel(dayNumber: number): string {
+    if (dayNumber === 1) {
+      return '周一'
+    }
+    if (dayNumber === 2) {
+      return '周二'
+    }
+    if (dayNumber === 3) {
+      return '周三'
+    }
+    if (dayNumber === 4) {
+      return '周四'
+    }
+    if (dayNumber === 5) {
+      return '周五'
+    }
+    if (dayNumber === 6) {
+      return '周六'
+    }
+    if (dayNumber === 7) {
+      return '周日'
+    }
+    return '按计划轮换'
+  }
+
+  getDayScheduleText(day: TrainingDay): string {
+    if (day.dayOfWeek === undefined || day.dayOfWeek.length === 0) {
+      return '按训练周节奏轮换'
+    }
+    let text: string = ''
+    for (let index = 0; index < day.dayOfWeek.length; index++) {
+      if (index > 0) {
+        text += ' / '
+      }
+      text += this.getWeekdayLabel(day.dayOfWeek[index])
+    }
+    return text
+  }
+
+  @Builder
+  buildStageRail() {
+    Row({ space: SpacingTokens.SM }) {
+      this.buildStageChip('计划', true)
+      this.buildStageChip('预览', false)
+      this.buildStageChip('执行', false)
+    }
+    .width('100%')
+  }
+
+  @Builder
+  buildStageChip(label: string, active: boolean) {
+    Text(label)
+      .fontSize(FontTokens.SMALL_SIZE)
+      .fontWeight(active ? FontWeight.Medium : FontTokens.SMALL_WEIGHT)
+      .fontColor(active ? ColorTokens.TEXT_PRIMARY : ColorTokens.TEXT_TERTIARY)
+      .padding({
+        top: SpacingTokens.XS,
+        bottom: SpacingTokens.XS,
+        left: SpacingTokens.SM,
+        right: SpacingTokens.SM
+      })
+      .backgroundColor(active ? ColorTokens.SURFACE_ELEVATED : ColorTokens.SURFACE_SECONDARY)
+      .borderRadius(RadiusTokens.FULL)
+      .border({
+        width: 1,
+        color: active ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
+      })
+  }
+
+  @Builder
+  buildLaneHeader(title: string, description: string) {
+    Column({ space: SpacingTokens.XS }) {
+      Text(title)
+        .fontSize(FontTokens.TITLE_SIZE)
+        .fontWeight(FontTokens.TITLE_WEIGHT)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+
+      Text(description)
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+        .width('100%')
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  buildMetricTile(label: string, value: string, note: string) {
+    Column({ space: SpacingTokens.XS }) {
+      Text(label)
+        .fontSize(FontTokens.SMALL_SIZE)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
+
+      Text(value)
+        .fontSize(FontTokens.TITLE_SIZE)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+
+      Text(note)
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .maxLines(2)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+    }
+    .layoutWeight(1)
+    .padding(SpacingTokens.MD)
+    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+    .borderRadius(RadiusTokens.MD)
+    .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  buildMetaPill(text: string) {
+    Text(text)
+      .fontSize(FontTokens.CAPTION_SIZE)
+      .fontColor(ColorTokens.TEXT_SECONDARY)
+      .padding({
+        top: SpacingTokens.XS,
+        bottom: SpacingTokens.XS,
+        left: SpacingTokens.SM,
+        right: SpacingTokens.SM
+      })
+      .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+      .borderRadius(RadiusTokens.FULL)
+      .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+  }
+
   @Builder
   buildAdvancedPlansSection() {
     Column({ space: SpacingTokens.MD }) {
@@ -282,72 +453,66 @@ struct TrainingPlanDetailPage {
       .alignItems(VerticalAlign.Top)
 
       ForEach(this.advancedPlansPresentation.cards, (card: AdvancedPlanVariantCardViewModel) => {
-        Column({ space: SpacingTokens.SM }) {
-          Row() {
-            Text(card.badgeText)
-              .fontSize(FontTokens.CAPTION_SIZE)
-              .fontColor(card.locked ? ColorTokens.WARNING : ColorTokens.INFO)
-              .padding({
-                left: SpacingTokens.SM,
-                right: SpacingTokens.SM,
-                top: SpacingTokens.XS,
-                bottom: SpacingTokens.XS
-              })
-              .backgroundColor(card.locked ? ColorTokens.WARNING_BG : ColorTokens.INFO_BG)
-              .borderRadius(RadiusTokens.FULL)
-
-            Blank()
-
-            if (card.locked) {
-              Text('预览')
+        AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+          Column({ space: SpacingTokens.SM }) {
+            Row() {
+              Text(card.badgeText)
                 .fontSize(FontTokens.CAPTION_SIZE)
-                .fontColor(ColorTokens.TEXT_TERTIARY)
+                .fontColor(card.locked ? ColorTokens.WARNING : ColorTokens.INFO)
+                .padding({
+                  left: SpacingTokens.SM,
+                  right: SpacingTokens.SM,
+                  top: SpacingTokens.XS,
+                  bottom: SpacingTokens.XS
+                })
+                .backgroundColor(card.locked ? ColorTokens.WARNING_BG : ColorTokens.INFO_BG)
+                .borderRadius(RadiusTokens.FULL)
+
+              Blank()
+
+              if (card.locked) {
+                Text('预览')
+                  .fontSize(FontTokens.CAPTION_SIZE)
+                  .fontColor(ColorTokens.TEXT_TERTIARY)
+              }
             }
+            .width('100%')
+
+            Text(card.title)
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+              .width('100%')
+
+            Text(card.summary)
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+              .width('100%')
+
+            Text(card.detail)
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_TERTIARY)
+              .width('100%')
+
+            AppButton({
+              text: this.enablingVariantId === card.variantId ? '启用中...' : card.actionText,
+              type: card.locked ? 'secondary' : 'primary',
+              buttonSize: 'medium',
+              block: true,
+              loading: this.enablingVariantId === card.variantId,
+              disabled: this.enablingVariantId.length > 0 && this.enablingVariantId !== card.variantId,
+              onButtonClick: () => {
+                if (card.locked) {
+                  this.openMonetizationHub('advanced_plans', '训练计划详情')
+                  return
+                }
+                this.enableAdvancedVariant(card.variantId)
+              }
+            })
           }
           .width('100%')
-
-          Text(card.title)
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-            .width('100%')
-
-          Text(card.summary)
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontColor(ColorTokens.TEXT_SECONDARY)
-            .width('100%')
-
-          Text(card.detail)
-            .fontSize(FontTokens.CAPTION_SIZE)
-            .fontColor(ColorTokens.TEXT_TERTIARY)
-            .width('100%')
-
-          Button(this.enablingVariantId === card.variantId ? '启用中...' : card.actionText)
-            .width('100%')
-            .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(card.locked ? ColorTokens.TEXT_PRIMARY : ColorTokens.TEXT_ON_PRIMARY)
-            .backgroundColor(card.locked ? ColorTokens.SURFACE_BUTTON_SECONDARY : this.coverColor)
-            .borderRadius(RadiusTokens.FULL)
-            .enabled(this.enablingVariantId.length === 0)
-            .onClick(() => {
-              if (card.locked) {
-                this.openMonetizationHub('advanced_plans', '训练计划详情')
-                return
-              }
-              this.enableAdvancedVariant(card.variantId)
-            })
+          .alignItems(HorizontalAlign.Start)
         }
-        .width('100%')
-        .padding(SpacingTokens.MD)
-        .borderRadius(RadiusTokens.SM)
-        .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-        .border({
-          width: 1,
-          color: card.locked ? ColorTokens.BORDER_ACCENT : this.coverColor
-        })
-        .alignItems(HorizontalAlign.Start)
       }, (card: AdvancedPlanVariantCardViewModel) => card.variantId)
     }
     .width('100%')
@@ -370,79 +535,149 @@ struct TrainingPlanDetailPage {
         .width('100%')
 
         if (!this.loading && !this.hasPlan) {
-          Column({ space: SpacingTokens.SM }) {
-            Text('训练计划详情')
-              .fontSize(FontTokens.DISPLAY_SIZE)
-              .fontWeight(FontTokens.DISPLAY_WEIGHT)
-              .fontColor(ColorTokens.TEXT_PRIMARY)
-
-            Text('没有找到这个预置计划，请返回首页重新选择。')
-              .fontSize(FontTokens.BODY_SIZE)
-              .fontColor(ColorTokens.TEXT_SECONDARY)
-          }
-          .width('100%')
-          .padding(SpacingTokens.MD)
-          .borderRadius(RadiusTokens.SM)
-          .backgroundColor(ColorTokens.BG_SECONDARY)
-          .alignItems(HorizontalAlign.Start)
-        }
-
-        if (this.loading) {
-          Column({ space: SpacingTokens.SM }) {
-            Text('训练计划详情')
-              .fontSize(FontTokens.DISPLAY_SIZE)
-              .fontWeight(FontTokens.DISPLAY_WEIGHT)
-              .fontColor(ColorTokens.TEXT_PRIMARY)
-
-            Text('正在加载预置计划...')
-              .fontSize(FontTokens.BODY_SIZE)
-              .fontColor(ColorTokens.TEXT_SECONDARY)
-          }
-          .width('100%')
-          .padding(SpacingTokens.MD)
-          .borderRadius(RadiusTokens.SM)
-          .backgroundColor(ColorTokens.BG_SECONDARY)
-          .alignItems(HorizontalAlign.Start)
-        }
-
-        if (!this.loading && this.hasPlan) {
-          Column({ space: SpacingTokens.MD }) {
-            Column({ space: SpacingTokens.SM }) {
-              Text(this.title)
+          AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+            Column({ space: SpacingTokens.MD }) {
+              Text('训练计划详情')
                 .fontSize(FontTokens.DISPLAY_SIZE)
                 .fontWeight(FontTokens.DISPLAY_WEIGHT)
                 .fontColor(ColorTokens.TEXT_PRIMARY)
 
-              Text('适用人群：' + this.targetAudience)
+              Text('没有找到这个预置计划，请返回首页重新选择。')
                 .fontSize(FontTokens.BODY_SIZE)
                 .fontColor(ColorTokens.TEXT_SECONDARY)
 
-              Text('训练频率：' + this.weeklyFrequency)
+              AppButton({
+                text: '返回首页',
+                type: 'secondary',
+                buttonSize: 'large',
+                block: true,
+                onButtonClick: () => {
+                  this.openBack()
+                }
+              })
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+          }
+        }
+
+        if (this.loading) {
+          AppCard({ variant: 'panel', cardPadding: 'default' }) {
+            Column({ space: SpacingTokens.MD }) {
+              Text('训练计划详情')
+                .fontSize(FontTokens.DISPLAY_SIZE)
+                .fontWeight(FontTokens.DISPLAY_WEIGHT)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+
+              Text('正在加载预置计划...')
                 .fontSize(FontTokens.BODY_SIZE)
                 .fontColor(ColorTokens.TEXT_SECONDARY)
             }
             .width('100%')
-            .padding(SpacingTokens.MD)
-            .borderRadius(RadiusTokens.SM)
-            .backgroundColor(ColorTokens.BG_SECONDARY)
-            .border({
-              width: 1,
-              color: this.coverColor
-            })
             .alignItems(HorizontalAlign.Start)
+          }
+        }
 
-            this.buildAdvancedPlansSection()
+        if (!this.loading && this.hasPlan) {
+          AppCard({ variant: 'panel', cardPadding: 'default' }) {
+            Column({ space: SpacingTokens.MD }) {
+              Row() {
+                Column({ space: SpacingTokens.XS }) {
+                  Text('预置计划')
+                    .fontSize(FontTokens.MICRO_SIZE)
+                    .fontWeight(FontTokens.MICRO_WEIGHT)
+                    .fontColor(ColorTokens.TEXT_TERTIARY)
 
-            ForEach(this.days, (day: TrainingDay, dayIndex: number) => {
-              Column({ space: SpacingTokens.SM }) {
-                Text(day.dayLabel)
-                  .fontSize(FontTokens.TITLE_SIZE)
-                  .fontWeight(FontTokens.TITLE_WEIGHT)
-                  .fontColor(ColorTokens.TEXT_PRIMARY)
-                  .width('100%')
+                  Text(this.title)
+                    .fontSize(FontTokens.DISPLAY_SIZE)
+                    .fontWeight(FontTokens.DISPLAY_WEIGHT)
+                    .fontColor(ColorTokens.TEXT_PRIMARY)
+                    .width('100%')
+
+                  Text(this.getHeroSubtitle())
+                    .fontSize(FontTokens.BODY_SIZE)
+                    .fontColor(ColorTokens.TEXT_SECONDARY)
+                    .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+                    .width('100%')
+                }
+                .layoutWeight(1)
+                .alignItems(HorizontalAlign.Start)
+
+                Text(this.getPlanStatusText())
+                  .fontSize(FontTokens.SMALL_SIZE)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+                  .padding({
+                    top: SpacingTokens.XS,
+                    bottom: SpacingTokens.XS,
+                    left: SpacingTokens.SM,
+                    right: SpacingTokens.SM
+                  })
+                  .backgroundColor(this.coverColor)
+                  .borderRadius(RadiusTokens.FULL)
+              }
+              .width('100%')
+              .alignItems(VerticalAlign.Top)
+
+              this.buildStageRail()
+
+              Row({ space: SpacingTokens.SM }) {
+                this.buildMetricTile('训练日', this.getTrainingDayCount().toString(), '本计划覆盖的训练日数量')
+                this.buildMetricTile('动作数', this.getTotalExerciseCount().toString(), '整周需要执行的动作总量')
+              }
+              .width('100%')
+
+              Row({ space: SpacingTokens.SM }) {
+                this.buildMetaPill('适用人群：' + this.targetAudience)
+                this.buildMetaPill('训练频率：' + this.weeklyFrequency)
+              }
+              .width('100%')
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+          }
+
+          this.buildLaneHeader('计划变体', '先看默认计划是否足够，再决定要不要切换到更强的高级训练变体。')
+          this.buildAdvancedPlansSection()
+
+          this.buildLaneHeader('训练日清单', '按训练日确认动作密度和目标肌群，避免启用后才发现节奏不适合当前阶段。')
+
+          ForEach(this.days, (day: TrainingDay, dayIndex: number) => {
+            AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+              Column({ space: SpacingTokens.MD }) {
+                Row() {
+                  Column({ space: SpacingTokens.XS }) {
+                    Text(day.dayLabel)
+                      .fontSize(FontTokens.TITLE_SIZE)
+                      .fontWeight(FontTokens.TITLE_WEIGHT)
+                      .fontColor(ColorTokens.TEXT_PRIMARY)
+                      .width('100%')
+
+                    Text(this.getDayScheduleText(day))
+                      .fontSize(FontTokens.CAPTION_SIZE)
+                      .fontColor(ColorTokens.TEXT_SECONDARY)
+                      .width('100%')
+                  }
+                  .layoutWeight(1)
+                  .alignItems(HorizontalAlign.Start)
+
+                  Text(this.getExerciseCountText(day))
+                    .fontSize(FontTokens.CAPTION_SIZE)
+                    .fontColor(ColorTokens.TEXT_TERTIARY)
+                    .padding({
+                      top: SpacingTokens.XS,
+                      bottom: SpacingTokens.XS,
+                      left: SpacingTokens.SM,
+                      right: SpacingTokens.SM
+                    })
+                    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+                    .borderRadius(RadiusTokens.FULL)
+                }
+                .width('100%')
+                .alignItems(VerticalAlign.Top)
 
                 ForEach(day.exercises, (exercise: ExerciseRef, exerciseIndex: number) => {
-                  Row() {
+                  Row({ space: SpacingTokens.SM }) {
                     Text((exerciseIndex + 1).toString())
                       .fontSize(FontTokens.SMALL_SIZE)
                       .fontColor(ColorTokens.TEXT_ON_PRIMARY)
@@ -459,47 +694,59 @@ struct TrainingPlanDetailPage {
                         .fontColor(ColorTokens.TEXT_PRIMARY)
                         .width('100%')
 
-                      Text(exercise.targetMuscle + ' | ' + exercise.sets.toString() + ' 组 x ' + exercise.reps)
+                      Text(this.getExercisePrescriptionText(exercise))
                         .fontSize(FontTokens.CAPTION_SIZE)
                         .fontColor(ColorTokens.TEXT_SECONDARY)
+                        .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
                         .width('100%')
                     }
                     .layoutWeight(1)
                     .alignItems(HorizontalAlign.Start)
-                    .margin({ left: SpacingTokens.SM })
                   }
                   .width('100%')
                   .alignItems(VerticalAlign.Top)
                 }, (exercise: ExerciseRef, exerciseIndex: number) => day.dayLabel + exercise.name + exerciseIndex.toString())
               }
               .width('100%')
-              .padding(SpacingTokens.MD)
-              .borderRadius(RadiusTokens.SM)
-              .backgroundColor(ColorTokens.SURFACE_PRIMARY)
               .alignItems(HorizontalAlign.Start)
-            }, (day: TrainingDay, dayIndex: number) => day.dayLabel + dayIndex.toString())
+            }
+          }, (day: TrainingDay, dayIndex: number) => day.dayLabel + dayIndex.toString())
 
-            Button(this.enabling ? '启用中...' : '开始此计划')
-              .width('100%')
-              .height(TouchTokens.BUTTON_HEIGHT_LARGE)
-              .fontSize(FontTokens.BODY_SIZE)
-              .fontWeight(FontWeight.Medium)
-              .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-              .backgroundColor(this.enabling ? ColorTokens.PRIMARY_DISABLED : this.coverColor)
-              .borderRadius(RadiusTokens.FULL)
-              .enabled(!this.enabling)
-              .onClick(() => {
-                this.enablePlan()
+          AppCard({ variant: 'panel', cardPadding: 'default' }) {
+            Column({ space: SpacingTokens.MD }) {
+              Text('启用当前计划')
+                .fontSize(FontTokens.TITLE_SIZE)
+                .fontWeight(FontTokens.TITLE_WEIGHT)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+                .width('100%')
+
+              Text('确认无误后会把它设为当前启用计划，并回到首页接入今天的训练主线。')
+                .fontSize(FontTokens.BODY_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
+                .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+                .width('100%')
+
+              AppButton({
+                text: this.enabling ? '启用中...' : '开始此计划',
+                type: 'primary',
+                buttonSize: 'large',
+                block: true,
+                loading: this.enabling,
+                onButtonClick: () => {
+                  this.enablePlan()
+                }
               })
 
-            if (this.actionMessage.length > 0) {
-              Text(this.actionMessage)
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontColor(ColorTokens.TEXT_SECONDARY)
-                .width('100%')
+              if (this.actionMessage.length > 0) {
+                Text(this.actionMessage)
+                  .fontSize(FontTokens.CAPTION_SIZE)
+                  .fontColor(ColorTokens.TEXT_SECONDARY)
+                  .width('100%')
+              }
             }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
           }
-          .width('100%')
         }
       }
       .width('100%')
