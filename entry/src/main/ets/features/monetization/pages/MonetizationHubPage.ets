@@ -1,5 +1,5 @@
 /**
- * MonetizationHubPage -- read-only membership and capability planning surface.
+ * MonetizationHubPage -- membership comparison and local preview surface.
  *
  * Phase 4: expose a real monetization destination without faking a live payment flow.
  */
@@ -235,6 +235,28 @@ export struct MonetizationHubPage {
       this.previewActionStatusText = '切换预览态失败'
     }
     this.previewBusy = false
+  }
+
+  getOfferPreviewTier(offer: MonetizationOfferCardViewModel): 'pro' | 'plus' {
+    if (offer.productId === 'fittracker_plus_monthly' || offer.productId === 'fittracker_plus_yearly') {
+      return 'plus'
+    }
+    return 'pro'
+  }
+
+  getOfferPreviewActionText(offer: MonetizationOfferCardViewModel): string {
+    if (this.getOfferPreviewTier(offer) === 'plus') {
+      return '启用 Plus 本地预览'
+    }
+    return '启用 Pro 本地预览'
+  }
+
+  shouldShowOfferResetAction(offer: MonetizationOfferCardViewModel): boolean {
+    return this.viewModel.previewEnabled && this.viewModel.previewActive && offer.current
+  }
+
+  shouldShowOfferPreviewAction(offer: MonetizationOfferCardViewModel): boolean {
+    return this.viewModel.previewEnabled && !offer.current
   }
 
   build() {
@@ -681,6 +703,32 @@ export struct MonetizationHubPage {
         .fontColor(offer.current ? ColorTokens.SUCCESS : ColorTokens.TEXT_TERTIARY)
         .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
         .width('100%')
+
+      if (this.shouldShowOfferPreviewAction(offer)) {
+        AppButton({
+          text: this.getOfferPreviewActionText(offer),
+          type: offer.highlighted ? 'primary' : 'secondary',
+          buttonSize: 'medium',
+          block: true,
+          disabled: this.previewBusy,
+          onButtonClick: () => {
+            this.applyPreviewTier(this.getOfferPreviewTier(offer))
+          }
+        })
+      }
+
+      if (this.shouldShowOfferResetAction(offer)) {
+        AppButton({
+          text: '恢复 Free 预览',
+          type: 'secondary',
+          buttonSize: 'medium',
+          block: true,
+          disabled: this.previewBusy,
+          onButtonClick: () => {
+            this.applyPreviewTier('free')
+          }
+        })
+      }
     }
     .width('100%')
     .alignItems(HorizontalAlign.Start)
