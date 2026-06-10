@@ -91,7 +91,6 @@ export struct ReviewHomePage {
   @State selectedExerciseId: string = ''
   @State selectedRecordDetail: ExercisePersonalRecordDetail = PersonalRecordService.createEmptyRecordDetail()
   @State profileNickname: string = ''
-  @State profileAvatar: string = ''
   @State profileWeightUnit: WeightUnit = 'kg'
   @State profileStatusText: string = ''
   @State profileLoading: boolean = false
@@ -288,7 +287,6 @@ export struct ReviewHomePage {
   async loadProfile(): Promise<void> {
     const profile: UserProfile = await UserProfileService.loadProfile(getContext(this))
     this.profileNickname = profile.nickname
-    this.profileAvatar = profile.avatar
     this.profileWeightUnit = profile.weightUnit
   }
 
@@ -2172,7 +2170,7 @@ export struct ReviewHomePage {
         .fontWeight(FontTokens.TITLE_WEIGHT)
         .fontColor(ColorTokens.TEXT_PRIMARY)
 
-      Text(this.profileAvatar.length > 0 ? '头像占位：' + this.profileAvatar : '头像占位：默认头像')
+      Text('在这里维护回顾页显示名称和重量单位，训练记录会按当前偏好即时更新。')
         .fontSize(FontTokens.CAPTION_SIZE)
         .fontColor(ColorTokens.TEXT_SECONDARY)
 
