@@ -2475,6 +2475,20 @@ struct ReviewHomePage {
         }
 
         if (!this.loading) {
+          Column({ space: SpacingTokens.XS }) {
+            Text('本地工具')
+              .fontSize(FontTokens.TITLE_SIZE)
+              .fontWeight(FontTokens.TITLE_WEIGHT)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+
+            Text('把备份、恢复和个人资料维护放在同一组工具区，避免打断前面的训练复盘。')
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+              .width('100%')
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
+
           this.buildBackupEntrySection()
           this.buildProfileSettings()
         }

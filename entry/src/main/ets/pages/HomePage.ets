@@ -378,32 +378,45 @@ export struct HomePage {
 
   resolveWeeklySectionDescription(): string {
     if (this.hasTodayWorkout) {
-      return '先完成今天的训练，再回到回顾页看趋势和动作表现。'
+      return '先完成今天这组，再回到回顾页看趋势和动作表现。'
     }
-    return '今天优先恢复和调整，下一次训练已经排进本周节奏里。'
+    return '今天以恢复和调整为主，下一次训练已经排进本周节奏。'
+  }
+
+  @Builder
+  buildHomeMetaPill(text: string) {
+    Text(text)
+      .fontSize(FontTokens.SMALL_SIZE)
+      .fontColor(ColorTokens.TEXT_SECONDARY)
+      .padding({
+        top: SpacingTokens.XS,
+        bottom: SpacingTokens.XS,
+        left: SpacingTokens.SM,
+        right: SpacingTokens.SM
+      })
+      .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+      .borderRadius(RadiusTokens.FULL)
+      .border({
+        width: 1,
+        color: ColorTokens.BORDER_SUBTLE
+      })
+  }
+
+  hasSecondaryMetaText(): boolean {
+    return this.secondaryMetaText.length > 0
+  }
+
+  hasEquipmentSummary(): boolean {
+    return this.equipmentSummary.length > 0
+  }
+
+  hasRestrictionSummary(): boolean {
+    return this.restrictionSummary.length > 0
   }
 
   build() {
     Scroll() {
       Column({ space: SpacingTokens.LG }) {
-        Column({ space: SpacingTokens.XS }) {
-          Text('\u8bad\u7ec3\u9996\u9875')
-            .fontSize(FontTokens.MICRO_SIZE)
-            .fontWeight(FontTokens.MICRO_WEIGHT)
-            .fontColor(ColorTokens.TEXT_TERTIARY)
-
-          Text('\u4eca\u5929\u8bad\u7ec3')
-            .fontSize(FontTokens.DISPLAY_SIZE)
-            .fontWeight(FontTokens.DISPLAY_WEIGHT)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-
-          Text('\u4f18\u5148\u56de\u7b54\u4eca\u5929\u7ec3\u4ec0\u4e48\u3001\u4ece\u54ea\u91cc\u7ee7\u7eed\u3001\u4e0b\u4e00\u6b65\u8be5\u505a\u4ec0\u4e48\u3002')
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontColor(ColorTokens.TEXT_SECONDARY)
-        }
-        .width('100%')
-        .alignItems(HorizontalAlign.Start)
-
         PrimaryDestinationStrip({ currentKey: 'home' })
 
         AppCard({ variant: 'panel', cardPadding: 'default' }) {
@@ -451,6 +464,16 @@ export struct HomePage {
               .fontColor(ColorTokens.TEXT_SECONDARY)
               .lineHeight(FontTokens.BODY_LINE_HEIGHT)
               .width('100%')
+
+            if (!this.loading && this.hasGoal) {
+              Row({ space: SpacingTokens.SM }) {
+                this.buildHomeMetaPill(this.primaryMetaText)
+                if (this.hasSecondaryMetaText()) {
+                  this.buildHomeMetaPill(this.secondaryMetaText)
+                }
+              }
+              .width('100%')
+            }
 
             if (!this.loading && this.hasGoal) {
               Row({ space: SpacingTokens.SM }) {
@@ -607,9 +630,38 @@ export struct HomePage {
               .width('100%')
             }
 
+            Row({ space: SpacingTokens.SM }) {
+              Column() {
+                AppButton({
+                  text: '\u8bad\u7ec3\u56de\u987e',
+                  type: 'ghost',
+                  buttonSize: 'medium',
+                  block: true,
+                  onButtonClick: () => {
+                    this.openReviewHome()
+                  }
+                })
+              }
+              .layoutWeight(1)
+
+              Column() {
+                AppButton({
+                  text: '\u52a8\u4f5c\u5e93',
+                  type: 'secondary',
+                  buttonSize: 'medium',
+                  block: true,
+                  onButtonClick: () => {
+                    this.openExerciseLibrary()
+                  }
+                })
+              }
+              .layoutWeight(1)
+            }
+            .width('100%')
+
             if (!this.loading && !this.hasGoal) {
               AppButton({
-                text: '\u67e5\u770b\u52a8\u4f5c\u5e93',
+                text: '\u8bbe\u7f6e\u540e\u81ea\u52a8\u751f\u6210\u8ba1\u5212',
                 type: 'secondary',
                 buttonSize: 'medium',
                 block: true,
@@ -712,36 +764,35 @@ export struct HomePage {
             .alignItems(HorizontalAlign.Start)
           }
 
-          AppCard({ variant: 'outlined', cardPadding: 'default' }) {
-            Column({ space: SpacingTokens.SM }) {
-              Text('\u8ba1\u5212\u6458\u8981')
-                .fontSize(FontTokens.TITLE_SIZE)
-                .fontWeight(FontTokens.TITLE_WEIGHT)
-                .fontColor(ColorTokens.TEXT_PRIMARY)
+            AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+              Column({ space: SpacingTokens.SM }) {
+                Text('\u8ba1\u5212\u8fb9\u754c')
+                  .fontSize(FontTokens.TITLE_SIZE)
+                  .fontWeight(FontTokens.TITLE_WEIGHT)
+                  .fontColor(ColorTokens.TEXT_PRIMARY)
 
-              Text(this.goalSummary)
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(ColorTokens.TEXT_SECONDARY)
-                .lineHeight(FontTokens.BODY_LINE_HEIGHT)
-                .width('100%')
+                Text(this.goalSummary)
+                  .fontSize(FontTokens.BODY_SIZE)
+                  .fontColor(ColorTokens.TEXT_SECONDARY)
+                  .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+                  .width('100%')
 
-              Text(this.secondaryMetaText)
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontColor(ColorTokens.TEXT_SECONDARY)
+                Column({ space: SpacingTokens.SM }) {
+                  if (this.hasSecondaryMetaText()) {
+                    this.buildHomeMetaPill(this.secondaryMetaText)
+                  }
+                  if (this.hasEquipmentSummary()) {
+                    this.buildHomeMetaPill(this.equipmentSummary)
+                  }
+                  if (this.hasRestrictionSummary()) {
+                    this.buildHomeMetaPill(this.restrictionSummary)
+                  }
+                }
                 .width('100%')
-
-              Text(this.equipmentSummary)
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontColor(ColorTokens.TEXT_SECONDARY)
-                .width('100%')
-
-              Text(this.restrictionSummary)
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontColor(ColorTokens.TEXT_SECONDARY)
-                .width('100%')
-            }
-            .width('100%')
-            .alignItems(HorizontalAlign.Start)
+                .alignItems(HorizontalAlign.Start)
+              }
+              .width('100%')
+              .alignItems(HorizontalAlign.Start)
           }
         }
 
@@ -754,7 +805,7 @@ export struct HomePage {
                   .fontWeight(FontTokens.TITLE_WEIGHT)
                   .fontColor(ColorTokens.TEXT_PRIMARY)
 
-                Text('\u4f5c\u4e3a\u6b21\u7ea7\u5165\u53e3\u4fdd\u7559\u5728\u9996\u5c4f\u4e0b\u65b9\uff0c\u907f\u514d\u5e72\u6270\u4eca\u5929\u7684\u8bad\u7ec3\u51b3\u7b56\u3002')
+                Text('\u4f5c\u4e3a\u6b21\u7ea7\u5165\u53e3\u4fdd\u7559\u5728\u9996\u5c4f\u4e0b\u65b9\uff0c\u9700\u8981\u65f6\u518d\u5c55\u5f00\u3002')
                   .fontSize(FontTokens.BODY_SIZE)
                   .fontColor(ColorTokens.TEXT_SECONDARY)
               }
@@ -772,7 +823,7 @@ export struct HomePage {
             }
             .width('100%')
 
-            Text('\u81f3\u5c11\u5305\u542b\u4e94\u5206\u5316\u3001\u4e0a\u4e0b\u80a2\u5206\u88c2\u3001\u63a8\u62c9\u817f\u3001\u5168\u8eab\u8bad\u7ec3 3x \u548c\u529b\u91cf\u4e3e\u57fa\u7840\u3002')
+            Text('\u5305\u542b\u4e94\u5206\u5316\u3001\u4e0a\u4e0b\u80a2\u5206\u88c2\u3001\u63a8\u62c9\u817f\u3001\u5168\u8eab 3x \u548c\u529b\u91cf\u57fa\u7840\u3002')
               .fontSize(FontTokens.BODY_SIZE)
               .fontColor(ColorTokens.TEXT_SECONDARY)
               .width('100%')
