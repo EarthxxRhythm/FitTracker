@@ -1,21 +1,17 @@
 /**
- * LoginPage —— 用户登录页面
+ * LoginPage -- local login entry.
  *
- * 功能 #2: 用户可输入已注册手机号及密码完成登录，
- *          登录成功后跳转至训练Tab首页；
- *          若未注册则提示引导至注册页。
- * 功能 #3: 页面垂直居中布局，顶部品牌Logo与标语，
- *          中部手机号输入框（带+86前缀）与密码输入框，
- *          底部全宽"登录"主按钮，下方"注册"文字链接跳转。
+ * Function #2: local login and restore startup flow.
  */
 import { Context } from '@kit.AbilityKit'
+import { AppRoutes } from '../app/AppRoutes'
 import { AppButton } from '../components/AppButton'
+import { AppCard } from '../components/AppCard'
 import { AppInput } from '../components/AppInput'
-import { validateLoginForm } from '../common/utils/ValidationUtils'
 import AuthService from '../common/services/AuthService'
 import SessionManager from '../common/services/SessionManager'
-import { ColorTokens, FontTokens, SpacingTokens } from '../common/styles/DesignTokens'
-import { AppRoutes } from '../app/AppRoutes'
+import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens } from '../common/styles/DesignTokens'
+import { validateLoginForm } from '../common/utils/ValidationUtils'
 
 @Entry
 @Component
@@ -64,92 +60,142 @@ struct LoginPage {
     }, 500)
   }
 
+  @Builder
+  buildStageRail() {
+    Row({ space: SpacingTokens.SM }) {
+      this.buildStageChip('登录', true)
+      this.buildStageChip('训练', false)
+      this.buildStageChip('回顾', false)
+    }
+    .width('100%')
+  }
+
+  @Builder
+  buildStageChip(label: string, active: boolean) {
+    Text(label)
+      .fontSize(FontTokens.SMALL_SIZE)
+      .fontWeight(active ? FontWeight.Medium : FontTokens.SMALL_WEIGHT)
+      .fontColor(active ? ColorTokens.TEXT_PRIMARY : ColorTokens.TEXT_TERTIARY)
+      .padding({
+        top: SpacingTokens.XS,
+        bottom: SpacingTokens.XS,
+        left: SpacingTokens.SM,
+        right: SpacingTokens.SM
+      })
+      .backgroundColor(active ? ColorTokens.SURFACE_ELEVATED : ColorTokens.SURFACE_SECONDARY)
+      .borderRadius(RadiusTokens.FULL)
+      .border({
+        width: 1,
+        color: active ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
+      })
+  }
+
   build() {
-    // DESIGN: Login page uses centered layout with brand logo + form inputs.
-    Column() {
-      // 顶部：Logo 与标语
-      Column() {
-        Text('FitTracker')
-          .fontSize(FontTokens.DISPLAY_SIZE)
-          .lineHeight(FontTokens.DISPLAY_LINE_HEIGHT)
-          .fontWeight(FontTokens.DISPLAY_WEIGHT)
-          .fontColor(ColorTokens.PRIMARY)
+    Scroll() {
+      Column({ space: SpacingTokens.LG }) {
+        AppCard({ variant: 'panel', cardPadding: 'default' }) {
+          Column({ space: SpacingTokens.MD }) {
+            Text('FitTracker')
+              .fontSize(FontTokens.DISPLAY_SIZE)
+              .lineHeight(FontTokens.DISPLAY_LINE_HEIGHT)
+              .fontWeight(FontTokens.DISPLAY_WEIGHT)
+              .fontColor(ColorTokens.PRIMARY)
 
-        Text('欢迎回来，继续你的训练')
-          .fontSize(FontTokens.CAPTION_SIZE)
-          .fontColor(ColorTokens.TEXT_SECONDARY)
-          .margin({ top: SpacingTokens.XS })
-      }
-      .width('100%')
-      .alignItems(HorizontalAlign.Center)
-      .margin({ bottom: SpacingTokens.XL })
-
-      // 中部：登录表单
-      Column() {
-        AppInput({
-          value: $phone,
-          placeholder: '请输入手机号',
-          type: 'number',
-          prefix: '+86',
-          maxLength: 11,
-          errorMessage: this.phoneError
-        })
-
-        AppInput({
-          value: $password,
-          placeholder: '请输入密码',
-          type: 'password',
-          maxLength: 20,
-          errorMessage: this.passwordError
-        })
-          .margin({ top: SpacingTokens.MD })
-
-        if (this.generalError) {
-          Row() {
-            Text(this.generalError)
-              .fontSize(FontTokens.SMALL_SIZE)
-              .fontColor(ColorTokens.ERROR)
+            Text('欢迎回来，继续你的训练主线。')
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+              .lineHeight(FontTokens.BODY_LINE_HEIGHT)
               .width('100%')
+
+            this.buildStageRail()
           }
           .width('100%')
-          .margin({ top: SpacingTokens.SM })
+          .alignItems(HorizontalAlign.Start)
         }
-      }
-      .width('100%')
-      .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD })
 
-      // 下部：登录按钮 + 跳转注册链接
-      Column() {
-        AppButton({
-          text: '登录',
-          type: 'primary',
-          buttonSize: 'large',
-          block: true,
-          loading: this.loading,
-          onButtonClick: () => { this.handleLogin() }
-        })
-          .margin({ top: SpacingTokens.LG })
+        AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+          Column({ space: SpacingTokens.MD }) {
+            Text('本地登录')
+              .fontSize(FontTokens.TITLE_SIZE)
+              .fontWeight(FontTokens.TITLE_WEIGHT)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
 
-        Row() {
-          Text('没有账号？')
-            .fontSize(FontTokens.CAPTION_SIZE)
-            .fontColor(ColorTokens.TEXT_SECONDARY)
-          Text('注册')
-            .fontSize(FontTokens.CAPTION_SIZE)
-            .fontColor(ColorTokens.PRIMARY)
-            .fontWeight(FontWeight.Medium)
-            .onClick(() => {
-              this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.REGISTER })
+            Text('输入手机号和密码后，系统会直接恢复到当前本地训练流程。')
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+              .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+              .width('100%')
+
+            AppInput({
+              value: $phone,
+              placeholder: '请输入手机号',
+              type: 'number',
+              prefix: '+86',
+              maxLength: 11,
+              errorMessage: this.phoneError
             })
+
+            AppInput({
+              value: $password,
+              placeholder: '请输入密码',
+              type: 'password',
+              maxLength: 20,
+              errorMessage: this.passwordError
+            })
+
+            if (this.generalError.length > 0) {
+              Text(this.generalError)
+                .fontSize(FontTokens.SMALL_SIZE)
+                .fontColor(ColorTokens.ERROR)
+                .width('100%')
+            }
+
+            AppButton({
+              text: '登录',
+              type: 'primary',
+              buttonSize: 'large',
+              block: true,
+              loading: this.loading,
+              onButtonClick: () => {
+                this.handleLogin()
+              }
+            })
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
         }
-        .margin({ top: SpacingTokens.MD })
+
+        AppCard({ variant: 'outlined', cardPadding: 'compact' }) {
+          Column({ space: SpacingTokens.SM }) {
+            Text('首次进入')
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+
+            Row() {
+              Text('还没有账号？')
+                .fontSize(FontTokens.CAPTION_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
+
+              Text('注册')
+                .fontSize(FontTokens.CAPTION_SIZE)
+                .fontColor(ColorTokens.PRIMARY)
+                .fontWeight(FontWeight.Medium)
+                .margin({ left: SpacingTokens.XS })
+                .onClick(() => {
+                  this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.REGISTER })
+                })
+            }
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
+        }
       }
       .width('100%')
-      .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD })
+      .padding(SpacingTokens.LG)
     }
     .width('100%')
     .height('100%')
-    .justifyContent(FlexAlign.Center)
-    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+    .backgroundColor(ColorTokens.BG_PRIMARY)
   }
 }
