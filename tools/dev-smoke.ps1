@@ -48,7 +48,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 $hdcText = (@($hdcRawOutput) | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
 if (-not $CheckOnly) {
-  Assert-HdcTargetsReady -RawOutput $hdcText -DeviceId $DeviceId
+  $hdcText = Wait-HdcTargetsReady -DeviceId $DeviceId -InitialRawOutput $hdcText -MaxWaitSeconds 90 -PollSeconds 5
 }
 
 if (-not $SkipPrepareEnv) {
