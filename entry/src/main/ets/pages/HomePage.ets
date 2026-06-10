@@ -414,10 +414,63 @@ export struct HomePage {
     return this.restrictionSummary.length > 0
   }
 
+  @Builder
+  buildStageRail() {
+    Row({ space: SpacingTokens.SM }) {
+      this.buildStageChip('目标', !this.hasGoal)
+      this.buildStageChip('预览', this.hasGoal && !this.hasRecoverableDraft && !this.hasTodayWorkout)
+      this.buildStageChip('执行', this.hasRecoverableDraft || this.hasTodayWorkout)
+      this.buildStageChip('回顾', false)
+    }
+    .width('100%')
+  }
+
+  @Builder
+  buildStageChip(label: string, active: boolean) {
+    Text(label)
+      .fontSize(FontTokens.SMALL_SIZE)
+      .fontWeight(active ? FontWeight.Medium : FontTokens.SMALL_WEIGHT)
+      .fontColor(active ? ColorTokens.TEXT_PRIMARY : ColorTokens.TEXT_TERTIARY)
+      .padding({
+        top: SpacingTokens.XS,
+        bottom: SpacingTokens.XS,
+        left: SpacingTokens.SM,
+        right: SpacingTokens.SM
+      })
+      .backgroundColor(active ? ColorTokens.SURFACE_ELEVATED : ColorTokens.SURFACE_SECONDARY)
+      .borderRadius(RadiusTokens.FULL)
+      .border({
+        width: 1,
+        color: active ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
+      })
+  }
+
+  @Builder
+  buildLaneHeader(title: string, description: string) {
+    Column({ space: SpacingTokens.XS }) {
+      Text(title)
+        .fontSize(FontTokens.TITLE_SIZE)
+        .fontWeight(FontTokens.TITLE_WEIGHT)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+
+      Text(description)
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+        .width('100%')
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
+  }
+
   build() {
     Scroll() {
       Column({ space: SpacingTokens.LG }) {
         PrimaryDestinationStrip({ currentKey: 'home' })
+
+        if (!this.loading) {
+          this.buildStageRail()
+        }
 
         AppCard({ variant: 'panel', cardPadding: 'default' }) {
           Column({ space: SpacingTokens.MD }) {
@@ -630,34 +683,36 @@ export struct HomePage {
               .width('100%')
             }
 
-            Row({ space: SpacingTokens.SM }) {
-              Column() {
-                AppButton({
-                  text: '\u8bad\u7ec3\u56de\u987e',
-                  type: 'ghost',
-                  buttonSize: 'medium',
-                  block: true,
-                  onButtonClick: () => {
-                    this.openReviewHome()
-                  }
-                })
-              }
-              .layoutWeight(1)
+            if (!this.loading && this.hasGoal) {
+              Row({ space: SpacingTokens.SM }) {
+                Column() {
+                  AppButton({
+                    text: '\u8c03\u6574\u76ee\u6807',
+                    type: 'ghost',
+                    buttonSize: 'medium',
+                    block: true,
+                    onButtonClick: () => {
+                      this.openGoalSetup()
+                    }
+                  })
+                }
+                .layoutWeight(1)
 
-              Column() {
-                AppButton({
-                  text: '\u52a8\u4f5c\u5e93',
-                  type: 'secondary',
-                  buttonSize: 'medium',
-                  block: true,
-                  onButtonClick: () => {
-                    this.openExerciseLibrary()
-                  }
-                })
+                Column() {
+                  AppButton({
+                    text: '\u52a8\u4f5c\u5e93',
+                    type: 'secondary',
+                    buttonSize: 'medium',
+                    block: true,
+                    onButtonClick: () => {
+                      this.openExerciseLibrary()
+                    }
+                  })
+                }
+                .layoutWeight(1)
               }
-              .layoutWeight(1)
+              .width('100%')
             }
-            .width('100%')
 
             if (!this.loading && !this.hasGoal) {
               AppButton({
@@ -695,6 +750,8 @@ export struct HomePage {
         }
 
         if (!this.loading && this.hasGoal) {
+          this.buildLaneHeader('本周节奏', '先看今天在本周的位置，再进入详情或继续调整计划边界。')
+
           AppCard({ variant: 'outlined', cardPadding: 'default' }) {
             Column({ space: SpacingTokens.MD }) {
               Row() {
@@ -764,39 +821,43 @@ export struct HomePage {
             .alignItems(HorizontalAlign.Start)
           }
 
-            AppCard({ variant: 'outlined', cardPadding: 'default' }) {
-              Column({ space: SpacingTokens.SM }) {
-                Text('\u8ba1\u5212\u8fb9\u754c')
-                  .fontSize(FontTokens.TITLE_SIZE)
-                  .fontWeight(FontTokens.TITLE_WEIGHT)
-                  .fontColor(ColorTokens.TEXT_PRIMARY)
+          this.buildLaneHeader('计划边界', '把目标、器械和限制条件压成一层，方便快速核对是否还适合当前阶段。')
 
-                Text(this.goalSummary)
-                  .fontSize(FontTokens.BODY_SIZE)
-                  .fontColor(ColorTokens.TEXT_SECONDARY)
-                  .lineHeight(FontTokens.BODY_LINE_HEIGHT)
-                  .width('100%')
+          AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+            Column({ space: SpacingTokens.SM }) {
+              Text('\u8ba1\u5212\u8fb9\u754c')
+                .fontSize(FontTokens.TITLE_SIZE)
+                .fontWeight(FontTokens.TITLE_WEIGHT)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
 
-                Column({ space: SpacingTokens.SM }) {
-                  if (this.hasSecondaryMetaText()) {
-                    this.buildHomeMetaPill(this.secondaryMetaText)
-                  }
-                  if (this.hasEquipmentSummary()) {
-                    this.buildHomeMetaPill(this.equipmentSummary)
-                  }
-                  if (this.hasRestrictionSummary()) {
-                    this.buildHomeMetaPill(this.restrictionSummary)
-                  }
-                }
+              Text(this.goalSummary)
+                .fontSize(FontTokens.BODY_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
+                .lineHeight(FontTokens.BODY_LINE_HEIGHT)
                 .width('100%')
-                .alignItems(HorizontalAlign.Start)
+
+              Column({ space: SpacingTokens.SM }) {
+                if (this.hasSecondaryMetaText()) {
+                  this.buildHomeMetaPill(this.secondaryMetaText)
+                }
+                if (this.hasEquipmentSummary()) {
+                  this.buildHomeMetaPill(this.equipmentSummary)
+                }
+                if (this.hasRestrictionSummary()) {
+                  this.buildHomeMetaPill(this.restrictionSummary)
+                }
               }
               .width('100%')
               .alignItems(HorizontalAlign.Start)
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
           }
         }
 
         if (!this.loading) {
+          this.buildLaneHeader('扩展计划', '预置计划继续保留在次级区，适合切换训练风格时再展开浏览。')
+
           Column({ space: SpacingTokens.MD }) {
             Row() {
               Column({ space: SpacingTokens.XS }) {

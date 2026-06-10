@@ -5,6 +5,7 @@
 import { Context } from '@kit.AbilityKit'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
+import { AppCard } from '../../../components/AppCard'
 import { UserGoal } from '../../../shared/models/TrainingModels'
 import GoalRepository from '../../../shared/services/GoalRepository'
 import GoalSetupService, { GoalSetupPrefill } from '../../../shared/services/GoalSetupService'
@@ -217,9 +218,166 @@ export struct GoalSetupPage {
     return ColorTokens.TEXT_SECONDARY
   }
 
+  getOptionLabel(options: GoalOption[], id: string): string {
+    for (let index = 0; index < options.length; index++) {
+      if (options[index].id === id) {
+        return options[index].label
+      }
+    }
+    return id
+  }
+
+  getEquipmentSummaryText(): string {
+    const selectedIds: string[] = this.getSelectedEquipmentIds()
+    let summary: string = ''
+    for (let index = 0; index < EQUIPMENT_OPTIONS.length; index++) {
+      if (this.containsValue(selectedIds, EQUIPMENT_OPTIONS[index].id)) {
+        if (summary.length > 0) {
+          summary += ' · '
+        }
+        summary += EQUIPMENT_OPTIONS[index].label
+      }
+    }
+    return summary
+  }
+
+  getRestrictionSummaryText(): string {
+    if (this.selectedRestrictedMuscleIds.length === 0) {
+      return '无特别限制'
+    }
+    let summary: string = ''
+    for (let index = 0; index < RESTRICTED_MUSCLE_OPTIONS.length; index++) {
+      if (this.containsValue(this.selectedRestrictedMuscleIds, RESTRICTED_MUSCLE_OPTIONS[index].id)) {
+        if (summary.length > 0) {
+          summary += ' · '
+        }
+        summary += RESTRICTED_MUSCLE_OPTIONS[index].label
+      }
+    }
+    return summary
+  }
+
+  @Builder
+  buildStageRail() {
+    Row({ space: SpacingTokens.SM }) {
+      this.buildStageChip('目标', true)
+      this.buildStageChip('预览', false)
+      this.buildStageChip('执行', false)
+      this.buildStageChip('回顾', false)
+    }
+    .width('100%')
+  }
+
+  @Builder
+  buildStageChip(label: string, active: boolean) {
+    Text(label)
+      .fontSize(FontTokens.SMALL_SIZE)
+      .fontWeight(active ? FontWeight.Medium : FontTokens.SMALL_WEIGHT)
+      .fontColor(active ? ColorTokens.TEXT_PRIMARY : ColorTokens.TEXT_TERTIARY)
+      .padding({
+        top: SpacingTokens.XS,
+        bottom: SpacingTokens.XS,
+        left: SpacingTokens.SM,
+        right: SpacingTokens.SM
+      })
+      .backgroundColor(active ? ColorTokens.SURFACE_ELEVATED : ColorTokens.SURFACE_SECONDARY)
+      .borderRadius(RadiusTokens.FULL)
+      .border({
+        width: 1,
+        color: active ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
+      })
+  }
+
+  @Builder
+  buildSetupMetricTile(label: string, value: string, note: string) {
+    Column({ space: SpacingTokens.XS }) {
+      Text(label)
+        .fontSize(FontTokens.SMALL_SIZE)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
+
+      Text(value)
+        .fontSize(FontTokens.TITLE_SIZE)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+        .maxLines(2)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+      Text(note)
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .maxLines(2)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+    }
+    .layoutWeight(1)
+    .padding(SpacingTokens.MD)
+    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+    .borderRadius(RadiusTokens.MD)
+    .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+    .alignItems(HorizontalAlign.Start)
+  }
+
   build() {
     Scroll() {
       Column({ space: SpacingTokens.LG }) {
+        AppCard({ variant: 'panel', cardPadding: 'default' }) {
+          Column({ space: SpacingTokens.MD }) {
+            Row() {
+              Column({ space: SpacingTokens.XS }) {
+                Text(this.hasExistingGoal ? '更新训练目标' : '训练目标')
+                  .fontSize(FontTokens.DISPLAY_SIZE)
+                  .fontWeight(FontTokens.DISPLAY_WEIGHT)
+                  .fontColor(ColorTokens.TEXT_PRIMARY)
+
+                Text('先建立目标，后续计划会围绕你的目标、经验和器械生成。')
+                  .fontSize(FontTokens.BODY_SIZE)
+                  .fontColor(ColorTokens.TEXT_SECONDARY)
+                  .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+              }
+              .layoutWeight(1)
+              .alignItems(HorizontalAlign.Start)
+
+              if (this.hasExistingGoal) {
+                Text('已有配置')
+                  .fontSize(FontTokens.SMALL_SIZE)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(ColorTokens.SUCCESS)
+                  .padding({
+                    top: SpacingTokens.XS,
+                    bottom: SpacingTokens.XS,
+                    left: SpacingTokens.SM,
+                    right: SpacingTokens.SM
+                  })
+                  .backgroundColor(ColorTokens.OVERLAY_SUCCESS)
+                  .borderRadius(RadiusTokens.FULL)
+              }
+            }
+            .width('100%')
+            .alignItems(VerticalAlign.Top)
+
+            this.buildStageRail()
+
+            Row({ space: SpacingTokens.MD }) {
+              this.buildSetupMetricTile('目标', this.getOptionLabel(GOAL_OPTIONS, this.selectedGoalType), '计划主方向')
+              this.buildSetupMetricTile('频率', this.weeklyDays.toString() + ' 天/周', '训练节奏')
+            }
+            .width('100%')
+
+            Row({ space: SpacingTokens.MD }) {
+              this.buildSetupMetricTile('经验', this.getOptionLabel(LEVEL_OPTIONS, this.selectedLevel), '动作复杂度')
+              this.buildSetupMetricTile('时长', this.sessionMinutes.toString() + ' 分钟', '单次预算')
+            }
+            .width('100%')
+
+            Text(this.getEquipmentSummaryText() + ' | ' + this.getRestrictionSummaryText())
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+              .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+              .width('100%')
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
+        }
+
         Column({ space: SpacingTokens.SM }) {
           Text('训练目标')
             .fontSize(FontTokens.DISPLAY_SIZE)
