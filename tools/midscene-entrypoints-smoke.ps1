@@ -138,6 +138,9 @@ function Invoke-Step {
       $outputText.IndexOf('error while capturing screenshot', [System.StringComparison]::OrdinalIgnoreCase) -ge 0
     )
     if (-not $isRetryableMidsceneFailure -or $attempt -eq $maxAttempts) {
+      if ($outputText.Length -gt 0) {
+        throw ('Step failed: ' + $Title + '. ' + $outputText)
+      }
       throw ('Step failed: ' + $Title)
     }
 
@@ -172,6 +175,62 @@ function Invoke-Midscene {
     $fullArgs += @("--device-id", $DeviceId)
   }
   Invoke-Step -Title $Title -Command (@("npx.cmd") + $fullArgs)
+}
+
+function Get-HdcTargetsRawOutput {
+  $rawOutput = & hdc list targets -v
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Failed to query HDC targets.'
+  }
+  return (@($rawOutput) | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+}
+
+function Ensure-HdcReadyForMidscene {
+  param(
+    [int]$MaxWaitSeconds = 45,
+    [int]$PollSeconds = 5
+  )
+
+  $rawOutputText = Get-HdcTargetsRawOutput
+  try {
+    Wait-HdcTargetsReady -DeviceId $DeviceId -InitialRawOutput $rawOutputText -MaxWaitSeconds $MaxWaitSeconds -PollSeconds $PollSeconds | Out-Null
+  } catch {
+    throw ('HDC target is not ready for Midscene. ' + $_.Exception.Message)
+  }
+}
+
+function Should-RetryMidsceneConnectFailure {
+  param([string]$Message)
+
+  if ([string]::IsNullOrWhiteSpace($Message)) {
+    return $false
+  }
+
+  return $Message.IndexOf('Unable to connect to device', [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -or
+    $Message.IndexOf("reading 'match'", [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -or
+    $Message.IndexOf('device offline', [System.StringComparison]::OrdinalIgnoreCase) -ge 0
+}
+
+function Invoke-MidsceneConnect {
+  param(
+    [string]$Title = 'connect device',
+    [int]$MaxAttempts = 3
+  )
+
+  for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+    Ensure-HdcReadyForMidscene
+    try {
+      Invoke-Midscene -Title $Title -CommandArgs @('connect')
+      return
+    } catch {
+      $message = $_.Exception.Message
+      if ($attempt -eq $MaxAttempts -or -not (Should-RetryMidsceneConnectFailure -Message $message)) {
+        throw
+      }
+      Write-Host ('[FitTracker Focused Smoke] retry Midscene device connect: ' + $attempt.ToString() + '/' + $MaxAttempts.ToString())
+      Start-Sleep -Seconds 3
+    }
+  }
 }
 
 function Assert-MidsceneEnvironment {
@@ -255,7 +314,7 @@ function Invoke-VisualActWithRetry {
 
 function Ensure-AppReady {
   Launch-AppToForeground -Title "launch app" -PauseSeconds 2
-  Invoke-Midscene -Title "connect device" -CommandArgs @("connect")
+  Invoke-MidsceneConnect -Title "connect device"
   Invoke-Midscene -Title "capture startup screen" -CommandArgs @("take_screenshot")
   Invoke-VisualAssert -Title "assert startup screen" -Prompt "The screen is not blank and there is no crash dialog."
 }
