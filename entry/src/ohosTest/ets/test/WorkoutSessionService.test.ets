@@ -35,6 +35,10 @@ class FakePreferencesStore extends SessionPreferencesStore {
   setSessions(sessions: WorkoutSession[]): void {
     this.sessionsJson = JSON.stringify(sessions)
   }
+
+  setRawJson(json: string): void {
+    this.sessionsJson = json
+  }
 }
 
 function calcEpley1RM(weight: number, reps: number): number {
@@ -64,7 +68,7 @@ function createSession(
   weight: number,
   reps: number
 ): WorkoutSession {
-  const sets: SavedSet[] = [{ weight, reps }]
+  const sets: SavedSet[] = [{ weight, reps, isWarmup: false }]
   return {
     id,
     planId: 'plan_push_pull_legs',
@@ -92,6 +96,31 @@ function findRecord(records: ExerciseRecord[], exerciseName: string): ExerciseRe
     }
   }
   return null
+}
+
+function createLegacyWarmupSession(id: string, createdAt: string): WorkoutSession {
+  const session: WorkoutSession = {
+    id,
+    planId: 'plan_push_pull_legs',
+    planName: 'Muscle Plan',
+    dayLabel: 'Monday',
+    startTime: 1000,
+    endTime: 4600,
+    durationSeconds: 3600,
+    totalSets: 2,
+    totalVolume: 1180,
+    notes: 'warmup-pr-check',
+    exercises: [{
+      name: 'bench',
+      targetMuscle: 'chest',
+      sets: [
+        { weight: 100, reps: 1, isWarmup: true },
+        { weight: 60, reps: 3, isWarmup: false }
+      ]
+    }],
+    createdAt
+  }
+  return session
 }
 
 export default function workoutSessionLogicTest(): void {
@@ -209,6 +238,44 @@ export default function workoutSessionLogicTest(): void {
         expect(duplicateRestore).assertFalse()
         expect(sessions.length).assertEqual(1)
         expect(sessions[0].id).assertEqual('session_restore')
+      })
+
+      it('should ignore warmup sets when deriving legacy exercise records', 0, async () => {
+        const createdAt = createCurrentWeekDate(4)
+        const session = createLegacyWarmupSession('session_warmup_record', createdAt)
+        fakeStore.setSessions([session])
+
+        const records = await WorkoutSessionService.getAllExerciseRecords(testContext)
+        const benchRecord = findRecord(records, 'bench')
+
+        expect(records.length).assertEqual(1)
+        expect(benchRecord !== null).assertTrue()
+        if (benchRecord !== null) {
+          expect(benchRecord.bestWeight).assertEqual(60)
+          expect(benchRecord.bestReps).assertEqual(3)
+          expect(benchRecord.best1RM).assertEqual(calcEpley1RM(60, 3))
+        }
+      })
+
+      it('should default missing warmup flags from older persisted payloads to false', 0, async () => {
+        const createdAt = createCurrentWeekDate(5)
+        fakeStore.setRawJson('[{"id":"legacy_missing_flag","planId":"plan_push_pull_legs","planName":"Muscle Plan",' +
+          '"dayLabel":"Monday","startTime":1000,"endTime":4600,"durationSeconds":3600,"totalSets":1,' +
+          '"totalVolume":240,"notes":"legacy","exercises":[{"name":"bench","targetMuscle":"chest",' +
+          '"sets":[{"weight":80,"reps":8}]}],"createdAt":"' + createdAt + '"}]')
+
+        const sessions = await WorkoutSessionService.getSessions(testContext)
+        const records = await WorkoutSessionService.getAllExerciseRecords(testContext)
+        const benchRecord = findRecord(records, 'bench')
+
+        expect(sessions.length).assertEqual(1)
+        expect(sessions[0].exercises.length).assertEqual(1)
+        expect(sessions[0].exercises[0].sets.length).assertEqual(1)
+        expect(sessions[0].exercises[0].sets[0].isWarmup).assertFalse()
+        expect(benchRecord !== null).assertTrue()
+        if (benchRecord !== null) {
+          expect(benchRecord.best1RM).assertEqual(calcEpley1RM(80, 8))
+        }
       })
     })
   })

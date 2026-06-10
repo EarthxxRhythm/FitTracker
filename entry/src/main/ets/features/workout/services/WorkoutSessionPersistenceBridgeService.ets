@@ -156,7 +156,8 @@ class WorkoutSessionPersistenceBridgeService {
   private createLegacySet(set: WorkoutSet): SavedSet {
     const legacySet: SavedSet = {
       weight: set.weight,
-      reps: set.reps
+      reps: set.reps,
+      isWarmup: set.isWarmup
     }
     return legacySet
   }
@@ -174,7 +175,7 @@ class WorkoutSessionPersistenceBridgeService {
           set.weight,
           set.reps,
           0,
-          false
+          set.isWarmup
         ))
       }
     }
