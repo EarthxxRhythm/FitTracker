@@ -2214,29 +2214,33 @@ export struct ReviewHomePage {
       .width('100%')
 
       Row({ space: SpacingTokens.SM }) {
-        Button(this.profileLoading ? '保存中...' : '保存昵称')
-          .layoutWeight(1)
-          .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
-          .fontSize(FontTokens.BODY_SIZE)
-          .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-          .backgroundColor(ColorTokens.PRIMARY)
-          .borderRadius(RadiusTokens.FULL)
-          .enabled(!this.profileLoading)
-          .onClick(() => {
-            this.saveNickname()
+        Column() {
+          AppButton({
+            text: this.profileLoading ? '保存中...' : '保存昵称',
+            type: 'primary',
+            buttonSize: 'medium',
+            block: true,
+            disabled: this.profileLoading,
+            onButtonClick: () => {
+              this.saveNickname()
+            }
           })
+        }
+        .layoutWeight(1)
 
-        Button('退出登录')
-          .layoutWeight(1)
-          .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
-          .fontSize(FontTokens.BODY_SIZE)
-          .fontColor(ColorTokens.TEXT_PRIMARY)
-          .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-          .borderRadius(RadiusTokens.FULL)
-          .enabled(!this.profileLoading)
-          .onClick(() => {
-            this.logout()
+        Column() {
+          AppButton({
+            text: '退出登录',
+            type: 'secondary',
+            buttonSize: 'medium',
+            block: true,
+            disabled: this.profileLoading,
+            onButtonClick: () => {
+              this.logout()
+            }
           })
+        }
+        .layoutWeight(1)
       }
       .width('100%')
 
@@ -2468,43 +2472,46 @@ export struct ReviewHomePage {
           })
 
         Row({ space: SpacingTokens.SM }) {
-          Button(this.backupBusy && this.backupFlow === 'export' ? '生成中...' : '生成当前备份')
-            .layoutWeight(1)
-            .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-            .backgroundColor(ColorTokens.PRIMARY)
-            .borderRadius(RadiusTokens.FULL)
-            .enabled(!this.backupBusy)
-            .onClick(() => {
-              this.exportBackupPackage()
+          Column() {
+            AppButton({
+              text: this.backupBusy && this.backupFlow === 'export' ? '生成中...' : '生成当前备份',
+              type: 'primary',
+              buttonSize: 'medium',
+              block: true,
+              disabled: this.backupBusy,
+              onButtonClick: () => {
+                this.exportBackupPackage()
+              }
             })
+          }
+          .layoutWeight(1)
 
-          Button(this.backupBusy && this.backupFlow === 'import' ? '导入中...' : '导入并恢复数据')
-            .layoutWeight(1)
-            .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontColor(this.getBackupImportButtonTextColor())
-            .backgroundColor(this.getBackupImportButtonColor())
-            .borderRadius(RadiusTokens.FULL)
-            .enabled(this.canImportBackup())
-            .onClick(() => {
-              this.importBackupPackage()
+          Column() {
+            AppButton({
+              text: this.backupBusy && this.backupFlow === 'import' ? '导入中...' : '导入并恢复数据',
+              type: 'secondary',
+              buttonSize: 'medium',
+              block: true,
+              disabled: !this.canImportBackup(),
+              onButtonClick: () => {
+                this.importBackupPackage()
+              }
             })
+          }
+          .layoutWeight(1)
         }
         .width('100%')
 
-        Button('清空输入区')
-          .width('100%')
-          .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
-          .fontSize(FontTokens.BODY_SIZE)
-          .fontColor(ColorTokens.TEXT_PRIMARY)
-          .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-          .borderRadius(RadiusTokens.FULL)
-          .enabled(!this.backupBusy && this.hasBackupPackageText())
-          .onClick(() => {
+        AppButton({
+          text: '清空输入区',
+          type: 'ghost',
+          buttonSize: 'medium',
+          block: true,
+          disabled: this.backupBusy || !this.hasBackupPackageText(),
+          onButtonClick: () => {
             this.clearBackupPackageText()
-          })
+          }
+        })
 
         if (this.backupStatusText.length > 0) {
           Text('结果反馈：' + this.backupStatusText)
