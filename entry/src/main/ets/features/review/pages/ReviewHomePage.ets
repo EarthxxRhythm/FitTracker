@@ -1082,6 +1082,29 @@ struct ReviewHomePage {
   }
 
   @Builder
+  buildLabMetric(label: string, value: string, emphasize: boolean = false) {
+    Column({ space: SpacingTokens.XS }) {
+      Text(label)
+        .fontSize(FontTokens.MICRO_SIZE)
+        .fontWeight(FontTokens.MICRO_WEIGHT)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
+
+      Text(value)
+        .fontSize(FontTokens.BODY_SIZE)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(emphasize ? ColorTokens.PRIMARY : ColorTokens.TEXT_PRIMARY)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+    }
+    .layoutWeight(1)
+    .padding(SpacingTokens.SM)
+    .borderRadius(RadiusTokens.SM)
+    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+    .border({ width: 1, color: emphasize ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE })
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
   buildSectionTitle(title: string, description: string) {
     Column({ space: SpacingTokens.XS }) {
       Text(title)
@@ -1130,8 +1153,13 @@ struct ReviewHomePage {
   }
 
   @Builder
-  buildReviewLaneHeader(title: string, description: string) {
+  buildReviewLaneHeader(eyebrow: string, title: string, description: string) {
     Column({ space: SpacingTokens.XS }) {
+      Text(eyebrow)
+        .fontSize(FontTokens.MICRO_SIZE)
+        .fontWeight(FontTokens.MICRO_WEIGHT)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
+
       Text(title)
         .fontSize(FontTokens.TITLE_SIZE)
         .fontWeight(FontTokens.TITLE_WEIGHT)
@@ -1803,8 +1831,9 @@ struct ReviewHomePage {
           .width('100%')
 
           Row({ space: SpacingTokens.SM }) {
-            this.buildMetric('训练量', item.totalVolume.toString() + ' kg')
-            this.buildMetric('完成率', item.completionRate.toString() + '%')
+            this.buildLabMetric('训练量', item.totalVolume.toString() + ' kg', this.selectedWeekId === item.weekId)
+            this.buildLabMetric('完成率', item.completionRate.toString() + '%')
+            this.buildLabMetric('平均单次', item.averageSessionText)
           }
           .width('100%')
 
@@ -1848,26 +1877,78 @@ struct ReviewHomePage {
 
         if (this.selectedWeekTrend.weekId.length > 0) {
           AppCard({ variant: 'panel', cardPadding: 'compact' }) {
-            Column({ space: SpacingTokens.SM }) {
-              Text('本周明细')
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(ColorTokens.TEXT_PRIMARY)
+            Column({ space: SpacingTokens.MD }) {
+              Row() {
+                Column({ space: SpacingTokens.XS }) {
+                  Text('已选周明细')
+                    .fontSize(FontTokens.MICRO_SIZE)
+                    .fontWeight(FontTokens.MICRO_WEIGHT)
+                    .fontColor(ColorTokens.TEXT_TERTIARY)
+
+                  Text(this.selectedWeekTrend.weekLabel)
+                    .fontSize(FontTokens.BODY_SIZE)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor(ColorTokens.TEXT_PRIMARY)
+
+                  Text(this.selectedWeekTrend.dateRangeText)
+                    .fontSize(FontTokens.CAPTION_SIZE)
+                    .fontColor(ColorTokens.TEXT_TERTIARY)
+                }
+                .layoutWeight(1)
+                .alignItems(HorizontalAlign.Start)
+
+                Text(this.selectedWeekTrend.sessionCount.toString() + ' 次训练')
+                  .fontSize(FontTokens.SMALL_SIZE)
+                  .fontColor(ColorTokens.PRIMARY)
+                  .padding({
+                    top: SpacingTokens.XS,
+                    bottom: SpacingTokens.XS,
+                    left: SpacingTokens.SM,
+                    right: SpacingTokens.SM
+                  })
+                  .backgroundColor(ColorTokens.OVERLAY_PRIMARY)
+                  .borderRadius(RadiusTokens.FULL)
+              }
+              .width('100%')
+
+              Text(this.selectedWeekTrend.summaryText)
+                .fontSize(FontTokens.CAPTION_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
+                .width('100%')
 
               Row({ space: SpacingTokens.SM }) {
-                this.buildMetric('总时长', this.selectedWeekTrend.totalDurationText)
-                this.buildMetric('平均单次', this.selectedWeekTrend.averageSessionText)
+                this.buildLabMetric('总时长', this.selectedWeekTrend.totalDurationText, true)
+                this.buildLabMetric('完成组数', this.selectedWeekTrend.completionText)
               }
               .width('100%')
 
               Row({ space: SpacingTokens.SM }) {
-                this.buildMetric('完成组数', this.selectedWeekTrend.completionText)
-                this.buildMetric(
+                this.buildLabMetric('平均单次', this.selectedWeekTrend.averageSessionText)
+                this.buildLabMetric(
                   '训练重点日',
                   this.selectedWeekTrend.dominantDayId.length > 0 ? this.selectedWeekTrend.dominantDayId : '暂无'
                 )
               }
               .width('100%')
+
+              Column({ space: SpacingTokens.XS }) {
+                Text('本周观察')
+                  .fontSize(FontTokens.MICRO_SIZE)
+                  .fontWeight(FontTokens.MICRO_WEIGHT)
+                  .fontColor(ColorTokens.TEXT_TERTIARY)
+
+                Text('训练量 ' + this.selectedWeekTrend.totalVolume.toString() + ' kg，优先关注 ' +
+                  (this.selectedWeekTrend.dominantDayId.length > 0 ? this.selectedWeekTrend.dominantDayId : '本周节奏补齐'))
+                  .fontSize(FontTokens.CAPTION_SIZE)
+                  .fontColor(ColorTokens.TEXT_SECONDARY)
+                  .width('100%')
+              }
+              .width('100%')
+              .padding(SpacingTokens.SM)
+              .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+              .borderRadius(RadiusTokens.SM)
+              .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+              .alignItems(HorizontalAlign.Start)
             }
             .width('100%')
             .alignItems(HorizontalAlign.Start)
@@ -1916,9 +1997,14 @@ struct ReviewHomePage {
 
         if (this.recordDetails.length > 0) {
           AppCard({ variant: 'panel', cardPadding: 'default' }) {
-            Column({ space: SpacingTokens.SM }) {
+            Column({ space: SpacingTokens.MD }) {
               Row() {
                 Column({ space: SpacingTokens.XS }) {
+                  Text('动作 PR')
+                    .fontSize(FontTokens.MICRO_SIZE)
+                    .fontWeight(FontTokens.MICRO_WEIGHT)
+                    .fontColor(ColorTokens.TEXT_TERTIARY)
+
                   Text(this.selectedRecordDetail.exerciseName)
                     .fontSize(FontTokens.TITLE_SIZE)
                     .fontWeight(FontTokens.TITLE_WEIGHT)
@@ -1939,25 +2025,25 @@ struct ReviewHomePage {
               .width('100%')
 
               Row({ space: SpacingTokens.SM }) {
-                this.buildMetric('最佳重量', this.selectedRecordDetail.bestWeight.toString() + ' kg')
-                this.buildMetric('最佳次数', this.selectedRecordDetail.bestReps.toString())
+                this.buildLabMetric('最佳重量', this.selectedRecordDetail.bestWeight.toString() + ' kg', true)
+                this.buildLabMetric('最佳次数', this.selectedRecordDetail.bestReps.toString())
               }
               .width('100%')
 
               Row({ space: SpacingTokens.SM }) {
-                this.buildMetric('训练次数', this.selectedRecordDetail.sessionCount.toString())
-                this.buildMetric('累计正式组', this.selectedRecordDetail.performedSetCount.toString())
+                this.buildLabMetric('训练次数', this.selectedRecordDetail.sessionCount.toString())
+                this.buildLabMetric('累计正式组', this.selectedRecordDetail.performedSetCount.toString())
               }
               .width('100%')
 
               Row({ space: SpacingTokens.SM }) {
-                this.buildMetric('最近 1RM', this.selectedRecordDetail.recentOneRepMax.toString() + ' kg')
-                this.buildMetric('最近训练量', this.selectedRecordDetail.recentVolume.toString() + ' kg')
+                this.buildLabMetric('最近 1RM', this.selectedRecordDetail.recentOneRepMax.toString() + ' kg')
+                this.buildLabMetric('最近训练量', this.selectedRecordDetail.recentVolume.toString() + ' kg')
               }
               .width('100%')
 
               Column({ space: SpacingTokens.XS }) {
-                Text('最近训练')
+                Text('最近训练切片')
                   .fontSize(FontTokens.MICRO_SIZE)
                   .fontWeight(FontTokens.MICRO_WEIGHT)
                   .fontColor(ColorTokens.TEXT_TERTIARY)
@@ -1978,10 +2064,11 @@ struct ReviewHomePage {
               Text(this.selectedRecordDetail.trendText)
                 .fontSize(FontTokens.BODY_SIZE)
                 .fontColor(ColorTokens.TEXT_SECONDARY)
+                .width('100%')
 
               AppButton({
                 text: '查看动作详情',
-                type: 'primary',
+                type: 'secondary',
                 buttonSize: 'medium',
                 block: true,
                 onButtonClick: () => {
@@ -2407,7 +2494,7 @@ struct ReviewHomePage {
               .alignItems(HorizontalAlign.Start)
             }
 
-            this.buildReviewLaneHeader('增强入口', '训练记录还没建立之前，先把高级洞察和后续扩展入口收在这里。')
+            this.buildReviewLaneHeader('预留能力', '增强入口', '训练记录还没建立之前，先把高级洞察和后续扩展入口收在这里。')
             this.buildAdvancedInsightsEntrySection()
           }
           .width('100%')
@@ -2516,36 +2603,42 @@ struct ReviewHomePage {
             }
             .width('100%')
 
-            this.buildReviewLaneHeader('复盘主线', '先看总结与调整，再顺着最近训练、周统计和趋势继续下钻。')
+            this.buildReviewLaneHeader('训练主线', '复盘主线', '先看总结与调整，再顺着最近训练、周统计和趋势继续下钻。')
             this.buildAdjustmentSection()
             this.buildRecentTrainingSection()
             this.buildWeeklyStats()
             this.buildCalendarHeatmap()
             this.buildTrendSummary()
-            this.buildReviewLaneHeader('Performance Lab', '把按周趋势、动作 PR 和高级洞察预埋收在同一层，方便连续浏览。')
-            this.buildAdvancedInsightsEntrySection()
+            this.buildReviewLaneHeader('进阶洞察', 'Performance Lab', '把按周趋势、动作 PR 和高级洞察收在同一层，连续浏览时更聚焦。')
+            if (this.advancedInsightsLocked) {
+              this.buildAdvancedInsightsEntrySection()
+            }
             this.buildAdvancedInsightsPanelSection()
           }
           .width('100%')
         }
 
         if (!this.loading) {
-          Column({ space: SpacingTokens.XS }) {
-            Text('本地工具')
-              .fontSize(FontTokens.TITLE_SIZE)
-              .fontWeight(FontTokens.TITLE_WEIGHT)
-              .fontColor(ColorTokens.TEXT_PRIMARY)
+          Column({ space: SpacingTokens.MD }) {
+            this.buildReviewLaneHeader('本地维护', '本地工具', '把备份、恢复和个人资料维护放在同一组工具区，避免打断前面的训练复盘。')
 
-            Text('把备份、恢复和个人资料维护放在同一组工具区，避免打断前面的训练复盘。')
-              .fontSize(FontTokens.CAPTION_SIZE)
-              .fontColor(ColorTokens.TEXT_SECONDARY)
+            AppCard({ variant: 'panel', cardPadding: 'default' }) {
+              Column({ space: SpacingTokens.MD }) {
+                this.buildBackupEntrySection()
+
+                Row()
+                  .width('100%')
+                  .height(1)
+                  .backgroundColor(ColorTokens.DIVIDER)
+
+                this.buildProfileSettings()
+              }
               .width('100%')
+              .alignItems(HorizontalAlign.Start)
+            }
           }
           .width('100%')
           .alignItems(HorizontalAlign.Start)
-
-          this.buildBackupEntrySection()
-          this.buildProfileSettings()
         }
       }
       .width('100%')

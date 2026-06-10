@@ -316,6 +316,29 @@ export struct GoalSetupPage {
     .alignItems(HorizontalAlign.Start)
   }
 
+  @Builder
+  buildLaneHeader(eyebrow: string, title: string, description: string) {
+    Column({ space: SpacingTokens.XS }) {
+      Text(eyebrow)
+        .fontSize(FontTokens.MICRO_SIZE)
+        .fontWeight(FontTokens.MICRO_WEIGHT)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
+
+      Text(title)
+        .fontSize(FontTokens.TITLE_SIZE)
+        .fontWeight(FontTokens.TITLE_WEIGHT)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+
+      Text(description)
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+        .width('100%')
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
+  }
+
   build() {
     Scroll() {
       Column({ space: SpacingTokens.LG }) {
@@ -373,30 +396,16 @@ export struct GoalSetupPage {
               .fontColor(ColorTokens.TEXT_SECONDARY)
               .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
               .width('100%')
+              .padding(SpacingTokens.MD)
+              .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+              .borderRadius(RadiusTokens.SM)
           }
           .width('100%')
           .alignItems(HorizontalAlign.Start)
         }
 
-        Column({ space: SpacingTokens.SM }) {
-          Text('训练目标')
-            .fontSize(FontTokens.DISPLAY_SIZE)
-            .fontWeight(FontTokens.DISPLAY_WEIGHT)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-
-          Text('先建立目标，后续计划会围绕你的目标、经验和器械生成。')
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontColor(ColorTokens.TEXT_SECONDARY)
-        }
-        .width('100%')
-        .alignItems(HorizontalAlign.Start)
-
-        Column({ space: SpacingTokens.MD }) {
-          Text('目标')
-            .fontSize(FontTokens.TITLE_SIZE)
-            .fontWeight(FontTokens.TITLE_WEIGHT)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-
+        this.buildLaneHeader('目标方向', '训练目标', '先确定主方向，后续计划会围绕目标、经验和器械生成。')
+        AppCard({ variant: 'outlined', cardPadding: 'default' }) {
           Flex({ wrap: FlexWrap.Wrap }) {
             ForEach(GOAL_OPTIONS, (option: GoalOption) => {
               Button(option.label)
@@ -414,17 +423,9 @@ export struct GoalSetupPage {
           }
           .width('100%')
         }
-        .width('100%')
-        .padding(SpacingTokens.MD)
-        .borderRadius(RadiusTokens.SM)
-        .backgroundColor(ColorTokens.BG_SECONDARY)
 
-        Column({ space: SpacingTokens.MD }) {
-          Text('训练经验')
-            .fontSize(FontTokens.TITLE_SIZE)
-            .fontWeight(FontTokens.TITLE_WEIGHT)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-
+        this.buildLaneHeader('动作复杂度', '训练经验', '经验会影响动作难度、训练密度和恢复节奏。')
+        AppCard({ variant: 'outlined', cardPadding: 'default' }) {
           Flex({ wrap: FlexWrap.Wrap }) {
             ForEach(LEVEL_OPTIONS, (option: GoalOption) => {
               Button(option.label)
@@ -442,17 +443,9 @@ export struct GoalSetupPage {
           }
           .width('100%')
         }
-        .width('100%')
-        .padding(SpacingTokens.MD)
-        .borderRadius(RadiusTokens.SM)
-        .backgroundColor(ColorTokens.BG_SECONDARY)
 
-        Column({ space: SpacingTokens.MD }) {
-          Text('每周训练天数')
-            .fontSize(FontTokens.TITLE_SIZE)
-            .fontWeight(FontTokens.TITLE_WEIGHT)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-
+        this.buildLaneHeader('训练节奏', '每周训练天数', '先定每周节奏，再让后续计划去分配训练日。')
+        AppCard({ variant: 'outlined', cardPadding: 'default' }) {
           Flex({ wrap: FlexWrap.Wrap }) {
             ForEach(DAY_OPTIONS, (day: number) => {
               Button(`${day} 天`)
@@ -470,17 +463,9 @@ export struct GoalSetupPage {
           }
           .width('100%')
         }
-        .width('100%')
-        .padding(SpacingTokens.MD)
-        .borderRadius(RadiusTokens.SM)
-        .backgroundColor(ColorTokens.BG_SECONDARY)
 
-        Column({ space: SpacingTokens.MD }) {
-          Text('单次训练时长')
-            .fontSize(FontTokens.TITLE_SIZE)
-            .fontWeight(FontTokens.TITLE_WEIGHT)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-
+        this.buildLaneHeader('单次预算', '单次训练时长', '控制每次训练的时间预算，避免计划密度失衡。')
+        AppCard({ variant: 'outlined', cardPadding: 'default' }) {
           Flex({ wrap: FlexWrap.Wrap }) {
             ForEach(MINUTE_OPTIONS, (minute: number) => {
               Button(`${minute} 分钟`)
@@ -498,17 +483,9 @@ export struct GoalSetupPage {
           }
           .width('100%')
         }
-        .width('100%')
-        .padding(SpacingTokens.MD)
-        .borderRadius(RadiusTokens.SM)
-        .backgroundColor(ColorTokens.BG_SECONDARY)
 
-        Column({ space: SpacingTokens.MD }) {
-          Text('可用器械')
-            .fontSize(FontTokens.TITLE_SIZE)
-            .fontWeight(FontTokens.TITLE_WEIGHT)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-
+        this.buildLaneHeader('器械范围', '可用器械', '勾选当前真实可用的器械，计划会据此筛动作。')
+        AppCard({ variant: 'outlined', cardPadding: 'default' }) {
           Flex({ wrap: FlexWrap.Wrap }) {
             ForEach(EQUIPMENT_OPTIONS, (option: GoalOption) => {
               Button(option.label)
@@ -526,55 +503,44 @@ export struct GoalSetupPage {
           }
           .width('100%')
         }
-        .width('100%')
-        .padding(SpacingTokens.MD)
-        .borderRadius(RadiusTokens.SM)
-        .backgroundColor(ColorTokens.BG_SECONDARY)
 
-        Column({ space: SpacingTokens.MD }) {
-          Text('限制肌群')
-            .fontSize(FontTokens.TITLE_SIZE)
-            .fontWeight(FontTokens.TITLE_WEIGHT)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-
-          Text('选中后计划会尽量避开相关肌群，适合疼痛、恢复期或临时限制。')
-            .fontSize(FontTokens.CAPTION_SIZE)
-            .fontColor(ColorTokens.TEXT_SECONDARY)
-
-          Flex({ wrap: FlexWrap.Wrap }) {
-            ForEach(RESTRICTED_MUSCLE_OPTIONS, (option: GoalOption) => {
-              Button(option.label)
-                .width('31%')
-                .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(this.selectedTextColor(this.containsValue(this.selectedRestrictedMuscleIds, option.id)))
-                .backgroundColor(this.selectedBg(this.containsValue(this.selectedRestrictedMuscleIds, option.id)))
-                .borderRadius(RadiusTokens.SM)
-                .margin({ right: SpacingTokens.SM, bottom: SpacingTokens.SM })
-                .onClick(() => {
-                  this.toggleRestrictedMuscle(option.id)
-                })
-            }, (option: GoalOption) => option.id)
+        this.buildLaneHeader('恢复约束', '限制肌群', '选中后计划会尽量避开相关肌群，适合疼痛、恢复期或临时限制。')
+        AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+          Column({ space: SpacingTokens.MD }) {
+            Flex({ wrap: FlexWrap.Wrap }) {
+              ForEach(RESTRICTED_MUSCLE_OPTIONS, (option: GoalOption) => {
+                Button(option.label)
+                  .width('31%')
+                  .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
+                  .fontSize(FontTokens.BODY_SIZE)
+                  .fontColor(this.selectedTextColor(this.containsValue(this.selectedRestrictedMuscleIds, option.id)))
+                  .backgroundColor(this.selectedBg(this.containsValue(this.selectedRestrictedMuscleIds, option.id)))
+                  .borderRadius(RadiusTokens.SM)
+                  .margin({ right: SpacingTokens.SM, bottom: SpacingTokens.SM })
+                  .onClick(() => {
+                    this.toggleRestrictedMuscle(option.id)
+                  })
+              }, (option: GoalOption) => option.id)
+            }
+            .width('100%')
           }
           .width('100%')
         }
-        .width('100%')
-        .padding(SpacingTokens.MD)
-        .borderRadius(RadiusTokens.SM)
-        .backgroundColor(ColorTokens.BG_SECONDARY)
 
-        Button(this.saving ? '保存中' : '生成训练计划')
-          .width('100%')
-          .height(TouchTokens.BUTTON_HEIGHT_LARGE)
-          .fontSize(FontTokens.BODY_SIZE)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-          .backgroundColor(this.saving ? ColorTokens.PRIMARY_DISABLED : ColorTokens.PRIMARY)
-          .borderRadius(RadiusTokens.FULL)
-          .enabled(!this.saving)
-          .onClick(() => {
-            this.saveSelectedGoal()
-          })
+        AppCard({ variant: 'panel', cardPadding: 'default' }) {
+          Button(this.saving ? '保存中' : '生成训练计划')
+            .width('100%')
+            .height(TouchTokens.BUTTON_HEIGHT_LARGE)
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+            .backgroundColor(this.saving ? ColorTokens.PRIMARY_DISABLED : ColorTokens.PRIMARY)
+            .borderRadius(RadiusTokens.FULL)
+            .enabled(!this.saving)
+            .onClick(() => {
+              this.saveSelectedGoal()
+            })
+        }
       }
       .width('100%')
       .padding(SpacingTokens.LG)

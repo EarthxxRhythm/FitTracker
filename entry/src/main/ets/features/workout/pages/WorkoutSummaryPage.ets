@@ -698,6 +698,29 @@ export struct WorkoutSummaryPage {
   }
 
   @Builder
+  buildLaneHeader(eyebrow: string, title: string, description: string) {
+    Column({ space: SpacingTokens.XS }) {
+      Text(eyebrow)
+        .fontSize(FontTokens.MICRO_SIZE)
+        .fontWeight(FontTokens.MICRO_WEIGHT)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
+
+      Text(title)
+        .fontSize(FontTokens.TITLE_SIZE)
+        .fontWeight(FontTokens.TITLE_WEIGHT)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+
+      Text(description)
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+        .width('100%')
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
   buildMessagePanel() {
     if (this.actionMessage.length > 0) {
       Column({ space: SpacingTokens.XS }) {
@@ -909,16 +932,6 @@ export struct WorkoutSummaryPage {
   buildActionSection() {
     AppCard({ variant: 'outlined', cardPadding: 'default' }) {
       Column({ space: SpacingTokens.MD }) {
-        Text('修正记录')
-          .fontSize(FontTokens.TITLE_SIZE)
-          .fontWeight(FontTokens.TITLE_WEIGHT)
-          .fontColor(ColorTokens.TEXT_PRIMARY)
-
-        Text('如果刚才录入有误，可以在这里修正组数、重量、次数与备注；撤销保存会移除整条记录。')
-          .fontSize(FontTokens.BODY_SIZE)
-          .fontColor(ColorTokens.TEXT_SECONDARY)
-          .lineHeight(FontTokens.BODY_LINE_HEIGHT)
-
         AppButton({
           text: this.isEditMode ? '正在编辑本次训练' : '编辑本次训练',
           type: 'primary',
@@ -949,11 +962,6 @@ export struct WorkoutSummaryPage {
   buildMetadataSection() {
     AppCard({ variant: 'outlined', cardPadding: 'compact' }) {
       Column({ space: SpacingTokens.SM }) {
-        Text('记录元信息')
-          .fontSize(FontTokens.CAPTION_SIZE)
-          .fontWeight(FontTokens.TITLE_WEIGHT)
-          .fontColor(ColorTokens.TEXT_PRIMARY)
-
         this.buildInfoRow('记录编号', this.sessionId)
         this.buildInfoRow('训练日', this.getDayLabel())
         this.buildInfoRow('训练时长', this.durationText)
@@ -987,11 +995,6 @@ export struct WorkoutSummaryPage {
   buildEditShell() {
     AppCard({ variant: 'elevated', cardPadding: 'default' }) {
       Column({ space: SpacingTokens.MD }) {
-        Text('编辑本次训练')
-          .fontSize(FontTokens.TITLE_SIZE)
-          .fontWeight(FontTokens.TITLE_WEIGHT)
-          .fontColor(ColorTokens.TEXT_PRIMARY)
-
         Text(this.getEditScopeText())
           .fontSize(FontTokens.BODY_SIZE)
           .fontColor(ColorTokens.TEXT_SECONDARY)
@@ -1130,11 +1133,6 @@ export struct WorkoutSummaryPage {
     if (this.showUndoConfirm) {
       AppCard({ variant: 'outlined', cardPadding: 'default' }) {
         Column({ space: SpacingTokens.MD }) {
-          Text('撤销本次保存')
-            .fontSize(FontTokens.TITLE_SIZE)
-            .fontWeight(FontTokens.TITLE_WEIGHT)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-
           Text(this.getUndoDescriptionText())
             .fontSize(FontTokens.BODY_SIZE)
             .fontColor(ColorTokens.TEXT_SECONDARY)
@@ -1174,16 +1172,6 @@ export struct WorkoutSummaryPage {
   buildNextStepSection() {
     AppCard({ variant: 'panel', cardPadding: 'default' }) {
       Column({ space: SpacingTokens.SM }) {
-        Text('下一步')
-          .fontSize(FontTokens.TITLE_SIZE)
-          .fontWeight(FontTokens.TITLE_WEIGHT)
-          .fontColor(ColorTokens.TEXT_PRIMARY)
-
-        Text('确认记录无误后，可以直接进入训练回顾，或先回到首页继续下一轮安排。')
-          .fontSize(FontTokens.SMALL_SIZE)
-          .fontColor(ColorTokens.TEXT_TERTIARY)
-          .lineHeight(FontTokens.SMALL_LINE_HEIGHT)
-
         AppButton({
           text: '查看训练回顾',
           type: 'primary',
@@ -1225,14 +1213,23 @@ export struct WorkoutSummaryPage {
         if (!this.loading && this.hasSession) {
           this.buildProgressSection()
           this.buildRecordSection()
+          this.buildLaneHeader('记录维护', '修正记录', '如果刚才录入有误，可以在这里修正组数、重量、次数与备注；撤销保存会移除整条记录。')
           this.buildActionSection()
 
           if (this.isEditMode) {
+            this.buildLaneHeader('即时修订', '编辑本次训练', '只修正本次记录，不改训练服务语义和历史统计口径。')
             this.buildEditShell()
           }
 
+          if (this.showUndoConfirm) {
+            this.buildLaneHeader('撤销保护', '撤销本次保存', '撤销后会移除本次记录，但仍保留当前页面内的恢复机会。')
+          }
           this.buildUndoShell()
+
+          this.buildLaneHeader('记录索引', '元信息', '保留当前记录的编号、训练日和时长，方便回查与核对。')
           this.buildMetadataSection()
+
+          this.buildLaneHeader('闭环出口', '下一步', '确认记录无误后，可以直接进入训练回顾，或先回到首页继续下一轮安排。')
           this.buildNextStepSection()
         }
       }
