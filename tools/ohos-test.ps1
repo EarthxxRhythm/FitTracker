@@ -493,7 +493,7 @@ try {
   }
 
   $targetsResult = Invoke-LoggedCommand -Title 'check hdc targets' -FilePath 'hdc' -Arguments @('list', 'targets', '-v')
-  Assert-HdcTargetsReady -RawOutput $targetsResult.Output -DeviceId $DeviceId
+  Wait-HdcTargetsReady -DeviceId $DeviceId -InitialRawOutput $targetsResult.Output -MaxWaitSeconds 90 -PollSeconds 5 | Out-Null
 
   if (Test-ShouldBuild) {
     Invoke-HvigorBuild -ModuleTarget 'entry@default' -Label 'entry@default' -ExpectedHapPath $DefaultHapPath

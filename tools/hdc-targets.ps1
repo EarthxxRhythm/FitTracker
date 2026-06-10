@@ -100,3 +100,41 @@ function Assert-HdcTargetsReady {
 
   throw ('HDC targets are listed but not usable yet: ' + (($summary.UsableTargets | ForEach-Object { $_.Raw }) -join '; '))
 }
+
+function Wait-HdcTargetsReady {
+  param(
+    [string]$DeviceId = '',
+    [string]$InitialRawOutput = '',
+    [int]$MaxWaitSeconds = 90,
+    [int]$PollSeconds = 5
+  )
+
+  $lastRawOutput = $InitialRawOutput
+  if ([string]::IsNullOrWhiteSpace($lastRawOutput)) {
+    $rawOutput = & hdc list targets -v
+    if ($LASTEXITCODE -ne 0) {
+      throw 'Failed to query HDC targets.'
+    }
+    $lastRawOutput = (@($rawOutput) | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+  }
+
+  $attempts = [Math]::Max([int][Math]::Ceiling($MaxWaitSeconds / [Math]::Max($PollSeconds, 1)), 1)
+  for ($attempt = 0; $attempt -lt $attempts; $attempt++) {
+    try {
+      Assert-HdcTargetsReady -RawOutput $lastRawOutput -DeviceId $DeviceId
+      return $lastRawOutput
+    } catch {
+      if ($attempt -eq ($attempts - 1)) {
+        throw
+      }
+      Start-Sleep -Seconds $PollSeconds
+      $rawOutput = & hdc list targets -v
+      if ($LASTEXITCODE -ne 0) {
+        throw 'Failed to query HDC targets.'
+      }
+      $lastRawOutput = (@($rawOutput) | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+    }
+  }
+
+  return $lastRawOutput
+}
