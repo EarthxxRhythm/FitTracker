@@ -104,6 +104,7 @@ class WorkoutSessionEditService {
 
   createCorrectedSession(model: WorkoutSessionEditModel): WorkoutSession {
     const sets: WorkoutSet[] = this.createWorkoutSets(model.sets)
+    const completedSets: number = this.countCompletedSets(model.sets)
     const session: WorkoutSession = createWorkoutSession(
       model.sessionId,
       model.planId,
@@ -111,10 +112,10 @@ class WorkoutSessionEditService {
       model.startedAt,
       model.endedAt,
       model.durationSeconds,
-      this.countCompletedSets(model.sets),
+      completedSets,
       this.calculateTotalVolume(sets),
       model.fatigueScore,
-      this.createSessionNotes(this.countCompletedSets(model.sets), model.targetSets, model.customNotes),
+      this.createSessionNotes(completedSets, model.targetSets, model.customNotes),
       sets
     )
     return session
@@ -236,7 +237,7 @@ class WorkoutSessionEditService {
   private countCompletedSets(sets: WorkoutSessionEditSet[]): number {
     let count: number = 0
     for (let index = 0; index < sets.length; index++) {
-      if (sets[index].isComplete) {
+      if (sets[index].isComplete && !sets[index].isWarmup) {
         count++
       }
     }
@@ -246,7 +247,9 @@ class WorkoutSessionEditService {
   private calculateTotalVolume(sets: WorkoutSet[]): number {
     let totalVolume: number = 0
     for (let index = 0; index < sets.length; index++) {
-      totalVolume += sets[index].weight * sets[index].reps
+      if (!sets[index].isWarmup) {
+        totalVolume += sets[index].weight * sets[index].reps
+      }
     }
     return Math.round(totalVolume * 100) / 100
   }

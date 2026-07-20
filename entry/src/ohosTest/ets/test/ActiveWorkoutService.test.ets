@@ -29,19 +29,21 @@ export default function activeWorkoutServiceTest(): void {
       expect(preview.hasWorkout).assertTrue()
       expect(state.hasWorkout).assertTrue()
       expect(state.currentExerciseName).assertEqual(preview.exercises[0].name)
-      expect(state.currentExerciseSetProgress).assertEqual('0/' + preview.exercises[0].targetSets.toString())
+      expect(state.currentExerciseSetProgress).assertEqual('0/' + preview.exercises[0].targetSets.toString() + ' 正式组')
 
       const firstExercise: ActiveWorkoutExercise = state.exercises[0]
-      const progressedExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.updateExerciseCompletedSets(
+      const progressedExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.updateSetEntry(
         state.exercises,
         firstExercise.plannedExerciseId,
-        1
+        0,
+        '1',
+        '1'
       )
       const progressedState: ActiveWorkoutState = ActiveWorkoutService.createStateWithProgress(state, progressedExercises)
 
       expect(progressedState.completedSets).assertEqual(1)
       expect(progressedState.currentExerciseName).assertEqual(firstExercise.name)
-      expect(progressedState.currentExerciseSetProgress).assertEqual('1/' + firstExercise.targetSets.toString())
+      expect(progressedState.currentExerciseSetProgress).assertEqual('1/' + firstExercise.targetSets.toString() + ' 正式组')
     })
 
     it('updates a set entry with weight and reps then exposes instant Epley 1RM reference', 0, () => {
@@ -76,7 +78,7 @@ export default function activeWorkoutServiceTest(): void {
       expect(updatedState.exercises[0].sets[0].weightText).assertEqual('80')
       expect(updatedState.exercises[0].sets[0].repsText).assertEqual('10')
       expect(updatedState.exercises[0].sets[0].estimatedOneRepMax).assertEqual(107)
-      expect(updatedState.exercises[0].sets[0].oneRepMaxText).assertEqual('1RM 参考 107 kg')
+      expect(updatedState.exercises[0].sets[0].oneRepMaxText).assertEqual('参考 1RM 107 kg')
     })
 
     it('creates active workout state from the current enabled preset plan preview', 0, () => {
@@ -104,7 +106,7 @@ export default function activeWorkoutServiceTest(): void {
         expect(state.planId).assertEqual(currentPlan.id)
         expect(state.dayId).assertEqual('current_plan_day_1')
         expect(state.currentExerciseName).assertEqual(preview.exercises[0].name)
-        expect(state.currentExerciseSetProgress).assertEqual('0/' + preview.exercises[0].targetSets.toString())
+        expect(state.currentExerciseSetProgress).assertEqual('0/' + preview.exercises[0].targetSets.toString() + ' 正式组')
       }
     })
 
@@ -153,7 +155,7 @@ export default function activeWorkoutServiceTest(): void {
         expect(progressedState.title).assertEqual(state.title)
         expect(progressedState.completedSets).assertEqual(1)
         expect(progressedState.currentExerciseName).assertEqual(firstExercise.name)
-        expect(progressedState.currentExerciseSetProgress).assertEqual('1/' + firstExercise.targetSets.toString())
+        expect(progressedState.currentExerciseSetProgress).assertEqual('1/' + firstExercise.targetSets.toString() + ' 正式组')
         expect(session.planId).assertEqual(currentPlan.id)
         expect(session.dayId).assertEqual('current_plan_day_2')
         expect(session.totalSets).assertEqual(1)
@@ -199,7 +201,7 @@ export default function activeWorkoutServiceTest(): void {
       expect(updatedState.exercises[0].sets[0].weightText).assertEqual('40')
       expect(updatedState.exercises[0].sets[0].repsText).assertEqual('10')
       expect(updatedState.exercises[0].sets[0].estimatedOneRepMax).assertEqual(53)
-      expect(updatedState.exercises[0].sets[0].oneRepMaxText).assertEqual('1RM 参考 53 kg')
+      expect(updatedState.exercises[0].sets[0].oneRepMaxText).assertEqual('参考 1RM 53 kg')
     })
 
     it('saves completed workout session with set entries, totals, volume and duration through local repository', 0, () => {

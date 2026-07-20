@@ -59,7 +59,7 @@ class PlanEngineImpl {
       days.push(createPlanDay(
         'day_' + dayNumber.toString(),
         dayNumber,
-        'Day ' + dayNumber.toString(),
+        '第 ' + dayNumber.toString() + ' 天',
         dayFocusMuscleIds,
         exercises
       ))

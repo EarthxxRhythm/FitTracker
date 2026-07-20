@@ -30,7 +30,10 @@ export default function reviewDashboardServiceTest(): void {
         500,
         0,
         'completed_sets=2;target_sets=4',
-        [createWorkoutSet('set_review_1', 'ex_barbell_bench_press', 50, 10, 7, false)]
+        [
+          createWorkoutSet('set_review_1_1', 'ex_barbell_bench_press', 50, 5, 7, false),
+          createWorkoutSet('set_review_1_2', 'ex_barbell_bench_press', 50, 5, 7, false)
+        ]
       ))
       WorkoutRepository.saveSession(WorkoutRepository.createSession(
         'session_review_2',
@@ -43,7 +46,11 @@ export default function reviewDashboardServiceTest(): void {
         900,
         0,
         'completed_sets=3;target_sets=5',
-        [createWorkoutSet('set_review_2', 'ex_barbell_row', 60, 10, 8, false)]
+        [
+          createWorkoutSet('set_review_2_1', 'ex_barbell_row', 60, 5, 8, false),
+          createWorkoutSet('set_review_2_2', 'ex_barbell_row', 60, 5, 8, false),
+          createWorkoutSet('set_review_2_3', 'ex_barbell_row', 60, 5, 8, false)
+        ]
       ))
       WorkoutRepository.saveSession(WorkoutRepository.createSession(
         'session_review_3',
@@ -56,7 +63,12 @@ export default function reviewDashboardServiceTest(): void {
         1200,
         0,
         'completed_sets=4;target_sets=5',
-        [createWorkoutSet('set_review_3', 'ex_barbell_squat', 80, 10, 8, false)]
+        [
+          createWorkoutSet('set_review_3_1', 'ex_barbell_squat', 80, 5, 8, false),
+          createWorkoutSet('set_review_3_2', 'ex_barbell_squat', 80, 5, 8, false),
+          createWorkoutSet('set_review_3_3', 'ex_barbell_squat', 40, 5, 8, false),
+          createWorkoutSet('set_review_3_4', 'ex_barbell_squat', 40, 5, 8, false)
+        ]
       ))
 
       const sessions: WorkoutSession[] = WorkoutRepository.getSessions()
@@ -66,10 +78,12 @@ export default function reviewDashboardServiceTest(): void {
       const latestRecord: ReviewRecentSessionRecord = summary.recentRecords[0]
       expect(latestRecord.sessionId).assertEqual('session_review_3')
       expect(latestRecord.dayId).assertEqual('day_3')
+      expect(latestRecord.dayLabel).assertEqual('第 3 天')
       expect(latestRecord.dateText).assertEqual('2024-05-15')
       expect(latestRecord.durationText).assertEqual('1 小时')
       expect(latestRecord.completionText).assertEqual('4/5 组 · 80%')
       expect(latestRecord.volumeText).assertEqual('1200 kg')
+      expect(summary.latestDayLabel).assertEqual('第 3 天')
 
       const trend: ReviewTrendSummary = summary.trendSummary
       expect(trend.hasTrend).assertTrue()
@@ -138,6 +152,158 @@ export default function reviewDashboardServiceTest(): void {
         expect(regeneratedPlan.days.length).assertEqual(3)
         expect(regeneratedPlan.status).assertEqual('active')
       }
+    })
+
+    it('keeps only the latest five review records and falls back to set volume when summary volume is zero', 0, () => {
+      for (let index = 0; index < 6; index++) {
+        const startedAt: number = Date.UTC(2024, 4, 1 + index, 8, 0, 0)
+        const totalVolume: number = index === 5 ? 0 : 100 * (index + 1)
+        const weight: number = index === 5 ? 60 : 40 + index * 5
+        const reps: number = index === 5 ? 6 : 10
+        WorkoutRepository.saveSession(WorkoutRepository.createSession(
+          'session_review_limit_' + index.toString(),
+          'plan_review',
+          'day_' + index.toString(),
+          startedAt,
+          startedAt + 1800 * 1000,
+          1800,
+          3,
+          totalVolume,
+          0,
+          'completed_sets=3;target_sets=4',
+          [createWorkoutSet('set_review_limit_' + index.toString(), 'ex_barbell_bench_press', weight, reps, 8, false)]
+        ))
+      }
+
+      const summary: ReviewDashboardSummary = ReviewDashboardService.createSummary(WorkoutRepository.getSessions())
+
+      expect(summary.recentRecords.length).assertEqual(5)
+      expect(summary.recentRecords[0].sessionId).assertEqual('session_review_limit_5')
+      expect(summary.recentRecords[4].sessionId).assertEqual('session_review_limit_1')
+      expect(summary.recentRecords[0].dayLabel).assertEqual('第 5 天')
+      expect(summary.recentRecords[0].totalVolume).assertEqual(360)
+      expect(summary.recentRecords[0].volumeText).assertEqual('360 kg')
+    })
+
+    it('formats named day ids into readable Chinese labels in recent review records', 0, () => {
+      const sessions: WorkoutSession[] = [
+        WorkoutRepository.createSession(
+          'session_review_named_day',
+          'plan_review',
+          'push_day',
+          Date.UTC(2024, 4, 20, 8, 0, 0),
+          Date.UTC(2024, 4, 20, 8, 40, 0),
+          2400,
+          4,
+          600,
+          0,
+          'completed_sets=4;target_sets=4',
+          [createWorkoutSet('set_named_day', 'ex_barbell_bench_press', 60, 8, 8, false)]
+        )
+      ]
+
+      const summary: ReviewDashboardSummary = ReviewDashboardService.createSummary(sessions)
+
+      expect(summary.latestDayId).assertEqual('push_day')
+      expect(summary.latestDayLabel).assertEqual('推日')
+      expect(summary.recentRecords[0].dayLabel).assertEqual('推日')
+    })
+
+    it('keeps the current goal when completion is stable and clamps high completion increases', 0, () => {
+      const stableGoal: UserGoal = GoalSetupService.createGoalFromSelection(
+        'review_keep_goal',
+        'hypertrophy',
+        'intermediate',
+        3,
+        45,
+        ['eq_bodyweight'],
+        [],
+        1000
+      )
+      const stableSessions: WorkoutSession[] = [
+        WorkoutRepository.createSession(
+          'session_review_keep_1',
+          'plan_review',
+          'day_keep_1',
+          Date.UTC(2024, 4, 1, 8, 0, 0),
+          Date.UTC(2024, 4, 1, 8, 30, 0),
+          1800,
+          3,
+          400,
+          0,
+          'completed_sets=3;target_sets=4',
+          [
+            createWorkoutSet('set_keep_1_1', 'ex_barbell_bench_press', 40, 5, 8, false),
+            createWorkoutSet('set_keep_1_2', 'ex_barbell_bench_press', 20, 5, 8, false),
+            createWorkoutSet('set_keep_1_3', 'ex_barbell_bench_press', 20, 5, 8, false)
+          ]
+        ),
+        WorkoutRepository.createSession(
+          'session_review_keep_2',
+          'plan_review',
+          'day_keep_2',
+          Date.UTC(2024, 4, 3, 8, 0, 0),
+          Date.UTC(2024, 4, 3, 8, 30, 0),
+          1800,
+          3,
+          500,
+          0,
+          'completed_sets=4;target_sets=4',
+          [
+            createWorkoutSet('set_keep_2_1', 'ex_barbell_row', 50, 4, 8, false),
+            createWorkoutSet('set_keep_2_2', 'ex_barbell_row', 30, 5, 8, false),
+            createWorkoutSet('set_keep_2_3', 'ex_barbell_row', 20, 5, 8, false),
+            createWorkoutSet('set_keep_2_4', 'ex_barbell_row', 10, 5, 8, false)
+          ]
+        )
+      ]
+      const stableSummary: ReviewDashboardSummary = ReviewDashboardService.createSummary(stableSessions)
+      const keepAction: ReviewGoalAdjustmentAction =
+        ReviewDashboardService.createGoalAdjustmentAction(stableSummary, stableGoal)
+
+      expect(keepAction.actionType).assertEqual('keep_plan')
+      expect(keepAction.canApply).assertFalse()
+      expect(keepAction.targetWeeklyDays).assertEqual(3)
+      expect(keepAction.targetSessionMinutes).assertEqual(45)
+
+      const aggressiveGoal: UserGoal = GoalSetupService.createGoalFromSelection(
+        'review_increase_goal',
+        'hypertrophy',
+        'advanced',
+        7,
+        90,
+        ['eq_bodyweight'],
+        [],
+        2000
+      )
+      const aggressiveSessions: WorkoutSession[] = [
+        WorkoutRepository.createSession(
+          'session_review_increase_1',
+          'plan_review',
+          'day_up_1',
+          Date.UTC(2024, 4, 5, 8, 0, 0),
+          Date.UTC(2024, 4, 5, 8, 40, 0),
+          2400,
+          4,
+          700,
+          0,
+          'completed_sets=4;target_sets=4',
+          [
+            createWorkoutSet('set_up_1_1', 'ex_barbell_squat', 70, 4, 8, false),
+            createWorkoutSet('set_up_1_2', 'ex_barbell_squat', 70, 3, 8, false),
+            createWorkoutSet('set_up_1_3', 'ex_barbell_squat', 70, 2, 8, false),
+            createWorkoutSet('set_up_1_4', 'ex_barbell_squat', 70, 1, 8, false)
+          ]
+        )
+      ]
+      const aggressiveSummary: ReviewDashboardSummary = ReviewDashboardService.createSummary(aggressiveSessions)
+      const increaseAction: ReviewGoalAdjustmentAction =
+        ReviewDashboardService.createGoalAdjustmentAction(aggressiveSummary, aggressiveGoal)
+
+      expect(increaseAction.actionType).assertEqual('increase_load')
+      expect(increaseAction.canApply).assertFalse()
+      expect(increaseAction.targetWeeklyDays).assertEqual(7)
+      expect(increaseAction.targetSessionMinutes).assertEqual(90)
     })
   })
 }

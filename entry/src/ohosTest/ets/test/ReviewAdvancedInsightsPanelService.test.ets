@@ -17,6 +17,7 @@ function createSelectedWeekTrend(): ReviewWeeklyTrendItem {
     completionText: '22/25 组',
     averageSessionText: '30 分钟/次',
     dominantDayId: 'push_day',
+    dominantDayLabel: 'push_day',
     summaryText: '本周训练节奏稳定，完成率保持在高位。'
   }
   return item

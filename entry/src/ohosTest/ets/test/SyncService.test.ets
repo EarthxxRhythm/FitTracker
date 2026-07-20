@@ -206,9 +206,10 @@ export default function syncServiceTest(): void {
     })
 
     it('imports a higher bundled package version and persists applied metadata', 0, async () => {
-      const upgradedExercises: ExerciseContent[] = createVersionedExercises(2)
+      const upgradedVersion: number = BUNDLED_CONTENT_SYNC_MANIFEST.packageVersion + 1
+      const upgradedExercises: ExerciseContent[] = createVersionedExercises(upgradedVersion)
       SyncService.setBundledPackageForTesting(
-        createManifest(1, 'full', 2, upgradedExercises.length),
+        createManifest(1, 'full', upgradedVersion, upgradedExercises.length),
         BUNDLED_CONTENT_SYNC_MUSCLES,
         BUNDLED_CONTENT_SYNC_EQUIPMENT,
         upgradedExercises
@@ -219,7 +220,7 @@ export default function syncServiceTest(): void {
 
       expect(status.status).assertEqual('sync_applied')
       expect(status.activeSourceId).assertEqual('local_database')
-      expect(status.localVersion).assertEqual(2)
+      expect(status.localVersion).assertEqual(upgradedVersion)
       expect(metadata.status).assertEqual('sync_applied')
       expect(metadata.lastAppliedAt > 0).assertTrue()
     })

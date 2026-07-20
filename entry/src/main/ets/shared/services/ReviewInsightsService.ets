@@ -5,8 +5,9 @@
  */
 import ReviewService from './ReviewService'
 import { ReviewRecentSessionRecord } from './ReviewDashboardService'
+import TrainingDayLabelService from './TrainingDayLabelService'
 import WorkoutSummaryService from './WorkoutSummaryService'
-import { WorkoutSession } from '../models/TrainingModels'
+import { WorkoutSession, WorkoutSet } from '../models/TrainingModels'
 
 export class ReviewRecentSessionFilterOption {
   filterId: string = ''
@@ -28,6 +29,7 @@ export class ReviewWeeklyTrendItem {
   completionText: string = '0/0 组'
   averageSessionText: string = '0 分钟/次'
   dominantDayId: string = ''
+  dominantDayLabel: string = ''
   summaryText: string = ''
 }
 
@@ -123,6 +125,7 @@ class ReviewInsightsService {
       completionText: '0/0 组',
       averageSessionText: '0 分钟/次',
       dominantDayId: '',
+      dominantDayLabel: '',
       summaryText: '完成训练后，这里会开始累积周趋势。'
     }
     return item
@@ -170,6 +173,7 @@ class ReviewInsightsService {
     const record: ReviewRecentSessionRecord = {
       sessionId: session.sessionId,
       dayId: session.dayId,
+      dayLabel: TrainingDayLabelService.formatCompact(session.dayId),
       dateText: this.formatDate(session.startedAt),
       durationText: WorkoutSummaryService.formatDuration(session.durationSeconds),
       completedSets: completedSets,
@@ -180,6 +184,20 @@ class ReviewInsightsService {
       volumeText: totalVolume.toString() + ' kg'
     }
     return record
+  }
+
+  private getDisplayDayLabel(dayId: string): string {
+    const generatedPlanMatch: RegExpMatchArray | null = dayId.match(/^day_(\d+)$/)
+    if (generatedPlanMatch !== null) {
+      return '第 ' + generatedPlanMatch[1] + ' 天'
+    }
+
+    const currentPlanMatch: RegExpMatchArray | null = dayId.match(/^current_plan_day_(\d+)$/)
+    if (currentPlanMatch !== null) {
+      return '第 ' + currentPlanMatch[1] + ' 天'
+    }
+
+    return dayId
   }
 
   private createWeeklyTrendItem(sessions: WorkoutSession[], weekStart: Date): ReviewWeeklyTrendItem {
@@ -229,6 +247,7 @@ class ReviewInsightsService {
       completionText: completedSets.toString() + '/' + targetSets.toString() + ' 组',
       averageSessionText: WorkoutSummaryService.formatDuration(averageSessionSeconds) + '/次',
       dominantDayId: dominantDayId,
+      dominantDayLabel: TrainingDayLabelService.formatCompact(dominantDayId),
       summaryText: ''
     }
     return item
@@ -295,6 +314,9 @@ class ReviewInsightsService {
   }
 
   private getTotalVolume(session: WorkoutSession): number {
+    if (session.sets.length > 0) {
+      return ReviewService.calculateVolume(session.sets)
+    }
     if (session.totalVolume > 0) {
       return session.totalVolume
     }
@@ -302,11 +324,24 @@ class ReviewInsightsService {
   }
 
   private getCompletedSets(session: WorkoutSession): number {
-    return this.getNumberAfterPrefix(session.notes, 'completed_sets=', session.totalSets)
+    if (session.sets.length > 0) {
+      return this.countCompletedSets(session.sets)
+    }
+    return this.getNumberAfterPrefix(session.notes, 'completed_sets=', 0)
   }
 
   private getTargetSets(session: WorkoutSession): number {
-    return this.getNumberAfterPrefix(session.notes, 'target_sets=', session.totalSets)
+    return this.getNumberAfterPrefix(session.notes, 'target_sets=', this.getCompletedSets(session))
+  }
+
+  private countCompletedSets(sets: WorkoutSet[]): number {
+    let count: number = 0
+    for (let index = 0; index < sets.length; index++) {
+      if (sets[index].weight > 0 && sets[index].reps > 0 && !sets[index].isWarmup) {
+        count++
+      }
+    }
+    return count
   }
 
   private getNumberAfterPrefix(source: string, prefix: string, fallbackValue: number): number {

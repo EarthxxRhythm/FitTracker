@@ -100,11 +100,14 @@ class WorkoutSummaryService {
   }
 
   private getCompletedSets(session: WorkoutSession): number {
+    if (session.sets.length > 0) {
+      return this.countCompletedSets(session.sets)
+    }
     const parsed: number = this.getNumberAfterPrefix(session.notes, COMPLETED_SETS_PREFIX)
     if (parsed > 0) {
       return parsed
     }
-    return session.totalSets
+    return 0
   }
 
   private getTargetSets(notes: string, fallbackTargetSets: number): number {
@@ -116,10 +119,23 @@ class WorkoutSummaryService {
   }
 
   private getTotalVolume(session: WorkoutSession): number {
+    if (session.sets.length > 0) {
+      return ReviewService.calculateVolume(session.sets)
+    }
     if (session.totalVolume > 0) {
       return session.totalVolume
     }
     return ReviewService.calculateVolume(session.sets)
+  }
+
+  private countCompletedSets(sets: WorkoutSet[]): number {
+    let count: number = 0
+    for (let index = 0; index < sets.length; index++) {
+      if (sets[index].weight > 0 && sets[index].reps > 0 && !sets[index].isWarmup) {
+        count++
+      }
+    }
+    return count
   }
 
   private createExerciseRecords(currentSession: WorkoutSession, sessions: WorkoutSession[]): WorkoutSummaryExerciseRecord[] {

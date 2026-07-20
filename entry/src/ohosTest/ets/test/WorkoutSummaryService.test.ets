@@ -7,7 +7,10 @@ import {
   createUserGoal,
   createWorkoutSet
 } from '../../../main/ets/shared/models/TrainingModels'
-import ActiveWorkoutService, { ActiveWorkoutState } from '../../../main/ets/shared/services/ActiveWorkoutService'
+import ActiveWorkoutService, {
+  ActiveWorkoutExercise,
+  ActiveWorkoutState
+} from '../../../main/ets/shared/services/ActiveWorkoutService'
 import PlanEngine from '../../../main/ets/shared/services/PlanEngine'
 import WorkoutPreviewService, { WorkoutPreviewSummary } from '../../../main/ets/shared/services/WorkoutPreviewService'
 import WorkoutRepository from '../../../main/ets/shared/services/WorkoutRepository'
@@ -37,11 +40,20 @@ export default function workoutSummaryServiceTest(): void {
       const preview: WorkoutPreviewSummary = WorkoutPreviewService.createPreview(plan, 1)
       const state: ActiveWorkoutState = ActiveWorkoutService.createState(preview)
       expect(state.totalTargetSets > 0).assertTrue()
-      const completedSets: number = state.totalTargetSets - 1
+      const firstExercise: ActiveWorkoutExercise = state.exercises[0]
+      const updatedExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.updateSetEntry(
+        state.exercises,
+        firstExercise.plannedExerciseId,
+        0,
+        '40',
+        '10'
+      )
+      const progressedState: ActiveWorkoutState = ActiveWorkoutService.createStateWithProgress(state, updatedExercises)
+      const completedSets: number = progressedState.completedSets
       const expectedCompletionRate: number = Math.round((completedSets * 100) / state.totalTargetSets)
       const session: WorkoutSession = ActiveWorkoutService.createCompletedSession(
         'session_summary_flow',
-        state,
+        progressedState,
         1000,
         1501000,
         completedSets
@@ -60,7 +72,7 @@ export default function workoutSummaryServiceTest(): void {
         expect(summary.completedSets).assertEqual(completedSets)
         expect(summary.targetSets).assertEqual(state.totalTargetSets)
         expect(summary.completionRate).assertEqual(expectedCompletionRate)
-        expect(summary.totalVolume).assertEqual(0)
+        expect(summary.totalVolume).assertEqual(400)
       }
     })
 

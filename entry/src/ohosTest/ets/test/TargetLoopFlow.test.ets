@@ -123,7 +123,7 @@ export default function targetLoopFlowTest(): void {
       )
       const progressedState: ActiveWorkoutState = ActiveWorkoutService.createStateWithProgress(activeState, updatedExercises)
       expect(progressedState.completedSets).assertEqual(1)
-      expect(progressedState.exercises[0].sets[0].oneRepMaxText).assertEqual('1RM 参考 80 kg')
+      expect(progressedState.exercises[0].sets[0].oneRepMaxText).assertEqual('参考 1RM 80 kg')
 
       const session: WorkoutSession = ActiveWorkoutService.createCompletedSession(
         'session_target_loop',

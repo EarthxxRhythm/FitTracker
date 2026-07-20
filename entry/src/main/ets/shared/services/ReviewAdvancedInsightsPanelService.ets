@@ -222,6 +222,7 @@ class ReviewAdvancedInsightsPanelService {
       completionText: '',
       averageSessionText: '',
       dominantDayId: '',
+      dominantDayLabel: '',
       summaryText: ''
     }
     return item
