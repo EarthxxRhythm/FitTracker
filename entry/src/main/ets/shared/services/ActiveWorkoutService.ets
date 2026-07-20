@@ -32,6 +32,7 @@ export interface ActiveWorkoutSetEntry {
   repsText: string
   estimatedOneRepMax: number
   oneRepMaxText: string
+  isWarmup: boolean
   isComplete: boolean
 }
 
@@ -64,7 +65,7 @@ class ActiveWorkoutService {
       dayId: preview.dayId,
       title: preview.title,
       totalTargetSets: totalTargetSets,
-      completedSets: 0,
+      completedSets: this.countCompletedSets(exercises),
       currentExerciseName: this.findCurrentExerciseName(exercises),
       currentExerciseSetProgress: this.createCurrentExerciseSetProgress(exercises),
       exercises: exercises
@@ -99,10 +100,7 @@ class ActiveWorkoutService {
     completedSets: number
   ): WorkoutSession {
     const sets: WorkoutSet[] = this.createWorkoutSets(state.exercises)
-    let totalSets: number = completedSets
-    if (sets.length > 0) {
-      totalSets = sets.length
-    }
+    const actualCompletedSets: number = this.countCompletedSets(state.exercises)
     const session: WorkoutSession = createWorkoutSession(
       sessionId,
       state.planId,
@@ -110,10 +108,10 @@ class ActiveWorkoutService {
       startedAt,
       endedAt,
       this.calculateDurationSeconds(startedAt, endedAt),
-      totalSets,
+      actualCompletedSets,
       this.calculateTotalVolume(sets),
       0,
-      this.createSessionNotes(totalSets, state.totalTargetSets),
+      this.createSessionNotes(actualCompletedSets, state.totalTargetSets),
       sets
     )
     return session
@@ -122,9 +120,17 @@ class ActiveWorkoutService {
   countCompletedSets(exercises: ActiveWorkoutExercise[]): number {
     let completedSets: number = 0
     for (let index = 0; index < exercises.length; index++) {
-      completedSets += exercises[index].completedSets
+      completedSets += this.countCompleteWorkingSetEntries(exercises[index].sets)
     }
     return completedSets
+  }
+
+  countRecordedSets(exercises: ActiveWorkoutExercise[]): number {
+    let recordedSets: number = 0
+    for (let index = 0; index < exercises.length; index++) {
+      recordedSets += this.countCompleteRecordedSetEntries(exercises[index].sets)
+    }
+    return recordedSets
   }
 
   updateExerciseCompletedSets(
@@ -183,13 +189,39 @@ class ActiveWorkoutService {
     return this.updateSetEntry(exercises, plannedExerciseId, setIndex, weightText, repsText)
   }
 
-  markAllComplete(exercises: ActiveWorkoutExercise[]): ActiveWorkoutExercise[] {
+  updateSetWarmup(
+    exercises: ActiveWorkoutExercise[],
+    plannedExerciseId: string,
+    setIndex: number,
+    isWarmup: boolean
+  ): ActiveWorkoutExercise[] {
     const values: ActiveWorkoutExercise[] = []
     for (let index = 0; index < exercises.length; index++) {
       const exercise: ActiveWorkoutExercise = exercises[index]
-      values.push(this.copyActiveExerciseWithCompletedSets(exercise, exercise.targetSets))
+      if (exercise.plannedExerciseId === plannedExerciseId) {
+        values.push(this.copyActiveExerciseWithWarmupState(exercise, setIndex, isWarmup))
+      } else {
+        values.push(this.copyActiveExercise(exercise))
+      }
     }
     return values
+  }
+
+  addSetEntry(exercises: ActiveWorkoutExercise[], plannedExerciseId: string): ActiveWorkoutExercise[] {
+    const values: ActiveWorkoutExercise[] = []
+    for (let index = 0; index < exercises.length; index++) {
+      const exercise: ActiveWorkoutExercise = exercises[index]
+      if (exercise.plannedExerciseId === plannedExerciseId) {
+        values.push(this.copyActiveExerciseWithAdditionalSet(exercise))
+      } else {
+        values.push(this.copyActiveExercise(exercise))
+      }
+    }
+    return values
+  }
+
+  markAllComplete(exercises: ActiveWorkoutExercise[]): ActiveWorkoutExercise[] {
+    return this.copyActiveExercises(exercises)
   }
 
   private copyActiveExercises(source: ActiveWorkoutExercise[]): ActiveWorkoutExercise[] {
@@ -212,9 +244,9 @@ class ActiveWorkoutService {
   private createCurrentExerciseSetProgress(exercises: ActiveWorkoutExercise[]): string {
     const exercise: ActiveWorkoutExercise | undefined = this.findCurrentExercise(exercises)
     if (exercise === undefined) {
-      return '0/0'
+      return '0/0 正式组'
     }
-    return exercise.completedSets.toString() + '/' + exercise.targetSets.toString()
+    return exercise.completedSets.toString() + '/' + exercise.targetSets.toString() + ' 正式组'
   }
 
   private findCurrentExercise(exercises: ActiveWorkoutExercise[]): ActiveWorkoutExercise | undefined {
@@ -253,7 +285,7 @@ class ActiveWorkoutService {
       targetSets: exercise.targetSets,
       targetReps: exercise.targetReps,
       intensityNote: exercise.intensityNote,
-      completedSets: exercise.completedSets,
+      completedSets: this.countCompleteWorkingSetEntries(exercise.sets),
       sets: this.copySetEntries(exercise.sets)
     }
     return item
@@ -286,7 +318,7 @@ class ActiveWorkoutService {
     for (let index = 0; index < exercise.sets.length; index++) {
       const entry: ActiveWorkoutSetEntry = exercise.sets[index]
       if (entry.setIndex === setIndex) {
-        sets.push(this.createSetEntry(setIndex, weightText, repsText))
+        sets.push(this.createSetEntry(setIndex, weightText, repsText, entry.isWarmup))
       } else {
         sets.push(this.copySetEntry(entry))
       }
@@ -299,7 +331,51 @@ class ActiveWorkoutService {
       targetSets: exercise.targetSets,
       targetReps: exercise.targetReps,
       intensityNote: exercise.intensityNote,
-      completedSets: this.countCompleteSetEntries(sets),
+      completedSets: this.countCompleteWorkingSetEntries(sets),
+      sets: sets
+    }
+    return item
+  }
+
+  private copyActiveExerciseWithWarmupState(
+    exercise: ActiveWorkoutExercise,
+    setIndex: number,
+    isWarmup: boolean
+  ): ActiveWorkoutExercise {
+    const sets: ActiveWorkoutSetEntry[] = []
+    for (let index = 0; index < exercise.sets.length; index++) {
+      const entry: ActiveWorkoutSetEntry = exercise.sets[index]
+      if (entry.setIndex === setIndex) {
+        sets.push(this.createSetEntry(entry.setIndex, entry.weightText, entry.repsText, isWarmup))
+      } else {
+        sets.push(this.copySetEntry(entry))
+      }
+    }
+
+    const item: ActiveWorkoutExercise = {
+      plannedExerciseId: exercise.plannedExerciseId,
+      exerciseId: exercise.exerciseId,
+      name: exercise.name,
+      targetSets: exercise.targetSets,
+      targetReps: exercise.targetReps,
+      intensityNote: exercise.intensityNote,
+      completedSets: this.countCompleteWorkingSetEntries(sets),
+      sets: sets
+    }
+    return item
+  }
+
+  private copyActiveExerciseWithAdditionalSet(exercise: ActiveWorkoutExercise): ActiveWorkoutExercise {
+    const sets: ActiveWorkoutSetEntry[] = this.copySetEntries(exercise.sets)
+    sets.push(this.createSetEntry(this.getNextSetIndex(sets), '', '', false))
+    const item: ActiveWorkoutExercise = {
+      plannedExerciseId: exercise.plannedExerciseId,
+      exerciseId: exercise.exerciseId,
+      name: exercise.name,
+      targetSets: exercise.targetSets,
+      targetReps: exercise.targetReps,
+      intensityNote: exercise.intensityNote,
+      completedSets: this.countCompleteWorkingSetEntries(sets),
       sets: sets
     }
     return item
@@ -352,7 +428,7 @@ class ActiveWorkoutService {
   private createSetEntries(targetSets: number): ActiveWorkoutSetEntry[] {
     const values: ActiveWorkoutSetEntry[] = []
     for (let index = 0; index < targetSets; index++) {
-      values.push(this.createSetEntry(index, '', ''))
+      values.push(this.createSetEntry(index, '', '', false))
     }
     return values
   }
@@ -372,21 +448,26 @@ class ActiveWorkoutService {
       repsText: entry.repsText,
       estimatedOneRepMax: entry.estimatedOneRepMax,
       oneRepMaxText: entry.oneRepMaxText,
+      isWarmup: entry.isWarmup,
       isComplete: entry.isComplete
     }
     return item
   }
 
-  private createSetEntry(setIndex: number, weightText: string, repsText: string): ActiveWorkoutSetEntry {
+  private createSetEntry(setIndex: number, weightText: string, repsText: string, isWarmup: boolean): ActiveWorkoutSetEntry {
     const weight: number = Number(weightText)
     const reps: number = Number(repsText)
     let estimatedOneRepMax: number = 0
-    let oneRepMaxText: string = '录入重量和次数后显示 1RM'
+    let oneRepMaxText: string = isWarmup ? '热身组不参与 PR 与训练量' : '录入重量和次数后显示 1RM'
     let isComplete: boolean = false
 
     if (!Number.isNaN(weight) && !Number.isNaN(reps) && weight > 0 && reps > 0) {
       estimatedOneRepMax = Math.round(estimateOneRepMax(weight, reps))
-      oneRepMaxText = '1RM 参考 ' + estimatedOneRepMax.toString() + ' kg'
+      if (isWarmup) {
+        oneRepMaxText = '热身组已记录，不参与 PR 与训练量'
+      } else {
+        oneRepMaxText = '参考 1RM ' + estimatedOneRepMax.toString() + ' kg'
+      }
       isComplete = true
     }
 
@@ -396,12 +477,23 @@ class ActiveWorkoutService {
       repsText: repsText,
       estimatedOneRepMax: estimatedOneRepMax,
       oneRepMaxText: oneRepMaxText,
+      isWarmup: isWarmup,
       isComplete: isComplete
     }
     return item
   }
 
-  private countCompleteSetEntries(sets: ActiveWorkoutSetEntry[]): number {
+  private countCompleteWorkingSetEntries(sets: ActiveWorkoutSetEntry[]): number {
+    let count: number = 0
+    for (let index = 0; index < sets.length; index++) {
+      if (sets[index].isComplete && !sets[index].isWarmup) {
+        count++
+      }
+    }
+    return count
+  }
+
+  private countCompleteRecordedSetEntries(sets: ActiveWorkoutSetEntry[]): number {
     let count: number = 0
     for (let index = 0; index < sets.length; index++) {
       if (sets[index].isComplete) {
@@ -409,6 +501,16 @@ class ActiveWorkoutService {
       }
     }
     return count
+  }
+
+  private getNextSetIndex(sets: ActiveWorkoutSetEntry[]): number {
+    let nextSetIndex: number = sets.length
+    for (let index = 0; index < sets.length; index++) {
+      if (sets[index].setIndex >= nextSetIndex) {
+        nextSetIndex = sets[index].setIndex + 1
+      }
+    }
+    return nextSetIndex
   }
 
   private createWorkoutSets(exercises: ActiveWorkoutExercise[]): WorkoutSet[] {
@@ -435,7 +537,7 @@ class ActiveWorkoutService {
       this.parsePositiveNumber(setEntry.weightText),
       Math.floor(this.parsePositiveNumber(setEntry.repsText)),
       0,
-      false
+      setEntry.isWarmup
     )
   }
 
@@ -443,7 +545,9 @@ class ActiveWorkoutService {
     let totalVolume: number = 0
     for (let index = 0; index < sets.length; index++) {
       const set: WorkoutSet = sets[index]
-      totalVolume += set.weight * set.reps
+      if (!set.isWarmup) {
+        totalVolume += set.weight * set.reps
+      }
     }
     return Math.round(totalVolume * 100) / 100
   }

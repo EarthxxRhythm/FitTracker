@@ -171,8 +171,8 @@ export default function workoutSessionLogicTest(): void {
         expect(sessions[0].totalSets).assertEqual(4)
         expect(sessions[0].totalVolume).assertEqual(360)
         expect(weeklyStats.count).assertEqual(2)
-        expect(weeklyStats.sets).assertEqual(6)
-        expect(weeklyStats.volume).assertEqual(480)
+        expect(weeklyStats.sets).assertEqual(2)
+        expect(weeklyStats.volume).assertEqual(1030)
         expect(squatRecord !== null).assertTrue()
         if (squatRecord !== null) {
           expect(squatRecord.best1RM).assertEqual(calcEpley1RM(110, 5))
@@ -218,8 +218,8 @@ export default function workoutSessionLogicTest(): void {
         expect(sessions.length).assertEqual(1)
         expect(sessions[0].id).assertEqual('session_squat')
         expect(weeklyStats.count).assertEqual(1)
-        expect(weeklyStats.sets).assertEqual(4)
-        expect(weeklyStats.volume).assertEqual(400)
+        expect(weeklyStats.sets).assertEqual(1)
+        expect(weeklyStats.volume).assertEqual(500)
         expect(benchRecord === null).assertTrue()
         expect(squatRecord !== null).assertTrue()
       })
@@ -276,6 +276,42 @@ export default function workoutSessionLogicTest(): void {
         if (benchRecord !== null) {
           expect(benchRecord.best1RM).assertEqual(calcEpley1RM(80, 8))
         }
+      })
+
+      it('should dedupe training dates when multiple sessions share the same training day', 0, async () => {
+        const duplicatedDate = createCurrentWeekDate(1)
+        const uniqueDate = createCurrentWeekDate(2)
+        fakeStore.setSessions([
+          createSession('session_dup_1', duplicatedDate, 2, 120, 'a', 'bench', 60, 8),
+          createSession('session_dup_2', duplicatedDate, 3, 180, 'b', 'row', 70, 8),
+          createSession('session_unique', uniqueDate, 4, 260, 'c', 'squat', 80, 6)
+        ])
+
+        const trainingDates = await WorkoutSessionService.getTrainingDates(testContext)
+
+        expect(trainingDates.length).assertEqual(2)
+        expect(trainingDates[0]).assertEqual(duplicatedDate)
+        expect(trainingDates[1]).assertEqual(uniqueDate)
+      })
+
+      it('should count only monday through sunday sessions in current week stats', 0, async () => {
+        const monday = createCurrentWeekDate(0)
+        const sunday = createCurrentWeekDate(6)
+        const previousSunday = createCurrentWeekDate(-1)
+        const nextMonday = createCurrentWeekDate(7)
+        fakeStore.setSessions([
+          createSession('session_previous_sunday', previousSunday, 1, 90, 'prev', 'press', 30, 10),
+          createSession('session_monday', monday, 3, 240, 'monday', 'bench', 60, 8),
+          createSession('session_sunday', sunday, 4, 400, 'sunday', 'squat', 100, 5),
+          createSession('session_next_monday', nextMonday, 2, 120, 'next', 'row', 60, 6)
+        ])
+
+        const weeklyStats: WeeklyStats = await WorkoutSessionService.getWeeklyStats(testContext)
+
+        expect(weeklyStats.count).assertEqual(2)
+        expect(weeklyStats.duration).assertEqual(7200)
+        expect(weeklyStats.sets).assertEqual(2)
+        expect(weeklyStats.volume).assertEqual(980)
       })
     })
   })

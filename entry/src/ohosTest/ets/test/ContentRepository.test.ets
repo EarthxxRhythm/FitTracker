@@ -70,7 +70,7 @@ export default function contentRepositoryTest(): void {
         expect(detail.safetyNotes.length).assertLarger(0)
         expect(detail.alternativeNames.length).assertEqual(1)
         expect(detail.alternativeNames[0]).assertEqual('哑铃卧推')
-        expect(detail.videoPlaceholder).assertEqual('视频占位：本地动作库暂未接入视频素材')
+        expect(detail.videoPlaceholder).assertEqual('当前动作库先提供图文讲解，视频素材会后续补充')
       }
     })
 

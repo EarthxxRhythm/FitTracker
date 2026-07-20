@@ -6,6 +6,9 @@
  * 预置计划为只读模板，启用时通过克隆生成用户计划
  */
 import { preferences } from '@kit.ArkData'
+import GoalRepository from '../../shared/services/GoalRepository'
+import PlanEngine from '../../shared/services/PlanEngine'
+import ContentRepository from '../../shared/services/ContentRepository'
 
 export interface ExerciseRef {
   name: string
@@ -330,7 +333,11 @@ class TrainingPlanService {
         return null
       }
       const myPlans = await this.getMyPlans(context)
-      return myPlans.find(p => p.id === currentId) || null
+      const currentPlan: UserPlan | undefined = myPlans.find(p => p.id === currentId)
+      if (currentPlan === undefined) {
+        return null
+      }
+      return await this.repairCurrentPlanIfNeeded(context, currentPlan, myPlans)
     } catch (e) {
       return null
     }
@@ -507,6 +514,75 @@ class TrainingPlanService {
       values.push(source[index])
     }
     return values
+  }
+
+  private async repairCurrentPlanIfNeeded(context: Context, currentPlan: UserPlan, myPlans: UserPlan[]): Promise<UserPlan> {
+    if (!this.containsPlaceholderExerciseName(currentPlan.days)) {
+      return currentPlan
+    }
+
+    const goal = await GoalRepository.loadGoal(context)
+    if (goal === undefined) {
+      return currentPlan
+    }
+
+    const generatedPlan = PlanEngine.generatePlan(goal)
+    if (generatedPlan.name !== currentPlan.name || generatedPlan.days.length !== currentPlan.days.length) {
+      return currentPlan
+    }
+
+    const repairedPlan: UserPlan = this.copyUserPlan(currentPlan)
+    let changed: boolean = false
+    for (let dayIndex = 0; dayIndex < repairedPlan.days.length; dayIndex++) {
+      const repairedDay: TrainingDay = repairedPlan.days[dayIndex]
+      const generatedDay = generatedPlan.days[dayIndex]
+      if (repairedDay.exercises.length !== generatedDay.exercises.length) {
+        continue
+      }
+      for (let exerciseIndex = 0; exerciseIndex < repairedDay.exercises.length; exerciseIndex++) {
+        const repairedExercise: ExerciseRef = repairedDay.exercises[exerciseIndex]
+        if (!this.isPlaceholderName(repairedExercise.name)) {
+          continue
+        }
+        const generatedExercise = generatedDay.exercises[exerciseIndex]
+        const content = ContentRepository.getExerciseById(generatedExercise.exerciseId)
+        if (content === undefined) {
+          continue
+        }
+        repairedExercise.name = content.nameZh
+        changed = true
+      }
+    }
+
+    if (!changed) {
+      return currentPlan
+    }
+
+    const updatedPlans: UserPlan[] = this.copyUserPlans(myPlans)
+    for (let index = 0; index < updatedPlans.length; index++) {
+      if (updatedPlans[index].id === repairedPlan.id) {
+        updatedPlans[index] = this.copyUserPlan(repairedPlan)
+        break
+      }
+    }
+    await this.replaceMyPlans(context, updatedPlans, repairedPlan.id)
+    return repairedPlan
+  }
+
+  private containsPlaceholderExerciseName(days: TrainingDay[]): boolean {
+    for (let dayIndex = 0; dayIndex < days.length; dayIndex++) {
+      const exercises: ExerciseRef[] = days[dayIndex].exercises
+      for (let exerciseIndex = 0; exerciseIndex < exercises.length; exerciseIndex++) {
+        if (this.isPlaceholderName(exercises[exerciseIndex].name)) {
+          return true
+        }
+      }
+    }
+    return false
+  }
+
+  private isPlaceholderName(name: string): boolean {
+    return name.indexOf('?') >= 0
   }
 }
 

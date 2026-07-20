@@ -124,7 +124,7 @@ class WorkoutPreviewService {
         planId: plan.planId,
         planName: plan.name,
         dayId: '',
-        title: 'Rest Day',
+        title: '休息日',
         goalSummary: this.createGoalSummary(goal),
         scheduleSummary: '今天为休息日',
         exerciseCount: 0,
@@ -178,7 +178,7 @@ class WorkoutPreviewService {
   }
 
   private createScheduleSummary(day: PlanDay, exerciseCount: number): string {
-    return '训练日 ' + day.title + ' · ' + day.dayId + ' · ' + exerciseCount.toString() + ' 个动作'
+    return '训练日 ' + day.title + ' · ' + exerciseCount.toString() + ' 个动作'
   }
 
   private getGoalTypeLabel(goalType: string): string {

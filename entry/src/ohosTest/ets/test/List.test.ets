@@ -18,6 +18,7 @@ import activeWorkoutServiceTest from './ActiveWorkoutService.test'
 import workoutSummaryServiceTest from './WorkoutSummaryService.test'
 import workoutRepositoryTest from './WorkoutRepository.test'
 import workoutSessionEditServiceTest from './WorkoutSessionEditService.test'
+import trainingDayLabelServiceTest from './TrainingDayLabelService.test'
 import reviewDashboardServiceTest from './ReviewDashboardService.test'
 import reviewInsightsServiceTest from './ReviewInsightsService.test'
 import userProfileServiceTest from './UserProfileService.test'
@@ -25,6 +26,7 @@ import planEngineTest from './PlanEngine.test'
 import statsDashboardServiceTest from './StatsDashboardService.test'
 import personalRecordServiceTest from './PersonalRecordService.test'
 import persistenceFallbackServiceTest from './PersistenceFallbackService.test'
+import deviceSeedServiceTest from './DeviceSeedService.test'
 import exerciseMediaResolverServiceTest from './ExerciseMediaResolverService.test'
 import premiumExerciseContentServiceTest from './PremiumExerciseContentService.test'
 import monetizationEntitlementServiceTest from './MonetizationEntitlementService.test'
@@ -60,6 +62,7 @@ export default function testsuite(): void {
   workoutSummaryServiceTest()
   workoutRepositoryTest()
   workoutSessionEditServiceTest()
+  trainingDayLabelServiceTest()
   reviewDashboardServiceTest()
   reviewInsightsServiceTest()
   userProfileServiceTest()
@@ -67,6 +70,7 @@ export default function testsuite(): void {
   statsDashboardServiceTest()
   personalRecordServiceTest()
   persistenceFallbackServiceTest()
+  deviceSeedServiceTest()
   exerciseMediaResolverServiceTest()
   premiumExerciseContentServiceTest()
   monetizationEntitlementServiceTest()

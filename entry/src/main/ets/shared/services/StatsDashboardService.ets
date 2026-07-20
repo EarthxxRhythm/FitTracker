@@ -3,7 +3,7 @@
  *
  * Feature #24: weekly training statistics and calendar heatmap.
  */
-import { WorkoutSession } from '../models/TrainingModels'
+import { WorkoutSession, WorkoutSet } from '../models/TrainingModels'
 import WorkoutSummaryService from './WorkoutSummaryService'
 
 export interface WeeklyTrainingStats {
@@ -84,7 +84,7 @@ class StatsDashboardService {
       if (session.startedAt >= weekStartTime && session.startedAt < weekEndExclusive) {
         sessionCount++
         totalDurationSeconds += session.durationSeconds
-        totalSets += session.totalSets
+        totalSets += this.getSessionCompletedSets(session)
         totalVolume += this.getSessionVolume(session)
       }
     }
@@ -188,12 +188,36 @@ class StatsDashboardService {
   }
 
   private getSessionVolume(session: WorkoutSession): number {
+    if (session.sets.length > 0) {
+      return this.calculateVolume(session.sets)
+    }
     if (session.totalVolume > 0) {
       return session.totalVolume
     }
+    return 0
+  }
+
+  private getSessionCompletedSets(session: WorkoutSession): number {
+    if (session.sets.length > 0) {
+      let count: number = 0
+      for (let index = 0; index < session.sets.length; index++) {
+        const set: WorkoutSet = session.sets[index]
+        if (!set.isWarmup && set.weight > 0 && set.reps > 0) {
+          count++
+        }
+      }
+      return count
+    }
+    return 0
+  }
+
+  private calculateVolume(sets: WorkoutSet[]): number {
     let volume: number = 0
-    for (let index = 0; index < session.sets.length; index++) {
-      volume += session.sets[index].weight * session.sets[index].reps
+    for (let index = 0; index < sets.length; index++) {
+      const set: WorkoutSet = sets[index]
+      if (!set.isWarmup) {
+        volume += set.weight * set.reps
+      }
     }
     return volume
   }

@@ -35,7 +35,7 @@ export default function homePlanServiceTest(): void {
         expect(summary.goalSummary).assertContain('45')
         expect(summary.equipmentSummary.length > 0).assertTrue()
         expect(summary.restrictionSummary.length > 0).assertTrue()
-        expect(summary.todayTitle).assertEqual('Day 1')
+        expect(summary.todayTitle).assertEqual('第 1 天')
         expect(summary.todayExerciseNames.length).assertLarger(0)
       }
     })
@@ -92,7 +92,7 @@ export default function homePlanServiceTest(): void {
         const plan: TrainingPlan = PlanEngine.generatePlan(savedGoal)
         const summary: HomePlanSummary = HomePlanService.createSummary(savedGoal, plan, 2)
 
-        expect(summary.todayLabel).assertContain('Day 2')
+        expect(summary.todayLabel).assertContain('第 2 天')
         expect(summary.todayDayId).assertEqual(plan.days[1].dayId)
         expect(summary.startButtonText.length > 0).assertTrue()
         expect(summary.startRoute.length > 0).assertTrue()

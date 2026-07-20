@@ -4,9 +4,10 @@
  * Feature #12: review dashboard and next adjustment hint.
  * Feature #14: recent workout records and historical trend summary.
  */
-import { TrainingPlan, UserGoal, WorkoutSession, createUserGoal } from '../models/TrainingModels'
+import { TrainingPlan, UserGoal, WorkoutSession, WorkoutSet, createUserGoal } from '../models/TrainingModels'
 import PlanEngine from './PlanEngine'
 import ReviewService from './ReviewService'
+import TrainingDayLabelService from './TrainingDayLabelService'
 import WorkoutSummaryService from './WorkoutSummaryService'
 
 export interface ReviewDashboardSummary {
@@ -19,6 +20,7 @@ export interface ReviewDashboardSummary {
   totalDurationText: string
   latestSessionId: string
   latestDayId: string
+  latestDayLabel: string
   adjustmentHint: string
   adjustmentText: string
   recentRecords: ReviewRecentSessionRecord[]
@@ -28,6 +30,7 @@ export interface ReviewDashboardSummary {
 export interface ReviewRecentSessionRecord {
   sessionId: string
   dayId: string
+  dayLabel: string
   dateText: string
   durationText: string
   completedSets: number
@@ -101,6 +104,7 @@ class ReviewDashboardService {
       totalDurationText: WorkoutSummaryService.formatDuration(totalDurationSeconds),
       latestSessionId: latestSession.sessionId,
       latestDayId: latestSession.dayId,
+      latestDayLabel: TrainingDayLabelService.formatCompact(latestSession.dayId),
       adjustmentHint: hint,
       adjustmentText: this.getAdjustmentText(hint),
       recentRecords: this.createRecentRecords(sessions),
@@ -120,6 +124,7 @@ class ReviewDashboardService {
       totalDurationText: '0 分钟',
       latestSessionId: '',
       latestDayId: '',
+      latestDayLabel: '',
       adjustmentHint: 'start_training',
       adjustmentText: '先完成一次训练，再根据完成率调整下次计划。',
       recentRecords: [],
@@ -146,6 +151,7 @@ class ReviewDashboardService {
     const record: ReviewRecentSessionRecord = {
       sessionId: session.sessionId,
       dayId: session.dayId,
+      dayLabel: TrainingDayLabelService.formatCompact(session.dayId),
       dateText: this.formatDate(session.startedAt),
       durationText: WorkoutSummaryService.formatDuration(session.durationSeconds),
       completedSets: completedSets,
@@ -156,6 +162,20 @@ class ReviewDashboardService {
       volumeText: totalVolume.toString() + ' kg'
     }
     return record
+  }
+
+  private getDisplayDayLabel(dayId: string): string {
+    const generatedPlanMatch: RegExpMatchArray | null = dayId.match(/^day_(\d+)$/)
+    if (generatedPlanMatch !== null) {
+      return '第 ' + generatedPlanMatch[1] + ' 天'
+    }
+
+    const currentPlanMatch: RegExpMatchArray | null = dayId.match(/^current_plan_day_(\d+)$/)
+    if (currentPlanMatch !== null) {
+      return '第 ' + currentPlanMatch[1] + ' 天'
+    }
+
+    return dayId
   }
 
   private createTrendSummary(sessions: WorkoutSession[]): ReviewTrendSummary {
@@ -319,6 +339,9 @@ class ReviewDashboardService {
   }
 
   private getTotalVolume(session: WorkoutSession): number {
+    if (session.sets.length > 0) {
+      return ReviewService.calculateVolume(session.sets)
+    }
     if (session.totalVolume > 0) {
       return session.totalVolume
     }
@@ -341,11 +364,24 @@ class ReviewDashboardService {
   }
 
   private getCompletedSets(session: WorkoutSession): number {
-    return this.getNumberAfterPrefix(session.notes, 'completed_sets=', session.totalSets)
+    if (session.sets.length > 0) {
+      return this.countCompletedSets(session.sets)
+    }
+    return this.getNumberAfterPrefix(session.notes, 'completed_sets=', 0)
   }
 
   private getTargetSets(session: WorkoutSession): number {
-    return this.getNumberAfterPrefix(session.notes, 'target_sets=', session.totalSets)
+    return this.getNumberAfterPrefix(session.notes, 'target_sets=', this.getCompletedSets(session))
+  }
+
+  private countCompletedSets(sets: WorkoutSet[]): number {
+    let count: number = 0
+    for (let index = 0; index < sets.length; index++) {
+      if (sets[index].weight > 0 && sets[index].reps > 0 && !sets[index].isWarmup) {
+        count++
+      }
+    }
+    return count
   }
 
   private getNumberAfterPrefix(source: string, prefix: string, fallbackValue: number): number {

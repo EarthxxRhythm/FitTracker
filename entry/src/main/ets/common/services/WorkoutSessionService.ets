@@ -249,8 +249,8 @@ class WorkoutSessionService {
       if (session.createdAt >= mondayStr && session.createdAt <= sundayStr) {
         count++
         duration += session.durationSeconds
-        sets += session.totalSets
-        volume += session.totalVolume
+        sets += this.getCompletedWorkingSetCount(session)
+        volume += this.getSessionVolume(session)
       }
     }
 
@@ -306,6 +306,30 @@ class WorkoutSessionService {
       dates.push(date)
     })
     return dates
+  }
+
+  private getCompletedWorkingSetCount(session: WorkoutSession): number {
+    let count = 0
+    for (const exercise of session.exercises) {
+      for (const set of exercise.sets) {
+        if (!set.isWarmup && set.weight > 0 && set.reps > 0) {
+          count++
+        }
+      }
+    }
+    return count
+  }
+
+  private getSessionVolume(session: WorkoutSession): number {
+    let volume = 0
+    for (const exercise of session.exercises) {
+      for (const set of exercise.sets) {
+        if (!set.isWarmup) {
+          volume += set.weight * set.reps
+        }
+      }
+    }
+    return volume
   }
 }
 
