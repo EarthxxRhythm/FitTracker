@@ -28,3 +28,10 @@
 - `common/services`: persistence, auth, user profile, stable app-level stores.
 - `shared/services`: cross-feature content, plan, review, backup, sync, and derived view-model logic.
 - `features/workout/services`: compatibility bridges and workout-page-specific orchestration.
+
+## Top-Level Artifact Decisions
+
+- `0`: delete candidate; it is a 14-byte top-level file containing only `1836` and shows no repository-facing purpose.
+- `design/`: keep; it contains structured product and design assets that belong with the repository.
+- `test_run/`: ignore-or-clean candidate; it currently looks like local test output rather than source-of-truth project input.
+- `.gitignore`: defer changes in this pass because the file was already modified before cleanup started.
