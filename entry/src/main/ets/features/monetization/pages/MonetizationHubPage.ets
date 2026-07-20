@@ -9,7 +9,7 @@ import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens } from '../../../c
 import { AppButton } from '../../../components/AppButton'
 import { AppCard } from '../../../components/AppCard'
 import { PageHeader } from '../../../components/PageHeader'
-import { PrimaryDestinationStrip } from '../../../components/PrimaryDestinationStrip'
+import { createStageRailItem, StageRail, StageRailItem } from '../../../components/StageRail'
 import { MonetizationCapability } from '../../../shared/models/MonetizationModels'
 import MonetizationHubService, {
   MonetizationHubViewModel,
@@ -282,34 +282,12 @@ export struct MonetizationHubPage {
     return this.viewModel.previewEnabled && !offer.current
   }
 
-  @Builder
-  buildStageRail() {
-    Row({ space: SpacingTokens.SM }) {
-      this.buildStageChip('回顾', false)
-      this.buildStageChip('权益', true)
-      this.buildStageChip('比较', false)
-    }
-    .width('100%')
-  }
-
-  @Builder
-  buildStageChip(label: string, active: boolean) {
-    Text(label)
-      .fontSize(FontTokens.SMALL_SIZE)
-      .fontWeight(active ? FontWeight.Medium : FontTokens.SMALL_WEIGHT)
-      .fontColor(active ? ColorTokens.TEXT_PRIMARY : ColorTokens.TEXT_TERTIARY)
-      .padding({
-        top: SpacingTokens.XS,
-        bottom: SpacingTokens.XS,
-        left: SpacingTokens.SM,
-        right: SpacingTokens.SM
-      })
-      .backgroundColor(active ? ColorTokens.SURFACE_ELEVATED : ColorTokens.SURFACE_SECONDARY)
-      .borderRadius(RadiusTokens.FULL)
-      .border({
-        width: 1,
-        color: active ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
-      })
+  getStageRailItems(): StageRailItem[] {
+    const items: StageRailItem[] = []
+    items.push(createStageRailItem('回顾', false, false))
+    items.push(createStageRailItem('权益', true, false))
+    items.push(createStageRailItem('比较', false, false))
+    return items
   }
 
   @Builder
@@ -365,8 +343,7 @@ export struct MonetizationHubPage {
 
       Scroll() {
         Column({ space: SpacingTokens.LG }) {
-          PrimaryDestinationStrip({ currentKey: 'membership' })
-          this.buildStageRail()
+          StageRail({ items: this.getStageRailItems() })
           this.buildHeroSection()
           if (this.viewModel.focusContext.active) {
             this.buildLaneHeader('入口上下文', '当前入口', '先确认你是从哪条能力入口进入的，再决定是否要看更高层级的覆盖范围。')

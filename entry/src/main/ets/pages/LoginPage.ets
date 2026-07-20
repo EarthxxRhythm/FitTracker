@@ -8,6 +8,7 @@ import { AppRoutes } from '../app/AppRoutes'
 import { AppButton } from '../components/AppButton'
 import { AppCard } from '../components/AppCard'
 import { AppInput } from '../components/AppInput'
+import { createStageRailItem, StageRail, StageRailItem } from '../components/StageRail'
 import AuthService from '../common/services/AuthService'
 import SessionManager from '../common/services/SessionManager'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens } from '../common/styles/DesignTokens'
@@ -60,34 +61,32 @@ struct LoginPage {
     }, 500)
   }
 
-  @Builder
-  buildStageRail() {
-    Row({ space: SpacingTokens.SM }) {
-      this.buildStageChip('登录', true)
-      this.buildStageChip('训练', false)
-      this.buildStageChip('回顾', false)
-    }
-    .width('100%')
+  getStageRailItems(): StageRailItem[] {
+    const items: StageRailItem[] = []
+    items.push(createStageRailItem('登录', true, false))
+    items.push(createStageRailItem('训练', false, false))
+    items.push(createStageRailItem('回顾', false, false))
+    return items
   }
 
   @Builder
-  buildStageChip(label: string, active: boolean) {
-    Text(label)
-      .fontSize(FontTokens.SMALL_SIZE)
-      .fontWeight(active ? FontWeight.Medium : FontTokens.SMALL_WEIGHT)
-      .fontColor(active ? ColorTokens.TEXT_PRIMARY : ColorTokens.TEXT_TERTIARY)
-      .padding({
-        top: SpacingTokens.XS,
-        bottom: SpacingTokens.XS,
-        left: SpacingTokens.SM,
-        right: SpacingTokens.SM
-      })
-      .backgroundColor(active ? ColorTokens.SURFACE_ELEVATED : ColorTokens.SURFACE_SECONDARY)
-      .borderRadius(RadiusTokens.FULL)
-      .border({
-        width: 1,
-        color: active ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
-      })
+  buildAuthMetricTile(label: string, value: string) {
+    Column({ space: SpacingTokens.XS }) {
+      Text(label)
+        .fontSize(FontTokens.SMALL_SIZE)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
+
+      Text(value)
+        .fontSize(FontTokens.BODY_SIZE)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+    }
+    .layoutWeight(1)
+    .padding(SpacingTokens.MD)
+    .backgroundColor(ColorTokens.BG_ELEVATED)
+    .borderRadius(RadiusTokens.MD)
+    .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+    .alignItems(HorizontalAlign.Start)
   }
 
   build() {
@@ -107,13 +106,19 @@ struct LoginPage {
               .lineHeight(FontTokens.BODY_LINE_HEIGHT)
               .width('100%')
 
-            this.buildStageRail()
+            StageRail({ items: this.getStageRailItems() })
+
+            Row({ space: SpacingTokens.SM }) {
+              this.buildAuthMetricTile('模式', '本地优先')
+              this.buildAuthMetricTile('状态', '恢复训练主线')
+            }
+            .width('100%')
           }
           .width('100%')
           .alignItems(HorizontalAlign.Start)
         }
 
-        AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+        AppCard({ variant: 'panel', cardPadding: 'default' }) {
           Column({ space: SpacingTokens.MD }) {
             Text('本地登录')
               .fontSize(FontTokens.TITLE_SIZE)
@@ -165,27 +170,28 @@ struct LoginPage {
           .alignItems(HorizontalAlign.Start)
         }
 
-        AppCard({ variant: 'outlined', cardPadding: 'compact' }) {
-          Column({ space: SpacingTokens.SM }) {
+        AppCard({ variant: 'panel', cardPadding: 'compact' }) {
+          Column({ space: SpacingTokens.MD }) {
             Text('首次进入')
               .fontSize(FontTokens.BODY_SIZE)
               .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
               .fontColor(ColorTokens.TEXT_PRIMARY)
 
-            Row() {
-              Text('还没有账号？')
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontColor(ColorTokens.TEXT_SECONDARY)
+            Text('先创建本地账号，再进入目标设置和今日训练主线。')
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+              .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+              .width('100%')
 
-              Text('注册')
-                .fontSize(FontTokens.CAPTION_SIZE)
-                .fontColor(ColorTokens.PRIMARY)
-                .fontWeight(FontWeight.Medium)
-                .margin({ left: SpacingTokens.XS })
-                .onClick(() => {
-                  this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.REGISTER })
-                })
-            }
+            AppButton({
+              text: '去注册',
+              type: 'secondary',
+              buttonSize: 'large',
+              block: true,
+              onButtonClick: () => {
+                this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.REGISTER })
+              }
+            })
           }
           .width('100%')
           .alignItems(HorizontalAlign.Start)

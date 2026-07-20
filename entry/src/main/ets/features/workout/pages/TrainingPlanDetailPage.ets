@@ -14,6 +14,7 @@ import TrainingPlanService, {
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens } from '../../../common/styles/DesignTokens'
 import { AppButton } from '../../../components/AppButton'
 import { AppCard } from '../../../components/AppCard'
+import { createStageRailItem, StageRail, StageRailItem } from '../../../components/StageRail'
 import MonetizationGateService from '../../../shared/services/MonetizationGateService'
 import { MonetizationCapability, MonetizationTier } from '../../../shared/models/MonetizationModels'
 import AdvancedPlanVariantsService, {
@@ -328,34 +329,12 @@ struct TrainingPlanDetailPage {
     return text
   }
 
-  @Builder
-  buildStageRail() {
-    Row({ space: SpacingTokens.SM }) {
-      this.buildStageChip('计划', true)
-      this.buildStageChip('预览', false)
-      this.buildStageChip('执行', false)
-    }
-    .width('100%')
-  }
-
-  @Builder
-  buildStageChip(label: string, active: boolean) {
-    Text(label)
-      .fontSize(FontTokens.SMALL_SIZE)
-      .fontWeight(active ? FontWeight.Medium : FontTokens.SMALL_WEIGHT)
-      .fontColor(active ? ColorTokens.TEXT_PRIMARY : ColorTokens.TEXT_TERTIARY)
-      .padding({
-        top: SpacingTokens.XS,
-        bottom: SpacingTokens.XS,
-        left: SpacingTokens.SM,
-        right: SpacingTokens.SM
-      })
-      .backgroundColor(active ? ColorTokens.SURFACE_ELEVATED : ColorTokens.SURFACE_SECONDARY)
-      .borderRadius(RadiusTokens.FULL)
-      .border({
-        width: 1,
-        color: active ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
-      })
+  getStageRailItems(): StageRailItem[] {
+    const items: StageRailItem[] = []
+    items.push(createStageRailItem('计划', true, false))
+    items.push(createStageRailItem('预览', false, false))
+    items.push(createStageRailItem('执行', false, false))
+    return items
   }
 
   @Builder
@@ -619,7 +598,7 @@ struct TrainingPlanDetailPage {
               .width('100%')
               .alignItems(VerticalAlign.Top)
 
-              this.buildStageRail()
+              StageRail({ items: this.getStageRailItems() })
 
               Row({ space: SpacingTokens.SM }) {
                 this.buildMetricTile('训练日', this.getTrainingDayCount().toString(), '本计划覆盖的训练日数量')
@@ -636,9 +615,6 @@ struct TrainingPlanDetailPage {
             .width('100%')
             .alignItems(HorizontalAlign.Start)
           }
-
-          this.buildLaneHeader('计划变体', '先看默认计划是否足够，再决定要不要切换到更强的高级训练变体。')
-          this.buildAdvancedPlansSection()
 
           this.buildLaneHeader('训练日清单', '按训练日确认动作密度和目标肌群，避免启用后才发现节奏不适合当前阶段。')
 
@@ -747,6 +723,9 @@ struct TrainingPlanDetailPage {
             .width('100%')
             .alignItems(HorizontalAlign.Start)
           }
+
+          this.buildLaneHeader('高级计划变体', '先确认默认训练日是否适合当前阶段，再把高级变体作为后续增强选择。')
+          this.buildAdvancedPlansSection()
         }
       }
       .width('100%')

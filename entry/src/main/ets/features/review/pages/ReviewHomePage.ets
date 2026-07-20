@@ -11,6 +11,7 @@ import { AppButton } from '../../../components/AppButton'
 import { AppCard } from '../../../components/AppCard'
 import { AppInput } from '../../../components/AppInput'
 import { PrimaryDestinationStrip } from '../../../components/PrimaryDestinationStrip'
+import { createStageRailItem, StageRail, StageRailItem } from '../../../components/StageRail'
 import PlanEngine from '../../../shared/services/PlanEngine'
 import GoalRepository from '../../../shared/services/GoalRepository'
 import GoalSetupService, { GoalSetupPrefill } from '../../../shared/services/GoalSetupService'
@@ -64,6 +65,7 @@ struct ReviewHomePage {
   @State totalDurationText: string = '0 分钟'
   @State latestSessionId: string = ''
   @State latestDayId: string = ''
+  @State latestDayLabel: string = ''
   @State adjustmentText: string = ''
   @State adjustmentTitle: string = ''
   @State adjustmentDescription: string = ''
@@ -246,6 +248,7 @@ struct ReviewHomePage {
     this.totalDurationText = summary.totalDurationText
     this.latestSessionId = summary.latestSessionId
     this.latestDayId = summary.latestDayId
+    this.latestDayLabel = summary.latestDayLabel
     this.adjustmentText = summary.adjustmentText
     this.trendSummary = summary.trendSummary
   }
@@ -824,6 +827,7 @@ struct ReviewHomePage {
       totalDurationText: this.totalDurationText,
       latestSessionId: this.latestSessionId,
       latestDayId: this.latestDayId,
+      latestDayLabel: this.latestDayLabel,
       adjustmentHint: this.currentAdjustmentAction.actionType,
       adjustmentText: this.adjustmentText,
       recentRecords: this.filteredRecentRecords,
@@ -834,6 +838,16 @@ struct ReviewHomePage {
 
   getCompletionText(): string {
     return this.averageCompletionRate.toString() + '%'
+  }
+
+  getLatestDayMetricText(): string {
+    if (this.latestDayLabel.length > 0) {
+      return this.latestDayLabel
+    }
+    if (this.latestDayId.length > 0) {
+      return this.latestDayId
+    }
+    return '暂无记录'
   }
 
   getProgressWidth(): string {
@@ -930,6 +944,7 @@ struct ReviewHomePage {
       records.push({
         sessionId: record.sessionId,
         dayId: record.dayId,
+        dayLabel: record.dayLabel,
         dateText: record.dateText,
         durationText: record.durationText,
         completedSets: record.completedSets,
@@ -964,6 +979,7 @@ struct ReviewHomePage {
       completionText: source.completionText,
       averageSessionText: source.averageSessionText,
       dominantDayId: source.dominantDayId,
+      dominantDayLabel: source.dominantDayLabel,
       summaryText: source.summaryText
     }
     return item
@@ -1122,34 +1138,12 @@ struct ReviewHomePage {
     .alignItems(HorizontalAlign.Start)
   }
 
-  @Builder
-  buildStageRail() {
-    Row({ space: SpacingTokens.SM }) {
-      this.buildStageChip('预览', false)
-      this.buildStageChip('执行', false)
-      this.buildStageChip('回顾', true)
-    }
-    .width('100%')
-  }
-
-  @Builder
-  buildStageChip(label: string, active: boolean) {
-    Text(label)
-      .fontSize(FontTokens.SMALL_SIZE)
-      .fontWeight(active ? FontWeight.Medium : FontTokens.SMALL_WEIGHT)
-      .fontColor(active ? ColorTokens.TEXT_PRIMARY : ColorTokens.TEXT_TERTIARY)
-      .padding({
-        top: SpacingTokens.XS,
-        bottom: SpacingTokens.XS,
-        left: SpacingTokens.SM,
-        right: SpacingTokens.SM
-      })
-      .backgroundColor(active ? ColorTokens.SURFACE_ELEVATED : ColorTokens.SURFACE_SECONDARY)
-      .borderRadius(RadiusTokens.FULL)
-      .border({
-        width: 1,
-        color: active ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
-      })
+  getStageRailItems(): StageRailItem[] {
+    const items: StageRailItem[] = []
+    items.push(createStageRailItem('预览', false, false))
+    items.push(createStageRailItem('执行', false, false))
+    items.push(createStageRailItem('回顾', true, false))
+    return items
   }
 
   @Builder
@@ -2464,7 +2458,7 @@ struct ReviewHomePage {
         PrimaryDestinationStrip({ currentKey: 'review' })
 
         if (!this.loading) {
-          this.buildStageRail()
+          StageRail({ items: this.getStageRailItems() })
         }
 
         if (!this.loading && !this.hasSessions) {
@@ -2494,8 +2488,7 @@ struct ReviewHomePage {
               .alignItems(HorizontalAlign.Start)
             }
 
-            this.buildReviewLaneHeader('预留能力', '增强入口', '训练记录还没建立之前，先把高级洞察和后续扩展入口收在这里。')
-            this.buildAdvancedInsightsEntrySection()
+            this.buildReviewLaneHeader('下一步', '先完成一次训练', '高级洞察会在训练记录建立后作为增值能力出现，不打断第一次主流程。')
           }
           .width('100%')
         }
@@ -2599,21 +2592,16 @@ struct ReviewHomePage {
 
             Row({ space: SpacingTokens.SM }) {
               this.buildMetric('累计时长', this.totalDurationText)
-              this.buildMetric('最近训练日', this.latestDayId)
+              this.buildMetric('最近训练日', this.getLatestDayMetricText())
             }
             .width('100%')
 
             this.buildReviewLaneHeader('训练主线', '复盘主线', '先看总结与调整，再顺着最近训练、周统计和趋势继续下钻。')
             this.buildAdjustmentSection()
-            this.buildRecentTrainingSection()
             this.buildWeeklyStats()
             this.buildCalendarHeatmap()
             this.buildTrendSummary()
-            this.buildReviewLaneHeader('进阶洞察', 'Performance Lab', '把按周趋势、动作 PR 和高级洞察收在同一层，连续浏览时更聚焦。')
-            if (this.advancedInsightsLocked) {
-              this.buildAdvancedInsightsEntrySection()
-            }
-            this.buildAdvancedInsightsPanelSection()
+            this.buildRecentTrainingSection()
           }
           .width('100%')
         }
@@ -2636,6 +2624,18 @@ struct ReviewHomePage {
               .width('100%')
               .alignItems(HorizontalAlign.Start)
             }
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
+        }
+
+        if (!this.loading && this.hasSessions) {
+          Column({ space: SpacingTokens.MD }) {
+            this.buildReviewLaneHeader('增值能力', '高级洞察', '完成基础复盘后，再查看更长历史和更深分析；免费训练主线不受影响。')
+            if (this.advancedInsightsLocked) {
+              this.buildAdvancedInsightsEntrySection()
+            }
+            this.buildAdvancedInsightsPanelSection()
           }
           .width('100%')
           .alignItems(HorizontalAlign.Start)

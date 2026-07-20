@@ -81,7 +81,7 @@ export struct AppButton {
     }
     if (this.type === 'secondary') {
       if (this.disabled) {
-        return ColorTokens.SURFACE_SECONDARY
+        return ColorTokens.SURFACE_DISABLED
       }
       return ColorTokens.SURFACE_BUTTON_SECONDARY
     }
@@ -99,14 +99,20 @@ export struct AppButton {
     if (this.disabled) {
       return ColorTokens.BORDER_SUBTLE
     }
-    if (this.type === 'primary') {
-      return ColorTokens.PRIMARY
+    if (this.type === 'ghost') {
+      return 'rgba(0,0,0,0)'
     }
-    return ColorTokens.BORDER_STRONG
+    if (this.type === 'primary') {
+      return ColorTokens.ACCENT_DEEP
+    }
+    return ColorTokens.BORDER_DEFAULT
   }
 
   private getShadow(): ShadowConfig {
     if (this.type === 'primary' && !this.disabled) {
+      return ShadowTokens.ACCENT
+    }
+    if (this.type === 'secondary' && !this.disabled) {
       return ShadowTokens.SM
     }
     return ShadowTokens.NONE
@@ -139,6 +145,7 @@ export struct AppButton {
     .borderRadius(RadiusTokens.MD)
     .shadow(this.getShadow())
     .constraintSize({ minHeight: TouchTokens.MIN_TARGET })
+    .opacity(this.disabled ? 0.72 : 1)
     .enabled(!this.disabled && !this.loading)
     .onClick(() => {
       if (!this.disabled && !this.loading) {

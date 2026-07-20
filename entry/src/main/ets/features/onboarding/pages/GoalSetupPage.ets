@@ -5,7 +5,9 @@
 import { Context } from '@kit.AbilityKit'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
+import { AppButton } from '../../../components/AppButton'
 import { AppCard } from '../../../components/AppCard'
+import { createStageRailItem, StageRail, StageRailItem } from '../../../components/StageRail'
 import { UserGoal } from '../../../shared/models/TrainingModels'
 import GoalRepository from '../../../shared/services/GoalRepository'
 import GoalSetupService, { GoalSetupPrefill } from '../../../shared/services/GoalSetupService'
@@ -208,7 +210,7 @@ export struct GoalSetupPage {
     if (isSelected) {
       return ColorTokens.PRIMARY
     }
-    return ColorTokens.SURFACE_ELEVATED
+    return ColorTokens.BG_ELEVATED
   }
 
   selectedTextColor(isSelected: boolean): string {
@@ -216,6 +218,13 @@ export struct GoalSetupPage {
       return ColorTokens.TEXT_ON_PRIMARY
     }
     return ColorTokens.TEXT_SECONDARY
+  }
+
+  selectedBorderColor(isSelected: boolean): string {
+    if (isSelected) {
+      return ColorTokens.PRIMARY
+    }
+    return ColorTokens.BORDER_SUBTLE
   }
 
   getOptionLabel(options: GoalOption[], id: string): string {
@@ -227,15 +236,19 @@ export struct GoalSetupPage {
     return id
   }
 
+  appendSummaryLabel(summary: string, label: string): string {
+    if (summary.length === 0) {
+      return label
+    }
+    return summary + '、' + label
+  }
+
   getEquipmentSummaryText(): string {
     const selectedIds: string[] = this.getSelectedEquipmentIds()
     let summary: string = ''
     for (let index = 0; index < EQUIPMENT_OPTIONS.length; index++) {
       if (this.containsValue(selectedIds, EQUIPMENT_OPTIONS[index].id)) {
-        if (summary.length > 0) {
-          summary += ' · '
-        }
-        summary += EQUIPMENT_OPTIONS[index].label
+        summary = this.appendSummaryLabel(summary, EQUIPMENT_OPTIONS[index].label)
       }
     }
     return summary
@@ -248,44 +261,19 @@ export struct GoalSetupPage {
     let summary: string = ''
     for (let index = 0; index < RESTRICTED_MUSCLE_OPTIONS.length; index++) {
       if (this.containsValue(this.selectedRestrictedMuscleIds, RESTRICTED_MUSCLE_OPTIONS[index].id)) {
-        if (summary.length > 0) {
-          summary += ' · '
-        }
-        summary += RESTRICTED_MUSCLE_OPTIONS[index].label
+        summary = this.appendSummaryLabel(summary, RESTRICTED_MUSCLE_OPTIONS[index].label)
       }
     }
     return summary
   }
 
-  @Builder
-  buildStageRail() {
-    Row({ space: SpacingTokens.SM }) {
-      this.buildStageChip('目标', true)
-      this.buildStageChip('预览', false)
-      this.buildStageChip('执行', false)
-      this.buildStageChip('回顾', false)
-    }
-    .width('100%')
-  }
-
-  @Builder
-  buildStageChip(label: string, active: boolean) {
-    Text(label)
-      .fontSize(FontTokens.SMALL_SIZE)
-      .fontWeight(active ? FontWeight.Medium : FontTokens.SMALL_WEIGHT)
-      .fontColor(active ? ColorTokens.TEXT_PRIMARY : ColorTokens.TEXT_TERTIARY)
-      .padding({
-        top: SpacingTokens.XS,
-        bottom: SpacingTokens.XS,
-        left: SpacingTokens.SM,
-        right: SpacingTokens.SM
-      })
-      .backgroundColor(active ? ColorTokens.SURFACE_ELEVATED : ColorTokens.SURFACE_SECONDARY)
-      .borderRadius(RadiusTokens.FULL)
-      .border({
-        width: 1,
-        color: active ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
-      })
+  getStageRailItems(): StageRailItem[] {
+    const items: StageRailItem[] = []
+    items.push(createStageRailItem('目标', true, false))
+    items.push(createStageRailItem('预览', false, false))
+    items.push(createStageRailItem('执行', false, false))
+    items.push(createStageRailItem('回顾', false, false))
+    return items
   }
 
   @Builder
@@ -310,8 +298,53 @@ export struct GoalSetupPage {
     }
     .layoutWeight(1)
     .padding(SpacingTokens.MD)
-    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+    .backgroundColor(ColorTokens.BG_ELEVATED)
     .borderRadius(RadiusTokens.MD)
+    .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  buildChoiceButton(label: string, widthValue: string, isSelected: boolean, onTap: () => void) {
+    Button(label)
+      .width(widthValue)
+      .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
+      .fontSize(FontTokens.BODY_SIZE)
+      .fontColor(this.selectedTextColor(isSelected))
+      .backgroundColor(this.selectedBg(isSelected))
+      .borderRadius(RadiusTokens.SM)
+      .border({
+        width: 1,
+        color: this.selectedBorderColor(isSelected)
+      })
+      .margin({ right: SpacingTokens.SM, bottom: SpacingTokens.SM })
+      .onClick(onTap)
+  }
+
+  @Builder
+  buildSummaryPanel() {
+    Column({ space: SpacingTokens.SM }) {
+      Text('当前配置摘要')
+        .fontSize(FontTokens.BODY_SIZE)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(ColorTokens.TEXT_PRIMARY)
+
+      Text(this.getEquipmentSummaryText())
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+        .width('100%')
+
+      Text(this.getRestrictionSummaryText())
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+        .width('100%')
+    }
+    .width('100%')
+    .padding(SpacingTokens.MD)
+    .backgroundColor(ColorTokens.BG_ELEVATED)
+    .borderRadius(RadiusTokens.SM)
     .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
     .alignItems(HorizontalAlign.Start)
   }
@@ -355,6 +388,7 @@ export struct GoalSetupPage {
                   .fontSize(FontTokens.BODY_SIZE)
                   .fontColor(ColorTokens.TEXT_SECONDARY)
                   .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+                  .width('100%')
               }
               .layoutWeight(1)
               .alignItems(HorizontalAlign.Start)
@@ -377,7 +411,7 @@ export struct GoalSetupPage {
             .width('100%')
             .alignItems(VerticalAlign.Top)
 
-            this.buildStageRail()
+            StageRail({ items: this.getStageRailItems() })
 
             Row({ space: SpacingTokens.MD }) {
               this.buildSetupMetricTile('目标', this.getOptionLabel(GOAL_OPTIONS, this.selectedGoalType), '计划主方向')
@@ -391,14 +425,7 @@ export struct GoalSetupPage {
             }
             .width('100%')
 
-            Text(this.getEquipmentSummaryText() + ' | ' + this.getRestrictionSummaryText())
-              .fontSize(FontTokens.CAPTION_SIZE)
-              .fontColor(ColorTokens.TEXT_SECONDARY)
-              .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
-              .width('100%')
-              .padding(SpacingTokens.MD)
-              .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-              .borderRadius(RadiusTokens.SM)
+            this.buildSummaryPanel()
           }
           .width('100%')
           .alignItems(HorizontalAlign.Start)
@@ -408,17 +435,9 @@ export struct GoalSetupPage {
         AppCard({ variant: 'outlined', cardPadding: 'default' }) {
           Flex({ wrap: FlexWrap.Wrap }) {
             ForEach(GOAL_OPTIONS, (option: GoalOption) => {
-              Button(option.label)
-                .width('31%')
-                .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(this.selectedTextColor(this.selectedGoalType === option.id))
-                .backgroundColor(this.selectedBg(this.selectedGoalType === option.id))
-                .borderRadius(RadiusTokens.SM)
-                .margin({ right: SpacingTokens.SM, bottom: SpacingTokens.SM })
-                .onClick(() => {
-                  this.selectedGoalType = option.id
-                })
+              this.buildChoiceButton(option.label, '31%', this.selectedGoalType === option.id, () => {
+                this.selectedGoalType = option.id
+              })
             }, (option: GoalOption) => option.id)
           }
           .width('100%')
@@ -428,17 +447,9 @@ export struct GoalSetupPage {
         AppCard({ variant: 'outlined', cardPadding: 'default' }) {
           Flex({ wrap: FlexWrap.Wrap }) {
             ForEach(LEVEL_OPTIONS, (option: GoalOption) => {
-              Button(option.label)
-                .width('31%')
-                .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(this.selectedTextColor(this.selectedLevel === option.id))
-                .backgroundColor(this.selectedBg(this.selectedLevel === option.id))
-                .borderRadius(RadiusTokens.SM)
-                .margin({ right: SpacingTokens.SM, bottom: SpacingTokens.SM })
-                .onClick(() => {
-                  this.selectedLevel = option.id
-                })
+              this.buildChoiceButton(option.label, '31%', this.selectedLevel === option.id, () => {
+                this.selectedLevel = option.id
+              })
             }, (option: GoalOption) => option.id)
           }
           .width('100%')
@@ -448,18 +459,10 @@ export struct GoalSetupPage {
         AppCard({ variant: 'outlined', cardPadding: 'default' }) {
           Flex({ wrap: FlexWrap.Wrap }) {
             ForEach(DAY_OPTIONS, (day: number) => {
-              Button(`${day} 天`)
-                .width('23%')
-                .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(this.selectedTextColor(this.weeklyDays === day))
-                .backgroundColor(this.selectedBg(this.weeklyDays === day))
-                .borderRadius(RadiusTokens.SM)
-                .margin({ right: SpacingTokens.SM, bottom: SpacingTokens.SM })
-                .onClick(() => {
-                  this.weeklyDays = day
-                })
-            }, (day: number) => `${day}`)
+              this.buildChoiceButton(day.toString() + ' 天', '23%', this.weeklyDays === day, () => {
+                this.weeklyDays = day
+              })
+            }, (day: number) => day.toString())
           }
           .width('100%')
         }
@@ -468,18 +471,10 @@ export struct GoalSetupPage {
         AppCard({ variant: 'outlined', cardPadding: 'default' }) {
           Flex({ wrap: FlexWrap.Wrap }) {
             ForEach(MINUTE_OPTIONS, (minute: number) => {
-              Button(`${minute} 分钟`)
-                .width('47%')
-                .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(this.selectedTextColor(this.sessionMinutes === minute))
-                .backgroundColor(this.selectedBg(this.sessionMinutes === minute))
-                .borderRadius(RadiusTokens.SM)
-                .margin({ right: SpacingTokens.SM, bottom: SpacingTokens.SM })
-                .onClick(() => {
-                  this.sessionMinutes = minute
-                })
-            }, (minute: number) => `${minute}`)
+              this.buildChoiceButton(minute.toString() + ' 分钟', '47%', this.sessionMinutes === minute, () => {
+                this.sessionMinutes = minute
+              })
+            }, (minute: number) => minute.toString())
           }
           .width('100%')
         }
@@ -488,17 +483,14 @@ export struct GoalSetupPage {
         AppCard({ variant: 'outlined', cardPadding: 'default' }) {
           Flex({ wrap: FlexWrap.Wrap }) {
             ForEach(EQUIPMENT_OPTIONS, (option: GoalOption) => {
-              Button(option.label)
-                .width('47%')
-                .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(this.selectedTextColor(this.containsValue(this.selectedEquipmentIds, option.id)))
-                .backgroundColor(this.selectedBg(this.containsValue(this.selectedEquipmentIds, option.id)))
-                .borderRadius(RadiusTokens.SM)
-                .margin({ right: SpacingTokens.SM, bottom: SpacingTokens.SM })
-                .onClick(() => {
+              this.buildChoiceButton(
+                option.label,
+                '47%',
+                this.containsValue(this.selectedEquipmentIds, option.id),
+                () => {
                   this.toggleEquipment(option.id)
-                })
+                }
+              )
             }, (option: GoalOption) => option.id)
           }
           .width('100%')
@@ -509,17 +501,14 @@ export struct GoalSetupPage {
           Column({ space: SpacingTokens.MD }) {
             Flex({ wrap: FlexWrap.Wrap }) {
               ForEach(RESTRICTED_MUSCLE_OPTIONS, (option: GoalOption) => {
-                Button(option.label)
-                  .width('31%')
-                  .height(TouchTokens.BUTTON_HEIGHT_DEFAULT)
-                  .fontSize(FontTokens.BODY_SIZE)
-                  .fontColor(this.selectedTextColor(this.containsValue(this.selectedRestrictedMuscleIds, option.id)))
-                  .backgroundColor(this.selectedBg(this.containsValue(this.selectedRestrictedMuscleIds, option.id)))
-                  .borderRadius(RadiusTokens.SM)
-                  .margin({ right: SpacingTokens.SM, bottom: SpacingTokens.SM })
-                  .onClick(() => {
+                this.buildChoiceButton(
+                  option.label,
+                  '31%',
+                  this.containsValue(this.selectedRestrictedMuscleIds, option.id),
+                  () => {
                     this.toggleRestrictedMuscle(option.id)
-                  })
+                  }
+                )
               }, (option: GoalOption) => option.id)
             }
             .width('100%')
@@ -528,18 +517,33 @@ export struct GoalSetupPage {
         }
 
         AppCard({ variant: 'panel', cardPadding: 'default' }) {
-          Button(this.saving ? '保存中' : '生成训练计划')
-            .width('100%')
-            .height(TouchTokens.BUTTON_HEIGHT_LARGE)
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-            .backgroundColor(this.saving ? ColorTokens.PRIMARY_DISABLED : ColorTokens.PRIMARY)
-            .borderRadius(RadiusTokens.FULL)
-            .enabled(!this.saving)
-            .onClick(() => {
-              this.saveSelectedGoal()
+          Column({ space: SpacingTokens.MD }) {
+            Text(this.hasExistingGoal ? '更新当前训练安排' : '生成当前训练计划')
+              .fontSize(FontTokens.BODY_SIZE)
+              .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+
+            Text(this.hasExistingGoal
+              ? '保存后会带着新目标和条件回到今日训练首页。'
+              : '保存后会生成本地训练计划，并进入今日训练首页。')
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+              .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+              .width('100%')
+
+            AppButton({
+              text: this.saving ? '保存中' : '生成训练计划',
+              type: 'primary',
+              buttonSize: 'large',
+              block: true,
+              loading: this.saving,
+              onButtonClick: () => {
+                this.saveSelectedGoal()
+              }
             })
+          }
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
         }
       }
       .width('100%')

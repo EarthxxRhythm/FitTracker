@@ -6,6 +6,7 @@ import { Context } from '@kit.AbilityKit'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { AppButton } from '../../../components/AppButton'
 import { AppCard } from '../../../components/AppCard'
+import { createStageRailItem, StageRail, StageRailItem } from '../../../components/StageRail'
 import TrainingPlanService, { UserPlan } from '../../../common/services/TrainingPlanService'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
 import { TrainingPlan, UserGoal, WorkoutSession } from '../../../shared/models/TrainingModels'
@@ -16,6 +17,7 @@ import ActiveWorkoutService, {
 } from '../../../shared/services/ActiveWorkoutService'
 import GoalRepository from '../../../shared/services/GoalRepository'
 import PlanEngine from '../../../shared/services/PlanEngine'
+import TrainingDayLabelService from '../../../shared/services/TrainingDayLabelService'
 import WorkoutPreviewService, { WorkoutPreviewSummary } from '../../../shared/services/WorkoutPreviewService'
 import WorkoutRepository from '../../../shared/services/WorkoutRepository'
 import WorkoutSessionPersistenceBridgeService from '../services/WorkoutSessionPersistenceBridgeService'
@@ -36,6 +38,9 @@ export struct ActiveWorkoutPage {
   @State currentExerciseSetProgress: string = '0/0'
   @State elapsedSeconds: number = 0
   @State exercises: ActiveWorkoutExercise[] = []
+  @State savingWorkout: boolean = false
+  @State saveStatusText: string = ''
+  @State saveStatusTone: string = 'info'
   private timerId: number = -1
 
   private getHostContextOrNull(): Context | null {
@@ -201,6 +206,24 @@ export struct ActiveWorkoutPage {
     this.applyProgressExercises(nextExercises)
   }
 
+  toggleSetWarmup(exercise: ActiveWorkoutExercise, setEntry: ActiveWorkoutSetEntry, isWarmup: boolean): void {
+    const nextExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.updateSetWarmup(
+      this.exercises,
+      exercise.plannedExerciseId,
+      setEntry.setIndex,
+      isWarmup
+    )
+    this.applyProgressExercises(nextExercises)
+  }
+
+  addSetEntry(exercise: ActiveWorkoutExercise): void {
+    const nextExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.addSetEntry(
+      this.exercises,
+      exercise.plannedExerciseId
+    )
+    this.applyProgressExercises(nextExercises)
+  }
+
   applyProgressExercises(exercises: ActiveWorkoutExercise[]): void {
     const state: ActiveWorkoutState = {
       hasWorkout: this.hasWorkout,
@@ -218,23 +241,23 @@ export struct ActiveWorkoutPage {
   }
 
   async finishCurrentProgress(): Promise<void> {
-    await this.saveWorkout(this.exercises, this.completedSets)
+    await this.saveWorkout(this.exercises)
   }
 
-  async finishAllSets(): Promise<void> {
-    const completedExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.markAllComplete(this.exercises)
-    const completedSets: number = ActiveWorkoutService.countCompletedSets(completedExercises)
-    this.exercises = completedExercises
-    this.completedSets = completedSets
-    await this.saveWorkout(completedExercises, completedSets)
+  async finishWorkout(): Promise<void> {
+    await this.saveWorkout(this.exercises)
   }
 
-  async saveWorkout(exercises: ActiveWorkoutExercise[], completedSets: number): Promise<void> {
-    if (!this.hasWorkout || completedSets <= 0) {
+  async saveWorkout(exercises: ActiveWorkoutExercise[]): Promise<void> {
+    if (!this.hasWorkout || this.savingWorkout) {
       return
     }
 
+    this.savingWorkout = true
+    this.saveStatusText = '正在保存本次训练记录...'
+    this.saveStatusTone = 'info'
     const endedAt: number = Date.now()
+    const completedSets: number = ActiveWorkoutService.countCompletedSets(exercises)
     const state: ActiveWorkoutState = {
       hasWorkout: this.hasWorkout,
       planId: this.planId,
@@ -254,17 +277,33 @@ export struct ActiveWorkoutPage {
       endedAt,
       completedSets
     )
+    if (session.sets.length <= 0) {
+      this.saveStatusText = '至少录入一组重量或次数后，才能结束训练。'
+      this.saveStatusTone = 'warning'
+      this.savingWorkout = false
+      return
+    }
+    let persistedToDevice: boolean = true
     try {
       const context: Context | null = this.getHostContextOrNull()
       if (context !== null) {
         await WorkoutSessionPersistenceBridgeService.persistActiveWorkoutCompletion(context, session)
       } else {
+        persistedToDevice = false
         WorkoutRepository.saveSession(session)
       }
     } catch (e) {
+      persistedToDevice = false
       WorkoutRepository.saveSession(session)
     }
+    this.saveStatusText = persistedToDevice ? '训练记录已保存，正在进入复盘。' : '训练记录已保存到本地缓存，旧持久层同步稍后再试。'
+    this.saveStatusTone = persistedToDevice ? 'success' : 'warning'
+    this.savingWorkout = false
     this.openSummary(sessionId)
+  }
+
+  getRecordedSetCount(): number {
+    return ActiveWorkoutService.countRecordedSets(this.exercises)
   }
 
   openGoalSetup(): void {
@@ -438,17 +477,169 @@ export struct ActiveWorkoutPage {
 
   getExerciseSectionSubtitle(): string {
     if (this.completedSets >= this.totalTargetSets && this.totalTargetSets > 0) {
-      return '\u6240\u6709\u52a8\u4f5c\u5df2\u5230\u6536\u5c3e\u9636\u6bb5\uff0c\u786e\u8ba4\u6570\u636e\u540e\u53ef\u76f4\u63a5\u4fdd\u5b58\u3002'
+      return '\u6b63\u5f0f\u7ec4\u76ee\u6807\u5df2\u5b8c\u6210\uff0c\u786e\u8ba4\u6570\u636e\u540e\u53ef\u76f4\u63a5\u7ed3\u675f\u8bad\u7ec3\u3002'
     }
-    return '\u4f18\u5148\u586b\u5199\u91cd\u91cf\u4e0e\u6b21\u6570\uff0c\u987a\u5e8f\u5b8c\u6210\u5404\u7ec4\u8bb0\u5f55\u3002'
+    return '\u70ed\u8eab\u7ec4\u4f1a\u4fdd\u5b58\uff0c\u4f46\u4e0d\u8ba1\u5165\u5b8c\u6210\u7387\u3001PR \u548c\u8bad\u7ec3\u91cf\u3002'
   }
 
   getExercisePrescriptionText(exercise: ActiveWorkoutExercise): string {
-    return exercise.targetSets.toString() + ' \u7ec4 x ' + exercise.targetReps + ' \u6b21 | ' + exercise.intensityNote
+    return '\u76ee\u6807 ' + exercise.targetSets.toString() + ' \u7ec4 x ' + exercise.targetReps + ' \u6b21 | ' +
+      exercise.intensityNote
   }
 
   getSetLabelText(setEntry: ActiveWorkoutSetEntry): string {
-    return '\u7b2c ' + (setEntry.setIndex + 1).toString() + ' \u7ec4'
+    return '第 ' + (setEntry.setIndex + 1).toString() + ' 组'
+  }
+
+  isCurrentExercise(exercise: ActiveWorkoutExercise): boolean {
+    for (let index = 0; index < this.exercises.length; index++) {
+      const currentExercise: ActiveWorkoutExercise = this.exercises[index]
+      if (currentExercise.completedSets < currentExercise.targetSets) {
+        return currentExercise.plannedExerciseId === exercise.plannedExerciseId
+      }
+    }
+    return false
+  }
+
+  getCurrentInputSetIndex(exercise: ActiveWorkoutExercise): number {
+    for (let index = 0; index < exercise.sets.length; index++) {
+      if (!exercise.sets[index].isComplete) {
+        return exercise.sets[index].setIndex
+      }
+    }
+    return -1
+  }
+
+  isCurrentSetEntry(exercise: ActiveWorkoutExercise, setEntry: ActiveWorkoutSetEntry): boolean {
+    if (!this.isCurrentExercise(exercise)) {
+      return false
+    }
+    if (setEntry.isComplete) {
+      return false
+    }
+    return setEntry.setIndex === this.getCurrentInputSetIndex(exercise)
+  }
+
+  getSetKindText(setEntry: ActiveWorkoutSetEntry): string {
+    if (setEntry.isWarmup) {
+      return '\u70ed\u8eab'
+    }
+    return '\u6b63\u5f0f'
+  }
+
+  getSetKindTextColor(setEntry: ActiveWorkoutSetEntry): string {
+    if (setEntry.isWarmup) {
+      return ColorTokens.ACCENT_GOLD
+    }
+    return ColorTokens.PRIMARY_HOVER
+  }
+
+  getSetKindBackgroundColor(setEntry: ActiveWorkoutSetEntry): string {
+    if (setEntry.isWarmup) {
+      return ColorTokens.WARNING_BG
+    }
+    return ColorTokens.OVERLAY_PRIMARY
+  }
+
+  getSetKindBorderColor(setEntry: ActiveWorkoutSetEntry): string {
+    if (setEntry.isWarmup) {
+      return ColorTokens.WARNING
+    }
+    return ColorTokens.BORDER_ACCENT
+  }
+
+  getSetAnalysisLabel(setEntry: ActiveWorkoutSetEntry): string {
+    if (setEntry.isWarmup) {
+      return '\u7ec4\u522b\u8bf4\u660e'
+    }
+    return '\u53c2\u8003 1RM'
+  }
+
+  getSetAnalysisText(setEntry: ActiveWorkoutSetEntry): string {
+    return setEntry.oneRepMaxText
+  }
+
+  countExerciseRecordedSets(exercise: ActiveWorkoutExercise): number {
+    let count: number = 0
+    for (let index = 0; index < exercise.sets.length; index++) {
+      if (exercise.sets[index].isComplete) {
+        count++
+      }
+    }
+    return count
+  }
+
+  getSetEntryStatusText(exercise: ActiveWorkoutExercise, setEntry: ActiveWorkoutSetEntry): string {
+    if (setEntry.isComplete) {
+      if (setEntry.isWarmup) {
+        return '\u70ed\u8eab\u5df2\u8bb0\u5f55'
+      }
+      return '\u5df2\u8bb0\u5f55'
+    }
+    if (this.isCurrentSetEntry(exercise, setEntry)) {
+      return '\u5f53\u524d\u5f55\u5165'
+    }
+    if (setEntry.isWarmup) {
+      return '\u5f85\u5f55\u5165\u70ed\u8eab'
+    }
+    return '\u5f85\u5f55\u5165'
+  }
+
+  getSetEntryStatusColor(exercise: ActiveWorkoutExercise, setEntry: ActiveWorkoutSetEntry): string {
+    if (setEntry.isComplete) {
+      return ColorTokens.SUCCESS_LIGHT
+    }
+    if (this.isCurrentSetEntry(exercise, setEntry)) {
+      return ColorTokens.TEXT_ON_PRIMARY
+    }
+    return ColorTokens.TEXT_SECONDARY
+  }
+
+  getSetEntryStatusBackgroundColor(exercise: ActiveWorkoutExercise, setEntry: ActiveWorkoutSetEntry): string {
+    if (setEntry.isComplete) {
+      return ColorTokens.OVERLAY_SUCCESS
+    }
+    if (this.isCurrentSetEntry(exercise, setEntry)) {
+      return ColorTokens.PRIMARY
+    }
+    return ColorTokens.SURFACE_SECONDARY
+  }
+
+  getSetEntryBackgroundColor(exercise: ActiveWorkoutExercise, setEntry: ActiveWorkoutSetEntry): string {
+    if (setEntry.isComplete) {
+      return ColorTokens.SURFACE_PRIMARY
+    }
+    if (this.isCurrentSetEntry(exercise, setEntry)) {
+      return ColorTokens.SURFACE_STRONG
+    }
+    return ColorTokens.SURFACE_SECONDARY
+  }
+
+  getSetEntryBorderColor(exercise: ActiveWorkoutExercise, setEntry: ActiveWorkoutSetEntry): string {
+    if (setEntry.isComplete) {
+      return ColorTokens.BORDER_SUBTLE
+    }
+    if (this.isCurrentSetEntry(exercise, setEntry)) {
+      return ColorTokens.BORDER_ACCENT
+    }
+    return ColorTokens.BORDER_DEFAULT
+  }
+
+  getSetInputBackgroundColor(exercise: ActiveWorkoutExercise, setEntry: ActiveWorkoutSetEntry): string {
+    if (this.isCurrentSetEntry(exercise, setEntry)) {
+      return ColorTokens.SURFACE_INPUT
+    }
+    return ColorTokens.BG_ELEVATED
+  }
+
+  getSetInputBorderColor(exercise: ActiveWorkoutExercise, setEntry: ActiveWorkoutSetEntry): string {
+    if (setEntry.isComplete) {
+      return ColorTokens.BORDER_ACCENT
+    }
+    if (this.isCurrentSetEntry(exercise, setEntry)) {
+      return ColorTokens.ACCENT_PRIMARY
+    }
+    return ColorTokens.BORDER_SUBTLE
   }
 
   getWeightPlaceholderText(): string {
@@ -461,19 +652,21 @@ export struct ActiveWorkoutPage {
 
   getSaveSectionTitle(): string {
     if (this.completedSets >= this.totalTargetSets && this.totalTargetSets > 0) {
-      return '\u8bad\u7ec3\u5b8c\u6210'
+      return '\u672c\u6b21\u53ef\u6536\u53e3'
     }
-    return '\u8bad\u7ec3\u6536\u53e3'
+    return '\u6309\u5b9e\u9645\u8bb0\u5f55\u4fdd\u5b58'
   }
 
   getSaveSectionSubtitle(): string {
-    if (this.completedSets <= 0) {
-      return '\u81f3\u5c11\u5b8c\u6210\u4e00\u7ec4\u540e\u624d\u53ef\u4fdd\u5b58\u672c\u6b21\u8fdb\u5ea6\u3002'
+    const recordedSetCount: number = this.getRecordedSetCount()
+    if (recordedSetCount <= 0) {
+      return '\u81f3\u5c11\u5f55\u5165\u4e00\u7ec4\u6570\u636e\u540e\u624d\u53ef\u7ed3\u675f\u8bad\u7ec3\u3002'
     }
     if (this.completedSets >= this.totalTargetSets && this.totalTargetSets > 0) {
-      return '\u672c\u6b21\u8bad\u7ec3\u5df2\u8fbe\u5230\u76ee\u6807\u7ec4\u6570\uff0c\u53ef\u4ee5\u76f4\u63a5\u5b8c\u6210\u5e76\u8fdb\u5165\u590d\u76d8\u3002'
+      return '\u5c06\u6309\u5df2\u5f55\u5165\u6570\u636e\u4fdd\u5b58\u672c\u6b21\u4f1a\u8bdd\uff0c\u70ed\u8eab\u7ec4\u4e5f\u4f1a\u968f\u4f1a\u8bdd\u4e00\u8d77\u843d\u5e93\u3002'
     }
-    return '\u53ef\u5148\u4fdd\u5b58\u5f53\u524d\u8fdb\u5ea6\uff0c\u4e5f\u53ef\u76f4\u63a5\u8865\u5168\u5168\u90e8\u76ee\u6807\u7ec4\u6570\u540e\u4fdd\u5b58\u3002'
+    return '\u5f53\u524d\u5df2\u8bb0\u5f55 ' + recordedSetCount.toString() + ' \u7ec4\uff0c\u5176\u4e2d\u6b63\u5f0f\u7ec4 ' +
+      this.completedSets.toString() + ' / ' + this.totalTargetSets.toString() + ' \u7ec4\u3002'
   }
 
   copyActiveExercises(source: ActiveWorkoutExercise[]): ActiveWorkoutExercise[] {
@@ -505,6 +698,7 @@ export struct ActiveWorkoutPage {
         repsText: entry.repsText,
         estimatedOneRepMax: entry.estimatedOneRepMax,
         oneRepMaxText: entry.oneRepMaxText,
+        isWarmup: entry.isWarmup,
         isComplete: entry.isComplete
       }
       values.push(item)
@@ -522,37 +716,15 @@ export struct ActiveWorkoutPage {
 
   createSetEntryRenderKey(setEntry: ActiveWorkoutSetEntry): string {
     return setEntry.setIndex.toString() + '_' + setEntry.weightText + '_' + setEntry.repsText + '_' +
-      setEntry.oneRepMaxText
+      setEntry.oneRepMaxText + '_' + (setEntry.isWarmup ? 'warmup' : 'working')
   }
 
-  @Builder
-  buildStageRail() {
-    Row({ space: SpacingTokens.SM }) {
-      this.buildStageChip('预览', false)
-      this.buildStageChip('执行', true)
-      this.buildStageChip('回顾', false)
-    }
-    .width('100%')
-  }
-
-  @Builder
-  buildStageChip(label: string, active: boolean) {
-    Text(label)
-      .fontSize(FontTokens.SMALL_SIZE)
-      .fontWeight(active ? FontWeight.Medium : FontTokens.SMALL_WEIGHT)
-      .fontColor(active ? ColorTokens.TEXT_PRIMARY : ColorTokens.TEXT_TERTIARY)
-      .padding({
-        top: SpacingTokens.XS,
-        bottom: SpacingTokens.XS,
-        left: SpacingTokens.SM,
-        right: SpacingTokens.SM
-      })
-      .backgroundColor(active ? ColorTokens.SURFACE_ELEVATED : ColorTokens.SURFACE_SECONDARY)
-      .borderRadius(RadiusTokens.FULL)
-      .border({
-        width: 1,
-        color: active ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
-      })
+  getStageRailItems(): StageRailItem[] {
+    const items: StageRailItem[] = []
+    items.push(createStageRailItem('预览', false, false))
+    items.push(createStageRailItem('执行', true, false))
+    items.push(createStageRailItem('回顾', false, false))
+    return items
   }
 
   @Builder
@@ -594,25 +766,158 @@ export struct ActiveWorkoutPage {
         left: SpacingTokens.SM,
         right: SpacingTokens.SM
       })
-      .backgroundColor(useAccent ? ColorTokens.OVERLAY_ACCENT : ColorTokens.SURFACE_PRIMARY)
+      .backgroundColor(useAccent ? ColorTokens.OVERLAY_ACCENT : ColorTokens.BG_ELEVATED)
       .borderRadius(RadiusTokens.FULL)
       .border({
         width: 1,
-        color: useAccent ? ColorTokens.WARNING_BG : ColorTokens.BORDER_SUBTLE
+        color: useAccent ? ColorTokens.WARNING : ColorTokens.BORDER_SUBTLE
       })
   }
 
   getDayBadgeText(): string {
-    if (this.dayId.indexOf('current_plan_day_') === 0) {
-      return '\u7b2c ' + this.dayId.substring('current_plan_day_'.length) + ' \u5929'
+    return TrainingDayLabelService.formatCompact(this.dayId, this.title)
+  }
+
+  getSaveStatusColor(): string {
+    if (this.saveStatusTone === 'success') {
+      return ColorTokens.SUCCESS
     }
-    if (this.dayId.indexOf('day_') === 0) {
-      return '\u7b2c ' + this.dayId.substring('day_'.length) + ' \u5929'
+    if (this.saveStatusTone === 'warning') {
+      return ColorTokens.WARNING
     }
-    if (this.dayId.length > 0) {
-      return this.dayId
+    return ColorTokens.TEXT_TERTIARY
+  }
+
+  getCurrentSetLabelText(): string {
+    for (let exerciseIndex = 0; exerciseIndex < this.exercises.length; exerciseIndex++) {
+      const exercise: ActiveWorkoutExercise = this.exercises[exerciseIndex]
+      if (exercise.completedSets < exercise.targetSets) {
+        const currentInputSetIndex: number = this.getCurrentInputSetIndex(exercise)
+        if (currentInputSetIndex >= 0) {
+          const currentSetEntry: ActiveWorkoutSetEntry = exercise.sets[currentInputSetIndex]
+          return '当前录入 第 ' + (currentSetEntry.setIndex + 1).toString() + ' 组 · ' +
+            this.getSetKindText(currentSetEntry)
+        }
+        return '当前动作待补组'
+      }
     }
-    return this.title
+    if (this.completedSets >= this.totalTargetSets && this.totalTargetSets > 0) {
+      return '正式组目标已完成'
+    }
+    return '等待开始'
+  }
+
+  getNextActionText(): string {
+    if (this.completedSets >= this.totalTargetSets && this.totalTargetSets > 0) {
+      return '确认数据后可直接结束训练并进入复盘，热身组会随会话一起保存。'
+    }
+    for (let exerciseIndex = 0; exerciseIndex < this.exercises.length; exerciseIndex++) {
+      const exercise: ActiveWorkoutExercise = this.exercises[exerciseIndex]
+      if (exercise.completedSets < exercise.targetSets) {
+        const currentInputSetIndex: number = this.getCurrentInputSetIndex(exercise)
+        if (currentInputSetIndex < 0) {
+          return '当前动作的正式组目标还没达成，可先新增一组再继续记录。'
+        }
+        const currentSetEntry: ActiveWorkoutSetEntry = exercise.sets[currentInputSetIndex]
+        if (currentSetEntry.isWarmup) {
+          return '先录入当前热身组；热身组会保存，但不会计入完成率、PR 和训练量。'
+        }
+        return '先录入当前正式组的重量和次数，再继续下一组。'
+      }
+    }
+    return '按已录入数据结束本次训练。'
+  }
+
+  @Builder
+  buildExecutionControlSurface() {
+    AppCard({ variant: 'panel', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.MD }) {
+        Row({ space: SpacingTokens.SM }) {
+          this.buildSessionMetricTile('训练计时', this.getElapsedText(), '当前节奏', ColorTokens.TEXT_PRIMARY)
+          this.buildSessionMetricTile('完成组数', this.getProgressText(), '正式记录进度', ColorTokens.DATA_HIGHLIGHT)
+          this.buildSessionMetricTile('当前阶段', this.getCurrentExerciseIndexText(), '动作推进', ColorTokens.ACCENT_SOFT)
+        }
+        .width('100%')
+
+        Column({ space: SpacingTokens.SM }) {
+          Row() {
+            Column({ space: SpacingTokens.XS }) {
+              Text('当前录入焦点')
+                .fontSize(FontTokens.SMALL_SIZE)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(ColorTokens.TEXT_TERTIARY)
+
+              Text(this.getCurrentExerciseNameText())
+                .fontSize(FontTokens.HEADLINE_SIZE)
+                .fontWeight(FontTokens.HEADLINE_WEIGHT)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+                .width('100%')
+                .maxLines(2)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+              Text(this.getCurrentExerciseGuidanceText())
+                .fontSize(FontTokens.CAPTION_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
+                .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+                .width('100%')
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
+
+            Text(this.getCurrentSetLabelText())
+              .fontSize(FontTokens.SMALL_SIZE)
+              .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+              .padding({
+                top: SpacingTokens.XS,
+                bottom: SpacingTokens.XS,
+                left: SpacingTokens.SM,
+                right: SpacingTokens.SM
+              })
+              .backgroundColor(ColorTokens.PRIMARY)
+              .borderRadius(RadiusTokens.FULL)
+          }
+          .width('100%')
+          .alignItems(VerticalAlign.Top)
+
+          Flex({ wrap: FlexWrap.Wrap }) {
+            this.buildMetaPill(this.getDayBadgeText(), true)
+            this.buildMetaPill('进度 ' + this.getCurrentExerciseIndexText(), false)
+            this.buildMetaPill(this.getProgressText(), false)
+          }
+          .width('100%')
+
+          Text(this.getNextActionText())
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontColor(ColorTokens.TEXT_PRIMARY)
+            .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+            .width('100%')
+
+          Stack({ alignContent: Alignment.Start }) {
+            Row()
+              .width('100%')
+              .height(TouchTokens.PROGRESS_BAR_HEIGHT)
+              .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+              .borderRadius(RadiusTokens.FULL)
+
+            Row()
+              .width(this.getProgressWidth())
+              .height(TouchTokens.PROGRESS_BAR_HEIGHT)
+              .backgroundColor(ColorTokens.DATA_HIGHLIGHT)
+              .borderRadius(RadiusTokens.FULL)
+          }
+          .width('100%')
+          .height(TouchTokens.PROGRESS_BAR_HEIGHT)
+        }
+        .width('100%')
+        .padding(SpacingTokens.MD)
+        .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+        .borderRadius(RadiusTokens.LG)
+        .border({ width: 1, color: ColorTokens.BORDER_STRONG })
+        .alignItems(HorizontalAlign.Start)
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
   }
 
   build() {
@@ -659,7 +964,7 @@ export struct ActiveWorkoutPage {
             .alignItems(VerticalAlign.Top)
 
             if (this.hasGoal && this.hasWorkout) {
-              this.buildStageRail()
+              StageRail({ items: this.getStageRailItems() })
             }
           }
           .width('100%')
@@ -722,80 +1027,7 @@ export struct ActiveWorkoutPage {
 
         if (!this.loading && this.hasGoal && this.hasWorkout) {
           Column({ space: SpacingTokens.MD }) {
-            AppCard({ variant: 'panel', cardPadding: 'default' }) {
-              Column({ space: SpacingTokens.MD }) {
-                Column({ space: SpacingTokens.XS }) {
-                  Text('\u5f53\u524d\u6267\u884c')
-                    .fontSize(FontTokens.MICRO_SIZE)
-                    .fontWeight(FontTokens.MICRO_WEIGHT)
-                    .fontColor(ColorTokens.TEXT_TERTIARY)
-
-                  Text(this.title)
-                    .fontSize(FontTokens.HEADLINE_SIZE)
-                    .fontWeight(FontWeight.Bold)
-                    .fontColor(ColorTokens.TEXT_PRIMARY)
-                    .maxLines(2)
-                    .textOverflow({ overflow: TextOverflow.Ellipsis })
-                }
-                .width('100%')
-                .alignItems(HorizontalAlign.Start)
-
-                Flex({ wrap: FlexWrap.Wrap }) {
-                  this.buildMetaPill(this.getDayBadgeText(), true)
-                  this.buildMetaPill('\u8fdb\u5ea6 ' + this.getCurrentExerciseIndexText(), false)
-                  this.buildMetaPill(this.getProgressText(), false)
-                }
-                .width('100%')
-
-                Column({ space: SpacingTokens.XS }) {
-                  Text('\u5f53\u524d\u52a8\u4f5c')
-                    .fontSize(FontTokens.MICRO_SIZE)
-                    .fontWeight(FontTokens.MICRO_WEIGHT)
-                    .fontColor(ColorTokens.TEXT_TERTIARY)
-
-                  Text(this.getCurrentExerciseNameText())
-                    .fontSize(FontTokens.TITLE_SIZE)
-                    .fontWeight(FontWeight.Bold)
-                    .fontColor(ColorTokens.TEXT_PRIMARY)
-                    .maxLines(2)
-                    .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-                  Text(this.getCurrentExerciseGuidanceText())
-                    .fontSize(FontTokens.CAPTION_SIZE)
-                    .fontColor(ColorTokens.PRIMARY_HOVER)
-                }
-                .width('100%')
-                .padding(SpacingTokens.MD)
-                .backgroundColor(ColorTokens.SURFACE_SECONDARY)
-                .borderRadius(RadiusTokens.MD)
-                .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
-                .alignItems(HorizontalAlign.Start)
-
-                Row({ space: SpacingTokens.SM }) {
-                  this.buildSessionMetricTile('\u8bad\u7ec3\u8ba1\u65f6', this.getElapsedText(), '\u5f53\u524d\u8282\u594f', ColorTokens.TEXT_PRIMARY)
-                  this.buildSessionMetricTile('\u5b8c\u6210\u7ec4\u6570', this.getProgressText(), '\u6b63\u5f0f\u8bb0\u5f55\u8fdb\u5ea6', ColorTokens.DATA_HIGHLIGHT)
-                }
-                .width('100%')
-
-                Stack({ alignContent: Alignment.Start }) {
-                  Row()
-                    .width('100%')
-                    .height(TouchTokens.PROGRESS_BAR_HEIGHT)
-                    .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-                    .borderRadius(RadiusTokens.FULL)
-
-                  Row()
-                    .width(this.getProgressWidth())
-                    .height(TouchTokens.PROGRESS_BAR_HEIGHT)
-                    .backgroundColor(ColorTokens.DATA_HIGHLIGHT)
-                    .borderRadius(RadiusTokens.FULL)
-                }
-                .width('100%')
-                .height(TouchTokens.PROGRESS_BAR_HEIGHT)
-              }
-              .width('100%')
-              .alignItems(HorizontalAlign.Start)
-            }
+            this.buildExecutionControlSurface()
 
             Column({ space: SpacingTokens.XS }) {
               Text(this.getExerciseSectionTitle())
@@ -840,9 +1072,16 @@ export struct ActiveWorkoutPage {
                     .alignItems(HorizontalAlign.Start)
                     .margin({ left: SpacingTokens.SM })
 
-                    Text(this.getExerciseStatusText(exercise))
-                      .fontSize(FontTokens.SMALL_SIZE)
-                      .fontColor(exercise.completedSets > 0 ? ColorTokens.PRIMARY_HOVER : ColorTokens.TEXT_TERTIARY)
+                    Column({ space: SpacingTokens.XXXS }) {
+                      Text(this.getExerciseStatusText(exercise))
+                        .fontSize(FontTokens.SMALL_SIZE)
+                        .fontColor(exercise.completedSets > 0 ? ColorTokens.PRIMARY_HOVER : ColorTokens.TEXT_TERTIARY)
+
+                      Text('已录 ' + this.countExerciseRecordedSets(exercise).toString() + ' 组')
+                        .fontSize(FontTokens.CAPTION_SIZE)
+                        .fontColor(ColorTokens.TEXT_TERTIARY)
+                    }
+                    .alignItems(HorizontalAlign.End)
                   }
                   .width('100%')
 
@@ -862,73 +1101,142 @@ export struct ActiveWorkoutPage {
                   .width('100%')
                   .height(6)
 
-                  Row() {
-                    Text('\u91cd\u91cf kg')
-                      .fontSize(FontTokens.SMALL_SIZE)
-                      .fontColor(ColorTokens.TEXT_TERTIARY)
-                      .layoutWeight(1)
-                      .textAlign(TextAlign.Center)
-
-                    Text('\u6b21\u6570')
-                      .fontSize(FontTokens.SMALL_SIZE)
-                      .fontColor(ColorTokens.TEXT_TERTIARY)
-                      .layoutWeight(1)
-                      .textAlign(TextAlign.Center)
-
-                    Text('\u53c2\u80031RM')
-                      .fontSize(FontTokens.SMALL_SIZE)
-                      .fontColor(ColorTokens.TEXT_TERTIARY)
-                      .width(72)
-                  }
-                  .width('100%')
-
                   ForEach(exercise.sets, (setEntry: ActiveWorkoutSetEntry) => {
-                    Column({ space: SpacingTokens.XS }) {
-                      Row({ space: SpacingTokens.SM }) {
-                        Text(this.getSetLabelText(setEntry))
-                          .fontSize(FontTokens.CAPTION_SIZE)
-                          .fontColor(ColorTokens.TEXT_SECONDARY)
-                          .width(52)
+                    Column({ space: SpacingTokens.SM }) {
+                      Row() {
+                        Column({ space: SpacingTokens.XS }) {
+                          Text(this.getSetLabelText(setEntry))
+                            .fontSize(FontTokens.BODY_SIZE)
+                            .fontWeight(FontWeight.Medium)
+                            .fontColor(ColorTokens.TEXT_PRIMARY)
 
-                        TextInput({ text: setEntry.weightText, placeholder: this.getWeightPlaceholderText() })
-                          .type(InputType.Number)
-                          .fontSize(FontTokens.CAPTION_SIZE)
-                          .fontColor(ColorTokens.TEXT_PRIMARY)
-                          .placeholderColor(ColorTokens.TEXT_DISABLED)
-                          .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-                          .borderRadius(RadiusTokens.SM)
-                          .height(TouchTokens.INPUT_HEIGHT)
-                          .layoutWeight(1)
-                          .onChange((value: string) => {
-                            this.updateSetWeight(exercise, setEntry, value)
-                          })
+                          Row({ space: SpacingTokens.XS }) {
+                            Text(this.getSetKindText(setEntry))
+                              .fontSize(FontTokens.CAPTION_SIZE)
+                              .fontWeight(FontWeight.Medium)
+                              .fontColor(this.getSetKindTextColor(setEntry))
+                              .padding({
+                                top: SpacingTokens.XS,
+                                bottom: SpacingTokens.XS,
+                                left: SpacingTokens.SM,
+                                right: SpacingTokens.SM
+                              })
+                              .backgroundColor(this.getSetKindBackgroundColor(setEntry))
+                              .borderRadius(RadiusTokens.FULL)
+                              .border({ width: 1, color: this.getSetKindBorderColor(setEntry) })
+                              .onClick(() => {
+                                this.toggleSetWarmup(exercise, setEntry, !setEntry.isWarmup)
+                              })
 
-                        TextInput({ text: setEntry.repsText, placeholder: this.getRepsPlaceholderText() })
-                          .type(InputType.Number)
-                          .fontSize(FontTokens.CAPTION_SIZE)
-                          .fontColor(ColorTokens.TEXT_PRIMARY)
-                          .placeholderColor(ColorTokens.TEXT_DISABLED)
-                          .backgroundColor(ColorTokens.SURFACE_ELEVATED)
-                          .borderRadius(RadiusTokens.SM)
-                          .height(TouchTokens.INPUT_HEIGHT)
-                          .layoutWeight(1)
-                          .onChange((value: string) => {
-                            this.updateSetReps(exercise, setEntry, value)
-                          })
+                            Text(this.getSetEntryStatusText(exercise, setEntry))
+                              .fontSize(FontTokens.CAPTION_SIZE)
+                              .fontWeight(FontWeight.Medium)
+                              .fontColor(this.getSetEntryStatusColor(exercise, setEntry))
+                              .padding({
+                                top: SpacingTokens.XS,
+                                bottom: SpacingTokens.XS,
+                                left: SpacingTokens.SM,
+                                right: SpacingTokens.SM
+                              })
+                              .backgroundColor(this.getSetEntryStatusBackgroundColor(exercise, setEntry))
+                              .borderRadius(RadiusTokens.FULL)
+                          }
+                        }
+                        .layoutWeight(1)
 
-                        Text(setEntry.oneRepMaxText)
-                          .fontSize(FontTokens.SMALL_SIZE)
-                          .fontColor(setEntry.isComplete ? ColorTokens.ACCENT_LIGHT : ColorTokens.TEXT_SECONDARY)
-                          .width(72)
+                        Column({ space: SpacingTokens.XS }) {
+                          Text('点按切换')
+                            .fontSize(FontTokens.MICRO_SIZE)
+                            .fontWeight(FontTokens.MICRO_WEIGHT)
+                            .fontColor(ColorTokens.TEXT_TERTIARY)
+
+                          Text(setEntry.isWarmup ? '切到正式组' : '切到热身组')
+                            .fontSize(FontTokens.CAPTION_SIZE)
+                            .fontColor(ColorTokens.TEXT_SECONDARY)
+                        }
+                        .alignItems(HorizontalAlign.End)
                       }
                       .width('100%')
+
+                      Row({ space: SpacingTokens.SM }) {
+                        Column({ space: SpacingTokens.XS }) {
+                          Text('重量 kg')
+                            .fontSize(FontTokens.MICRO_SIZE)
+                            .fontWeight(FontTokens.MICRO_WEIGHT)
+                            .fontColor(ColorTokens.TEXT_TERTIARY)
+
+                          TextInput({ text: setEntry.weightText, placeholder: this.getWeightPlaceholderText() })
+                            .type(InputType.Number)
+                            .fontSize(FontTokens.CAPTION_SIZE)
+                            .fontColor(ColorTokens.TEXT_PRIMARY)
+                            .placeholderColor(ColorTokens.TEXT_DISABLED)
+                            .backgroundColor(this.getSetInputBackgroundColor(exercise, setEntry))
+                            .borderRadius(RadiusTokens.SM)
+                            .border({ width: 1, color: this.getSetInputBorderColor(exercise, setEntry) })
+                            .height(TouchTokens.INPUT_HEIGHT)
+                            .layoutWeight(1)
+                            .onChange((value: string) => {
+                              this.updateSetWeight(exercise, setEntry, value)
+                            })
+                        }
+                        .layoutWeight(1)
+                        .alignItems(HorizontalAlign.Start)
+
+                        Column({ space: SpacingTokens.XS }) {
+                          Text('次数')
+                            .fontSize(FontTokens.MICRO_SIZE)
+                            .fontWeight(FontTokens.MICRO_WEIGHT)
+                            .fontColor(ColorTokens.TEXT_TERTIARY)
+
+                          TextInput({ text: setEntry.repsText, placeholder: this.getRepsPlaceholderText() })
+                            .type(InputType.Number)
+                            .fontSize(FontTokens.CAPTION_SIZE)
+                            .fontColor(ColorTokens.TEXT_PRIMARY)
+                            .placeholderColor(ColorTokens.TEXT_DISABLED)
+                            .backgroundColor(this.getSetInputBackgroundColor(exercise, setEntry))
+                            .borderRadius(RadiusTokens.SM)
+                            .border({ width: 1, color: this.getSetInputBorderColor(exercise, setEntry) })
+                            .height(TouchTokens.INPUT_HEIGHT)
+                            .layoutWeight(1)
+                            .onChange((value: string) => {
+                              this.updateSetReps(exercise, setEntry, value)
+                            })
+                        }
+                        .layoutWeight(1)
+                        .alignItems(HorizontalAlign.Start)
+                      }
+                      .width('100%')
+
+                      Column({ space: SpacingTokens.XS }) {
+                        Text(this.getSetAnalysisLabel(setEntry))
+                          .fontSize(FontTokens.MICRO_SIZE)
+                          .fontWeight(FontTokens.MICRO_WEIGHT)
+                          .fontColor(ColorTokens.TEXT_TERTIARY)
+
+                        Text(this.getSetAnalysisText(setEntry))
+                          .fontSize(FontTokens.SMALL_SIZE)
+                          .fontWeight(FontWeight.Medium)
+                          .fontColor(setEntry.isComplete && !setEntry.isWarmup ? ColorTokens.ACCENT_LIGHT : ColorTokens.TEXT_SECONDARY)
+                      }
+                      .width('100%')
+                      .alignItems(HorizontalAlign.Start)
                     }
                     .width('100%')
-                    .padding(SpacingTokens.SM)
-                    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+                    .padding(SpacingTokens.MD)
+                    .backgroundColor(this.getSetEntryBackgroundColor(exercise, setEntry))
                     .borderRadius(RadiusTokens.MD)
-                    .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+                    .border({ width: 1, color: this.getSetEntryBorderColor(exercise, setEntry) })
                   }, (setEntry: ActiveWorkoutSetEntry) => this.createSetEntryRenderKey(setEntry))
+
+                  AppButton({
+                    text: '新增一组',
+                    type: 'ghost',
+                    buttonSize: 'small',
+                    onButtonClick: () => {
+                      this.addSetEntry(exercise)
+                    }
+                  })
+
                 }
                 .width('100%')
                 .alignItems(HorizontalAlign.Start)
@@ -947,25 +1255,26 @@ export struct ActiveWorkoutPage {
                   .fontColor(ColorTokens.TEXT_TERTIARY)
 
                 AppButton({
-                  text: '\u4fdd\u5b58\u5f53\u524d\u8fdb\u5ea6',
+                  text: this.savingWorkout ? '正在保存...' : '\u7ed3\u675f\u8bad\u7ec3\u5e76\u8fdb\u5165\u590d\u76d8',
                   type: 'primary',
                   buttonSize: 'large',
                   block: true,
-                  disabled: this.completedSets <= 0,
+                  disabled: this.getRecordedSetCount() <= 0 || this.savingWorkout,
                   onButtonClick: () => {
                     this.finishCurrentProgress()
                   }
                 })
 
-                AppButton({
-                  text: '\u5b8c\u6210\u5168\u90e8\u5e76\u4fdd\u5b58',
-                  type: 'secondary',
-                  buttonSize: 'large',
-                  block: true,
-                  onButtonClick: () => {
-                    this.finishAllSets()
-                  }
-                })
+                if (this.saveStatusText.length > 0) {
+                  Text(this.saveStatusText)
+                    .fontSize(FontTokens.CAPTION_SIZE)
+                    .fontColor(this.getSaveStatusColor())
+                    .width('100%')
+                }
+
+                Text('\u53ea\u4f1a\u57fa\u4e8e\u5df2\u5f55\u5165\u6570\u636e\u4fdd\u5b58\uff0c\u4e0d\u4f1a\u81ea\u52a8\u8865\u9f50\u672a\u5f55\u5165\u7ec4\u6b21\u3002')
+                  .fontSize(FontTokens.CAPTION_SIZE)
+                  .fontColor(ColorTokens.TEXT_TERTIARY)
               }
               .width('100%')
               .alignItems(HorizontalAlign.Start)
