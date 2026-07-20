@@ -46,3 +46,10 @@ services/
 - **DO NOT** instantiate services with `new` — always use the singleton instance.
 - **DO NOT** use a store name without the `fit_tracker_` prefix.
 - **DO NOT** forget `.flush()` after `.put()` — data won't persist.
+
+## BOUNDARY WITH SHARED SERVICES
+
+- Keep preferences-backed app persistence in `common/services/`.
+- Keep auth, session token management, and user profile persistence in `common/services/`.
+- Use `shared/services/` for feature-first domain logic, content catalogs, review calculations, and in-memory repositories.
+- Use `features/*/services/` only for feature-scoped orchestration or compatibility bridges.
