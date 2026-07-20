@@ -34,6 +34,7 @@ Delivery boundary:
 | Current-plan HTML | summary latest html | Passed | `midscene_run/focused/current_plan-mvp-final-current-plan/report/midscene-harmony-127.0.0.1_5555-2026-06-05_01-43-13-dza3ab4p.html` |
 | Backup/media smoke | `tools/dev-smoke.ps1 -Target both -DeviceId 127.0.0.1:5555 -SkipInstall` | Passed | `midscene_run/focused/both-20260605-011054-p46144/midscene-entrypoints-smoke-summary.md` |
 | Backup/media HTML | summary latest html | Passed | `midscene_run/focused/both-20260605-011054-p46144/report/midscene-harmony-127.0.0.1_5555-2026-06-05_01-10-58-1omwq93d.html` |
+| Closeout evidence audit | `node tools/check-closeout-evidence.mjs` | Passed when auth + current-plan pass and `both` or accepted split evidence exists | `docs/closeout-audit.md` plus local script output |
 
 Acceptance notes:
 
@@ -60,7 +61,13 @@ powershell -ExecutionPolicy Bypass -File tools/midscene-env.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/auth-regression.ps1 -DeviceId 127.0.0.1:5555 -SkipInstall
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/dev-smoke.ps1 -Target current-plan -DeviceId 127.0.0.1:5555 -SkipInstall
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/dev-smoke.ps1 -Target both -DeviceId 127.0.0.1:5555 -SkipInstall
+node tools/check-closeout-evidence.mjs
 ```
+
+Evidence fallback rule:
+
+- Prefer a fresh passing `both` run when the provider is healthy.
+- If the latest `both` rerun is blocked by a provider-side error such as `403 AccountOverdueError`, use `node tools/check-closeout-evidence.mjs` to accept historical passing `both` evidence or the split `backup-card` + `media-card` pair instead of treating the outage as an app regression.
 
 ## 4. Known Deferred Items
 

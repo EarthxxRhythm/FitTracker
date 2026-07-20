@@ -8,6 +8,13 @@ This checklist converts the remaining subjective UI/UX closeout gap into an expl
 
 It is intended for a short manual acceptance round after engineering closeout.
 
+Use this checklist together with:
+
+- `docs/ui-final-acceptance-runbook.md`
+- `docs/ui-design-review-packet.md`
+- `docs/ui-acceptance-record-template.md`
+- `node tools/generate-ui-acceptance-record.mjs`
+
 ## Review Scope
 
 Review these registered user-facing routes:
@@ -150,6 +157,12 @@ Interaction polish: pass | fail
 Product tone: pass | fail
 Notes:
 Blocking issue:
+```
+
+You can prefill the machine-backed evidence references before the manual pass with:
+
+```powershell
+node tools/generate-ui-acceptance-record.mjs
 ```
 
 ## Closeout Rule

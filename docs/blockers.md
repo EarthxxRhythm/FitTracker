@@ -4,14 +4,17 @@ Use this file to record only the blockers that should change task routing.
 
 ## Active
 
-- `device.hdc_unavailable`
-  - status: active
-  - scope: `performance-lab`, `ohosTest`, `focused-smoke`
-  - note: `hdc list targets -v` is not reaching a usable `Ready` / `Connected` target on this machine right now. Empty output, `Unknown`, and `Offline` targets should all be treated as blocked.
+- `midscene.provider_overdue`
+  - status: active on 2026-06-11
+  - scope: `focused-smoke`, `auth-regression`, closeout evidence refresh
+  - note: latest `both` rerun failed with `403 AccountOverdueError` from the external Midscene provider, and fresh AI-assisted `current-plan` / `membership` live-pass attempts on 2026-06-11 were blocked at the startup assertion for the same reason. Treat this as an external evidence-refresh blocker, not as proof of an app regression. Use `node tools/check-closeout-evidence.mjs` for artifact checks, `tools/live-device-probe.ps1` for provider-independent short live-device route probes, and `tools/seed-review-metrics-device.ps1` + `tools/live-device-probe.ps1 -Scenario review-metrics` when review-page data consistency needs fresh device proof.
 
 ## Inactive / Cleared
 
-- none
+- `device.hdc_unavailable`
+  - status: cleared on 2026-06-11
+  - scope: `performance-lab`, `ohosTest`, `focused-smoke`
+  - note: `hdc list targets -v` now reports `127.0.0.1:5555 TCP Connected localhost hdc`, so device-backed validation can resume. Keep using short-chain acceptance first and only restore this blocker if repeated Midscene runs fall back to `Offline` again.
 
 ## How to Use
 

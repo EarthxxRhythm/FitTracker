@@ -113,7 +113,9 @@ Current practical order:
    - `tools/auth-regression.ps1`
    - `tools/dev-smoke.ps1 -Target current-plan`
    - `tools/dev-smoke.ps1 -Target both`
-4. final closeout audit
+4. if `both` is blocked by external provider state, run:
+   - `node tools/check-closeout-evidence.mjs`
+5. final closeout audit
 
 ## Dry Run Usage
 
