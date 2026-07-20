@@ -24,7 +24,6 @@ pages/
 | `HomePage` | `pages/HomePage` | Today's training entry, current plan summary, start workout |
 | `Index` | `pages/Index` | Historical shell that points back to HomePage |
 | `ProfilePage` | `pages/ProfilePage` | Historical shell that points back to HomePage |
-| `ExerciseDetailPage` | `features/exercise/pages/ExerciseDetailPage` | Exercise info tabs, muscle groups, personal records (best 1RM) |
 
 ## CONVENTIONS
 
