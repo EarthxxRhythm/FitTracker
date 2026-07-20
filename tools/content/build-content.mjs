@@ -68,6 +68,12 @@ function requireString(record, field, label) {
   }
 }
 
+function rejectPlaceholderQuestionMarks(value, fieldLabel, record) {
+  if (typeof value === 'string' && value.includes('?')) {
+    throw new Error(`${fieldLabel} contains placeholder question marks at ${sourceOf(record)}`)
+  }
+}
+
 function requireOptionalString(record, field, label) {
   if (record[field] === undefined) {
     return
@@ -85,6 +91,7 @@ function requireStringArray(record, field, label) {
     if (typeof record[field][index] !== 'string' || record[field][index].trim().length === 0) {
       throw new Error(`${label}.${field}[${index}] must be a non-empty string at ${sourceOf(record)}`)
     }
+    rejectPlaceholderQuestionMarks(record[field][index], `${label}.${field}[${index}]`, record)
   }
 }
 
@@ -116,10 +123,12 @@ function validate(muscles, equipment, exercises) {
     requireString(muscle, 'muscleId', 'muscle')
     requireString(muscle, 'nameZh', 'muscle')
     requireString(muscle, 'region', 'muscle')
+    rejectPlaceholderQuestionMarks(muscle.nameZh, 'muscle.nameZh', muscle)
   }
   for (const item of equipment) {
     requireString(item, 'equipmentId', 'equipment')
     requireString(item, 'nameZh', 'equipment')
+    rejectPlaceholderQuestionMarks(item.nameZh, 'equipment.nameZh', item)
   }
   assertUnique(muscles, 'muscleId', 'muscle')
   assertUnique(equipment, 'equipmentId', 'equipment')
@@ -137,6 +146,7 @@ function validate(muscles, equipment, exercises) {
     requireString(exercise, 'nameZh', label)
     requireString(exercise, 'nameEn', label)
     requireString(exercise, 'difficulty', label)
+    rejectPlaceholderQuestionMarks(exercise.nameZh, `${label}.nameZh`, exercise)
     requireStringArray(exercise, 'aliases', label)
     requireStringArray(exercise, 'primaryMuscleIds', label)
     requireStringArray(exercise, 'secondaryMuscleIds', label)

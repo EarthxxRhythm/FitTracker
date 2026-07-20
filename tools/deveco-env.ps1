@@ -50,12 +50,15 @@ function Add-UniquePathSegments {
 $jbrPath = Join-Path $DevEcoRoot 'jbr'
 $sdkPath = Join-Path $DevEcoRoot 'sdk'
 $hvigorPath = Join-Path $DevEcoRoot 'tools\hvigor\bin'
+$nodeHomePath = Join-Path $DevEcoRoot 'tools\node'
 $toolchainPath = Join-Path $sdkPath 'default\openharmony\toolchains'
 $jbrBinPath = Join-Path $jbrPath 'bin'
+$nodeBinPath = $nodeHomePath
 $javaShimPath = Join-Path $scriptRoot 'java.cmd'
 $nodeJavaShimPath = Join-Path $scriptRoot 'node-java-shim.cjs'
 $javaExePath = Join-Path $jbrBinPath 'java.exe'
 $javacExePath = Join-Path $jbrBinPath 'javac.exe'
+$nodeExePath = Join-Path $nodeHomePath 'node.exe'
 $hvigorwPath = Join-Path $hvigorPath 'hvigorw.bat'
 
 if (-not (Test-Path $jbrPath)) {
@@ -63,6 +66,9 @@ if (-not (Test-Path $jbrPath)) {
 }
 if (-not (Test-Path $sdkPath)) {
   throw ('DevEco Studio SDK not found: ' + $sdkPath)
+}
+if (-not (Test-Path $nodeExePath)) {
+  throw ('DevEco Studio node.exe not found: ' + $nodeExePath)
 }
 if (-not (Test-Path $javaExePath)) {
   throw ('DevEco Studio java.exe not found: ' + $javaExePath)
@@ -79,6 +85,7 @@ if (-not (Test-Path $hvigorwPath)) {
 
 $env:JAVA_HOME = $jbrPath
 $env:DEVECO_SDK_HOME = $sdkPath
+$env:NODE_HOME = $nodeHomePath
 
 $existingPathValue = Get-ExistingPathValue
 $pathSegments = New-Object 'System.Collections.Generic.List[string]'
@@ -87,6 +94,7 @@ $seenSegments = New-Object 'System.Collections.Generic.HashSet[string]' ([System
 Add-UniquePathSegments -Segments $pathSegments -SeenSegments $seenSegments -CandidateSegments @(
   $scriptRoot,
   $jbrBinPath,
+  $nodeBinPath,
   $hvigorPath,
   $toolchainPath
 )
@@ -114,7 +122,9 @@ if ([string]::IsNullOrWhiteSpace($env:NODE_OPTIONS)) {
 Write-Host '[FitTracker DevEco] Environment prepared.'
 Write-Host ('- JAVA_HOME=' + $env:JAVA_HOME)
 Write-Host ('- DEVECO_SDK_HOME=' + $env:DEVECO_SDK_HOME)
+Write-Host ('- NODE_HOME=' + $env:NODE_HOME)
 Write-Host ('- hvigorw=' + $hvigorwPath)
 Write-Host ('- java shim=' + $javaShimPath)
 Write-Host ('- node java shim=' + $nodeJavaShimPath)
 Write-Host ('- java=' + $javaExePath)
+Write-Host ('- node=' + $nodeExePath)

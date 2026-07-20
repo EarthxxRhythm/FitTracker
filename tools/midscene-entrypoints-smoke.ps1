@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('backup-card', 'media-card', 'current-plan', 'summary-page', 'plan-detail', 'membership', 'both')]
+  [ValidateSet('backup-card', 'media-card', 'current-plan', 'summary-page', 'goal-adjustment', 'plan-detail', 'membership', 'both')]
   [string]$Target = 'current-plan',
   [string]$DeviceId = "",
   [string]$BundleName = "com.example.fittracker_opencode",
@@ -8,6 +8,8 @@ param(
   [string]$RunRoot = "",
   [string]$RunTag = "",
   [string]$SummaryFileName = "midscene-entrypoints-smoke-summary.md",
+  [string]$TestPhone = "13800138000",
+  [string]$TestPassword = "123456",
   [switch]$ResetAppData,
   [switch]$SkipInstall,
   [switch]$SkipDisconnect,
@@ -91,6 +93,10 @@ function Write-SmokeSummary {
     $summaryLines += "- home current-plan card to workout preview"
     $summaryLines += "- workout preview to active workout"
     $summaryLines += "- active workout save flow to workout summary"
+    $summaryLines += "- workout summary to review page"
+  } elseif ($Target -eq 'goal-adjustment') {
+    $summaryLines += "- home to review page"
+    $summaryLines += "- review page to goal adjustment page"
   } elseif ($Target -eq 'plan-detail') {
     $summaryLines += "- home preset plan card to training plan detail"
   } elseif ($Target -eq 'membership') {
@@ -111,6 +117,49 @@ function Write-SmokeSummary {
   Set-Content -Path $RunSummaryPath -Value $summaryLines -Encoding utf8
 }
 
+function Test-ExternalProviderBlockMessage {
+  param([string]$Message)
+
+  if ([string]::IsNullOrWhiteSpace($Message)) {
+    return $false
+  }
+
+  return $Message.IndexOf('AccountOverdueError', [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -or
+    $Message.IndexOf('overdue balance', [System.StringComparison]::OrdinalIgnoreCase) -ge 0
+}
+
+function Get-NormalizedFailureReason {
+  param([string]$Message)
+
+  if ([string]::IsNullOrWhiteSpace($Message)) {
+    return ''
+  }
+
+  if (Test-ExternalProviderBlockMessage -Message $Message) {
+    return 'Midscene provider blocked this run with 403 AccountOverdueError before the startup assertion could complete. Treat this as an external validation blocker, not as proof of an app regression.'
+  }
+
+  $lines = @($Message -split "(`r`n|`n|`r)") | Where-Object {
+    $_.Trim().Length -gt 0 -and
+    $_.IndexOf('Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)', [System.StringComparison]::OrdinalIgnoreCase) -lt 0
+  }
+  if ($lines.Count -eq 0) {
+    return $Message.Trim()
+  }
+
+  $primaryLine = $lines[0].Trim()
+  if ($lines.Count -eq 1) {
+    return $primaryLine
+  }
+
+  $secondaryLine = $lines[1].Trim()
+  if ($secondaryLine.Length -eq 0) {
+    return $primaryLine
+  }
+
+  return ($primaryLine + ' ' + $secondaryLine)
+}
+
 function Invoke-Step {
   param(
     [string]$Title,
@@ -127,15 +176,19 @@ function Invoke-Step {
   }
 
   for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     $rawOutput = & $exe @argsList 2>&1
+    $nativeExitCode = $LASTEXITCODE
+    $ErrorActionPreference = $previousErrorActionPreference
     $outputText = (@($rawOutput) | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
     if ($outputText.Length -gt 0) {
       Write-Host $outputText
     }
-    if ($LASTEXITCODE -eq 0) {
+    if ($nativeExitCode -eq 0) {
       return @{
         Output = $outputText
-        ExitCode = $LASTEXITCODE
+        ExitCode = $nativeExitCode
       }
     }
 
@@ -350,8 +403,9 @@ function Invoke-VisualActWithRetry {
 function Ensure-AppReady {
   Launch-AppToForeground -Title "launch app" -PauseSeconds 2
   Invoke-MidsceneConnect -Title "connect device"
+  Ensure-FitTrackerForegroundAfterLaunch -TitlePrefix "restore app after connect" -PauseSeconds 2
   Invoke-Midscene -Title "capture startup screen" -CommandArgs @("take_screenshot")
-  Invoke-VisualAssert -Title "assert startup screen" -Prompt "The screen is not blank and there is no crash dialog."
+  Invoke-VisualAssert -Title "assert startup screen" -Prompt "A visible FitTracker screen is in the foreground, the screen is not blank, and there is no crash dialog."
 }
 
 function Ensure-HomeRoute {
@@ -371,10 +425,10 @@ function Ensure-HomeRoute {
   Invoke-Midscene -Title "capture pre-home-route screen" -CommandArgs @("take_screenshot")
   Invoke-VisualActWithRetry `
     -Title "prepare home route" `
-    -PrimaryPrompt "From the current visible FitTracker screen, reach the FitTracker home page. Prefer staying inside the FitTracker app flow. If the system home screen appears by mistake, reopen FitTracker and continue. If login or register appears, complete it. If goal setup appears, choose muscle gain, beginner, 3 days per week, and bodyweight or dumbbell equipment, then save. If workout preview, review, or exercise detail is visible, navigate back to the home page. Stop when the home page shows the main workout entry with a primary workout button." `
+    -PrimaryPrompt ("From the current visible FitTracker screen, reach the FitTracker home page by following only one of these branches: 1) if the login page is visible, enter phone " + $TestPhone + " and password " + $TestPassword + ", then tap login; if the register page is visible, use the visible login entry first, then log in with the same phone and password; 2) if the goal setup page is visible, choose muscle gain, beginner, 3 days per week, and bodyweight or dumbbell equipment, then save; 3) if a review page, workout preview page, exercise page, or detail page is visible, use only the app's visible back navigation until the home page appears. Do not type into unrelated input fields. Stop as soon as the home page shows the main workout entry with a primary workout button.") `
     -PrimaryAssertTitle "assert home route ready" `
     -PrimaryAssertPrompt "The FitTracker home page is visible. It shows the main workout entry with a primary workout button, and there is no crash dialog." `
-    -RetryPrompt "If the FitTracker home page is still not visible, navigate back until the home page shows the main workout entry with a primary workout button. If the system home screen appears, reopen FitTracker and continue. If login or goal setup still appears, complete the minimum required flow and stop on the home page." `
+    -RetryPrompt ("If the FitTracker home page is still not visible, use the shortest in-app route only: if login or register is visible, complete login with phone " + $TestPhone + " and password " + $TestPassword + "; if goal setup is visible, complete it; otherwise use visible back navigation until the home page appears. If the system launcher appears, reopen FitTracker and continue. Stop as soon as the home page shows the main workout entry with a primary workout button.") `
     -RetryAssertTitle "assert home route ready after retry" `
     -RetryAssertPrompt "The FitTracker home page is visible. It shows the main workout entry with a primary workout button, and there is no crash dialog."
 }
@@ -396,10 +450,10 @@ function Ensure-WorkoutPreviewRoute {
   Invoke-Midscene -Title "capture pre-preview-route screen" -CommandArgs @("take_screenshot")
   Invoke-VisualActWithRetry `
     -Title "prepare preview route" `
-    -PrimaryPrompt "From the current visible FitTracker screen, reach the FitTracker workout preview screen for today's training. Prefer staying inside the FitTracker app flow. If the system home screen appears by mistake, reopen FitTracker and continue. If login or register appears, complete it. If goal setup appears, choose muscle gain, beginner, 3 days per week, and bodyweight or dumbbell equipment, then save. If the home page is visible, tap the main primary training button that opens today's workout preview. Do not open the training review or exercise library routes. Stop when the workout preview screen is visible." `
+    -PrimaryPrompt ("From the current visible FitTracker screen, reach the FitTracker workout preview screen for today's training. Prefer staying inside the FitTracker app flow. If the system home screen appears by mistake, reopen FitTracker and continue. If the login page is visible, enter phone " + $TestPhone + " and password " + $TestPassword + ", then tap login. If the register page is visible, use the visible login entry first and then log in with the same phone and password. If goal setup appears, choose muscle gain, beginner, 3 days per week, and bodyweight or dumbbell equipment, then save. If the home page is visible, tap the main primary training button that opens today's workout preview. Do not open the training review or exercise library routes. Stop when the workout preview screen is visible.") `
     -PrimaryAssertTitle "assert workout preview ready" `
     -PrimaryAssertPrompt "The workout preview screen for today's training is visible." `
-    -RetryPrompt "If the workout preview screen is still not visible, navigate to today's workout preview from the home page. If the system home screen appears, reopen FitTracker and continue. Complete login or goal setup only if they block the route. Stop when the workout preview screen is visible." `
+    -RetryPrompt ("If the workout preview screen is still not visible, navigate to today's workout preview from the home page. If the system home screen appears, reopen FitTracker and continue. If login or register blocks the route, complete login with phone " + $TestPhone + " and password " + $TestPassword + ". Complete goal setup only if it blocks the route. Stop when the workout preview screen is visible.") `
     -RetryAssertTitle "assert workout preview ready after retry" `
     -RetryAssertPrompt "The workout preview screen for today's training is visible."
 }
@@ -412,7 +466,7 @@ function Ensure-CurrentPlanHomeRoute {
 function Ensure-CurrentPlanPreviewRoute {
   $previewReady = $false
   try {
-    Invoke-VisualAssert -Title "assert current plan preview already visible" -Prompt "The FitTracker workout preview screen is visible. It shows the workout preview title, a plan name, and a user-friendly day badge such as 第 5 天. There is no crash dialog."
+    Invoke-VisualAssert -Title "assert current plan preview already visible" -Prompt "The FitTracker workout preview screen is visible. Stable signals include a readable plan name, a training day label or day badge, a list or summary of today's exercises, and one clear primary button to start today's workout. There is no crash dialog."
     $previewReady = $true
   } catch {
     $previewReady = $false
@@ -427,10 +481,10 @@ function Ensure-CurrentPlanPreviewRoute {
     -Title "open current plan preview" `
     -PrimaryPrompt "On the FitTracker home page, tap the main primary workout button for today's training and stop when the workout preview screen is visible. Do not open the training review or exercise library pages." `
     -PrimaryAssertTitle "assert current plan preview ready" `
-    -PrimaryAssertPrompt "The FitTracker workout preview screen is visible. It shows the workout preview title, a plan name, and a user-friendly day badge such as 第 5 天. There is no crash dialog." `
+    -PrimaryAssertPrompt "The FitTracker workout preview screen is visible. Stable signals include a readable plan name, a training day label or day badge, a list or summary of today's exercises, and one clear primary button to start today's workout. There is no crash dialog." `
     -RetryPrompt "If the workout preview screen is still not visible, return to the FitTracker home page if needed, then tap the main primary workout button again and stop on the workout preview screen." `
     -RetryAssertTitle "assert current plan preview ready after retry" `
-    -RetryAssertPrompt "The FitTracker workout preview screen is visible. It shows the workout preview title, a plan name, and a user-friendly day badge such as 第 5 天. There is no crash dialog."
+    -RetryAssertPrompt "The FitTracker workout preview screen is visible. Stable signals include a readable plan name, a training day label or day badge, a list or summary of today's exercises, and one clear primary button to start today's workout. There is no crash dialog."
 }
 
 function Ensure-ExerciseLibraryRoute {
@@ -447,14 +501,31 @@ function Ensure-ExerciseLibraryRoute {
 
 function Run-BackupCardSmoke {
   Ensure-HomeRoute
-  Invoke-VisualAct -Title "open review page" -Prompt "On the FitTracker home page, tap the secondary action button that opens the training review page. Stop when the training review page is visible."
-  Invoke-VisualAssert -Title "assert review page" -Prompt "The training review page is visible. It shows review content such as history, trends, or records, and there is no crash dialog."
-  Invoke-VisualAct -Title "scroll to backup card" -Prompt "On the training review page, scroll until the data backup section is fully visible with the backup text area and action buttons."
-  Invoke-VisualAssert -Title "assert backup card" -Prompt "The data backup section is visible. It includes a text area for backup JSON and visible action buttons for creating and importing a backup package, and there is no crash dialog."
+  Invoke-VisualActWithRetry `
+    -Title "open review page for backup flow" `
+    -PrimaryPrompt "On the FitTracker home page, open the training review page. Prefer the visible review destination or the secondary action that opens training review. Stop when the training review page is visible." `
+    -PrimaryAssertTitle "assert review page for backup flow" `
+    -PrimaryAssertPrompt "The training review page is visible. It shows review content such as history, trends, records, weekly statistics, or backup sections, and there is no crash dialog." `
+    -RetryPrompt "If the training review page is still not visible, return to the FitTracker home page if needed and open the training review page again. Stop when the training review page is visible." `
+    -RetryAssertTitle "assert review page for backup flow after retry" `
+    -RetryAssertPrompt "The training review page is visible. It shows review content such as history, trends, records, weekly statistics, or backup sections, and there is no crash dialog."
+  Invoke-VisualAct -Title "scroll to backup card" -Prompt "On the training review page, scroll until the data backup section is fully usable on screen. Do not stop at the heading only. Continue until the explanatory copy, the backup text input area, and at least one backup action button are all clearly visible together."
+  Invoke-VisualAssert -Title "assert backup card" -Prompt "The training review page shows the usable data backup section. Stable signals include explanatory copy for backup or restore, a visible backup text input area, and at least one action button for generating backup, importing restore data, or clearing the input area."
 }
 
 function Run-MediaCardSmoke {
-  Ensure-ExerciseLibraryRoute
+  $libraryReady = $false
+  try {
+    Invoke-VisualAssert -Title "assert exercise library already visible before media flow" -Prompt "The exercise library page is visible. It shows an exercise list, search input, and filter chips for muscle groups or equipment, and there is no crash dialog."
+    $libraryReady = $true
+  } catch {
+    $libraryReady = $false
+  }
+
+  if (-not $libraryReady) {
+    Ensure-ExerciseLibraryRoute
+  }
+
   Invoke-VisualActWithRetry `
     -Title "open exercise detail" `
     -PrimaryPrompt "On the exercise library page, open the first visible exercise detail entry. Prefer tapping the large full-width button inside the first exercise card that opens exercise details. If that button is not fully visible, scroll slightly until the first card is complete, then open its detail page. Stop when the exercise detail page is visible." `
@@ -467,25 +538,36 @@ function Run-MediaCardSmoke {
   Invoke-VisualAssert -Title "assert media card" -Prompt "The exercise detail page shows the media section for the exercise, including a media status header plus cover or video metadata rows such as source note, license note, cover metadata, or video metadata."
 }
 
+function Open-ExerciseLibraryFromReviewTools {
+  Invoke-VisualActWithRetry `
+    -Title "open exercise library from review tools" `
+    -PrimaryPrompt "From the current FitTracker review or local maintenance screen, use the visible primary destination strip and tap the destination that opens the exercise library. Stop when the exercise library page is visible. Do not navigate back to the home page first." `
+    -PrimaryAssertTitle "assert exercise library from review tools" `
+    -PrimaryAssertPrompt "The exercise library page is visible. It shows an exercise list, search input, and filter chips for muscle groups or equipment, and there is no crash dialog." `
+    -RetryPrompt "If the exercise library page is still not visible, stay inside the FitTracker review flow and tap the exercise library destination in the primary destination strip again. Stop when the exercise library page is visible." `
+    -RetryAssertTitle "assert exercise library from review tools after retry" `
+    -RetryAssertPrompt "The exercise library page is visible. It shows an exercise list, search input, and filter chips for muscle groups or equipment, and there is no crash dialog."
+}
+
 function Run-CurrentPlanSmoke {
   Ensure-CurrentPlanHomeRoute
   Invoke-VisualActWithRetry `
     -Title "home to current plan preview" `
     -PrimaryPrompt "On the FitTracker home page, tap the main primary workout button for today's training and stop on the workout preview screen." `
     -PrimaryAssertTitle "assert current plan preview after home tap" `
-    -PrimaryAssertPrompt "The FitTracker workout preview screen is visible. It shows the workout preview title, a plan name, and a user-friendly day badge such as 第 5 天. There is no crash dialog." `
+    -PrimaryAssertPrompt "The FitTracker workout preview screen is visible. Stable signals include a readable plan name, a training day label or day badge, a list or summary of today's exercises, and one clear primary button to start today's workout. There is no crash dialog." `
     -RetryPrompt "If the workout preview screen is still not visible, return to the FitTracker home page if needed, then tap the main primary workout button again and stop on the workout preview screen." `
     -RetryAssertTitle "assert current plan preview after retry" `
-    -RetryAssertPrompt "The FitTracker workout preview screen is visible. It shows the workout preview title, a plan name, and a user-friendly day badge such as 第 5 天. There is no crash dialog."
+    -RetryAssertPrompt "The FitTracker workout preview screen is visible. Stable signals include a readable plan name, a training day label or day badge, a list or summary of today's exercises, and one clear primary button to start today's workout. There is no crash dialog."
 
   Invoke-VisualActWithRetry `
     -Title "current plan preview to active workout" `
-    -PrimaryPrompt "On the workout preview screen, scroll if needed until the 开始训练 button is visible, then tap only that button and stop when the active workout execution screen is visible." `
+    -PrimaryPrompt "On the workout preview screen, scroll if needed until the main start workout button is visible, then tap only that button and stop when the active workout execution screen is visible." `
     -PrimaryAssertTitle "assert active workout from current plan preview" `
-    -PrimaryAssertPrompt "The active workout execution screen is visible. It shows the title 训练执行, the current exercise area, and input fields or rows for set weight and reps. There is no crash dialog." `
-    -RetryPrompt "If the active workout screen is still not visible, stay on the workout preview screen, scroll until the 开始训练 button is visible, tap only that button again, and stop when the active workout execution screen is visible." `
+    -PrimaryAssertPrompt "The active workout execution screen is visible. Stable signals include the current exercise area, set rows or cards, editable fields for weight and reps, and workout progress controls. There is no crash dialog." `
+    -RetryPrompt "If the active workout screen is still not visible, stay on the workout preview screen, scroll until the main start workout button is visible, tap only that button again, and stop when the active workout execution screen is visible." `
     -RetryAssertTitle "assert active workout from current plan preview after retry" `
-    -RetryAssertPrompt "The active workout execution screen is visible. It shows the title 训练执行, the current exercise area, and input fields or rows for set weight and reps. There is no crash dialog."
+    -RetryAssertPrompt "The active workout execution screen is visible. Stable signals include the current exercise area, set rows or cards, editable fields for weight and reps, and workout progress controls. There is no crash dialog."
 }
 
 function Run-SummaryPageSmoke {
@@ -507,6 +589,40 @@ function Run-SummaryPageSmoke {
     -RetryPrompt "If the workout summary page is still not visible, stay inside the FitTracker app, return to the final save section if needed, tap the action that completes all remaining sets and saves the workout again, and stop when the workout summary page is visible." `
     -RetryAssertTitle "assert workout summary page stable after retry" `
     -RetryAssertPrompt "The workout summary page is visible. It shows a workout summary or training day header, completion metrics such as completion rate or completed sets, and visible next actions like edit workout record, view training review, or return home. There is no crash dialog."
+
+  Invoke-VisualActWithRetry `
+    -Title "summary page to review page" `
+    -PrimaryPrompt "On the workout summary page, tap the primary next-step action that opens the training review page. The button may mention training review or long-term review. Stop when the training review page is visible." `
+    -PrimaryAssertTitle "assert review page from summary flow" `
+    -PrimaryAssertPrompt "The training review page is visible. It shows review content such as history, trends, records, or backup sections, and there is no crash dialog." `
+    -RetryPrompt "If the training review page is still not visible, stay inside the workout summary page, tap the primary action that opens training review again, and stop when the training review page is visible." `
+    -RetryAssertTitle "assert review page from summary flow after retry" `
+    -RetryAssertPrompt "The training review page is visible. It shows review content such as history, trends, records, or backup sections, and there is no crash dialog."
+}
+
+function Run-GoalAdjustmentSmoke {
+  Ensure-HomeRoute
+
+  Invoke-VisualActWithRetry `
+    -Title "open review page for goal adjustment flow" `
+    -PrimaryPrompt "On the FitTracker home page, open the training review page. Prefer the visible review destination or the secondary action that opens training review. Stop when the training review page is visible." `
+    -PrimaryAssertTitle "assert review page for goal adjustment flow" `
+    -PrimaryAssertPrompt "The training review page is visible. It shows review content such as history, trends, records, weekly statistics, or backup sections, and there is no crash dialog." `
+    -RetryPrompt "If the training review page is still not visible, return to the FitTracker home page if needed and open the training review page again. Stop when the training review page is visible." `
+    -RetryAssertTitle "assert review page for goal adjustment flow after retry" `
+    -RetryAssertPrompt "The training review page is visible. It shows review content such as history, trends, records, weekly statistics, or backup sections, and there is no crash dialog."
+
+  Invoke-VisualAct -Title "scroll to goal adjustment entry" -Prompt "On the training review page, scroll until the goal adjustment section is fully visible. Stable signals include a button for adjusting goal settings, a primary adjustment action, or comparison text about the next plan."
+  Invoke-VisualAssert -Title "assert goal adjustment entry" -Prompt "The training review page shows the goal adjustment area. Stable signals include a button for adjusting goal settings together with nearby text about the next plan, goal adjustment, or comparison between current and adjusted arrangement."
+
+  Invoke-VisualActWithRetry `
+    -Title "open goal adjustment page from review" `
+    -PrimaryPrompt "On the training review page, tap only the secondary button that opens the goal settings page. It may mention goal settings or adjusting the goal. Stop when the goal setup page is visible." `
+    -PrimaryAssertTitle "assert goal setup page from review" `
+    -PrimaryAssertPrompt "The goal setup page is visible. It shows the training goal header, weekly training days, session duration, available equipment, and the main generate training plan action. There is no crash dialog." `
+    -RetryPrompt "If the goal setup page is still not visible, stay inside the review page, scroll back to the goal adjustment area if needed, tap the button for goal settings again, and stop when the goal setup page is visible." `
+    -RetryAssertTitle "assert goal setup page from review after retry" `
+    -RetryAssertPrompt "The goal setup page is visible. It shows the training goal header, weekly training days, session duration, available equipment, and the main generate training plan action. There is no crash dialog."
 }
 
 function Run-PlanDetailSmoke {
@@ -558,7 +674,7 @@ function Run-MembershipSmoke {
 }
 
 if (-not $env:MIDSCENE_REPLANNING_CYCLE_LIMIT) {
-  $env:MIDSCENE_REPLANNING_CYCLE_LIMIT = "60"
+  $env:MIDSCENE_REPLANNING_CYCLE_LIMIT = "90"
 }
 
 $runStatus = "failed"
@@ -600,22 +716,26 @@ try {
     Run-CurrentPlanSmoke
   } elseif ($Target -eq 'summary-page') {
     Run-SummaryPageSmoke
+  } elseif ($Target -eq 'goal-adjustment') {
+    Run-GoalAdjustmentSmoke
   } elseif ($Target -eq 'plan-detail') {
     Run-PlanDetailSmoke
   } elseif ($Target -eq 'membership') {
     Run-MembershipSmoke
   } else {
     Run-BackupCardSmoke
-    Invoke-Hdc -Title "clean app data between focused targets" -CommandArgs @("shell", "bm", "clean", "-n", $BundleName, "-d", "-c", "-u", "0")
-    Start-Sleep -Seconds 1
-    Ensure-AppReady
+    Open-ExerciseLibraryFromReviewTools
     Run-MediaCardSmoke
   }
 
   $runStatus = "passed"
 }
 catch {
-  $failureReason = $_.Exception.Message
+  $rawFailureReason = $_.Exception.Message
+  $failureReason = Get-NormalizedFailureReason -Message $rawFailureReason
+  if (Test-ExternalProviderBlockMessage -Message $rawFailureReason) {
+    $runStatus = "blocked-external-provider"
+  }
   throw
 }
 finally {

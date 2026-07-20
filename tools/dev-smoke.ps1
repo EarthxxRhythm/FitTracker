@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('backup-card', 'media-card', 'current-plan', 'summary-page', 'plan-detail', 'membership', 'both')]
+  [ValidateSet('backup-card', 'media-card', 'current-plan', 'summary-page', 'goal-adjustment', 'plan-detail', 'membership', 'both')]
   [string]$Target = 'current-plan',
   [string]$DeviceId = "",
   [string]$BundleName = "com.example.fittracker_opencode",
@@ -11,7 +11,9 @@ param(
   [string]$ModelName = "doubao-seed-2-0-lite-260215",
   [string]$ModelFamily = "doubao-seed",
   [string]$BaseUrl = "https://ark.cn-beijing.volces.com/api/v3",
-  [int]$ReplanningCycleLimit = 60,
+  [string]$TestPhone = "13800138000",
+  [string]$TestPassword = "123456",
+  [int]$ReplanningCycleLimit = 90,
   [switch]$ResetAppData,
   [switch]$SkipInstall,
   [switch]$SkipDisconnect,
@@ -67,6 +69,8 @@ $smokeParams = @{
   AbilityName = $AbilityName
   HapPath = $HapPath
   SummaryFileName = $SummaryFileName
+  TestPhone = $TestPhone
+  TestPassword = $TestPassword
   ResetAppData = $ResetAppData
   SkipInstall = $SkipInstall
   SkipDisconnect = $SkipDisconnect

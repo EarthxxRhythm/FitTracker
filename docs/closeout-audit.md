@@ -1,161 +1,199 @@
 # FitTracker Closeout Audit
 
-Last updated: 2026-06-11
+Last updated: 2026-06-12
 
 ## Goal Under Audit
 
-1. 完成完整的功能链
-2. 重做 UI/UX，界面最终为简洁高级风格，交互丝滑可玩性高
-3. 商业化预埋，先不并入软件
+This audit checks the active delivery goal against the current repository and the latest available verification artifacts.
 
-This document records what is proved by the current repository state and what is still not fully proved.
+Goal dimensions:
 
-## Proven Evidence
+1. Core workout chain is complete and usable on device
+2. Data semantics are trustworthy, not only visually plausible
+3. UI/UX is clearer, more consistent, and aligned with the Cool Emerald Performance direction
+4. Engineering delivery is buildable and backed by explicit evidence
 
-### Build and route registration
+This document is intentionally strict: if a requirement is only indirectly suggested, it is treated as not fully proved.
 
-- Main routes are registered in `entry/src/main/resources/base/profile/main_pages.json`:
-  - `StartupPage`
-  - `LoginPage`
-  - `RegisterPage`
-  - `GoalSetupPage`
-  - `HomePage`
-  - `ExerciseLibraryPage`
-  - `ExerciseDetailPage`
-  - `MonetizationHubPage`
-  - `TrainingPlanDetailPage`
-  - `WorkoutPreviewPage`
-  - `ActiveWorkoutPage`
-  - `WorkoutSummaryPage`
-  - `ReviewHomePage`
-- Default package build passed on 2026-06-11:
-  - `hvigorw assembleHap --mode module -p module=entry@default -p product=default --no-parallel`
+## Fresh Evidence Snapshot
 
-### Device-backed acceptance evidence
+### Repo-only
 
-#### Auth and startup
+- `node tools/check-gates.mjs`
+  - passed on 2026-06-12
+- full `ohosTest`
+  - passed on 2026-06-12
+  - artifact: `test_run/ohosTest/20260612-105336-p431664/ohos-test-summary.md`
+  - result: `242 / 242 passed`
+- current full-suite build paths proved by the passing `ohosTest` run:
+  - `entry/build/default/outputs/default/entry-default-unsigned.hap`
+  - `entry/build/default/outputs/ohosTest/entry-ohosTest-unsigned.hap`
 
-- Auth regression passed:
-  - `midscene_run/auth/20260611-025642-p41660/midscene-auth-regression-summary.md`
-- Covered behaviors:
-  - startup screen is valid
-  - login -> register
-  - registration succeeds
-  - app reopen and session recovery
-  - recovered route lands on either home or goal setup
+### Device-side
 
-#### Core workout loop
+- auth regression
+  - passed on 2026-06-12
+  - artifact: `midscene_run/auth/20260612-044430-p207768/midscene-auth-regression-summary.md`
+- current-plan focused smoke
+  - passed on 2026-06-12
+  - artifact: `midscene_run/focused/current_plan-20260612-104845-p417340/midscene-entrypoints-smoke-summary.md`
+- summary-page focused smoke
+  - passed on 2026-06-12
+  - artifact: `midscene_run/focused/summary_page-20260612-064757-p304752/midscene-entrypoints-smoke-summary.md`
+- goal-adjustment focused smoke
+  - passed on 2026-06-12
+  - artifact: `midscene_run/focused/goal_adjustment-20260612-063912-p299776/midscene-entrypoints-smoke-summary.md`
+- backup-card focused smoke
+  - passed on 2026-06-12
+  - artifact: `midscene_run/focused/backup_card-20260612-071354-p325268/midscene-entrypoints-smoke-summary.md`
+- media-card focused smoke
+  - passed on 2026-06-12
+  - artifact: `midscene_run/focused/media_card-20260612-101933-p395832/midscene-entrypoints-smoke-summary.md`
+- deterministic review metrics live-device probe
+  - passed on 2026-06-12
+  - artifact: `midscene_run/live_device/review_metrics-20260612-041547-p162020/live-device-probe-summary.md`
+  - proved rendered values:
+    - average completion: `78%`
+    - latest session volume: `357 kg`
+    - weekly total volume: `1364 kg`
+    - PR detail chip: `105kg`
 
-- Current plan smoke passed:
-  - `midscene_run/focused/current_plan-20260611-025940-p43688/midscene-entrypoints-smoke-summary.md`
-- Summary page smoke passed:
-  - `midscene_run/focused/summary_page-20260611-045618-p116148/midscene-entrypoints-smoke-summary.md`
-- Covered behaviors:
-  - `Home -> WorkoutPreviewPage`
-  - `WorkoutPreviewPage -> ActiveWorkoutPage`
-  - `ActiveWorkoutPage -> WorkoutSummaryPage`
+### Scripted evidence gate
 
-#### Review and exercise detail extensions
-
-- Backup/media smoke passed:
-  - `midscene_run/focused/both-20260611-033617-p68784/midscene-entrypoints-smoke-summary.md`
-- Covered behaviors:
-  - `ReviewHomePage` backup card visible
-  - `ExerciseLibraryPage -> ExerciseDetailPage`
-  - media card visible on exercise detail
-
-#### Monetization-prep lane
-
-- Membership smoke passed:
-  - `midscene_run/focused/membership-20260611-043047-p113004/midscene-entrypoints-smoke-summary.md`
-- Covered behaviors:
-  - `ReviewHomePage -> MonetizationHubPage`
-  - local preview tier switching on membership hub
-
-#### Preset plan secondary lane
-
-- Training plan detail smoke passed:
-  - `midscene_run/focused/plan_detail-20260611-050345-p138852/midscene-entrypoints-smoke-summary.md`
-- Covered behaviors:
-  - `HomePage -> TrainingPlanDetailPage`
-  - preset plan detail page is visible with day/exercise structure and enable action
+- `node tools/check-closeout-evidence.mjs`
+  - passed on 2026-06-12
+  - current rule:
+    - requires a passing auth regression
+    - requires a passing current-plan smoke
+    - accepts either a passing `both` smoke, or when the latest `both` rerun is externally blocked, a fresh `backup-card` + `media-card` split
 
 ## Requirement-by-Requirement Assessment
 
-### 1. 完整的功能链
+### 1. Core workout chain
 
-Assessment: proved for the primary MVP chain and main secondary entrypoints.
+Requirement:
 
-Reason:
+- goal setup -> home -> preview -> active -> summary -> review -> goal adjustment
 
-- Auth, startup routing, goal/home branch, workout loop, review, exercise detail, membership hub, and preset plan detail all have current-state evidence.
-- The currently registered main pages each have either direct device-backed coverage or are covered as part of the auth branch.
+Assessment: proved
 
-Conclusion:
+Authoritative evidence:
 
-- The functional chain is sufficiently proved for current internal delivery.
-
-### 2. UI/UX 重做为简洁高级风格
-
-Assessment: mostly implemented, not fully objective to prove.
-
-Reason:
-
-- Recent commits and current page code show broad layout convergence across:
-  - auth entry
-  - home
-  - goal setup
-  - exercise library/detail
-  - training plan detail
-  - workout preview / active / summary
-  - review
-  - membership hub
-- Device-backed smoke proves reachability and absence of obvious crash/blank states on major routes.
-- However, "简洁高级风格" and "交互丝滑可玩性高" still include subjective acceptance criteria that are not completely reducible to automated evidence.
-
-Conclusion:
-
-- No critical UI route gap is currently known.
-- Final aesthetic acceptance is still a human judgment call, not a fully machine-proved fact.
-
-### 3. 商业化预埋，先不并入软件
-
-Assessment: proved.
-
-Reason:
-
-- `MonetizationHubPage` is integrated as a separate destination.
-- Membership preview and capability comparison are present.
-- Focused smoke proves the route and local entitlement preview behavior.
-- No live payment or release distribution path is being claimed as complete.
-
-Conclusion:
-
-- Commercialization is embedded as a preparation layer and remains outside the core free workout loop.
-
-## Non-Goals / Deferred Items
-
-These items are not treated as required for goal completion in the current internal delivery boundary:
-
-- signed release packaging
-- production payment integration
-- remote sync / cloud account system
-- full long-chain regression rerun on every round
-- blog / Obsidian / screenshot asset sync as repository completion criteria
-
-## Final Audit Status
-
-What is proved now:
-
-- functional MVP chain is complete for internal delivery
-- main registered routes are reachable and backed by current acceptance evidence
-- commercialization prep exists without being merged into the main training loop
-
-What is still not strictly machine-proved:
-
-- final subjective design acceptance of the entire UI/UX surface
+- auth regression proves login/register/session-restore routing
+- current-plan smoke proves `Home -> WorkoutPreview -> ActiveWorkout`
+- summary-page smoke proves `Preview -> Active -> Summary -> Review`
+- goal-adjustment smoke proves `Review -> GoalSetup`
 
 Current judgment:
 
-- The project is at effective closeout state for engineering delivery.
-- Marking the full thread goal complete still depends on whether the remaining subjective UI/UX acceptance is considered satisfied.
+- the main workout loop is no longer inferred from code structure alone
+- it is backed by current device-side route evidence across the full chain
+
+### 2. Data trust
+
+Requirement:
+
+- training session save/load
+- warmup vs working set semantics
+- PR calculation
+- weekly stats
+- history and review consistency
+
+Assessment: strongly proved for the implemented local-first scope
+
+Authoritative evidence:
+
+- full `ohosTest` suite passed `242 / 242`
+- the full suite includes current coverage for:
+  - `WorkoutSessionService`
+  - `PersonalRecordService`
+  - `ReviewDashboardService`
+  - `ReviewInsightsService`
+  - `StatsDashboardService`
+  - `SyncService`
+- the deterministic `review-metrics` live-device probe proves seeded local data survives to rendered Review page values on device instead of only matching repo-side expectations
+
+Current judgment:
+
+- this area has stronger proof than the UI layer
+- no current evidence contradicts the implemented data semantics
+
+### 3. UI/UX clarity and visual direction
+
+Requirement:
+
+- the app should read as a clear, premium, operational training tool
+- the rebuilt pages should feel consistent
+- the visual system should align with Cool Emerald Performance
+
+Assessment: partially proved, not yet fully closed by strict evidence
+
+Authoritative evidence:
+
+- shared palette in `entry/src/main/ets/common/styles/DesignTokens.ets` matches the target dark emerald system:
+  - `BG_PRIMARY = #09100F`
+  - `ACCENT_PRIMARY = #45C9A1`
+  - `ACCENT_METAL = #7E8F96`
+  - `ACCENT_GOLD = #B59869`
+- registered main routes are centralized in `entry/src/main/resources/base/profile/main_pages.json`
+- existing route-by-route artifact-backed visual review is recorded in `docs/ui-acceptance-record-template.md`
+- design consistency guidance is recorded in `docs/ui-design-review-packet.md`
+- current focused smoke and live-device summaries show the main pages are non-blank and navigable
+
+What is still weak or indirect:
+
+- the current visual signoff is still mostly artifact-backed, not a fresh human route-by-route pass performed today
+- motion feel, touch smoothness, and micro-interaction quality are not strictly machine-provable from the available artifacts
+- not every registered user-facing route has a fresh 2026-06-12 device-side screenshot review in the same pass
+
+Current judgment:
+
+- there is good evidence that the visual system is coherent and emerald-aligned
+- the main generated workout lane no longer leaks the previously observed English plan names or `Day N` labels; current repo strings and the latest focused smoke now show Simplified Chinese copy such as `增肌基础计划` and `开始训练`
+- there is not yet strict proof strong enough to claim the entire UI/UX goal is fully closed without qualification
+
+### 4. Engineering delivery state
+
+Requirement:
+
+- buildable default package
+- buildable `ohosTest`
+- no broken routing registry
+- evidence-backed closeout path
+
+Assessment: proved
+
+Authoritative evidence:
+
+- `node tools/check-gates.mjs` passed on 2026-06-12
+- the latest full `ohosTest` run rebuilt and executed successfully
+- `main_pages.json` contains the expected registered app routes
+- `tools/check-closeout-evidence.mjs` now reflects the latest evidence strategy instead of over-reporting stale historical `both` passes
+
+## Current Non-Goals
+
+These remain outside the closeout boundary:
+
+- signed release packaging
+- production payment integration
+- cloud sync or remote account system
+- proving full tactile quality entirely through machine checks
+
+## Current Closeout Judgment
+
+What is proved now:
+
+- the core workout loop is complete and device-backed
+- the local data path is strongly covered by tests and seeded device evidence
+- the engineering build and regression chain is healthy
+- the visual token system is aligned with the intended emerald direction
+
+What is not yet strictly proved:
+
+- end-to-end UI/UX quality at the level of live tactile polish and human aesthetic signoff across every main route
+
+Conclusion:
+
+- the project is in near-closeout engineering state
+- it is not yet rigorous enough to mark the full thread goal complete
+- the remaining gap is evidence quality for final UI/UX signoff, not a newly identified functional or data defect

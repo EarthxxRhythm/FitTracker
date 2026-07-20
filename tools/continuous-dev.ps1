@@ -1,7 +1,10 @@
 param(
   [string]$QueueFile = "tasks/project-queue.json",
   [string]$BlockersFile = "docs/blockers.md",
-  [switch]$DryRun
+  [ValidateSet('text', 'json')]
+  [string]$OutputFormat = 'text',
+  [switch]$DryRun,
+  [switch]$MarkDoing
 )
 
 $ErrorActionPreference = "Stop"
@@ -23,6 +26,16 @@ function Read-JsonArray {
     throw ('Expected JSON array: ' + $Path)
   }
   return @($items)
+}
+
+function Write-JsonArray {
+  param(
+    [string]$Path,
+    [object[]]$Items
+  )
+
+  $json = $Items | ConvertTo-Json -Depth 8
+  Set-Content -Path $Path -Value $json -Encoding utf8
 }
 
 function Read-ActiveBlockers {
@@ -142,6 +155,149 @@ function Get-BlockedTasks {
   return @($blocked.ToArray())
 }
 
+function Get-BlockedReason {
+  param(
+    [object]$Task,
+    [hashtable]$TaskMap,
+    [string[]]$ActiveBlockers
+  )
+
+  if ($task.status -eq 'blocked') {
+    return 'task_status_blocked'
+  }
+
+  if (-not (Test-DependenciesDone -Task $task -TaskMap $TaskMap)) {
+    return 'dependency_not_done'
+  }
+
+  if ($null -ne $Task.requires) {
+    $requires = @($Task.requires)
+    if ($requires -contains 'device' -and $ActiveBlockers -contains 'device.hdc_unavailable') {
+      return 'device_blocked'
+    }
+    if ($requires -contains 'decision') {
+      return 'decision_required'
+    }
+  }
+
+  return 'unknown'
+}
+
+function New-ExecutionPacket {
+  param(
+    [object]$Task,
+    [object[]]$ReadyTasks,
+    [object[]]$BlockedTasks,
+    [string[]]$ActiveBlockers,
+    [hashtable]$GitSnapshot,
+    [hashtable]$TaskMap
+  )
+
+  $fallbackTask = $null
+  foreach ($candidate in $ReadyTasks) {
+    if ($candidate.id -ne $Task.id) {
+      $fallbackTask = $candidate
+      break
+    }
+  }
+
+  $blockedSummaries = @()
+  foreach ($blockedTask in $BlockedTasks) {
+    $blockedSummaries += @{
+      id = $blockedTask.id
+      lane = $blockedTask.lane
+      status = $blockedTask.status
+      reason = Get-BlockedReason -Task $blockedTask -TaskMap $TaskMap -ActiveBlockers $ActiveBlockers
+    }
+  }
+
+  return @{
+    queueFile = (Resolve-Path $QueueFile).Path
+    blockersFile = (Resolve-Path $BlockersFile).Path
+    activeBlockers = @($ActiveBlockers)
+    nextTask = @{
+      id = $Task.id
+      lane = $Task.lane
+      title = $Task.title
+      priority = [int]$Task.priority
+      summary = $Task.summary
+      requires = @($Task.requires)
+      validation = @($Task.validation)
+      doneDefinition = @($Task.doneDefinition)
+    }
+    fallbackTask = $(if ($null -eq $fallbackTask) {
+      $null
+    } else {
+      @{
+        id = $fallbackTask.id
+        lane = $fallbackTask.lane
+        title = $fallbackTask.title
+        priority = [int]$fallbackTask.priority
+      }
+    })
+    blockedTasks = $blockedSummaries
+    repoSnapshot = @{
+      status = $GitSnapshot.Status
+      recentCommits = $GitSnapshot.Log
+    }
+  }
+}
+
+function Write-ExecutionPacketText {
+  param([hashtable]$Packet)
+
+  Write-Host '[Continuous Dev] Queue loaded:'
+  Write-Host ('- queue file: ' + $Packet.queueFile)
+  Write-Host ('- blockers file: ' + $Packet.blockersFile)
+  Write-Host ('- active blockers: ' + $(if ($Packet.activeBlockers.Count -eq 0) { 'none' } else { $Packet.activeBlockers -join ', ' }))
+  Write-Host ('- blocked/deferred tasks: ' + $Packet.blockedTasks.Count)
+  Write-Host ''
+
+  Write-Host '[Continuous Dev] Next ready task:'
+  Write-Host ('- id: ' + $Packet.nextTask.id)
+  Write-Host ('- lane: ' + $Packet.nextTask.lane)
+  Write-Host ('- title: ' + $Packet.nextTask.title)
+  Write-Host ('- priority: ' + $Packet.nextTask.priority)
+  Write-Host ('- summary: ' + $Packet.nextTask.summary)
+  Write-Host ('- requires: ' + ($Packet.nextTask.requires -join ', '))
+  Write-Host ''
+
+  if ($null -ne $Packet.fallbackTask) {
+    Write-Host '[Continuous Dev] Fallback ready task:'
+    Write-Host ('- id: ' + $Packet.fallbackTask.id)
+    Write-Host ('- lane: ' + $Packet.fallbackTask.lane)
+    Write-Host ('- title: ' + $Packet.fallbackTask.title)
+    Write-Host ('- priority: ' + $Packet.fallbackTask.priority)
+    Write-Host ''
+  }
+
+  Write-Host '[Continuous Dev] Validation chain:'
+  foreach ($step in $Packet.nextTask.validation) {
+    Write-Host ('- ' + $step)
+  }
+  Write-Host ''
+
+  Write-Host '[Continuous Dev] Done definition:'
+  foreach ($item in $Packet.nextTask.doneDefinition) {
+    Write-Host ('- ' + $item)
+  }
+  Write-Host ''
+
+  if ($Packet.blockedTasks.Count -gt 0) {
+    Write-Host '[Continuous Dev] Blocked/deferred tasks:'
+    foreach ($blockedTask in $Packet.blockedTasks) {
+      Write-Host ('- ' + $blockedTask.id + ' [' + $blockedTask.reason + ']')
+    }
+    Write-Host ''
+  }
+
+  Write-Host '[Continuous Dev] Repo snapshot:'
+  Write-Host $Packet.repoSnapshot.status
+  Write-Host ''
+  Write-Host '[Continuous Dev] Recent commits:'
+  Write-Host $Packet.repoSnapshot.recentCommits
+}
+
 function Get-GitSnapshot {
   $status = git status --short
   $log = git log --oneline -5
@@ -156,45 +312,51 @@ $activeBlockers = @(Read-ActiveBlockers -Path $BlockersFile)
 $readyTasks = @(Get-ReadyTasks -Queue $queue -ActiveBlockers $activeBlockers)
 $blockedTasks = @(Get-BlockedTasks -Queue $queue -ActiveBlockers $activeBlockers)
 $snapshot = Get-GitSnapshot
-
-Write-Host '[Continuous Dev] Queue loaded:'
-Write-Host ('- queue file: ' + (Resolve-Path $QueueFile).Path)
-Write-Host ('- blockers file: ' + (Resolve-Path $BlockersFile).Path)
-Write-Host ('- active blockers: ' + ($(if ($activeBlockers.Count -eq 0) { 'none' } else { $activeBlockers -join ', ' })))
-Write-Host ('- ready tasks: ' + $readyTasks.Count)
-Write-Host ('- blocked/deferred tasks: ' + $blockedTasks.Count)
-Write-Host ''
+$taskMap = Get-TaskMap -Queue $queue
 
 if ($readyTasks.Count -eq 0) {
-  Write-Host '[Continuous Dev] No ready task found.'
+  if ($OutputFormat -eq 'json') {
+    @{
+      queueFile = (Resolve-Path $QueueFile).Path
+      blockersFile = (Resolve-Path $BlockersFile).Path
+      activeBlockers = @($activeBlockers)
+      nextTask = $null
+      blockedTasks = @($blockedTasks | ForEach-Object {
+        @{
+          id = $_.id
+          lane = $_.lane
+          status = $_.status
+          reason = Get-BlockedReason -Task $_ -TaskMap $taskMap -ActiveBlockers $activeBlockers
+        }
+      })
+      repoSnapshot = @{
+        status = $snapshot.Status
+        recentCommits = $snapshot.Log
+      }
+    } | ConvertTo-Json -Depth 8
+  } else {
+    Write-Host '[Continuous Dev] No ready task found.'
+  }
   exit 0
 }
 
 $nextTask = $readyTasks[0]
+$packet = New-ExecutionPacket -Task $nextTask -ReadyTasks $readyTasks -BlockedTasks $blockedTasks -ActiveBlockers $activeBlockers -GitSnapshot $snapshot -TaskMap $taskMap
 
-Write-Host '[Continuous Dev] Next ready task:'
-Write-Host ('- id: ' + $nextTask.id)
-Write-Host ('- lane: ' + $nextTask.lane)
-Write-Host ('- title: ' + $nextTask.title)
-Write-Host ('- priority: ' + $nextTask.priority)
-Write-Host ('- summary: ' + $nextTask.summary)
-Write-Host ('- requires: ' + (@($nextTask.requires) -join ', '))
-Write-Host ''
-Write-Host '[Continuous Dev] Validation chain:'
-foreach ($step in $nextTask.validation) {
-  Write-Host ('- ' + $step)
+if ($MarkDoing) {
+  foreach ($task in $queue) {
+    if ($task.id -eq $nextTask.id) {
+      $task.status = 'doing'
+    }
+  }
+  Write-JsonArray -Path $QueueFile -Items $queue
 }
-Write-Host ''
-Write-Host '[Continuous Dev] Done definition:'
-foreach ($item in $nextTask.doneDefinition) {
-  Write-Host ('- ' + $item)
+
+if ($OutputFormat -eq 'json') {
+  $packet | ConvertTo-Json -Depth 8
+} else {
+  Write-ExecutionPacketText -Packet $packet
 }
-Write-Host ''
-Write-Host '[Continuous Dev] Repo snapshot:'
-Write-Host $snapshot.Status
-Write-Host ''
-Write-Host '[Continuous Dev] Recent commits:'
-Write-Host $snapshot.Log
 
 if ($DryRun) {
   Write-Host ''
@@ -203,5 +365,8 @@ if ($DryRun) {
 }
 
 Write-Host ''
-Write-Host '[Continuous Dev] Live mode is not mutating queue state yet.'
-Write-Host '[Continuous Dev] Use this selection packet to continue the next coding round.'
+if ($MarkDoing) {
+  Write-Host ('[Continuous Dev] Marked task as doing: ' + $nextTask.id)
+} else {
+  Write-Host '[Continuous Dev] Queue state unchanged. Re-run with -MarkDoing to claim the task.'
+}

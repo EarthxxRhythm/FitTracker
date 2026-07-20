@@ -118,6 +118,12 @@ function Invoke-LoggedCommand {
   try {
     $resolvedFilePath = Resolve-CommandPath -FilePath $FilePath
     $resolvedArguments = $Arguments
+    $pathValue = ''
+    if (Test-Path Env:Path) {
+      $pathValue = $env:Path
+    } elseif (Test-Path Env:PATH) {
+      $pathValue = $env:PATH
+    }
     $extension = [System.IO.Path]::GetExtension($FilePath).ToLowerInvariant()
     if ($extension -eq '.bat' -or $extension -eq '.cmd') {
       $commandParts = New-Object 'System.Collections.Generic.List[string]'
@@ -125,14 +131,36 @@ function Invoke-LoggedCommand {
       for ($index = 0; $index -lt $Arguments.Length; $index++) {
         $commandParts.Add((Convert-ToCmdLiteral -Value $Arguments[$index])) | Out-Null
       }
+
+      $commandSegments = New-Object 'System.Collections.Generic.List[string]'
+      if (-not [string]::IsNullOrWhiteSpace($pathValue)) {
+        $commandSegments.Add(('set "PATH=' + $pathValue + '"')) | Out-Null
+      }
+      if (-not [string]::IsNullOrWhiteSpace($env:NODE_HOME)) {
+        $commandSegments.Add(('set "NODE_HOME=' + $env:NODE_HOME + '"')) | Out-Null
+      }
+      $commandSegments.Add(($commandParts -join ' ')) | Out-Null
+
       $resolvedFilePath = $env:ComSpec
-      $resolvedArguments = @('/d', '/c', ($commandParts -join ' '))
+      $resolvedArguments = @('/d', '/c', ($commandSegments -join ' && '))
     }
 
-    $uppercasePathValue = ''
+    $hadCanonicalPath = Test-Path Env:Path
+    $originalCanonicalPath = ''
+    if ($hadCanonicalPath) {
+      $originalCanonicalPath = $env:Path
+    }
+
     $hadUppercasePath = Test-Path Env:PATH
+    $originalUppercasePath = ''
     if ($hadUppercasePath) {
-      $uppercasePathValue = $env:PATH
+      $originalUppercasePath = $env:PATH
+    }
+
+    if ($pathValue.Length > 0) {
+      $env:Path = $pathValue
+    }
+    if ($hadUppercasePath) {
       Remove-Item Env:PATH
     }
 
@@ -146,7 +174,12 @@ function Invoke-LoggedCommand {
         -RedirectStandardError $stderrPath
     } finally {
       if ($hadUppercasePath) {
-        $env:PATH = $uppercasePathValue
+        $env:PATH = $originalUppercasePath
+      }
+      if ($hadCanonicalPath) {
+        $env:Path = $originalCanonicalPath
+      } elseif (Test-Path Env:Path) {
+        Remove-Item Env:Path
       }
     }
 
@@ -338,6 +371,7 @@ function New-TestReport {
     ErrorCount = 0
     PassCount = 0
     IgnoreCount = 0
+    AdvertisedTestCount = 0
     FinishedResultCode = ''
     FinishedResultMessage = ''
     FailureCases = New-Object 'System.Collections.Generic.List[object]'
@@ -352,6 +386,7 @@ function Parse-TestOutput {
   $currentClass = ''
   $currentTest = ''
   $currentStream = ''
+  $currentIndex = 0
 
   if ([string]::IsNullOrWhiteSpace($RawOutput)) {
     return $report
@@ -368,16 +403,46 @@ function Parse-TestOutput {
       $currentTest = $Matches[1].Trim()
       continue
     }
+    if ($line -match '^OHOS_REPORT_STATUS: current=(\d+)$') {
+      $currentIndex = [int]$Matches[1]
+      continue
+    }
+    if ($line -match '^OHOS_REPORT_STATUS: numtests=(\d+)$') {
+      $advertisedCount = [int]$Matches[1]
+      if ($advertisedCount -gt $report.AdvertisedTestCount) {
+        $report.AdvertisedTestCount = $advertisedCount
+      }
+      continue
+    }
     if ($line -match '^OHOS_REPORT_STATUS: stream=(.*)$') {
       $currentStream = $Matches[1]
       continue
     }
     if ($line -match '^OHOS_REPORT_STATUS_CODE: (-?\d+)$') {
       $statusCode = [int]$Matches[1]
+      if ($statusCode -eq 0) {
+        $report.TestsRun++
+        $report.PassCount++
+        $currentStream = ''
+        continue
+      }
+      if ($statusCode -eq 2) {
+        $report.TestsRun++
+        $report.IgnoreCount++
+        $currentStream = ''
+        continue
+      }
       if ($statusCode -lt 0) {
+        $report.TestsRun++
+        if ($statusCode -eq -1) {
+          $report.ErrorCount++
+        } else {
+          $report.FailureCount++
+        }
         $report.FailureCases.Add([pscustomobject]@{
           ClassName = $currentClass
           TestName = $currentTest
+          CurrentIndex = $currentIndex
           StatusCode = $statusCode
           Message = $currentStream
         }) | Out-Null
@@ -404,6 +469,34 @@ function Parse-TestOutput {
   }
 
   return $report
+}
+
+function Test-DeviceScreenLockedOutput {
+  param([string]$RawOutput)
+
+  if ([string]::IsNullOrWhiteSpace($RawOutput)) {
+    return $false
+  }
+
+  return $RawOutput.IndexOf('Error Code:10106102', [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -or
+    $RawOutput.IndexOf('device screen is locked', [System.StringComparison]::OrdinalIgnoreCase) -ge 0 -or
+    $RawOutput.IndexOf('unlock screen failed', [System.StringComparison]::OrdinalIgnoreCase) -ge 0
+}
+
+function Test-IncompleteHypiumOutput {
+  param([object]$Report)
+
+  if ($Report.TestsRun -le 0) {
+    return $false
+  }
+  if ($Report.FinishedResultCode.Length -gt 0) {
+    return $false
+  }
+  if ($Report.AdvertisedTestCount -le 0) {
+    return $false
+  }
+
+  return $Report.TestsRun -lt $Report.AdvertisedTestCount
 }
 
 function Write-TestSummary {
@@ -540,7 +633,19 @@ try {
     if ($testResult.Output -match 'Not match target founded') {
       throw 'HDC target was not found while installing or running ohosTest.'
     }
+    if (Test-DeviceScreenLockedOutput -RawOutput $testResult.Output) {
+      $runStatus = 'blocked-device-lock'
+      $failureReason = 'Device-side blocker: the HarmonyOS device screen is locked in developer mode, so aa test cannot launch the test ability.'
+      throw $failureReason
+    }
     throw 'No Hypium test result was parsed from aa test output.'
+  }
+
+  if (Test-IncompleteHypiumOutput -Report $report) {
+    $runStatus = 'blocked-device-interrupted'
+    $failureReason = 'Device-side blocker: Hypium output ended early after ' + $report.TestsRun.ToString() + '/' +
+      $report.AdvertisedTestCount.ToString() + ' completed tests without a final result code.'
+    throw $failureReason
   }
 
   if ($report.FailureCount -gt 0 -or $report.ErrorCount -gt 0) {
