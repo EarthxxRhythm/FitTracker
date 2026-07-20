@@ -14,6 +14,7 @@ import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } fro
 import { AppButton } from '../components/AppButton'
 import { AppCard } from '../components/AppCard'
 import { PrimaryDestinationStrip } from '../components/PrimaryDestinationStrip'
+import { createStageRailItem, StageRail, StageRailItem } from '../components/StageRail'
 import { TrainingPlan, UserGoal } from '../shared/models/TrainingModels'
 import GoalRepository from '../shared/services/GoalRepository'
 import HomePlanService, {
@@ -394,11 +395,11 @@ export struct HomePage {
         left: SpacingTokens.SM,
         right: SpacingTokens.SM
       })
-      .backgroundColor(ColorTokens.SURFACE_ELEVATED)
+      .backgroundColor(ColorTokens.SURFACE_SECONDARY)
       .borderRadius(RadiusTokens.FULL)
       .border({
         width: 1,
-        color: ColorTokens.BORDER_SUBTLE
+        color: ColorTokens.BORDER_DEFAULT
       })
   }
 
@@ -414,35 +415,13 @@ export struct HomePage {
     return this.restrictionSummary.length > 0
   }
 
-  @Builder
-  buildStageRail() {
-    Row({ space: SpacingTokens.SM }) {
-      this.buildStageChip('目标', !this.hasGoal)
-      this.buildStageChip('预览', this.hasGoal && !this.hasRecoverableDraft && !this.hasTodayWorkout)
-      this.buildStageChip('执行', this.hasRecoverableDraft || this.hasTodayWorkout)
-      this.buildStageChip('回顾', false)
-    }
-    .width('100%')
-  }
-
-  @Builder
-  buildStageChip(label: string, active: boolean) {
-    Text(label)
-      .fontSize(FontTokens.SMALL_SIZE)
-      .fontWeight(active ? FontWeight.Medium : FontTokens.SMALL_WEIGHT)
-      .fontColor(active ? ColorTokens.TEXT_PRIMARY : ColorTokens.TEXT_TERTIARY)
-      .padding({
-        top: SpacingTokens.XS,
-        bottom: SpacingTokens.XS,
-        left: SpacingTokens.SM,
-        right: SpacingTokens.SM
-      })
-      .backgroundColor(active ? ColorTokens.SURFACE_ELEVATED : ColorTokens.SURFACE_SECONDARY)
-      .borderRadius(RadiusTokens.FULL)
-      .border({
-        width: 1,
-        color: active ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
-      })
+  getStageRailItems(): StageRailItem[] {
+    const items: StageRailItem[] = []
+    items.push(createStageRailItem('目标', !this.hasGoal, false))
+    items.push(createStageRailItem('预览', this.hasGoal && !this.hasRecoverableDraft && !this.hasTodayWorkout, false))
+    items.push(createStageRailItem('执行', this.hasRecoverableDraft || this.hasTodayWorkout, false))
+    items.push(createStageRailItem('回顾', false, false))
+    return items
   }
 
   @Builder
@@ -463,21 +442,256 @@ export struct HomePage {
     .alignItems(HorizontalAlign.Start)
   }
 
-  build() {
-    Scroll() {
-      Column({ space: SpacingTokens.LG }) {
-        PrimaryDestinationStrip({ currentKey: 'home' })
+  resolveCommandStatusValue(): string {
+    if (this.loading) {
+      return '\u51c6\u5907\u4e2d'
+    }
+    if (this.hasRecoverableDraft) {
+      return '\u53ef\u6062\u590d'
+    }
+    if (!this.hasGoal) {
+      return '\u672a\u8bbe\u5b9a'
+    }
+    if (this.hasTodayWorkout) {
+      return '\u53ef\u6267\u884c'
+    }
+    return '\u6062\u590d\u65e5'
+  }
 
-        if (!this.loading) {
-          this.buildStageRail()
-        }
+  resolveCommandStatusNote(): string {
+    if (this.loading) {
+      return '\u6b63\u5728\u6821\u51c6\u4eca\u65e5\u5b89\u6392'
+    }
+    if (this.hasRecoverableDraft) {
+      return '\u4ece\u4e0a\u6b21\u4e2d\u65ad\u5904\u7ee7\u7eed'
+    }
+    if (!this.hasGoal) {
+      return '\u5b8c\u6210\u8bbe\u5b9a\u540e\u81ea\u52a8\u751f\u6210'
+    }
+    if (this.hasTodayWorkout) {
+      return '\u4eca\u5929\u6709\u660e\u786e\u4e3b\u7ebf\u8bad\u7ec3'
+    }
+    return '\u4ee5\u6062\u590d\u548c\u8c03\u6574\u4e3a\u4e3b'
+  }
 
-        AppCard({ variant: 'panel', cardPadding: 'default' }) {
-          Column({ space: SpacingTokens.MD }) {
-            Row() {
-              Text(this.resolveHeroEyebrow())
-                .fontSize(FontTokens.SMALL_SIZE)
+  resolveFocusPanelTitle(): string {
+    if (this.loading) {
+      return '\u6b63\u5728\u6574\u7406\u4eca\u65e5\u8bad\u7ec3'
+    }
+    if (this.hasRecoverableDraft) {
+      return '\u7ee7\u7eed\u4e0a\u6b21\u8bad\u7ec3'
+    }
+    if (!this.hasGoal) {
+      return '\u5148\u5b8c\u6210\u76ee\u6807\u8bbe\u5b9a'
+    }
+    if (this.hasTodayWorkout) {
+      return this.todayTitle
+    }
+    return '\u4eca\u5929\u8fdb\u5165\u6062\u590d\u4e0e\u8c03\u6574'
+  }
+
+  resolveFocusPanelDescription(): string {
+    if (this.loading) {
+      return '\u8bad\u7ec3\u8ba1\u5212\u3001\u4eca\u65e5\u72b6\u6001\u548c\u4e0a\u6b21\u8fdb\u5ea6\u6b63\u5728\u540c\u6b65\u3002'
+    }
+    if (this.hasRecoverableDraft) {
+      return this.recoverDraftSummary
+    }
+    if (!this.hasGoal) {
+      return '\u8bbe\u5b9a\u76ee\u6807\u540e\uff0c\u9996\u9875\u4f1a\u76f4\u63a5\u544a\u8bc9\u4f60\u4eca\u5929\u8be5\u7ec3\u4ec0\u4e48\u3002'
+    }
+    if (this.hasTodayWorkout) {
+      return this.planName + ' | ' + this.todayExerciseCount.toString() + ' \u4e2a\u52a8\u4f5c | \u9884\u8ba1 ' +
+        this.sessionMinutes.toString() + ' \u5206\u949f'
+    }
+    return this.todayRestMessage
+  }
+
+  @Builder
+  buildHomeMetricTile(label: string, value: string, note: string, emphasize: boolean) {
+    Column({ space: SpacingTokens.XS }) {
+      Text(label)
+        .fontSize(FontTokens.MICRO_SIZE)
+        .fontWeight(FontTokens.MICRO_WEIGHT)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
+
+      Text(value)
+        .fontSize(FontTokens.TITLE_SIZE)
+        .fontWeight(FontTokens.TITLE_WEIGHT)
+        .fontColor(emphasize ? ColorTokens.ACCENT_SOFT : ColorTokens.TEXT_PRIMARY)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+      Text(note)
+        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .maxLines(2)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+    }
+    .layoutWeight(1)
+    .padding(SpacingTokens.MD)
+    .backgroundColor(emphasize ? ColorTokens.SURFACE_STRONG : ColorTokens.BG_ELEVATED)
+    .borderRadius(RadiusTokens.MD)
+    .border({
+      width: 1,
+      color: emphasize ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
+    })
+    .alignItems(HorizontalAlign.Start)
+  }
+
+  @Builder
+  buildCommandFocusContent() {
+    if (!this.loading && this.hasGoal && this.hasTodayWorkout) {
+      Column({ space: SpacingTokens.SM }) {
+        ForEach(this.getVisibleRecommendedExercises(), (exercise: HomeRecommendedExercise, index: number) => {
+          Row({ space: SpacingTokens.SM }) {
+            Text((index + 1).toString())
+              .fontSize(FontTokens.SMALL_SIZE)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+              .width(24)
+              .height(24)
+              .textAlign(TextAlign.Center)
+              .backgroundColor(ColorTokens.PRIMARY)
+              .borderRadius(RadiusTokens.FULL)
+
+            Column({ space: SpacingTokens.XS }) {
+              Text(exercise.name)
+                .fontSize(FontTokens.BODY_SIZE)
                 .fontWeight(FontWeight.Medium)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+              Text(exercise.prescription + ' | ' + exercise.intensityNote)
+                .fontSize(FontTokens.CAPTION_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
+                .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+                .maxLines(2)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
+          }
+          .width('100%')
+        }, (exercise: HomeRecommendedExercise) => exercise.exerciseId)
+
+        if (this.recommendedExercises.length > 3) {
+          Text('\u5176\u4f59\u52a8\u4f5c\u4f1a\u5728\u8bad\u7ec3\u9884\u89c8\u91cc\u7ee7\u7eed\u5c55\u5f00\u3002')
+            .fontSize(FontTokens.CAPTION_SIZE)
+            .fontColor(ColorTokens.TEXT_TERTIARY)
+            .width('100%')
+        }
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    } else {
+      Text(this.loading ? this.resolveFocusPanelDescription() : this.todayRestMessage.length > 0 ? this.todayRestMessage :
+        this.resolveFocusPanelDescription())
+        .fontSize(FontTokens.BODY_SIZE)
+        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+        .width('100%')
+    }
+  }
+
+  @Builder
+  buildCommandSurface() {
+    AppCard({ variant: 'panel', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.MD }) {
+        Row() {
+          Text(this.resolveHeroEyebrow())
+            .fontSize(FontTokens.SMALL_SIZE)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(ColorTokens.TEXT_ON_PRIMARY)
+            .padding({
+              top: SpacingTokens.XS,
+              bottom: SpacingTokens.XS,
+              left: SpacingTokens.SM,
+              right: SpacingTokens.SM
+            })
+            .backgroundColor(ColorTokens.PRIMARY)
+            .borderRadius(RadiusTokens.FULL)
+
+          if (!this.loading && this.hasRecoverableDraft) {
+            Text('\u672a\u5b8c\u6210\u8fdb\u5ea6')
+              .fontSize(FontTokens.SMALL_SIZE)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(ColorTokens.ACCENT_GOLD)
+              .padding({
+                top: SpacingTokens.XS,
+                bottom: SpacingTokens.XS,
+                left: SpacingTokens.SM,
+                right: SpacingTokens.SM
+              })
+              .backgroundColor(ColorTokens.OVERLAY_ACCENT)
+              .borderRadius(RadiusTokens.FULL)
+              .border({ width: 1, color: ColorTokens.ACCENT_GOLD })
+              .margin({ left: SpacingTokens.SM })
+          }
+        }
+        .width('100%')
+
+        Text(this.resolveHeroTitle())
+          .fontSize(FontTokens.HERO_SIZE)
+          .fontWeight(FontTokens.HERO_WEIGHT)
+          .fontColor(ColorTokens.TEXT_PRIMARY)
+          .width('100%')
+
+        Text(this.resolveHeroDescription())
+          .fontSize(FontTokens.BODY_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+          .width('100%')
+
+        Row({ space: SpacingTokens.SM }) {
+          this.buildHomeMetricTile(
+            '\u5f53\u524d\u72b6\u6001',
+            this.resolveCommandStatusValue(),
+            this.resolveCommandStatusNote(),
+            true
+          )
+          this.buildHomeMetricTile(
+            '\u672c\u5468\u9891\u7387',
+            this.hasGoal ? this.weeklyDays.toString() + ' \u5929/\u5468' : '--',
+            this.hasGoal ? this.primaryMetaText : '\u5b8c\u6210\u76ee\u6807\u8bbe\u5b9a\u540e\u751f\u6210',
+            false
+          )
+          this.buildHomeMetricTile(
+            '\u9884\u8ba1\u65f6\u957f',
+            this.hasGoal ? this.sessionMinutes.toString() + ' \u5206\u949f' : '--',
+            this.hasGoal ? '\u4eca\u65e5\u6267\u884c\u7a97\u53e3' : '\u7528\u4e8e\u751f\u6210\u4eca\u65e5\u8bad\u7ec3',
+            false
+          )
+        }
+        .width('100%')
+
+        Column({ space: SpacingTokens.MD }) {
+          Row() {
+            Column({ space: SpacingTokens.XS }) {
+              Text('\u4eca\u65e5\u4e3b\u7ebf')
+                .fontSize(FontTokens.MICRO_SIZE)
+                .fontWeight(FontTokens.MICRO_WEIGHT)
+                .fontColor(ColorTokens.TEXT_TERTIARY)
+
+              Text(this.resolveFocusPanelTitle())
+                .fontSize(FontTokens.HEADLINE_SIZE)
+                .fontWeight(FontTokens.HEADLINE_WEIGHT)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+                .width('100%')
+
+              Text(this.resolveFocusPanelDescription())
+                .fontSize(FontTokens.CAPTION_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
+                .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+                .width('100%')
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
+
+            if (!this.loading && this.hasGoal) {
+              Text(this.primaryMetaText)
+                .fontSize(FontTokens.SMALL_SIZE)
                 .fontColor(ColorTokens.TEXT_ON_PRIMARY)
                 .padding({
                   top: SpacingTokens.XS,
@@ -487,248 +701,155 @@ export struct HomePage {
                 })
                 .backgroundColor(ColorTokens.PRIMARY)
                 .borderRadius(RadiusTokens.FULL)
-
-              if (!this.loading && this.hasRecoverableDraft) {
-                Text('\u672a\u5b8c\u6210\u8fdb\u5ea6')
-                  .fontSize(FontTokens.SMALL_SIZE)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor(ColorTokens.ACCENT_LIGHT)
-                  .padding({
-                    top: SpacingTokens.XS,
-                    bottom: SpacingTokens.XS,
-                    left: SpacingTokens.SM,
-                    right: SpacingTokens.SM
-                  })
-                  .backgroundColor(ColorTokens.OVERLAY_ACCENT)
-                  .borderRadius(RadiusTokens.FULL)
-                  .margin({ left: SpacingTokens.SM })
-              }
-            }
-            .width('100%')
-
-            Text(this.resolveHeroTitle())
-              .fontSize(FontTokens.HERO_SIZE)
-              .fontWeight(FontTokens.HERO_WEIGHT)
-              .fontColor(ColorTokens.TEXT_PRIMARY)
-              .width('100%')
-
-            Text(this.resolveHeroDescription())
-              .fontSize(FontTokens.BODY_SIZE)
-              .fontColor(ColorTokens.TEXT_SECONDARY)
-              .lineHeight(FontTokens.BODY_LINE_HEIGHT)
-              .width('100%')
-
-            if (!this.loading && this.hasGoal) {
-              Row({ space: SpacingTokens.SM }) {
-                this.buildHomeMetaPill(this.primaryMetaText)
-                if (this.hasSecondaryMetaText()) {
-                  this.buildHomeMetaPill(this.secondaryMetaText)
-                }
-              }
-              .width('100%')
-            }
-
-            if (!this.loading && this.hasGoal) {
-              Row({ space: SpacingTokens.SM }) {
-                Column({ space: SpacingTokens.XS }) {
-                  Text('\u5f53\u524d\u8ba1\u5212')
-                    .fontSize(FontTokens.MICRO_SIZE)
-                    .fontWeight(FontTokens.MICRO_WEIGHT)
-                    .fontColor(ColorTokens.TEXT_TERTIARY)
-
-                  Text(this.planName)
-                    .fontSize(FontTokens.BODY_SIZE)
-                    .fontWeight(FontWeight.Medium)
-                    .fontColor(ColorTokens.TEXT_PRIMARY)
-                    .maxLines(2)
-                }
-                .layoutWeight(1)
-                .padding(SpacingTokens.MD)
-                .backgroundColor(ColorTokens.SURFACE_SECONDARY)
-                .borderRadius(RadiusTokens.MD)
-                .alignItems(HorizontalAlign.Start)
-
-                Column({ space: SpacingTokens.XS }) {
-                  Text('\u9891\u7387')
-                    .fontSize(FontTokens.MICRO_SIZE)
-                    .fontWeight(FontTokens.MICRO_WEIGHT)
-                    .fontColor(ColorTokens.TEXT_TERTIARY)
-
-                  Text(this.weeklyDays.toString() + ' \u5929/\u5468')
-                    .fontSize(FontTokens.BODY_SIZE)
-                    .fontWeight(FontWeight.Medium)
-                    .fontColor(ColorTokens.TEXT_PRIMARY)
-                }
-                .padding(SpacingTokens.MD)
-                .backgroundColor(ColorTokens.SURFACE_SECONDARY)
-                .borderRadius(RadiusTokens.MD)
-                .alignItems(HorizontalAlign.Start)
-
-                Column({ space: SpacingTokens.XS }) {
-                  Text('\u65f6\u957f')
-                    .fontSize(FontTokens.MICRO_SIZE)
-                    .fontWeight(FontTokens.MICRO_WEIGHT)
-                    .fontColor(ColorTokens.TEXT_TERTIARY)
-
-                  Text(this.sessionMinutes.toString() + ' \u5206\u949f')
-                    .fontSize(FontTokens.BODY_SIZE)
-                    .fontWeight(FontWeight.Medium)
-                    .fontColor(ColorTokens.TEXT_PRIMARY)
-                }
-                .padding(SpacingTokens.MD)
-                .backgroundColor(ColorTokens.SURFACE_SECONDARY)
-                .borderRadius(RadiusTokens.MD)
-                .alignItems(HorizontalAlign.Start)
-              }
-              .width('100%')
-            }
-
-            if (!this.loading && this.hasGoal) {
-              Column({ space: SpacingTokens.SM }) {
-                Text(this.hasTodayWorkout ? '\u4eca\u65e5\u52a8\u4f5c' : '\u6062\u590d\u5efa\u8bae')
-                  .fontSize(FontTokens.SMALL_SIZE)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor(ColorTokens.TEXT_TERTIARY)
-
-                if (this.hasTodayWorkout) {
-                  ForEach(this.getVisibleRecommendedExercises(), (exercise: HomeRecommendedExercise, index: number) => {
-                    Row({ space: SpacingTokens.SM }) {
-                      Text((index + 1).toString())
-                        .fontSize(FontTokens.SMALL_SIZE)
-                        .fontColor(ColorTokens.TEXT_ON_PRIMARY)
-                        .width(24)
-                        .height(24)
-                        .textAlign(TextAlign.Center)
-                        .backgroundColor(ColorTokens.PRIMARY)
-                        .borderRadius(RadiusTokens.FULL)
-
-                      Column({ space: SpacingTokens.XS }) {
-                        Text(exercise.name)
-                          .fontSize(FontTokens.BODY_SIZE)
-                          .fontWeight(FontWeight.Medium)
-                          .fontColor(ColorTokens.TEXT_PRIMARY)
-
-                        Text(exercise.prescription + ' | ' + exercise.intensityNote)
-                          .fontSize(FontTokens.CAPTION_SIZE)
-                          .fontColor(ColorTokens.TEXT_SECONDARY)
-                          .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
-                          .maxLines(2)
-                      }
-                      .layoutWeight(1)
-                      .alignItems(HorizontalAlign.Start)
-                    }
-                    .width('100%')
-                  }, (exercise: HomeRecommendedExercise) => exercise.exerciseId)
-
-                  if (this.recommendedExercises.length > 3) {
-                    Text('\u5176\u4f59\u52a8\u4f5c\u4f1a\u5728\u4eca\u65e5\u8be6\u60c5\u91cc\u7ee7\u7eed\u5c55\u5f00\u3002')
-                      .fontSize(FontTokens.CAPTION_SIZE)
-                      .fontColor(ColorTokens.TEXT_SECONDARY)
-                      .width('100%')
-                  }
-                } else {
-                  Text(this.todayRestMessage)
-                    .fontSize(FontTokens.BODY_SIZE)
-                    .fontColor(ColorTokens.TEXT_SECONDARY)
-                    .lineHeight(FontTokens.BODY_LINE_HEIGHT)
-                    .width('100%')
-                }
-              }
-              .width('100%')
-              .padding(SpacingTokens.MD)
-              .backgroundColor(ColorTokens.SURFACE_PRIMARY)
-              .borderRadius(RadiusTokens.MD)
-              .alignItems(HorizontalAlign.Start)
-            }
-
-            AppButton({
-              text: this.resolvePrimaryActionText(),
-              type: 'primary',
-              buttonSize: 'large',
-              block: true,
-              disabled: !this.isPrimaryActionEnabled(),
-              onButtonClick: () => {
-                this.handlePrimaryAction()
-              }
-            })
-
-            if (!this.loading && this.hasGoal) {
-              Row({ space: SpacingTokens.SM }) {
-                Column() {
-                  AppButton({
-                    text: '\u67e5\u770b\u4eca\u65e5\u8be6\u60c5',
-                    type: 'secondary',
-                    buttonSize: 'medium',
-                    block: true,
-                    onButtonClick: () => {
-                      this.openWorkoutPreview()
-                    }
-                  })
-                }
-                .layoutWeight(1)
-
-                Column() {
-                  AppButton({
-                    text: '\u8bad\u7ec3\u56de\u987e',
-                    type: 'ghost',
-                    buttonSize: 'medium',
-                    block: true,
-                    onButtonClick: () => {
-                      this.openReviewHome()
-                    }
-                  })
-                }
-                .layoutWeight(1)
-              }
-              .width('100%')
-            }
-
-            if (!this.loading && this.hasGoal) {
-              Row({ space: SpacingTokens.SM }) {
-                Column() {
-                  AppButton({
-                    text: '\u8c03\u6574\u76ee\u6807',
-                    type: 'ghost',
-                    buttonSize: 'medium',
-                    block: true,
-                    onButtonClick: () => {
-                      this.openGoalSetup()
-                    }
-                  })
-                }
-                .layoutWeight(1)
-
-                Column() {
-                  AppButton({
-                    text: '\u52a8\u4f5c\u5e93',
-                    type: 'secondary',
-                    buttonSize: 'medium',
-                    block: true,
-                    onButtonClick: () => {
-                      this.openExerciseLibrary()
-                    }
-                  })
-                }
-                .layoutWeight(1)
-              }
-              .width('100%')
-            }
-
-            if (!this.loading && !this.hasGoal) {
-              AppButton({
-                text: '\u8bbe\u7f6e\u540e\u81ea\u52a8\u751f\u6210\u8ba1\u5212',
-                type: 'secondary',
-                buttonSize: 'medium',
-                block: true,
-                onButtonClick: () => {
-                  this.openExerciseLibrary()
-                }
-              })
             }
           }
           .width('100%')
-          .alignItems(HorizontalAlign.Start)
+          .alignItems(VerticalAlign.Top)
+
+          this.buildCommandFocusContent()
+
+          AppButton({
+            text: this.resolvePrimaryActionText(),
+            type: 'primary',
+            buttonSize: 'large',
+            block: true,
+            disabled: !this.isPrimaryActionEnabled(),
+            onButtonClick: () => {
+              this.handlePrimaryAction()
+            }
+          })
+
+          if (!this.loading && this.hasGoal) {
+            Row({ space: SpacingTokens.SM }) {
+              Column() {
+                AppButton({
+                  text: '\u67e5\u770b\u9884\u89c8',
+                  type: 'secondary',
+                  buttonSize: 'medium',
+                  block: true,
+                  onButtonClick: () => {
+                    this.openWorkoutPreview()
+                  }
+                })
+              }
+              .layoutWeight(1)
+
+              Column() {
+                AppButton({
+                  text: '\u8bad\u7ec3\u56de\u987e',
+                  type: 'ghost',
+                  buttonSize: 'medium',
+                  block: true,
+                  onButtonClick: () => {
+                    this.openReviewHome()
+                  }
+                })
+              }
+              .layoutWeight(1)
+            }
+            .width('100%')
+          }
+
+          if (!this.loading && !this.hasGoal) {
+            AppButton({
+              text: '\u5148\u770b\u52a8\u4f5c\u5e93',
+              type: 'secondary',
+              buttonSize: 'medium',
+              block: true,
+              onButtonClick: () => {
+                this.openExerciseLibrary()
+              }
+            })
+          }
         }
+        .width('100%')
+        .padding(SpacingTokens.MD)
+        .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+        .borderRadius(RadiusTokens.LG)
+        .border({ width: 1, color: ColorTokens.BORDER_STRONG })
+        .alignItems(HorizontalAlign.Start)
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
+  }
+
+  @Builder
+  buildCommandUtilitySection() {
+    AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+      Column({ space: SpacingTokens.SM }) {
+        Row() {
+          Column({ space: SpacingTokens.XS }) {
+            Text('\u6b21\u7ea7\u5165\u53e3')
+              .fontSize(FontTokens.MICRO_SIZE)
+              .fontWeight(FontTokens.MICRO_WEIGHT)
+              .fontColor(ColorTokens.TEXT_TERTIARY)
+
+            Text('\u8c03\u6574\u8ba1\u5212\u8fb9\u754c')
+              .fontSize(FontTokens.TITLE_SIZE)
+              .fontWeight(FontTokens.TITLE_WEIGHT)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+
+            Text('\u628a\u76ee\u6807\u4fee\u6b63\u548c\u52a8\u4f5c\u5e93\u653e\u5728\u6b21\u7ea7\u533a\uff0c\u4e0d\u6253\u65ad\u4eca\u65e5\u4e3b\u7ebf\u8bad\u7ec3\u3002')
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+              .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+              .width('100%')
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+
+          if (this.hasSecondaryMetaText()) {
+            this.buildHomeMetaPill(this.secondaryMetaText)
+          }
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Top)
+
+        Row({ space: SpacingTokens.SM }) {
+          Column() {
+            AppButton({
+              text: '\u8c03\u6574\u76ee\u6807',
+              type: 'ghost',
+              buttonSize: 'medium',
+              block: true,
+              onButtonClick: () => {
+                this.openGoalSetup()
+              }
+            })
+          }
+          .layoutWeight(1)
+
+          Column() {
+            AppButton({
+              text: '\u52a8\u4f5c\u5e93',
+              type: 'secondary',
+              buttonSize: 'medium',
+              block: true,
+              onButtonClick: () => {
+                this.openExerciseLibrary()
+              }
+            })
+          }
+          .layoutWeight(1)
+        }
+        .width('100%')
+      }
+      .width('100%')
+      .alignItems(HorizontalAlign.Start)
+    }
+  }
+
+  build() {
+    Scroll() {
+      Column({ space: SpacingTokens.LG }) {
+        PrimaryDestinationStrip({ currentKey: 'home' })
+
+        if (!this.loading) {
+          StageRail({ items: this.getStageRailItems() })
+        }
+
+        this.buildCommandSurface()
 
         if (!this.loading && !this.hasGoal) {
           AppCard({ variant: 'outlined', cardPadding: 'default' }) {
@@ -747,6 +868,10 @@ export struct HomePage {
             .width('100%')
             .alignItems(HorizontalAlign.Start)
           }
+        }
+
+        if (!this.loading && this.hasGoal) {
+          this.buildCommandUtilitySection()
         }
 
         if (!this.loading && this.hasGoal) {

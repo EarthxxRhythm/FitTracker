@@ -30,9 +30,9 @@ export struct PageHeader {
         .width(TouchTokens.MIN_TARGET)
         .height(TouchTokens.MIN_TARGET)
         .justifyContent(FlexAlign.Center)
-        .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+        .backgroundColor(ColorTokens.SURFACE_INPUT)
         .borderRadius(RadiusTokens.MD)
-        .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
+        .border({ width: 1, color: ColorTokens.BORDER_DEFAULT })
         .onClick(() => {
           this.handleBack()
         })
@@ -56,15 +56,15 @@ export struct PageHeader {
         .height(TouchTokens.MIN_TARGET)
     }
     .width('100%')
-    .backgroundColor(ColorTokens.SURFACE_HEADER)
+    .backgroundColor(ColorTokens.BG_PRIMARY)
     .padding({
       left: SpacingTokens.MD,
       right: SpacingTokens.MD,
-      top: SpacingTokens.LG,
+      top: SpacingTokens.MD,
       bottom: SpacingTokens.MD
     })
     .border({
-      width: 1,
+      width: { bottom: 1 },
       color: ColorTokens.DIVIDER
     })
   }

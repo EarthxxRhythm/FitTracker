@@ -1,7 +1,8 @@
 /**
- * WorkoutSummaryPage -- post-workout summary review.
- * Function #11: workout summary review.
- * Function #13: exercise personal best records in workout summary.
+ * WorkoutSummaryPage —— 训练复盘摘要页。
+ *
+ * 功能 #11：训练复盘摘要。
+ * 功能 #13：训练总结页中的动作 PR 记录。
  */
 import { Context } from '@kit.AbilityKit'
 import { AppRoutes } from '../../../app/AppRoutes'
@@ -9,8 +10,10 @@ import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } fro
 import { AppButton } from '../../../components/AppButton'
 import { AppCard } from '../../../components/AppCard'
 import { AppInput } from '../../../components/AppInput'
+import { createStageRailItem, StageRail, StageRailItem } from '../../../components/StageRail'
 import { WorkoutSession } from '../../../shared/models/TrainingModels'
 import ContentRepository from '../../../shared/services/ContentRepository'
+import TrainingDayLabelService from '../../../shared/services/TrainingDayLabelService'
 import WorkoutRepository from '../../../shared/services/WorkoutRepository'
 import WorkoutSummaryService, {
   WorkoutSummary,
@@ -75,7 +78,7 @@ export struct WorkoutSummaryPage {
           await WorkoutSessionPersistenceBridgeService.saveOrUpdateSession(context, this.currentSession)
         }
       } catch (e) {
-        // Keep summary visible even if legacy persistence sync fails.
+        // Keep summary visible even if persistence sync fails.
       }
     }
     this.loading = false
@@ -172,7 +175,7 @@ export struct WorkoutSummaryPage {
     try {
       this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.HOME })
     } catch (e) {
-      // stay on summary
+      // Stay on summary.
     }
   }
 
@@ -180,7 +183,7 @@ export struct WorkoutSummaryPage {
     try {
       this.getUIContext().getRouter().pushUrl({ url: AppRoutes.REVIEW_HOME })
     } catch (e) {
-      // stay on summary
+      // Stay on summary.
     }
   }
 
@@ -192,7 +195,7 @@ export struct WorkoutSummaryPage {
     this.applyEditModel(model)
     this.isEditMode = true
     this.showUndoConfirm = false
-    this.actionMessage = '已进入编辑模式，可修正组数、重量、次数和备注。'
+    this.actionMessage = '已进入编辑模式，可修正目标组数、重量、次数和备注。'
     this.actionMessageType = 'info'
   }
 
@@ -243,7 +246,7 @@ export struct WorkoutSummaryPage {
   countCompletedEditSets(sets: WorkoutSessionEditSet[]): number {
     let count: number = 0
     for (let index = 0; index < sets.length; index++) {
-      if (sets[index].isComplete) {
+      if (sets[index].isComplete && !sets[index].isWarmup) {
         count++
       }
     }
@@ -405,15 +408,15 @@ export struct WorkoutSummaryPage {
 
   getPageSubtitle(): string {
     if (this.loading) {
-      return '正在整理本次训练结果与记录状态'
+      return '正在整理本次训练结果与记录状态。'
     }
     if (!this.hasSession) {
       if (this.canRestoreRemovedSession) {
-        return '本次记录已撤销，但你仍可以在这里立即恢复'
+        return '本次记录已撤销，但你仍然可以在这里立即恢复。'
       }
-      return '没有找到可展示的训练记录，先回到主流程开始训练'
+      return '没有找到可展示的训练记录，先回到主链路重新开始。'
     }
-    return '先确认这次训练的完成情况，再决定是否修正记录或进入回顾'
+    return '先确认这次训练的完成情况，再决定是否修正记录或进入训练回顾。'
   }
 
   getHeroBadgeText(): string {
@@ -451,6 +454,38 @@ export struct WorkoutSummaryPage {
     return ColorTokens.SURFACE_ELEVATED
   }
 
+  getHeroBadgeTextColor(): string {
+    if (this.canRestoreRemovedSession && !this.hasSession) {
+      return ColorTokens.WARNING
+    }
+    if (this.isEditMode) {
+      return ColorTokens.ACCENT_SOFT
+    }
+    if (this.showUndoConfirm) {
+      return ColorTokens.WARNING
+    }
+    if (this.hasSession) {
+      return ColorTokens.SUCCESS
+    }
+    return ColorTokens.TEXT_SECONDARY
+  }
+
+  getHeroBadgeBorderColor(): string {
+    if (this.canRestoreRemovedSession && !this.hasSession) {
+      return ColorTokens.ACCENT_GOLD
+    }
+    if (this.isEditMode) {
+      return ColorTokens.BORDER_ACCENT
+    }
+    if (this.showUndoConfirm) {
+      return ColorTokens.ACCENT_GOLD
+    }
+    if (this.hasSession) {
+      return ColorTokens.BORDER_ACCENT
+    }
+    return ColorTokens.BORDER_SUBTLE
+  }
+
   getHeroTitle(): string {
     if (!this.hasSession) {
       return '训练总结'
@@ -459,28 +494,19 @@ export struct WorkoutSummaryPage {
   }
 
   getDayLabel(): string {
-    if (this.dayId.indexOf('current_plan_day_') === 0) {
-      return '当前计划 第 ' + this.dayId.substring('current_plan_day_'.length) + ' 天'
-    }
-    if (this.dayId.indexOf('day_') === 0) {
-      return '训练日 第 ' + this.dayId.substring('day_'.length) + ' 天'
-    }
-    if (this.dayId.length > 0) {
-      return this.dayId
-    }
-    return '训练完成'
+    return TrainingDayLabelService.formatSummary(this.dayId, '训练完成')
   }
 
   getHeroSummary(): string {
     if (!this.hasSession) {
-      return '这次训练记录当前不可见，你可以返回首页继续训练，或恢复刚撤销的记录。'
+      return '这次训练记录当前不可见，你可以返回首页继续训练，或恢复刚刚撤销的记录。'
     }
-    let prText: string = '暂无 PR 亮点'
+    let prText: string = '本次暂无 PR 亮点'
     if (this.exerciseRecords.length > 0) {
-      prText = '本次新增 ' + this.exerciseRecords.length.toString() + ' 条动作纪录亮点'
+      prText = '本次新增 ' + this.exerciseRecords.length.toString() + ' 条 PR 亮点'
     }
     return this.durationText + ' | 完成 ' + this.completedSets.toString() + '/' + this.targetSets.toString() +
-      ' 组 | 训练量 ' + this.totalVolume.toString() + ' | ' + prText
+      ' 组 | 训练量 ' + this.totalVolume.toString() + ' kg | ' + prText
   }
 
   getCompletionText(): string {
@@ -519,7 +545,7 @@ export struct WorkoutSummaryPage {
 
   getEditScopeText(): string {
     const completed: number = this.countCompletedEditSets(this.editSets)
-    return '当前识别到 ' + completed.toString() + ' 组已完成记录，可逐组修正重量、次数与备注。'
+    return '当前识别到 ' + completed.toString() + ' 组正式组已完成，可逐组修正重量、次数与备注。'
   }
 
   getUndoDescriptionText(): string {
@@ -534,36 +560,52 @@ export struct WorkoutSummaryPage {
     return exerciseId
   }
 
+  getSetTypeText(set: WorkoutSessionEditSet): string {
+    if (set.isWarmup) {
+      return '热身组'
+    }
+    return '正式组'
+  }
+
   getSetStatusText(set: WorkoutSessionEditSet): string {
     if (set.isComplete) {
+      if (set.isWarmup) {
+        return '热身已记'
+      }
       return '已完成'
+    }
+    if (set.isWarmup) {
+      return '热身待补'
     }
     return '未完成'
   }
 
   getSetStatusBackgroundColor(set: WorkoutSessionEditSet): string {
     if (set.isComplete) {
-      return ColorTokens.OVERLAY_SUCCESS
+      return set.isWarmup ? ColorTokens.WARNING_BG : ColorTokens.OVERLAY_SUCCESS
     }
     return ColorTokens.SURFACE_ELEVATED
   }
 
   getSetStatusTextColor(set: WorkoutSessionEditSet): string {
     if (set.isComplete) {
-      return ColorTokens.SUCCESS
+      return set.isWarmup ? ColorTokens.WARNING : ColorTokens.SUCCESS
     }
     return ColorTokens.TEXT_SECONDARY
   }
 
   getSetOneRepMaxText(set: WorkoutSessionEditSet): string {
+    if (set.isWarmup) {
+      return '热身组会落库，但不计入正式组完成率、PR 和训练量。'
+    }
     if (set.estimatedOneRepMax <= 0) {
-      return '录入重量和次数后显示参考 1RM'
+      return '录入重量和次数后显示参考 1RM。'
     }
     return '参考 1RM ' + set.estimatedOneRepMax.toString() + ' kg'
   }
 
   getVolumeText(): string {
-    return this.totalVolume.toString()
+    return this.totalVolume.toString() + ' kg'
   }
 
   getFatigueText(): string {
@@ -573,34 +615,33 @@ export struct WorkoutSummaryPage {
     return this.fatigueScore.toString()
   }
 
-  @Builder
-  buildStageRail() {
-    Row({ space: SpacingTokens.SM }) {
-      this.buildStageChip('预览', false)
-      this.buildStageChip('执行', false)
-      this.buildStageChip('回顾', true)
+  getRecordHighlightValue(): string {
+    if (!this.hasSession) {
+      return '--'
     }
-    .width('100%')
+    if (this.exerciseRecords.length <= 0) {
+      return '0 PR'
+    }
+    return '+' + this.exerciseRecords.length.toString() + ' PR'
   }
 
-  @Builder
-  buildStageChip(label: string, active: boolean) {
-    Text(label)
-      .fontSize(FontTokens.SMALL_SIZE)
-      .fontWeight(active ? FontWeight.Medium : FontTokens.SMALL_WEIGHT)
-      .fontColor(active ? ColorTokens.TEXT_PRIMARY : ColorTokens.TEXT_TERTIARY)
-      .padding({
-        top: SpacingTokens.XS,
-        bottom: SpacingTokens.XS,
-        left: SpacingTokens.SM,
-        right: SpacingTokens.SM
-      })
-      .backgroundColor(active ? ColorTokens.SURFACE_ELEVATED : ColorTokens.SURFACE_SECONDARY)
-      .borderRadius(RadiusTokens.FULL)
-      .border({
-        width: 1,
-        color: active ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
-      })
+  getResultIntegrityText(): string {
+    if (!this.hasSession) {
+      return '本次训练记录当前不可见，可先回到首页重新开始。'
+    }
+    if (this.exerciseRecords.length > 0) {
+      return '本次训练已经落库，并捕捉到 ' + this.exerciseRecords.length.toString() +
+        ' 条 PR 亮点，可直接进入长期回顾。'
+    }
+    return '本次训练已经完整落库，确认无误后即可进入训练回顾。'
+  }
+
+  getStageRailItems(): StageRailItem[] {
+    const items: StageRailItem[] = []
+    items.push(createStageRailItem('预览', false, false))
+    items.push(createStageRailItem('执行', false, false))
+    items.push(createStageRailItem('复盘', true, false))
+    return items
   }
 
   @Builder
@@ -609,7 +650,7 @@ export struct WorkoutSummaryPage {
       Column({ space: SpacingTokens.MD }) {
         Row() {
           Column({ space: SpacingTokens.XS }) {
-            Text('训练收官')
+            Text('训练收束')
               .fontSize(FontTokens.MICRO_SIZE)
               .fontWeight(FontTokens.MICRO_WEIGHT)
               .fontColor(ColorTokens.TEXT_TERTIARY)
@@ -631,7 +672,8 @@ export struct WorkoutSummaryPage {
 
           Text(this.getHeroBadgeText())
             .fontSize(FontTokens.SMALL_SIZE)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(this.getHeroBadgeTextColor())
             .padding({
               top: SpacingTokens.XS,
               bottom: SpacingTokens.XS,
@@ -640,30 +682,78 @@ export struct WorkoutSummaryPage {
             })
             .backgroundColor(this.getHeroBadgeBackgroundColor())
             .borderRadius(RadiusTokens.FULL)
+            .border({ width: 1, color: this.getHeroBadgeBorderColor() })
         }
         .width('100%')
         .alignItems(VerticalAlign.Top)
 
         if (this.hasSession) {
-          this.buildStageRail()
-
-          Text(this.getHeroSummary())
-            .fontSize(FontTokens.CAPTION_SIZE)
-            .fontColor(ColorTokens.TEXT_SECONDARY)
-            .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
-            .width('100%')
+          StageRail({ items: this.getStageRailItems() })
 
           Row({ space: SpacingTokens.MD }) {
-            this.buildMetricTile('完成率', this.getCompletionText(), '本次训练')
-            this.buildMetricTile('已完成', this.completedSets.toString() + '/' + this.targetSets.toString(), '目标组数')
-          }
-          .width('100%')
-
-          Row({ space: SpacingTokens.MD }) {
+            this.buildMetricTile('完成度', this.getCompletionText(), '本次训练')
             this.buildMetricTile('训练时长', this.durationText, '本次耗时')
-            this.buildMetricTile('训练量', this.getVolumeText(), '累计重量')
+            this.buildMetricTile('PR 亮点', this.getRecordHighlightValue(), '纪录捕捉')
           }
           .width('100%')
+
+          Column({ space: SpacingTokens.SM }) {
+            Row() {
+              Column({ space: SpacingTokens.XS }) {
+                Text('结果摘要')
+                  .fontSize(FontTokens.SMALL_SIZE)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor(ColorTokens.TEXT_TERTIARY)
+
+                Text(this.completedSets.toString() + '/' + this.targetSets.toString() + ' 组已落库')
+                  .fontSize(FontTokens.HEADLINE_SIZE)
+                  .fontWeight(FontTokens.HEADLINE_WEIGHT)
+                  .fontColor(ColorTokens.TEXT_PRIMARY)
+              }
+              .layoutWeight(1)
+              .alignItems(HorizontalAlign.Start)
+
+              Text(this.getCompletionText())
+                .fontSize(FontTokens.TITLE_SIZE)
+                .fontWeight(FontTokens.TITLE_WEIGHT)
+                .fontColor(ColorTokens.ACCENT_SOFT)
+                .padding({
+                  top: SpacingTokens.XS,
+                  bottom: SpacingTokens.XS,
+                  left: SpacingTokens.SM,
+                  right: SpacingTokens.SM
+                })
+                .backgroundColor(ColorTokens.OVERLAY_PRIMARY)
+                .borderRadius(RadiusTokens.FULL)
+                .border({ width: 1, color: ColorTokens.BORDER_ACCENT })
+            }
+            .width('100%')
+            .alignItems(VerticalAlign.Top)
+
+            Text(this.getResultIntegrityText())
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+              .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+              .width('100%')
+
+            Text(this.getHeroSummary())
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_TERTIARY)
+              .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+              .width('100%')
+
+            Row({ space: SpacingTokens.MD }) {
+              this.buildMetricTile('训练量', this.getVolumeText(), '正式组累计重量')
+              this.buildMetricTile('疲劳分', this.getFatigueText(), '主观负荷')
+            }
+            .width('100%')
+          }
+          .width('100%')
+          .padding(SpacingTokens.MD)
+          .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+          .borderRadius(RadiusTokens.LG)
+          .border({ width: 1, color: ColorTokens.BORDER_STRONG })
+          .alignItems(HorizontalAlign.Start)
         }
       }
       .width('100%')
@@ -691,7 +781,7 @@ export struct WorkoutSummaryPage {
     }
     .layoutWeight(1)
     .padding(SpacingTokens.MD)
-    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+    .backgroundColor(ColorTokens.BG_ELEVATED)
     .borderRadius(RadiusTokens.MD)
     .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
     .alignItems(HorizontalAlign.Start)
@@ -753,7 +843,7 @@ export struct WorkoutSummaryPage {
         Text(
           this.canRestoreRemovedSession ?
             '刚撤销的训练记录仍可恢复，恢复后会重新回到本页。' :
-            '可能是从复盘页直接进入，或当前仓库里没有可展示的训练记录。'
+            '可能是从外部入口直接进入，或当前仓库里没有可展示的训练记录。'
         )
           .fontSize(FontTokens.BODY_SIZE)
           .fontColor(ColorTokens.TEXT_SECONDARY)
@@ -792,12 +882,12 @@ export struct WorkoutSummaryPage {
       Column({ space: SpacingTokens.MD }) {
         Row() {
           Column({ space: SpacingTokens.XS }) {
-            Text('完成度')
+            Text('数据对齐')
               .fontSize(FontTokens.TITLE_SIZE)
               .fontWeight(FontTokens.TITLE_WEIGHT)
               .fontColor(ColorTokens.TEXT_PRIMARY)
 
-            Text('本次训练的执行结果已经落库，可在这里做最终校对。')
+            Text('先确认完成率、训练日与目标组数是否一致，再进入长期回顾。')
               .fontSize(FontTokens.CAPTION_SIZE)
               .fontColor(ColorTokens.TEXT_SECONDARY)
           }
@@ -807,7 +897,16 @@ export struct WorkoutSummaryPage {
           Text(this.getCompletionText())
             .fontSize(FontTokens.TITLE_SIZE)
             .fontWeight(FontTokens.TITLE_WEIGHT)
-            .fontColor(ColorTokens.PRIMARY)
+            .fontColor(ColorTokens.ACCENT_SOFT)
+            .padding({
+              top: SpacingTokens.XS,
+              bottom: SpacingTokens.XS,
+              left: SpacingTokens.SM,
+              right: SpacingTokens.SM
+            })
+            .backgroundColor(ColorTokens.OVERLAY_PRIMARY)
+            .borderRadius(RadiusTokens.FULL)
+            .border({ width: 1, color: ColorTokens.BORDER_ACCENT })
         }
         .width('100%')
 
@@ -827,9 +926,14 @@ export struct WorkoutSummaryPage {
         .width('100%')
         .height(TouchTokens.PROGRESS_BAR_HEIGHT)
 
+        Text('这个完成率会直接影响后续回顾里的趋势解读，确认无误后再进入长期训练视角。')
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.TEXT_TERTIARY)
+          .width('100%')
+
         Row({ space: SpacingTokens.MD }) {
           this.buildMetricTile('训练日', this.getDayLabel(), '当前入口')
-          this.buildMetricTile('疲劳分', this.getFatigueText(), '主观负荷')
+          this.buildMetricTile('组数对齐', this.completedSets.toString() + '/' + this.targetSets.toString(), '目标与已完成')
         }
         .width('100%')
       }
@@ -846,6 +950,11 @@ export struct WorkoutSummaryPage {
           .fontSize(FontTokens.TITLE_SIZE)
           .fontWeight(FontTokens.TITLE_WEIGHT)
           .fontColor(ColorTokens.TEXT_PRIMARY)
+
+        Text('优先查看新的 PR、最佳重量和最佳次数，确认这次训练是否带来真实提升。')
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .width('100%')
 
         if (this.exerciseRecords.length === 0) {
           Text('本次没有新的动作纪录亮点，但训练记录已经完整保存。')
@@ -893,6 +1002,7 @@ export struct WorkoutSummaryPage {
           })
           .backgroundColor(ColorTokens.NEW_RECORD_BG)
           .borderRadius(RadiusTokens.FULL)
+          .border({ width: 1, color: ColorTokens.ACCENT_GOLD })
       }
       .width('100%')
       .alignItems(VerticalAlign.Top)
@@ -906,8 +1016,9 @@ export struct WorkoutSummaryPage {
     }
     .width('100%')
     .padding(SpacingTokens.MD)
-    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+    .backgroundColor(ColorTokens.BG_ELEVATED)
     .borderRadius(RadiusTokens.MD)
+    .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
     .alignItems(HorizontalAlign.Start)
   }
 
@@ -930,8 +1041,14 @@ export struct WorkoutSummaryPage {
 
   @Builder
   buildActionSection() {
-    AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+    AppCard({ variant: 'panel', cardPadding: 'default' }) {
       Column({ space: SpacingTokens.MD }) {
+        Text('这里处理本次记录的最后校准。先编辑，只有在确认整条记录确实有误时才撤销。')
+          .fontSize(FontTokens.CAPTION_SIZE)
+          .fontColor(ColorTokens.TEXT_SECONDARY)
+          .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+          .width('100%')
+
         AppButton({
           text: this.isEditMode ? '正在编辑本次训练' : '编辑本次训练',
           type: 'primary',
@@ -960,7 +1077,7 @@ export struct WorkoutSummaryPage {
 
   @Builder
   buildMetadataSection() {
-    AppCard({ variant: 'outlined', cardPadding: 'compact' }) {
+    AppCard({ variant: 'panel', cardPadding: 'compact' }) {
       Column({ space: SpacingTokens.SM }) {
         this.buildInfoRow('记录编号', this.sessionId)
         this.buildInfoRow('训练日', this.getDayLabel())
@@ -1049,7 +1166,7 @@ export struct WorkoutSummaryPage {
     Column({ space: SpacingTokens.SM }) {
       Row() {
         Column({ space: SpacingTokens.XS }) {
-          Text(this.getExerciseName(set.exerciseId) + ' | 第 ' + displayIndex.toString() + ' 组')
+          Text(this.getExerciseName(set.exerciseId) + ' | 第 ' + displayIndex.toString() + ' 组 · ' + this.getSetTypeText(set))
             .fontSize(FontTokens.BODY_BOLD_SIZE)
             .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
             .fontColor(ColorTokens.TEXT_PRIMARY)
@@ -1072,6 +1189,10 @@ export struct WorkoutSummaryPage {
           })
           .backgroundColor(this.getSetStatusBackgroundColor(set))
           .borderRadius(RadiusTokens.FULL)
+          .border({
+            width: 1,
+            color: set.isComplete ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
+          })
       }
       .width('100%')
       .alignItems(VerticalAlign.Center)
@@ -1087,8 +1208,9 @@ export struct WorkoutSummaryPage {
             .fontSize(FontTokens.BODY_SIZE)
             .fontColor(ColorTokens.TEXT_PRIMARY)
             .placeholderColor(ColorTokens.TEXT_DISABLED)
-            .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+            .backgroundColor(ColorTokens.BG_ELEVATED)
             .borderRadius(RadiusTokens.SM)
+            .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
             .height(TouchTokens.INPUT_HEIGHT)
             .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD })
             .onChange((value: string) => {
@@ -1108,8 +1230,9 @@ export struct WorkoutSummaryPage {
             .fontSize(FontTokens.BODY_SIZE)
             .fontColor(ColorTokens.TEXT_PRIMARY)
             .placeholderColor(ColorTokens.TEXT_DISABLED)
-            .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+            .backgroundColor(ColorTokens.BG_ELEVATED)
             .borderRadius(RadiusTokens.SM)
+            .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
             .height(TouchTokens.INPUT_HEIGHT)
             .padding({ left: SpacingTokens.MD, right: SpacingTokens.MD })
             .onChange((value: string) => {
@@ -1123,8 +1246,9 @@ export struct WorkoutSummaryPage {
     }
     .width('100%')
     .padding(SpacingTokens.MD)
-    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+    .backgroundColor(ColorTokens.SURFACE_PRIMARY)
     .borderRadius(RadiusTokens.MD)
+    .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
     .alignItems(HorizontalAlign.Start)
   }
 

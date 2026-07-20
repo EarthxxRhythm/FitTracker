@@ -5,9 +5,12 @@
 import { Context } from '@kit.AbilityKit'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens } from '../common/styles/DesignTokens'
 import { AppCard } from '../components/AppCard'
+import { createStageRailItem, StageRail, StageRailItem } from '../components/StageRail'
 import { StartupDecision } from './AppState'
 import { AppRoutes } from './AppRoutes'
+import LaunchRequestStore from './LaunchRequestStore'
 import ContentRepository from '../shared/services/ContentRepository'
+import DeviceSeedService from '../shared/services/DeviceSeedService'
 import GoalRepository from '../shared/services/GoalRepository'
 import PersistenceFallbackService from '../shared/services/PersistenceFallbackService'
 import StartupContentSyncService from '../shared/services/StartupContentSyncService'
@@ -42,6 +45,14 @@ export struct StartupPage {
     return this.currentStage > index
   }
 
+  private getStageRailItems(): StageRailItem[] {
+    const items: StageRailItem[] = []
+    items.push(createStageRailItem('登录', this.isCurrentStage(0), this.isCompletedStage(0)))
+    items.push(createStageRailItem('同步', this.isCurrentStage(1), this.isCompletedStage(1)))
+    items.push(createStageRailItem('进入', this.isCurrentStage(2), this.isCompletedStage(2)))
+    return items
+  }
+
   private getStageStatusLabel(index: number): string {
     if (this.isCompletedStage(index)) {
       return '已就绪'
@@ -60,6 +71,11 @@ export struct StartupPage {
         return
       }
       const pageRouter = this.getUIContext().getRouter()
+      const debugSeedKey: string = await LaunchRequestStore.consumePendingDebugSeedKey(context)
+      if (debugSeedKey.length > 0) {
+        this.setStartupState(0, '写入验证数据', '正在用应用自身权限写入评审页面所需的本地数据。')
+        await DeviceSeedService.applyNamedSeed(context, debugSeedKey)
+      }
       this.setStartupState(0, '校验登录状态', '先确认当前设备上的本地账号状态，再决定进入登录还是继续恢复训练数据。')
       const isLoggedIn: boolean = await SessionManager.isLoggedIn(context)
       if (!isLoggedIn) {
@@ -96,29 +112,6 @@ export struct StartupPage {
     } catch (e) {
       this.setStartupState(2, '启动暂时停留在当前页', '路由切换没有成功完成。可以稍候重试，当前训练数据不会丢失。')
     }
-  }
-
-  @Builder
-  buildStageChip(index: number, label: string) {
-    Text(label)
-      .fontSize(FontTokens.SMALL_SIZE)
-      .fontWeight(this.isCurrentStage(index) ? FontWeight.Medium : FontTokens.SMALL_WEIGHT)
-      .fontColor(this.isCurrentStage(index) || this.isCompletedStage(index) ?
-        ColorTokens.TEXT_PRIMARY : ColorTokens.TEXT_TERTIARY)
-      .padding({
-        top: SpacingTokens.XS,
-        bottom: SpacingTokens.XS,
-        left: SpacingTokens.SM,
-        right: SpacingTokens.SM
-      })
-      .backgroundColor(this.isCurrentStage(index) ? ColorTokens.SURFACE_ELEVATED :
-        (this.isCompletedStage(index) ? ColorTokens.OVERLAY_PRIMARY : ColorTokens.SURFACE_SECONDARY))
-      .borderRadius(RadiusTokens.FULL)
-      .border({
-        width: 1,
-        color: this.isCurrentStage(index) || this.isCompletedStage(index) ?
-          ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
-      })
   }
 
   @Builder
@@ -174,12 +167,7 @@ export struct StartupPage {
           .width('100%')
           .alignItems(HorizontalAlign.Start)
 
-          Row({ space: SpacingTokens.SM }) {
-            this.buildStageChip(0, '登录')
-            this.buildStageChip(1, '同步')
-            this.buildStageChip(2, '进入')
-          }
-          .width('100%')
+          StageRail({ items: this.getStageRailItems() })
 
           Column({ space: SpacingTokens.XS }) {
             Text(this.statusTitle)

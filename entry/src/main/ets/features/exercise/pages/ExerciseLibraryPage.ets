@@ -7,6 +7,7 @@ import { AppCard } from '../../../components/AppCard'
 import { PageHeader } from '../../../components/PageHeader'
 import { PrimaryDestinationStrip } from '../../../components/PrimaryDestinationStrip'
 import { SearchBar } from '../../../components/SearchBar'
+import { createStageRailItem, StageRail, StageRailItem } from '../../../components/StageRail'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
 import { EquipmentItem, MuscleGroup } from '../../../shared/models/TrainingModels'
 import ContentRepository, { ExerciseLibraryItem } from '../../../shared/services/ContentRepository'
@@ -300,34 +301,12 @@ export struct ExerciseLibraryPage {
     .alignItems(HorizontalAlign.Start)
   }
 
-  @Builder
-  buildStageRail() {
-    Row({ space: SpacingTokens.SM }) {
-      this.buildStageChip('搜索', true)
-      this.buildStageChip('详情', false)
-      this.buildStageChip('训练', false)
-    }
-    .width('100%')
-  }
-
-  @Builder
-  buildStageChip(label: string, active: boolean) {
-    Text(label)
-      .fontSize(FontTokens.SMALL_SIZE)
-      .fontWeight(active ? FontWeight.Medium : FontTokens.SMALL_WEIGHT)
-      .fontColor(active ? ColorTokens.TEXT_PRIMARY : ColorTokens.TEXT_TERTIARY)
-      .padding({
-        top: SpacingTokens.XS,
-        bottom: SpacingTokens.XS,
-        left: SpacingTokens.SM,
-        right: SpacingTokens.SM
-      })
-      .backgroundColor(active ? ColorTokens.SURFACE_ELEVATED : ColorTokens.SURFACE_SECONDARY)
-      .borderRadius(RadiusTokens.FULL)
-      .border({
-        width: 1,
-        color: active ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
-      })
+  getStageRailItems(): StageRailItem[] {
+    const items: StageRailItem[] = []
+    items.push(createStageRailItem('搜索', true, false))
+    items.push(createStageRailItem('详情', false, false))
+    items.push(createStageRailItem('训练', false, false))
+    return items
   }
 
   @Builder
@@ -421,7 +400,7 @@ export struct ExerciseLibraryPage {
           AppCard({ variant: 'panel', cardPadding: 'default' }) {
             Column({ space: SpacingTokens.MD }) {
               this.buildTitle()
-              this.buildStageRail()
+              StageRail({ items: this.getStageRailItems() })
               Row({ space: SpacingTokens.SM }) {
                 this.buildMetricTile('结果', this.filteredExercises.length.toString(), '当前可扫读动作数')
                 this.buildMetricTile('筛选', this.getActiveFilterCount().toString(), '已启用条件')

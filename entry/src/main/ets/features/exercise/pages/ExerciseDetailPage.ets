@@ -274,6 +274,16 @@ export struct ExerciseDetailPage {
     return ColorTokens.INFO_BG
   }
 
+  getStatusPanelBorderColor(tone: string): string {
+    if (tone === 'warning') {
+      return ColorTokens.WARNING
+    }
+    if (tone === 'error') {
+      return ColorTokens.ERROR
+    }
+    return ColorTokens.INFO
+  }
+
   getStatusEmptyText(tone: string): string {
     if (tone === 'warning') {
       return '暂无安全注意'
@@ -312,54 +322,25 @@ export struct ExerciseDetailPage {
     return '查看当前权益边界'
   }
 
-  build() {
-    Scroll() {
-      Column({ space: SpacingTokens.LG }) {
-        if (!this.hasExercise) {
-          AppCard({ variant: 'panel', cardPadding: 'default' }) {
-            Column({ space: SpacingTokens.MD }) {
-              Text('动作详情')
-                .fontSize(FontTokens.MICRO_SIZE)
-                .fontWeight(FontTokens.MICRO_WEIGHT)
-                .fontColor(ColorTokens.TEXT_TERTIARY)
-
-              Text('未找到动作')
-                .fontSize(FontTokens.DISPLAY_SIZE)
-                .fontWeight(FontTokens.DISPLAY_WEIGHT)
-                .fontColor(ColorTokens.TEXT_PRIMARY)
-
-              Text('当前入口没有带上有效的动作信息，请从训练预览页或训练回顾页重新进入。')
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(ColorTokens.TEXT_SECONDARY)
-                .lineHeight(FontTokens.BODY_LINE_HEIGHT)
-            }
-            .width('100%')
-            .alignItems(HorizontalAlign.Start)
-          }
-        }
-
-        if (this.hasExercise) {
-          this.buildHeroSection()
-          this.buildDetailLaneHeader('媒体与演示', '先确认媒体资源和演示状态，再决定直接训练还是查看更深内容。')
-          this.buildMediaSection()
-          this.buildDetailLaneHeader('执行与替代', '把动作步骤、关键提醒和替代动作放在同一段，方便训练前快速过一遍。')
-          this.buildTechniqueSection()
-          this.buildAlternativeSection()
-          this.buildDetailLaneHeader('扩展与资料', '把高级内容预埋和资料元信息收在尾部，不干扰前面的主任务。')
-          this.buildPremiumContentSection()
-          this.buildMetadataSection()
-        }
-      }
-      .width('100%')
-      .padding(SpacingTokens.LG)
+  getExecutionFocusText(): string {
+    if (this.cues.length > 0) {
+      return this.cues[0]
     }
-    .width('100%')
-    .height('100%')
-    .backgroundColor(ColorTokens.BG_PRIMARY)
+    if (this.safetyNotes.length > 0) {
+      return this.safetyNotes[0]
+    }
+    return '先确认动作路径、节奏和发力顺序。'
+  }
+
+  getSafetyFocusText(): string {
+    if (this.safetyNotes.length > 0) {
+      return this.safetyNotes[0]
+    }
+    return '暂无额外安全提示，训练前仍建议先完成热身与重量试探。'
   }
 
   @Builder
-  buildHeroSection() {
+  buildKnowledgeHeroSection() {
     AppCard({ variant: 'panel', cardPadding: 'default' }) {
       Column({ space: SpacingTokens.MD }) {
         Row() {
@@ -396,39 +377,146 @@ export struct ExerciseDetailPage {
             })
             .backgroundColor(this.getMediaToneBackgroundColor(this.mediaPresentation.tone))
             .borderRadius(RadiusTokens.FULL)
+            .border({
+              width: 1,
+              color: this.getMediaToneColor(this.mediaPresentation.tone)
+            })
         }
         .width('100%')
         .alignItems(VerticalAlign.Top)
 
-        Text(this.getHeroSummary())
-          .fontSize(FontTokens.BODY_SIZE)
-          .fontColor(ColorTokens.TEXT_SECONDARY)
-          .lineHeight(FontTokens.BODY_LINE_HEIGHT)
-          .maxLines(3)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-        Flex({ wrap: FlexWrap.Wrap }) {
-          this.buildTag(this.difficultyText, ColorTokens.OVERLAY_ACCENT, ColorTokens.ACCENT)
-          ForEach(this.primaryMuscleNames, (muscleName: string) => {
-            this.buildTag(muscleName, ColorTokens.OVERLAY_PRIMARY, ColorTokens.PRIMARY)
-          }, (muscleName: string) => 'muscle_' + muscleName)
-          ForEach(this.equipmentNames, (equipmentName: string) => {
-            this.buildTag(equipmentName, ColorTokens.SURFACE_ELEVATED, ColorTokens.TEXT_SECONDARY)
-          }, (equipmentName: string) => 'equipment_' + equipmentName)
-        }
-        .width('100%')
-
         Row({ space: SpacingTokens.MD }) {
           this.buildMetricTile('步骤', this.steps.length.toString(), '执行序列')
           this.buildMetricTile('提示', this.cues.length.toString(), '关键提醒')
+          this.buildMetricTile('替代', this.alternativeNames.length.toString(), '可切换动作')
         }
         .width('100%')
+
+        Column({ space: SpacingTokens.SM }) {
+          Row() {
+            Column({ space: SpacingTokens.XS }) {
+              Text('训练焦点')
+                .fontSize(FontTokens.SMALL_SIZE)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(ColorTokens.TEXT_TERTIARY)
+
+              Text(this.getHeroSummary())
+                .fontSize(FontTokens.HEADLINE_SIZE)
+                .fontWeight(FontTokens.HEADLINE_WEIGHT)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+                .width('100%')
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
+
+            Text(this.getMediaPreviewLabel(this.mediaPresentation))
+              .fontSize(FontTokens.SMALL_SIZE)
+              .fontColor(ColorTokens.TEXT_PRIMARY)
+              .padding({
+                top: SpacingTokens.XS,
+                bottom: SpacingTokens.XS,
+                left: SpacingTokens.SM,
+                right: SpacingTokens.SM
+              })
+              .backgroundColor(this.getMediaToneBackgroundColor(this.mediaPresentation.tone))
+              .borderRadius(RadiusTokens.FULL)
+          }
+          .width('100%')
+          .alignItems(VerticalAlign.Top)
+
+          Text(this.getExecutionFocusText())
+            .fontSize(FontTokens.BODY_SIZE)
+            .fontColor(ColorTokens.TEXT_SECONDARY)
+            .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+            .width('100%')
+
+          Flex({ wrap: FlexWrap.Wrap }) {
+            this.buildTag(this.difficultyText, ColorTokens.OVERLAY_ACCENT, ColorTokens.ACCENT)
+            ForEach(this.primaryMuscleNames, (muscleName: string) => {
+              this.buildTag(muscleName, ColorTokens.OVERLAY_PRIMARY, ColorTokens.PRIMARY)
+            }, (muscleName: string) => 'knowledge_muscle_' + muscleName)
+            ForEach(this.equipmentNames, (equipmentName: string) => {
+              this.buildTag(equipmentName, ColorTokens.SURFACE_ELEVATED, ColorTokens.TEXT_SECONDARY)
+            }, (equipmentName: string) => 'knowledge_equipment_' + equipmentName)
+          }
+          .width('100%')
+
+          Column({ space: SpacingTokens.XS }) {
+            Text('安全提示')
+              .fontSize(FontTokens.MICRO_SIZE)
+              .fontWeight(FontTokens.MICRO_WEIGHT)
+              .fontColor(ColorTokens.WARNING)
+
+            Text(this.getSafetyFocusText())
+              .fontSize(FontTokens.CAPTION_SIZE)
+              .fontColor(ColorTokens.TEXT_SECONDARY)
+              .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
+              .width('100%')
+          }
+          .width('100%')
+          .padding(SpacingTokens.MD)
+          .backgroundColor(ColorTokens.WARNING_BG)
+          .borderRadius(RadiusTokens.MD)
+          .border({ width: 1, color: ColorTokens.ACCENT_GOLD })
+          .alignItems(HorizontalAlign.Start)
+        }
+        .width('100%')
+        .padding(SpacingTokens.MD)
+        .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+        .borderRadius(RadiusTokens.LG)
+        .border({ width: 1, color: ColorTokens.BORDER_STRONG })
+        .alignItems(HorizontalAlign.Start)
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)
     }
   }
 
+  build() {
+    Scroll() {
+      Column({ space: SpacingTokens.LG }) {
+        if (!this.hasExercise) {
+          AppCard({ variant: 'panel', cardPadding: 'default' }) {
+            Column({ space: SpacingTokens.MD }) {
+              Text('动作详情')
+                .fontSize(FontTokens.MICRO_SIZE)
+                .fontWeight(FontTokens.MICRO_WEIGHT)
+                .fontColor(ColorTokens.TEXT_TERTIARY)
+
+              Text('未找到动作')
+                .fontSize(FontTokens.DISPLAY_SIZE)
+                .fontWeight(FontTokens.DISPLAY_WEIGHT)
+                .fontColor(ColorTokens.TEXT_PRIMARY)
+
+              Text('当前入口没有带上有效的动作信息，请从训练预览页或训练回顾页重新进入。')
+                .fontSize(FontTokens.BODY_SIZE)
+                .fontColor(ColorTokens.TEXT_SECONDARY)
+                .lineHeight(FontTokens.BODY_LINE_HEIGHT)
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+          }
+        }
+
+        if (this.hasExercise) {
+          this.buildKnowledgeHeroSection()
+          this.buildDetailLaneHeader('媒体与演示', '先确认媒体资源和演示状态，再决定直接训练还是查看更深内容。')
+          this.buildMediaSection()
+          this.buildDetailLaneHeader('执行与替代', '把动作步骤、关键提醒和替代动作放在同一段，方便训练前快速过一遍。')
+          this.buildTechniqueSection()
+          this.buildAlternativeSection()
+          this.buildDetailLaneHeader('扩展与资料', '把高级内容预埋和资料元信息收在尾部，不干扰前面的主任务。')
+          this.buildPremiumContentSection()
+          this.buildMetadataSection()
+        }
+      }
+      .width('100%')
+      .padding(SpacingTokens.LG)
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor(ColorTokens.BG_PRIMARY)
+  }
   @Builder
   buildMediaSection() {
     AppCard({ variant: 'panel', cardPadding: 'default' }) {
@@ -488,7 +576,7 @@ export struct ExerciseDetailPage {
           .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
           .width('100%')
           .padding(SpacingTokens.MD)
-          .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+          .backgroundColor(ColorTokens.BG_ELEVATED)
           .borderRadius(RadiusTokens.MD)
           .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
 
@@ -560,8 +648,9 @@ export struct ExerciseDetailPage {
           }
           .width('100%')
           .padding(SpacingTokens.MD)
-          .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+          .backgroundColor(ColorTokens.BG_ELEVATED)
           .borderRadius(RadiusTokens.MD)
+          .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
           .alignItems(HorizontalAlign.Start)
         }, (tile: PremiumExerciseContentTile) => tile.tileId)
 
@@ -616,7 +705,7 @@ export struct ExerciseDetailPage {
 
   @Builder
   buildTechniqueSection() {
-    AppCard({ variant: 'elevated', cardPadding: 'default' }) {
+    AppCard({ variant: 'panel', cardPadding: 'default' }) {
       Column({ space: SpacingTokens.MD }) {
         Text('执行要点')
           .fontSize(FontTokens.TITLE_SIZE)
@@ -636,7 +725,7 @@ export struct ExerciseDetailPage {
 
   @Builder
   buildAlternativeSection() {
-    AppCard({ variant: 'outlined', cardPadding: 'default' }) {
+    AppCard({ variant: 'panel', cardPadding: 'default' }) {
       Column({ space: SpacingTokens.MD }) {
         Text('替代动作')
           .fontSize(FontTokens.TITLE_SIZE)
@@ -675,8 +764,9 @@ export struct ExerciseDetailPage {
           }
           .width('100%')
           .padding(SpacingTokens.MD)
-          .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+          .backgroundColor(ColorTokens.BG_ELEVATED)
           .borderRadius(RadiusTokens.MD)
+          .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
         }, (alternativeName: string, index: number) => 'alternative_' + alternativeName + '_' + index.toString())
       }
       .width('100%')
@@ -686,7 +776,7 @@ export struct ExerciseDetailPage {
 
   @Builder
   buildMetadataSection() {
-    AppCard({ variant: 'outlined', cardPadding: 'compact' }) {
+    AppCard({ variant: 'panel', cardPadding: 'compact' }) {
       Column({ space: SpacingTokens.SM }) {
         Text('资料元信息')
           .fontSize(FontTokens.CAPTION_SIZE)
@@ -727,13 +817,13 @@ export struct ExerciseDetailPage {
   buildDetailLaneHeader(title: string, description: string) {
     Column({ space: SpacingTokens.XS }) {
       Text(title)
-        .fontSize(FontTokens.TITLE_SIZE)
-        .fontWeight(FontTokens.TITLE_WEIGHT)
+        .fontSize(FontTokens.HEADLINE_SIZE)
+        .fontWeight(FontTokens.HEADLINE_WEIGHT)
         .fontColor(ColorTokens.TEXT_PRIMARY)
 
       Text(description)
         .fontSize(FontTokens.CAPTION_SIZE)
-        .fontColor(ColorTokens.TEXT_SECONDARY)
+        .fontColor(ColorTokens.TEXT_TERTIARY)
         .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
         .width('100%')
     }
@@ -759,8 +849,9 @@ export struct ExerciseDetailPage {
     }
     .layoutWeight(1)
     .padding(SpacingTokens.MD)
-    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+    .backgroundColor(ColorTokens.BG_ELEVATED)
     .borderRadius(RadiusTokens.MD)
+    .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
     .alignItems(HorizontalAlign.Start)
   }
 
@@ -770,10 +861,10 @@ export struct ExerciseDetailPage {
       Text(label)
         .fontSize(FontTokens.SMALL_SIZE)
         .fontColor(ColorTokens.TEXT_TERTIARY)
-        .width(72)
+        .width(68)
 
       Text(value)
-        .fontSize(FontTokens.CAPTION_SIZE)
+        .fontSize(FontTokens.BODY_SIZE)
         .fontColor(ColorTokens.TEXT_SECONDARY)
         .layoutWeight(1)
         .maxLines(3)
@@ -829,7 +920,8 @@ export struct ExerciseDetailPage {
       .height(TouchTokens.HERO_HEIGHT)
       .padding(SpacingTokens.LG)
       .borderRadius(RadiusTokens.MD)
-      .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+      .backgroundColor(ColorTokens.BG_ELEVATED)
+      .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
       .justifyContent(FlexAlign.Center)
     }
   }
@@ -960,6 +1052,10 @@ export struct ExerciseDetailPage {
         .padding(SpacingTokens.MD)
         .backgroundColor(this.getStatusPanelBackgroundColor(tone))
         .borderRadius(RadiusTokens.MD)
+        .border({
+          width: 1,
+          color: this.getStatusPanelBorderColor(tone)
+        })
         .alignItems(VerticalAlign.Top)
       }, (value: string, index: number) => title + '_' + value + '_' + index.toString())
     }

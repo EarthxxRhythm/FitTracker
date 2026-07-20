@@ -2,7 +2,7 @@
  * AppCard —— 通用卡片组件
  * 功能 #26
  */
-import { ColorTokens, RadiusTokens, ShadowTokens, SpacingTokens } from '../common/styles/DesignTokens'
+import { ColorTokens, FontTokens, RadiusTokens, ShadowTokens, SpacingTokens } from '../common/styles/DesignTokens'
 
 @Component
 export struct AppCard {
@@ -19,29 +19,46 @@ export struct AppCard {
 
   private getBackgroundColor(): string {
     if (this.variant === 'panel') {
-      return ColorTokens.SURFACE_PANEL_RAISED
+      return ColorTokens.SURFACE_STRONG
     }
     if (this.variant === 'outlined') {
-      return ColorTokens.SURFACE_PANEL
+      return ColorTokens.SURFACE_PRIMARY
     }
-    return ColorTokens.SURFACE_PANEL_RAISED
+    return ColorTokens.SURFACE_SECONDARY
   }
 
   private getBorderColor(): string {
     if (this.variant === 'panel') {
-      return ColorTokens.BORDER_ACCENT
-    }
-    if (this.variant === 'outlined') {
       return ColorTokens.BORDER_STRONG
     }
-    return ColorTokens.BORDER_SUBTLE
+    if (this.variant === 'outlined') {
+      return ColorTokens.BORDER_SUBTLE
+    }
+    return ColorTokens.BORDER_DEFAULT
+  }
+
+  private getRadius(): number {
+    if (this.variant === 'panel') {
+      return RadiusTokens.LG
+    }
+    return RadiusTokens.MD
   }
 
   @Builder
   defaultContent() {
     Text('Card Content')
-      .fontSize(14)
+      .fontSize(FontTokens.CAPTION_SIZE)
       .fontColor(ColorTokens.TEXT_SECONDARY)
+  }
+
+  private getShadowToken() {
+    if (this.variant === 'panel') {
+      return ShadowTokens.MD
+    }
+    if (this.variant === 'elevated') {
+      return ShadowTokens.SM
+    }
+    return ShadowTokens.NONE
   }
 
   build() {
@@ -51,8 +68,8 @@ export struct AppCard {
     .width('100%')
     .padding(this.getPadding())
     .backgroundColor(this.getBackgroundColor())
-    .borderRadius(RadiusTokens.MD)
+    .borderRadius(this.getRadius())
     .border({ width: 1, color: this.getBorderColor() })
-    .shadow(this.variant === 'elevated' ? ShadowTokens.SM : ShadowTokens.NONE)
+    .shadow(this.getShadowToken())
   }
 }

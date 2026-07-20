@@ -8,9 +8,11 @@ import TrainingPlanService, { UserPlan } from '../../../common/services/Training
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
 import { AppButton } from '../../../components/AppButton'
 import { AppCard } from '../../../components/AppCard'
+import { createStageRailItem, StageRail, StageRailItem } from '../../../components/StageRail'
 import { TrainingPlan, UserGoal } from '../../../shared/models/TrainingModels'
 import GoalRepository from '../../../shared/services/GoalRepository'
 import PlanEngine from '../../../shared/services/PlanEngine'
+import TrainingDayLabelService from '../../../shared/services/TrainingDayLabelService'
 import WorkoutPreviewService, {
   WorkoutPreviewExercise,
   WorkoutPreviewSummary
@@ -251,16 +253,7 @@ export struct WorkoutPreviewPage {
   }
 
   getDayBadgeText(): string {
-    if (this.dayId.indexOf('current_plan_day_') === 0) {
-      return '\u7b2c ' + this.dayId.substring('current_plan_day_'.length) + ' \u5929'
-    }
-    if (this.dayId.indexOf('day_') === 0) {
-      return '\u7b2c ' + this.dayId.substring('day_'.length) + ' \u5929'
-    }
-    if (this.dayId.length > 0) {
-      return this.dayId
-    }
-    return this.title
+    return TrainingDayLabelService.formatLoopBadge(this.dayId, this.title)
   }
 
   getFallbackBannerText(): string {
@@ -306,34 +299,12 @@ export struct WorkoutPreviewPage {
     return exercise.hasExerciseDetail
   }
 
-  @Builder
-  buildStageRail() {
-    Row({ space: SpacingTokens.SM }) {
-      this.buildStageChip('预览', true)
-      this.buildStageChip('执行', false)
-      this.buildStageChip('回顾', false)
-    }
-    .width('100%')
-  }
-
-  @Builder
-  buildStageChip(label: string, active: boolean) {
-    Text(label)
-      .fontSize(FontTokens.SMALL_SIZE)
-      .fontWeight(active ? FontWeight.Medium : FontTokens.SMALL_WEIGHT)
-      .fontColor(active ? ColorTokens.TEXT_PRIMARY : ColorTokens.TEXT_TERTIARY)
-      .padding({
-        top: SpacingTokens.XS,
-        bottom: SpacingTokens.XS,
-        left: SpacingTokens.SM,
-        right: SpacingTokens.SM
-      })
-      .backgroundColor(active ? ColorTokens.SURFACE_ELEVATED : ColorTokens.SURFACE_SECONDARY)
-      .borderRadius(RadiusTokens.FULL)
-      .border({
-        width: 1,
-        color: active ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_SUBTLE
-      })
+  getStageRailItems(): StageRailItem[] {
+    const items: StageRailItem[] = []
+    items.push(createStageRailItem('预览', true, false))
+    items.push(createStageRailItem('执行', false, false))
+    items.push(createStageRailItem('回顾', false, false))
+    return items
   }
 
   @Builder
@@ -358,7 +329,7 @@ export struct WorkoutPreviewPage {
     }
     .layoutWeight(1)
     .padding(SpacingTokens.MD)
-    .backgroundColor(ColorTokens.SURFACE_SECONDARY)
+    .backgroundColor(ColorTokens.BG_ELEVATED)
     .borderRadius(RadiusTokens.MD)
     .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
     .alignItems(HorizontalAlign.Start)
@@ -375,7 +346,7 @@ export struct WorkoutPreviewPage {
         left: SpacingTokens.SM,
         right: SpacingTokens.SM
       })
-      .backgroundColor(ColorTokens.SURFACE_PRIMARY)
+      .backgroundColor(ColorTokens.SURFACE_SECONDARY)
       .borderRadius(RadiusTokens.FULL)
       .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
   }
@@ -424,7 +395,7 @@ export struct WorkoutPreviewPage {
             .alignItems(VerticalAlign.Top)
 
             if (this.hasGoal && this.hasWorkout) {
-              this.buildStageRail()
+              StageRail({ items: this.getStageRailItems() })
             }
           }
           .width('100%')

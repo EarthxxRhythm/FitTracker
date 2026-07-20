@@ -1,5 +1,5 @@
 /**
- * PrimaryDestinationStrip -- compact navigation strip for the four main product surfaces.
+ * PrimaryDestinationStrip -- compact navigation strip for the three main product surfaces.
  */
 import { AppRoutes } from '../app/AppRoutes'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../common/styles/DesignTokens'
@@ -29,8 +29,7 @@ function createPrimaryDestinationItem(
 const PRIMARY_DESTINATION_ITEMS: PrimaryDestinationItem[] = [
   createPrimaryDestinationItem('home', '训练', '今日主线', AppRoutes.HOME),
   createPrimaryDestinationItem('library', '动作库', '搜索筛选', AppRoutes.EXERCISE_LIBRARY),
-  createPrimaryDestinationItem('review', '回顾', '趋势与备份', AppRoutes.REVIEW_HOME),
-  createPrimaryDestinationItem('membership', '权益', '升级结构', AppRoutes.MONETIZATION_HUB)
+  createPrimaryDestinationItem('review', '回顾', '趋势与调整', AppRoutes.REVIEW_HOME)
 ]
 
 @Component
@@ -109,7 +108,7 @@ export struct PrimaryDestinationStrip {
               .width('100%')
               .alignItems(HorizontalAlign.Start)
             }
-            .width(132)
+            .width(128)
             .height(TouchTokens.BUTTON_HEIGHT_LARGE + 8)
             .padding({
               left: SpacingTokens.MD,
