@@ -8,6 +8,12 @@ HarmonyOS ArkUI fitness training tracker. Records workouts (sets/reps/weight), c
 
 **Stack:** HarmonyOS Stage Mode · ArkTS/ArkUI · @ohos.data.preferences · @kit.ArkData
 
+## SUPERPOWERS
+
+- Superpowers skills from `obra/superpowers` are installed in `$CODEX_HOME/skills`.
+- In this repo, use relevant Superpowers workflow skills when they fit the task, including `using-superpowers`, `brainstorming`, `writing-plans`, `test-driven-development`, `systematic-debugging`, and `verification-before-completion`.
+- Project rules in this file stay higher priority: ArkTS strict mode, HarmonyOS APIs, zh-CN UI, and design tokens override generic workflow advice.
+
 ## STRUCTURE
 
 ```
@@ -33,6 +39,7 @@ entry/src/main/ets/
 | Add a service | `common/services/` | Follow singleton + preferences pattern |
 | Add a reusable UI component | `components/` | @Component, @Prop-based props |
 | Change colors/spacing | `common/styles/DesignTokens.ets` | All visual properties defined here; NEVER hardcode |
+| Team workflow overlay | `docs/agent-team-fittracker-overlay.md` | Default profession-based agent workflow for this repo |
 | Add a training plan | `common/services/TrainingPlanService.ets` | PRESET_PLANS array |
 | Session persistence | `common/services/WorkoutSessionService.ets` | Store: `fit_tracker_sessions`, key: `sessions` |
 | Router navigation | `main_pages.json` | 9 registered pages; use `router.pushUrl({ url: 'pages/X' })` |

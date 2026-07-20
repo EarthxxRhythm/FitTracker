@@ -30,6 +30,8 @@ Thumbs.db
 # Testing
 **/.test
 /midscene_run/
+/test_run/
+/.tmp/
 /reports/midscene/
 
 # Distribution
