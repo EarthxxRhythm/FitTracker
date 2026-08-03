@@ -326,13 +326,13 @@ function Invoke-TextNavigationStep {
       break
     }
 
-    if ($ExpectedCurrentPagePath -eq 'features/review/pages/ReviewHomePage' -and $TargetText -eq $TextComparePro) {
+    if ($ExpectedCurrentPagePath -eq 'features/pencil/PencilReviewPage' -and $TargetText -eq $TextComparePro) {
       $RecordedSteps.Add(($Name + ': target not visible yet, swipe upward to reveal membership entry.')) | Out-Null
       Send-Swipe -Name ($Name + '-reveal-membership') -FromX 654 -FromY 2300 -ToX 654 -ToY 900
       continue
     }
 
-    if ($ExpectedCurrentPagePath -eq 'features/review/pages/ReviewHomePage' -and $TargetText -eq $TextStartTodayTraining) {
+    if ($ExpectedCurrentPagePath -eq 'features/pencil/PencilReviewPage' -and $TargetText -eq $TextStartTodayTraining) {
       $RecordedSteps.Add(($Name + ': target not visible yet, swipe downward to reveal current-plan entry.')) | Out-Null
       Send-Swipe -Name ($Name + '-reveal-current-plan') -FromX 654 -FromY 900 -ToX 654 -ToY 2200
       continue
@@ -344,7 +344,7 @@ function Invoke-TextNavigationStep {
       continue
     }
 
-    if ($ExpectedCurrentPagePath -eq 'pages/HomePage' -and $TargetText -eq $TextViewPlanDetail) {
+    if ($ExpectedCurrentPagePath -eq 'features/pencil/PencilHomePage' -and $TargetText -eq $TextViewPlanDetail) {
       $RecordedSteps.Add(($Name + ': target not visible yet, swipe upward to reveal preset plan detail CTA.')) | Out-Null
       Send-Swipe -Name ($Name + '-reveal-plan-detail') -FromX 654 -FromY 2360 -ToX 654 -ToY 1180
       continue
@@ -414,7 +414,7 @@ function Assert-TextVisibleStep {
       return
     }
 
-    if ($ExpectedPagePath -eq 'features/review/pages/ReviewHomePage') {
+    if ($ExpectedPagePath -eq 'features/pencil/PencilReviewPage') {
       $RecordedSteps.Add(($Name + ': target not visible yet, swipe upward to continue scanning review page.')) | Out-Null
       Send-Swipe -Name ($Name + '-review-scan') -FromX 654 -FromY 2300 -ToX 654 -ToY 900
       continue
@@ -444,17 +444,17 @@ function Normalize-ToReviewHome {
   for ($attempt = 1; $attempt -le 6; $attempt++) {
     $layoutPath = Capture-Layout -Label ('normalize-' + $attempt + '-layout')
     $pagePath = Get-LayoutPagePath -LayoutPath $layoutPath
-    if ($pagePath -eq 'features/review/pages/ReviewHomePage') {
+    if ($pagePath -eq 'features/pencil/PencilReviewPage') {
       $RecordedSteps.Add(('normalize: reached review on attempt ' + $attempt + '.')) | Out-Null
       return
     }
 
-    if ($pagePath -eq 'pages/HomePage') {
+    if ($pagePath -eq 'features/pencil/PencilHomePage') {
       Invoke-TextNavigationStep `
         -Name ('normalize-home-to-review-' + $attempt) `
-        -ExpectedCurrentPagePath 'pages/HomePage' `
+        -ExpectedCurrentPagePath 'features/pencil/PencilHomePage' `
         -TargetText $TextReview `
-        -ExpectedNextPagePath 'features/review/pages/ReviewHomePage'
+        -ExpectedNextPagePath 'features/pencil/PencilReviewPage'
       return
     }
 
@@ -466,7 +466,7 @@ function Normalize-ToReviewHome {
         -ExpectedCurrentPagePath 'features/exercise/pages/ExerciseLibraryPage' `
         -CenterX 1144 `
         -CenterY 832 `
-        -ExpectedNextPagePath 'features/review/pages/ReviewHomePage'
+        -ExpectedNextPagePath 'features/pencil/PencilReviewPage'
       return
     }
 
@@ -533,12 +533,12 @@ function Invoke-Scenario {
   $launchPagePath = Get-LayoutPagePath -LayoutPath $launchLayout
   $RecordedSteps.Add(('launch: ' + $launchPagePath + ', screenshot=' + $launchScreen)) | Out-Null
 
-  if ($Scenario -eq 'review-plan-detail' -and $launchPagePath -eq 'pages/HomePage') {
+  if ($Scenario -eq 'review-plan-detail' -and $launchPagePath -eq 'features/pencil/PencilHomePage') {
     Invoke-TextNavigationStep `
       -Name 'home-to-plan-detail' `
-      -ExpectedCurrentPagePath 'pages/HomePage' `
+      -ExpectedCurrentPagePath 'features/pencil/PencilHomePage' `
       -TargetText $TextViewPlanDetail `
-      -ExpectedNextPagePath 'features/workout/pages/TrainingPlanDetailPage'
+      -ExpectedNextPagePath 'features/pencil/PencilPlanPage'
     return
   }
 
@@ -549,61 +549,61 @@ function Invoke-Scenario {
   $RecordedSteps.Add(('review-ready: ' + $reviewPagePath + ', screenshot=' + $reviewScreen)) | Out-Null
 
   if ($Scenario -eq 'review-membership') {
-    Assert-PagePath -ActualPagePath $reviewPagePath -ExpectedPagePath 'features/review/pages/ReviewHomePage' -Phase 'review-ready'
+    Assert-PagePath -ActualPagePath $reviewPagePath -ExpectedPagePath 'features/pencil/PencilReviewPage' -Phase 'review-ready'
     Invoke-TextNavigationStep `
       -Name 'review-membership-entry' `
-      -ExpectedCurrentPagePath 'features/review/pages/ReviewHomePage' `
+      -ExpectedCurrentPagePath 'features/pencil/PencilReviewPage' `
       -TargetText $TextComparePro `
       -ExpectedNextPagePath 'features/monetization/pages/MonetizationHubPage'
     return
   }
 
   if ($Scenario -eq 'review-backup-card') {
-    Assert-PagePath -ActualPagePath $reviewPagePath -ExpectedPagePath 'features/review/pages/ReviewHomePage' -Phase 'review-ready'
+    Assert-PagePath -ActualPagePath $reviewPagePath -ExpectedPagePath 'features/pencil/PencilReviewPage' -Phase 'review-ready'
     Assert-TextVisibleStep `
       -Name 'review-backup-card' `
-      -ExpectedPagePath 'features/review/pages/ReviewHomePage' `
+      -ExpectedPagePath 'features/pencil/PencilReviewPage' `
       -TargetText $TextBackupAction
     return
   }
 
   if ($Scenario -eq 'review-workout-loop') {
-    Assert-PagePath -ActualPagePath $reviewPagePath -ExpectedPagePath 'features/review/pages/ReviewHomePage' -Phase 'review-ready'
+    Assert-PagePath -ActualPagePath $reviewPagePath -ExpectedPagePath 'features/pencil/PencilReviewPage' -Phase 'review-ready'
     Invoke-TextNavigationStep `
       -Name 'review-to-home' `
-      -ExpectedCurrentPagePath 'features/review/pages/ReviewHomePage' `
+      -ExpectedCurrentPagePath 'features/pencil/PencilReviewPage' `
       -TargetText $TextStartTodayTraining `
-      -ExpectedNextPagePath 'pages/HomePage'
+      -ExpectedNextPagePath 'features/pencil/PencilHomePage'
     Invoke-TextNavigationStep `
       -Name 'home-to-preview' `
-      -ExpectedCurrentPagePath 'pages/HomePage' `
+      -ExpectedCurrentPagePath 'features/pencil/PencilHomePage' `
       -TargetText $TextStartTraining `
-      -ExpectedNextPagePath 'features/workout/pages/WorkoutPreviewPage'
+      -ExpectedNextPagePath 'features/pencil/PencilPreviewPage'
     Invoke-TextNavigationStep `
       -Name 'preview-to-active' `
-      -ExpectedCurrentPagePath 'features/workout/pages/WorkoutPreviewPage' `
+      -ExpectedCurrentPagePath 'features/pencil/PencilPreviewPage' `
       -TargetText $TextStartTraining `
-      -ExpectedNextPagePath 'features/workout/pages/ActiveWorkoutPage'
+      -ExpectedNextPagePath 'features/pencil/PencilActivePage'
     return
   }
 
   if ($Scenario -eq 'review-metrics') {
-    Assert-PagePath -ActualPagePath $reviewPagePath -ExpectedPagePath 'features/review/pages/ReviewHomePage' -Phase 'review-ready'
+    Assert-PagePath -ActualPagePath $reviewPagePath -ExpectedPagePath 'features/pencil/PencilReviewPage' -Phase 'review-ready'
     Assert-TextVisibleStep `
       -Name 'review-metrics-average-completion' `
-      -ExpectedPagePath 'features/review/pages/ReviewHomePage' `
+      -ExpectedPagePath 'features/pencil/PencilReviewPage' `
       -TargetText '78%'
     Assert-TextVisibleStep `
       -Name 'review-metrics-latest-volume' `
-      -ExpectedPagePath 'features/review/pages/ReviewHomePage' `
+      -ExpectedPagePath 'features/pencil/PencilReviewPage' `
       -TargetText '357 kg'
     Assert-TextVisibleStep `
       -Name 'review-metrics-weekly-volume' `
-      -ExpectedPagePath 'features/review/pages/ReviewHomePage' `
+      -ExpectedPagePath 'features/pencil/PencilReviewPage' `
       -TargetText '1364 kg'
     Assert-TextVisibleStep `
       -Name 'review-metrics-pr' `
-      -ExpectedPagePath 'features/review/pages/ReviewHomePage' `
+      -ExpectedPagePath 'features/pencil/PencilReviewPage' `
       -TargetText '105kg' `
       -MaxAttempts 6 `
       -AllowSubstringMatch $true
@@ -611,32 +611,32 @@ function Invoke-Scenario {
   }
 
   if ($false -and $Scenario -eq 'review-metrics') {
-    Assert-PagePath -ActualPagePath $reviewPagePath -ExpectedPagePath 'features/review/pages/ReviewHomePage' -Phase 'review-ready'
+    Assert-PagePath -ActualPagePath $reviewPagePath -ExpectedPagePath 'features/pencil/PencilReviewPage' -Phase 'review-ready'
     Assert-TextVisibleStep `
       -Name 'review-metrics-average-completion' `
-      -ExpectedPagePath 'features/review/pages/ReviewHomePage' `
+      -ExpectedPagePath 'features/pencil/PencilReviewPage' `
       -TargetText '78%'
     Assert-TextVisibleStep `
       -Name 'review-metrics-latest-volume' `
-      -ExpectedPagePath 'features/review/pages/ReviewHomePage' `
+      -ExpectedPagePath 'features/pencil/PencilReviewPage' `
       -TargetText '357 kg'
     Assert-TextVisibleStep `
       -Name 'review-metrics-weekly-volume' `
-      -ExpectedPagePath 'features/review/pages/ReviewHomePage' `
+      -ExpectedPagePath 'features/pencil/PencilReviewPage' `
       -TargetText '1364 kg'
     Assert-TextVisibleStep `
       -Name 'review-metrics-pr' `
-      -ExpectedPagePath 'features/review/pages/ReviewHomePage' `
+      -ExpectedPagePath 'features/pencil/PencilReviewPage' `
       -TargetText '杠铃卧推 · 105kg' `
       -MaxAttempts 6
     return
   }
 
   if ($Scenario -eq 'review-exercise-detail') {
-    Assert-PagePath -ActualPagePath $reviewPagePath -ExpectedPagePath 'features/review/pages/ReviewHomePage' -Phase 'review-ready'
+    Assert-PagePath -ActualPagePath $reviewPagePath -ExpectedPagePath 'features/pencil/PencilReviewPage' -Phase 'review-ready'
     Invoke-TextNavigationStep `
       -Name 'review-to-library' `
-      -ExpectedCurrentPagePath 'features/review/pages/ReviewHomePage' `
+      -ExpectedCurrentPagePath 'features/pencil/PencilReviewPage' `
       -TargetText $TextExerciseLibrary `
       -ExpectedNextPagePath 'features/exercise/pages/ExerciseLibraryPage'
     Invoke-TextNavigationStep `
@@ -648,17 +648,17 @@ function Invoke-Scenario {
   }
 
   if ($Scenario -eq 'review-plan-detail') {
-    Assert-PagePath -ActualPagePath $reviewPagePath -ExpectedPagePath 'features/review/pages/ReviewHomePage' -Phase 'review-ready'
+    Assert-PagePath -ActualPagePath $reviewPagePath -ExpectedPagePath 'features/pencil/PencilReviewPage' -Phase 'review-ready'
     Invoke-TextNavigationStep `
       -Name 'review-to-home-for-plan-detail' `
-      -ExpectedCurrentPagePath 'features/review/pages/ReviewHomePage' `
+      -ExpectedCurrentPagePath 'features/pencil/PencilReviewPage' `
       -TargetText $TextStartTodayTraining `
-      -ExpectedNextPagePath 'pages/HomePage'
+      -ExpectedNextPagePath 'features/pencil/PencilHomePage'
     Invoke-TextNavigationStep `
       -Name 'home-to-plan-detail' `
-      -ExpectedCurrentPagePath 'pages/HomePage' `
+      -ExpectedCurrentPagePath 'features/pencil/PencilHomePage' `
       -TargetText $TextViewPlanDetail `
-      -ExpectedNextPagePath 'features/workout/pages/TrainingPlanDetailPage'
+      -ExpectedNextPagePath 'features/pencil/PencilPlanPage'
     return
   }
 

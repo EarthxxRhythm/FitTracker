@@ -102,13 +102,13 @@ function buildRoutePackets(evidence) {
 
   return [
     {
-      route: 'LoginPage',
+      route: 'PencilLoginPage',
       order: 1,
       focus: ['auth entry feels compact', 'primary CTA is obvious'],
       evidence: [authArtifact]
     },
     {
-      route: 'RegisterPage',
+      route: 'PencilRegisterPage',
       order: 2,
       focus: ['register handoff matches login style', 'validation/status text feels intentional'],
       evidence: [authArtifact]
@@ -120,19 +120,19 @@ function buildRoutePackets(evidence) {
       evidence: [authArtifact]
     },
     {
-      route: 'HomePage',
+      route: 'PencilHomePage',
       order: 4,
       focus: ['today card dominates', 'preset plans remain secondary'],
       evidence: [currentPlanArtifact]
     },
     {
-      route: 'WorkoutPreviewPage',
+      route: 'PencilPreviewPage',
       order: 5,
       focus: ['preview continues naturally from home', 'start-training CTA dominates'],
       evidence: [currentPlanArtifact]
     },
     {
-      route: 'ActiveWorkoutPage',
+      route: 'PencilActivePage',
       order: 6,
       focus: ['execution screen feels focused', 'repeated inputs are visually stable'],
       evidence: [currentPlanArtifact]
@@ -144,7 +144,7 @@ function buildRoutePackets(evidence) {
       evidence: [latestSummaryArtifact]
     },
     {
-      route: 'ReviewHomePage',
+      route: 'PencilReviewPage',
       order: 8,
       focus: ['dense but scannable', 'backup and upgrade entry do not compete with review content'],
       evidence: [latestBackupArtifact]
@@ -162,7 +162,7 @@ function buildRoutePackets(evidence) {
       evidence: [latestMediaArtifact, reviewExerciseArtifact]
     },
     {
-      route: 'TrainingPlanDetailPage',
+      route: 'PencilPlanPage',
       order: 11,
       focus: ['plan structure is easy to scan', 'default enable path stays clearer than exploration'],
       evidence: [latestPlanDetailArtifact]

@@ -1,4 +1,4 @@
-import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
+﻿import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { AppRoutes } from '../app/AppRoutes';
@@ -44,6 +44,19 @@ export default class EntryAbility extends UIAbility {
   onWindowStageCreate(windowStage: window.WindowStage): void {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
+    windowStage.getMainWindow().then((mainWindow: window.Window) => {
+      mainWindow.setWindowSystemBarProperties({
+        statusBarColor: '#0B0F13',
+        navigationBarColor: '#0B0F13',
+        isStatusBarLightIcon: true,
+        isNavigationBarLightIcon: true
+      }).catch((err: Error) => {
+        hilog.error(DOMAIN, 'testTag', 'Failed to style system bars. Cause: %{public}s', JSON.stringify(err));
+      });
+    }).catch((err: Error) => {
+      hilog.error(DOMAIN, 'testTag', 'Failed to get main window. Cause: %{public}s', JSON.stringify(err));
+    });
+
     const initialPage = resolveInitialPage(false)
     LaunchRequestStore.savePendingDebugSeedKey(this.context, this.launchDebugSeedKey)
       .catch((err: Error) => {
@@ -72,3 +85,5 @@ export default class EntryAbility extends UIAbility {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onBackground');
   }
 }
+
+

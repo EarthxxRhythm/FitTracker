@@ -9,17 +9,17 @@ const manifestPath = resolve(outputRoot, 'manifest.json')
 const outputJson = process.argv.includes('--json')
 
 const routeExecutionMatchers = {
-  LoginPage: [],
-  RegisterPage: ['Assert - The register page is visible and shows the phone, password, and confirm password fields.'],
+  PencilLoginPage: [],
+  PencilRegisterPage: ['Assert - The register page is visible and shows the phone, password, and confirm password fields.'],
   GoalSetupPage: ['goal setup page'],
-  HomePage: ['Assert - The FitTracker home page is visible. It shows the current enabled preset plan'],
-  WorkoutPreviewPage: ['Assert - The FitTracker workout preview screen is visible.'],
-  ActiveWorkoutPage: ['Assert - The active workout execution screen is visible.'],
+  PencilHomePage: ['Assert - The FitTracker home page is visible. It shows the current enabled preset plan'],
+  PencilPreviewPage: ['Assert - The FitTracker workout preview screen is visible.'],
+  PencilActivePage: ['Assert - The active workout execution screen is visible.'],
   WorkoutSummaryPage: ['Assert - The workout summary page is visible.'],
-  ReviewHomePage: ['Assert - The training review page is visible.'],
+  PencilReviewPage: ['Assert - The training review page is visible.'],
   ExerciseLibraryPage: ['Assert - The exercise library page is visible.'],
   ExerciseDetailPage: ['Assert - The exercise detail page is visible.', 'Assert - The exercise detail page shows the media section'],
-  TrainingPlanDetailPage: ['Assert - The training plan detail page is visible.'],
+  PencilPlanPage: ['Assert - The training plan detail page is visible.'],
   MonetizationHubPage: ['Assert - The membership page remains visible and shows that the current entitlement or preview state is Pro.']
 }
 

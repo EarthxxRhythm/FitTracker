@@ -329,7 +329,7 @@ getBillingEnvironment(): 'disabled' | 'mock' | 'sandbox' | 'production'
 
 文件：
 
-- `entry/src/main/ets/features/review/pages/ReviewHomePage.ets`
+- `entry/src/main/ets/features/pencil/PencilReviewPage.ets`
 - `entry/src/main/ets/shared/services/ReviewInsightsService.ets`
 
 建议先对这些能力预留 gate：
@@ -361,7 +361,7 @@ getBillingEnvironment(): 'disabled' | 'mock' | 'sandbox' | 'production'
 文件：
 
 - `entry/src/main/ets/common/services/TrainingPlanService.ets`
-- `entry/src/main/ets/features/workout/pages/TrainingPlanDetailPage.ets`
+- `entry/src/main/ets/features/pencil/PencilPlanPage.ets`
 
 建议预留：
 

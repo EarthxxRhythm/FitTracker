@@ -310,13 +310,25 @@ function Reset-AppDataIfRequested {
   Start-Sleep -Seconds 1
 }
 
+function Get-LaunchSeedKeyForTarget {
+  if ($Target -eq 'membership') {
+    return 'review_metrics'
+  }
+  return 'today_flow'
+}
+
 function Launch-AppToForeground {
   param(
     [string]$Title = "launch app",
-    [int]$PauseSeconds = 2
+    [int]$PauseSeconds = 2,
+    [string]$SeedKey = ""
   )
 
-  Invoke-Hdc -Title $Title -CommandArgs @("shell", "aa", "start", "-a", $AbilityName, "-b", $BundleName)
+  $commandArgs = @("shell", "aa", "start", "-a", $AbilityName, "-b", $BundleName)
+  if (-not [string]::IsNullOrWhiteSpace($SeedKey)) {
+    $commandArgs += @("--ps", "devSeed", $SeedKey)
+  }
+  Invoke-Hdc -Title $Title -CommandArgs $commandArgs
   Start-Sleep -Seconds $PauseSeconds
 }
 
@@ -401,7 +413,12 @@ function Invoke-VisualActWithRetry {
 }
 
 function Ensure-AppReady {
-  Launch-AppToForeground -Title "launch app" -PauseSeconds 2
+  $launchSeedKey = Get-LaunchSeedKeyForTarget
+  $initialPauseSeconds = 2
+  if ($launchSeedKey.Length > 0) {
+    $initialPauseSeconds = 3
+  }
+  Launch-AppToForeground -Title "launch app" -PauseSeconds $initialPauseSeconds -SeedKey $launchSeedKey
   Invoke-MidsceneConnect -Title "connect device"
   Ensure-FitTrackerForegroundAfterLaunch -TitlePrefix "restore app after connect" -PauseSeconds 2
   Invoke-Midscene -Title "capture startup screen" -CommandArgs @("take_screenshot")
@@ -583,10 +600,10 @@ function Run-SummaryPageSmoke {
 
   Invoke-VisualActWithRetry `
     -Title "summary flow save all sets stable" `
-    -PrimaryPrompt "On the active workout execution screen, scroll to the final save section, tap the action that completes all remaining sets and saves the workout, and stop when the workout summary page is visible." `
+    -PrimaryPrompt "On the active workout execution screen, first make sure at least one visible formal set has recorded data. If the save action is disabled or no set is recorded yet, stay on the first visible exercise card, enter 20 in the input labeled 重量 kg and 10 in the input labeled 次数 for the current first formal set only. Do not add extra set rows. After one set is recorded and the save action becomes enabled, scroll to the final save section, tap the button labeled 结束训练并进入复盘, and stop when the workout summary page is visible." `
     -PrimaryAssertTitle "assert workout summary page stable" `
     -PrimaryAssertPrompt "The workout summary page is visible. It shows a workout summary or training day header, completion metrics such as completion rate or completed sets, and visible next actions like edit workout record, view training review, or return home. There is no crash dialog." `
-    -RetryPrompt "If the workout summary page is still not visible, stay inside the FitTracker app, return to the final save section if needed, tap the action that completes all remaining sets and saves the workout again, and stop when the workout summary page is visible." `
+    -RetryPrompt "If the workout summary page is still not visible, stay inside the same active workout flow, confirm one visible formal set has 20 kg and 10 reps recorded if no set has been recorded yet, then return to the final save section, tap the enabled button labeled 结束训练并进入复盘 again, and stop when the workout summary page is visible." `
     -RetryAssertTitle "assert workout summary page stable after retry" `
     -RetryAssertPrompt "The workout summary page is visible. It shows a workout summary or training day header, completion metrics such as completion rate or completed sets, and visible next actions like edit workout record, view training review, or return home. There is no crash dialog."
 

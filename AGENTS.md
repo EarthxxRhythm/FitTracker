@@ -1,184 +1,88 @@
-# FitTracker — Project Knowledge Base
+# FitTracker 项目约束
 
-**Generated:** 2026-04-29 | **Commit:** b702f45 | **Branch:** master
+> 最后核对：2026-08-01。本文只描述当前主线；历史设计、旧路由和已归档计划不作为实现依据。
 
-## OVERVIEW
+## 项目概览
 
-HarmonyOS ArkUI fitness training tracker. Records workouts (sets/reps/weight), computes 1RM (Epley formula), persists sessions to local preferences, shows weekly stats + calendar heatmap + personal records. Local-only, no backend. Chinese (zh-CN) UI.
+HarmonyOS Stage 模式的 ArkUI 健身训练应用，中文本地化、本地数据优先。应用记录训练组数/次数/重量，计算 Epley 1RM，并保存目标、计划、训练会话、复盘与备份数据。
 
-**Stack:** HarmonyOS Stage Mode · ArkTS/ArkUI · @ohos.data.preferences · @kit.ArkData
+技术栈：ArkTS/ArkUI、`@kit.ArkData` preferences、Stage Ability、ohosTest。
 
-## SUPERPOWERS
+## 当前代码边界
 
-- Superpowers skills from `obra/superpowers` are installed in `$CODEX_HOME/skills`.
-- In this repo, use relevant Superpowers workflow skills when they fit the task, including `using-superpowers`, `brainstorming`, `writing-plans`, `test-driven-development`, `systematic-debugging`, and `verification-before-completion`.
-- Project rules in this file stay higher priority: ArkTS strict mode, HarmonyOS APIs, zh-CN UI, and design tokens override generic workflow advice.
-
-## STRUCTURE
-
-```
+```text
 entry/src/main/ets/
-├── common/
-│   ├── services/     # Singleton services: Auth, TrainingPlan, WorkoutSession, Exercise, etc.
-│   ├── styles/       # DesignTokens.ets (colors, fonts, spacing, radii, shadows)
-│   └── utils/        # ValidationUtils.ets (phone/password validators)
-├── components/       # Reusable @Component widgets: AppButton, AppCard, AppInput, etc.
-├── pages/            # Auth entry pages, HomePage, and legacy shells kept out of the main route
-├── app/              # Startup routing and app-level route helpers
-├── features/         # Current product pages for onboarding, workout, review, exercise
-├── entryability/     # EntryAbility.ets — app lifecycle entry
-└── entrybackupability/ # EntryBackupAbility.ets — backup extension
+├── app/                  # 启动、路由常量、应用壳
+├── features/
+│   ├── pencil/           # 当前视觉主线：登录、首页、计划、训练、复盘、个人页
+│   ├── welcome/          # 欢迎页
+│   ├── onboarding/       # 目标设置
+│   ├── exercise/         # 动作库与动作详情
+│   ├── monetization/     # 会员能力展示
+│   └── workout/          # 训练完成、摘要及训练流兼容服务
+├── shared/               # 跨功能内容、计划、复盘、备份、同步和内存仓库
+├── common/               # 稳定的认证、会话、计划/训练持久化和设计令牌
+├── components/           # 可复用 ArkUI 组件
+└── pages/                # 仅暂存正在迁移的 HomePage 兼容包装，不新增主线页面
 ```
 
-## WHERE TO LOOK
+`entry/src/main/resources/base/profile/main_pages.json` 是页面注册的唯一事实来源；`app/AppRoutes.ets` 是代码中的路由常量来源。新页面必须同时满足：文件存在、注册到 `main_pages.json`、由 `AppRoutes` 或明确的父页面引用。
 
-| Task | Location | Notes |
-|------|----------|-------|
-| Add a main-line page | `app/` or `features/` + `main_pages.json` | Register in `resources/base/profile/main_pages.json` |
-| Add a legacy page shell | `pages/` | Keep out of the main route unless explicitly required |
-| Add a service | `common/services/` | Follow singleton + preferences pattern |
-| Add a reusable UI component | `components/` | @Component, @Prop-based props |
-| Change colors/spacing | `common/styles/DesignTokens.ets` | All visual properties defined here; NEVER hardcode |
-| Team workflow overlay | `docs/agent-team-fittracker-overlay.md` | Default profession-based agent workflow for this repo |
-| Add a training plan | `common/services/TrainingPlanService.ets` | PRESET_PLANS array |
-| Session persistence | `common/services/WorkoutSessionService.ets` | Store: `fit_tracker_sessions`, key: `sessions` |
-| Router navigation | `main_pages.json` | 9 registered pages; use `router.pushUrl({ url: 'pages/X' })` |
+当前注册主线：
 
-## CODE MAP
+- `features/pencil/PencilSplashPage`
+- `features/welcome/pages/PencilWelcomePage`
+- `features/pencil/PencilLoginPage`
+- `features/pencil/PencilRegisterPage`
+- `features/pencil/PencilProfilePage`
+- `features/onboarding/pages/GoalSetupPage`
+- `app/PencilAppShell`
+- `features/pencil/PencilHomePage`
+- `features/exercise/pages/ExerciseLibraryPage`
+- `features/exercise/pages/ExerciseDetailPage`
+- `features/monetization/pages/MonetizationHubPage`
+- `features/pencil/PencilPlanPage`
+- `features/pencil/PencilPreviewPage`
+- `features/pencil/PencilActivePage`
+- `features/workout/pages/WorkoutCompletePage`
+- `features/workout/pages/WorkoutSummaryPage`
+- `features/pencil/PencilReviewPage`
 
-| Symbol | Type | Location | Refs | Role |
-|--------|------|----------|------|------|
-| `StartupPage` | @Entry struct | `app/StartupPage.ets` | — | Cold-start route gate: login vs home |
-| `LoginPage` | @Entry struct | `pages/LoginPage.ets` | — | Local login entry |
-| `RegisterPage` | @Entry struct | `pages/RegisterPage.ets` | — | Local registration entry |
-| `HomePage` | @Entry struct | `pages/HomePage.ets` | — | Today's training entry + plan summary |
-| `Index` | @Entry struct | `pages/Index.ets` | — | Retained legacy shell that links back to HomePage |
-| `ProfilePage` | @Entry struct | `pages/ProfilePage.ets` | — | Retained legacy shell that links back to HomePage |
-| `GoalSetupPage` | @Entry struct | `features/onboarding/pages/GoalSetupPage.ets` | — | Save goal and generate plan |
-| `WorkoutPreviewPage` | @Entry struct | `features/workout/pages/WorkoutPreviewPage.ets` | — | Preview plan before training |
-| `ActiveWorkoutPage` | @Entry struct | `features/workout/pages/ActiveWorkoutPage.ets` | — | Live training execution and 1RM input |
-| `WorkoutSummaryPage` | @Entry struct | `features/workout/pages/WorkoutSummaryPage.ets` | — | Workout recap and transition to review |
-| `ReviewHomePage` | @Entry struct | `features/review/pages/ReviewHomePage.ets` | — | History, trends, and goal adjustment |
-| `ExerciseDetailPage` | @Entry struct | `features/exercise/pages/ExerciseDetailPage.ets` | — | Exercise info + personal records |
-| `TrainingPlanService` | singleton class | `common/services/TrainingPlanService.ets` | all pages | 5 preset plans, plan CRUD |
-| `WorkoutSessionService` | singleton class | `common/services/WorkoutSessionService.ets` | 3 pages | Session save/load, weekly stats, records |
-| `AuthService` | singleton class | `common/services/AuthService.ets` | 2 pages | Mock auth (in-memory) |
-| `ColorTokens` | static class | `common/styles/DesignTokens.ets` | all UI files | Design tokens: PRIMARY=#00C853, etc. |
-| `AppButton` | @Component | `components/AppButton.ets` | all pages | Primary/secondary/ghost button with loading |
+旧的 `pages/Index`、`pages/ProfilePage`、旧认证页、旧标签栏、旧常量和未注册的旧功能页已经移除。不要重新创建历史壳，也不要把已归档页面加入主路由。
 
-## LEGACY PAGES
+## 服务归属
 
-The following page shells stay in `pages/` only as historical material and must not be reintroduced into `main_pages.json`:
+- `common/services/`：preferences 持久化、认证、会话 token、用户资料、稳定的计划/训练 API。
+- `shared/services/`：内容目录、计划引擎、首页/复盘派生数据、同步、备份、内存仓库和持久化降级组合。
+- `features/workout/services/`：仅放训练功能专属编排，以及新旧训练数据模型之间的兼容桥。
 
-- `Index.ets`
-- `ProfilePage.ets`
+服务均使用模块级 singleton：`export default new ServiceName()`。调用方直接导入默认实例，禁止在页面或服务中再次 `new`。
 
-## CONVENTIONS
+现有兼容层（尤其 `WorkoutSessionPersistenceBridgeService` 和 `PersistenceFallbackService`）用于保护已有本地训练数据，除非明确完成数据迁移，不要删除或绕过。
 
-- **Singleton services**: `export default new ClassName()` — instantiated at module level. NEVER use `new` at call site.
-- **Preferences**: `preferences.getPreferences(context, STORE_NAME)` from `@kit.ArkData`, then `.put()` + `.flush()`. Store names use `fit_tracker_` prefix.
-- **Context**: Passed via `getContext(this)` in @Component structs. Async methods take `context: Context`.
-- **Router params**: `router.getParams() as Record<string, T>`. Always wrapped in try-catch.
-- **Design tokens**: ALL visual values from `DesignTokens.ets`. NO hardcoded colors, fonts, spacing, or radii in components.
-- **Page structure**: `@Entry @Component struct XxxPage { @State ...; async aboutToAppear() { ... }; build() { Column() { ... } } }`
-- **Chinese UI**: All user-facing strings in Chinese. Placeholders, labels, button text.
-- **JSDoc header**: Each file starts with `/** Name —— description */` + feature number references (e.g., `功能 #26`).
+## ArkUI / ArkTS 约定
 
-## ANTI-PATTERNS (THIS PROJECT)
+- 页面使用 `@Entry @Component struct`；异步加载放在 `aboutToAppear()`，销毁时清理 timer/listener。
+- 导航使用 `this.getUIContext().getRouter()`，路由名只引用 `AppRoutes` 常量。路由参数使用 `getParams()` 时必须显式声明类型并用 `try-catch` 处理缺失参数。
+- 系统上下文通过 `getUIContext().getHostContext()` 获取并做空值保护；preferences API 的异步调用必须在成功写入后 `flush()`。
+- 通用组件的颜色、字体、间距、圆角优先使用 `common/styles/DesignTokens.ets`；Pencil 主线允许使用 feature 内集中声明的视觉 token，不要在单个组件中散落魔法值。
+- 所有新增用户可见文本使用中文；资源、权限和 API Level 变更要同步检查 `module.json5` 与资源目录。
+- 保持 ArkTS strict mode：不使用 `any`、`unknown`、`as const`、`@ts-ignore`、`for..in`、解构声明、函数表达式、嵌套函数、`require`、`globalThis` 或对象索引访问；对象和数组使用显式接口/类型。
+- import 必须位于文件顶部；优先使用官方 HarmonyOS API 和 ArkUI 组件。
 
-- **DO NOT** use `new` to instantiate services — use the default-exported singleton instance.
-- **DO NOT** hardcode colors/fonts/spacing — always use `ColorTokens.*`, `FontTokens.*`, `SpacingTokens.*`.
-- **DO NOT** modify `AppButton` primary background color or add shadows to ghost variants.
-- **DO NOT** use `@ts-ignore` or `as any`.
-- **DO NOT** create `node_modules` inside `entry/src/main/ets/`.
+## 清理规则
 
-## COMMANDS
+- 先查 `main_pages.json`、`AppRoutes.ets`、ArkTS import 和测试引用，再删除文件。
+- 当前工作区已有的未提交改动属于用户资产；除非用户明确要求，不回退、覆盖、移动或删除这些文件。
+- 仅因为文件名含有 `legacy` 不足以删除：先确认是否承载本地数据兼容、备份或测试契约。
+- 生成的构建日志、模拟器输出和 `test_run/` 不属于源代码；清理它们前先确认不是用户要保留的验收证据。
 
-```bash
-# Build (requires DevEco Studio)
+## 常用检查
+
+```powershell
+node tools/check-main-pages.mjs
+node tools/check-gates.mjs
 hvigorw assembleHap --mode module -p product=default
-
-# OpenSpec workflow
-openspec list                    # List active changes
-openspec status --change <name>  # Check change status
-openspec instructions apply --change <name>  # Get implementation tasks
 ```
 
-## NOTES
-
-- **Mock auth**: `AuthService` stores users in memory (`Map<string, string>`). No real backend.
-- **No tests**: `ohosTest` module exists (hamock + hypium) but no test files written.
-- **Preferences keys**: `fit_tracker_plans` (my_plans, current_plan_id), `fit_tracker_sessions` (sessions).
-- **1RM formula**: Epley: `weight * (1 + reps / 30)` — consistent across app.
-- **Calendar heatmap**: 5-level green scale based on `trainingDates` set in StatsPage.
-
-## ARKTS STRICT MODE RULES (HarmonyOS Compiler Constraints)
-
-以下 ArkTS 语法约束违反将直接导致**编译失败**。编写或修改任何 `.ets` 文件时必须遵守。
-
-### 类型系统
-
-| 规则 | 说明 | 本项目常见场景 |
-|------|------|---------------|
-| `arkts-no-as-const` | 禁止 `as const` 断言 | 用显式类型标注 + 接口替代 |
-| `arkts-no-any-unknown` | 禁止 `any` / `unknown` 类型 | 始终显式声明类型 |
-| `arkts-no-untyped-obj-literals` | 对象字面量必须对应显式 class/interface | 用**工厂函数**返回显式类型，或先声明类型变量 |
-| `arkts-no-noninferrable-arr-literals` | 数组元素必须可推断类型 | 给数组加类型标注 `: Type[]`，或使用工厂函数 |
-| `arkts-identifiers-as-prop-names` | 属性名必须是合法标识符 | **禁止中文/连字符作为 key** → 改用函数映射 |
-| `arkts-no-props-by-index` | 禁止 `obj["field"]` 索引访问 | 改用 `obj.field` 点语法；动态字段用 if/else |
-| 结构化类型 | 不支持比较两种类型的公共 API | 用继承、接口或类型别名 |
-
-### 语法特性
-
-| 规则 | 说明 | 替代方案 |
-|------|------|---------|
-| 逗号运算符 | 仅 `for` 循环内允许 | 拆分为独立语句 |
-| `for..in` | 禁止遍历对象属性 | 用 `for..of` / 常规 `for` 循环 |
-| 解构赋值/声明 | 不支持 | 用临时变量逐字段取值 |
-| 展开运算符 `...` | 仅支持数组展开到 rest 参数 | 手动解包 |
-| 函数表达式 | 不支持 | 改用箭头函数 |
-| 嵌套函数 | 不支持 | 改用箭头函数/lambda |
-| `in` 运算符 | 不支持 | 用 `instanceof` |
-| `typeof` 类型标注 | 不支持 | 用显式类型声明 |
-| `Function.apply/bind/call` | 不支持 | 遵循传统 OOP 风格，不操作 `this` |
-
-### 模块与导入
-
-| 规则 | 说明 |
-|------|------|
-| 所有 `import` 必须在文件最顶部 | import 之前不能有其他语句 |
-| 不支持 `require` / `export =` | 用标准 `import` / `export` |
-| 不支持全局作用域 / `globalThis` | 用显式模块导入导出 |
-| 不支持命名空间用作对象 | 用 class 或 module |
-
-### 类与接口
-
-| 规则 | 说明 |
-|------|------|
-| 构造函数中不声明字段 | 在类声明内部声明 |
-| 不支持类用作对象 | 类声明引入的是类型，不是值 |
-| 不支持声明合并 | 每个 class/interface/enum 定义必须紧凑 |
-| 不支持交叉类型 | 用继承替代 |
-| 不支持映射类型 | 用常规 class 实现 |
-| `Partial/Required/Readonly/Record` 可用 | 其他 TypeScript 工具类型不支持 |
-| 不支持索引签名 | 改用数组 |
-
-### HarmonyOS API 使用规范
-
-- **优先使用官方 API/UI 组件/动画**，不自行构造 API
-- API 调用前确认：入参/返回值、API Level、设备支持情况
-- 确认是否需要 `import` 语句和对应权限（`module.json5`）
-- `@Component` / `@ComponentV2` 区分兼容性，与已有工程保持一致
-- UI 常量使用 resources 资源值 + `$r` 引用，避免字面值
-- 国际化资源在每种语言下添加值，避免遗漏
-- 颜色资源需支持暗黑/白色双主题
-
-### ArkUI 动画规范
-
-- 优先使用 `animateTo`、`transform`、声明式 `@State` 驱动
-- 复杂子组件设置 `renderGroup(true)` 减少渲染批次
-- 动画过程中**禁止频繁改 `width/height/padding/margin`**，严重影响性能
-
-### 本项目已修复的错误模式（参考）
-
-修复方式 → 工厂函数（`mkExercise`/`mkDay`/`mkPlan`）、函数映射（`getMuscleColor`）、显式类型变量
+设备回归使用 `tools/auth-regression.ps1` 或 `tools/dev-smoke.ps1`；没有设备时至少运行路由检查、静态引用检查和可用的 ArkTS/ohosTest 构建。

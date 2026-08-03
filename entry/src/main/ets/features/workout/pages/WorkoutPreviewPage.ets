@@ -301,10 +301,17 @@ export struct WorkoutPreviewPage {
 
   getStageRailItems(): StageRailItem[] {
     const items: StageRailItem[] = []
-    items.push(createStageRailItem('预览', true, false))
-    items.push(createStageRailItem('执行', false, false))
-    items.push(createStageRailItem('回顾', false, false))
+    items.push(createStageRailItem('\u786e\u8ba4', true, false))
+    items.push(createStageRailItem('\u6267\u884c', false, false))
+    items.push(createStageRailItem('\u603b\u7ed3', false, false))
     return items
+  }
+
+  getPrimaryActionText(): string {
+    if (this.hasFallback) {
+      return '\u786e\u8ba4\u540e\u5f00\u59cb\u8bad\u7ec3'
+    }
+    return '\u5f00\u59cb\u8bad\u7ec3'
   }
 
   @Builder
@@ -497,7 +504,7 @@ export struct WorkoutPreviewPage {
                 .width('100%')
 
                 AppButton({
-                  text: '\u5f00\u59cb\u8bad\u7ec3',
+                  text: this.getPrimaryActionText(),
                   type: 'primary',
                   buttonSize: 'large',
                   block: true,
@@ -508,7 +515,7 @@ export struct WorkoutPreviewPage {
 
                 if (this.hasFallback) {
                   Column({ space: SpacingTokens.XS }) {
-                    Text('\u5907\u9009\u52a8\u4f5c\u63d0\u793a')
+                    Text('\u5f00\u59cb\u524d\u8bf7\u786e\u8ba4')
                       .fontSize(FontTokens.MICRO_SIZE)
                       .fontWeight(FontTokens.MICRO_WEIGHT)
                       .fontColor(ColorTokens.WARNING)

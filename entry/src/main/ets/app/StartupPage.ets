@@ -80,7 +80,7 @@ export struct StartupPage {
       const isLoggedIn: boolean = await SessionManager.isLoggedIn(context)
       if (!isLoggedIn) {
         this.setStartupState(0, '准备进入登录', '还没有检测到可恢复的登录态，正在跳转到本地登录入口。')
-        pageRouter.replaceUrl({ url: AppRoutes.LOGIN })
+        pageRouter.replaceUrl({ url: AppRoutes.WELCOME })
         return
       }
       this.setStartupState(1, '同步本地内容', '正在加载动作库和本地同步包，确保训练详情与媒体入口使用同一份内容基线。')

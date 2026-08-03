@@ -1,6 +1,6 @@
 # FitTracker UI Acceptance Checklist
 
-Last updated: 2026-06-11
+Last updated: 2026-08-01
 
 ## Purpose
 
@@ -19,18 +19,19 @@ Use this checklist together with:
 
 Review these registered user-facing routes:
 
-- `pages/LoginPage`
-- `pages/RegisterPage`
+- `features/pencil/PencilLoginPage`
+- `features/pencil/PencilRegisterPage`
 - `features/onboarding/pages/GoalSetupPage`
-- `pages/HomePage`
+- `features/pencil/PencilHomePage`
 - `features/exercise/pages/ExerciseLibraryPage`
 - `features/exercise/pages/ExerciseDetailPage`
 - `features/monetization/pages/MonetizationHubPage`
-- `features/workout/pages/TrainingPlanDetailPage`
-- `features/workout/pages/WorkoutPreviewPage`
-- `features/workout/pages/ActiveWorkoutPage`
+- `features/pencil/PencilPlanPage`
+- `features/pencil/PencilPreviewPage`
+- `features/pencil/PencilActivePage`
 - `features/workout/pages/WorkoutSummaryPage`
-- `features/review/pages/ReviewHomePage`
+- `features/pencil/PencilReviewPage`
+- `app/PencilAppShell`
 
 ## Acceptance Standard
 

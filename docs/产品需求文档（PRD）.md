@@ -42,13 +42,13 @@ flowchart LR
 
 | 页面 | 路由 | MVP 职责 |
 | --- | --- | --- |
-| 启动页 | `app/StartupPage` | 读取本地目标，路由到目标设置或首页 |
+| 启动页 | `features/pencil/PencilSplashPage` | 读取本地目标，路由到目标设置或首页 |
 | 目标设置 | `features/onboarding/pages/GoalSetupPage` | 保存目标、频率、时长、器械条件 |
-| 今日训练首页 | `pages/HomePage` | 读取目标，生成计划，展示本周安排和今日训练入口 |
-| 训练预览 | `features/workout/pages/WorkoutPreviewPage` | 展示今日动作、组数、次数和注意事项 |
-| 训练执行 | `features/workout/pages/ActiveWorkoutPage` | 记录完成情况并保存训练会话 |
+| 今日训练首页 | `features/pencil/PencilHomePage` | 读取目标，生成计划，展示本周安排和今日训练入口 |
+| 训练预览 | `features/pencil/PencilPreviewPage` | 展示今日动作、组数、次数和注意事项 |
+| 训练执行 | `features/pencil/PencilActivePage` | 记录完成情况并保存训练会话 |
 | 训练复盘 | `features/workout/pages/WorkoutSummaryPage` | 展示本次训练结果和反馈入口 |
-| 训练回顾 | `features/review/pages/ReviewHomePage` | 汇总最近训练，支持调整目标 |
+| 训练回顾 | `features/pencil/PencilReviewPage` | 汇总最近训练，支持调整目标 |
 | 动作详情 | `features/exercise/pages/ExerciseDetailPage` | 展示动作说明，为后续视频接入预留 |
 
 旧版登录、注册、计划列表、个人中心、占位动作库、肌群覆盖、PR 页面不进入 MVP 主入口。
