@@ -1,0 +1,2105 @@
+{
+  "version": "2.15",
+  "children": [
+    {
+      "type": "frame",
+      "id": "aPp6H",
+      "x": 0,
+      "y": 0,
+      "name": "Welcome Viewport",
+      "clip": true,
+      "width": 390,
+      "height": 844,
+      "fill": "#000000",
+      "layout": "none",
+      "children": [
+        {
+          "type": "frame",
+          "id": "b5dcEz",
+          "x": 0,
+          "y": 0,
+          "name": "FitTracker Welcome",
+          "clip": true,
+          "width": 390,
+          "height": 816.2790697674418,
+          "fill": [
+            {
+              "type": "gradient",
+              "gradientType": "linear",
+              "enabled": true,
+              "rotation": 180,
+              "size": {
+                "height": 1
+              },
+              "colors": [
+                {
+                  "color": "#10171B",
+                  "position": 0
+                },
+                {
+                  "color": "#0A0D12",
+                  "position": 1
+                }
+              ]
+            },
+            {
+              "type": "gradient",
+              "gradientType": "radial",
+              "enabled": true,
+              "rotation": 0,
+              "size": {
+                "width": 1,
+                "height": 1
+              },
+              "colors": [
+                {
+                  "color": "#50ECA72B",
+                  "position": 0
+                },
+                {
+                  "color": "#50ECA700",
+                  "position": 1
+                }
+              ],
+              "center": {
+                "x": 0.18,
+                "y": 0.12
+              }
+            }
+          ],
+          "layout": "none",
+          "children": [
+            {
+              "type": "frame",
+              "id": "B5xXUW",
+              "x": 21.767441860465116,
+              "y": 107.02325581395348,
+              "name": "Brand Lockup",
+              "width": 346.4651162790697,
+              "height": 38.093023255813954,
+              "gap": 9.069767441860465,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "bDNMu",
+                  "name": "Brand Mark",
+                  "width": 30.83720930232558,
+                  "height": 30.83720930232558,
+                  "fill": "#50ECA71A",
+                  "cornerRadius": 10.883720930232558,
+                  "stroke": "#50ECA74D",
+                  "strokeWidth": 1,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "YG7zs",
+                      "x": 7.255813953488372,
+                      "y": 7.255813953488372,
+                      "name": "Activity Icon",
+                      "width": 16.325581395348838,
+                      "height": 16.325581395348838,
+                      "icon": "activity",
+                      "library": "lucide",
+                      "fill": "#50ECA7"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "qI5Tt",
+                  "name": "Brand Name",
+                  "fill": "#F7FBF8",
+                  "content": "FITTRACKER",
+                  "fontFamily": "Inter",
+                  "fontSize": 12.69767441860465,
+                  "fontWeight": "700",
+                  "letterSpacing": 1.6325581395348836
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "rNz1l",
+              "x": 21.767441860465116,
+              "y": 177.7674418604651,
+              "name": "Eyebrow",
+              "fill": "#50ECA7",
+              "textGrowth": "fixed-width-height",
+              "width": 165.06976744186045,
+              "height": 12.69767441860465,
+              "content": "TRAIN SMARTER. LIVE STRONGER.",
+              "lineHeight": 1,
+              "fontFamily": "Geist Mono",
+              "fontSize": 9.976744186046512,
+              "fontWeight": "600",
+              "letterSpacing": 1.1790697674418604
+            },
+            {
+              "type": "text",
+              "id": "NrtAn",
+              "x": 21.767441860465116,
+              "y": 203.1627906976744,
+              "name": "Headline",
+              "fill": "#F7FBF8",
+              "textGrowth": "fixed-width-height",
+              "width": 346.4651162790697,
+              "height": 74.37209302325581,
+              "content": "把训练，变成\n看得见的进步。",
+              "lineHeight": 0.98,
+              "fontFamily": "Noto Sans SC",
+              "fontSize": 38.093023255813954,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "CYaXW",
+              "x": 21.767441860465116,
+              "y": 304.74418604651163,
+              "name": "Description",
+              "fill": "#FFFFFFA6",
+              "textGrowth": "fixed-width-height",
+              "width": 313.8139534883721,
+              "height": 41.72093023255814,
+              "content": "记录每一次训练，读懂身体反馈。\n用更聪明的方式，持续变强。",
+              "lineHeight": 1.45,
+              "fontFamily": "Noto Sans SC",
+              "fontSize": 14.511627906976743,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "frame",
+              "id": "GRAmK",
+              "x": 21.767441860465116,
+              "y": 380.9302325581395,
+              "name": "Training Visual",
+              "clip": true,
+              "width": 346.4651162790697,
+              "height": 188.65116279069767,
+              "fill": [
+                {
+                  "type": "gradient",
+                  "gradientType": "linear",
+                  "enabled": true,
+                  "rotation": 180,
+                  "size": {
+                    "height": 1
+                  },
+                  "colors": [
+                    {
+                      "color": "#14241F",
+                      "position": 0
+                    },
+                    {
+                      "color": "#0D1616",
+                      "position": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "gradient",
+                  "gradientType": "radial",
+                  "enabled": true,
+                  "rotation": 0,
+                  "size": {
+                    "width": 1.2,
+                    "height": 1.2
+                  },
+                  "colors": [
+                    {
+                      "color": "#50ECA71F",
+                      "position": 0
+                    },
+                    {
+                      "color": "#50ECA700",
+                      "position": 1
+                    }
+                  ],
+                  "center": {
+                    "y": 0.3
+                  }
+                }
+              ],
+              "cornerRadius": 27.209302325581394,
+              "stroke": "#FFFFFF14",
+              "strokeWidth": 1,
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000057",
+                "offset": {
+                  "x": 0,
+                  "y": 18
+                },
+                "blur": 36
+              },
+              "layout": "none",
+              "children": [
+                {
+                  "type": "ellipse",
+                  "id": "WcqoE",
+                  "x": 172.32558139534882,
+                  "y": 9.069767441860465,
+                  "name": "Outer Ring",
+                  "fill": "#50ECA708",
+                  "width": 136.04651162790697,
+                  "height": 136.04651162790697,
+                  "stroke": "#50ECA733",
+                  "strokeWidth": 1
+                },
+                {
+                  "type": "ellipse",
+                  "id": "pZyh1",
+                  "x": 199.53488372093022,
+                  "y": 36.27906976744186,
+                  "name": "Inner Ring",
+                  "fill": "#50ECA712",
+                  "width": 81.62790697674419,
+                  "height": 81.62790697674419,
+                  "stroke": "#50ECA766",
+                  "strokeWidth": 1
+                },
+                {
+                  "type": "icon",
+                  "id": "ZhGIJ",
+                  "x": 141.48837209302326,
+                  "y": 23.58139534883721,
+                  "name": "Training Figure",
+                  "width": 83.44186046511628,
+                  "height": 83.44186046511628,
+                  "icon": "person-standing",
+                  "library": "lucide",
+                  "fill": "#F7FBF8",
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "color": "#00000066",
+                    "offset": {
+                      "x": 0,
+                      "y": 8
+                    },
+                    "blur": 18
+                  }
+                },
+                {
+                  "type": "icon",
+                  "id": "gKIzS",
+                  "x": 38.093023255813954,
+                  "y": 83.44186046511628,
+                  "name": "Dumbbell",
+                  "width": 39.906976744186046,
+                  "height": 39.906976744186046,
+                  "icon": "dumbbell",
+                  "library": "lucide",
+                  "fill": "#50ECA7"
+                },
+                {
+                  "type": "icon",
+                  "id": "M9JHQB",
+                  "x": 272.09302325581393,
+                  "y": 107.02325581395348,
+                  "name": "Sparkles",
+                  "width": 25.3953488372093,
+                  "height": 25.3953488372093,
+                  "icon": "sparkles",
+                  "library": "lucide",
+                  "fill": "#FFFFFFA6"
+                },
+                {
+                  "type": "text",
+                  "id": "E6Fhx",
+                  "x": 21.767441860465116,
+                  "y": 152.37209302325581,
+                  "name": "Visual Caption",
+                  "fill": "#FFFFFF66",
+                  "textGrowth": "fixed-width-height",
+                  "width": 128.7906976744186,
+                  "height": 11.790697674418604,
+                  "content": "CONSISTENCY > INTENSITY",
+                  "lineHeight": 1,
+                  "fontFamily": "Geist Mono",
+                  "fontSize": 9.069767441860465,
+                  "fontWeight": "600",
+                  "letterSpacing": 0.9976744186046512
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "W6fScM",
+              "x": 21.767441860465116,
+              "y": 620.3720930232557,
+              "name": "Actions",
+              "width": 346.4651162790697,
+              "height": 116.09302325581395,
+              "layout": "vertical",
+              "gap": 10.883720930232558,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "c6mSe",
+                  "name": "Start Button",
+                  "width": 346.4651162790697,
+                  "height": 47.16279069767442,
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 90,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#47D994",
+                        "position": 0
+                      },
+                      {
+                        "color": "#53E7A5",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 16.325581395348838,
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "color": "#00000066",
+                    "offset": {
+                      "x": 0,
+                      "y": 10
+                    },
+                    "blur": 24
+                  },
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "GRqAs",
+                      "x": 143.75581395348837,
+                      "y": 13.151162790697674,
+                      "name": "Start Label",
+                      "fill": "#07100B",
+                      "textGrowth": "fixed-width-height",
+                      "width": 58.95348837209302,
+                      "height": 20.86046511627907,
+                      "content": "开始使用",
+                      "lineHeight": 1.4,
+                      "textAlign": "center",
+                      "fontFamily": "Noto Sans SC",
+                      "fontSize": 14.511627906976743,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "X4gqN",
+                  "name": "Secondary Action",
+                  "width": 346.4651162790697,
+                  "height": 47.16279069767442,
+                  "fill": "#FFFFFF0F",
+                  "cornerRadius": 16.325581395348838,
+                  "stroke": "#FFFFFF29",
+                  "strokeWidth": 1,
+                  "layout": "none"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "id": "Qu3AM",
+              "x": 21.767441860465116,
+              "y": 772.7441860465116,
+              "name": "Footer Note",
+              "fill": "#FFFFFF52",
+              "textGrowth": "fixed-width-height",
+              "width": 346.4651162790697,
+              "height": 14.511627906976743,
+              "content": "本地记录 · 无需注册 · 随时开始",
+              "lineHeight": 1.45,
+              "textAlign": "center",
+              "fontFamily": "Noto Sans SC",
+              "fontSize": 9.976744186046512,
+              "fontWeight": "normal"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "S13NN",
+      "x": 0,
+      "y": 900,
+      "name": "Home AppShell",
+      "clip": true,
+      "width": 390,
+      "height": 844,
+      "fill": [
+        {
+          "type": "gradient",
+          "gradientType": "linear",
+          "enabled": true,
+          "rotation": 180,
+          "size": {
+            "height": 1
+          },
+          "colors": [
+            {
+              "color": "#0B0F13",
+              "position": 0
+            },
+            {
+              "color": "#0A0D12",
+              "position": 1
+            }
+          ]
+        },
+        {
+          "type": "gradient",
+          "gradientType": "radial",
+          "enabled": true,
+          "rotation": 0,
+          "size": {
+            "width": 1.3,
+            "height": 1.3
+          },
+          "colors": [
+            {
+              "color": "#50ECA71F",
+              "position": 0
+            },
+            {
+              "color": "#50ECA700",
+              "position": 1
+            }
+          ],
+          "center": {
+            "x": 0.18,
+            "y": 0
+          }
+        }
+      ],
+      "layout": "none",
+      "children": [
+        {
+          "type": "frame",
+          "id": "gZHSC",
+          "x": 0,
+          "y": 0,
+          "name": "Content Viewport",
+          "clip": true,
+          "width": 390,
+          "height": 844,
+          "layout": "none",
+          "children": [
+            {
+              "type": "text",
+              "id": "O567jV",
+              "x": 16.3,
+              "y": 52.6,
+              "name": "Home Date",
+              "fill": "#FFFFFFB3",
+              "textGrowth": "fixed-width-height",
+              "width": 357.4,
+              "height": 16,
+              "content": "5月22日 周四",
+              "fontFamily": "Noto Sans SC",
+              "fontSize": 12.7,
+              "fontWeight": "500"
+            },
+            {
+              "type": "text",
+              "id": "p4JQAh",
+              "x": 16.3,
+              "y": 73,
+              "name": "Home Greeting",
+              "fill": "#F7FBF8",
+              "textGrowth": "fixed-width-height",
+              "width": 357.4,
+              "height": 42,
+              "content": "早上好，专注训练",
+              "lineHeight": 0.98,
+              "fontFamily": "Noto Sans SC",
+              "fontSize": 36.3,
+              "fontWeight": "700"
+            },
+            {
+              "type": "frame",
+              "id": "kqonp",
+              "x": 16.3,
+              "y": 128,
+              "name": "Today Card",
+              "clip": true,
+              "width": 357.4,
+              "height": 422,
+              "fill": {
+                "type": "gradient",
+                "gradientType": "linear",
+                "enabled": true,
+                "rotation": 180,
+                "size": {
+                  "height": 1
+                },
+                "colors": [
+                  {
+                    "color": "#FFFFFF0A",
+                    "position": 0
+                  },
+                  {
+                    "color": "#FFFFFF05",
+                    "position": 1
+                  }
+                ]
+              },
+              "cornerRadius": 25.4,
+              "stroke": "#FFFFFF10",
+              "strokeWidth": 1,
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000038",
+                "offset": {
+                  "x": 0,
+                  "y": 22
+                },
+                "blur": 44
+              },
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "lCg0w",
+                  "x": 18,
+                  "y": 18,
+                  "name": "Today Eyebrow",
+                  "fill": "#50ECA7",
+                  "textGrowth": "fixed-width-height",
+                  "width": 150,
+                  "height": 18,
+                  "content": "今日训练",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 12.7,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "jJPu9",
+                  "x": 18,
+                  "y": 42,
+                  "name": "Today Title",
+                  "fill": "#F7FBF8",
+                  "textGrowth": "fixed-width-height",
+                  "width": 175,
+                  "height": 30,
+                  "content": "上肢力量",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 21.8,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "sc84A",
+                  "x": 151,
+                  "y": 45,
+                  "name": "Today Badge",
+                  "fill": "#50ECA7",
+                  "textGrowth": "fixed-width-height",
+                  "width": 42,
+                  "height": 18,
+                  "content": "推荐",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 9,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "p6S9Ay",
+                  "x": 18,
+                  "y": 76,
+                  "name": "Today Muscles",
+                  "fill": "#FFFFFF9E",
+                  "textGrowth": "fixed-width-height",
+                  "width": 190,
+                  "height": 18,
+                  "content": "胸部 · 肩部 · 三头肌",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 12.7,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "shldJ",
+                  "x": 18,
+                  "y": 103,
+                  "name": "Today Status",
+                  "fill": "#50ECA7",
+                  "textGrowth": "fixed-width-height",
+                  "width": 160,
+                  "height": 18,
+                  "content": "训练日 · 建议完成",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 10.9,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "ellipse",
+                  "id": "iBmpC",
+                  "x": 243,
+                  "y": 24,
+                  "name": "Weekly Progress Ring",
+                  "innerRadius": 0.88,
+                  "fill": "#50ECA7",
+                  "width": 96,
+                  "height": 96,
+                  "stroke": "#FFFFFF12",
+                  "strokeWidth": 5
+                },
+                {
+                  "type": "ellipse",
+                  "id": "XOe0o",
+                  "x": 252,
+                  "y": 33,
+                  "name": "Weekly Progress Inner",
+                  "fill": "#0D1117",
+                  "width": 78,
+                  "height": 78,
+                  "stroke": "#FFFFFF66",
+                  "strokeWidth": 1
+                },
+                {
+                  "type": "text",
+                  "id": "SjsPZ",
+                  "x": 260,
+                  "y": 52,
+                  "name": "Weekly Progress Value",
+                  "fill": "#50ECA7",
+                  "textGrowth": "fixed-width-height",
+                  "width": 62,
+                  "height": 23,
+                  "content": "14%",
+                  "textAlign": "center",
+                  "fontFamily": "Inter",
+                  "fontSize": 18,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "mWI96",
+                  "x": 256,
+                  "y": 79,
+                  "name": "Weekly Progress Label",
+                  "fill": "#FFFFFF8A",
+                  "textGrowth": "fixed-width-height",
+                  "width": 70,
+                  "height": 14,
+                  "content": "本周进度",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 9.8,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "rectangle",
+                  "id": "aMDet",
+                  "x": 18,
+                  "y": 137,
+                  "name": "Today Divider",
+                  "fill": "#FFFFFF14",
+                  "width": 321,
+                  "height": 1
+                },
+                {
+                  "type": "frame",
+                  "id": "YAQTt",
+                  "x": 18,
+                  "y": 156,
+                  "name": "Metrics Row",
+                  "width": 321,
+                  "height": 96,
+                  "gap": 7,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "L1g772",
+                      "name": "动作数 Metric",
+                      "width": "fill_container",
+                      "height": 96,
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "x1uIGP",
+                          "name": "动作数 Icon",
+                          "width": 22,
+                          "height": 22,
+                          "icon": "dumbbell",
+                          "library": "lucide",
+                          "fill": "#50ECA7"
+                        },
+                        {
+                          "type": "text",
+                          "id": "YwpIl",
+                          "name": "动作数 Label",
+                          "fill": "#FFFFFFA3",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 16,
+                          "content": "动作数",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans SC",
+                          "fontSize": 9.8,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "yDmcp",
+                          "name": "动作数 Value",
+                          "fill": "#F7FBF8",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 28,
+                          "content": "8",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans SC",
+                          "fontSize": 27.2,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "iXFOu",
+                          "name": "动作数 Note",
+                          "fill": "#FFFFFF8A",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 16,
+                          "content": "个动作",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans SC",
+                          "fontSize": 8.8,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "gAehc",
+                      "name": "预计用时 Metric",
+                      "width": "fill_container",
+                      "height": 96,
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "du2T2",
+                          "name": "预计用时 Icon",
+                          "width": 22,
+                          "height": 22,
+                          "icon": "clock-3",
+                          "library": "lucide",
+                          "fill": "#50ECA7"
+                        },
+                        {
+                          "type": "text",
+                          "id": "md5KF",
+                          "name": "预计用时 Label",
+                          "fill": "#FFFFFFA3",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 16,
+                          "content": "预计用时",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans SC",
+                          "fontSize": 9.8,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "U7Q0H",
+                          "name": "预计用时 Value",
+                          "fill": "#F7FBF8",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 28,
+                          "content": "60",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans SC",
+                          "fontSize": 27.2,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "R9cCcG",
+                          "name": "预计用时 Note",
+                          "fill": "#FFFFFF8A",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 16,
+                          "content": "分钟",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans SC",
+                          "fontSize": 8.8,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "p3C58a",
+                      "name": "完成度 Metric",
+                      "width": "fill_container",
+                      "height": 96,
+                      "layout": "vertical",
+                      "gap": 4,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "hRjja",
+                          "name": "完成度 Icon",
+                          "width": 22,
+                          "height": 22,
+                          "icon": "rotate-ccw",
+                          "library": "lucide",
+                          "fill": "#50ECA7"
+                        },
+                        {
+                          "type": "text",
+                          "id": "uwT0a",
+                          "name": "完成度 Label",
+                          "fill": "#FFFFFFA3",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 16,
+                          "content": "完成度",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans SC",
+                          "fontSize": 9.8,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "Q61zn",
+                          "name": "完成度 Value",
+                          "fill": "#F7FBF8",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 28,
+                          "content": "上次未完成",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans SC",
+                          "fontSize": 13,
+                          "fontWeight": "700"
+                        },
+                        {
+                          "type": "text",
+                          "id": "AUWLO",
+                          "name": "完成度 Note",
+                          "fill": "#FFFFFF8A",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 16,
+                          "content": "可从上次进度继续",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans SC",
+                          "fontSize": 8.8,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Y3JXA7",
+                  "x": 18,
+                  "y": 252,
+                  "name": "Start Workout Button",
+                  "width": 321,
+                  "height": 40,
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 90,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#47D994",
+                        "position": 0
+                      },
+                      {
+                        "color": "#53E7A5",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 20,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "l76bQ",
+                      "x": 0,
+                      "y": 10,
+                      "name": "Start Workout Label",
+                      "fill": "#08110D",
+                      "textGrowth": "fixed-width-height",
+                      "width": 321,
+                      "height": 18,
+                      "content": "开始训练",
+                      "textAlign": "center",
+                      "fontFamily": "Noto Sans SC",
+                      "fontSize": 13.6,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Yzwgu",
+                  "x": 18,
+                  "y": 300,
+                  "name": "Preview Workout Button",
+                  "width": 321,
+                  "height": 40,
+                  "fill": "#FFFFFF08",
+                  "cornerRadius": 20,
+                  "stroke": "#FFFFFF10",
+                  "strokeWidth": 1,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "BpgQx",
+                      "x": 0,
+                      "y": 10,
+                      "name": "Preview Workout Label",
+                      "fill": "#F7FBF8",
+                      "textGrowth": "fixed-width-height",
+                      "width": 321,
+                      "height": 18,
+                      "content": "查看预览",
+                      "textAlign": "center",
+                      "fontFamily": "Noto Sans SC",
+                      "fontSize": 13.6,
+                      "fontWeight": "500"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "d9ZCl2",
+              "x": 16.3,
+              "y": 566,
+              "name": "Week Panel",
+              "width": 357.4,
+              "height": 225,
+              "fill": "#FFFFFF08",
+              "cornerRadius": 27.2,
+              "stroke": "#FFFFFF10",
+              "strokeWidth": 1,
+              "layout": "none",
+              "children": [
+                {
+                  "type": "text",
+                  "id": "OLdYt",
+                  "x": 16,
+                  "y": 16,
+                  "name": "Week Title",
+                  "fill": "#F7FBF8",
+                  "textGrowth": "fixed-width-height",
+                  "width": 170,
+                  "height": 22,
+                  "content": "本周节奏",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 14.5,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "text",
+                  "id": "Gso3S",
+                  "x": 16,
+                  "y": 40,
+                  "name": "Week Subtitle",
+                  "fill": "#FFFFFF66",
+                  "textGrowth": "fixed-width-height",
+                  "width": 170,
+                  "height": 16,
+                  "content": "周一—周日",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 10,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "bbqYD",
+                  "x": 274,
+                  "y": 18,
+                  "name": "Week Count",
+                  "fill": "#50ECA7",
+                  "textGrowth": "fixed-width-height",
+                  "width": 63,
+                  "height": 20,
+                  "content": "3 / 5 次",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 10,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "MnTuQ",
+                  "x": 16,
+                  "y": 74,
+                  "name": "Week Days",
+                  "width": 319,
+                  "height": 62,
+                  "gap": 5,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "xOjrk",
+                      "name": "Week 一",
+                      "width": "fill_container",
+                      "height": 62,
+                      "layout": "vertical",
+                      "gap": 3,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "TqQ2i",
+                          "name": "Week 一 Name",
+                          "fill": "#FFFFFF8A",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 14,
+                          "content": "一",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans SC",
+                          "fontSize": 9.5,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "ellipse",
+                          "id": "ieIft",
+                          "name": "Week 一 Dot",
+                          "fill": "#50ECA7",
+                          "width": 28,
+                          "height": 28,
+                          "stroke": "#50ECA7",
+                          "strokeWidth": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "evXP2",
+                          "name": "Week 一 Date",
+                          "fill": "#50ECA7",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 14,
+                          "content": "20",
+                          "textAlign": "center",
+                          "fontFamily": "Inter",
+                          "fontSize": 9,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "cfbID",
+                      "name": "Week 二",
+                      "width": "fill_container",
+                      "height": 62,
+                      "layout": "vertical",
+                      "gap": 3,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "u9Zh76",
+                          "name": "Week 二 Name",
+                          "fill": "#FFFFFF8A",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 14,
+                          "content": "二",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans SC",
+                          "fontSize": 9.5,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "ellipse",
+                          "id": "qYk57",
+                          "name": "Week 二 Dot",
+                          "fill": "#50ECA7",
+                          "width": 28,
+                          "height": 28,
+                          "stroke": "#50ECA7",
+                          "strokeWidth": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "NjMOg",
+                          "name": "Week 二 Date",
+                          "fill": "#50ECA7",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 14,
+                          "content": "21",
+                          "textAlign": "center",
+                          "fontFamily": "Inter",
+                          "fontSize": 9,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "h6Mpr",
+                      "name": "Week 三",
+                      "width": "fill_container",
+                      "height": 62,
+                      "layout": "vertical",
+                      "gap": 3,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "qd86F",
+                          "name": "Week 三 Name",
+                          "fill": "#FFFFFF8A",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 14,
+                          "content": "三",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans SC",
+                          "fontSize": 9.5,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "ellipse",
+                          "id": "vhEsX",
+                          "name": "Week 三 Dot",
+                          "fill": "#FFFFFF0F",
+                          "width": 28,
+                          "height": 28,
+                          "stroke": "#FFFFFF14",
+                          "strokeWidth": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "Mbxkp",
+                          "name": "Week 三 Date",
+                          "fill": "#FFFFFF66",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 14,
+                          "content": "22",
+                          "textAlign": "center",
+                          "fontFamily": "Inter",
+                          "fontSize": 9,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "smIR9",
+                      "name": "Week 四",
+                      "width": "fill_container",
+                      "height": 62,
+                      "layout": "vertical",
+                      "gap": 3,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "JSQ0o",
+                          "name": "Week 四 Name",
+                          "fill": "#FFFFFF8A",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 14,
+                          "content": "四",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans SC",
+                          "fontSize": 9.5,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "ellipse",
+                          "id": "l2HDp",
+                          "name": "Week 四 Dot",
+                          "fill": "#FFFFFF0F",
+                          "width": 28,
+                          "height": 28,
+                          "stroke": "#FFFFFF14",
+                          "strokeWidth": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "R4B58E",
+                          "name": "Week 四 Date",
+                          "fill": "#FFFFFF66",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 14,
+                          "content": "23",
+                          "textAlign": "center",
+                          "fontFamily": "Inter",
+                          "fontSize": 9,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ZFutN",
+                      "name": "Week 五",
+                      "width": "fill_container",
+                      "height": 62,
+                      "layout": "vertical",
+                      "gap": 3,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "lim2k",
+                          "name": "Week 五 Name",
+                          "fill": "#FFFFFF8A",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 14,
+                          "content": "五",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans SC",
+                          "fontSize": 9.5,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "ellipse",
+                          "id": "frnvi",
+                          "name": "Week 五 Dot",
+                          "fill": "#FFFFFF0F",
+                          "width": 28,
+                          "height": 28,
+                          "stroke": "#FFFFFF14",
+                          "strokeWidth": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "d540C2",
+                          "name": "Week 五 Date",
+                          "fill": "#FFFFFF66",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 14,
+                          "content": "24",
+                          "textAlign": "center",
+                          "fontFamily": "Inter",
+                          "fontSize": 9,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "yqlVN",
+                      "name": "Week 六",
+                      "width": "fill_container",
+                      "height": 62,
+                      "layout": "vertical",
+                      "gap": 3,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "CmDKb",
+                          "name": "Week 六 Name",
+                          "fill": "#FFFFFF8A",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 14,
+                          "content": "六",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans SC",
+                          "fontSize": 9.5,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "ellipse",
+                          "id": "I9nX9W",
+                          "name": "Week 六 Dot",
+                          "fill": "#FFFFFF0F",
+                          "width": 28,
+                          "height": 28,
+                          "stroke": "#FFFFFF14",
+                          "strokeWidth": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "AfAcR",
+                          "name": "Week 六 Date",
+                          "fill": "#FFFFFF66",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 14,
+                          "content": "25",
+                          "textAlign": "center",
+                          "fontFamily": "Inter",
+                          "fontSize": 9,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "TZeoS",
+                      "name": "Week 日",
+                      "width": "fill_container",
+                      "height": 62,
+                      "layout": "vertical",
+                      "gap": 3,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "nPkKq",
+                          "name": "Week 日 Name",
+                          "fill": "#FFFFFF8A",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 14,
+                          "content": "日",
+                          "textAlign": "center",
+                          "fontFamily": "Noto Sans SC",
+                          "fontSize": 9.5,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "ellipse",
+                          "id": "D8LZ6W",
+                          "name": "Week 日 Dot",
+                          "fill": "#FFFFFF0F",
+                          "width": 28,
+                          "height": 28,
+                          "stroke": "#FFFFFF14",
+                          "strokeWidth": 1
+                        },
+                        {
+                          "type": "text",
+                          "id": "rK5pQ",
+                          "name": "Week 日 Date",
+                          "fill": "#FFFFFF66",
+                          "textGrowth": "fixed-width-height",
+                          "width": "fill_container",
+                          "height": 14,
+                          "content": "26",
+                          "textAlign": "center",
+                          "fontFamily": "Inter",
+                          "fontSize": 9,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "FbMmE",
+                  "x": 16,
+                  "y": 151,
+                  "name": "Week Progress Text",
+                  "fill": "#FFFFFF8A",
+                  "textGrowth": "fixed-width-height",
+                  "width": 200,
+                  "height": 16,
+                  "content": "已完成 3 / 5 次",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 10.8,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "text",
+                  "id": "M6lGwq",
+                  "x": 298,
+                  "y": 151,
+                  "name": "Week Progress Value",
+                  "fill": "#50ECA7",
+                  "textGrowth": "fixed-width-height",
+                  "width": 39,
+                  "height": 16,
+                  "content": "60%",
+                  "textAlign": "right",
+                  "fontFamily": "Inter",
+                  "fontSize": 10.8,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 3,
+                  "id": "hrklF",
+                  "x": 16,
+                  "y": 179,
+                  "name": "Week Progress Track",
+                  "fill": "#FFFFFF14",
+                  "width": 321,
+                  "height": 6
+                },
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 3,
+                  "id": "K5dvir",
+                  "x": 16,
+                  "y": 179,
+                  "name": "Week Progress Fill",
+                  "fill": "#50ECA7",
+                  "width": 193,
+                  "height": 6
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "yWEAl",
+          "x": 0,
+          "y": 771,
+          "name": "BottomTabBar (AppShell-owned)",
+          "clip": true,
+          "width": 390,
+          "height": 73,
+          "fill": "#0D1117",
+          "gap": 4,
+          "padding": [
+            6,
+            11,
+            8,
+            11
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "MbjRN",
+              "name": "Tab 首页",
+              "width": "fill_container",
+              "height": 56,
+              "fill": "#00000000",
+              "cornerRadius": 16,
+              "layout": "vertical",
+              "gap": 3,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "UIgpS",
+                  "name": "Tab 首页 Icon",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "house",
+                  "library": "lucide",
+                  "fill": "#FFFFFFA6"
+                },
+                {
+                  "type": "text",
+                  "id": "MJ7y4",
+                  "name": "Tab 首页 Label",
+                  "fill": "#FFFFFFA6",
+                  "textGrowth": "fixed-width-height",
+                  "width": "fill_container",
+                  "height": 15,
+                  "content": "首页",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 9.5,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "O2FyRJ",
+              "name": "Tab 计划",
+              "width": "fill_container",
+              "height": 56,
+              "fill": "#00000000",
+              "cornerRadius": 16,
+              "layout": "vertical",
+              "gap": 3,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "KWVGY",
+                  "name": "Tab 计划 Icon",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "calendar-days",
+                  "library": "lucide",
+                  "fill": "#FFFFFFA6"
+                },
+                {
+                  "type": "text",
+                  "id": "I2i8B",
+                  "name": "Tab 计划 Label",
+                  "fill": "#FFFFFFA6",
+                  "textGrowth": "fixed-width-height",
+                  "width": "fill_container",
+                  "height": 15,
+                  "content": "计划",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 9.5,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "hQVzv",
+              "name": "Tab 训练",
+              "width": "fill_container",
+              "height": 56,
+              "fill": "#50ECA71A",
+              "cornerRadius": 16,
+              "layout": "vertical",
+              "gap": 3,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "KUEOZ",
+                  "name": "Tab 训练 Icon",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "dumbbell",
+                  "library": "lucide",
+                  "fill": "#50ECA7"
+                },
+                {
+                  "type": "text",
+                  "id": "f0m0kr",
+                  "name": "Tab 训练 Label",
+                  "fill": "#50ECA7",
+                  "textGrowth": "fixed-width-height",
+                  "width": "fill_container",
+                  "height": 15,
+                  "content": "训练",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 9.5,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "GyoZj",
+              "name": "Tab 回顾",
+              "width": "fill_container",
+              "height": 56,
+              "fill": "#00000000",
+              "cornerRadius": 16,
+              "layout": "vertical",
+              "gap": 3,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "L0KMbp",
+                  "name": "Tab 回顾 Icon",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "chart-no-axes-combined",
+                  "library": "lucide",
+                  "fill": "#FFFFFFA6"
+                },
+                {
+                  "type": "text",
+                  "id": "CqloJ",
+                  "name": "Tab 回顾 Label",
+                  "fill": "#FFFFFFA6",
+                  "textGrowth": "fixed-width-height",
+                  "width": "fill_container",
+                  "height": 15,
+                  "content": "回顾",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 9.5,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "knTxU",
+              "name": "Tab 我的",
+              "width": "fill_container",
+              "height": 56,
+              "fill": "#00000000",
+              "cornerRadius": 16,
+              "layout": "vertical",
+              "gap": 3,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "n8VrUD",
+                  "name": "Tab 我的 Icon",
+                  "width": 20,
+                  "height": 20,
+                  "icon": "user-round",
+                  "library": "lucide",
+                  "fill": "#FFFFFFA6"
+                },
+                {
+                  "type": "text",
+                  "id": "x6teS",
+                  "name": "Tab 我的 Label",
+                  "fill": "#FFFFFFA6",
+                  "textGrowth": "fixed-width-height",
+                  "width": "fill_container",
+                  "height": 15,
+                  "content": "我的",
+                  "textAlign": "center",
+                  "fontFamily": "Noto Sans SC",
+                  "fontSize": 9.5,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "vKjGl",
+      "x": 0,
+      "y": 1800,
+      "name": "Plan Page [BLOCKED - missing source]",
+      "clip": true,
+      "width": 390,
+      "height": 844,
+      "fill": [
+        {
+          "type": "gradient",
+          "gradientType": "linear",
+          "enabled": true,
+          "rotation": 180,
+          "size": {
+            "height": 1
+          },
+          "colors": [
+            {
+              "color": "#0B0F13",
+              "position": 0
+            },
+            {
+              "color": "#0A0D12",
+              "position": 1
+            }
+          ]
+        },
+        {
+          "type": "gradient",
+          "gradientType": "radial",
+          "enabled": true,
+          "rotation": 0,
+          "size": {
+            "width": 1.3,
+            "height": 1.3
+          },
+          "colors": [
+            {
+              "color": "#50ECA71F",
+              "position": 0
+            },
+            {
+              "color": "#50ECA700",
+              "position": 1
+            }
+          ],
+          "center": {
+            "x": 0.18,
+            "y": 0
+          }
+        }
+      ],
+      "layout": "none"
+    },
+    {
+      "type": "frame",
+      "id": "GJZFt",
+      "x": 0,
+      "y": 2700,
+      "name": "Workout Preview Page [BLOCKED - missing source]",
+      "clip": true,
+      "width": 390,
+      "height": 844,
+      "fill": [
+        {
+          "type": "gradient",
+          "gradientType": "linear",
+          "enabled": true,
+          "rotation": 180,
+          "size": {
+            "height": 1
+          },
+          "colors": [
+            {
+              "color": "#0B0F13",
+              "position": 0
+            },
+            {
+              "color": "#0A0D12",
+              "position": 1
+            }
+          ]
+        },
+        {
+          "type": "gradient",
+          "gradientType": "radial",
+          "enabled": true,
+          "rotation": 0,
+          "size": {
+            "width": 1.3,
+            "height": 1.3
+          },
+          "colors": [
+            {
+              "color": "#50ECA71F",
+              "position": 0
+            },
+            {
+              "color": "#50ECA700",
+              "position": 1
+            }
+          ],
+          "center": {
+            "x": 0.18,
+            "y": 0
+          }
+        }
+      ],
+      "layout": "none"
+    },
+    {
+      "type": "frame",
+      "id": "D7k93y",
+      "x": 0,
+      "y": 3600,
+      "name": "Active Workout Page [SCREENSHOT REFERENCE]",
+      "clip": true,
+      "width": 390,
+      "height": 844,
+      "fill": [
+        {
+          "type": "gradient",
+          "gradientType": "linear",
+          "enabled": true,
+          "rotation": 180,
+          "size": {
+            "height": 1
+          },
+          "colors": [
+            {
+              "color": "#0B0F13",
+              "position": 0
+            },
+            {
+              "color": "#0A0D12",
+              "position": 1
+            }
+          ]
+        },
+        {
+          "type": "gradient",
+          "gradientType": "radial",
+          "enabled": true,
+          "rotation": 0,
+          "size": {
+            "width": 1.3,
+            "height": 1.3
+          },
+          "colors": [
+            {
+              "color": "#50ECA71F",
+              "position": 0
+            },
+            {
+              "color": "#50ECA700",
+              "position": 1
+            }
+          ],
+          "center": {
+            "x": 0.18,
+            "y": 0
+          }
+        }
+      ],
+      "layout": "none",
+      "children": [
+        {
+          "type": "rectangle",
+          "id": "e1bO7u",
+          "x": 0,
+          "y": 0,
+          "name": "Reference Screenshot",
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "reference-active-workout.jpeg",
+            "mode": "fill"
+          },
+          "width": 390,
+          "height": 844
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "f3JJyI",
+      "x": 0,
+      "y": 4500,
+      "name": "Review Page [BLOCKED - missing source]",
+      "clip": true,
+      "width": 390,
+      "height": 844,
+      "fill": [
+        {
+          "type": "gradient",
+          "gradientType": "linear",
+          "enabled": true,
+          "rotation": 180,
+          "size": {
+            "height": 1
+          },
+          "colors": [
+            {
+              "color": "#0B0F13",
+              "position": 0
+            },
+            {
+              "color": "#0A0D12",
+              "position": 1
+            }
+          ]
+        },
+        {
+          "type": "gradient",
+          "gradientType": "radial",
+          "enabled": true,
+          "rotation": 0,
+          "size": {
+            "width": 1.3,
+            "height": 1.3
+          },
+          "colors": [
+            {
+              "color": "#50ECA71F",
+              "position": 0
+            },
+            {
+              "color": "#50ECA700",
+              "position": 1
+            }
+          ],
+          "center": {
+            "x": 0.18,
+            "y": 0
+          }
+        }
+      ],
+      "layout": "none"
+    },
+    {
+      "type": "frame",
+      "id": "wCt98",
+      "x": 0,
+      "y": 5400,
+      "name": "Profile Page [BLOCKED - missing source]",
+      "clip": true,
+      "width": 390,
+      "height": 844,
+      "fill": [
+        {
+          "type": "gradient",
+          "gradientType": "linear",
+          "enabled": true,
+          "rotation": 180,
+          "size": {
+            "height": 1
+          },
+          "colors": [
+            {
+              "color": "#0B0F13",
+              "position": 0
+            },
+            {
+              "color": "#0A0D12",
+              "position": 1
+            }
+          ]
+        },
+        {
+          "type": "gradient",
+          "gradientType": "radial",
+          "enabled": true,
+          "rotation": 0,
+          "size": {
+            "width": 1.3,
+            "height": 1.3
+          },
+          "colors": [
+            {
+              "color": "#50ECA71F",
+              "position": 0
+            },
+            {
+              "color": "#50ECA700",
+              "position": 1
+            }
+          ],
+          "center": {
+            "x": 0.18,
+            "y": 0
+          }
+        }
+      ],
+      "layout": "none"
+    },
+    {
+      "type": "frame",
+      "id": "dQDuD",
+      "x": 0,
+      "y": 6300,
+      "name": "Splash Page [BLOCKED - missing source]",
+      "clip": true,
+      "width": 390,
+      "height": 844,
+      "fill": "#000000",
+      "layout": "none"
+    },
+    {
+      "type": "frame",
+      "id": "ydoY0",
+      "x": 0,
+      "y": 7200,
+      "name": "Login Page [BLOCKED - missing source]",
+      "clip": true,
+      "width": 390,
+      "height": 844,
+      "fill": "#000000",
+      "layout": "none"
+    },
+    {
+      "type": "frame",
+      "id": "ctrea",
+      "x": 0,
+      "y": 8100,
+      "name": "Register Page [BLOCKED - missing source]",
+      "clip": true,
+      "width": 390,
+      "height": 844,
+      "fill": "#000000",
+      "layout": "none"
+    },
+    {
+      "type": "frame",
+      "id": "ym9nH",
+      "x": 0,
+      "y": 9000,
+      "name": "Workout Complete Page [SCREENSHOT REFERENCE]",
+      "clip": true,
+      "width": 390,
+      "height": 844,
+      "fill": [
+        {
+          "type": "gradient",
+          "gradientType": "linear",
+          "enabled": true,
+          "rotation": 180,
+          "size": {
+            "height": 1
+          },
+          "colors": [
+            {
+              "color": "#0B0F13",
+              "position": 0
+            },
+            {
+              "color": "#0A0D12",
+              "position": 1
+            }
+          ]
+        },
+        {
+          "type": "gradient",
+          "gradientType": "radial",
+          "enabled": true,
+          "rotation": 0,
+          "size": {
+            "width": 1.3,
+            "height": 1.3
+          },
+          "colors": [
+            {
+              "color": "#50ECA71F",
+              "position": 0
+            },
+            {
+              "color": "#50ECA700",
+              "position": 1
+            }
+          ],
+          "center": {
+            "x": 0.18,
+            "y": 0
+          }
+        }
+      ],
+      "layout": "none",
+      "children": [
+        {
+          "type": "rectangle",
+          "id": "k8GVB",
+          "x": 0,
+          "y": 0,
+          "name": "Reference Screenshot",
+          "fill": {
+            "type": "image",
+            "enabled": true,
+            "url": "reference-workout-complete.jpeg",
+            "mode": "fill"
+          },
+          "width": 390,
+          "height": 844
+        }
+      ]
+    }
+  ],
+  "fileToken": "80de53ae-61ac-4309-9e98-0ad0763bd518"
+}

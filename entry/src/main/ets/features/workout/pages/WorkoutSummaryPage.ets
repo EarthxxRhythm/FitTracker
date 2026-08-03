@@ -173,7 +173,7 @@ export struct WorkoutSummaryPage {
 
   openHome(): void {
     try {
-      this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.HOME })
+      this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.APP_SHELL })
     } catch (e) {
       // Stay on summary.
     }
@@ -638,9 +638,9 @@ export struct WorkoutSummaryPage {
 
   getStageRailItems(): StageRailItem[] {
     const items: StageRailItem[] = []
-    items.push(createStageRailItem('预览', false, false))
-    items.push(createStageRailItem('执行', false, false))
-    items.push(createStageRailItem('复盘', true, false))
+    items.push(createStageRailItem('\u786e\u8ba4', false, false))
+    items.push(createStageRailItem('\u6267\u884c', false, false))
+    items.push(createStageRailItem('\u603b\u7ed3', true, false))
     return items
   }
 
@@ -1050,7 +1050,7 @@ export struct WorkoutSummaryPage {
           .width('100%')
 
         AppButton({
-          text: this.isEditMode ? '正在编辑本次训练' : '编辑本次训练',
+          text: this.isEditMode ? '\u6b63\u5728\u4fee\u6b63\u8bb0\u5f55' : '\u4fee\u6b63\u672c\u6b21\u8bb0\u5f55',
           type: 'primary',
           buttonSize: 'large',
           block: true,
@@ -1061,7 +1061,7 @@ export struct WorkoutSummaryPage {
         })
 
         AppButton({
-          text: '撤销本次保存',
+          text: '\u79fb\u9664\u672c\u6b21\u8bb0\u5f55',
           type: 'secondary',
           buttonSize: 'large',
           block: true,
@@ -1337,24 +1337,25 @@ export struct WorkoutSummaryPage {
         if (!this.loading && this.hasSession) {
           this.buildProgressSection()
           this.buildRecordSection()
-          this.buildLaneHeader('记录维护', '修正记录', '如果刚才录入有误，可以在这里修正组数、重量、次数与备注；撤销保存会移除整条记录。')
+
+          this.buildLaneHeader('闭环出口', '下一步', '确认记录无误后，可以直接进入训练回顾，或先回到首页继续下一轮安排。')
+          this.buildNextStepSection()
+
+          this.buildLaneHeader('记录维护', '修正记录', '如果刚才录入有误，可以在这里修正组数、重量、次数与备注；移除记录会删除整条训练结果。')
           this.buildActionSection()
 
           if (this.isEditMode) {
-            this.buildLaneHeader('即时修订', '编辑本次训练', '只修正本次记录，不改训练服务语义和历史统计口径。')
+            this.buildLaneHeader('即时修订', '修正本次记录', '只修正本次记录，不改训练服务语义和历史统计口径。')
             this.buildEditShell()
           }
 
           if (this.showUndoConfirm) {
-            this.buildLaneHeader('撤销保护', '撤销本次保存', '撤销后会移除本次记录，但仍保留当前页面内的恢复机会。')
+            this.buildLaneHeader('移除保护', '移除本次记录', '移除后会删除本次记录，但仍保留当前页面内的恢复机会。')
           }
           this.buildUndoShell()
 
           this.buildLaneHeader('记录索引', '元信息', '保留当前记录的编号、训练日和时长，方便回查与核对。')
           this.buildMetadataSection()
-
-          this.buildLaneHeader('闭环出口', '下一步', '确认记录无误后，可以直接进入训练回顾，或先回到首页继续下一轮安排。')
-          this.buildNextStepSection()
         }
       }
       .width('100%')

@@ -1,40 +1,20 @@
-# Components — Knowledge Base
+# Components 目录约束
 
-## OVERVIEW
+这里放跨页面复用的 ArkUI `@Component`。页面专属的 builder 和局部展示逻辑留在 feature 页面内；旧的全局标签栏、统计徽章和空状态组件已经移除，不要恢复成第二套导航体系。
 
-Reusable ArkUI `@Component` structs for consistent UI across all pages. Props use `@Prop` (one-way binding) for configuration. No internal state except presentation logic.
+当前主要组件：
 
-## STRUCTURE
+- `AppButton`：主按钮、次按钮、ghost 按钮和 loading 状态。
+- `AppCard`：panel/elevated/outlined 内容容器。
+- `AppInput`：表单输入包装。
+- `BottomTabBar`：Pencil 应用壳底部导航。
+- `HeroWorkoutCard`、`WeeklyRhythmStrip`、`TopContextBar`：首页复用展示块。
+- `PageHeader`、`PrimaryDestinationStrip`、`SearchBar`、`SectionHeader`：内容页布局组件。
+- `StageRail`、`StatusPill`、`SummaryRow`：启动和训练流程展示组件。
 
-```
-components/
-├── AppButton.ets    # primary | secondary | ghost, large | medium | small, loading/disabled/block
-├── AppCard.ets      # elevated | outlined variant, default | compact padding
-├── AppInput.ets     # TextInput wrapper with label, error state, icon prefix/suffix
-├── MainTabBar.ets   # Bottom tab navigation (训练, 动作库, 统计, 我的)
-└── StatBadge.ets    # Stat display badge (icon-like, small)
-```
+约定：
 
-## WHERE TO LOOK
-
-| Component | Props | Usage |
-|-----------|-------|-------|
-| `AppButton` | `text`, `type`, `size`, `disabled`, `loading`, `block`, `onButtonClick` | All pages — primary CTA, secondary action, ghost text button |
-| `AppCard` | `variant` ('elevated'\|'outlined'), `padding` ('default'\|'compact') | Content containers — stats, records, plan cards |
-| `AppInput` | `label`, `placeholder`, `type`, `value`, `error`, `onChange` | Forms — login, register, profile |
-| `MainTabBar` | none (self-contained) | Bottom navigation |
-| `StatBadge` | `label`, `value`, `color` | Stat highlights |
-
-## CONVENTIONS
-
-- **Props**: `@Prop` for config, callbacks as optional functions (`onXxx?: () => void`).
-- **Sizing**: Height from `TouchTokens` (`BUTTON_HEIGHT_DEFAULT: 48`, `BUTTON_HEIGHT_SMALL: 36`). Min touch target 48vp.
-- **Tokens**: ALL colors/spacing/radii from `DesignTokens.ets`. NO hardcoded values.
-- **Layout**: `block` prop uses `width('100%')`, otherwise `width('auto')`.
-
-## ANTI-PATTERNS
-
-- **DO NOT** modify `AppButton` primary background color (`ColorTokens.PRIMARY`).
-- **DO NOT** add shadows to ghost button variants.
-- **DO NOT** add @State inside components — use @Prop or callbacks.
-- **DO NOT** hardcode dimensions — use `TouchTokens`, `SpacingTokens`.
+- 配置使用 `@Prop`，回调使用显式函数类型；不要在通用组件里保存业务状态。
+- 视觉值优先来自 `DesignTokens.ets` 或 feature 内集中声明的 token。
+- 保持 `AppButton` 主按钮使用 `ColorTokens.PRIMARY`，ghost 变体不添加阴影。
+- 交互控件满足最小触控尺寸；不要用硬编码尺寸替代 `TouchTokens`、`SpacingTokens` 和 `RadiusTokens`。

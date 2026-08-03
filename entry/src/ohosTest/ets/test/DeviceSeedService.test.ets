@@ -2,6 +2,8 @@ import { abilityDelegatorRegistry } from '@kit.TestKit'
 import { afterEach, describe, expect, it } from '@ohos/hypium'
 import SessionManager from '../../../main/ets/common/services/SessionManager'
 import { UserGoal, WorkoutSession } from '../../../main/ets/shared/models/TrainingModels'
+import TrainingPlanService, { UserPlan } from '../../../main/ets/common/services/TrainingPlanService'
+import WorkoutDraftService, { WorkoutDraftSnapshot } from '../../../main/ets/common/services/WorkoutDraftService'
 import GoalRepository from '../../../main/ets/shared/services/GoalRepository'
 import MonetizationEntitlementService from '../../../main/ets/shared/services/MonetizationEntitlementService'
 import DeviceSeedService from '../../../main/ets/shared/services/DeviceSeedService'
@@ -78,6 +80,33 @@ export default function deviceSeedServiceTest(): void {
       expect(recordDetails.length > 0).assertTrue()
       expect(recordDetails[0].exerciseId).assertEqual('ex_barbell_bench_press')
       expect(recordDetails[0].bestOneRepMax).assertEqual(105)
+    })
+
+    it('writes deterministic today flow seed data for home and preview smoke routes', 0, async () => {
+      const context: Context = getTestContext()
+
+      const applied: boolean = await DeviceSeedService.applyNamedSeed(context, 'today_flow')
+      const goal: UserGoal | undefined = await GoalRepository.loadGoal(context)
+      const sessions: WorkoutSession[] = await WorkoutSessionPersistenceBridgeService.loadPersistedSessions(context)
+      const currentPlan: UserPlan | null = await TrainingPlanService.getCurrentPlan(context)
+      const draft: WorkoutDraftSnapshot | null = await WorkoutDraftService.getDraft(context)
+
+      expect(applied).assertTrue()
+      expect(await SessionManager.isLoggedIn(context)).assertTrue()
+      expect(goal !== undefined).assertTrue()
+      if (goal !== undefined) {
+        expect(goal.goalId).assertEqual('goal_today_flow')
+        expect(goal.goalType).assertEqual('hypertrophy')
+        expect(goal.level).assertEqual('beginner')
+        expect(goal.weeklyDays).assertEqual(3)
+        expect(goal.sessionMinutes).assertEqual(45)
+        expect(goal.equipmentIds.length).assertEqual(2)
+        expect(goal.equipmentIds[0]).assertEqual('eq_bodyweight')
+        expect(goal.equipmentIds[1]).assertEqual('eq_dumbbell')
+      }
+      expect(sessions.length).assertEqual(0)
+      expect(currentPlan === null).assertTrue()
+      expect(draft === null).assertTrue()
     })
 
     it('rejects unsupported seed keys without mutating persisted workout data', 0, async () => {

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AppState - app-level constants and startup helpers.
  *
  * Feature #4: local repositories and app state.
@@ -18,8 +18,9 @@ export class FitTrackerStores {
 export class StartupDecision {
   static getInitialRoute(hasGoal: boolean): string {
     if (hasGoal) {
-      return AppRoutes.HOME
+      return AppRoutes.APP_SHELL
     }
     return AppRoutes.GOAL_SETUP
   }
 }
+

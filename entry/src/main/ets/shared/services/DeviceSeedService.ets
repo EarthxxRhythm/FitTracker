@@ -2,7 +2,10 @@
  * DeviceSeedService -- deterministic app-owned seed paths for device-side probes.
  */
 import { Context } from '@kit.AbilityKit'
+import AuthService from '../../common/services/AuthService'
 import SessionManager from '../../common/services/SessionManager'
+import TrainingPlanService from '../../common/services/TrainingPlanService'
+import WorkoutDraftService from '../../common/services/WorkoutDraftService'
 import {
   WorkoutSession,
   createUserGoal,
@@ -20,7 +23,41 @@ class DeviceSeedService {
       await this.applyReviewMetricsSeed(context)
       return true
     }
+    if (seedKey === 'today_flow') {
+      await this.applyTodayFlowSeed(context)
+      return true
+    }
     return false
+  }
+
+  private async applyTodayFlowSeed(context: Context): Promise<void> {
+    const now: number = Date.now()
+    const seededPhone: string = '13800138000'
+    const seededPassword: string = '123456'
+    const seededEquipmentIds: string[] = ['eq_bodyweight', 'eq_dumbbell']
+    await AuthService.clearPersistedUsers(context)
+    const registerResult = await AuthService.registerLocal(context, seededPhone, seededPassword)
+    const token: string = registerResult.success ? registerResult.token : SessionManager.generateToken(seededPhone)
+    await SessionManager.saveToken(context, token)
+    await GoalRepository.saveGoal(
+      context,
+      createUserGoal(
+        'goal_today_flow',
+        'hypertrophy',
+        'beginner',
+        3,
+        45,
+        seededEquipmentIds,
+        [],
+        now,
+        now
+      )
+    )
+    await TrainingPlanService.replaceMyPlans(context, [], '')
+    await WorkoutDraftService.clearDraft(context)
+    await MonetizationEntitlementService.clearEntitlementForTesting(context)
+    await WorkoutSessionPersistenceBridgeService.replacePersistedSessions(context, [])
+    await WorkoutSessionPersistenceBridgeService.syncRepositoryFromPersistence(context)
   }
 
   private async applyReviewMetricsSeed(context: Context): Promise<void> {

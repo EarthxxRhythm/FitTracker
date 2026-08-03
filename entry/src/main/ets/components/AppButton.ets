@@ -15,14 +15,17 @@ import {
 @Component
 export struct AppButton {
   @Prop text: string = ''
-  @Prop type: 'primary' | 'secondary' | 'ghost' = 'primary'
-  @Prop buttonSize: 'large' | 'medium' | 'small' = 'medium'
+  @Prop type: 'primary' | 'secondary' | 'ghost' | 'quiet' = 'primary'
+  @Prop buttonSize: 'hero' | 'large' | 'medium' | 'small' = 'medium'
   @Prop disabled: boolean = false
   @Prop loading: boolean = false
   @Prop block: boolean = false
   onButtonClick?: () => void
 
   private getHeight(): number {
+    if (this.buttonSize === 'hero') {
+      return TouchTokens.BUTTON_HEIGHT_HERO
+    }
     if (this.buttonSize === 'large') {
       return TouchTokens.BUTTON_HEIGHT_LARGE
     }
@@ -33,6 +36,9 @@ export struct AppButton {
   }
 
   private getHorizontalPadding(): number {
+    if (this.buttonSize === 'hero') {
+      return SpacingTokens.LG
+    }
     if (this.buttonSize === 'small') {
       return SpacingTokens.MD
     }
@@ -43,6 +49,9 @@ export struct AppButton {
   }
 
   private getFontSize(): number {
+    if (this.buttonSize === 'hero') {
+      return FontTokens.TITLE_SIZE
+    }
     if (this.buttonSize === 'large') {
       return FontTokens.TITLE_SIZE
     }
@@ -58,6 +67,9 @@ export struct AppButton {
     }
     if (this.disabled) {
       return ColorTokens.TEXT_DISABLED
+    }
+    if (this.type === 'quiet') {
+      return ColorTokens.TEXT_ON_DARK_SECONDARY
     }
     if (this.type === 'ghost') {
       return ColorTokens.TEXT_SECONDARY
@@ -78,6 +90,12 @@ export struct AppButton {
         return ColorTokens.PRIMARY_DISABLED
       }
       return ColorTokens.PRIMARY
+    }
+    if (this.type === 'quiet') {
+      if (this.disabled) {
+        return ColorTokens.SURFACE_DISABLED
+      }
+      return ColorTokens.CTA_SECONDARY_BG
     }
     if (this.type === 'secondary') {
       if (this.disabled) {
@@ -102,6 +120,9 @@ export struct AppButton {
     if (this.type === 'ghost') {
       return 'rgba(0,0,0,0)'
     }
+    if (this.type === 'quiet') {
+      return ColorTokens.CTA_SECONDARY_BORDER
+    }
     if (this.type === 'primary') {
       return ColorTokens.ACCENT_DEEP
     }
@@ -110,7 +131,13 @@ export struct AppButton {
 
   private getShadow(): ShadowConfig {
     if (this.type === 'primary' && !this.disabled) {
+      if (this.buttonSize === 'hero') {
+        return ShadowTokens.CTA
+      }
       return ShadowTokens.ACCENT
+    }
+    if (this.type === 'quiet' && !this.disabled) {
+      return ShadowTokens.SM
     }
     if (this.type === 'secondary' && !this.disabled) {
       return ShadowTokens.SM
@@ -142,7 +169,7 @@ export struct AppButton {
       width: this.getBorderWidth(),
       color: this.getBorderColor()
     })
-    .borderRadius(RadiusTokens.MD)
+    .borderRadius(this.buttonSize === 'hero' ? RadiusTokens.CONTROL : RadiusTokens.MD)
     .shadow(this.getShadow())
     .constraintSize({ minHeight: TouchTokens.MIN_TARGET })
     .opacity(this.disabled ? 0.72 : 1)

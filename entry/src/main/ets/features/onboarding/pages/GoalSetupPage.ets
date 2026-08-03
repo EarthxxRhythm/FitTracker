@@ -140,7 +140,7 @@ export struct GoalSetupPage {
         return
       }
       await GoalRepository.saveGoal(context, goal)
-      this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.HOME })
+      this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.APP_SHELL })
     } catch (e) {
       this.saving = false
     }

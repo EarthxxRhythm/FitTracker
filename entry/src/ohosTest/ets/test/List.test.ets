@@ -11,6 +11,8 @@ import contentDatabaseServiceTest from './ContentDatabaseService.test'
 import goalSetupServiceTest from './GoalSetupService.test'
 import goalAdjustmentPreviewServiceTest from './GoalAdjustmentPreviewService.test'
 import homePlanServiceTest from './HomePlanService.test'
+import homeDashboardServiceTest from './HomeDashboardService.test'
+import homeResumeServiceTest from './HomeResumeService.test'
 import userDataBackupServiceTest from './UserDataBackupService.test'
 import systemBackupBridgeServiceTest from './SystemBackupBridgeService.test'
 import workoutPreviewServiceTest from './WorkoutPreviewService.test'
@@ -55,6 +57,8 @@ export default function testsuite(): void {
   goalSetupServiceTest()
   goalAdjustmentPreviewServiceTest()
   homePlanServiceTest()
+  homeDashboardServiceTest()
+  homeResumeServiceTest()
   userDataBackupServiceTest()
   systemBackupBridgeServiceTest()
   workoutPreviewServiceTest()

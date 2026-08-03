@@ -6,11 +6,14 @@ import { ColorTokens, FontTokens, RadiusTokens, ShadowTokens, SpacingTokens } fr
 
 @Component
 export struct AppCard {
-  @Prop variant: 'elevated' | 'outlined' | 'panel' = 'elevated'
-  @Prop cardPadding: 'default' | 'compact' = 'default'
+  @Prop variant: 'elevated' | 'outlined' | 'panel' | 'hero' | 'subtle' = 'elevated'
+  @Prop cardPadding: 'default' | 'compact' | 'hero' = 'default'
   @BuilderParam content: () => void = this.defaultContent
 
   private getPadding(): number {
+    if (this.cardPadding === 'hero') {
+      return SpacingTokens.CARD_PADDING_MD
+    }
     if (this.cardPadding === 'compact') {
       return SpacingTokens.MD
     }
@@ -18,6 +21,12 @@ export struct AppCard {
   }
 
   private getBackgroundColor(): string {
+    if (this.variant === 'hero') {
+      return ColorTokens.SURFACE_CARD_HERO
+    }
+    if (this.variant === 'subtle') {
+      return ColorTokens.SURFACE_CARD_SUBTLE
+    }
     if (this.variant === 'panel') {
       return ColorTokens.SURFACE_STRONG
     }
@@ -28,6 +37,12 @@ export struct AppCard {
   }
 
   private getBorderColor(): string {
+    if (this.variant === 'hero') {
+      return ColorTokens.BORDER_GLASS_STRONG
+    }
+    if (this.variant === 'subtle') {
+      return ColorTokens.BORDER_HAIRLINE
+    }
     if (this.variant === 'panel') {
       return ColorTokens.BORDER_STRONG
     }
@@ -38,6 +53,12 @@ export struct AppCard {
   }
 
   private getRadius(): number {
+    if (this.variant === 'hero') {
+      return RadiusTokens.CARD_MD
+    }
+    if (this.variant === 'subtle') {
+      return RadiusTokens.CARD_SM
+    }
     if (this.variant === 'panel') {
       return RadiusTokens.LG
     }
@@ -52,6 +73,12 @@ export struct AppCard {
   }
 
   private getShadowToken() {
+    if (this.variant === 'hero') {
+      return ShadowTokens.GLASS_STRONG
+    }
+    if (this.variant === 'subtle') {
+      return ShadowTokens.NONE
+    }
     if (this.variant === 'panel') {
       return ShadowTokens.MD
     }

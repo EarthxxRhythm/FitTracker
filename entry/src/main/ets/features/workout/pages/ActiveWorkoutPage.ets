@@ -316,7 +316,7 @@ export struct ActiveWorkoutPage {
 
   openSummary(sessionId: string): void {
     try {
-      this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.WORKOUT_SUMMARY, params: { sessionId: sessionId } })
+      this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.WORKOUT_COMPLETE, params: { sessionId: sessionId } })
     } catch (e) {
       // stay on active workout
     }
@@ -721,9 +721,9 @@ export struct ActiveWorkoutPage {
 
   getStageRailItems(): StageRailItem[] {
     const items: StageRailItem[] = []
-    items.push(createStageRailItem('预览', false, false))
-    items.push(createStageRailItem('执行', true, false))
-    items.push(createStageRailItem('回顾', false, false))
+    items.push(createStageRailItem('\u786e\u8ba4', false, false))
+    items.push(createStageRailItem('\u6267\u884c', true, false))
+    items.push(createStageRailItem('\u603b\u7ed3', false, false))
     return items
   }
 
