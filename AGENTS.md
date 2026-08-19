@@ -22,8 +22,7 @@ entry/src/main/ets/
 │   └── workout/          # 训练完成、摘要及训练流兼容服务
 ├── shared/               # 跨功能内容、计划、复盘、备份、同步和内存仓库
 ├── common/               # 稳定的认证、会话、计划/训练持久化和设计令牌
-├── components/           # 可复用 ArkUI 组件
-└── pages/                # 仅暂存正在迁移的 HomePage 兼容包装，不新增主线页面
+└── components/           # 可复用 ArkUI 组件
 ```
 
 `entry/src/main/resources/base/profile/main_pages.json` 是页面注册的唯一事实来源；`app/AppRoutes.ets` 是代码中的路由常量来源。新页面必须同时满足：文件存在、注册到 `main_pages.json`、由 `AppRoutes` 或明确的父页面引用。

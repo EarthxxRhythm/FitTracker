@@ -21,7 +21,7 @@
 | 我的计划 `plan` | Preferences | `TrainingPlanService` | 必须 |
 | 当前计划指针 | Preferences | `TrainingPlanService` | 必须 |
 | 训练记录 `session` | Preferences | `WorkoutSessionService` | 必须 |
-| 训练草稿 `draft` | Preferences，本地恢复可用 | `WorkoutDraftService` / `HomePage` | 暂不进入，先不纳入备份 schema |
+| 训练草稿 `draft` | Preferences，本地恢复可用 | `WorkoutDraftService` / `PencilHomePage` | 暂不进入，先不纳入备份 schema |
 
 ### 2.2 内容数据
 

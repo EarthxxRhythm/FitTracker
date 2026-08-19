@@ -66,7 +66,7 @@
     "summary": "在 focused smoke 通过后，按视觉基座和 6 个页面的边界整理一次聚焦提交。",
     "validation": [
       "git status --short",
-      "git diff --stat -- entry/src/main/ets/common/styles/DesignTokens.ets entry/src/main/ets/components/AppButton.ets entry/src/main/ets/components/AppCard.ets entry/src/main/ets/components/PageHeader.ets entry/src/main/ets/pages/HomePage.ets entry/src/main/ets/features/workout/pages/WorkoutPreviewPage.ets entry/src/main/ets/features/workout/pages/ActiveWorkoutPage.ets entry/src/main/ets/features/workout/pages/WorkoutSummaryPage.ets entry/src/main/ets/features/pencil/PencilReviewPage.ets entry/src/main/ets/features/exercise/pages/ExerciseDetailPage.ets"
+      "git diff --stat -- entry/src/main/ets/common/styles/DesignTokens.ets entry/src/main/ets/components/AppButton.ets entry/src/main/ets/components/AppCard.ets entry/src/main/ets/components/PageHeader.ets entry/src/main/ets/pages/HomePage.ets entry/src/main/ets/features/workout/pages/WorkoutPreviewPage.ets entry/src/main/ets/features/workout/pages/ActiveWorkoutPage.ets entry/src/main/ets/features/workout/pages/WorkoutSummaryPage.ets entry/src/main/ets/features/review/pages/ReviewHomePage.ets entry/src/main/ets/features/exercise/pages/ExerciseDetailPage.ets"
     ],
     "doneDefinition": [
       "提交边界不混入 content-sync",

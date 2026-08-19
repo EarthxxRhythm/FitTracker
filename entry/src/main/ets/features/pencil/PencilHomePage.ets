@@ -14,19 +14,19 @@ export struct PencilHomeContent {
         .height('100%')
         .linearGradient({
           angle: 180,
-          colors: [['#0B0F13', 0], ['#0D1117', 0.52], ['#0A0D12', 1]]
+          colors: [['#0B0F13', 0], ['#0A0D12', 1]]
         })
       Column()
         .width('100%')
         .height('100%')
         .radialGradient({
-          center: [77 * PencilHomeContent.SCALE, 0],
-          radius: 260 * PencilHomeContent.SCALE,
-          colors: [['#1550ECA7', 0], ['#0050ECA7', 1]]
+          center: [70, 0],
+          radius: 254,
+          colors: [['#1F50ECA7', 0], ['#0050ECA7', 1]]
         })
       Column() {
         Scroll() {
-          Column({ space: 22 * PencilHomeContent.SCALE }) {
+          Column() {
             Column({ space: 6 * PencilHomeContent.SCALE }) {
               Text('\u0035\u6708\u0032\u0032\u65e5 \u5468\u56db')
                 .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
@@ -42,15 +42,19 @@ export struct PencilHomeContent {
                 .fontColor('#F7FBF8')
                 .width('100%')
             }
+            Row()
+              .height(19)
             this.todayCard()
+            Row()
+              .height(16)
             this.weekPanel()
             this.boundaryPanel()
           }
           .width('100%')
           .padding({
-            left: 18 * PencilHomeContent.SCALE,
-            right: 18 * PencilHomeContent.SCALE,
-            top: 58 * PencilHomeContent.SCALE,
+            left: 16,
+            right: 16,
+            top: 53,
             bottom: 40 * PencilHomeContent.SCALE
           })
         }
@@ -84,14 +88,10 @@ export struct PencilHomeContent {
               .fontSize(10 * PencilHomeContent.SCALE)
               .fontWeight(FontWeight.Bold)
               .fontColor('#50ECA7')
-              .padding({
-                left: 8 * PencilHomeContent.SCALE,
-                right: 8 * PencilHomeContent.SCALE,
-                top: 5 * PencilHomeContent.SCALE,
-                bottom: 5 * PencilHomeContent.SCALE
-              })
-              .backgroundColor('#1A50ECA7')
-              .borderRadius(999 * PencilHomeContent.SCALE)
+              .width(42)
+              .height(18)
+              .padding(0)
+              .textAlign(TextAlign.Center)
           }
           Text('\u80f8\u90e8 \u00b7 \u80a9\u90e8 \u00b7 \u4e09\u5934\u808c')
             .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
@@ -102,29 +102,24 @@ export struct PencilHomeContent {
             .fontSize(12 * PencilHomeContent.SCALE)
             .fontWeight(FontWeight.Bold)
             .fontColor('#50ECA7')
-            .padding({
-              left: 14 * PencilHomeContent.SCALE,
-              right: 14 * PencilHomeContent.SCALE,
-              top: 9 * PencilHomeContent.SCALE,
-              bottom: 9 * PencilHomeContent.SCALE
-            })
-            .backgroundColor('#1A50ECA7')
-            .borderRadius(999 * PencilHomeContent.SCALE)
+            .width(160)
+            .height(18)
+            .padding(0)
         }
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
         Stack() {
-          Progress({ value: 14, total: 100, type: ProgressType.Ring })
-            .width(112 * PencilHomeContent.SCALE)
-            .height(112 * PencilHomeContent.SCALE)
-            .color('#50ECA7')
-            .backgroundColor('#12FFFFFF')
           Column()
-            .width(90 * PencilHomeContent.SCALE)
-            .height(90 * PencilHomeContent.SCALE)
-            .borderRadius(45 * PencilHomeContent.SCALE)
+            .width(96)
+            .height(96)
+            .borderRadius(48)
+            .border({ width: 5, color: '#50ECA7' })
+          Column()
+            .width(78)
+            .height(78)
+            .borderRadius(39)
             .backgroundColor('#0D1117')
-            .border({ width: PencilHomeContent.SCALE, color: '#66FFFFFF' })
+            .border({ width: 1, color: '#66FFFFFF' })
           Column({ space: 2 * PencilHomeContent.SCALE }) {
             Text('14%')
               .fontFamily(PencilHomeContent.NUMBER_FONT_FAMILY)
@@ -138,39 +133,47 @@ export struct PencilHomeContent {
           }
           .alignItems(HorizontalAlign.Center)
         }
-        .width(112 * PencilHomeContent.SCALE)
-        .height(112 * PencilHomeContent.SCALE)
+        .width(96)
+        .height(96)
+        .translate({ y: 6 })
       }
       .width('100%')
+      .height(103)
       .justifyContent(FlexAlign.SpaceBetween)
       .alignItems(VerticalAlign.Top)
       Row()
+        .height(16)
+      Row()
         .width('100%')
-        .height(PencilHomeContent.SCALE)
+        .height(1)
         .backgroundColor('#14FFFFFF')
-      Row({ space: 8 * PencilHomeContent.SCALE }) {
+      Row()
+        .height(18)
+      Row({ space: 5 }) {
         this.metric('dumbbell', '\u52a8\u4f5c\u6570', '8', '\u4e2a\u52a8\u4f5c')
         this.metric('clock-3', '\u9884\u8ba1\u7528\u65f6', '60', '\u5206\u949f')
         this.metric('rotate-ccw', '\u5b8c\u6210\u5ea6', '\u4e0a\u6b21\u672a\u5b8c\u6210', '\u53ef\u4ece\u4e0a\u6b21\u8fdb\u5ea6\u7ee7\u7eed')
       }
       .width('100%')
+      .height(96)
       Button('\u5f00\u59cb\u8bad\u7ec3')
         .width('100%')
-        .height(44 * PencilHomeContent.SCALE)
+        .height(40)
         .fontSize(15 * PencilHomeContent.SCALE)
         .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
         .fontWeight(FontWeight.Bold)
         .fontColor('#08110D')
-        .linearGradient({ angle: 180, colors: [['#47D994', 0], ['#53E7A5', 1]] })
+        .linearGradient({ angle: 90, colors: [['#47D994', 0], ['#53E7A5', 1]] })
         .borderRadius(22 * PencilHomeContent.SCALE)
         .padding(0)
-        .shadow({ radius: 28 * PencilHomeContent.SCALE, color: '#2950ECA7', offsetX: 0, offsetY: 12 * PencilHomeContent.SCALE })
         .onClick(() => {
           this.getUIContext().getRouter().pushUrl({ url: AppRoutes.ACTIVE_WORKOUT })
         })
+      Row()
+        .height(8)
       Button('\u67e5\u770b\u9884\u89c8')
         .width('100%')
-        .height(44 * PencilHomeContent.SCALE)
+        .height(40)
         .fontSize(15 * PencilHomeContent.SCALE)
         .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
         .fontWeight(FontWeight.Medium)
@@ -184,9 +187,8 @@ export struct PencilHomeContent {
         })
     }
     .width('100%')
-    .height(466 * PencilHomeContent.SCALE)
-    .padding(20 * PencilHomeContent.SCALE)
-    .justifyContent(FlexAlign.SpaceBetween)
+    .height(422)
+    .padding(18)
     .linearGradient({ angle: 180, colors: [['#0AFFFFFF', 0], ['#05FFFFFF', 1]] })
     .borderRadius(28 * PencilHomeContent.SCALE)
     .border({ width: PencilHomeContent.SCALE, color: '#10FFFFFF' })
@@ -195,37 +197,38 @@ export struct PencilHomeContent {
 
   @Builder
   private weekPanel() {
-    Column({ space: 16 * PencilHomeContent.SCALE }) {
+    Column() {
       Row() {
-        Column({ space: 4 * PencilHomeContent.SCALE }) {
+        Column({ space: 2 }) {
           Text('\u672c\u5468\u8282\u594f')
             .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-            .fontSize(16 * PencilHomeContent.SCALE)
+            .fontSize(14.5)
             .fontWeight(FontWeight.Bold)
             .fontColor('#F7FBF8')
+            .height(22)
           Text('\u5468\u4e00\u2014\u5468\u65e5')
             .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-            .fontSize(11 * PencilHomeContent.SCALE)
+            .fontSize(10)
             .fontColor('#66FFFFFF')
+            .height(16)
         }
         Text('\u0033 / \u0035 \u6b21')
           .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-          .fontSize(11 * PencilHomeContent.SCALE)
+          .fontSize(10)
           .fontWeight(FontWeight.Bold)
           .fontColor('#50ECA7')
-          .padding({
-            left: 14 * PencilHomeContent.SCALE,
-            right: 14 * PencilHomeContent.SCALE,
-            top: 9 * PencilHomeContent.SCALE,
-            bottom: 9 * PencilHomeContent.SCALE
-          })
-          .backgroundColor('#04FFFFFF')
-          .borderRadius(999 * PencilHomeContent.SCALE)
-          .border({ width: PencilHomeContent.SCALE, color: '#10FFFFFF' })
+          .width(63)
+          .height(20)
+          .padding(0)
+          .textAlign(TextAlign.Center)
+          .translate({ y: 2 })
       }
       .width('100%')
+      .height(40)
       .justifyContent(FlexAlign.SpaceBetween)
-      Row({ space: 8 * PencilHomeContent.SCALE }) {
+      Row()
+        .height(18)
+      Row({ space: 5 }) {
         this.weekDay('\u4e00', '20', true)
         this.weekDay('\u4e8c', '21', true)
         this.weekDay('\u4e09', '22', false)
@@ -234,7 +237,10 @@ export struct PencilHomeContent {
         this.weekDay('\u516d', '25', false)
         this.weekDay('\u65e5', '26', false)
       }
-      .width('100%')
+      .width(319)
+      .height(62)
+      Row()
+        .height(15)
       Row() {
         Text('\u5df2\u5b8c\u6210 3 / 5 \u6b21')
           .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
@@ -246,30 +252,33 @@ export struct PencilHomeContent {
           .fontWeight(FontWeight.Bold)
           .fontColor('#50ECA7')
       }
-      .width('100%')
+      .width(321)
+      .height(16)
       .justifyContent(FlexAlign.SpaceBetween)
+      Row()
+        .height(12)
       Stack() {
         Column()
-          .width('100%')
-          .height(6 * PencilHomeContent.SCALE)
+          .width(321)
+          .height(6)
           .backgroundColor('#14FFFFFF')
-          .borderRadius(999 * PencilHomeContent.SCALE)
+          .borderRadius(999)
         Column()
-          .width('60%')
-          .height(6 * PencilHomeContent.SCALE)
+          .width(193)
+          .height(6)
           .backgroundColor('#50ECA7')
-          .borderRadius(999 * PencilHomeContent.SCALE)
+          .borderRadius(999)
           .alignSelf(ItemAlign.Start)
       }
-      .width('100%')
-      .height(6 * PencilHomeContent.SCALE)
+      .width(321)
+      .height(6)
     }
     .width('100%')
-    .height(248 * PencilHomeContent.SCALE)
-    .padding(18 * PencilHomeContent.SCALE)
-    .linearGradient({ angle: 180, colors: [['#08FFFFFF', 0], ['#04FFFFFF', 1]] })
-    .borderRadius(30 * PencilHomeContent.SCALE)
-    .border({ width: PencilHomeContent.SCALE, color: '#10FFFFFF' })
+    .height(225)
+    .padding(16)
+    .backgroundColor('#08FFFFFF')
+    .borderRadius(27.2)
+    .border({ width: 1, color: '#10FFFFFF' })
     .shadow({ radius: 36 * PencilHomeContent.SCALE, color: '#24000000', offsetX: 0, offsetY: 18 * PencilHomeContent.SCALE })
   }
 
@@ -304,66 +313,76 @@ export struct PencilHomeContent {
 
   @Builder
   private metric(iconName: string, label: string, value: string, note: string) {
-    Column({ space: 8 * PencilHomeContent.SCALE }) {
+    Column({ space: 4 }) {
       if (iconName === 'dumbbell') {
         Image($rawfile('pencil-home-metric-dumbbell.svg'))
-          .width(36 * PencilHomeContent.SCALE)
-          .height(36 * PencilHomeContent.SCALE)
+          .width(22)
+          .height(22)
+          .fillColor('#50ECA7')
       } else if (iconName === 'clock-3') {
         Image($rawfile('pencil-home-metric-clock-3.svg'))
-          .width(36 * PencilHomeContent.SCALE)
-          .height(36 * PencilHomeContent.SCALE)
+          .width(22)
+          .height(22)
+          .fillColor('#50ECA7')
       } else {
         Image($rawfile('pencil-home-metric-rotate-ccw.svg'))
-          .width(36 * PencilHomeContent.SCALE)
-          .height(36 * PencilHomeContent.SCALE)
+          .width(22)
+          .height(22)
+          .fillColor('#50ECA7')
       }
       Text(label)
         .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-        .fontSize(12 * PencilHomeContent.SCALE)
+        .fontSize(9.8)
         .fontColor('#A3FFFFFF')
+        .width('100%')
+        .height(16)
+        .textAlign(TextAlign.Center)
       Text(label === '\u5b8c\u6210\u5ea6' ? '\u4e0a\u6b21...' : value)
         .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-        .fontSize(30 * PencilHomeContent.SCALE)
+        .fontSize(label === '\u5b8c\u6210\u5ea6' ? 13 : 27.2)
+        .lineHeight(28)
         .fontWeight(FontWeight.Bold)
         .fontColor('#F7FBF8')
+        .width('100%')
+        .height(28)
+        .textAlign(TextAlign.Center)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
       Text(note)
         .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-        .fontSize(11 * PencilHomeContent.SCALE)
+        .fontSize(8.8)
         .fontColor('#8AFFFFFF')
+        .width('100%')
+        .height(16)
+        .textAlign(TextAlign.Center)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
     }
     .layoutWeight(1)
+    .height(96)
     .alignItems(HorizontalAlign.Center)
   }
 
   @Builder
   private weekDay(day: string, date: string, active: boolean) {
-    Column({ space: 6 * PencilHomeContent.SCALE }) {
+    Column({ space: 3 }) {
       Text(day)
         .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-        .fontSize(11 * PencilHomeContent.SCALE)
+        .fontSize(9.5)
         .fontColor('#8AFFFFFF')
-      Text(active ? '\u2713' : '\u00b7')
-        .fontFamily(PencilHomeContent.NUMBER_FONT_FAMILY)
-        .fontSize(14 * PencilHomeContent.SCALE)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(active ? '#07100B' : '#66FFFFFF')
-        .width(32 * PencilHomeContent.SCALE)
-        .height(32 * PencilHomeContent.SCALE)
-        .textAlign(TextAlign.Center)
+      Column()
+        .width(28)
+        .height(28)
         .backgroundColor(active ? '#50ECA7' : '#0FFFFFFF')
-        .borderRadius(16 * PencilHomeContent.SCALE)
-        .border({ width: PencilHomeContent.SCALE, color: active ? '#50ECA7' : '#14FFFFFF' })
+        .borderRadius(14)
+        .border({ width: 1, color: active ? '#50ECA7' : '#14FFFFFF' })
       Text(date)
         .fontFamily(PencilHomeContent.NUMBER_FONT_FAMILY)
-        .fontSize(10 * PencilHomeContent.SCALE)
+        .fontSize(9)
         .fontColor(active ? '#50ECA7' : '#66FFFFFF')
     }
     .layoutWeight(1)
+    .height(62)
     .alignItems(HorizontalAlign.Center)
   }
 

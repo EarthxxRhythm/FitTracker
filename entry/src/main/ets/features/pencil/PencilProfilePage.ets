@@ -112,16 +112,38 @@ export struct PencilProfileContent {
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
       .alignItems(VerticalAlign.Center)
-      Row({ space: 10 * PencilProfileContent.SCALE }) {
-        this.buildStat('\u8bad\u7ec3', '4', '\u6b21')
-        this.buildStat('\u65f6\u957f', '186', '\u5206\u949f')
-        this.buildStat('\u6d88\u8017', '1,240', '\u5343\u5361')
+
+      Row({ space: 6 * PencilProfileContent.SCALE }) {
+        Text('186')
+          .fontFamily('Geist Mono')
+          .fontSize(40 * PencilProfileContent.SCALE)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#50ECA7')
+        Text('分钟')
+          .fontFamily('Inter')
+          .fontSize(14 * PencilProfileContent.SCALE)
+          .fontColor('#7AFFFFFF')
       }
       .width('100%')
-      .height(95 * PencilProfileContent.SCALE)
+      .alignItems(VerticalAlign.Bottom)
+
+      Text('本周训练时长')
+        .fontFamily('Inter')
+        .fontSize(11 * PencilProfileContent.SCALE)
+        .fontColor('#66FFFFFF')
+
+      Row()
+        .width('100%')
+        .height(1)
+        .backgroundColor('#0FFFFFFF')
+
+      Row({ space: 10 * PencilProfileContent.SCALE }) {
+        this.buildFocusMeta('训练', '4', '次')
+        this.buildFocusMeta('消耗', '1,240', '千卡')
+      }
+      .width('100%')
     }
     .width('100%')
-    .height(171 * PencilProfileContent.SCALE)
     .padding(18 * PencilProfileContent.SCALE)
     .backgroundColor('#08FFFFFF')
     .borderRadius(28 * PencilProfileContent.SCALE)
@@ -129,29 +151,26 @@ export struct PencilProfileContent {
   }
 
   @Builder
-  private buildStat(label: string, value: string, unit: string) {
-    Column({ space: 4 * PencilProfileContent.SCALE }) {
+  private buildFocusMeta(label: string, value: string, unit: string) {
+    Column({ space: 2 * PencilProfileContent.SCALE }) {
       Text(label)
         .fontFamily('Inter')
         .fontSize(11 * PencilProfileContent.SCALE)
         .fontWeight(FontWeight.Medium)
         .fontColor('#66FFFFFF')
-      Text(value)
-        .fontFamily('Geist Mono')
-        .fontSize(24 * PencilProfileContent.SCALE)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#50ECA7')
-      Text(unit)
-        .fontFamily('Inter')
-        .fontSize(11 * PencilProfileContent.SCALE)
-        .fontColor('#66FFFFFF')
+      Row({ space: 3 * PencilProfileContent.SCALE }) {
+        Text(value)
+          .fontFamily('Geist Mono')
+          .fontSize(20 * PencilProfileContent.SCALE)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#F7FBF8')
+        Text(unit)
+          .fontFamily('Inter')
+          .fontSize(11 * PencilProfileContent.SCALE)
+          .fontColor('#66FFFFFF')
+      }
     }
     .layoutWeight(1)
-    .height(95 * PencilProfileContent.SCALE)
-    .padding({ top: 12 * PencilProfileContent.SCALE, bottom: 12 * PencilProfileContent.SCALE, left: 10 * PencilProfileContent.SCALE, right: 10 * PencilProfileContent.SCALE })
-    .backgroundColor('#14181E')
-    .borderRadius(18 * PencilProfileContent.SCALE)
-    .border({ width: 1 * PencilProfileContent.SCALE, color: '#0AFFFFFF' })
     .alignItems(HorizontalAlign.Start)
   }
 

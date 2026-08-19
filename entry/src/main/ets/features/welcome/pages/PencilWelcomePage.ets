@@ -35,8 +35,8 @@ struct PencilWelcomePage {
       })
 
       Text('FITTRACKER')
-        .width(97)
-        .height(15)
+        .width(107 * PencilWelcomePage.SCALE)
+        .height(17 * PencilWelcomePage.SCALE)
         .fontFamily('Inter')
         .fontSize(14 * PencilWelcomePage.SCALE)
         .fontWeight(FontWeight.Bold)
@@ -54,7 +54,7 @@ struct PencilWelcomePage {
 
   @Builder
   private buildTrainingVisual() {
-    Stack() {
+    Stack({ alignContent: Alignment.TopStart }) {
       Column()
         .width(382 * PencilWelcomePage.SCALE)
         .height(208 * PencilWelcomePage.SCALE)
@@ -142,7 +142,9 @@ struct PencilWelcomePage {
         .fontSize(10 * PencilWelcomePage.SCALE)
         .fontWeight(600)
         .fontColor('#66FFFFFF')
+        .lineHeight(10 * PencilWelcomePage.SCALE)
         .letterSpacing(1.1 * PencilWelcomePage.SCALE)
+        .translate({ x: 0, y: 1 })
         .position({
           x: 24 * PencilWelcomePage.SCALE,
           y: 168 * PencilWelcomePage.SCALE
@@ -158,7 +160,7 @@ struct PencilWelcomePage {
     })
     .shadow({
       radius: 36,
-      color: '#1F50ECA7',
+      color: '#57000000',
       offsetX: 0,
       offsetY: 18
     })
@@ -197,7 +199,9 @@ struct PencilWelcomePage {
           .fontSize(11 * PencilWelcomePage.SCALE)
           .fontWeight(600)
           .fontColor('#50ECA7')
+          .lineHeight(11 * PencilWelcomePage.SCALE)
           .letterSpacing(1.3 * PencilWelcomePage.SCALE)
+          .translate({ x: 0, y: 1 })
           .position({
             x: 24 * PencilWelcomePage.SCALE,
             y: 196 * PencilWelcomePage.SCALE
@@ -211,6 +215,7 @@ struct PencilWelcomePage {
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
           .lineHeight(0.98 * 42 * PencilWelcomePage.SCALE)
+          .translate({ x: 0, y: 4 })
           .position({
             x: 24 * PencilWelcomePage.SCALE,
             y: 224 * PencilWelcomePage.SCALE
@@ -224,6 +229,7 @@ struct PencilWelcomePage {
           .fontWeight(FontWeight.Normal)
           .fontColor('#A6FFFFFF')
           .lineHeight(1.45 * 16 * PencilWelcomePage.SCALE)
+          .translate({ x: 0, y: -1 })
           .position({
             x: 24 * PencilWelcomePage.SCALE,
             y: 336 * PencilWelcomePage.SCALE
@@ -240,7 +246,9 @@ struct PencilWelcomePage {
               .fontSize(16 * PencilWelcomePage.SCALE)
               .fontWeight(FontWeight.Bold)
               .fontColor('#07100B')
+              .lineHeight(1.4 * 16 * PencilWelcomePage.SCALE)
               .textAlign(TextAlign.Center)
+              .translate({ x: 0, y: -2 })
           }
           .width(382 * PencilWelcomePage.SCALE)
           .height(52 * PencilWelcomePage.SCALE)
@@ -279,12 +287,13 @@ struct PencilWelcomePage {
         Text('本地记录 · 无需注册 · 随时开始')
           .width(382 * PencilWelcomePage.SCALE)
           .height(16 * PencilWelcomePage.SCALE)
-          .fontFamily('Noto Sans SC')
+        .fontFamily('Noto Sans SC')
           .fontSize(11 * PencilWelcomePage.SCALE)
           .fontWeight(FontWeight.Normal)
           .fontColor('#52FFFFFF')
           .lineHeight(1.45 * 11 * PencilWelcomePage.SCALE)
           .textAlign(TextAlign.Center)
+          .translate({ x: 0, y: -2 })
           .position({
             x: 24 * PencilWelcomePage.SCALE,
             y: 852 * PencilWelcomePage.SCALE

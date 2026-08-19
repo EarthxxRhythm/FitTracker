@@ -1,7 +1,11 @@
 ﻿/** PencilSplashPage 鈥斺€?FitTracker Splash 鍘熷瀷椤点€傚姛鑳?#27 */
 import { AppRoutes } from '../../app/AppRoutes'
+import LaunchRequestStore from '../../app/LaunchRequestStore'
 import SessionManager from '../../common/services/SessionManager'
 import { Context } from '@kit.AbilityKit'
+import { window } from '@kit.ArkUI'
+import { text } from '@kit.ArkGraphics2D'
+import DeviceSeedService from '../../shared/services/DeviceSeedService'
 
 @Entry
 @Component
@@ -13,6 +17,18 @@ struct PencilSplashPage {
   private contextOrNull(): Context | null {
     const host = this.getUIContext().getHostContext()
     return host === undefined || host === null ? null : host as Context
+  }
+
+  private loadDesignFonts(): void {
+    const fontCollection: text.FontCollection = text.FontCollection.getGlobalInstance()
+    fontCollection.loadFontSync('Noto Sans SC', $rawfile('fonts/NotoSansSC-Variable.ttf'))
+    fontCollection.loadFontSync('Inter', $rawfile('fonts/Inter-Variable.ttf'))
+    fontCollection.loadFontSync('Geist Mono', $rawfile('fonts/GeistMono-Variable.ttf'))
+  }
+
+  private async useSafeWindowLayout(context: Context): Promise<void> {
+    const mainWindow: window.Window = await window.getLastWindow(context)
+    await mainWindow.setWindowLayoutFullScreen(false)
   }
 
   @Builder
@@ -88,8 +104,16 @@ struct PencilSplashPage {
   }
 
   async aboutToAppear(): Promise<void> {
+    this.loadDesignFonts()
     const context = this.contextOrNull()
+    if (context !== null) {
+      const seedKey: string = await LaunchRequestStore.consumePendingDebugSeedKey(context)
+      if (seedKey.length > 0) {
+        await DeviceSeedService.applyNamedSeed(context, seedKey)
+      }
+    }
     if (context !== null && await SessionManager.isLoggedIn(context)) {
+      await this.useSafeWindowLayout(context)
       this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.APP_SHELL })
       return
     }

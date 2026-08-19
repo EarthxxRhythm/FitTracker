@@ -8,9 +8,8 @@
 - `AppCard`：panel/elevated/outlined 内容容器。
 - `AppInput`：表单输入包装。
 - `BottomTabBar`：Pencil 应用壳底部导航。
-- `HeroWorkoutCard`、`WeeklyRhythmStrip`、`TopContextBar`：首页复用展示块。
-- `PageHeader`、`PrimaryDestinationStrip`、`SearchBar`、`SectionHeader`：内容页布局组件。
-- `StageRail`、`StatusPill`、`SummaryRow`：启动和训练流程展示组件。
+- `PageHeader`、`PrimaryDestinationStrip`、`SearchBar`：内容页布局组件。
+- `StageRail`：训练流程展示组件。
 
 约定：
 

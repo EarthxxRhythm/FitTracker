@@ -21,8 +21,3 @@ export class AppRoutes {
   static readonly WORKOUT_SUMMARY: string = 'features/workout/pages/WorkoutSummaryPage'
   static readonly REVIEW_HOME: string = 'features/pencil/PencilReviewPage'
 }
-
-
-
-
-

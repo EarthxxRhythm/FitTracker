@@ -8,10 +8,10 @@ export class ColorTokens {
   static readonly APP_BG_HOME_ELEVATED: string = '#0D1615'
   static readonly APP_BG_HOME_ACCENT: string = 'rgba(69,201,161,0.08)'
 
-  static readonly ACCENT_PRIMARY: string = '#45C9A1'
-  static readonly ACCENT_HOVER: string = '#61E0B5'
+  static readonly ACCENT_PRIMARY: string = '#50ECA7'
+  static readonly ACCENT_HOVER: string = '#53E7A5'
   static readonly ACCENT_SOFT: string = '#8CEBCC'
-  static readonly ACCENT_DEEP: string = '#287A63'
+  static readonly ACCENT_DEEP: string = '#45C9A1'
   static readonly ACCENT_METAL: string = '#7E8F96'
   static readonly ACCENT_GOLD: string = '#B59869'
 
@@ -347,7 +347,7 @@ export class TouchTokens {
   static readonly HERO_CARD_MIN_HEIGHT: number = 220
   static readonly AVATAR_SIZE: number = 56
   static readonly HERO_HEIGHT: number = 200
-  static readonly TAB_BAR_HEIGHT_HOME: number = 72
+  static readonly TAB_BAR_HEIGHT_HOME: number = 56
   static readonly TAB_ACTIVE_DOT: number = 44
   static readonly TOP_CONTEXT_BUTTON: number = 44
   static readonly CALENDAR_CELL: number = 32
