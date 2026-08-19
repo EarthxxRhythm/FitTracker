@@ -23,4 +23,3 @@ export class StartupDecision {
     return AppRoutes.GOAL_SETUP
   }
 }
-

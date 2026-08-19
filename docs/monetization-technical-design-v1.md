@@ -325,11 +325,11 @@ getBillingEnvironment(): 'disabled' | 'mock' | 'sandbox' | 'production'
 
 当前不做全应用铺开，只建议在最有付费意义的点先预留 gate。
 
-### 9.1 ReviewHomePage
+### 9.1 PencilReviewPage
 
 文件：
 
-- `entry/src/main/ets/features/pencil/PencilReviewPage.ets`
+- `entry/src/main/ets/features/review/pages/ReviewHomePage.ets`
 - `entry/src/main/ets/shared/services/ReviewInsightsService.ets`
 
 建议先对这些能力预留 gate：
@@ -361,7 +361,7 @@ getBillingEnvironment(): 'disabled' | 'mock' | 'sandbox' | 'production'
 文件：
 
 - `entry/src/main/ets/common/services/TrainingPlanService.ets`
-- `entry/src/main/ets/features/pencil/PencilPlanPage.ets`
+- `entry/src/main/ets/features/workout/pages/TrainingPlanDetailPage.ets`
 
 建议预留：
 
@@ -409,8 +409,8 @@ getBillingEnvironment(): 'disabled' | 'mock' | 'sandbox' | 'production'
 
 ### 9.7 不建议本轮接入的地方
 
-- `ActiveWorkoutPage`
-- `WorkoutPreviewPage`
+- `PencilActivePage`
+- `PencilPreviewPage`
 - 启动路由
 - 备份恢复链路
 
@@ -462,7 +462,7 @@ getBillingEnvironment(): 'disabled' | 'mock' | 'sandbox' | 'production'
 
 建议首批页面验证：
 
-- `ReviewHomePage`
+- `PencilReviewPage`
   - 免费态显示受限入口
   - Pro 态显示完整洞察
 - 未来会员状态页

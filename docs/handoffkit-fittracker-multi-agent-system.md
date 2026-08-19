@@ -92,11 +92,11 @@ FitTracker 当前最容易出问题的不是“不会写页面”，而是以下
 
 重点关注：
 
-- `HomePage`
-- `WorkoutPreviewPage`
-- `ActiveWorkoutPage`
+- `PencilHomePage`
+- `PencilPreviewPage`
+- `PencilActivePage`
 - `WorkoutSummaryPage`
-- `ReviewHomePage`
+- `PencilReviewPage`
 
 ### 3.3 UI System Agent / 视觉与设计系统 agent
 
@@ -137,8 +137,8 @@ FitTracker 当前最容易出问题的不是“不会写页面”，而是以下
 
 重点写入范围：
 
-- `entry/src/main/ets/pages/`
-- `entry/src/main/ets/features/**/pages/`
+- `entry/src/main/ets/app/`
+- `entry/src/main/ets/features/**/`
 - 受控地写入 `components/`
 
 ### 3.6 QA Gate Agent / 验证与回归 agent
@@ -234,7 +234,7 @@ FitTracker 当前最容易出问题的不是“不会写页面”，而是以下
 {
   "topic": "intake.task",
   "payload": {
-    "userIntent": "提升 ReviewHomePage 的长期趋势分析体验",
+    "userIntent": "提升 PencilReviewPage 的长期趋势分析体验",
     "taskType": "user_visible_route_upgrade",
     "routeScope": ["review"],
     "riskLevel": "high"
@@ -351,12 +351,12 @@ flowchart LR
 建议的锁粒度：
 
 - `ui_home_loop`
-  - `HomePage.ets`
-  - `WorkoutPreviewPage.ets`
-  - `ActiveWorkoutPage.ets`
+- `PencilHomePage.ets`
+- `PencilPreviewPage.ets`
+- `PencilActivePage.ets`
   - `WorkoutSummaryPage.ets`
 - `ui_review_loop`
-  - `ReviewHomePage.ets`
+- `PencilReviewPage.ets`
   - `ExerciseDetailPage.ets`
 - `design_system_core`
   - `DesignTokens.ets`
@@ -539,8 +539,8 @@ flowchart TD
 
 ### 11.1 页面边界
 
-- `pages/`
-  - 历史入口与 Home
+- `features/pencil/`
+  - 当前视觉主线入口
 - `features/onboarding/`
   - 目标设置
 - `features/workout/`
@@ -570,7 +570,7 @@ flowchart TD
 
 任务：
 
-> 把 `ActiveWorkoutPage` 从“表单感”改造成“记录控制台”，同时不能破坏热身组语义。
+> 把 `PencilActivePage` 从“表单感”改造成“记录控制台”，同时不能破坏热身组语义。
 
 ### 步骤
 
@@ -588,7 +588,7 @@ flowchart TD
    - 热身组保存但不计入完成率 / PR / 训练量
 
 5. HarmonyOS App Agent 申请 `ui_home_loop` 写锁
-   - 改 `ActiveWorkoutPage.ets`
+   - 改 `PencilActivePage.ets`
    - 必要时补组件
 
 6. QA Gate Agent 发 `validation.result`

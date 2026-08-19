@@ -1,23 +1,82 @@
-﻿/** PencilActivePage —— FitTracker Active Workout 原型页。功能 #27 */
+/** PencilActivePage - FitTracker Active Workout prototype page. */
 import { AppRoutes } from '../../app/AppRoutes'
+
+interface SetRecordItem {
+  index: number
+  weight: number
+  reps: number
+}
+
+function createSetRecord(index: number, weight: number, reps: number): SetRecordItem {
+  const item: SetRecordItem = {
+    index: index,
+    weight: weight,
+    reps: reps
+  }
+  return item
+}
+
+const PROGRESS_SEGMENTS: number[] = [0, 1, 2, 3, 4, 5]
 
 @Component
 export struct PencilActiveContent {
-  private static readonly VIEWPORT_WIDTH: number = 390
-  private static readonly DESIGN_WIDTH: number = 430
-  private static readonly SCALE: number = PencilActiveContent.VIEWPORT_WIDTH / PencilActiveContent.DESIGN_WIDTH
-  private static readonly CONTENT_FONT: string = 'HarmonyOS Sans'
-  private static readonly MONO_FONT: string = 'Geist Mono'
+  @State private completed: number = 2
+  @State private weight: number = 32
+  @State private reps: number = 9
+  @State private showModal: boolean = false
+  @State private records: SetRecordItem[] = []
 
-  @State rest: boolean = false
-  @State completed: number = 2
   private finish(): void {
     this.getUIContext().getRouter().pushUrl({ url: AppRoutes.WORKOUT_COMPLETE })
   }
 
+  private openModal(): void {
+    if (this.completed < PROGRESS_SEGMENTS.length) {
+      this.showModal = true
+    }
+  }
+
+  private closeModal(): void {
+    this.showModal = false
+  }
+
+  private changeWeight(delta: number): void {
+    this.weight = Math.max(20, Math.min(200, this.weight + delta))
+  }
+
+  private changeReps(delta: number): void {
+    this.reps = Math.max(1, Math.min(15, this.reps + delta))
+  }
+
   private completeSet(): void {
-    this.completed = Math.min(6, this.completed + 1)
-    this.rest = true
+    if (this.completed >= PROGRESS_SEGMENTS.length) {
+      return
+    }
+    const nextRecords: SetRecordItem[] = this.records.slice()
+    nextRecords.push(createSetRecord(this.completed + 1, this.weight, this.reps))
+    this.records = nextRecords
+    this.completed += 1
+    this.showModal = false
+  }
+
+  private segmentBackground(index: number): string {
+    if (index < this.completed) {
+      return '#50ECA7'
+    }
+    if (index === this.completed) {
+      return '#2950ECA7'
+    }
+    return '#12FFFFFF'
+  }
+
+  private segmentBorder(index: number): string {
+    if (index < this.completed) {
+      return '#50ECA7'
+    }
+    if (index === this.completed) {
+      return '#8050ECA7'
+    }
+    return '#0DFFFFFF'
   }
 
   build() {
@@ -25,365 +84,369 @@ export struct PencilActiveContent {
       Column()
         .width('100%')
         .height('100%')
-        .linearGradient({
-          angle: 180,
-          colors: [['#0B0F13', 0], ['#0D1117', 0.52], ['#0A0D12', 1]]
-        })
+        .backgroundColor('#0B0F13')
+
+      Column() {
+        this.topProgress()
+        Scroll() {
+          Column({ space: 14 }) {
+            this.demoCard()
+            this.setList()
+          }
+          .width('100%')
+          .padding({ left: 18, right: 18, top: 16, bottom: 24 })
+        }
+        .layoutWeight(1)
+        .width('100%')
+
+        this.dock()
+      }
+      .width('100%')
+      .height('100%')
+
+      if (this.showModal) {
+        this.recordModal()
+      }
+    }
+    .width('100%')
+    .height('100%')
+  }
+
+  @Builder
+  private topProgress() {
+    Column({ space: 10 }) {
+      Row() {
+        Text('第 ' + (this.completed + 1).toString() + ' 组 / 共 ' + PROGRESS_SEGMENTS.length.toString() + ' 组')
+          .fontFamily('Noto Sans SC')
+          .fontSize(12)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#B3FFFFFF')
+        Row({ space: 6 }) {
+          Text('●')
+            .fontFamily('HarmonyOS Sans')
+            .fontSize(8)
+            .fontColor('#50ECA7')
+          Text('总时长')
+            .fontFamily('Noto Sans SC')
+            .fontSize(12)
+            .fontColor('#99FFFFFF')
+          Text('00:00')
+            .fontFamily('Geist Mono')
+            .fontSize(14)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#F7FBF8')
+        }
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.SpaceBetween)
+
+      Row({ space: 6 }) {
+        ForEach(PROGRESS_SEGMENTS, (index: number) => {
+          Stack({ alignContent: Alignment.Center }) {
+            Row()
+              .width('100%')
+              .height(12)
+              .backgroundColor(this.segmentBackground(index))
+              .borderRadius(999)
+              .border({ width: 1, color: this.segmentBorder(index) })
+            if (index === this.completed) {
+              Row()
+                .width(18)
+                .height(18)
+                .backgroundColor('#50ECA7')
+                .borderRadius(9)
+                .border({ width: 3, color: '#0B0F13' })
+            }
+          }
+          .layoutWeight(1)
+          .height(18)
+        }, (index: number) => index.toString())
+      }
+      .width('100%')
+    }
+    .width('100%')
+    .padding({ left: 18, right: 18, top: 14, bottom: 12 })
+    .backgroundColor('#0A0D12F5')
+    .border({ width: { bottom: 1 }, color: '#0FFFFFFF' })
+  }
+
+  @Builder
+  private demoCard() {
+    Stack({ alignContent: Alignment.TopStart }) {
       Column()
         .width('100%')
         .height('100%')
-        .radialGradient({
-          center: [215 * PencilActiveContent.SCALE, 0],
-          radius: 220 * PencilActiveContent.SCALE,
-          colors: [['#1550ECA7', 0], ['#0050ECA7', 1]]
+        .linearGradient({
+          angle: 180,
+          colors: [['#2A3934', 0], ['#16211F', 1]]
         })
-      Column() {
-        Scroll() {
-          Column({ space: 18 * PencilActiveContent.SCALE }) {
-            this.progressCard()
-            this.controlCard()
-          }.width('100%').padding({
-            left: 18 * PencilActiveContent.SCALE,
-            right: 18 * PencilActiveContent.SCALE,
-            top: 18 * PencilActiveContent.SCALE,
-            bottom: 80 * PencilActiveContent.SCALE
+
+      Image($rawfile('pencil-lucide-person-standing.svg'))
+        .width(150)
+        .height(150)
+        .fillColor('#7E8F96')
+        .position({ x: 105, y: 38 })
+
+      Row({ space: 6 }) {
+        Text('动作')
+          .fontFamily('Noto Sans SC')
+          .fontSize(11)
+          .fontColor('#99FFFFFF')
+        Text('1 / 4')
+          .fontFamily('Geist Mono')
+          .fontSize(12)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#50ECA7')
+      }
+      .padding({ left: 10, right: 10, top: 6, bottom: 6 })
+      .backgroundColor('#081017D1')
+      .borderRadius(999)
+      .border({ width: 1, color: '#1AFFFFFF' })
+      .position({ x: 14, y: 14 })
+
+      Row() {
+        Text('杠铃卧推')
+          .fontFamily('Noto Sans SC')
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#F7FBF8')
+        Text('第 ' + (this.completed + 1).toString() + ' 组 · 正式组')
+          .fontFamily('Noto Sans SC')
+          .fontSize(12)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#50ECA7')
+      }
+      .width(326)
+      .padding({ left: 14, right: 14, top: 10, bottom: 10 })
+      .justifyContent(FlexAlign.SpaceBetween)
+      .backgroundColor('#081017D1')
+      .borderRadius(16)
+      .border({ width: 1, color: '#14FFFFFF' })
+      .position({ x: 14, y: 178 })
+    }
+    .width('100%')
+    .height(230)
+    .borderRadius(28)
+    .border({ width: 1, color: '#14FFFFFF' })
+    .clip(true)
+  }
+
+  @Builder
+  private setList() {
+    Column({ space: 10 }) {
+      if (this.records.length === 0) {
+        Column() {
+          Text('还没有完成组')
+            .fontFamily('Noto Sans SC')
+            .fontSize(13)
+            .fontColor('#8AFFFFFF')
+        }
+        .width('100%')
+        .height(52)
+        .justifyContent(FlexAlign.Center)
+        .border({ width: 1, color: '#1AFFFFFF', style: BorderStyle.Dashed })
+        .borderRadius(14)
+      } else {
+        ForEach(this.records, (record: SetRecordItem) => {
+          Row() {
+            Text('第 ' + record.index.toString() + ' 组')
+              .fontFamily('Noto Sans SC')
+              .fontSize(13)
+              .fontColor('#B3FFFFFF')
+            Text(record.weight.toString() + ' kg × ' + record.reps.toString())
+              .fontFamily('Geist Mono')
+              .fontSize(14)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#F7FBF8')
+            Text('✓')
+              .fontFamily('HarmonyOS Sans')
+              .fontSize(14)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#50ECA7')
+          }
+          .width('100%')
+          .height(44)
+          .padding({ left: 12, right: 12 })
+          .justifyContent(FlexAlign.SpaceBetween)
+          .backgroundColor('#08FFFFFF')
+          .borderRadius(12)
+          .border({ width: 1, color: '#14FFFFFF' })
+        }, (record: SetRecordItem) => record.index.toString())
+      }
+    }
+    .width('100%')
+  }
+
+  @Builder
+  private dock() {
+    Column() {
+      Button('提交')
+        .width('100%')
+        .height(50)
+        .padding(0)
+        .fontFamily('Noto Sans SC')
+        .fontSize(15)
+        .fontWeight(FontWeight.Bold)
+        .fontColor('#07100B')
+        .backgroundColor('#50ECA7')
+        .borderRadius(16)
+        .shadow({ radius: 22, color: '#3D000000', offsetX: 0, offsetY: 10 })
+        .onClick(() => {
+          this.openModal()
+        })
+    }
+    .width('100%')
+    .padding({ left: 18, right: 18, top: 12, bottom: 18 })
+    .backgroundColor('#0A0D12FA')
+    .border({ width: { top: 1 }, color: '#0FFFFFFF' })
+  }
+
+  @Builder
+  private recordModal() {
+    Stack({ alignContent: Alignment.Center }) {
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor('#030606B8')
+
+      Column({ space: 18 }) {
+        Row() {
+          Column({ space: 4 }) {
+            Text('RECORD SET')
+              .fontFamily('Geist Mono')
+              .fontSize(10)
+              .fontColor('#50ECA7')
+            Text('记录本组')
+              .fontFamily('Noto Sans SC')
+              .fontSize(22)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#F7FBF8')
+            Text('杠铃卧推 · 第 ' + (this.completed + 1).toString() + ' 组')
+              .fontFamily('Noto Sans SC')
+              .fontSize(13)
+              .fontColor('#99FFFFFF')
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+
+          Text('×')
+            .fontFamily('HarmonyOS Sans')
+            .fontSize(20)
+            .fontColor('#B3FFFFFF')
+            .width(36)
+            .height(36)
+            .textAlign(TextAlign.Center)
+            .backgroundColor('#08FFFFFF')
+            .borderRadius(18)
+            .border({ width: 1, color: '#14FFFFFF' })
+            .onClick(() => {
+              this.closeModal()
+            })
+        }
+        .width('100%')
+
+        Row({ space: 12 }) {
+          this.inputBox('重量', 'KG', this.weight, true)
+          this.inputBox('次数', '8–10', this.reps, false)
+        }
+        .width('100%')
+
+        Button('完成本组')
+          .width('100%')
+          .height(50)
+          .padding(0)
+          .fontFamily('Noto Sans SC')
+          .fontSize(15)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#07100B')
+          .backgroundColor('#50ECA7')
+          .borderRadius(16)
+          .onClick(() => {
+            this.completeSet()
           })
-        }.layoutWeight(1)
-      }.width('100%').height('100%')
-    }.width(PencilActiveContent.VIEWPORT_WIDTH).height('100%')
-  }
-
-  @Builder progressCard() {
-    Column({ space: 16 * PencilActiveContent.SCALE }) {
-      Row() {
-        Row({ space: 6 * PencilActiveContent.SCALE }) {
-          Column().width(6 * PencilActiveContent.SCALE).height(6 * PencilActiveContent.SCALE)
-            .borderRadius(3 * PencilActiveContent.SCALE).backgroundColor('#50ECA7')
-          Text(this.rest ? '本组完成' : '训练中').fontFamily(PencilActiveContent.CONTENT_FONT)
-            .fontSize(12 * PencilActiveContent.SCALE).lineHeight(16 * PencilActiveContent.SCALE)
-            .fontWeight(FontWeight.Bold).fontColor('#50ECA7')
-        }
-        Text(this.rest ? '已记录 32 kg × 9' : '自动保存 · 刚刚').fontFamily(PencilActiveContent.CONTENT_FONT)
-          .fontSize(11 * PencilActiveContent.SCALE).lineHeight(15 * PencilActiveContent.SCALE)
-          .fontWeight(FontWeight.Normal).fontColor('#9AFFFFFF').padding({
-            left: 10 * PencilActiveContent.SCALE,
-            right: 10 * PencilActiveContent.SCALE,
-            top: 7 * PencilActiveContent.SCALE,
-            bottom: 7 * PencilActiveContent.SCALE
-          }).backgroundColor('#08FFFFFF').borderRadius(999 * PencilActiveContent.SCALE)
-      }.width('100%').justifyContent(FlexAlign.SpaceBetween)
-      Row({ space: 16 * PencilActiveContent.SCALE }) {
-        this.setRail()
-        Column().width(1 * PencilActiveContent.SCALE).height(214 * PencilActiveContent.SCALE)
-          .backgroundColor('#12FFFFFF')
-        Column({ space: 14 * PencilActiveContent.SCALE }) {
-          Column({ space: 5 * PencilActiveContent.SCALE }) {
-            Text('杠铃卧推').fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(34 * PencilActiveContent.SCALE)
-              .lineHeight(42 * PencilActiveContent.SCALE).fontWeight(FontWeight.Bold).fontColor('#F7FBF8')
-            Text(this.rest ? '组间恢复  |  下一组 · 第 3 组' : '第 2 组  |  正式组')
-              .fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(13 * PencilActiveContent.SCALE)
-              .lineHeight(18 * PencilActiveContent.SCALE).fontWeight(FontWeight.Bold).fontColor('#50ECA7')
-            Text(this.rest ? '下一组目标 8–10 次 · 32 kg' : '目标 8–10 次 · 建议 32 kg')
-              .fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(12 * PencilActiveContent.SCALE)
-              .lineHeight(17 * PencilActiveContent.SCALE).fontWeight(FontWeight.Normal).fontColor('#9AFFFFFF')
-          }.alignItems(HorizontalAlign.Start)
-          Row({ space: 8 * PencilActiveContent.SCALE }) {
-            this.stat('组进度', this.completed.toString() + ' / 6')
-            this.stat(this.rest ? '剩余休息' : '上次休息', this.rest ? '01:12' : '01:34')
-            this.stat('节奏', '3·1·1')
-          }.width('100%')
-        }.layoutWeight(1).alignItems(HorizontalAlign.Start)
-      }.width('100%').alignItems(VerticalAlign.Top)
-      Column({ space: 9 * PencilActiveContent.SCALE }) {
-        Row({ space: 8 * PencilActiveContent.SCALE }) {
-          Text('第 1 个动作 · ' + this.completed.toString() + '/6 组').fontFamily(PencilActiveContent.CONTENT_FONT)
-            .fontSize(12 * PencilActiveContent.SCALE).lineHeight(17 * PencilActiveContent.SCALE)
-            .fontWeight(FontWeight.Normal).fontColor('#B3FFFFFF').layoutWeight(1)
-          Text(this.rest ? '下一组保持肩胛稳定 18:28' : '肩部注意 · 可替代 18:24')
-            .fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(11 * PencilActiveContent.SCALE)
-            .lineHeight(15 * PencilActiveContent.SCALE).fontWeight(FontWeight.Normal).fontColor('#9AFFFFFF')
-        }.width('100%').alignItems(VerticalAlign.Center)
-        Stack() {
-          Column().width('100%').height(4 * PencilActiveContent.SCALE).backgroundColor('#14FFFFFF')
-            .borderRadius(999 * PencilActiveContent.SCALE)
-          Column().width(this.rest ? '48%' : '38%').height(4 * PencilActiveContent.SCALE)
-            .backgroundColor('#50ECA7').borderRadius(999 * PencilActiveContent.SCALE).alignSelf(ItemAlign.Start)
-        }.width('100%').height(4 * PencilActiveContent.SCALE)
-      }.width('100%').padding({
-        left: 14 * PencilActiveContent.SCALE,
-        right: 14 * PencilActiveContent.SCALE,
-        top: 12 * PencilActiveContent.SCALE,
-        bottom: 12 * PencilActiveContent.SCALE
-      }).backgroundColor('#06FFFFFF').borderRadius(16 * PencilActiveContent.SCALE)
-        .border({ width: 1 * PencilActiveContent.SCALE, color: '#0AFFFFFF' })
-    }.width('100%').padding({
-      left: 18 * PencilActiveContent.SCALE,
-      right: 18 * PencilActiveContent.SCALE,
-      top: 18 * PencilActiveContent.SCALE,
-      bottom: 20 * PencilActiveContent.SCALE
-    }).backgroundColor('#08FFFFFF').borderRadius(32 * PencilActiveContent.SCALE)
-      .border({ width: 1 * PencilActiveContent.SCALE, color: '#14FFFFFF' })
-  }
-
-  @Builder setRail() {
-    Column({ space: 7 * PencilActiveContent.SCALE }) {
-      Text('01').fontFamily(PencilActiveContent.MONO_FONT).fontSize(28 * PencilActiveContent.SCALE)
-        .lineHeight(34 * PencilActiveContent.SCALE).fontWeight(FontWeight.Bold).fontColor('#F7FBF8')
-      Text('/ 04').fontFamily(PencilActiveContent.MONO_FONT).fontSize(10 * PencilActiveContent.SCALE)
-        .lineHeight(14 * PencilActiveContent.SCALE).fontWeight(FontWeight.Normal).fontColor('#7AFFFFFF')
-      Stack() {
-        Column({ space: 7 * PencilActiveContent.SCALE }) {
-          Column().width(3 * PencilActiveContent.SCALE).height(28 * PencilActiveContent.SCALE)
-            .backgroundColor('#50ECA7').borderRadius(999 * PencilActiveContent.SCALE)
-          Column().width(3 * PencilActiveContent.SCALE).height(12 * PencilActiveContent.SCALE)
-            .backgroundColor('#26FFFFFF').borderRadius(999 * PencilActiveContent.SCALE)
-          Column().width(3 * PencilActiveContent.SCALE).height(12 * PencilActiveContent.SCALE)
-            .backgroundColor('#1AFFFFFF').borderRadius(999 * PencilActiveContent.SCALE)
-          Column().width(3 * PencilActiveContent.SCALE).height(12 * PencilActiveContent.SCALE)
-            .backgroundColor('#12FFFFFF').borderRadius(999 * PencilActiveContent.SCALE)
-        }.width(3 * PencilActiveContent.SCALE)
-      }.width(3 * PencilActiveContent.SCALE).height(91 * PencilActiveContent.SCALE)
-        .margin({ top: 2 * PencilActiveContent.SCALE, bottom: 2 * PencilActiveContent.SCALE })
-      Image($rawfile('pencil-lucide-dumbbell.svg')).width(18 * PencilActiveContent.SCALE)
-        .height(18 * PencilActiveContent.SCALE)
-    }.width(50 * PencilActiveContent.SCALE).height(214 * PencilActiveContent.SCALE)
-      .padding({ top: 2 * PencilActiveContent.SCALE, bottom: 2 * PencilActiveContent.SCALE })
-      .justifyContent(FlexAlign.SpaceBetween).alignItems(HorizontalAlign.Center)
-  }
-
-  @Builder controlCard() {
-    Column({ space: 14 * PencilActiveContent.SCALE }) {
-      Row() {
-        Column({ space: 4 * PencilActiveContent.SCALE }) {
-          Text(this.rest ? 'REST CONTROL' : 'SET CONSOLE').fontFamily(PencilActiveContent.MONO_FONT)
-            .fontSize(10 * PencilActiveContent.SCALE).lineHeight(14 * PencilActiveContent.SCALE)
-            .fontWeight(FontWeight.Normal).fontColor('#50ECA7')
-          Text(this.rest ? '恢复计时' : '执行记录台').fontFamily(PencilActiveContent.CONTENT_FONT)
-            .fontSize(18 * PencilActiveContent.SCALE).lineHeight(24 * PencilActiveContent.SCALE)
-            .fontWeight(FontWeight.Bold).fontColor('#F7FBF8')
-        }
-        Text(this.rest ? '自动开始  开启' : 'RPE 7.5').fontFamily(PencilActiveContent.CONTENT_FONT)
-          .fontSize(11 * PencilActiveContent.SCALE).lineHeight(15 * PencilActiveContent.SCALE)
-          .fontWeight(FontWeight.Normal).fontColor('#9AFFFFFF').padding({
-            left: 10 * PencilActiveContent.SCALE,
-            right: 10 * PencilActiveContent.SCALE,
-            top: 7 * PencilActiveContent.SCALE,
-            bottom: 7 * PencilActiveContent.SCALE
-          }).backgroundColor('#08FFFFFF').borderRadius(999 * PencilActiveContent.SCALE)
-      }.width('100%').justifyContent(FlexAlign.SpaceBetween)
-      if (!this.rest) {
-        Column({ space: 12 * PencilActiveContent.SCALE }) {
-          Row() {
-            Row({ space: 8 * PencilActiveContent.SCALE }) {
-              Stack({ alignContent: Alignment.Center }) {
-                Column().width(28 * PencilActiveContent.SCALE).height(28 * PencilActiveContent.SCALE)
-                  .borderRadius(10 * PencilActiveContent.SCALE).backgroundColor('#1A50ECA7')
-                  .border({ width: 1 * PencilActiveContent.SCALE, color: '#2450ECA7' })
-                Text('02').fontFamily(PencilActiveContent.MONO_FONT).fontSize(12 * PencilActiveContent.SCALE)
-                  .lineHeight(16 * PencilActiveContent.SCALE).fontWeight(FontWeight.Bold).fontColor('#50ECA7')
-              }.width(28 * PencilActiveContent.SCALE).height(28 * PencilActiveContent.SCALE)
-              Column({ space: 3 * PencilActiveContent.SCALE }) {
-                Text('当前组').fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(16 * PencilActiveContent.SCALE)
-                  .lineHeight(21 * PencilActiveContent.SCALE).fontWeight(FontWeight.Bold).fontColor('#F7FBF8')
-                Text('正式组 · 上次 30 kg × 9 · 本组 +2 kg').fontSize(11 * PencilActiveContent.SCALE)
-                  .fontFamily(PencilActiveContent.CONTENT_FONT).lineHeight(16 * PencilActiveContent.SCALE)
-                  .fontWeight(FontWeight.Normal).fontColor('#7AFFFFFF')
-              }.alignItems(HorizontalAlign.Start)
-            }.layoutWeight(1)
-            Row({ space: 2 * PencilActiveContent.SCALE }) {
-              Text('热身').fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(11 * PencilActiveContent.SCALE)
-                .lineHeight(15 * PencilActiveContent.SCALE).fontWeight(FontWeight.Normal).fontColor('#61FFFFFF').padding({
-                left: 9 * PencilActiveContent.SCALE,
-                right: 9 * PencilActiveContent.SCALE,
-                top: 6 * PencilActiveContent.SCALE,
-                bottom: 6 * PencilActiveContent.SCALE
-              }).borderRadius(9 * PencilActiveContent.SCALE)
-              Text('正式').fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(11 * PencilActiveContent.SCALE)
-                .lineHeight(15 * PencilActiveContent.SCALE).fontWeight(FontWeight.Bold).fontColor('#50ECA7')
-                .padding({
-                  left: 9 * PencilActiveContent.SCALE,
-                  right: 9 * PencilActiveContent.SCALE,
-                  top: 6 * PencilActiveContent.SCALE,
-                  bottom: 6 * PencilActiveContent.SCALE
-                }).backgroundColor('#1A50ECA7').borderRadius(9 * PencilActiveContent.SCALE)
-            }.padding(3 * PencilActiveContent.SCALE).backgroundColor('#08FFFFFF')
-              .borderRadius(12 * PencilActiveContent.SCALE)
-          }.width('100%')
-          Row({ space: 10 * PencilActiveContent.SCALE }) { this.input('重量', '32'); this.input('次数', '9') }
-            .width('100%')
-          Button('✓  完成本组').width('100%').height(50 * PencilActiveContent.SCALE).padding(0)
-            .fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(14 * PencilActiveContent.SCALE)
-            .fontWeight(FontWeight.Bold).fontColor('#07100B')
-            .backgroundColor('#50ECA7').borderRadius(16 * PencilActiveContent.SCALE)
-            .onClick(() => { this.completeSet() })
-        }.width('100%').padding(14 * PencilActiveContent.SCALE).backgroundColor('#B8080D11')
-          .borderRadius(22 * PencilActiveContent.SCALE)
-          .border({ width: 1 * PencilActiveContent.SCALE, color: '#2450ECA7' })
-      } else {
-        Column({ space: 14 * PencilActiveContent.SCALE }) {
-          Row() {
-            Row({ space: 10 * PencilActiveContent.SCALE }) {
-              Stack({ alignContent: Alignment.Center }) {
-                Column().width(30 * PencilActiveContent.SCALE).height(30 * PencilActiveContent.SCALE)
-                  .borderRadius(10 * PencilActiveContent.SCALE).backgroundColor('#1A50ECA7')
-                Text('✓').fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(16 * PencilActiveContent.SCALE)
-                  .lineHeight(20 * PencilActiveContent.SCALE).fontWeight(FontWeight.Bold).fontColor('#50ECA7')
-              }.width(30 * PencilActiveContent.SCALE).height(30 * PencilActiveContent.SCALE)
-              Column({ space: 3 * PencilActiveContent.SCALE }) {
-                Text('第 2 组已完成').fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(16 * PencilActiveContent.SCALE)
-                  .lineHeight(21 * PencilActiveContent.SCALE).fontWeight(FontWeight.Bold).fontColor('#F7FBF8')
-                Text('32 kg × 9 · RPE 7.5').fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(10 * PencilActiveContent.SCALE)
-                  .lineHeight(14 * PencilActiveContent.SCALE).fontWeight(FontWeight.Normal).fontColor('#7AFFFFFF')
-              }.alignItems(HorizontalAlign.Start)
-            }.layoutWeight(1)
-            Text('已同步').fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(11 * PencilActiveContent.SCALE)
-              .lineHeight(15 * PencilActiveContent.SCALE).fontWeight(FontWeight.Bold).fontColor('#50ECA7')
-          }.width('100%')
-          Row() {
-            Button('− 15 秒').height(36 * PencilActiveContent.SCALE).padding(0).fontFamily(PencilActiveContent.CONTENT_FONT)
-              .fontSize(11 * PencilActiveContent.SCALE)
-              .fontWeight(FontWeight.Normal).fontColor('#B3FFFFFF').backgroundColor('#08FFFFFF').borderRadius(999 * PencilActiveContent.SCALE)
-            Text('01:12').fontFamily(PencilActiveContent.MONO_FONT).fontSize(42 * PencilActiveContent.SCALE)
-              .lineHeight(50 * PencilActiveContent.SCALE).fontWeight(FontWeight.Bold).fontColor('#F7FBF8').layoutWeight(1).textAlign(TextAlign.Center)
-            Button('+ 15 秒').height(36 * PencilActiveContent.SCALE).padding(0).fontFamily(PencilActiveContent.CONTENT_FONT)
-              .fontSize(11 * PencilActiveContent.SCALE)
-              .fontWeight(FontWeight.Normal).fontColor('#B3FFFFFF').backgroundColor('#08FFFFFF').borderRadius(999 * PencilActiveContent.SCALE)
-          }.width('100%').alignItems(VerticalAlign.Center)
-          Stack() {
-            Column().width('100%').height(5 * PencilActiveContent.SCALE).backgroundColor('#14FFFFFF')
-              .borderRadius(999 * PencilActiveContent.SCALE)
-            Column().width('68%').height(5 * PencilActiveContent.SCALE).backgroundColor('#50ECA7')
-              .borderRadius(999 * PencilActiveContent.SCALE).alignSelf(ItemAlign.Start)
-          }.width('100%').height(5 * PencilActiveContent.SCALE)
-          Button('▷  开始第 3 组').width('100%').height(44 * PencilActiveContent.SCALE).padding(0)
-            .fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(14 * PencilActiveContent.SCALE)
-            .fontWeight(FontWeight.Bold).fontColor('#07100B')
-            .backgroundColor('#50ECA7').borderRadius(16 * PencilActiveContent.SCALE)
-            .onClick(() => { this.rest = false })
-        }.width('100%').padding(14 * PencilActiveContent.SCALE).backgroundColor('#B8080D11')
-          .borderRadius(22 * PencilActiveContent.SCALE)
-          .border({ width: 1 * PencilActiveContent.SCALE, color: '#2450ECA7' })
       }
-      this.records()
-      Button('□  结束训练').width('100%').height(44 * PencilActiveContent.SCALE).padding(0)
-        .fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(13 * PencilActiveContent.SCALE)
-        .fontWeight(FontWeight.Normal).fontColor('#9AFFFFFF').backgroundColor('#06FFFFFF')
-        .borderRadius(16 * PencilActiveContent.SCALE).onClick(() => { this.finish() })
-    }.width('100%').padding(18 * PencilActiveContent.SCALE).backgroundColor('#08FFFFFF')
-      .borderRadius(30 * PencilActiveContent.SCALE)
-      .border({ width: 1 * PencilActiveContent.SCALE, color: '#14FFFFFF' })
+      .width(342)
+      .padding(20)
+      .backgroundColor('#101816')
+      .borderRadius(28)
+      .border({ width: 1, color: '#1AFFFFFF' })
+      .shadow({ radius: 60, color: '#80000000', offsetX: 0, offsetY: 28 })
+    }
+    .width('100%')
+    .height('100%')
+    .onClick(() => {
+      this.closeModal()
+    })
   }
 
-  @Builder records() {
-    Column({ space: 8 * PencilActiveContent.SCALE }) {
+  @Builder
+  private inputBox(label: string, unit: string, value: number, isWeight: boolean) {
+    Column({ space: 8 }) {
       Row() {
-        Text('本动作记录').fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(17 * PencilActiveContent.SCALE)
-          .lineHeight(23 * PencilActiveContent.SCALE).fontWeight(FontWeight.Bold).fontColor('#F7FBF8')
-        Text(this.completed.toString() + ' / 6').fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(14 * PencilActiveContent.SCALE)
-          .lineHeight(19 * PencilActiveContent.SCALE).fontWeight(FontWeight.Bold).fontColor('#50ECA7')
-      }.width('100%').justifyContent(FlexAlign.SpaceBetween)
-      this.record('第 1 组', '30 kg × 10')
-      if (this.rest) {
-        this.record('第 2 组', '32 kg × 9')
-      } else {
-        this.currentRecord('第 2 组 · 当前', '32 kg × 9')
+        Text(label)
+          .fontFamily('Noto Sans SC')
+          .fontSize(12)
+          .fontColor('#99FFFFFF')
+        Text(unit)
+          .fontFamily('Geist Mono')
+          .fontSize(10)
+          .fontColor('#50ECA7')
       }
-      Row() {
-        Text('第 3–6 组').fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(14 * PencilActiveContent.SCALE)
-          .lineHeight(19 * PencilActiveContent.SCALE).fontWeight(FontWeight.Normal).fontColor('#66FFFFFF').layoutWeight(1)
-        Text(this.rest ? '第 3 组即将开始' : '待开始').fontFamily(PencilActiveContent.CONTENT_FONT)
-          .fontSize(12 * PencilActiveContent.SCALE).lineHeight(17 * PencilActiveContent.SCALE)
-          .fontWeight(FontWeight.Normal).fontColor('#66FFFFFF')
-      }.width('100%').height(52 * PencilActiveContent.SCALE).padding({
-        left: 12 * PencilActiveContent.SCALE,
-        right: 12 * PencilActiveContent.SCALE
-      }).backgroundColor('#06FFFFFF').borderRadius(13 * PencilActiveContent.SCALE).alignItems(VerticalAlign.Center)
-      Row() {
-        Text('后续动作 · 已折叠').fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(14 * PencilActiveContent.SCALE)
-          .lineHeight(19 * PencilActiveContent.SCALE).fontWeight(FontWeight.Bold).fontColor('#9AFFFFFF').layoutWeight(1)
-        Text('⌄').fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(15 * PencilActiveContent.SCALE)
-          .lineHeight(20 * PencilActiveContent.SCALE).fontWeight(FontWeight.Normal).fontColor('#7AFFFFFF')
-      }.width('100%')
-      Column({ space: 2 * PencilActiveContent.SCALE }) {
-        Row() {
-          Text('02   坐姿划船').fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(14 * PencilActiveContent.SCALE)
-            .lineHeight(19 * PencilActiveContent.SCALE).fontWeight(FontWeight.Normal).fontColor('#7AFFFFFF').layoutWeight(1)
-          Text('4 × 10').fontFamily(PencilActiveContent.MONO_FONT).fontSize(12 * PencilActiveContent.SCALE)
-            .lineHeight(17 * PencilActiveContent.SCALE).fontWeight(FontWeight.Normal).fontColor('#66FFFFFF')
-        }.width('100%').height(46 * PencilActiveContent.SCALE).alignItems(VerticalAlign.Center)
-        Column().width('100%').height(1 * PencilActiveContent.SCALE).backgroundColor('#08FFFFFF')
-        Row() {
-          Text('03   哑铃侧平举').fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(14 * PencilActiveContent.SCALE)
-            .lineHeight(19 * PencilActiveContent.SCALE).fontWeight(FontWeight.Normal).fontColor('#66FFFFFF').layoutWeight(1)
-          Text('3 × 12').fontFamily(PencilActiveContent.MONO_FONT).fontSize(12 * PencilActiveContent.SCALE)
-            .lineHeight(17 * PencilActiveContent.SCALE).fontWeight(FontWeight.Normal).fontColor('#52FFFFFF')
-        }.width('100%').height(46 * PencilActiveContent.SCALE).alignItems(VerticalAlign.Center)
-      }.width('100%').padding({
-        left: 10 * PencilActiveContent.SCALE,
-        right: 10 * PencilActiveContent.SCALE,
-        top: 4 * PencilActiveContent.SCALE,
-        bottom: 4 * PencilActiveContent.SCALE
-      }).backgroundColor('#06FFFFFF').borderRadius(16 * PencilActiveContent.SCALE)
-    }.width('100%')
-  }
+      .width('100%')
+      .justifyContent(FlexAlign.SpaceBetween)
 
-  @Builder stat(label: string, value: string) {
-    Column({ space: 4 * PencilActiveContent.SCALE }) {
-      Text(label).fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(10 * PencilActiveContent.SCALE)
-        .lineHeight(14 * PencilActiveContent.SCALE).fontWeight(FontWeight.Normal).fontColor('#7AFFFFFF')
-      Text(value).fontFamily(PencilActiveContent.MONO_FONT).fontSize(16 * PencilActiveContent.SCALE)
-        .lineHeight(20 * PencilActiveContent.SCALE).fontWeight(FontWeight.Bold).fontColor('#F7FBF8')
-    }.layoutWeight(1).padding({ left: 11 * PencilActiveContent.SCALE, right: 11 * PencilActiveContent.SCALE, top: 10 * PencilActiveContent.SCALE, bottom: 10 * PencilActiveContent.SCALE }).backgroundColor('#081017')
-      .borderRadius(14 * PencilActiveContent.SCALE)
-      .border({ width: 1 * PencilActiveContent.SCALE, color: '#0DFFFFFF' })
-      .alignItems(HorizontalAlign.Start)
-  }
-
-  @Builder input(label: string, value: string) {
-    Column({ space: 8 * PencilActiveContent.SCALE }) {
       Row() {
-        Text(label).fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(12 * PencilActiveContent.SCALE)
-          .lineHeight(16 * PencilActiveContent.SCALE).fontWeight(FontWeight.Normal).fontColor('#9AFFFFFF')
-        Text(label === '重量' ? 'KG' : '8–10').fontFamily(PencilActiveContent.MONO_FONT).fontSize(10 * PencilActiveContent.SCALE)
-          .lineHeight(14 * PencilActiveContent.SCALE).fontWeight(FontWeight.Normal).fontColor('#50ECA7')
-      }.width('100%').justifyContent(FlexAlign.SpaceBetween)
-      Row() {
-        Text('−').fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(16 * PencilActiveContent.SCALE)
-          .lineHeight(20 * PencilActiveContent.SCALE).fontWeight(FontWeight.Bold).fontColor('#9AFFFFFF')
-          .padding(7 * PencilActiveContent.SCALE).backgroundColor('#08FFFFFF')
-          .borderRadius(10 * PencilActiveContent.SCALE)
-        Text(value).fontFamily(PencilActiveContent.MONO_FONT).fontSize(24 * PencilActiveContent.SCALE)
-          .lineHeight(30 * PencilActiveContent.SCALE).fontWeight(FontWeight.Bold).fontColor('#F7FBF8').layoutWeight(1).textAlign(TextAlign.Center)
-        Text('+').fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(16 * PencilActiveContent.SCALE)
-          .lineHeight(20 * PencilActiveContent.SCALE).fontWeight(FontWeight.Bold).fontColor('#9AFFFFFF')
-          .padding(7 * PencilActiveContent.SCALE).backgroundColor('#08FFFFFF')
-          .borderRadius(10 * PencilActiveContent.SCALE)
-      }.width('100%')
-    }.layoutWeight(1).padding(12 * PencilActiveContent.SCALE).backgroundColor('#06FFFFFF')
-      .borderRadius(17 * PencilActiveContent.SCALE).alignItems(HorizontalAlign.Start)
-  }
-
-  @Builder currentRecord(label: string, value: string) {
-    Row() {
-      Text(label).fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(17 * PencilActiveContent.SCALE)
-        .lineHeight(23 * PencilActiveContent.SCALE).fontWeight(FontWeight.Normal).fontColor('#F7FBF8').layoutWeight(1)
-      Text(value).fontFamily(PencilActiveContent.MONO_FONT).fontSize(15 * PencilActiveContent.SCALE)
-        .lineHeight(21 * PencilActiveContent.SCALE).fontWeight(FontWeight.Bold).fontColor('#50ECA7')
-    }.width('100%').height(60 * PencilActiveContent.SCALE).padding({ left: 12 * PencilActiveContent.SCALE, right: 12 * PencilActiveContent.SCALE }).backgroundColor('#08FFFFFF')
-      .borderRadius(14 * PencilActiveContent.SCALE)
-  }
-
-  @Builder record(label: string, value: string) {
-    Row() {
-      Text(label).fontFamily(PencilActiveContent.CONTENT_FONT).fontSize(17 * PencilActiveContent.SCALE)
-        .lineHeight(23 * PencilActiveContent.SCALE).fontWeight(FontWeight.Normal).fontColor('#B3FFFFFF').layoutWeight(1)
-      Text(value).fontFamily(PencilActiveContent.MONO_FONT).fontSize(15 * PencilActiveContent.SCALE)
-        .lineHeight(21 * PencilActiveContent.SCALE).fontWeight(FontWeight.Bold).fontColor('#50ECA7')
-    }.width('100%').height(60 * PencilActiveContent.SCALE).padding({ left: 12 * PencilActiveContent.SCALE, right: 12 * PencilActiveContent.SCALE }).backgroundColor('#08FFFFFF')
-      .borderRadius(14 * PencilActiveContent.SCALE)
+        Text('−')
+          .fontFamily('HarmonyOS Sans')
+          .fontSize(16)
+          .fontColor('#99FFFFFF')
+          .width(36)
+          .height(36)
+          .textAlign(TextAlign.Center)
+          .backgroundColor('#08FFFFFF')
+          .borderRadius(10)
+          .border({ width: 1, color: '#0FFFFFFF' })
+          .onClick(() => {
+            if (isWeight) {
+              this.changeWeight(-1)
+            } else {
+              this.changeReps(-1)
+            }
+          })
+        Text(value.toString())
+          .fontFamily('Geist Mono')
+          .fontSize(24)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#F7FBF8')
+          .layoutWeight(1)
+          .textAlign(TextAlign.Center)
+        Text('+')
+          .fontFamily('HarmonyOS Sans')
+          .fontSize(16)
+          .fontColor('#99FFFFFF')
+          .width(36)
+          .height(36)
+          .textAlign(TextAlign.Center)
+          .backgroundColor('#08FFFFFF')
+          .borderRadius(10)
+          .border({ width: 1, color: '#0FFFFFFF' })
+          .onClick(() => {
+            if (isWeight) {
+              this.changeWeight(1)
+            } else {
+              this.changeReps(1)
+            }
+          })
+      }
+      .width('100%')
+    }
+    .layoutWeight(1)
+    .padding(12)
+    .backgroundColor('#06FFFFFF')
+    .borderRadius(17)
+    .border({ width: 1, color: '#0FFFFFFF' })
   }
 }
-
 
 @Entry
 @Component

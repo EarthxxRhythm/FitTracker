@@ -240,7 +240,7 @@ $sessions = Wait-ForPreferenceVerification -Title 'workout session store' -Valid
   if ($sessionList[1].notes -ne 'completed_sets=3;target_sets=4') {
     throw ('unexpected second session notes: ' + $sessionList[1].notes)
   }
-  if ($sessionList[1].exercises[0].sets[0].weight -ne 51 -or $sessionList[1].exercises[0].sets[0].reps -ne 7) {
+  if ($sessionList[1].exercises[0].sets[0].weight -ne 51 -or $sessionList[1].exercises[0].sets[0].reps -ne 3) {
     throw 'second session set payload is invalid'
   }
   return $sessionList

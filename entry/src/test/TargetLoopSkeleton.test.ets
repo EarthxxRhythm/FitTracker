@@ -4,6 +4,7 @@
  * Feature #1: shared data models for the target loop skeleton.
  */
 import { describe, it, expect } from '@ohos/hypium'
+import { AppRoutes } from '../main/ets/app/AppRoutes'
 import { StartupDecision } from '../main/ets/app/AppState'
 import ContentRepository from '../main/ets/shared/services/ContentRepository'
 import GoalRepository from '../main/ets/shared/services/GoalRepository'
@@ -326,7 +327,7 @@ export default function targetLoopSkeletonTest() {
     })
 
     it('routes users with goals to home page on startup', 0, () => {
-      expect(StartupDecision.getInitialRoute(true)).assertEqual('pages/HomePage')
+      expect(StartupDecision.getInitialRoute(true)).assertEqual(AppRoutes.APP_SHELL)
     })
 
     it('routes users without goals to onboarding goal setup on startup', 0, () => {

@@ -61,14 +61,14 @@ Review the routes in this exact order so the product reads as one connected expe
 1. `LoginPage`
 2. `RegisterPage`
 3. `GoalSetupPage`
-4. `HomePage`
-5. `WorkoutPreviewPage`
-6. `ActiveWorkoutPage`
+4. `PencilHomePage`
+5. `PencilPreviewPage`
+6. `PencilActivePage`
 7. `WorkoutSummaryPage`
-8. `ReviewHomePage`
+8. `PencilReviewPage`
 9. `ExerciseLibraryPage`
 10. `ExerciseDetailPage`
-11. `TrainingPlanDetailPage`
+11. `PencilPlanPage`
 12. `MonetizationHubPage`
 
 ## Recommended Session Structure
@@ -135,17 +135,17 @@ Use these prompts while reviewing.
 - Are grouped choices easy to scan?
 - Does the generate-plan action clearly read as the terminal action?
 
-### HomePage
+### PencilHomePage
 
 - Does today's training card dominate the page?
 - Do preset plans feel secondary rather than distracting?
 
-### WorkoutPreviewPage
+### PencilPreviewPage
 
 - Does this feel like a natural continuation from home?
 - Is the start-training action visually dominant?
 
-### ActiveWorkoutPage
+### PencilActivePage
 
 - Does the screen feel operational and focused rather than busy?
 - Are the repeated input controls visually stable?
@@ -155,7 +155,7 @@ Use these prompts while reviewing.
 - Does the page feel calmer than active workout?
 - Does it read as reflection/closure instead of more execution?
 
-### ReviewHomePage
+### PencilReviewPage
 
 - Can you scan the page top-to-bottom without feeling lost?
 - Do trends, backup, and upgrade entry coexist without visual competition?
@@ -170,7 +170,7 @@ Use these prompts while reviewing.
 - Does the media block feel integrated into instruction?
 - Does premium content read as optional extension instead of interruption?
 
-### TrainingPlanDetailPage
+### PencilPlanPage
 
 - Can you scan the structure before committing?
 - Is the default enable path still clearer than advanced exploration?

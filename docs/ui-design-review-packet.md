@@ -20,9 +20,9 @@ FitTracker should read as a focused mobile training tool: calm, dense enough to 
 ## UX Direction
 
 - hierarchy
-  - `HomePage` keeps today's training entry as the dominant action
-  - `WorkoutPreviewPage`, `ActiveWorkoutPage`, and `WorkoutSummaryPage` behave like one continuous lane
-  - `ReviewHomePage` groups trends, records, backup, and upgrade entry as secondary surfaces after workout completion
+  - `PencilHomePage` keeps today's training entry as the dominant action
+  - `PencilPreviewPage`, `PencilActivePage`, and `WorkoutSummaryPage` behave like one continuous lane
+  - `PencilReviewPage` groups trends, records, backup, and upgrade entry as secondary surfaces after workout completion
   - `MonetizationHubPage` remains a side destination and does not interrupt the core workout path
 - primary action path
   - auth handoff is compact and direct

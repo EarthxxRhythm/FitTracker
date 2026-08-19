@@ -26,21 +26,6 @@ The script does not edit code by itself. It does one simpler job:
 That packet is what the Delivery Lead or a future supervisor uses to keep work
 flowing.
 
-## Environment Preflight
-
-Before a build, device run, or visual regression, run:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File tools/ensure-fittracker-environment.ps1
-```
-
-The preflight prepares the DevEco environment and starts DevEco Studio only
-when it is not already running. For device-backed checks, add
-`-RequireDevice`; it starts the installed emulator when no ready HDC target is
-available and waits for a usable target. For a standalone Pencil executable,
-pass `-RequirePencil -PencilExecutablePath <path>`; Pencil MCP instances
-managed by the desktop app still require the desktop connector to be running.
-
 ## Default Loop
 
 1. Read `AGENTS.md`, `git status --short`, and recent commits.

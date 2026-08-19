@@ -64,18 +64,14 @@ export struct BottomTabBar {
       Image(this.isCurrent(item) ? item.selectedIcon : item.icon)
         .width(24)
         .height(24)
-        .fillColor(this.isCurrent(item) ? ColorTokens.PRIMARY : ColorTokens.ACCENT_SOFT)
+        .fillColor(ColorTokens.TEXT_ON_PRIMARY)
     }
     .width(72)
     .height(44)
     .justifyContent(FlexAlign.Center)
-    .backgroundColor(this.isCurrent(item) ? ColorTokens.SURFACE_CARD_HERO_RAISED : ColorTokens.SURFACE_CARD_HERO)
+    .backgroundColor(this.isCurrent(item) ? ColorTokens.ACCENT_DEEP : ColorTokens.ACCENT_PRIMARY)
     .borderRadius(RadiusTokens.TAB_ACTIVE)
-    .border({
-      width: 1,
-      color: this.isCurrent(item) ? ColorTokens.BORDER_ACCENT : ColorTokens.BORDER_ACCENT_SOFT
-    })
-    .shadow(this.isCurrent(item) ? ShadowTokens.ACCENT : ShadowTokens.GLASS)
+    .shadow(ShadowTokens.ACCENT)
   }
 
   build() {
@@ -91,15 +87,11 @@ export struct BottomTabBar {
             .justifyContent(FlexAlign.Center)
             .alignItems(HorizontalAlign.Center)
           } else {
-            Column({ space: 3 }) {
-              Image(this.isCurrent(item) ? item.selectedIcon : item.icon)
-                .width(18)
-                .height(18)
-                .fillColor(this.getLabelColor(item))
+            Column() {
               Text(item.label)
                 .fontSize(FontTokens.NAV_LABEL_SIZE)
                 .lineHeight(FontTokens.NAV_LABEL_LINE_HEIGHT)
-                .fontWeight(this.isCurrent(item) ? FontTokens.BODY_BOLD_WEIGHT : FontTokens.NAV_LABEL_WEIGHT)
+                .fontWeight(this.isCurrent(item) ? FontWeight.Bold : FontTokens.NAV_LABEL_WEIGHT)
                 .fontColor(this.getLabelColor(item))
             }
             .justifyContent(FlexAlign.Center)

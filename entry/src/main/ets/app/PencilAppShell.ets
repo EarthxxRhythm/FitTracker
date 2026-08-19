@@ -6,6 +6,8 @@ import { PencilReviewContent } from '../features/pencil/PencilReviewPage'
 import { PencilProfileContent } from '../features/pencil/PencilProfilePage'
 import { PencilActiveContent } from '../features/pencil/PencilActivePage'
 import { AppRoutes } from './AppRoutes'
+import { Context } from '@kit.AbilityKit'
+import { window } from '@kit.ArkUI'
 
 enum PencilTabKey {
   HOME = 'home',
@@ -25,6 +27,15 @@ export struct PencilAppShell {
   private transitionRunning: boolean = false
   private previousTab: string = PencilTabKey.HOME
   private transitionToken: number = 0
+
+  async aboutToAppear(): Promise<void> {
+    const hostContext: Context | undefined = this.getUIContext().getHostContext()
+    if (hostContext === undefined) {
+      return
+    }
+    const mainWindow: window.Window = await window.getLastWindow(hostContext)
+    await mainWindow.setWindowLayoutFullScreen(false)
+  }
 
   private getTabIndex(key: string): number {
     if (key === PencilTabKey.HOME) {

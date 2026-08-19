@@ -54,7 +54,7 @@ Build: latest internal closeout unsigned HAP
 - notes: grouped option cards remain consistent with the app card system and keep the route readable even with dense setup content.
 - blocking issue:
 
-### HomePage
+### PencilHomePage
 
 - visual consistency: pass
 - flow clarity: pass
@@ -67,7 +67,7 @@ Build: latest internal closeout unsigned HAP
 - notes: today's workout is still the first-viewport anchor. Mixed Chinese and English training content remains visible but does not currently break hierarchy.
 - blocking issue:
 
-### WorkoutPreviewPage
+### PencilPreviewPage
 
 - visual consistency: pass
 - flow clarity: pass
@@ -80,7 +80,7 @@ Build: latest internal closeout unsigned HAP
 - notes: preview reads as a direct continuation from home, and the start action remains visually dominant over supporting metrics.
 - blocking issue:
 
-### ActiveWorkoutPage
+### PencilActivePage
 
 - visual consistency: pass
 - flow clarity: pass
@@ -106,7 +106,7 @@ Build: latest internal closeout unsigned HAP
 - notes: summary successfully shifts from execution to reflection, with saved-state and completion signals visible without overpowering the page.
 - blocking issue:
 
-### ReviewHomePage
+### PencilReviewPage
 
 - visual consistency: pass
 - flow clarity: pass
@@ -145,7 +145,7 @@ Build: latest internal closeout unsigned HAP
 - notes: media fallback reads as an intentional controlled state, not as a broken embed. Gated extension copy remains secondary to instruction.
 - blocking issue:
 
-### TrainingPlanDetailPage
+### PencilPlanPage
 
 - visual consistency: pass
 - flow clarity: pass
@@ -173,8 +173,8 @@ Build: latest internal closeout unsigned HAP
 
 ## Final Notes
 
-- strongest route: HomePage -> WorkoutPreviewPage continuity
-- weakest route: TrainingPlanDetailPage because premium-variant copy density is the closest point to visual overload, though still below blocking threshold
+- strongest route: PencilHomePage -> PencilPreviewPage continuity
+- weakest route: PencilPlanPage because premium-variant copy density is the closest point to visual overload, though still below blocking threshold
 - is the app visually coherent end-to-end: yes across the reviewed route samples and linked smoke artifacts
 - does the monetization surface remain secondary: yes
 - does the app feel ready for closeout: yes for internal closeout; live touch feel and animation smoothness still depend on short real-device observation rather than static artifacts alone
