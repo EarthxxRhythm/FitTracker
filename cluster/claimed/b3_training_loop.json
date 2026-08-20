@@ -1,0 +1,17 @@
+{
+  "task": "b3_training_loop",
+  "title": "对比并还原训练执行与完成页面",
+  "brief": "在 D:\\.CodeSpace\\.DevEcoStudioProjects\\FitTracker 工作。参考 C:\\Users\\19308\\AppData\\Roaming\\Open Design\\namespaces\\release-stable-win\\data\\projects\\56d6b0af-ac55-498d-9942-c02a4d35cc71 下的 fittracker-training.html 与 fittracker-training-complete.html。对比并还原 PencilActivePage.ets 与 WorkoutCompletePage.ets。必须保持：初始 completed=0、提交弹窗完成组、最后一组自动保存 WorkoutSession 并进入 WORKOUT_COMPLETE、完成页继续返回 APP_SHELL。只修改这两个文件。完成后写 cluster/outbox/b3_training_loop.json。",
+  "owner_files": [
+    "entry/src/main/ets/features/pencil/PencilActivePage.ets",
+    "entry/src/main/ets/features/workout/pages/WorkoutCompletePage.ets"
+  ],
+  "do_not_touch": ["entry/src/main/ets/features/pencil/PencilPlanPage.ets", "entry/src/main/ets/features/pencil/PencilPreviewPage.ets", "entry/src/main/ets/app", "entry/src/main/ets/components", "entry/src/main/ets/features/pencil/PencilReviewPage.ets", "entry/src/main/ets/features/pencil/PencilProfilePage.ets", "entry/src/main/ets/common/styles/DesignTokens.ets", "cluster", "work/mailbox"],
+  "acceptance": [
+    "训练页无底部导航栏",
+    "最后一组后自动进入完成页",
+    "完成页继续返回首页",
+    "训练会话被保存到 WorkoutRepository"
+  ],
+  "created_at": "2026-08-20T02:02:00Z"
+}

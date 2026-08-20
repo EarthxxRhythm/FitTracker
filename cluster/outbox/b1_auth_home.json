@@ -1,0 +1,19 @@
+{
+  "task": "b1_auth_home",
+  "status": "done",
+  "summary": "对照 fittracker-auth.html 与 fittracker-welcome-home.html 完成认证与首页还原：PencilLoginPage 补齐 WELCOME BACK/欢迎回来/登录后同步文案、手机号 / 邮箱与密码字段标签与占位符、记住我、忘记密码、其他登录方式、微信/Apple、还没有账号？；PencilRegisterPage 保持昵称+手机号+8位密码+确认密码新版并统一品牌与内边距；PencilHomePage 第三指标恢复为目标肌群 3 个肌群，移除 HTML 中不存在的周进度条与计划边界面板；PencilWelcomePage/PencilAppShell/BottomTabBar 已与参考一致未改动。训练 Tab 仍经 workoutAction 路由 WORKOUT_PREVIEW，AppShell 未嵌入训练执行页。",
+  "changed_files": [
+    "entry/src/main/ets/features/pencil/PencilLoginPage.ets",
+    "entry/src/main/ets/features/pencil/PencilRegisterPage.ets",
+    "entry/src/main/ets/features/pencil/PencilHomePage.ets"
+  ],
+  "evidence": [
+    "hvigorw assembleHap --mode module -p product=default: BUILD SUCCESSFUL (CompileArkTS passed, 18.9s)",
+    "node tools/check-main-pages.mjs: 16 registered pages passed",
+    "node tools/check-gates.mjs: content build / main page / git whitespace / DevEco env / hvigorw baseline all passed",
+    "登录页文案含 WELCOME BACK、欢迎回来、登录后，同步你的训练进度与身体数据、手机号 / 邮箱、记住我、微信、Apple、还没有账号？；已无 Google/还没有账户/训练，从今天开始",
+    "首页含 目标肌群/3/个肌群；已无 完成度/上次未完成/计划边界/已完成 3/60%",
+    "注册页仍含 昵称/给自己起个名字、手机号/请输入手机号、设置 8 位以上密码、再次输入密码、我已阅读并同意《用户协议》与《隐私政策》"
+  ],
+  "completed_at": "2026-08-20T19:45:00Z"
+}

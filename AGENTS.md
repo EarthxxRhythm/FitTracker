@@ -85,3 +85,12 @@ hvigorw assembleHap --mode module -p product=default
 ```
 
 设备回归使用 `tools/auth-regression.ps1` 或 `tools/dev-smoke.ps1`；没有设备时至少运行路由检查、静态引用检查和可用的 ArkTS/ohosTest 构建。
+
+## 多代理消息通道（平台通道故障时的文件信箱协议）
+
+平台的 inter-agent `message` 载荷投递当前不可靠（spawn/followup/send 会触发回合，但内容可能为空）。所有并行子代理必须走共享文件信箱，不依赖消息参数携带任务正文。
+
+- 协调者：先用 `apply_patch` 把任务写入 `cluster/inbox/<task>.json`，再 `spawn_agent`，必须传 `fork_turns="none"`；`message` 只写一行简短提示，正文以信箱文件为准。
+- 子代理：启动后若分析通道中没有 `NEW_TASK` 载荷，扫描 `cluster/inbox/*.json`，认领文件修改时间最早的任务并原子移动到 `cluster/claimed/`，再执行；完成后把结果写入 `cluster/outbox/<task>.json`，并在 final answer 中给出摘要。
+- 协调者：轮询 `cluster/outbox/` 收敛结果；不要用 `wait_agent` 作为完成信号，以 outbox 文件为准。
+- 协议细节与 JSON 字段约定见 `cluster/PROTOCOL.md`。

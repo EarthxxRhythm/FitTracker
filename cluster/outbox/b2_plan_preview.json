@@ -1,0 +1,17 @@
+{
+  "task": "b2_plan_preview",
+  "status": "done",
+  "summary": "计划页与预览页已按参考 HTML 还原。PencilPlanPage 保留 master-card（当前计划摘要卡，高度对齐 HTML 2:8 比例）与上一日/今日/下一日弧形卡组，并补齐 HTML 中 1.0-1.2 档的透明度衰减曲线。PencilPreviewPage 按 fittracker-training-preview.html 重建：顶部返回/更多栏、Day 01 居中标题、脉冲标志、热身动作与主动作分组清单（仅当前动作翡翠高亮）、确认提示与开始训练按钮、底部 home 指示条；文案与 HTML 一致。",
+  "changed_files": [
+    "entry/src/main/ets/features/pencil/PencilPlanPage.ets",
+    "entry/src/main/ets/features/pencil/PencilPreviewPage.ets"
+  ],
+  "evidence": [
+    "hvigorw assembleHap --mode module -p product=default -> BUILD SUCCESSFUL (CompileArkTS passed, only pre-existing warnings in other files)",
+    "node tools/check-main-pages.mjs -> 16 registered pages checked OK",
+    "git diff --check -> no whitespace errors",
+    "PencilPlanPage.ets: masterCard height 132->150, opacityFor now matches HTML 3-stage curve",
+    "PencilPreviewPage.ets: rebuilt from fittracker-training-preview.html, only owner files modified"
+  ],
+  "completed_at": "2026-08-20T19:41:00+08:00"
+}

@@ -1,0 +1,13 @@
+{
+  "task": "probe-001",
+  "title": "验证文件信箱协议",
+  "brief": "验证多代理文件信箱是否可用。执行 hdc version，把输出的第一行与退出码写入结果；不修改任何仓库文件。完成后把结果写入 cluster/outbox/probe-001.json，并在 final answer 返回一行摘要。",
+  "owner_files": [],
+  "do_not_touch": ["entry", "tools", "docs", "cluster/inbox", "cluster/claimed"],
+  "acceptance": [
+    "cluster/outbox/probe-001.json 存在",
+    "status 字段为 done",
+    "summary 包含 hdc 版本或阻塞原因"
+  ],
+  "created_at": "2026-08-20T00:00:00Z"
+}

@@ -18,6 +18,5 @@ export class AppRoutes {
   static readonly WORKOUT_PREVIEW: string = 'features/pencil/PencilPreviewPage'
   static readonly ACTIVE_WORKOUT: string = 'features/pencil/PencilActivePage'
   static readonly WORKOUT_COMPLETE: string = 'features/workout/pages/WorkoutCompletePage'
-  static readonly WORKOUT_SUMMARY: string = 'features/workout/pages/WorkoutSummaryPage'
   static readonly REVIEW_HOME: string = 'features/pencil/PencilReviewPage'
 }

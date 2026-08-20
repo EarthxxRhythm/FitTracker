@@ -4,7 +4,6 @@ import { PencilHomeContent } from '../features/pencil/PencilHomePage'
 import { PencilPlanContent } from '../features/pencil/PencilPlanPage'
 import { PencilReviewContent } from '../features/pencil/PencilReviewPage'
 import { PencilProfileContent } from '../features/pencil/PencilProfilePage'
-import { PencilActiveContent } from '../features/pencil/PencilActivePage'
 import { AppRoutes } from './AppRoutes'
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
@@ -12,7 +11,6 @@ import { window } from '@kit.ArkUI'
 enum PencilTabKey {
   HOME = 'home',
   PLAN = 'plan',
-  WORKOUT = 'workout',
   REVIEW = 'review',
   PROFILE = 'profile'
 }
@@ -44,13 +42,10 @@ export struct PencilAppShell {
     if (key === PencilTabKey.PLAN) {
       return 1
     }
-    if (key === PencilTabKey.WORKOUT) {
+    if (key === PencilTabKey.REVIEW) {
       return 2
     }
-    if (key === PencilTabKey.REVIEW) {
-      return 3
-    }
-    return 4
+    return 3
   }
 
   private isVisible(key: string): Visibility {
@@ -96,10 +91,6 @@ export struct PencilAppShell {
       this.selectTab(PencilTabKey.PLAN)
       return
     }
-    if (route === AppRoutes.ACTIVE_WORKOUT) {
-      this.selectTab(PencilTabKey.WORKOUT)
-      return
-    }
     if (route === AppRoutes.REVIEW_HOME) {
       this.selectTab(PencilTabKey.REVIEW)
       return
@@ -129,14 +120,6 @@ export struct PencilAppShell {
       .height('100%')
       .visibility(this.isVisible(PencilTabKey.PLAN))
       .zIndex(this.layer(PencilTabKey.PLAN))
-
-      Column() {
-        PencilActiveContent()
-      }
-      .width('100%')
-      .height('100%')
-      .visibility(this.isVisible(PencilTabKey.WORKOUT))
-      .zIndex(this.layer(PencilTabKey.WORKOUT))
 
       Column() {
         PencilReviewContent()
@@ -170,7 +153,12 @@ export struct PencilAppShell {
       .width('100%')
       .clip(true)
 
-      BottomTabBar({ currentKey: $currentTab })
+      BottomTabBar({
+        currentKey: $currentTab,
+        workoutAction: () => {
+          this.getUIContext().getRouter().pushUrl({ url: AppRoutes.WORKOUT_PREVIEW })
+        }
+      })
     }
     .width('100%')
     .height('100%')

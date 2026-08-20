@@ -48,7 +48,6 @@ export struct PencilHomeContent {
             Row()
               .height(16)
             this.weekPanel()
-            this.boundaryPanel()
           }
           .width('100%')
           .padding({
@@ -152,7 +151,7 @@ export struct PencilHomeContent {
       Row({ space: 5 }) {
         this.metric('dumbbell', '\u52a8\u4f5c\u6570', '8', '\u4e2a\u52a8\u4f5c')
         this.metric('clock-3', '\u9884\u8ba1\u7528\u65f6', '60', '\u5206\u949f')
-        this.metric('rotate-ccw', '\u5b8c\u6210\u5ea6', '\u4e0a\u6b21\u672a\u5b8c\u6210', '\u53ef\u4ece\u4e0a\u6b21\u8fdb\u5ea6\u7ee7\u7eed')
+        this.metric('target', '\u76ee\u6807\u808c\u7fa4', '3', '\u4e2a\u808c\u7fa4')
       }
       .width('100%')
       .height(96)
@@ -167,7 +166,7 @@ export struct PencilHomeContent {
         .borderRadius(22 * PencilHomeContent.SCALE)
         .padding(0)
         .onClick(() => {
-          this.getUIContext().getRouter().pushUrl({ url: AppRoutes.ACTIVE_WORKOUT })
+          this.getUIContext().getRouter().pushUrl({ url: AppRoutes.WORKOUT_PREVIEW })
         })
       Row()
         .height(8)
@@ -239,75 +238,13 @@ export struct PencilHomeContent {
       }
       .width(319)
       .height(62)
-      Row()
-        .height(15)
-      Row() {
-        Text('\u5df2\u5b8c\u6210 3 / 5 \u6b21')
-          .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-          .fontSize(12 * PencilHomeContent.SCALE)
-          .fontColor('#8AFFFFFF')
-        Text('60%')
-          .fontFamily(PencilHomeContent.NUMBER_FONT_FAMILY)
-          .fontSize(12 * PencilHomeContent.SCALE)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#50ECA7')
-      }
-      .width(321)
-      .height(16)
-      .justifyContent(FlexAlign.SpaceBetween)
-      Row()
-        .height(12)
-      Stack() {
-        Column()
-          .width(321)
-          .height(6)
-          .backgroundColor('#14FFFFFF')
-          .borderRadius(999)
-        Column()
-          .width(193)
-          .height(6)
-          .backgroundColor('#50ECA7')
-          .borderRadius(999)
-          .alignSelf(ItemAlign.Start)
-      }
-      .width(321)
-      .height(6)
     }
     .width('100%')
-    .height(225)
+    .height(152)
     .padding(16)
     .backgroundColor('#08FFFFFF')
     .borderRadius(27.2)
     .border({ width: 1, color: '#10FFFFFF' })
-    .shadow({ radius: 36 * PencilHomeContent.SCALE, color: '#24000000', offsetX: 0, offsetY: 18 * PencilHomeContent.SCALE })
-  }
-
-  @Builder
-  private boundaryPanel() {
-    Column({ space: 14 * PencilHomeContent.SCALE }) {
-      Row() {
-        Text('\u8ba1\u5212\u8fb9\u754c')
-          .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-          .fontSize(16 * PencilHomeContent.SCALE)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#F7FBF8')
-        Text('\u5f53\u524d\u751f\u6548')
-          .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-          .fontSize(11 * PencilHomeContent.SCALE)
-          .fontColor('#50ECA7')
-      }
-      .width('100%')
-      .justifyContent(FlexAlign.SpaceBetween)
-      this.boundary('\u76ee\u6807', '\u8bad\u7ec3\u4f18\u5148\u7ea7', '#F7FBF8')
-      this.boundary('\u5668\u68b0', '\u53ef\u7528\u73af\u5883', '#F7FBF8')
-      this.boundary('\u9650\u5236', '\u80a9\u90e8\u8f7b\u5fae\u4e0d\u9002', '#FFD7C5')
-    }
-    .width('100%')
-    .height(308 * PencilHomeContent.SCALE)
-    .padding(18 * PencilHomeContent.SCALE)
-    .linearGradient({ angle: 180, colors: [['#171C23', 0], ['#10151B', 1]] })
-    .borderRadius(30 * PencilHomeContent.SCALE)
-    .border({ width: PencilHomeContent.SCALE, color: '#14FFFFFF' })
     .shadow({ radius: 36 * PencilHomeContent.SCALE, color: '#24000000', offsetX: 0, offsetY: 18 * PencilHomeContent.SCALE })
   }
 
@@ -325,26 +262,36 @@ export struct PencilHomeContent {
           .height(22)
           .fillColor('#50ECA7')
       } else {
-        Image($rawfile('pencil-home-metric-rotate-ccw.svg'))
-          .width(22)
-          .height(22)
-          .fillColor('#50ECA7')
+        Stack({ alignContent: Alignment.Center }) {
+          Circle({ width: 22, height: 22 })
+            .fill(Color.Transparent)
+            .stroke('#50ECA7')
+            .strokeWidth(1.7)
+          Circle({ width: 12, height: 12 })
+            .fill(Color.Transparent)
+            .stroke('#50ECA7')
+            .strokeWidth(1.7)
+          Circle({ width: 3, height: 3 })
+            .fill('#50ECA7')
+        }
+        .width(22)
+        .height(22)
       }
       Text(label)
         .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
         .fontSize(9.8)
-        .fontColor('#A3FFFFFF')
+        .fontColor('#9EFFFFFF')
         .width('100%')
-        .height(16)
+        .height(15)
         .textAlign(TextAlign.Center)
-      Text(label === '\u5b8c\u6210\u5ea6' ? '\u4e0a\u6b21...' : value)
-        .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-        .fontSize(label === '\u5b8c\u6210\u5ea6' ? 13 : 27.2)
-        .lineHeight(28)
+      Text(value)
+        .fontFamily(PencilHomeContent.NUMBER_FONT_FAMILY)
+        .fontSize(26)
+        .lineHeight(26)
         .fontWeight(FontWeight.Bold)
         .fontColor('#F7FBF8')
         .width('100%')
-        .height(28)
+        .height(26)
         .textAlign(TextAlign.Center)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -353,7 +300,7 @@ export struct PencilHomeContent {
         .fontSize(8.8)
         .fontColor('#8AFFFFFF')
         .width('100%')
-        .height(16)
+        .height(15)
         .textAlign(TextAlign.Center)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -384,39 +331,6 @@ export struct PencilHomeContent {
     .layoutWeight(1)
     .height(62)
     .alignItems(HorizontalAlign.Center)
-  }
-
-  @Builder
-  private boundary(label: string, value: string, valueColor: string) {
-    Row() {
-      Text(label)
-        .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-        .fontSize(13 * PencilHomeContent.SCALE)
-        .fontWeight(FontWeight.Medium)
-        .fontColor('#DEFFFFFF')
-        .padding({
-          left: 10 * PencilHomeContent.SCALE,
-          right: 10 * PencilHomeContent.SCALE,
-          top: 7 * PencilHomeContent.SCALE,
-          bottom: 7 * PencilHomeContent.SCALE
-        })
-        .backgroundColor('#0AFFFFFF')
-        .borderRadius(999 * PencilHomeContent.SCALE)
-      Text(value)
-        .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-        .fontSize(14 * PencilHomeContent.SCALE)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(valueColor)
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-    }
-    .width('100%')
-    .height(58 * PencilHomeContent.SCALE)
-    .padding(14 * PencilHomeContent.SCALE)
-    .backgroundColor('#06FFFFFF')
-    .borderRadius(22 * PencilHomeContent.SCALE)
-    .border({ width: PencilHomeContent.SCALE, color: '#0DFFFFFF' })
-    .justifyContent(FlexAlign.SpaceBetween)
   }
 }
 

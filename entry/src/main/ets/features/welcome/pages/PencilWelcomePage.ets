@@ -16,7 +16,7 @@ struct PencilWelcomePage {
   private buildBrandLockup() {
     Row({ space: 10 * PencilWelcomePage.SCALE }) {
       Stack() {
-        Image($rawfile('pencil-lucide-activity.svg'))
+        Image($rawfile('fittracker-logo-pulse.svg'))
           .width(18 * PencilWelcomePage.SCALE)
           .height(18 * PencilWelcomePage.SCALE)
           .objectFit(ImageFit.Contain)
@@ -266,19 +266,9 @@ struct PencilWelcomePage {
           .onClick(() => {
             this.getUIContext().getRouter().pushUrl({ url: AppRoutes.LOGIN })
           })
-
-          Column()
-            .width(382 * PencilWelcomePage.SCALE)
-            .height(52 * PencilWelcomePage.SCALE)
-            .backgroundColor('#0FFFFFFF')
-            .borderRadius(18 * PencilWelcomePage.SCALE)
-            .border({
-              width: 1,
-              color: '#29FFFFFF'
-            })
         }
         .width(382 * PencilWelcomePage.SCALE)
-        .height(128 * PencilWelcomePage.SCALE)
+        .height(52 * PencilWelcomePage.SCALE)
         .position({
           x: 24 * PencilWelcomePage.SCALE,
           y: 684 * PencilWelcomePage.SCALE

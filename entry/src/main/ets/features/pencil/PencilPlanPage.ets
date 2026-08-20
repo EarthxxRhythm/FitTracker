@@ -98,8 +98,12 @@ export struct PencilPlanContent {
   }
 
   private opacityFor(rel: number): number {
-    if (Math.abs(rel) <= 1) {
-      return 1 - 0.26 * Math.abs(rel)
+    const distance: number = Math.abs(rel)
+    if (distance <= 1) {
+      return 1 - 0.26 * distance
+    }
+    if (distance < 1.2) {
+      return 0.74 * (1 - (distance - 1) / 0.2)
     }
     return 0
   }
@@ -210,7 +214,7 @@ export struct PencilPlanContent {
       .alignItems(VerticalAlign.Center)
     }
     .width('100%')
-    .height(132)
+    .height(150)
     .padding({ left: 16, right: 16, top: 14, bottom: 14 })
     .backgroundColor('#0F50ECA7')
     .borderRadius(24)

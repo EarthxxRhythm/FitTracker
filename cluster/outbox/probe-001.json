@@ -1,0 +1,12 @@
+{
+  "task": "probe-001",
+  "status": "done",
+  "summary": "hdc version 成功：第一行输出为 Ver: 3.2.0d，退出码 0。hdc 未在 PATH 中，使用完整路径 C:\\Program Files\\Huawei\\DevEco Studio\\sdk\\default\\openharmony\\toolchains\\hdc.exe 执行。",
+  "changed_files": [],
+  "evidence": {
+    "command": "hdc version",
+    "executable": "C:\\Program Files\\Huawei\\DevEco Studio\\sdk\\default\\openharmony\\toolchains\\hdc.exe",
+    "first_line": "Ver: 3.2.0d",
+    "exit_code": 0
+  }
+}

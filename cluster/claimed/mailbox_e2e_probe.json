@@ -1,0 +1,9 @@
+{
+  "task": "mailbox_e2e_probe",
+  "title": "文件信箱端到端自检",
+  "brief": "这是文件信箱协议的端到端验证任务，自包含，不依赖聊天上下文。请依次执行：1) 确认你能读取到本文件内容；2) 列出 D:\\.CodeSpace\\.DevEcoStudioProjects\\FitTracker\\cluster 目录结构；3) 将上述确认结果写入 cluster/outbox/mailbox_e2e_probe.json，字段包含 task=mailbox_e2e_probe、status=done、summary（说明你是否成功读到本任务正文及目录结构）、changed_files=[]、evidence（目录列表文本）。不要修改 inbox/claimed 之外的任何仓库文件。完成后 final answer 一行说明 status 与 outbox 路径。",
+  "owner_files": ["cluster/outbox/mailbox_e2e_probe.json"],
+  "do_not_touch": ["entry/", "tools/", "docs/"],
+  "acceptance": ["outbox/mailbox_e2e_probe.json 存在", "status=done", "summary 说明已读到任务正文"],
+  "created_at": "2026-08-20T00:00:00Z"
+}

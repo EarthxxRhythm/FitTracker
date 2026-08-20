@@ -122,15 +122,17 @@ export struct PencilReviewContent {
 
       Column() {
         Scroll() {
-          Column({ space: 14 }) {
+          Column({ space: 16.3 }) {
             this.segmentedControl()
             this.overviewCard()
             this.statsRow()
             this.activityCard()
-            this.distributionCard()
+            if (this.timeScale === 'week') {
+              this.distributionCard()
+            }
           }
           .width('100%')
-          .padding({ left: 16, right: 16, top: 16, bottom: 28 })
+          .padding({ left: 16.3, right: 16.3, top: 52.6, bottom: 36.3 })
         }
         .layoutWeight(1)
         .width('100%')
@@ -146,7 +148,7 @@ export struct PencilReviewContent {
   @Builder
   private segmentedControl() {
     Row() {
-      Row({ space: 4 }) {
+      Row() {
         this.segmentButton('周', 'week')
         this.segmentButton('月', 'month')
       }
@@ -156,7 +158,7 @@ export struct PencilReviewContent {
       .border({ width: 1, color: '#1AFFFFFF' })
     }
     .width('100%')
-    .justifyContent(FlexAlign.Center)
+    .justifyContent(FlexAlign.Start)
   }
 
   @Builder
@@ -166,7 +168,7 @@ export struct PencilReviewContent {
       .fontSize(13)
       .fontWeight(this.timeScale === key ? FontWeight.Bold : FontWeight.Medium)
       .fontColor(this.timeScale === key ? '#07100B' : '#9EFFFFFF')
-      .width(70)
+      .width(53)
       .height(44)
       .textAlign(TextAlign.Center)
       .backgroundColor(this.timeScale === key ? '#50ECA7' : '#00000000')
@@ -178,7 +180,7 @@ export struct PencilReviewContent {
 
   @Builder
   private overviewCard() {
-    Column({ space: 12 }) {
+    Column({ space: 12.7 }) {
       Row() {
         Text(this.weekText())
           .fontFamily('Noto Sans SC')
@@ -190,7 +192,7 @@ export struct PencilReviewContent {
           .fontSize(10.9)
           .fontWeight(FontWeight.Medium)
           .fontColor('#50ECA7')
-          .padding({ left: 9, right: 9, top: 5, bottom: 5 })
+          .padding({ left: 9.1, right: 9.1, top: 5.4, bottom: 5.4 })
           .backgroundColor('#1A50ECA7')
           .borderRadius(999)
       }
@@ -220,7 +222,7 @@ export struct PencilReviewContent {
 
   @Builder
   private statsRow() {
-    Row({ space: 9 }) {
+    Row({ space: 9.1 }) {
       this.statCard('训练', '次', 0)
       this.statCard('时长', '分钟', 1)
       this.statCard('完成率', '%', 2)
@@ -266,7 +268,7 @@ export struct PencilReviewContent {
           .fontSize(14.5)
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
-        Text(this.timeScale === 'week' ? '过去 7 天' : '训练 16 天')
+        Text(this.timeScale === 'week' ? '过去 7 天' : '按月查看')
           .fontFamily('Noto Sans SC')
           .fontSize(10.9)
           .fontColor('#7AFFFFFF')
@@ -337,31 +339,35 @@ export struct PencilReviewContent {
       }
       .width('100%')
 
-      Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
+      Grid() {
         ForEach(CALENDAR_DAYS, (day: number) => {
-          Column({ space: 2 }) {
-            Text(day.toString())
-              .fontFamily('Inter')
-              .fontSize(12.5)
-              .fontWeight(this.isTrainDay(day) ? FontWeight.Bold : FontWeight.Normal)
-              .fontColor(day === 13 ? '#07100B' : (this.isTrainDay(day) ? '#50ECA7' : '#B3FFFFFF'))
-            Row()
-              .width(5)
-              .height(5)
-              .backgroundColor(day === 13 ? '#07100B' : (this.isTrainDay(day) ? '#50ECA7' : '#00000000'))
-              .borderRadius(2.5)
+          GridItem() {
+            Column({ space: 2 }) {
+              Text(day.toString())
+                .fontFamily('Inter')
+                .fontSize(12.5)
+                .fontWeight(this.isTrainDay(day) ? FontWeight.Bold : FontWeight.Normal)
+                .fontColor(day === 13 ? '#07100B' : (this.isTrainDay(day) ? '#50ECA7' : '#B3FFFFFF'))
+              Row()
+                .width(5)
+                .height(5)
+                .backgroundColor(day === 13 ? '#07100B' : (this.isTrainDay(day) ? '#50ECA7' : '#00000000'))
+                .borderRadius(2.5)
+            }
+            .width('100%')
+            .height(36)
+            .justifyContent(FlexAlign.Center)
+            .alignItems(HorizontalAlign.Center)
+            .backgroundColor(day === 13 ? '#50ECA7' : (this.isTrainDay(day) ? '#1A50ECA7' : '#00000000'))
+            .borderRadius(10)
+            .border({ width: 1, color: this.isTrainDay(day) ? '#4250ECA7' : '#00000000' })
           }
-          .width(42)
-          .height(36)
-          .margin({ right: 4, bottom: 4 })
-          .justifyContent(FlexAlign.Center)
-          .alignItems(HorizontalAlign.Center)
-          .backgroundColor(day === 13 ? '#50ECA7' : (this.isTrainDay(day) ? '#1A50ECA7' : '#00000000'))
-          .borderRadius(10)
-          .border({ width: 1, color: this.isTrainDay(day) ? '#4250ECA7' : '#00000000' })
         }, (day: number) => day.toString())
       }
       .width('100%')
+      .columnsTemplate('1fr 1fr 1fr 1fr 1fr 1fr 1fr')
+      .columnsGap(4)
+      .rowsGap(4)
     }
     .width('100%')
   }
