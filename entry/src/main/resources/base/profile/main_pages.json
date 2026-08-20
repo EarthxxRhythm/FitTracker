@@ -15,7 +15,6 @@
                 "features/pencil/PencilPreviewPage",
                 "features/pencil/PencilActivePage",
                 "features/workout/pages/WorkoutCompletePage",
-                "features/workout/pages/WorkoutSummaryPage",
                 "features/pencil/PencilReviewPage"
             ]
 }

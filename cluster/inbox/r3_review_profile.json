@@ -1,0 +1,12 @@
+{
+  "task": "r3_review_profile",
+  "title": "响应式重构回顾与个人页",
+  "brief": "在 D:\\.CodeSpace\\.DevEcoStudioProjects\\FitTracker 工作。把 PencilReviewPage.ets 和 PencilProfilePage.ets 改为响应式：删除固定 SCALE/390/844/430，根容器 100%，主体用 Scroll，分段/统计/分布/日历使用 layoutWeight 或比例宽度。保持文案和功能。只改这两个文件。完成后写 cluster/outbox/r3_review_profile.json。",
+  "owner_files": [
+    "entry/src/main/ets/features/pencil/PencilReviewPage.ets",
+    "entry/src/main/ets/features/pencil/PencilProfilePage.ets"
+  ],
+  "do_not_touch": ["entry/src/main/ets/features/pencil/PencilPlanPage.ets", "entry/src/main/ets/features/pencil/PencilPreviewPage.ets", "entry/src/main/ets/features/pencil/PencilActivePage.ets", "entry/src/main/ets/features/workout", "entry/src/main/ets/features/pencil/PencilHomePage.ets", "entry/src/main/ets/app", "entry/src/main/ets/components", "entry/src/main/ets/common/styles/DesignTokens.ets", "cluster", "work/mailbox"],
+  "acceptance": ["无固定SCALE/390/844/430", "根容器100%", "主体可滚动", "文案功能保持"],
+  "created_at": "2026-08-20T13:02:00Z"
+}

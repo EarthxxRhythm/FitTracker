@@ -40,6 +40,7 @@ const BOTTOM_TAB_ITEMS: BottomTabItem[] = [
 @Component
 export struct BottomTabBar {
   @Link currentKey: string
+  workoutAction?: () => void
   private isCurrent(item: BottomTabItem): boolean {
     return item.key === this.currentKey
   }
@@ -103,7 +104,11 @@ export struct BottomTabBar {
         .padding(0)
         .backgroundColor('rgba(0,0,0,0)')
         .onClick(() => {
-          this.notifyTabChange(item)
+          if (item.highlight && this.workoutAction !== undefined) {
+            this.workoutAction()
+          } else {
+            this.notifyTabChange(item)
+          }
         })
       }, (item: BottomTabItem) => item.key)
     }

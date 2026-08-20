@@ -257,11 +257,17 @@ export struct PencilProfileContent {
           .width(40 * PencilProfileContent.SCALE)
           .height(40 * PencilProfileContent.SCALE)
           .borderRadius(14 * PencilProfileContent.SCALE)
-          .backgroundColor('#1A50ECA7')
+          .backgroundColor(icon === 'trophy' ? '#1FD3B487' : '#1A50ECA7')
         if (icon === 'flame') {
-          Image($rawfile('pencil-lucide-flame.svg')).width(20 * PencilProfileContent.SCALE).height(20 * PencilProfileContent.SCALE)
+          Image($rawfile('pencil-lucide-flame.svg'))
+            .width(20 * PencilProfileContent.SCALE)
+            .height(20 * PencilProfileContent.SCALE)
+            .fillColor('#50ECA7')
         } else {
-          Image($rawfile('pencil-lucide-trophy.svg')).width(20 * PencilProfileContent.SCALE).height(20 * PencilProfileContent.SCALE)
+          Image($rawfile('pencil-lucide-trophy.svg'))
+            .width(20 * PencilProfileContent.SCALE)
+            .height(20 * PencilProfileContent.SCALE)
+            .fillColor('#D3B487')
         }
       }
       .width(40 * PencilProfileContent.SCALE)
@@ -282,7 +288,7 @@ export struct PencilProfileContent {
       Text(value)
         .fontFamily('Inter')
         .fontSize(11 * PencilProfileContent.SCALE)
-        .fontColor('#50ECA7')
+        .fontColor(icon === 'trophy' ? '#D3B487' : '#50ECA7')
     }
     .width('100%')
     .height(60 * PencilProfileContent.SCALE)

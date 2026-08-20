@@ -1,153 +1,229 @@
-/** PencilPreviewPage —— FitTracker Workout Preview prototype page. 功能 #27 */
+/** PencilPreviewPage —— FitTracker 训练预览页（依据 fittracker-training-preview.html 还原）。 */
 
 import { AppRoutes } from '../../app/AppRoutes'
+
+interface PreviewExerciseItem {
+  name: string
+  prescription: string
+  current: boolean
+}
+
+const WARM_UP_EXERCISES: PreviewExerciseItem[] = [
+  { name: '弹力带肩袖激活', prescription: '2 × 15', current: false },
+  { name: '肩胛俯卧撑', prescription: '2 × 12', current: false }
+]
+
+const PRIMARY_EXERCISES: PreviewExerciseItem[] = [
+  { name: '杠铃卧推', prescription: '4 × 6', current: true },
+  { name: '上斜哑铃卧推', prescription: '3 × 8', current: false },
+  { name: '坐姿肩推', prescription: '3 × 10', current: false },
+  { name: '绳索下压', prescription: '3 × 12', current: false }
+]
 
 @Entry
 @Component
 struct PencilPreviewPage {
-  private static readonly SCALE: number = 390 / 430
-
   @Builder
-  private buildPreviewHero() {
-    Column({ space: 6 * PencilPreviewPage.SCALE }) {
-      Text('训练预览')
-        .fontFamily('Inter')
-        .fontSize(28 * PencilPreviewPage.SCALE)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#F7FBF8')
-      Text('第 1 天 · 上肢力量')
-        .fontFamily('Inter')
-        .fontSize(13 * PencilPreviewPage.SCALE)
-        .fontWeight(FontWeight.Medium)
-        .fontColor('#7AFFFFFF')
+  private buildTopBar() {
+    Row() {
+      Row({ space: 12 }) {
+        Stack({ alignContent: Alignment.Center }) {
+          Text('‹')
+            .fontFamily('Noto Sans SC')
+            .fontSize(30)
+            .fontColor('#D1FFFFFF')
+        }
+        .width(44)
+        .height(44)
+        .borderRadius(15)
+        .backgroundColor('#08FFFFFF')
+        .border({ width: 1, color: '#14FFFFFF' })
+        .onClick(() => {
+          this.getUIContext().getRouter().back()
+        })
+
+        Text('训练预览')
+          .fontFamily('Noto Sans SC')
+          .fontSize(17)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#F7FBF8')
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .alignItems(VerticalAlign.Center)
+
+      Stack({ alignContent: Alignment.Center }) {
+        Text('⋯')
+          .fontFamily('Noto Sans SC')
+          .fontSize(22)
+          .fontColor('#D1FFFFFF')
+      }
+      .width(44)
+      .height(44)
+      .borderRadius(15)
+      .backgroundColor('#08FFFFFF')
+      .border({ width: 1, color: '#14FFFFFF' })
+      .onClick(() => {
+        this.getUIContext().getPromptAction().showToast({ message: '更多选项（原型）' })
+      })
     }
     .width('100%')
-    .height(48 * PencilPreviewPage.SCALE)
-    .alignItems(HorizontalAlign.Center)
+    .justifyContent(FlexAlign.SpaceBetween)
+    .alignItems(VerticalAlign.Center)
   }
 
   @Builder
-  private buildExerciseSection() {
+  private buildHero() {
     Column() {
-      Text('动作清单')
-        .width('100%')
-        .height(48 * PencilPreviewPage.SCALE)
-        .textAlign(TextAlign.Center)
-        .fontFamily('Inter')
-        .fontSize(14 * PencilPreviewPage.SCALE)
+      Text('Day 01')
+        .fontFamily('Geist Mono')
+        .fontSize(11)
+        .fontWeight(FontWeight.Medium)
+        .fontColor('#50ECA7')
+        .letterSpacing(2)
+
+      Text('训练预览')
+        .fontFamily('Noto Sans SC')
+        .fontSize(32)
         .fontWeight(FontWeight.Bold)
-        .fontColor('#8FFFFFFF')
+        .fontColor('#F7FBF8')
+        .margin({ top: 8 })
 
-      Column() {
-        Text('热身动作')
-          .width('100%')
-          .height(17 * PencilPreviewPage.SCALE)
-          .textAlign(TextAlign.Center)
-          .fontFamily('Inter')
-          .fontSize(13 * PencilPreviewPage.SCALE)
-          .fontWeight(FontWeight.Medium)
-          .fontColor('#8FFFFFFF')
-        this.exercise('弹力带肩袖激活', '2 × 15', false)
-        this.exercise('肩胛俯卧撑', '2 × 12', false)
-      }
-      .width('100%')
-      .height(123 * PencilPreviewPage.SCALE)
-      .padding(14 * PencilPreviewPage.SCALE)
-      .justifyContent(FlexAlign.SpaceBetween)
-      .backgroundColor('#08FFFFFF')
-      .borderRadius(22 * PencilPreviewPage.SCALE)
-      .border({ width: 1, color: '#0AFFFFFF' })
+      Text('第 1 天 · 上肢力量')
+        .fontFamily('Noto Sans SC')
+        .fontSize(13)
+        .fontWeight(FontWeight.Medium)
+        .fontColor('#8AFFFFFF')
+        .margin({ top: 8 })
 
-      Column() {
-        Text('主动作')
-          .width('100%')
-          .height(18 * PencilPreviewPage.SCALE)
-          .textAlign(TextAlign.Center)
-          .fontFamily('Inter')
-          .fontSize(14 * PencilPreviewPage.SCALE)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#50ECA7')
-        this.exercise('杠铃卧推', '4 × 6', true)
-        this.exercise('上斜哑铃卧推', '3 × 8', true)
-        this.exercise('坐姿肩推', '3 × 10', true)
-        this.exercise('绳索下压', '3 × 12', true)
+      Stack({ alignContent: Alignment.Center }) {
+        Image($rawfile('pencil-lucide-activity.svg'))
+          .width(30)
+          .height(30)
+          .fillColor('#50ECA7')
       }
-      .width('100%')
-      .height(282 * PencilPreviewPage.SCALE)
-      .padding(14 * PencilPreviewPage.SCALE)
-      .justifyContent(FlexAlign.SpaceBetween)
-      .backgroundColor('#07FFFFFF')
-      .borderRadius(24 * PencilPreviewPage.SCALE)
-      .border({ width: 1, color: '#14FFFFFF' })
+      .width(64)
+      .height(64)
+      .borderRadius(32)
+      .border({ width: 2, color: '#4D50ECA7' })
+      .margin({ top: 14 })
     }
     .width('100%')
-    .height(497 * PencilPreviewPage.SCALE)
-    .justifyContent(FlexAlign.SpaceBetween)
+    .alignItems(HorizontalAlign.Center)
+    .margin({ top: 16 })
+  }
+
+  @Builder
+  private buildGroupLabel(text: string, topMargin: number) {
+    Text(text)
+      .fontFamily('Noto Sans SC')
+      .fontSize(12)
+      .fontWeight(FontWeight.Medium)
+      .fontColor('#8AFFFFFF')
+      .letterSpacing(0.96)
+      .padding({ left: 6, right: 6 })
+      .margin({ top: topMargin, bottom: 8 })
+  }
+
+  @Builder
+  private buildExerciseItem(item: PreviewExerciseItem) {
+    Row() {
+      Text(item.name)
+        .fontFamily('Noto Sans SC')
+        .fontSize(16)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(item.current ? '#F7FBF8' : '#E0FFFFFF')
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .layoutWeight(1)
+      Text(item.prescription)
+        .fontFamily('Inter')
+        .fontSize(14)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(item.current ? '#50ECA7' : '#8AFFFFFF')
+    }
+    .width('100%')
+    .height(52)
+    .padding({ left: 14, right: 14 })
+    .alignItems(VerticalAlign.Center)
+    .borderRadius(16)
+    .border({ width: 1, color: item.current ? '#4750ECA7' : '#0EFFFFFF' })
+    .backgroundColor(item.current ? '#1A50ECA7' : '#07FFFFFF')
+  }
+
+  @Builder
+  private buildExerciseList() {
+    Column() {
+      this.buildGroupLabel('热身动作', 0)
+      Column({ space: 7 }) {
+        ForEach(WARM_UP_EXERCISES, (item: PreviewExerciseItem) => {
+          this.buildExerciseItem(item)
+        }, (item: PreviewExerciseItem) => item.name)
+      }
+      .width('100%')
+
+      this.buildGroupLabel('主动作', 18)
+      Column({ space: 7 }) {
+        ForEach(PRIMARY_EXERCISES, (item: PreviewExerciseItem) => {
+          this.buildExerciseItem(item)
+        }, (item: PreviewExerciseItem) => item.name)
+      }
+      .width('100%')
+    }
+    .width('100%')
+    .layoutWeight(1)
+    .margin({ top: 16 })
   }
 
   @Builder
   private buildActionSection() {
-    Column({ space: 10 * PencilPreviewPage.SCALE }) {
+    Column({ space: 12 }) {
       Text('确认动作与重量后开始训练')
         .width('100%')
-        .fontFamily('Inter')
-        .fontSize(12 * PencilPreviewPage.SCALE)
+        .textAlign(TextAlign.Center)
+        .fontFamily('Noto Sans SC')
+        .fontSize(12)
         .fontWeight(FontWeight.Medium)
-        .fontColor('#73FFFFFF')
+        .fontColor('#8AFFFFFF')
 
       Button('开始训练')
         .width('100%')
-        .height(48 * PencilPreviewPage.SCALE)
-        .fontFamily('Inter')
-        .fontSize(16 * PencilPreviewPage.SCALE)
+        .height(52)
+        .fontFamily('Noto Sans SC')
+        .fontSize(16)
         .fontWeight(FontWeight.Bold)
-        .fontColor('#07100C')
+        .fontColor('#07100B')
         .linearGradient({
           angle: 180,
-          colors: [['#46D88F', 0], ['#58EDAD', 1]]
+          colors: [['#53E7A5', 0], ['#47D994', 1]]
         })
-        .borderRadius(24 * PencilPreviewPage.SCALE)
+        .borderRadius(26)
         .shadow({
-          radius: 26 * PencilPreviewPage.SCALE,
-          color: '#2650ECA7',
+          radius: 28,
+          color: '#3D000000',
           offsetX: 0,
-          offsetY: 14 * PencilPreviewPage.SCALE
+          offsetY: 14
         })
         .onClick(() => {
+          this.getUIContext().getPromptAction().showToast({ message: '已准备进入训练执行' })
           this.getUIContext().getRouter().pushUrl({ url: AppRoutes.ACTIVE_WORKOUT })
         })
     }
     .width('100%')
-    .padding(14 * PencilPreviewPage.SCALE)
-    .backgroundColor('#09FFFFFF')
-    .borderRadius(30 * PencilPreviewPage.SCALE)
-    .border({ width: 1, color: '#10FFFFFF' })
+    .margin({ top: 16 })
   }
 
   @Builder
-  private exercise(name: string, prescription: string, primary: boolean) {
-    Row() {
-      Text(name)
-        .fontFamily('Inter')
-        .fontSize((primary ? 18 : 16) * PencilPreviewPage.SCALE)
-        .fontWeight(primary ? FontWeight.Bold : FontWeight.Medium)
-        .fontColor(primary ? '#F7FBF8' : '#C7FFFFFF')
-        .layoutWeight(1)
-      Text(prescription)
-        .fontFamily('Inter')
-        .fontSize(14 * PencilPreviewPage.SCALE)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(primary ? '#50ECA7' : '#80FFFFFF')
+  private buildHomeIndicator() {
+    Column() {
+      Row()
+        .width(134)
+        .height(5)
+        .borderRadius(3)
+        .backgroundColor('#40FFFFFF')
     }
     .width('100%')
-    .height((primary ? 50 : 34) * PencilPreviewPage.SCALE)
-    .padding({
-      left: (primary ? 14 : 0) * PencilPreviewPage.SCALE,
-      right: (primary ? 14 : 0) * PencilPreviewPage.SCALE
-    })
-    .backgroundColor(primary ? '#0AFFFFFF' : '#00000000')
-    .borderRadius((primary ? 18 : 0) * PencilPreviewPage.SCALE)
-    .border({ width: primary ? 1 : 0, color: '#18FFFFFF' })
+    .margin({ top: 8 })
   }
 
   build() {
@@ -157,36 +233,33 @@ struct PencilPreviewPage {
         .height('100%')
         .linearGradient({
           angle: 180,
-          colors: [['#0B0F13', 0], ['#0D1117', 0.52], ['#0A0D12', 1]]
+          colors: [['#0D1316', 0], ['#090C10', 1]]
         })
 
       Column()
         .width('100%')
         .height('100%')
         .radialGradient({
-          center: [215 * PencilPreviewPage.SCALE, -25 * PencilPreviewPage.SCALE],
-          radius: 170 * PencilPreviewPage.SCALE,
-          colors: [['#1550ECA7', 0], ['#0050ECA7', 1]]
+          center: [195, 169],
+          radius: 468,
+          colors: [['#1450ECA7', 0], ['#0050ECA7', 0.6]]
         })
 
-      Column({ space: 20 * PencilPreviewPage.SCALE }) {
-        this.buildPreviewHero()
-        this.buildExerciseSection()
-        Column({ space: 10 * PencilPreviewPage.SCALE }) {
-          this.buildActionSection()
-        }
-        .width('100%')
-        .padding({ top: 8 * PencilPreviewPage.SCALE })
+      Column() {
+        this.buildTopBar()
+        this.buildHero()
+        this.buildExerciseList()
+        this.buildActionSection()
+        this.buildHomeIndicator()
       }
       .width('100%')
       .height('100%')
       .padding({
-        left: 18 * PencilPreviewPage.SCALE,
-        right: 18 * PencilPreviewPage.SCALE,
-        top: 58 * PencilPreviewPage.SCALE,
-        bottom: 18 * PencilPreviewPage.SCALE
+        left: 18,
+        right: 18,
+        top: 56,
+        bottom: 12
       })
-      .justifyContent(FlexAlign.SpaceBetween)
     }
     .width('100%')
     .height('100%')
