@@ -1,9 +1,6 @@
 /** PencilProfilePage - FitTracker profile prototype page. Function #27 */
 @Component
 export struct PencilProfileContent {
-  private static readonly VIEWPORT_WIDTH: number = 390
-  private static readonly DESIGN_WIDTH: number = 430
-  private static readonly SCALE: number = PencilProfileContent.VIEWPORT_WIDTH / PencilProfileContent.DESIGN_WIDTH
 
   build() {
     Stack() {
@@ -19,24 +16,30 @@ export struct PencilProfileContent {
         .width('100%')
         .height('100%')
         .radialGradient({
-          center: [215 * PencilProfileContent.SCALE, -67.2],
-          radius: 180 * PencilProfileContent.SCALE,
+          center: [195, -67.2],
+          radius: 163.3,
           colors: [['#1550ECA7', 0], ['#0050ECA7', 1]]
         })
 
       Column() {
+        Column() {
+          this.buildProfileHeader()
+        }
+        .width('100%')
+        .padding({ left: 16.3, right: 16.3, top: 52.6, bottom: 0 })
+
         Scroll() {
-          Column({ space: 16 * PencilProfileContent.SCALE }) {
-            this.buildProfileHeader()
+          Column({ space: 14.5 }) {
             this.buildWeeklyOverview()
             this.buildStreak()
             this.buildAchievements()
             this.buildShortcuts()
           }
           .width('100%')
-          .padding({ left: 18 * PencilProfileContent.SCALE, right: 18 * PencilProfileContent.SCALE, top: 58 * PencilProfileContent.SCALE, bottom: 28 * PencilProfileContent.SCALE })
+          .padding({ left: 16.3, right: 16.3, top: 14.5, bottom: 25.4 })
         }
         .layoutWeight(1)
+        .width('100%')
       }
       .width('100%')
       .height('100%')
@@ -48,80 +51,80 @@ export struct PencilProfileContent {
 
   @Builder
   private buildProfileHeader() {
-    Row({ space: 12 * PencilProfileContent.SCALE }) {
+    Row({ space: 10.9 }) {
       Stack() {
         Column()
-          .width(56 * PencilProfileContent.SCALE)
-          .height(56 * PencilProfileContent.SCALE)
-          .borderRadius(28 * PencilProfileContent.SCALE)
+          .width(50.8)
+          .height(50.8)
+          .borderRadius(25.4)
           .backgroundColor('#1A50ECA7')
-          .border({ width: 1 * PencilProfileContent.SCALE, color: '#4A50ECA7' })
+          .border({ width: 0.9, color: '#4A50ECA7' })
         Text('\u6797')
           .fontFamily('Inter')
-          .fontSize(24 * PencilProfileContent.SCALE)
+          .fontSize(21.8)
           .fontWeight(FontWeight.Bold)
           .fontColor('#50ECA7')
       }
-      .width(56 * PencilProfileContent.SCALE)
-      .height(56 * PencilProfileContent.SCALE)
-      Column({ space: 3 * PencilProfileContent.SCALE }) {
+      .width(50.8)
+      .height(50.8)
+      Column({ space: 2.7 }) {
         Text('\u6797\u9ed8')
           .fontFamily('Inter')
-          .fontSize(22 * PencilProfileContent.SCALE)
+          .fontSize(20)
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
         Text('\u589e\u808c\u7b2c 42 \u5929 \u00b7 \u4fdd\u6301\u8282\u594f')
           .fontFamily('Inter')
-          .fontSize(13 * PencilProfileContent.SCALE)
+          .fontSize(11.8)
           .fontColor('#7AFFFFFF')
       }
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
       Stack() {
         Column()
-          .width(42 * PencilProfileContent.SCALE)
-          .height(42 * PencilProfileContent.SCALE)
-          .borderRadius(21 * PencilProfileContent.SCALE)
+          .width(38.1)
+          .height(38.1)
+          .borderRadius(19)
           .backgroundColor('#0CFFFFFF')
-          .border({ width: 1 * PencilProfileContent.SCALE, color: '#14FFFFFF' })
+          .border({ width: 0.9, color: '#14FFFFFF' })
         Image($rawfile('pencil-lucide-settings-2.svg'))
-          .width(20 * PencilProfileContent.SCALE)
-          .height(20 * PencilProfileContent.SCALE)
+          .width(18.1)
+          .height(18.1)
       }
-      .width(42 * PencilProfileContent.SCALE)
-      .height(42 * PencilProfileContent.SCALE)
+      .width(38.1)
+      .height(38.1)
     }
     .width('100%')
-    .padding({ top: 18 * PencilProfileContent.SCALE, bottom: 4 * PencilProfileContent.SCALE })
+    .padding({ top: 16.3, bottom: 3.6 })
   }
 
   @Builder
   private buildWeeklyOverview() {
-    Column({ space: 14 * PencilProfileContent.SCALE }) {
+    Column({ space: 12.7 }) {
       Row() {
         Text('\u672c\u5468\u6982\u89c8')
           .fontFamily('Inter')
-          .fontSize(18 * PencilProfileContent.SCALE)
+          .fontSize(16.3)
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
         Text('7 \u6708 21 \u2013 27 \u65e5')
           .fontFamily('Inter')
-          .fontSize(12 * PencilProfileContent.SCALE)
+          .fontSize(10.9)
           .fontColor('#7AFFFFFF')
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
       .alignItems(VerticalAlign.Center)
 
-      Row({ space: 6 * PencilProfileContent.SCALE }) {
+      Row({ space: 5.4 }) {
         Text('186')
           .fontFamily('Geist Mono')
-          .fontSize(40 * PencilProfileContent.SCALE)
+          .fontSize(36.3)
           .fontWeight(FontWeight.Bold)
           .fontColor('#50ECA7')
         Text('分钟')
           .fontFamily('Inter')
-          .fontSize(14 * PencilProfileContent.SCALE)
+          .fontSize(12.7)
           .fontColor('#7AFFFFFF')
       }
       .width('100%')
@@ -129,7 +132,7 @@ export struct PencilProfileContent {
 
       Text('本周训练时长')
         .fontFamily('Inter')
-        .fontSize(11 * PencilProfileContent.SCALE)
+        .fontSize(10)
         .fontColor('#66FFFFFF')
 
       Row()
@@ -137,36 +140,36 @@ export struct PencilProfileContent {
         .height(1)
         .backgroundColor('#0FFFFFFF')
 
-      Row({ space: 10 * PencilProfileContent.SCALE }) {
+      Row({ space: 9.1 }) {
         this.buildFocusMeta('训练', '4', '次')
         this.buildFocusMeta('消耗', '1,240', '千卡')
       }
       .width('100%')
     }
     .width('100%')
-    .padding(18 * PencilProfileContent.SCALE)
+    .padding(16.3)
     .backgroundColor('#08FFFFFF')
-    .borderRadius(28 * PencilProfileContent.SCALE)
-    .border({ width: 1 * PencilProfileContent.SCALE, color: '#10FFFFFF' })
+    .borderRadius(25.4)
+    .border({ width: 0.9, color: '#10FFFFFF' })
   }
 
   @Builder
   private buildFocusMeta(label: string, value: string, unit: string) {
-    Column({ space: 2 * PencilProfileContent.SCALE }) {
+    Column({ space: 1.8 }) {
       Text(label)
         .fontFamily('Inter')
-        .fontSize(11 * PencilProfileContent.SCALE)
+        .fontSize(10)
         .fontWeight(FontWeight.Medium)
         .fontColor('#66FFFFFF')
-      Row({ space: 3 * PencilProfileContent.SCALE }) {
+      Row({ space: 2.7 }) {
         Text(value)
           .fontFamily('Geist Mono')
-          .fontSize(20 * PencilProfileContent.SCALE)
+          .fontSize(18.1)
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
         Text(unit)
           .fontFamily('Inter')
-          .fontSize(11 * PencilProfileContent.SCALE)
+          .fontSize(10)
           .fontColor('#66FFFFFF')
       }
     }
@@ -176,23 +179,23 @@ export struct PencilProfileContent {
 
   @Builder
   private buildStreak() {
-    Column({ space: 12 * PencilProfileContent.SCALE }) {
+    Column({ space: 10.9 }) {
       Row() {
         Text('\u8bad\u7ec3\u8fde\u7eed\u8bb0\u5f55')
           .fontFamily('Inter')
-          .fontSize(18 * PencilProfileContent.SCALE)
+          .fontSize(16.3)
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
         Text('\u8fde\u7eed 6 \u5929')
           .fontFamily('Geist Mono')
-          .fontSize(13 * PencilProfileContent.SCALE)
+          .fontSize(11.8)
           .fontWeight(FontWeight.Bold)
           .fontColor('#50ECA7')
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
       .alignItems(VerticalAlign.Center)
-      Row({ space: 8 * PencilProfileContent.SCALE }) {
+      Row({ space: 7.3 }) {
         this.buildStreakDay('\u4e00', true)
         this.buildStreakDay('\u4e8c', true)
         this.buildStreakDay('\u4e09', true)
@@ -202,27 +205,27 @@ export struct PencilProfileContent {
         this.buildStreakDay('\u65e5', false)
       }
       .width('100%')
-      .height(50 * PencilProfileContent.SCALE)
+      .height(45.3)
     }
     .width('100%')
-    .height(124 * PencilProfileContent.SCALE)
-    .padding(18 * PencilProfileContent.SCALE)
+    .height(112.5)
+    .padding(16.3)
     .backgroundColor('#171C23')
-    .borderRadius(28 * PencilProfileContent.SCALE)
-    .border({ width: 1 * PencilProfileContent.SCALE, color: '#14FFFFFF' })
+    .borderRadius(25.4)
+    .border({ width: 0.9, color: '#14FFFFFF' })
   }
 
   @Builder
   private buildStreakDay(label: string, active: boolean) {
-    Column({ space: 6 * PencilProfileContent.SCALE }) {
+    Column({ space: 5.4 }) {
       Column()
-        .width(28 * PencilProfileContent.SCALE)
-        .height(28 * PencilProfileContent.SCALE)
-        .borderRadius(14 * PencilProfileContent.SCALE)
+        .width(25.4)
+        .height(25.4)
+        .borderRadius(12.7)
         .backgroundColor(active ? '#50ECA7' : '#14FFFFFF')
       Text(label)
         .fontFamily('Inter')
-        .fontSize(11 * PencilProfileContent.SCALE)
+        .fontSize(10)
         .fontWeight(FontWeight.Medium)
         .fontColor(active ? '#50ECA7' : '#7AFFFFFF')
     }
@@ -232,104 +235,104 @@ export struct PencilProfileContent {
 
   @Builder
   private buildAchievements() {
-    Column({ space: 12 * PencilProfileContent.SCALE }) {
+    Column({ space: 10.9 }) {
       Text('\u6700\u8fd1\u6210\u5c31')
         .fontFamily('Inter')
-        .fontSize(18 * PencilProfileContent.SCALE)
+        .fontSize(16.3)
         .fontWeight(FontWeight.Bold)
         .fontColor('#F7FBF8')
       this.buildAchievement('\u7a33\u5b9a\u8f93\u51fa', '\u8fde\u7eed\u8bad\u7ec3 7 \u5929', '\u672c\u5468\u5b8c\u6210\u5ea6 86%', 'flame')
       this.buildAchievement('\u91cd\u91cf\u7a81\u7834', '\u6df1\u8e72\u8fbe\u5230 80 kg', '\u5237\u65b0\u4e2a\u4eba\u6700\u4f73', 'trophy')
     }
     .width('100%')
-    .height(206 * PencilProfileContent.SCALE)
-    .padding(18 * PencilProfileContent.SCALE)
+    .height(186.8)
+    .padding(16.3)
     .backgroundColor('#08FFFFFF')
-    .borderRadius(28 * PencilProfileContent.SCALE)
-    .border({ width: 1 * PencilProfileContent.SCALE, color: '#10FFFFFF' })
+    .borderRadius(25.4)
+    .border({ width: 0.9, color: '#10FFFFFF' })
   }
 
   @Builder
   private buildAchievement(title: string, note: string, value: string, icon: string) {
-    Row({ space: 12 * PencilProfileContent.SCALE }) {
+    Row({ space: 10.9 }) {
       Stack() {
         Column()
-          .width(40 * PencilProfileContent.SCALE)
-          .height(40 * PencilProfileContent.SCALE)
-          .borderRadius(14 * PencilProfileContent.SCALE)
+          .width(36.3)
+          .height(36.3)
+          .borderRadius(12.7)
           .backgroundColor(icon === 'trophy' ? '#1FD3B487' : '#1A50ECA7')
         if (icon === 'flame') {
           Image($rawfile('pencil-lucide-flame.svg'))
-            .width(20 * PencilProfileContent.SCALE)
-            .height(20 * PencilProfileContent.SCALE)
+            .width(18.1)
+            .height(18.1)
             .fillColor('#50ECA7')
         } else {
           Image($rawfile('pencil-lucide-trophy.svg'))
-            .width(20 * PencilProfileContent.SCALE)
-            .height(20 * PencilProfileContent.SCALE)
+            .width(18.1)
+            .height(18.1)
             .fillColor('#D3B487')
         }
       }
-      .width(40 * PencilProfileContent.SCALE)
-      .height(40 * PencilProfileContent.SCALE)
-      Column({ space: 3 * PencilProfileContent.SCALE }) {
+      .width(36.3)
+      .height(36.3)
+      Column({ space: 2.7 }) {
         Text(title)
           .fontFamily('Inter')
-          .fontSize(14 * PencilProfileContent.SCALE)
+          .fontSize(12.7)
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
         Text(note)
           .fontFamily('Inter')
-          .fontSize(12 * PencilProfileContent.SCALE)
+          .fontSize(10.9)
           .fontColor('#8FFFFFFF')
       }
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
       Text(value)
         .fontFamily('Inter')
-        .fontSize(11 * PencilProfileContent.SCALE)
+        .fontSize(10)
         .fontColor(icon === 'trophy' ? '#D3B487' : '#50ECA7')
     }
     .width('100%')
-    .height(60 * PencilProfileContent.SCALE)
-    .padding({ top: 10 * PencilProfileContent.SCALE, bottom: 10 * PencilProfileContent.SCALE })
+    .height(54.4)
+    .padding({ top: 9.1, bottom: 9.1 })
   }
 
   @Builder
   private buildShortcuts() {
-    Row({ space: 10 * PencilProfileContent.SCALE }) {
+    Row({ space: 9.1 }) {
       this.buildShortcut('\u8eab\u4f53\u6570\u636e', 'scale')
       this.buildShortcut('\u8bad\u7ec3\u504f\u597d', 'sliders')
     }
     .width('100%')
-    .height(47 * PencilProfileContent.SCALE)
+    .height(42.6)
   }
 
   @Builder
   private buildShortcut(label: string, icon: string) {
-    Row({ space: 8 * PencilProfileContent.SCALE }) {
+    Row({ space: 7.3 }) {
       if (icon === 'scale') {
-        Image($rawfile('pencil-lucide-scale-balance.svg')).width(18 * PencilProfileContent.SCALE).height(18 * PencilProfileContent.SCALE)
+        Image($rawfile('pencil-lucide-scale-balance.svg')).width(16.3).height(16.3)
       } else {
-        Image($rawfile('pencil-lucide-sliders.svg')).width(18 * PencilProfileContent.SCALE).height(18 * PencilProfileContent.SCALE)
+        Image($rawfile('pencil-lucide-sliders.svg')).width(16.3).height(16.3)
       }
       Text(label)
         .fontFamily('Inter')
-        .fontSize(13 * PencilProfileContent.SCALE)
+        .fontSize(11.8)
         .fontWeight(FontWeight.Medium)
         .fontColor('#B3FFFFFF')
         .layoutWeight(1)
       Text('\u203a')
         .fontFamily('Inter')
-        .fontSize(18 * PencilProfileContent.SCALE)
+        .fontSize(16.3)
         .fontColor('#7AFFFFFF')
     }
     .layoutWeight(1)
-    .height(47 * PencilProfileContent.SCALE)
-    .padding({ left: 12 * PencilProfileContent.SCALE, right: 12 * PencilProfileContent.SCALE, top: 14 * PencilProfileContent.SCALE, bottom: 14 * PencilProfileContent.SCALE })
+    .height(42.6)
+    .padding({ left: 10.9, right: 10.9, top: 12.7, bottom: 12.7 })
     .backgroundColor('#0CFFFFFF')
-    .borderRadius(18 * PencilProfileContent.SCALE)
-    .border({ width: 1 * PencilProfileContent.SCALE, color: '#10FFFFFF' })
+    .borderRadius(16.3)
+    .border({ width: 0.9, color: '#10FFFFFF' })
     .justifyContent(FlexAlign.SpaceBetween)
   }
 
