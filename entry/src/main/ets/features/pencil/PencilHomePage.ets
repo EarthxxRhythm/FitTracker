@@ -2,9 +2,6 @@
 import { AppRoutes } from '../../app/AppRoutes'
 @Component
 export struct PencilHomeContent {
-  private static readonly VIEWPORT_WIDTH: number = 390
-  private static readonly DESIGN_WIDTH: number = 430
-  private static readonly SCALE: number = PencilHomeContent.VIEWPORT_WIDTH / PencilHomeContent.DESIGN_WIDTH
   private static readonly CHINESE_FONT_FAMILY: string = 'Noto Sans SC'
   private static readonly NUMBER_FONT_FAMILY: string = 'Inter'
   build() {
@@ -25,66 +22,63 @@ export struct PencilHomeContent {
           colors: [['#1F50ECA7', 0], ['#0050ECA7', 1]]
         })
       Column() {
-        Scroll() {
-          Column() {
-            Column({ space: 6 * PencilHomeContent.SCALE }) {
-              Text('\u0035\u6708\u0032\u0032\u65e5 \u5468\u56db')
-                .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-                .fontSize(14 * PencilHomeContent.SCALE)
-                .fontColor('#B3FFFFFF')
-                .fontWeight(FontWeight.Medium)
-                .width('100%')
-              Text('\u65e9\u4e0a\u597d\uff0c\u4e13\u6ce8\u8bad\u7ec3')
-                .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-                .fontSize(40 * PencilHomeContent.SCALE)
-                .lineHeight(39 * PencilHomeContent.SCALE)
-                .fontWeight(FontWeight.Bold)
-                .fontColor('#F7FBF8')
-                .width('100%')
-            }
-            Row()
-              .height(19)
-            this.todayCard()
-            Row()
-              .height(16)
-            this.weekPanel()
+        Column() {
+          Column({ space: 6 }) {
+            Text('\u0035\u6708\u0032\u0032\u65e5 \u5468\u56db')
+              .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
+              .fontSize(14)
+              .fontColor('#B3FFFFFF')
+              .fontWeight(FontWeight.Medium)
+              .width('100%')
+            Text('\u65e9\u4e0a\u597d\uff0c\u4e13\u6ce8\u8bad\u7ec3')
+              .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
+              .fontSize(40)
+              .lineHeight(39)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#F7FBF8')
+              .width('100%')
           }
-          .width('100%')
-          .padding({
-            left: 16,
-            right: 16,
-            top: 53,
-            bottom: 40 * PencilHomeContent.SCALE
-          })
+          Row()
+            .height(19)
+          this.todayCard()
+          Row()
+            .height(16)
+          this.weekPanel()
         }
-        .layoutWeight(1)
         .width('100%')
+        .height('100%')
+        .padding({
+          left: 16,
+          right: 16,
+          top: 53,
+          bottom: 40
+        })
       }
       .width('100%')
       .height('100%')
     }
-    .width(PencilHomeContent.VIEWPORT_WIDTH)
+    .width('100%')
     .height('100%')
   }
   @Builder
   private todayCard() {
-    Column({ space: 16 * PencilHomeContent.SCALE }) {
-      Row({ space: 18 * PencilHomeContent.SCALE }) {
-        Column({ space: 8 * PencilHomeContent.SCALE }) {
+    Column() {
+      Row({ space: 18 }) {
+        Column({ space: 8 }) {
           Text('\u4eca\u65e5\u8bad\u7ec3')
             .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-            .fontSize(14 * PencilHomeContent.SCALE)
+            .fontSize(14)
             .fontWeight(FontWeight.Bold)
             .fontColor('#50ECA7')
-          Row({ space: 8 * PencilHomeContent.SCALE }) {
+          Row({ space: 8 }) {
             Text('\u4e0a\u80a2\u529b\u91cf')
               .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-              .fontSize(24 * PencilHomeContent.SCALE)
+              .fontSize(24)
               .fontWeight(FontWeight.Bold)
               .fontColor('#F7FBF8')
             Text('\u63a8\u8350')
               .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-              .fontSize(10 * PencilHomeContent.SCALE)
+              .fontSize(10)
               .fontWeight(FontWeight.Bold)
               .fontColor('#50ECA7')
               .width(42)
@@ -94,11 +88,11 @@ export struct PencilHomeContent {
           }
           Text('\u80f8\u90e8 \u00b7 \u80a9\u90e8 \u00b7 \u4e09\u5934\u808c')
             .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-            .fontSize(14 * PencilHomeContent.SCALE)
+            .fontSize(14)
             .fontColor('#9EFFFFFF')
           Text('\u8bad\u7ec3\u65e5 \u00b7 \u5efa\u8bae\u5b8c\u6210')
             .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-            .fontSize(12 * PencilHomeContent.SCALE)
+            .fontSize(12)
             .fontWeight(FontWeight.Bold)
             .fontColor('#50ECA7')
             .width(160)
@@ -119,15 +113,15 @@ export struct PencilHomeContent {
             .borderRadius(39)
             .backgroundColor('#0D1117')
             .border({ width: 1, color: '#66FFFFFF' })
-          Column({ space: 2 * PencilHomeContent.SCALE }) {
+          Column({ space: 2 }) {
             Text('14%')
               .fontFamily(PencilHomeContent.NUMBER_FONT_FAMILY)
-              .fontSize(20 * PencilHomeContent.SCALE)
+              .fontSize(20)
               .fontWeight(FontWeight.Bold)
               .fontColor('#50ECA7')
             Text('\u672c\u5468\u8fdb\u5ea6')
               .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-              .fontSize(11 * PencilHomeContent.SCALE)
+              .fontSize(11)
               .fontColor('#8AFFFFFF')
           }
           .alignItems(HorizontalAlign.Center)
@@ -155,15 +149,16 @@ export struct PencilHomeContent {
       }
       .width('100%')
       .height(96)
+      Blank()
       Button('\u5f00\u59cb\u8bad\u7ec3')
         .width('100%')
         .height(40)
-        .fontSize(15 * PencilHomeContent.SCALE)
+        .fontSize(15)
         .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
         .fontWeight(FontWeight.Bold)
         .fontColor('#08110D')
         .linearGradient({ angle: 90, colors: [['#47D994', 0], ['#53E7A5', 1]] })
-        .borderRadius(22 * PencilHomeContent.SCALE)
+        .borderRadius(22)
         .padding(0)
         .onClick(() => {
           this.getUIContext().getRouter().pushUrl({ url: AppRoutes.WORKOUT_PREVIEW })
@@ -173,25 +168,25 @@ export struct PencilHomeContent {
       Button('\u67e5\u770b\u9884\u89c8')
         .width('100%')
         .height(40)
-        .fontSize(15 * PencilHomeContent.SCALE)
+        .fontSize(15)
         .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
         .fontWeight(FontWeight.Medium)
         .fontColor('#F7FBF8')
         .backgroundColor('#08FFFFFF')
-        .borderRadius(22 * PencilHomeContent.SCALE)
+        .borderRadius(22)
         .padding(0)
-        .border({ width: PencilHomeContent.SCALE, color: '#10FFFFFF' })
+        .border({ width: 1, color: '#10FFFFFF' })
         .onClick(() => {
           this.getUIContext().getRouter().pushUrl({ url: AppRoutes.WORKOUT_PREVIEW })
         })
     }
     .width('100%')
-    .height(422)
+    .layoutWeight(1)
     .padding(18)
     .linearGradient({ angle: 180, colors: [['#0AFFFFFF', 0], ['#05FFFFFF', 1]] })
-    .borderRadius(28 * PencilHomeContent.SCALE)
-    .border({ width: PencilHomeContent.SCALE, color: '#10FFFFFF' })
-    .shadow({ radius: 48 * PencilHomeContent.SCALE, color: '#38000000', offsetX: 0, offsetY: 24 * PencilHomeContent.SCALE })
+    .borderRadius(28)
+    .border({ width: 1, color: '#10FFFFFF' })
+    .shadow({ radius: 48, color: '#38000000', offsetX: 0, offsetY: 24 })
   }
 
   @Builder
@@ -245,7 +240,7 @@ export struct PencilHomeContent {
     .backgroundColor('#08FFFFFF')
     .borderRadius(27.2)
     .border({ width: 1, color: '#10FFFFFF' })
-    .shadow({ radius: 36 * PencilHomeContent.SCALE, color: '#24000000', offsetX: 0, offsetY: 18 * PencilHomeContent.SCALE })
+    .shadow({ radius: 36, color: '#24000000', offsetX: 0, offsetY: 18 })
   }
 
   @Builder
@@ -345,7 +340,7 @@ struct PencilHomePage {
     Column() {
       PencilHomeContent()
     }
-    .width(390)
+    .width('100%')
     .height('100%')
   }
 }

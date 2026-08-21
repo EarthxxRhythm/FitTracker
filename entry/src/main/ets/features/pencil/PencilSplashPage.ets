@@ -10,9 +10,6 @@ import DeviceSeedService from '../../shared/services/DeviceSeedService'
 @Entry
 @Component
 struct PencilSplashPage {
-  private static readonly VIEWPORT_WIDTH: number = 390
-  private static readonly DESIGN_WIDTH: number = 430
-  private static readonly SCALE: number = PencilSplashPage.VIEWPORT_WIDTH / PencilSplashPage.DESIGN_WIDTH
 
   private contextOrNull(): Context | null {
     const host = this.getUIContext().getHostContext()
@@ -35,71 +32,71 @@ struct PencilSplashPage {
   private buildBrandMark() {
     Stack() {
       Column()
-        .width(120 * PencilSplashPage.SCALE)
-        .height(120 * PencilSplashPage.SCALE)
-        .borderRadius(60 * PencilSplashPage.SCALE)
+        .width(120)
+        .height(120)
+        .borderRadius(60)
         .backgroundColor('#0F50ECA7')
-        .border({ width: 2 * PencilSplashPage.SCALE, color: '#50ECA7' })
+        .border({ width: 2, color: '#50ECA7' })
 
       Column()
-        .width(72 * PencilSplashPage.SCALE)
-        .height(72 * PencilSplashPage.SCALE)
-        .borderRadius(36 * PencilSplashPage.SCALE)
+        .width(72)
+        .height(72)
+        .borderRadius(36)
         .backgroundColor('#1A50ECA7')
-        .border({ width: 1 * PencilSplashPage.SCALE, color: '#8850ECA7' })
+        .border({ width: 1, color: '#8850ECA7' })
 
       Column()
-        .width(24 * PencilSplashPage.SCALE)
-        .height(24 * PencilSplashPage.SCALE)
-        .borderRadius(12 * PencilSplashPage.SCALE)
+        .width(24)
+        .height(24)
+        .borderRadius(12)
         .backgroundColor('#50ECA7')
         .shadow({
-          radius: 18 * PencilSplashPage.SCALE,
+          radius: 18,
           color: '#8850ECA7',
           offsetX: 0,
           offsetY: 0
         })
     }
-    .width(120 * PencilSplashPage.SCALE)
-    .height(120 * PencilSplashPage.SCALE)
+    .width(120)
+    .height(120)
     .position({
-      x: 155 * PencilSplashPage.SCALE,
-      y: 226 * PencilSplashPage.SCALE
+      x: 155,
+      y: 226
     })
   }
 
   @Builder
   private buildWelcomeContent() {
-    Column({ space: 12 * PencilSplashPage.SCALE }) {
+    Column({ space: 12 }) {
       Text('YOUR DAILY TRAINING COMPANION')
         .fontFamily('Geist Mono')
-        .fontSize(10 * PencilSplashPage.SCALE)
+        .fontSize(10)
         .fontWeight(FontWeight.Medium)
-        .letterSpacing(1.4 * PencilSplashPage.SCALE)
+        .letterSpacing(1.4)
         .fontColor('#50ECA7')
         .textAlign(TextAlign.Center)
 
       Text('FitTracker')
-        .width(350 * PencilSplashPage.SCALE)
+        .width(350)
         .fontFamily('Inter')
-        .fontSize(34 * PencilSplashPage.SCALE)
+        .fontSize(34)
         .fontWeight(FontWeight.Bold)
         .fontColor('#F5F7FA')
         .textAlign(TextAlign.Center)
 
       Text('Move better. Feel stronger.\nOne focused session at a time.')
-        .width(350 * PencilSplashPage.SCALE)
+        .width(350)
         .fontFamily('Inter')
-        .fontSize(15 * PencilSplashPage.SCALE)
+        .fontSize(15)
         .fontWeight(FontWeight.Normal)
         .lineHeight(1.45)
         .fontColor('#AAB4BF')
         .textAlign(TextAlign.Center)
     }
-    .width(350 * PencilSplashPage.SCALE)
+    .width(350)
     .position({
-      x: 40 * PencilSplashPage.SCALE,
-      y: 382 * PencilSplashPage.SCALE
+      x: 40,
+      y: 382
     })
   }
 
@@ -142,32 +139,32 @@ struct PencilSplashPage {
         })
 
       Column()
-        .width(204 * PencilSplashPage.SCALE)
-        .height(204 * PencilSplashPage.SCALE)
-        .borderRadius(102 * PencilSplashPage.SCALE)
+        .width(204)
+        .height(204)
+        .borderRadius(102)
         .radialGradient({
-          center: [102 * PencilSplashPage.SCALE, 102 * PencilSplashPage.SCALE],
-          radius: 102 * PencilSplashPage.SCALE,
+          center: [102, 102],
+          radius: 102,
           colors: [['#0D50ECA7', 0], ['#0050ECA7', 1]]
         })
         .position({
-          x: 113 * PencilSplashPage.SCALE,
-          y: 184 * PencilSplashPage.SCALE
+          x: 113,
+          y: 184
         })
 
       this.buildBrandMark()
       this.buildWelcomeContent()
 
       Text('TRAIN WITH INTENTION  ·  RECOVER WITH PURPOSE')
-        .width(350 * PencilSplashPage.SCALE)
+        .width(350)
         .fontFamily('Geist Mono')
-        .fontSize(10 * PencilSplashPage.SCALE)
+        .fontSize(10)
         .fontWeight(FontWeight.Normal)
         .fontColor('#6F7C87')
         .textAlign(TextAlign.Center)
         .position({
-          x: 40 * PencilSplashPage.SCALE,
-          y: 786 * PencilSplashPage.SCALE
+          x: 40,
+          y: 786
         })
     }
     .width('100%')

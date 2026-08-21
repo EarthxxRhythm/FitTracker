@@ -8,9 +8,6 @@ import { ColorTokens } from '../../common/styles/DesignTokens'
 @Entry
 @Component
 struct PencilLoginPage {
-  private static readonly DESIGN_WIDTH: number = 430
-  private static readonly VIEWPORT_WIDTH: number = 390
-  private static readonly SCALE: number = PencilLoginPage.VIEWPORT_WIDTH / PencilLoginPage.DESIGN_WIDTH
 
   @State account: string = ''
   @State password: string = ''
@@ -49,23 +46,23 @@ struct PencilLoginPage {
 
   @Builder
   private buildBrandHeader() {
-    Column({ space: 12 * PencilLoginPage.SCALE }) {
+    Column({ space: 12 }) {
       Row() {
         Image($rawfile('fittracker-logo-pulse.svg'))
-          .width(26 * PencilLoginPage.SCALE)
-          .height(26 * PencilLoginPage.SCALE)
+          .width(26)
+          .height(26)
       }
-      .width(48 * PencilLoginPage.SCALE)
-      .height(48 * PencilLoginPage.SCALE)
+      .width(48)
+      .height(48)
       .justifyContent(FlexAlign.Center)
       .backgroundColor('#1A50ECA7')
-      .borderRadius(16 * PencilLoginPage.SCALE)
+      .borderRadius(16)
       .border({ width: 1, color: '#4D50ECA7' })
       Text('FITTRACKER')
         .fontFamily('Inter')
-        .fontSize(13 * PencilLoginPage.SCALE)
+        .fontSize(13)
         .fontWeight(FontWeight.Bold)
-        .letterSpacing(2.4 * PencilLoginPage.SCALE)
+        .letterSpacing(2.4)
         .fontColor('#F7FBF8')
     }
     .width('100%')
@@ -74,21 +71,21 @@ struct PencilLoginPage {
 
   @Builder
   private buildAuthHead() {
-    Column({ space: 10 * PencilLoginPage.SCALE }) {
+    Column({ space: 10 }) {
       Text('WELCOME BACK')
         .fontFamily('Geist Mono')
-        .fontSize(11 * PencilLoginPage.SCALE)
+        .fontSize(11)
         .fontWeight(600)
-        .letterSpacing(1.5 * PencilLoginPage.SCALE)
+        .letterSpacing(1.5)
         .fontColor('#50ECA7')
       Text('欢迎回来')
         .fontFamily('Noto Sans SC')
-        .fontSize(35 * PencilLoginPage.SCALE)
+        .fontSize(35)
         .fontWeight(FontWeight.Bold)
         .fontColor('#F7FBF8')
       Text('登录后，同步你的训练进度与身体数据')
         .fontFamily('Noto Sans SC')
-        .fontSize(15 * PencilLoginPage.SCALE)
+        .fontSize(15)
         .fontColor('#A6FFFFFF')
         .textAlign(TextAlign.Center)
     }
@@ -98,23 +95,23 @@ struct PencilLoginPage {
 
   @Builder
   private buildLoginField(label: string, placeholder: string, iconName: string, isPassword: boolean) {
-    Column({ space: 8 * PencilLoginPage.SCALE }) {
+    Column({ space: 8 }) {
       Text(label)
         .fontFamily('Noto Sans SC')
-        .fontSize(13 * PencilLoginPage.SCALE)
+        .fontSize(13)
         .fontWeight(FontWeight.Medium)
         .fontColor('#9EFFFFFF')
         .width('100%')
-      Row({ space: 12 * PencilLoginPage.SCALE }) {
+      Row({ space: 12 }) {
         if (iconName === 'mail') {
           Image($rawfile('pencil-lucide-mail.svg'))
-            .width(19 * PencilLoginPage.SCALE)
-            .height(19 * PencilLoginPage.SCALE)
+            .width(19)
+            .height(19)
             .fillColor('#8FFFFFFF')
         } else {
           Image($rawfile('pencil-lucide-lock-keyhole.svg'))
-            .width(19 * PencilLoginPage.SCALE)
-            .height(19 * PencilLoginPage.SCALE)
+            .width(19)
+            .height(19)
             .fillColor('#8FFFFFFF')
         }
         TextInput({ text: isPassword ? this.password : this.account, placeholder: placeholder })
@@ -122,7 +119,7 @@ struct PencilLoginPage {
           .showPasswordIcon(false)
           .layoutWeight(1)
           .fontFamily('Noto Sans SC')
-          .fontSize(16 * PencilLoginPage.SCALE)
+          .fontSize(16)
           .fontColor('#F7FBF8')
           .placeholderColor('#66FFFFFF')
           .backgroundColor(Color.Transparent)
@@ -136,17 +133,17 @@ struct PencilLoginPage {
           })
         if (isPassword) {
           Image($rawfile('pencil-lucide-eye.svg'))
-            .width(20 * PencilLoginPage.SCALE)
-            .height(20 * PencilLoginPage.SCALE)
+            .width(20)
+            .height(20)
             .fillColor('#8FFFFFFF')
         }
       }
       .width('100%')
-      .height(52 * PencilLoginPage.SCALE)
-      .padding({ left: 16 * PencilLoginPage.SCALE, right: 16 * PencilLoginPage.SCALE })
+      .height(52)
+      .padding({ left: 16, right: 16 })
       .backgroundColor('#08FFFFFF')
-      .borderRadius(18 * PencilLoginPage.SCALE)
-      .border({ width: 1 * PencilLoginPage.SCALE, color: '#14FFFFFF' })
+      .borderRadius(18)
+      .border({ width: 1, color: '#14FFFFFF' })
       .alignItems(VerticalAlign.Center)
     }
     .width('100%')
@@ -155,54 +152,54 @@ struct PencilLoginPage {
   @Builder
   private buildAuthAux() {
     Row() {
-      Row({ space: 8 * PencilLoginPage.SCALE }) {
+      Row({ space: 8 }) {
         Text('□')
           .fontFamily('HarmonyOS Sans')
-          .fontSize(18 * PencilLoginPage.SCALE)
+          .fontSize(18)
           .fontColor('#8FFFFFFF')
         Text('记住我')
           .fontFamily('Noto Sans SC')
-          .fontSize(13 * PencilLoginPage.SCALE)
+          .fontSize(13)
           .fontColor('#99FFFFFF')
       }
       Text('忘记密码？')
         .fontFamily('Noto Sans SC')
-        .fontSize(13 * PencilLoginPage.SCALE)
+        .fontSize(13)
         .fontWeight(FontWeight.Bold)
         .fontColor('#50ECA7')
     }
     .width('100%')
-    .height(20 * PencilLoginPage.SCALE)
+    .height(20)
     .justifyContent(FlexAlign.SpaceBetween)
   }
 
   @Builder
   private buildAuthDivider() {
-    Row({ space: 12 * PencilLoginPage.SCALE }) {
+    Row({ space: 12 }) {
       Divider().layoutWeight(1).color('#14FFFFFF')
       Text('其他登录方式')
         .fontFamily('Noto Sans SC')
-        .fontSize(12 * PencilLoginPage.SCALE)
+        .fontSize(12)
         .fontColor('#66FFFFFF')
       Divider().layoutWeight(1).color('#14FFFFFF')
     }
     .width('100%')
-    .height(18 * PencilLoginPage.SCALE)
+    .height(18)
   }
 
   @Builder
   private buildSocialButton(label: string) {
     Text(label)
       .layoutWeight(1)
-      .height(50 * PencilLoginPage.SCALE)
+      .height(50)
       .textAlign(TextAlign.Center)
       .fontFamily('Noto Sans SC')
-      .fontSize(14 * PencilLoginPage.SCALE)
+      .fontSize(14)
       .fontWeight(FontWeight.Medium)
       .fontColor('#F7FBF8')
       .backgroundColor('#08FFFFFF')
-      .borderRadius(16 * PencilLoginPage.SCALE)
-      .border({ width: 1 * PencilLoginPage.SCALE, color: '#1AFFFFFF' })
+      .borderRadius(16)
+      .border({ width: 1, color: '#1AFFFFFF' })
   }
 
   build() {
@@ -212,82 +209,83 @@ struct PencilLoginPage {
         .height('100%')
         .linearGradient({ angle: 180, colors: [['#0B0F13', 0], ['#0A0D12', 1]] })
       Column() {
-        Scroll() {
-          Column({ space: 20 * PencilLoginPage.SCALE }) {
-            this.buildBrandHeader()
-            this.buildAuthHead()
-            Column({ space: 14 * PencilLoginPage.SCALE }) {
-              this.buildLoginField('手机号 / 邮箱', '请输入手机号或邮箱', 'mail', false)
-              this.buildLoginField('密码', '请输入密码', 'lock', true)
-              this.buildAuthAux()
+        Row() {
+          this.buildBrandHeader()
+        }
+        .width('100%')
+        .justifyContent(FlexAlign.Center)
+        .margin({ top: 20 })
+        Row() {
+          this.buildAuthHead()
+        }
+        .width('100%')
+        .justifyContent(FlexAlign.Center)
+        .margin({ top: 18 })
 
-              if (this.message.length > 0) {
-                Text(this.message)
-                  .fontFamily('Noto Sans SC')
-                  .fontSize(13 * PencilLoginPage.SCALE)
-                  .fontColor(ColorTokens.ERROR)
-                  .width('100%')
-                  .textAlign(TextAlign.Center)
-              }
+        Column({ space: 12 }) {
+          this.buildLoginField('手机号 / 邮箱', '请输入手机号或邮箱', 'mail', false)
+          this.buildLoginField('密码', '请输入密码', 'lock', true)
+          this.buildAuthAux()
 
-              Button(this.loading ? '登录中…' : '登录')
-                .width('100%')
-                .height(52 * PencilLoginPage.SCALE)
-                .padding(0)
-                .fontFamily('Noto Sans SC')
-                .fontSize(16 * PencilLoginPage.SCALE)
-                .fontWeight(FontWeight.Bold)
-                .fontColor('#07100B')
-                .linearGradient({ angle: 90, colors: [['#47D994', 0], ['#53E7A5', 1]] })
-                .borderRadius(18 * PencilLoginPage.SCALE)
-                .shadow({ radius: 24, color: '#66000000', offsetX: 0, offsetY: 10 })
-                .onClick(() => {
-                  this.login()
-                })
-
-              this.buildAuthDivider()
-
-              Row({ space: 12 * PencilLoginPage.SCALE }) {
-                this.buildSocialButton('微信')
-                this.buildSocialButton('Apple')
-              }
+          if (this.message.length > 0) {
+            Text(this.message)
+              .fontFamily('Noto Sans SC')
+              .fontSize(13)
+              .fontColor(ColorTokens.ERROR)
               .width('100%')
-            }
-            .width('100%')
+              .textAlign(TextAlign.Center)
+          }
 
-            Row({ space: 6 * PencilLoginPage.SCALE }) {
-              Text('还没有账号？')
-                .fontFamily('Noto Sans SC')
-                .fontSize(14 * PencilLoginPage.SCALE)
-                .fontColor('#99FFFFFF')
-              Text('立即注册')
-                .fontFamily('Noto Sans SC')
-                .fontSize(14 * PencilLoginPage.SCALE)
-                .fontWeight(FontWeight.Bold)
-                .fontColor('#50ECA7')
-                .onClick(() => {
-                  this.getUIContext().getRouter().pushUrl({ url: AppRoutes.REGISTER })
-                })
-            }
+          Button(this.loading ? '登录中…' : '登录')
             .width('100%')
-            .height(24 * PencilLoginPage.SCALE)
-            .justifyContent(FlexAlign.Center)
+            .height(52)
+            .padding(0)
+            .fontFamily('Noto Sans SC')
+            .fontSize(16)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#07100B')
+            .linearGradient({ angle: 90, colors: [['#47D994', 0], ['#53E7A5', 1]] })
+            .borderRadius(18)
+            .shadow({ radius: 24, color: '#66000000', offsetX: 0, offsetY: 10 })
+            .onClick(() => {
+              this.login()
+            })
+
+          this.buildAuthDivider()
+
+          Row({ space: 12 }) {
+            this.buildSocialButton('微信')
+            this.buildSocialButton('Apple')
           }
           .width('100%')
-          .padding({
-            left: 24 * PencilLoginPage.SCALE,
-            right: 24 * PencilLoginPage.SCALE,
-            top: 76 * PencilLoginPage.SCALE,
-            bottom: 28 * PencilLoginPage.SCALE
-          })
         }
-        .layoutWeight(1)
         .width('100%')
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+        .margin({ top: 10, bottom: 10 })
 
+        Row({ space: 6 }) {
+          Text('还没有账号？')
+            .fontFamily('Noto Sans SC')
+            .fontSize(14)
+            .fontColor('#99FFFFFF')
+          Text('立即注册')
+            .fontFamily('Noto Sans SC')
+            .fontSize(14)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#50ECA7')
+            .onClick(() => {
+              this.getUIContext().getRouter().pushUrl({ url: AppRoutes.REGISTER })
+            })
+        }
+        .width('100%')
+        .height(24)
+        .justifyContent(FlexAlign.Center)
+        .margin({ bottom: 16 })
       }
       .width('100%')
       .height('100%')
-      .padding({ left: 24 * PencilLoginPage.SCALE, right: 24 * PencilLoginPage.SCALE })
+      .padding({ left: 24, right: 24 })
     }
     .width('100%')
     .height('100%')

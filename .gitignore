@@ -54,3 +54,7 @@ Thumbs.db
 /.codex/
 /.hvigor-user-home/
 /.ccpanes/
+
+# Codex agent-cluster / mailbox orchestration artifacts
+/cluster/
+/work/

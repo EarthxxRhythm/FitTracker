@@ -153,7 +153,8 @@ struct PencilPreviewPage {
 
   @Builder
   private buildExerciseList() {
-    Column() {
+    Scroll() {
+      Column() {
       this.buildGroupLabel('热身动作', 0)
       Column({ space: 7 }) {
         ForEach(WARM_UP_EXERCISES, (item: PreviewExerciseItem) => {
@@ -169,10 +170,13 @@ struct PencilPreviewPage {
         }, (item: PreviewExerciseItem) => item.name)
       }
       .width('100%')
+      }
+      .width('100%')
     }
     .width('100%')
     .layoutWeight(1)
     .margin({ top: 16 })
+    .scrollBar(BarState.Off)
   }
 
   @Builder

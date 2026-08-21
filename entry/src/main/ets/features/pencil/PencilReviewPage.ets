@@ -121,9 +121,14 @@ export struct PencilReviewContent {
         })
 
       Column() {
+        Column() {
+          this.segmentedControl()
+        }
+        .width('100%')
+        .padding({ left: 16.3, right: 16.3, top: 52.6, bottom: 12 })
+
         Scroll() {
           Column({ space: 16.3 }) {
-            this.segmentedControl()
             this.overviewCard()
             this.statsRow()
             this.activityCard()
@@ -132,7 +137,7 @@ export struct PencilReviewContent {
             }
           }
           .width('100%')
-          .padding({ left: 16.3, right: 16.3, top: 52.6, bottom: 36.3 })
+          .padding({ left: 16.3, right: 16.3, top: 12, bottom: 36.3 })
         }
         .layoutWeight(1)
         .width('100%')
