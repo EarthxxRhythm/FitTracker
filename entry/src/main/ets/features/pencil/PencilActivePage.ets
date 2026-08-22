@@ -192,16 +192,17 @@ export struct PencilActiveContent {
 
       Column() {
         this.topProgress()
+        Column() {
+          this.demoCard()
+        }
+        .width('100%')
+        .padding({ left: 18, right: 18, top: 12, bottom: 14 })
         Scroll() {
-          Column({ space: 14 }) {
-            this.demoCard()
-            this.setList()
-          }
-          .width('100%')
-          .padding({ left: 18, right: 18, top: 16, bottom: 24 })
+          this.setList()
         }
         .layoutWeight(1)
         .width('100%')
+        .padding({ left: 18, right: 18, top: 0, bottom: 24 })
 
         this.dock()
       }
