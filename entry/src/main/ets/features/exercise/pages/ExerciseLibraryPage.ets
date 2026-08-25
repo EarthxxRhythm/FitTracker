@@ -320,37 +320,6 @@ export struct ExerciseLibraryPage {
   }
 
   // -------------------------------------------------------------------------
-  // 网格分组：固定 3 列（对齐设计稿 repeat(3, 1fr)）
-  // -------------------------------------------------------------------------
-  private get columns(): number {
-    return 3
-  }
-
-  private chunkRows(items: ExerciseItem[]): ExerciseItem[][] {
-    const rows: ExerciseItem[][] = []
-    let current: ExerciseItem[] = []
-    for (let index = 0; index < items.length; index++) {
-      current.push(items[index])
-      if (current.length === this.columns) {
-        rows.push(current)
-        current = []
-      }
-    }
-    if (current.length > 0) {
-      rows.push(current)
-    }
-    return rows
-  }
-
-  private fillerList(count: number): number[] {
-    const list: number[] = []
-    for (let index = 0; index < count; index++) {
-      list.push(index)
-    }
-    return list
-  }
-
-  // -------------------------------------------------------------------------
   // 弹层 / toast
   // -------------------------------------------------------------------------
   private currentExercise(): ExerciseItem {
@@ -789,7 +758,7 @@ export struct ExerciseLibraryPage {
       .padding({ left: 8, right: 8, top: 8, bottom: 9 })
       .alignItems(HorizontalAlign.Start)
     }
-    .layoutWeight(1)
+    .width('100%')
     .borderRadius(14)
     .backgroundColor(LibPalette.CARD_BG)
     .border({ width: 1, color: LibPalette.STROKE })
@@ -831,23 +800,16 @@ export struct ExerciseLibraryPage {
       .width('100%')
       .alignItems(VerticalAlign.Bottom)
 
-      Column({ space: 10 }) {
-        ForEach(this.chunkRows(this.groupItems(equipment)), (rowItems: ExerciseItem[]) => {
-          Row({ space: 10 }) {
-            ForEach(rowItems, (item: ExerciseItem) => {
-              this.buildCard(item)
-            }, (item: ExerciseItem) => item.id)
-
-            if (rowItems.length < this.columns) {
-              ForEach(this.fillerList(this.columns - rowItems.length), (filler: number) => {
-                Column()
-                  .layoutWeight(1)
-              }, (filler: number) => filler.toString())
-            }
+      Grid() {
+        ForEach(this.groupItems(equipment), (item: ExerciseItem) => {
+          GridItem() {
+            this.buildCard(item)
           }
-          .width('100%')
-        }, (rowItems: ExerciseItem[]) => rowItems[0].id)
+        }, (item: ExerciseItem) => item.id)
       }
+      .columnsTemplate('1fr 1fr 1fr')
+      .columnsGap(10)
+      .rowsGap(10)
       .width('100%')
     }
     .width('100%')
