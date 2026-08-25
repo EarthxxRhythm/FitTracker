@@ -7,6 +7,7 @@ import { PencilProfileContent } from '../features/pencil/PencilProfilePage'
 import { AppRoutes } from './AppRoutes'
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
+import { MotionTokens } from '../common/styles/DesignTokens'
 
 enum PencilTabKey {
   HOME = 'home',
@@ -21,7 +22,6 @@ export struct PencilAppShell {
   @State @Watch('handleTabChanged') currentTab: string = PencilTabKey.HOME
   @State private viewportOffset: number = 0
   @State private viewportOpacity: number = 1
-  @State private viewportScale: number = 1
   private transitionRunning: boolean = false
   private previousTab: string = PencilTabKey.HOME
   private transitionToken: number = 0
@@ -64,14 +64,17 @@ export struct PencilAppShell {
     this.transitionRunning = true
     this.viewportOffset = 8 * direction
     this.viewportOpacity = 0.88
-    this.viewportScale = 0.99
-    this.getUIContext().animateTo({ duration: 160, curve: Curve.EaseOut }, () => {
+    this.getUIContext().animateTo({ duration: 200, curve: Curve.Ease }, () => {
+      if (currentTransitionToken !== this.transitionToken) {
+        return
+      }
+      this.viewportOpacity = 1
+    })
+    this.getUIContext().animateTo({ duration: 220, curve: MotionTokens.EASE_MOTION }, () => {
       if (currentTransitionToken !== this.transitionToken) {
         return
       }
       this.viewportOffset = 0
-      this.viewportOpacity = 1
-      this.viewportScale = 1
       this.transitionRunning = false
     })
   }
@@ -141,7 +144,6 @@ export struct PencilAppShell {
     .height('100%')
     .translate({ x: this.viewportOffset, y: 0 })
     .opacity(this.viewportOpacity)
-    .scale({ x: this.viewportScale, y: this.viewportScale })
   }
 
   build() {

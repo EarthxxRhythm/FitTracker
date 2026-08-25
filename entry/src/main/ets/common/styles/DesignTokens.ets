@@ -1,3 +1,5 @@
+import { curves } from '@kit.ArkUI'
+
 /**
  * DesignTokens -- global visual design tokens.
  * Function #26
@@ -317,10 +319,55 @@ export class ShadowTokens {
 }
 
 export class MotionTokens {
+  // Base durations (kept for compatibility)
   static readonly DURATION_MICRO: number = 120
   static readonly DURATION_FAST: number = 150
   static readonly DURATION_BASE: number = 250
   static readonly DURATION_SLOW: number = 400
+
+  // Press / interaction durations
+  static readonly DURATION_PRESS: number = 120
+  static readonly DURATION_COLOR_FAST: number = 160
+  static readonly DURATION_COLOR_BASE: number = 180
+  static readonly DURATION_OVERLAY: number = 220
+  static readonly DURATION_PANEL: number = 280
+
+  // Training in-page keyframes
+  static readonly DURATION_RECORD: number = 180
+  static readonly DURATION_MARKER: number = 300
+  static readonly DURATION_CORE: number = 460
+  static readonly DELAY_CORE: number = 60
+  static readonly DURATION_SEG_POP: number = 460
+
+  // Confetti
+  static readonly DURATION_CONFETTI_FLY: number = 1100
+  static readonly DURATION_CONFETTI_FALL: number = 2600
+
+  // Ambient pulse
+  static readonly DURATION_PULSE: number = 1600
+
+  // Completion page
+  static readonly DURATION_CF_POP: number = 500
+  static readonly DELAY_CF_POP: number = 50
+  static readonly DURATION_CF_RISE_FAST: number = 450
+  static readonly DURATION_CF_RISE_BASE: number = 500
+
+  // Easing curves (ArkUI ICurve). Background/color transitions use Curve.EaseInOut.
+  static readonly EASE_MOTION: ICurve = curves.cubicBezierCurve(0.2, 0.7, 0.2, 1)
+  static readonly EASE_PANEL: ICurve = curves.cubicBezierCurve(0.32, 0.72, 0.3, 1)
+  static readonly EASE_FLY: ICurve = curves.cubicBezierCurve(0.16, 0.7, 0.3, 1)
+  static readonly EASE_FALL: ICurve = curves.cubicBezierCurve(0.2, 0.55, 0.35, 1)
+
+  // Press scale factors
+  static readonly PRESS_PRIMARY: number = 0.985
+  static readonly PRESS_CHIP: number = 0.97
+  static readonly PRESS_ICON: number = 0.96
+  static readonly PRESS_SHORTCUT: number = 0.98
+  static readonly PRESS_SEGMENT: number = 0.97
+  static readonly PRESS_TAB_PILL: number = 0.96
+  static readonly PRESS_BACK: number = 0.94
+
+  // Legacy string easings (kept for compatibility; not used by ArkUI animation APIs)
   static readonly EASE_IN_OUT: string = 'cubic-bezier(0.4, 0.0, 0.2, 1.0)'
   static readonly EASE_OUT: string = 'cubic-bezier(0.0, 0.0, 0.2, 1.0)'
   static readonly EASE_STANDARD: string = 'cubic-bezier(0.28, 0, 0.22, 1)'

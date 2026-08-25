@@ -1,5 +1,18 @@
 /** PencilPlanPage - FitTracker Plan prototype page. */
 
+import { MotionTokens } from '../../common/styles/DesignTokens'
+import GoalRepository from '../../shared/services/GoalRepository'
+import PlanEngine from '../../shared/services/PlanEngine'
+import ContentRepository from '../../shared/services/ContentRepository'
+import WorkoutSessionService, { WeeklyStats } from '../../common/services/WorkoutSessionService'
+import {
+  ExerciseContent,
+  PlanDay,
+  PlannedExercise,
+  TrainingPlan,
+  UserGoal
+} from '../../shared/models/TrainingModels'
+
 interface PlanExerciseItem {
   name: string
   muscle: string
@@ -51,47 +64,186 @@ function createPlanDay(
   return item
 }
 
-const PLAN_DAYS: PlanDayItem[] = [
-  createPlanDay('胸', '胸部日', '胸部 · 推力', '胸部', '62 分钟', '今日', true, [
-    createPlanExercise('杠铃平板卧推', '胸部', '4', '8-12'),
-    createPlanExercise('上斜哑铃卧推', '胸部', '3', '8-12'),
-    createPlanExercise('哑铃飞鸟', '胸部', '3', '12-15'),
-    createPlanExercise('绳索夹胸', '胸部', '3', '12-15'),
-    createPlanExercise('双杠臂屈伸', '胸部', '3', '8-12')
-  ]),
-  createPlanDay('背', '背部日', '背部 · 拉力', '背部', '58 分钟', '明日', false, [
-    createPlanExercise('引体向上', '背部', '4', '8-12'),
-    createPlanExercise('杠铃划船', '背部', '4', '8-12'),
-    createPlanExercise('高位下拉', '背部', '3', '10-12'),
-    createPlanExercise('坐姿划船', '背部', '3', '10-12'),
-    createPlanExercise('面拉', '背部', '3', '12-15')
-  ]),
-  createPlanDay('腿', '腿部日', '腿部 · 力量', '腿部', '66 分钟', '后天', false, [
-    createPlanExercise('杠铃深蹲', '腿部', '4', '8-12'),
-    createPlanExercise('罗马尼亚硬拉', '腿部', '3', '8-12'),
-    createPlanExercise('腿举', '腿部', '3', '10-12'),
-    createPlanExercise('腿弯举', '腿部', '3', '12-15'),
-    createPlanExercise('提踵', '腿部', '4', '15-20')
-  ]),
-  createPlanDay('肩', '肩部日', '肩部 · 泵感', '肩部', '52 分钟', '第 4 天', false, [
-    createPlanExercise('杠铃推举', '肩部', '4', '8-12'),
-    createPlanExercise('哑铃侧平举', '肩部', '3', '12-15'),
-    createPlanExercise('前平举', '肩部', '3', '12-15'),
-    createPlanExercise('俯身飞鸟', '肩部', '3', '12-15'),
-    createPlanExercise('耸肩', '肩部', '3', '12-15')
-  ]),
-  createPlanDay('臂', '手臂日', '手臂 · 收尾', '手臂', '48 分钟', '第 5 天', false, [
-    createPlanExercise('杠铃弯举', '手臂', '4', '8-12'),
-    createPlanExercise('哑铃锤式弯举', '手臂', '3', '10-12'),
-    createPlanExercise('窄距卧推', '手臂', '4', '8-12'),
-    createPlanExercise('绳索下压', '手臂', '3', '12-15'),
-    createPlanExercise('集中弯举', '手臂', '3', '12-15')
-  ])
-]
-
 @Component
 export struct PencilPlanContent {
   @State private activeCard: number = 0
+  @State private masterPressed: boolean = false
+  @State private planDays: PlanDayItem[] = []
+  @State private planName: string = '训练计划'
+  @State private goalMeta: string = '尚未设置目标'
+  @State private planMeta: string = '完成目标设置后自动生成训练计划'
+  @State private weeklyProgress: string = '本周 0 / 0 天'
+  @State private progressPercent: number = 0
+  private sessionMinutes: number = 45
+
+  aboutToAppear(): void {
+    this.loadPlanData()
+  }
+
+  private async loadPlanData(): Promise<void> {
+    const hostContext: Context | undefined = this.getUIContext().getHostContext()
+    if (hostContext === undefined) {
+      this.applyEmptyState()
+      return
+    }
+    try {
+      const goal: UserGoal | undefined = await GoalRepository.loadGoal(hostContext)
+      if (goal === undefined) {
+        this.applyEmptyState()
+        return
+      }
+      const plan: TrainingPlan = PlanEngine.generatePlan(goal)
+      this.sessionMinutes = goal.sessionMinutes
+      this.planDays = this.buildPlanDayItems(plan)
+      this.planName = plan.name.length > 0 ? plan.name : '训练计划'
+      this.goalMeta = this.goalTypeLabel(goal.goalType) + ' · ' + plan.days.length.toString() + ' 练分化'
+      this.planMeta = this.levelLabel(goal.level) + ' · 每周 ' + goal.weeklyDays.toString() +
+        ' 天 · ' + plan.cycleWeeks.toString() + ' 周推进'
+      await this.loadWeeklyProgress(hostContext, plan.days.length)
+    } catch (error) {
+      this.applyEmptyState()
+    }
+  }
+
+  private async loadWeeklyProgress(context: Context, totalDays: number): Promise<void> {
+    let completedDays: number = 0
+    try {
+      const stats: WeeklyStats = await WorkoutSessionService.getWeeklyStats(context)
+      completedDays = stats.count
+    } catch (error) {
+      completedDays = 0
+    }
+    this.weeklyProgress = '本周 ' + completedDays.toString() + ' / ' + totalDays.toString() + ' 天'
+    this.progressPercent = totalDays > 0 ? Math.min(100, Math.round(completedDays * 100 / totalDays)) : 0
+  }
+
+  private applyEmptyState(): void {
+    this.planDays = []
+    this.planName = '训练计划'
+    this.goalMeta = '尚未设置目标'
+    this.planMeta = '完成目标设置后自动生成训练计划'
+    this.weeklyProgress = '本周 0 / 0 天'
+    this.progressPercent = 0
+  }
+
+  private buildPlanDayItems(plan: TrainingPlan): PlanDayItem[] {
+    const items: PlanDayItem[] = []
+    for (let index = 0; index < plan.days.length; index++) {
+      const day: PlanDay = plan.days[index]
+      const focusName: string = this.focusMuscleName(day)
+      const title: string = focusName.length > 0 ? focusName + '日' : day.title
+      items.push(createPlanDay(
+        this.shortMuscleLabel(focusName),
+        title,
+        focusName + ' · 训练',
+        focusName,
+        this.sessionMinutes.toString() + ' 分钟',
+        this.badgeFor(index),
+        index === 0,
+        this.buildExerciseItems(day.exercises, focusName)
+      ))
+    }
+    return items
+  }
+
+  private buildExerciseItems(planned: PlannedExercise[], dayFocusName: string): PlanExerciseItem[] {
+    const items: PlanExerciseItem[] = []
+    for (let index = 0; index < planned.length; index++) {
+      const item: PlannedExercise = planned[index]
+      const content: ExerciseContent | undefined = ContentRepository.getExerciseById(item.exerciseId)
+      let name: string = item.exerciseId
+      let muscle: string = dayFocusName
+      if (content !== undefined) {
+        name = content.nameZh
+        muscle = this.exerciseMuscleName(content, dayFocusName)
+      }
+      items.push(createPlanExercise(name, muscle, item.targetSets.toString(), item.targetReps))
+    }
+    return items
+  }
+
+  private exerciseMuscleName(content: ExerciseContent, fallbackName: string): string {
+    if (content.primaryMuscleIds.length === 0) {
+      return fallbackName
+    }
+    return ContentRepository.getMuscleName(content.primaryMuscleIds[0])
+  }
+
+  private focusMuscleName(day: PlanDay): string {
+    if (day.focusMuscleIds.length === 0) {
+      return day.title
+    }
+    return ContentRepository.getMuscleName(day.focusMuscleIds[0])
+  }
+
+  private shortMuscleLabel(focusName: string): string {
+    if (focusName === '胸部') {
+      return '胸'
+    }
+    if (focusName === '背部') {
+      return '背'
+    }
+    if (focusName === '腿部') {
+      return '腿'
+    }
+    if (focusName === '肩部') {
+      return '肩'
+    }
+    if (focusName === '手臂') {
+      return '臂'
+    }
+    return focusName
+  }
+
+  private badgeFor(index: number): string {
+    if (index === 0) {
+      return '今日'
+    }
+    if (index === 1) {
+      return '明日'
+    }
+    if (index === 2) {
+      return '后天'
+    }
+    return '第 ' + (index + 1).toString() + ' 天'
+  }
+
+  private goalTypeLabel(goalType: string): string {
+    if (goalType === 'hypertrophy') {
+      return '增肌'
+    }
+    if (goalType === 'strength') {
+      return '力量'
+    }
+    if (goalType === 'fat_loss') {
+      return '减脂'
+    }
+    if (goalType === 'posture') {
+      return '体态'
+    }
+    return goalType
+  }
+
+  private levelLabel(level: string): string {
+    if (level === 'beginner') {
+      return '初学'
+    }
+    if (level === 'intermediate') {
+      return '进阶'
+    }
+    if (level === 'advanced') {
+      return '高级'
+    }
+    return level
+  }
+
+  private activeDayCaption(): string {
+    if (this.planDays.length === 0) {
+      return '暂无安排'
+    }
+    const safeIndex: number = Math.min(this.activeCard, this.planDays.length - 1)
+    return '第 ' + (safeIndex + 1).toString() + ' 天 · ' + this.planDays[safeIndex].tag
+  }
 
   private rel(index: number): number {
     return index - this.activeCard
@@ -121,7 +273,7 @@ export struct PencilPlanContent {
       Column({ space: 16 }) {
         this.masterCard()
         Stack({ alignContent: Alignment.TopStart }) {
-          ForEach(PLAN_DAYS, (day: PlanDayItem, index: number) => {
+          ForEach(this.planDays, (day: PlanDayItem, index: number) => {
             this.deckCard(day, index)
           }, (day: PlanDayItem) => day.title)
         }
@@ -134,7 +286,7 @@ export struct PencilPlanContent {
               if (event.angle !== undefined) {
                 const horizontal: number = Math.abs(event.angle)
                 const isLeft: boolean = horizontal > 90 && horizontal < 270
-                if (isLeft && this.activeCard < PLAN_DAYS.length - 1) {
+                if (isLeft && this.activeCard < this.planDays.length - 1) {
                   this.activeCard += 1
                 } else if (!isLeft && this.activeCard > 0) {
                   this.activeCard -= 1
@@ -161,12 +313,12 @@ export struct PencilPlanContent {
   private masterCard() {
     Column({ space: 10 }) {
       Row() {
-        Text('当前计划')
+        Text(this.goalMeta)
           .fontFamily('Noto Sans SC')
           .fontSize(12)
           .fontWeight(FontWeight.Bold)
           .fontColor('#50ECA7')
-        Text('本周 1 / 5 天')
+        Text(this.weeklyProgress)
           .fontFamily('Inter')
           .fontSize(11)
           .fontWeight(FontWeight.Bold)
@@ -175,14 +327,14 @@ export struct PencilPlanContent {
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
 
-      Text('五日增肌计划')
+      Text(this.planName)
         .fontFamily('Noto Sans SC')
         .fontSize(22)
         .fontWeight(FontWeight.Bold)
         .fontColor('#F7FBF8')
         .width('100%')
 
-      Text('增肌 · 5 练分化 · 6 周推进')
+      Text(this.planMeta)
         .fontFamily('Noto Sans SC')
         .fontSize(11.5)
         .fontColor('#9EFFFFFF')
@@ -196,7 +348,7 @@ export struct PencilPlanContent {
             .backgroundColor('#2450ECA7')
             .borderRadius(999)
           Row()
-            .width('20%')
+            .width(this.progressPercent.toString() + '%')
             .height(6)
             .backgroundColor('#50ECA7')
             .borderRadius(999)
@@ -204,7 +356,7 @@ export struct PencilPlanContent {
         .layoutWeight(1)
         .height(6)
 
-        Text('第 1 天 · 胸')
+        Text(this.activeDayCaption())
           .fontFamily('Inter')
           .fontSize(11)
           .fontWeight(FontWeight.Medium)
@@ -220,6 +372,15 @@ export struct PencilPlanContent {
     .borderRadius(24)
     .border({ width: 1, color: '#1AFFFFFF' })
     .shadow({ radius: 28, color: '#33000000', offsetX: 0, offsetY: 14 })
+    .onTouch((event: TouchEvent) => {
+      if (event.type === TouchType.Down) {
+        this.masterPressed = true
+      } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        this.masterPressed = false
+      }
+    })
+    .scale({ x: this.masterPressed ? MotionTokens.PRESS_ICON : 1, y: this.masterPressed ? MotionTokens.PRESS_ICON : 1 })
+    .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
   }
 
   @Builder
@@ -333,6 +494,7 @@ export struct PencilPlanContent {
     .scale({ x: this.scaleFor(this.rel(index)), y: this.scaleFor(this.rel(index)) })
     .opacity(this.opacityFor(this.rel(index)))
     .zIndex(this.zFor(this.rel(index)))
+    .animation({ duration: MotionTokens.DURATION_MARKER, curve: MotionTokens.EASE_MOTION })
   }
 }
 

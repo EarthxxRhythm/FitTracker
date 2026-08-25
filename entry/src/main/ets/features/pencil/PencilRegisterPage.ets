@@ -2,7 +2,7 @@
 import { AppRoutes } from '../../app/AppRoutes'
 import AuthService from '../../common/services/AuthService'
 import { Context } from '@kit.AbilityKit'
-import { ColorTokens } from '../../common/styles/DesignTokens'
+import { ColorTokens, MotionTokens } from '../../common/styles/DesignTokens'
 
 @Entry
 @Component
@@ -14,6 +14,10 @@ struct PencilRegisterPage {
   @State confirmPassword: string = ''
   @State message: string = ''
   @State loading: boolean = false
+  @State ctaPressed: boolean = false
+  @State linkKey: string = ''
+  @State eyeKey: string = ''
+  @State agreePressed: boolean = false
 
   private contextOrNull(): Context | null {
     const host = this.getUIContext().getHostContext()
@@ -103,6 +107,15 @@ struct PencilRegisterPage {
             .width(20)
             .height(20)
             .fillColor('#8FFFFFFF')
+            .onTouch((event: TouchEvent) => {
+              if (event.type === TouchType.Down) {
+                this.eyeKey = label
+              } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                this.eyeKey = ''
+              }
+            })
+            .scale({ x: this.eyeKey === label ? MotionTokens.PRESS_ICON : 1, y: this.eyeKey === label ? MotionTokens.PRESS_ICON : 1 })
+            .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
         }
       }
       .width('100%')
@@ -112,6 +125,7 @@ struct PencilRegisterPage {
       .borderRadius(18)
       .border({ width: 1, color: '#14FFFFFF' })
       .alignItems(VerticalAlign.Center)
+      .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
     }
     .width('100%')
   }
@@ -179,6 +193,15 @@ struct PencilRegisterPage {
             .fontColor('#8FFFFFFF')
         }
         .width('100%')
+        .onTouch((event: TouchEvent) => {
+          if (event.type === TouchType.Down) {
+            this.agreePressed = true
+          } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+            this.agreePressed = false
+          }
+        })
+        .scale({ x: this.agreePressed ? MotionTokens.PRESS_CHIP : 1, y: this.agreePressed ? MotionTokens.PRESS_CHIP : 1 })
+        .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: Curve.EaseInOut })
         .margin({ bottom: 10 })
 
         if (this.message.length > 0) {
@@ -204,6 +227,15 @@ struct PencilRegisterPage {
           .onClick(() => {
             this.register()
           })
+          .onTouch((event: TouchEvent) => {
+            if (event.type === TouchType.Down) {
+              this.ctaPressed = true
+            } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+              this.ctaPressed = false
+            }
+          })
+          .scale({ x: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1 })
+          .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
           .margin({ bottom: 10 })
 
         Row({ space: 6 }) {
@@ -219,6 +251,15 @@ struct PencilRegisterPage {
             .onClick(() => {
               this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.LOGIN })
             })
+            .onTouch((event: TouchEvent) => {
+              if (event.type === TouchType.Down) {
+                this.linkKey = 'login'
+              } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                this.linkKey = ''
+              }
+            })
+            .scale({ x: this.linkKey === 'login' ? MotionTokens.PRESS_CHIP : 1, y: this.linkKey === 'login' ? MotionTokens.PRESS_CHIP : 1 })
+            .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
         }
         .width('100%')
         .height(24)

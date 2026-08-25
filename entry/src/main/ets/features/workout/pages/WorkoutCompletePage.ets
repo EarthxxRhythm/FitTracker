@@ -1,5 +1,10 @@
 /** WorkoutCompletePage - FitTracker workout completion page. */
 import { AppRoutes } from '../../../app/AppRoutes'
+import { MotionTokens } from '../../../common/styles/DesignTokens'
+import WorkoutSessionService from '../../../common/services/WorkoutSessionService'
+import WorkoutSessionPersistenceBridgeService from '../../../features/workout/services/WorkoutSessionPersistenceBridgeService'
+import WorkoutSummaryService, { WorkoutSummary } from '../../../shared/services/WorkoutSummaryService'
+import { WorkoutSession } from '../../../shared/models/TrainingModels'
 
 const STREAK_DAYS: string[] = ['一', '二', '三', '四', '五', '六', '日']
 
@@ -40,13 +45,32 @@ const CONFETTI_PIECES: ConfettiPiece[] = [
 @Component
 export struct WorkoutCompletePage {
   @State private confettiVisible: boolean = true
+  @State private badgeScale: number = 0.82
+  @State private badgeOpacity: number = 0
+  @State private titleOffsetY: number = 14
+  @State private titleOpacity: number = 0
+  @State private subOffsetY: number = 14
+  @State private subOpacity: number = 0
+  @State private streakOffsetY: number = 14
+  @State private streakOpacity: number = 0
+  @State private dockOffsetY: number = 14
+  @State private dockOpacity: number = 0
+  @State private confettiFall: number = 0
+  @State private ctaPressed: boolean = false
+  @State private statsOffsetY: number = 14
+  @State private statsOpacity: number = 0
+  @State private summary: WorkoutSummary = WorkoutSummaryService.createEmptySummary()
+  @State private streakCount: number = 0
+  @State private weekActiveFlags: boolean[] = [false, false, false, false, false, false, false]
   private confettiTimer: number = -1
 
   aboutToAppear(): void {
+    this.playEntranceAnimations()
+    this.loadWorkoutStats()
     this.confettiTimer = setTimeout(() => {
       this.confettiVisible = false
       this.confettiTimer = -1
-    }, 4600)
+    }, 3200)
   }
 
   aboutToDisappear(): void {
@@ -54,6 +78,125 @@ export struct WorkoutCompletePage {
       clearTimeout(this.confettiTimer)
       this.confettiTimer = -1
     }
+  }
+
+  private playEntranceAnimations(): void {
+    this.getUIContext().keyframeAnimateTo(
+      { delay: MotionTokens.DELAY_CF_POP },
+      [
+        {
+          duration: 300,
+          curve: MotionTokens.EASE_MOTION,
+          event: () => {
+            this.badgeScale = 1.04
+            this.badgeOpacity = 1
+          }
+        },
+        {
+          duration: 200,
+          curve: MotionTokens.EASE_MOTION,
+          event: () => {
+            this.badgeScale = 1
+            this.badgeOpacity = 1
+          }
+        }
+      ]
+    )
+    this.getUIContext().animateTo({ duration: MotionTokens.DURATION_CF_RISE_FAST, curve: MotionTokens.EASE_MOTION, delay: 160 }, () => {
+      this.titleOffsetY = 0
+      this.titleOpacity = 1
+    })
+    this.getUIContext().animateTo({ duration: MotionTokens.DURATION_CF_RISE_FAST, curve: MotionTokens.EASE_MOTION, delay: 260 }, () => {
+      this.subOffsetY = 0
+      this.subOpacity = 1
+    })
+    this.getUIContext().animateTo({ duration: MotionTokens.DURATION_CF_RISE_BASE, curve: MotionTokens.EASE_MOTION, delay: 320 }, () => {
+      this.statsOffsetY = 0
+      this.statsOpacity = 1
+    })
+    this.getUIContext().animateTo({ duration: MotionTokens.DURATION_CF_RISE_BASE, curve: MotionTokens.EASE_MOTION, delay: 360 }, () => {
+      this.streakOffsetY = 0
+      this.streakOpacity = 1
+    })
+    this.getUIContext().animateTo({ duration: MotionTokens.DURATION_CF_RISE_BASE, curve: MotionTokens.EASE_MOTION, delay: 600 }, () => {
+      this.dockOffsetY = 0
+      this.dockOpacity = 1
+    })
+    this.getUIContext().animateTo({ duration: MotionTokens.DURATION_CONFETTI_FALL, curve: MotionTokens.EASE_FALL }, () => {
+      this.confettiFall = 520
+    })
+  }
+
+  private async loadWorkoutStats(): Promise<void> {
+    const ctx: Context | undefined = this.getUIContext().getHostContext()
+    if (ctx === undefined) {
+      this.summary = WorkoutSummaryService.createEmptySummary()
+      this.streakCount = 0
+      this.weekActiveFlags = []
+      return
+    }
+    try {
+      const sessions: WorkoutSession[] = await WorkoutSessionPersistenceBridgeService.loadPersistedSessions(ctx)
+      if (sessions.length > 0) {
+        const latestSession: WorkoutSession = sessions[sessions.length - 1]
+        this.summary = WorkoutSummaryService.createSummary(latestSession)
+      } else {
+        this.summary = WorkoutSummaryService.createEmptySummary()
+      }
+      const trainingDates: string[] = await WorkoutSessionService.getTrainingDates(ctx)
+      this.streakCount = this.computeStreakCount(trainingDates)
+      this.weekActiveFlags = this.computeWeekActiveFlags(trainingDates)
+    } catch (error) {
+      this.summary = WorkoutSummaryService.createEmptySummary()
+      this.streakCount = 0
+      this.weekActiveFlags = []
+    }
+  }
+
+  private computeStreakCount(trainingDates: string[]): number {
+    const dateSet: Set<string> = new Set<string>()
+    trainingDates.forEach((date: string) => {
+      dateSet.add(date)
+    })
+    let cursor: Date = new Date()
+    if (!dateSet.has(this.formatDate(cursor))) {
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() - 1)
+    }
+    let count: number = 0
+    while (dateSet.has(this.formatDate(cursor))) {
+      count++
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() - 1)
+    }
+    return count
+  }
+
+  private computeWeekActiveFlags(trainingDates: string[]): boolean[] {
+    const dateSet: Set<string> = new Set<string>()
+    trainingDates.forEach((date: string) => {
+      dateSet.add(date)
+    })
+    const today: Date = new Date()
+    const dayOfWeek: number = today.getDay()
+    const mondayOffset: number = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    const monday: Date = new Date(today.getFullYear(), today.getMonth(), today.getDate() - mondayOffset)
+    const flags: boolean[] = []
+    for (let index = 0; index < 7; index++) {
+      const day: Date = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + index)
+      flags.push(dateSet.has(this.formatDate(day)))
+    }
+    return flags
+  }
+
+  private formatDate(date: Date): string {
+    return date.getFullYear().toString() + '-' + this.padTwoDigits(date.getMonth() + 1) + '-' +
+      this.padTwoDigits(date.getDate())
+  }
+
+  private padTwoDigits(value: number): string {
+    if (value < 10) {
+      return '0' + value.toString()
+    }
+    return value.toString()
   }
 
   private returnHome(): void {
@@ -68,6 +211,9 @@ export struct WorkoutCompletePage {
             this.completionHero()
             Blank()
               .height(30)
+            this.statsRow()
+            Blank()
+              .height(14)
             this.streakCard()
           }
           .width('100%')
@@ -87,6 +233,15 @@ export struct WorkoutCompletePage {
             .fontColor('#07100B')
             .backgroundColor('#50ECA7')
             .borderRadius(18)
+            .onTouch((event: TouchEvent) => {
+              if (event.type === TouchType.Down) {
+                this.ctaPressed = true
+              } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                this.ctaPressed = false
+              }
+            })
+            .scale({ x: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1 })
+            .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
             .onClick(() => {
               this.returnHome()
             })
@@ -95,6 +250,8 @@ export struct WorkoutCompletePage {
         .padding({ left: 20, right: 20, top: 12, bottom: 20 })
         .backgroundColor('#07100F')
         .border({ width: { top: 1 }, color: '#0FFFFFFF' })
+        .opacity(this.dockOpacity)
+        .translate({ y: this.dockOffsetY })
       }
       .width('100%')
       .height('100%')
@@ -116,6 +273,7 @@ export struct WorkoutCompletePage {
           .backgroundColor(piece.color)
           .borderRadius(2)
           .rotate({ angle: piece.rot })
+          .translate({ y: this.confettiFall })
           .position({ x: piece.x, y: piece.y })
           .hitTestBehavior(HitTestMode.None)
       }, (piece: ConfettiPiece) => piece.id)
@@ -125,7 +283,7 @@ export struct WorkoutCompletePage {
     .hitTestBehavior(HitTestMode.None)
     .opacity(this.confettiVisible ? 1 : 0)
     .visibility(this.confettiVisible ? Visibility.Visible : Visibility.Hidden)
-    .animation({ duration: 500, curve: Curve.EaseOut })
+    .animation({ duration: 500, curve: Curve.Ease })
   }
 
   @Builder
@@ -145,6 +303,8 @@ export struct WorkoutCompletePage {
       }
       .width(102)
       .height(102)
+      .scale({ x: this.badgeScale, y: this.badgeScale })
+      .opacity(this.badgeOpacity)
 
       Text('训练完成')
         .fontFamily('HarmonyOS Sans')
@@ -153,6 +313,8 @@ export struct WorkoutCompletePage {
         .fontWeight(FontWeight.Bold)
         .fontColor('#F7FBF8')
         .margin({ top: 26 })
+        .opacity(this.titleOpacity)
+        .translate({ y: this.titleOffsetY })
 
       Text('今天的训练已保存，做得很好。')
         .fontFamily('HarmonyOS Sans')
@@ -161,8 +323,45 @@ export struct WorkoutCompletePage {
         .fontColor('#B8FFFFFF')
         .textAlign(TextAlign.Center)
         .margin({ top: 10 })
+        .opacity(this.subOpacity)
+        .translate({ y: this.subOffsetY })
     }
     .width('100%')
+    .alignItems(HorizontalAlign.Center)
+  }
+
+  @Builder
+  private statsRow() {
+    Row({ space: 10 }) {
+      this.statCell('训练时长', this.summary.durationText)
+      this.statCell('完成组数', this.summary.completedSets.toString() + ' 组')
+      this.statCell('训练容量', this.summary.totalVolume.toString() + ' kg')
+    }
+    .width('100%')
+    .opacity(this.statsOpacity)
+    .translate({ y: this.statsOffsetY })
+  }
+
+  @Builder
+  private statCell(label: string, value: string) {
+    Column({ space: 6 }) {
+      Text(value)
+        .fontFamily('HarmonyOS Sans')
+        .fontSize(17)
+        .lineHeight(22)
+        .fontWeight(FontWeight.Bold)
+        .fontColor('#50ECA7')
+      Text(label)
+        .fontFamily('HarmonyOS Sans')
+        .fontSize(12)
+        .lineHeight(16)
+        .fontColor('#8AFFFFFF')
+    }
+    .layoutWeight(1)
+    .padding({ top: 14, bottom: 14 })
+    .backgroundColor('#171C23')
+    .borderRadius(20)
+    .border({ width: 1, color: '#14FFFFFF' })
     .alignItems(HorizontalAlign.Center)
   }
 
@@ -176,7 +375,7 @@ export struct WorkoutCompletePage {
           .lineHeight(22)
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
-        Text('连续 6 天')
+        Text(this.streakCount > 0 ? '连续 ' + this.streakCount.toString() + ' 天' : '开始连续训练')
           .fontFamily('Inter')
           .fontSize(13)
           .fontWeight(FontWeight.Bold)
@@ -192,12 +391,12 @@ export struct WorkoutCompletePage {
             Row()
               .width(28)
               .height(28)
-              .backgroundColor(index < 6 ? '#50ECA7' : '#14FFFFFF')
+              .backgroundColor(this.weekActiveFlags[index] ? '#50ECA7' : '#14FFFFFF')
               .borderRadius(14)
             Text(day)
               .fontFamily('HarmonyOS Sans')
               .fontSize(11)
-              .fontColor(index < 6 ? '#50ECA7' : '#8AFFFFFF')
+              .fontColor(this.weekActiveFlags[index] ? '#50ECA7' : '#8AFFFFFF')
           }
           .layoutWeight(1)
           .alignItems(HorizontalAlign.Center)
@@ -210,5 +409,7 @@ export struct WorkoutCompletePage {
     .backgroundColor('#171C23')
     .borderRadius(28)
     .border({ width: 1, color: '#14FFFFFF' })
+    .opacity(this.streakOpacity)
+    .translate({ y: this.streakOffsetY })
   }
 }

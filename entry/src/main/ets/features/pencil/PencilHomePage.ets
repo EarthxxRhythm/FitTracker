@@ -282,12 +282,12 @@ export struct PencilHomeContent {
           Column({ space: 2 }) {
             Text(this.weeklyProgressPercent.toString() + '%')
               .fontFamily(PencilHomeContent.NUMBER_FONT_FAMILY)
-              .fontSize(20)
+              .fontSize(18.1)
               .fontWeight(FontWeight.Bold)
               .fontColor('#50ECA7')
             Text('\u672c\u5468\u8fdb\u5ea6')
               .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
-              .fontSize(11)
+              .fontSize(10)
               .fontColor('#8AFFFFFF')
           }
           .alignItems(HorizontalAlign.Center)
@@ -417,7 +417,6 @@ export struct PencilHomeContent {
         .height(15)
       Row() {
         Text('已完成 ' + this.weeklyTrainedCount.toString() + ' / ' + this.weeklyPlannedDays.toString() + ' 次')
-          .fontFamily(PencilHomeContent.CHINESE_FONT_FAMILY)
           .fontSize(10.9)
           .fontColor('#8AFFFFFF')
         Text(this.weeklyProgressPercent.toString() + '%')
