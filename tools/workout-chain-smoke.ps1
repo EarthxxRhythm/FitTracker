@@ -352,7 +352,7 @@ function Run-WorkoutChain {
 
   $page = Get-CurrentPagePath -Label 'welcome'
   $welcomeAttempts = 0
-  while ($page -eq 'features/pencil/PencilSplashPage' -and $welcomeAttempts -lt 6) {
+  while (($page -eq 'features/pencil/PencilSplashPage' -or $page.Length -eq 0) -and $welcomeAttempts -lt 6) {
     Start-Sleep -Seconds 1
     $welcomeAttempts += 1
     $page = Get-CurrentPagePath -Label ('welcome-wait-' + $welcomeAttempts.ToString())
