@@ -94,3 +94,13 @@ hvigorw assembleHap --mode module -p product=default
 - 子代理：启动后若分析通道中没有 `NEW_TASK` 载荷，扫描 `cluster/inbox/*.json`，认领文件修改时间最早的任务并原子移动到 `cluster/claimed/`，再执行；完成后把结果写入 `cluster/outbox/<task>.json`，并在 final answer 中给出摘要。
 - 协调者：轮询 `cluster/outbox/` 收敛结果；不要用 `wait_agent` 作为完成信号，以 outbox 文件为准。
 - 协议细节与 JSON 字段约定见 `cluster/PROTOCOL.md`。
+
+## 提效约定
+
+Agent 默认按以下顺序优先使用已装好的提效工具，避免低效的 grep/read 循环：
+
+- **codegraph 优先**：本项目已索引 `.codegraph/`。理解代码、查调用链、判断改动影响时先 `codegraph_explore`（一次返回逐行源码 + 调用路径 + 依赖方），不要先 grep/read 兜圈。
+- **上下文主动压缩**：每个探索/实现阶段闭环后主动 `compress`，保持高信号窗口；超大文件只看骨架时用 `token-optimizer`。
+- **并行拆块**：2+ 个无共享状态、无顺序依赖的任务并行执行，走本项目的 `cluster/` 文件信箱协议（见上一节）或用 `dispatching-parallel-agents`；复杂多文件特性先由 TaskManager 拆块。
+- **上下文发现走子代理**：内部规范/模式用 `ContextScout`，外部库最新文档用 `ExternalScout` 或 `context7`，不自己逐文件翻。
+- **HarmonyOS 构建/文档走 `deveco-cli`**：scaffold/build/run/debug/devices/docs 均通过它，不裸跑 hvigorw 或凭训练数据猜 SDK API。
