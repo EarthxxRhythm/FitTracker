@@ -222,6 +222,14 @@ export struct PencilHomeContent {
       }
       .width('100%')
       .height('100%')
+      .onVisibleAreaChange([0.0, 1.0], (isVisible: boolean, currentRatio: number) => {
+        if (isVisible) {
+          const ctx: Context | undefined = this.getUIContext().getHostContext()
+          if (ctx !== undefined) {
+            this.loadDynamicContent(ctx)
+          }
+        }
+      })
     }
     .width('100%')
     .height('100%')
@@ -437,6 +445,7 @@ export struct PencilHomeContent {
           .height(6)
           .backgroundColor('#50ECA7')
           .borderRadius(3)
+          .animation({ duration: 300, curve: Curve.EaseOut })
       }
       .width('100%')
       .height(6)
