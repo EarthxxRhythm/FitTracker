@@ -4,6 +4,7 @@
 import {
   ColorTokens,
   FontTokens,
+  MotionTokens,
   RadiusTokens,
   ShadowTokens,
   SpacingTokens,
@@ -41,6 +42,7 @@ const BOTTOM_TAB_ITEMS: BottomTabItem[] = [
 export struct BottomTabBar {
   @Link currentKey: string
   workoutAction?: () => void
+  @State private pressedKey: string = ''
   private isCurrent(item: BottomTabItem): boolean {
     return item.key === this.currentKey
   }
@@ -103,6 +105,15 @@ export struct BottomTabBar {
         .height(TouchTokens.TAB_BAR_HEIGHT_HOME)
         .padding(0)
         .backgroundColor('rgba(0,0,0,0)')
+        .onTouch((event: TouchEvent) => {
+          if (event.type === TouchType.Down) {
+            this.pressedKey = item.key
+          } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+            this.pressedKey = ''
+          }
+        })
+        .scale({ x: this.pressedKey === item.key ? MotionTokens.PRESS_TAB_PILL : 1, y: this.pressedKey === item.key ? MotionTokens.PRESS_TAB_PILL : 1 })
+        .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
         .onClick(() => {
           if (item.highlight && this.workoutAction !== undefined) {
             this.workoutAction()

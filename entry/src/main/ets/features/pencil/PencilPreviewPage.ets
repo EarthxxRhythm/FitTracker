@@ -1,6 +1,13 @@
 /** PencilPreviewPage —— FitTracker 训练预览页（依据 fittracker-training-preview.html 还原）。 */
 
+import { Context } from '@kit.AbilityKit'
 import { AppRoutes } from '../../app/AppRoutes'
+import { MotionTokens } from '../../common/styles/DesignTokens'
+import { TrainingPlan, UserGoal } from '../../shared/models/TrainingModels'
+import { WorkoutPreviewExercise, WorkoutPreviewSummary } from '../../shared/services/WorkoutPreviewService'
+import GoalRepository from '../../shared/services/GoalRepository'
+import PlanEngine from '../../shared/services/PlanEngine'
+import WorkoutPreviewService from '../../shared/services/WorkoutPreviewService'
 
 interface PreviewExerciseItem {
   name: string
@@ -8,21 +15,98 @@ interface PreviewExerciseItem {
   current: boolean
 }
 
-const WARM_UP_EXERCISES: PreviewExerciseItem[] = [
-  { name: '弹力带肩袖激活', prescription: '2 × 15', current: false },
-  { name: '肩胛俯卧撑', prescription: '2 × 12', current: false }
-]
-
-const PRIMARY_EXERCISES: PreviewExerciseItem[] = [
-  { name: '杠铃卧推', prescription: '4 × 6', current: true },
-  { name: '上斜哑铃卧推', prescription: '3 × 8', current: false },
-  { name: '坐姿肩推', prescription: '3 × 10', current: false },
-  { name: '绳索下压', prescription: '3 × 12', current: false }
-]
-
 @Entry
 @Component
 struct PencilPreviewPage {
+  @State private backPressed: boolean = false
+  @State private morePressed: boolean = false
+  @State private ctaPressed: boolean = false
+  @State private dayBadge: string = 'Day 01'
+  @State private dayTitle: string = '训练预览'
+  @State private daySubtitle: string = ''
+  @State private exerciseItems: PreviewExerciseItem[] = []
+  @State private emptyMessage: string = ''
+
+  private getHostContextOrNull(): Context | null {
+    const hostContext = this.getUIContext().getHostContext()
+    if (hostContext === undefined || hostContext === null) {
+      return null
+    }
+    return hostContext as Context
+  }
+
+  private resolveDaySeed(): number {
+    const now: Date = new Date()
+    const startOfYear: Date = new Date(now.getFullYear(), 0, 0)
+    const millisPerDay: number = 24 * 60 * 60 * 1000
+    const dayOfYear: number = Math.floor((now.getTime() - startOfYear.getTime()) / millisPerDay)
+    if (dayOfYear < 1) {
+      return 1
+    }
+    return dayOfYear
+  }
+
+  private resolveDayBadge(dayId: string): string {
+    const marker: string = 'day_'
+    const markerIndex: number = dayId.indexOf(marker)
+    if (markerIndex < 0) {
+      return 'Day 01'
+    }
+    const numberText: string = dayId.substring(markerIndex + marker.length)
+    const dayNumber: number = Number.parseInt(numberText)
+    if (Number.isNaN(dayNumber) || dayNumber < 1) {
+      return 'Day 01'
+    }
+    return 'Day ' + dayNumber.toString().padStart(2, '0')
+  }
+
+  private buildExerciseItems(summary: WorkoutPreviewSummary): PreviewExerciseItem[] {
+    const items: PreviewExerciseItem[] = []
+    for (let index = 0; index < summary.exercises.length; index++) {
+      const exercise: WorkoutPreviewExercise = summary.exercises[index]
+      const item: PreviewExerciseItem = {
+        name: exercise.name,
+        prescription: exercise.targetSets.toString() + ' × ' + exercise.targetReps,
+        current: index === 0
+      }
+      items.push(item)
+    }
+    return items
+  }
+
+  private async loadPreview(): Promise<void> {
+    try {
+      const context: Context | null = this.getHostContextOrNull()
+      if (context === null) {
+        this.emptyMessage = '暂时无法读取训练目标，请稍后重试'
+        return
+      }
+      const goal: UserGoal | undefined = await GoalRepository.loadGoal(context)
+      if (goal === undefined) {
+        this.emptyMessage = '尚未设置训练目标，请先完成目标设置'
+        return
+      }
+      const plan: TrainingPlan = PlanEngine.generatePlan(goal)
+      const daySeed: number = this.resolveDaySeed()
+      const summary: WorkoutPreviewSummary = WorkoutPreviewService.createPreview(plan, daySeed)
+      this.dayBadge = this.resolveDayBadge(summary.dayId)
+      this.dayTitle = summary.title
+      this.daySubtitle = summary.scheduleSummary
+      this.exerciseItems = this.buildExerciseItems(summary)
+      if (summary.exercises.length === 0) {
+        this.emptyMessage = '今天没有训练安排，保持恢复节奏就好'
+      } else {
+        this.emptyMessage = ''
+      }
+    } catch (e) {
+      this.emptyMessage = '训练预览加载失败，请稍后重试'
+    }
+  }
+
+  async aboutToAppear(): Promise<void> {
+    await this.loadPreview()
+  }
+
   @Builder
   private buildTopBar() {
     Row() {
@@ -41,14 +125,15 @@ struct PencilPreviewPage {
         .onClick(() => {
           this.getUIContext().getRouter().back()
         })
-
-        Text('训练预览')
-          .fontFamily('Noto Sans SC')
-          .fontSize(17)
-          .fontWeight(FontWeight.Medium)
-          .fontColor('#F7FBF8')
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .onTouch((event: TouchEvent) => {
+          if (event.type === TouchType.Down) {
+            this.backPressed = true
+          } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+            this.backPressed = false
+          }
+        })
+        .scale({ x: this.backPressed ? MotionTokens.PRESS_ICON : 1, y: this.backPressed ? MotionTokens.PRESS_ICON : 1 })
+        .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
       }
       .alignItems(VerticalAlign.Center)
 
@@ -66,6 +151,15 @@ struct PencilPreviewPage {
       .onClick(() => {
         this.getUIContext().getPromptAction().showToast({ message: '更多选项（原型）' })
       })
+      .onTouch((event: TouchEvent) => {
+        if (event.type === TouchType.Down) {
+          this.morePressed = true
+        } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+          this.morePressed = false
+        }
+      })
+      .scale({ x: this.morePressed ? MotionTokens.PRESS_ICON : 1, y: this.morePressed ? MotionTokens.PRESS_ICON : 1 })
+      .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
     }
     .width('100%')
     .justifyContent(FlexAlign.SpaceBetween)
@@ -75,21 +169,21 @@ struct PencilPreviewPage {
   @Builder
   private buildHero() {
     Column() {
-      Text('Day 01')
+      Text(this.dayBadge)
         .fontFamily('Geist Mono')
         .fontSize(11)
         .fontWeight(FontWeight.Medium)
         .fontColor('#50ECA7')
         .letterSpacing(2)
 
-      Text('训练预览')
+      Text(this.dayTitle)
         .fontFamily('Noto Sans SC')
         .fontSize(32)
         .fontWeight(FontWeight.Bold)
         .fontColor('#F7FBF8')
         .margin({ top: 8 })
 
-      Text('第 1 天 · 上肢力量')
+      Text(this.daySubtitle)
         .fontFamily('Noto Sans SC')
         .fontSize(13)
         .fontWeight(FontWeight.Medium)
@@ -153,30 +247,28 @@ struct PencilPreviewPage {
 
   @Builder
   private buildExerciseList() {
-    Scroll() {
-      Column() {
-      this.buildGroupLabel('热身动作', 0)
-      Column({ space: 7 }) {
-        ForEach(WARM_UP_EXERCISES, (item: PreviewExerciseItem) => {
-          this.buildExerciseItem(item)
-        }, (item: PreviewExerciseItem) => item.name)
+    Column() {
+      if (this.exerciseItems.length > 0) {
+        this.buildGroupLabel('主动作', 0)
+        Column({ space: 7 }) {
+          ForEach(this.exerciseItems, (item: PreviewExerciseItem) => {
+            this.buildExerciseItem(item)
+          }, (item: PreviewExerciseItem) => item.name)
+        }
+        .width('100%')
+      } else {
+        Text(this.emptyMessage.length > 0 ? this.emptyMessage : '暂无训练动作')
+          .width('100%')
+          .textAlign(TextAlign.Center)
+          .fontFamily('Noto Sans SC')
+          .fontSize(13)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#8AFFFFFF')
+          .margin({ top: 12 })
       }
-      .width('100%')
-
-      this.buildGroupLabel('主动作', 18)
-      Column({ space: 7 }) {
-        ForEach(PRIMARY_EXERCISES, (item: PreviewExerciseItem) => {
-          this.buildExerciseItem(item)
-        }, (item: PreviewExerciseItem) => item.name)
-      }
-      .width('100%')
-      }
-      .width('100%')
     }
     .width('100%')
-    .layoutWeight(1)
     .margin({ top: 16 })
-    .scrollBar(BarState.Off)
   }
 
   @Builder
@@ -209,9 +301,17 @@ struct PencilPreviewPage {
           offsetY: 14
         })
         .onClick(() => {
-          this.getUIContext().getPromptAction().showToast({ message: '已准备进入训练执行' })
           this.getUIContext().getRouter().pushUrl({ url: AppRoutes.ACTIVE_WORKOUT })
         })
+        .onTouch((event: TouchEvent) => {
+          if (event.type === TouchType.Down) {
+            this.ctaPressed = true
+          } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+            this.ctaPressed = false
+          }
+        })
+        .scale({ x: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1 })
+        .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
     }
     .width('100%')
     .margin({ top: 16 })
@@ -261,7 +361,7 @@ struct PencilPreviewPage {
       .padding({
         left: 18,
         right: 18,
-        top: 56,
+        top: 24,
         bottom: 12
       })
     }

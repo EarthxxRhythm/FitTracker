@@ -1,10 +1,13 @@
 /** PencilWelcomePage —— Pencil MCP FitTracker Welcome reproduction. 功能 #27 */
 
 import { AppRoutes } from '../../../app/AppRoutes'
+import { MotionTokens } from '../../../common/styles/DesignTokens'
 
 @Entry
 @Component
 struct PencilWelcomePage {
+
+  @State private ctaPressed: boolean = false
 
   @Builder
   private buildBrandLockup() {
@@ -251,6 +254,15 @@ struct PencilWelcomePage {
             offsetX: 0,
             offsetY: 10
           })
+          .onTouch((event: TouchEvent) => {
+            if (event.type === TouchType.Down) {
+              this.ctaPressed = true
+            } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+              this.ctaPressed = false
+            }
+          })
+          .scale({ x: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1 })
+          .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
           .onClick(() => {
             this.getUIContext().getRouter().pushUrl({ url: AppRoutes.LOGIN })
           })

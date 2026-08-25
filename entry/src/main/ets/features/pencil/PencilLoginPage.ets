@@ -3,7 +3,7 @@ import { AppRoutes } from '../../app/AppRoutes'
 import AuthService from '../../common/services/AuthService'
 import SessionManager from '../../common/services/SessionManager'
 import { Context } from '@kit.AbilityKit'
-import { ColorTokens } from '../../common/styles/DesignTokens'
+import { ColorTokens, MotionTokens } from '../../common/styles/DesignTokens'
 
 @Entry
 @Component
@@ -13,6 +13,10 @@ struct PencilLoginPage {
   @State password: string = ''
   @State message: string = ''
   @State loading: boolean = false
+  @State ctaPressed: boolean = false
+  @State socialKey: string = ''
+  @State linkKey: string = ''
+  @State eyePressed: boolean = false
 
   private contextOrNull(): Context | null {
     const host = this.getUIContext().getHostContext()
@@ -136,6 +140,15 @@ struct PencilLoginPage {
             .width(20)
             .height(20)
             .fillColor('#8FFFFFFF')
+            .onTouch((event: TouchEvent) => {
+              if (event.type === TouchType.Down) {
+                this.eyePressed = true
+              } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                this.eyePressed = false
+              }
+            })
+            .scale({ x: this.eyePressed ? MotionTokens.PRESS_ICON : 1, y: this.eyePressed ? MotionTokens.PRESS_ICON : 1 })
+            .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
         }
       }
       .width('100%')
@@ -145,6 +158,7 @@ struct PencilLoginPage {
       .borderRadius(18)
       .border({ width: 1, color: '#14FFFFFF' })
       .alignItems(VerticalAlign.Center)
+      .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
     }
     .width('100%')
   }
@@ -167,6 +181,15 @@ struct PencilLoginPage {
         .fontSize(13)
         .fontWeight(FontWeight.Bold)
         .fontColor('#50ECA7')
+        .onTouch((event: TouchEvent) => {
+          if (event.type === TouchType.Down) {
+            this.linkKey = 'forgot'
+          } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+            this.linkKey = ''
+          }
+        })
+        .scale({ x: this.linkKey === 'forgot' ? MotionTokens.PRESS_CHIP : 1, y: this.linkKey === 'forgot' ? MotionTokens.PRESS_CHIP : 1 })
+        .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
     }
     .width('100%')
     .height(20)
@@ -188,7 +211,7 @@ struct PencilLoginPage {
   }
 
   @Builder
-  private buildSocialButton(label: string) {
+  private buildSocialButton(label: string, key: string) {
     Text(label)
       .layoutWeight(1)
       .height(50)
@@ -200,6 +223,15 @@ struct PencilLoginPage {
       .backgroundColor('#08FFFFFF')
       .borderRadius(16)
       .border({ width: 1, color: '#1AFFFFFF' })
+      .onTouch((event: TouchEvent) => {
+        if (event.type === TouchType.Down) {
+          this.socialKey = key
+        } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+          this.socialKey = ''
+        }
+      })
+      .scale({ x: this.socialKey === key ? MotionTokens.PRESS_SHORTCUT : 1, y: this.socialKey === key ? MotionTokens.PRESS_SHORTCUT : 1 })
+      .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
   }
 
   build() {
@@ -250,12 +282,21 @@ struct PencilLoginPage {
             .onClick(() => {
               this.login()
             })
+            .onTouch((event: TouchEvent) => {
+              if (event.type === TouchType.Down) {
+                this.ctaPressed = true
+              } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                this.ctaPressed = false
+              }
+            })
+            .scale({ x: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1 })
+            .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
 
           this.buildAuthDivider()
 
           Row({ space: 12 }) {
-            this.buildSocialButton('微信')
-            this.buildSocialButton('Apple')
+            this.buildSocialButton('微信', 'wechat')
+            this.buildSocialButton('Apple', 'apple')
           }
           .width('100%')
         }
@@ -277,6 +318,15 @@ struct PencilLoginPage {
             .onClick(() => {
               this.getUIContext().getRouter().pushUrl({ url: AppRoutes.REGISTER })
             })
+            .onTouch((event: TouchEvent) => {
+              if (event.type === TouchType.Down) {
+                this.linkKey = 'register'
+              } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                this.linkKey = ''
+              }
+            })
+            .scale({ x: this.linkKey === 'register' ? MotionTokens.PRESS_CHIP : 1, y: this.linkKey === 'register' ? MotionTokens.PRESS_CHIP : 1 })
+            .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
         }
         .width('100%')
         .height(24)

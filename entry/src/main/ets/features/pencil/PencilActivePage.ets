@@ -1,7 +1,23 @@
 /** PencilActivePage - FitTracker Active Workout prototype page. */
 import { AppRoutes } from '../../app/AppRoutes'
+import { MotionTokens } from '../../common/styles/DesignTokens'
 import { WorkoutSession, WorkoutSet, createWorkoutSession, createWorkoutSet } from '../../shared/models/TrainingModels'
 import WorkoutRepository from '../../shared/services/WorkoutRepository'
+import ActiveWorkoutService, {
+  ActiveWorkoutExercise,
+  ActiveWorkoutSetEntry,
+  ActiveWorkoutState
+} from '../../shared/services/ActiveWorkoutService'
+import { WorkoutPreviewSummary } from '../../shared/services/WorkoutPreviewService'
+
+interface ActiveWorkoutRouteParams {
+  preview: WorkoutPreviewSummary
+}
+
+interface InitialSetValues {
+  weight: number
+  reps: number
+}
 
 interface SetRecordItem {
   index: number
@@ -56,20 +72,34 @@ function formatClock(totalSeconds: number): string {
 @Component
 export struct PencilActiveContent {
   @State private completed: number = 0
-  @State private weight: number = 32
-  @State private reps: number = 9
+  @State private weight: number = 0
+  @State private reps: number = 0
+  @State private exerciseName: string = ''
   @State private showModal: boolean = false
   @State private records: SetRecordItem[] = []
   @State private celebrating: boolean = false
   @State private elapsedSeconds: number = 0
+  @State private submitPressed: boolean = false
+  @State private completePressed: boolean = false
+  @State private closePressed: boolean = false
+  @State private minusPressed: boolean = false
+  @State private plusPressed: boolean = false
+  @State private livePulseLow: boolean = false
+  @State private segPopIndex: number = -1
   private celebrateTimer: number = -1
   private clockTimer: number = -1
+  private pulseTimer: number = -1
+  private segPopTimer: number = -1
   private finished: boolean = false
 
   aboutToAppear(): void {
+    this.applyPreviewState()
     this.clockTimer = setInterval(() => {
       this.elapsedSeconds += 1
     }, 1000)
+    this.pulseTimer = setInterval(() => {
+      this.livePulseLow = !this.livePulseLow
+    }, MotionTokens.DURATION_PULSE / 2)
   }
 
   aboutToDisappear(): void {
@@ -77,10 +107,87 @@ export struct PencilActiveContent {
       clearInterval(this.clockTimer)
       this.clockTimer = -1
     }
+    if (this.pulseTimer !== -1) {
+      clearInterval(this.pulseTimer)
+      this.pulseTimer = -1
+    }
+    if (this.segPopTimer !== -1) {
+      clearTimeout(this.segPopTimer)
+      this.segPopTimer = -1
+    }
     if (this.celebrateTimer !== -1) {
       clearTimeout(this.celebrateTimer)
       this.celebrateTimer = -1
     }
+  }
+
+  private applyPreviewState(): void {
+    let state: ActiveWorkoutState = this.createEmptyActiveState()
+    try {
+      const params: ActiveWorkoutRouteParams = this.getUIContext().getRouter().getParams() as ActiveWorkoutRouteParams
+      if (params.preview !== undefined) {
+        const candidate: ActiveWorkoutState = ActiveWorkoutService.createState(params.preview)
+        if (candidate.hasWorkout) {
+          state = candidate
+        }
+      }
+    } catch (e) {
+      state = this.createEmptyActiveState()
+    }
+    this.exerciseName = state.currentExerciseName
+    this.completed = Math.min(state.completedSets, PROGRESS_SEGMENTS.length)
+    const initialValues: InitialSetValues = this.findInitialSetValues(state)
+    this.weight = initialValues.weight
+    this.reps = initialValues.reps
+  }
+
+  private createEmptyActiveState(): ActiveWorkoutState {
+    const exercises: ActiveWorkoutExercise[] = []
+    const state: ActiveWorkoutState = {
+      hasWorkout: false,
+      planId: '',
+      dayId: '',
+      title: '',
+      totalTargetSets: 0,
+      completedSets: 0,
+      currentExerciseName: '',
+      currentExerciseSetProgress: '0/0 正式组',
+      exercises: exercises
+    }
+    return state
+  }
+
+  private findInitialSetValues(state: ActiveWorkoutState): InitialSetValues {
+    const values: InitialSetValues = { weight: 0, reps: 0 }
+    if (state.exercises.length === 0) {
+      return values
+    }
+    const firstExercise: ActiveWorkoutExercise = state.exercises[0]
+    if (firstExercise.sets.length === 0) {
+      return values
+    }
+    const firstSet: ActiveWorkoutSetEntry = firstExercise.sets[0]
+    values.weight = this.parsePositiveNumber(firstSet.weightText)
+    values.reps = this.parsePositiveNumber(firstSet.repsText)
+    return values
+  }
+
+  private parsePositiveNumber(text: string): number {
+    if (text.length === 0) {
+      return 0
+    }
+    const value: number = Number(text)
+    if (Number.isNaN(value) || value < 0) {
+      return 0
+    }
+    return value
+  }
+
+  private currentExerciseLabel(): string {
+    if (this.exerciseName.length === 0) {
+      return '未设置动作'
+    }
+    return this.exerciseName
   }
 
   private finish(): void {
@@ -89,7 +196,9 @@ export struct PencilActiveContent {
 
   private openModal(): void {
     if (this.completed < PROGRESS_SEGMENTS.length) {
-      this.showModal = true
+      this.getUIContext().animateTo({ duration: MotionTokens.DURATION_OVERLAY, curve: MotionTokens.EASE_MOTION }, () => {
+        this.showModal = true
+      })
     }
   }
 
@@ -111,11 +220,24 @@ export struct PencilActiveContent {
     }
     const nextRecords: SetRecordItem[] = this.records.slice()
     nextRecords.push(createSetRecord(this.completed + 1, this.weight, this.reps))
-    this.records = nextRecords
-    this.completed += 1
+    const justDoneIndex: number = this.completed
+    this.getUIContext().animateTo({ duration: MotionTokens.DURATION_RECORD, curve: MotionTokens.EASE_MOTION }, () => {
+      this.records = nextRecords
+    })
+    this.getUIContext().animateTo({ duration: MotionTokens.DURATION_MARKER, curve: MotionTokens.EASE_MOTION }, () => {
+      this.completed += 1
+    })
+    this.segPopIndex = justDoneIndex
+    if (this.segPopTimer !== -1) {
+      clearTimeout(this.segPopTimer)
+    }
+    this.segPopTimer = setTimeout(() => {
+      this.segPopIndex = -1
+      this.segPopTimer = -1
+    }, MotionTokens.DURATION_SEG_POP)
     this.showModal = false
     this.celebrating = true
-    const isLast: boolean = this.completed >= PROGRESS_SEGMENTS.length
+    const isLast: boolean = justDoneIndex + 1 >= PROGRESS_SEGMENTS.length
     if (isLast) {
       this.finished = true
       this.saveCompletedSession()
@@ -196,14 +318,14 @@ export struct PencilActiveContent {
           this.demoCard()
         }
         .width('100%')
-        .padding({ left: 18, right: 18, top: 12, bottom: 14 })
+        .padding({ left: 18, right: 18, top: 12, bottom: 0 })
         Scroll() {
           this.setList()
         }
+        .align(Alignment.Top)
         .layoutWeight(1)
         .width('100%')
-        .padding({ left: 18, right: 18, top: 0, bottom: 24 })
-
+        .padding({ left: 18, right: 18, top: 12, bottom: 24 })
         this.dock()
       }
       .width('100%')
@@ -235,6 +357,9 @@ export struct PencilActiveContent {
             .fontFamily('HarmonyOS Sans')
             .fontSize(8)
             .fontColor('#50ECA7')
+            .opacity(this.livePulseLow ? 0.45 : 1)
+            .scale({ x: this.livePulseLow ? 0.78 : 1, y: this.livePulseLow ? 0.78 : 1 })
+            .animation({ duration: MotionTokens.DURATION_PULSE / 2, curve: Curve.EaseInOut })
           Text('总时长')
             .fontFamily('Noto Sans SC')
             .fontSize(12)
@@ -258,6 +383,8 @@ export struct PencilActiveContent {
               .backgroundColor(this.segmentBackground(index))
               .borderRadius(999)
               .border({ width: 1, color: this.segmentBorder(index) })
+              .scale({ x: index === this.segPopIndex ? 1.12 : 1, y: index === this.segPopIndex ? 1.12 : 1 })
+              .animation({ duration: MotionTokens.DURATION_SEG_POP, curve: MotionTokens.EASE_MOTION })
             if (index === this.completed) {
               Row()
                 .width(18)
@@ -265,6 +392,7 @@ export struct PencilActiveContent {
                 .backgroundColor('#50ECA7')
                 .borderRadius(9)
                 .border({ width: 3, color: '#0B0F13' })
+                .transition(TransitionEffect.scale({ x: 0.4, y: 0.4 }).combine(TransitionEffect.OPACITY))
             }
           }
           .layoutWeight(1)
@@ -307,7 +435,7 @@ export struct PencilActiveContent {
       .position({ x: 14, y: 14 })
 
       Row() {
-        Text('杠铃卧推')
+        Text(this.currentExerciseLabel())
           .fontFamily('Noto Sans SC')
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
@@ -514,6 +642,7 @@ export struct PencilActiveContent {
           .backgroundColor('#08FFFFFF')
           .borderRadius(12)
           .border({ width: 1, color: '#14FFFFFF' })
+          .transition(TransitionEffect.OPACITY.combine(TransitionEffect.translate({ y: 6 })))
         }, (record: SetRecordItem) => record.index.toString())
       }
     }
@@ -534,6 +663,15 @@ export struct PencilActiveContent {
         .backgroundColor('#50ECA7')
         .borderRadius(16)
         .shadow({ radius: 22, color: '#3D000000', offsetX: 0, offsetY: 10 })
+        .onTouch((event: TouchEvent) => {
+          if (event.type === TouchType.Down) {
+            this.submitPressed = true
+          } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+            this.submitPressed = false
+          }
+        })
+        .scale({ x: this.submitPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.submitPressed ? MotionTokens.PRESS_PRIMARY : 1 })
+        .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
         .onClick(() => {
           this.openModal()
         })
@@ -551,6 +689,7 @@ export struct PencilActiveContent {
         .width('100%')
         .height('100%')
         .backgroundColor('#030606B8')
+        .transition(TransitionEffect.OPACITY.animation({ duration: MotionTokens.DURATION_OVERLAY, curve: Curve.EaseInOut }))
 
       Column({ space: 18 }) {
         Row() {
@@ -564,7 +703,7 @@ export struct PencilActiveContent {
               .fontSize(22)
               .fontWeight(FontWeight.Bold)
               .fontColor('#F7FBF8')
-            Text('杠铃卧推 · 第 ' + (this.completed + 1).toString() + ' 组')
+            Text(this.currentExerciseLabel() + ' · 第 ' + (this.completed + 1).toString() + ' 组')
               .fontFamily('Noto Sans SC')
               .fontSize(13)
               .fontColor('#99FFFFFF')
@@ -582,6 +721,15 @@ export struct PencilActiveContent {
             .backgroundColor('#08FFFFFF')
             .borderRadius(18)
             .border({ width: 1, color: '#14FFFFFF' })
+            .onTouch((event: TouchEvent) => {
+              if (event.type === TouchType.Down) {
+                this.closePressed = true
+              } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                this.closePressed = false
+              }
+            })
+            .scale({ x: this.closePressed ? MotionTokens.PRESS_ICON : 1, y: this.closePressed ? MotionTokens.PRESS_ICON : 1 })
+            .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
             .onClick(() => {
               this.closeModal()
             })
@@ -604,6 +752,15 @@ export struct PencilActiveContent {
           .fontColor('#07100B')
           .backgroundColor('#50ECA7')
           .borderRadius(16)
+          .onTouch((event: TouchEvent) => {
+            if (event.type === TouchType.Down) {
+              this.completePressed = true
+            } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+              this.completePressed = false
+            }
+          })
+          .scale({ x: this.completePressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.completePressed ? MotionTokens.PRESS_PRIMARY : 1 })
+          .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
           .onClick(() => {
             this.completeSet()
           })
@@ -614,6 +771,7 @@ export struct PencilActiveContent {
       .borderRadius(28)
       .border({ width: 1, color: '#1AFFFFFF' })
       .shadow({ radius: 60, color: '#80000000', offsetX: 0, offsetY: 28 })
+      .transition(TransitionEffect.OPACITY.combine(TransitionEffect.translate({ y: 12 })).combine(TransitionEffect.scale({ x: 0.98, y: 0.98 })).animation({ duration: MotionTokens.DURATION_OVERLAY, curve: MotionTokens.EASE_MOTION }))
     }
     .width('100%')
     .height('100%')
@@ -633,6 +791,8 @@ export struct PencilActiveContent {
           .borderRadius(2)
           .rotate({ angle: piece.rot })
           .position({ x: piece.x, y: piece.y })
+          .scale({ x: this.celebrating ? 1 : 0.45, y: this.celebrating ? 1 : 0.45 })
+          .animation({ duration: MotionTokens.DURATION_CONFETTI_FLY, curve: MotionTokens.EASE_FLY })
       }, (piece: CelebratePiece) => piece.id)
 
       Column({ space: 12 }) {
@@ -650,7 +810,7 @@ export struct PencilActiveContent {
         .justifyContent(FlexAlign.Center)
         .shadow({ radius: 10, color: '#2450ECA7', offsetX: 0, offsetY: 0 })
         .scale({ x: this.celebrating ? 1 : 0.72, y: this.celebrating ? 1 : 0.72 })
-        .animation({ duration: 220, curve: Curve.EaseOut })
+        .animation({ duration: MotionTokens.DURATION_CORE, curve: MotionTokens.EASE_MOTION, delay: MotionTokens.DELAY_CORE })
 
         Text('本组完成')
           .fontFamily('HarmonyOS Sans')
@@ -663,7 +823,7 @@ export struct PencilActiveContent {
     .height('100%')
     .opacity(this.celebrating ? 1 : 0)
     .visibility(this.celebrating ? Visibility.Visible : Visibility.Hidden)
-    .animation({ duration: 180, curve: Curve.EaseOut })
+    .animation({ duration: MotionTokens.DURATION_CORE, curve: MotionTokens.EASE_MOTION, delay: MotionTokens.DELAY_CORE })
   }
 
   @Builder
@@ -693,6 +853,15 @@ export struct PencilActiveContent {
           .backgroundColor('#08FFFFFF')
           .borderRadius(10)
           .border({ width: 1, color: '#0FFFFFFF' })
+          .onTouch((event: TouchEvent) => {
+            if (event.type === TouchType.Down) {
+              this.minusPressed = true
+            } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+              this.minusPressed = false
+            }
+          })
+          .scale({ x: this.minusPressed ? MotionTokens.PRESS_ICON : 1, y: this.minusPressed ? MotionTokens.PRESS_ICON : 1 })
+          .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
           .onClick(() => {
             if (isWeight) {
               this.changeWeight(-1)
@@ -717,6 +886,15 @@ export struct PencilActiveContent {
           .backgroundColor('#08FFFFFF')
           .borderRadius(10)
           .border({ width: 1, color: '#0FFFFFFF' })
+          .onTouch((event: TouchEvent) => {
+            if (event.type === TouchType.Down) {
+              this.plusPressed = true
+            } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+              this.plusPressed = false
+            }
+          })
+          .scale({ x: this.plusPressed ? MotionTokens.PRESS_ICON : 1, y: this.plusPressed ? MotionTokens.PRESS_ICON : 1 })
+          .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
           .onClick(() => {
             if (isWeight) {
               this.changeWeight(1)
