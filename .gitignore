@@ -58,3 +58,9 @@ Thumbs.db
 # Codex agent-cluster / mailbox orchestration artifacts
 /cluster/
 /work/
+
+# Omo / Prometheus planning artifacts
+/.omo/
+
+# Python bytecode cache
+**/__pycache__/
