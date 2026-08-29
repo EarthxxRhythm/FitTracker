@@ -67,6 +67,32 @@ const SILHOUETTE_FILL: string = '#3F454A'
 const BODY_PATH_STROKE: string = '#171D24'
 const MUSCLE_BASE_FILL: string = '#30353B'
 
+const MM_MUSCLE_LABELS: string[] = [
+  '斜方肌', '肩', '胸', '上背', '前锯肌', '二头', '三头', '前臂',
+  '腹', '腹斜肌', '下背', '臀', '股四头', '腘绳肌', '内收肌', '髋屈肌',
+  '小腿', '胫骨'
+]
+
+const MM_FATIGUE_WORDS: string[] = ['已恢复', '恢复中', '略疲劳', '疲劳']
+
+const MM_STRENGTH_WORDS: string[] = ['弱', '一般', '中', '强']
+
+const SELECTED_MUSCLE_STROKE: string = '#F7FBF8'
+
+interface HitPoint {
+  x: number
+  y: number
+}
+
+interface MuscleHitRegion {
+  key: string
+  minX: number
+  minY: number
+  maxX: number
+  maxY: number
+  polygons: HitPoint[][]
+}
+
 interface BodymapMuscleData {
   key: string
   paths: string[]
@@ -75,6 +101,8 @@ interface BodymapMuscleData {
 interface BodymapViewData {
   viewWidth: number
   viewHeight: number
+  offsetX: number
+  offsetY: number
   outline: string[]
   muscles: BodymapMuscleData[]
 }
@@ -82,6 +110,8 @@ interface BodymapViewData {
 const BODYMAP_FRONT: BodymapViewData = {
   viewWidth: 727,
   viewHeight: 1280,
+  offsetX: 0,
+  offsetY: 95,
   outline: [
     'M 418.91 167.68 c 3.92 -1.77 6.58 0.47 7.06 4.32 c 1.48 11.93 -4.92 26.67 -11.75 36.45 c -2.21 3.17 -3.86 0.17 -4.74 -1.76 a 0.38 0.38 0 0 0 -0.73 0.16 c 0.02 8.31 1.01 17.01 -3.36 24.53 c -0.167 0.293 -4.39 4.62 -10.799 9.508 c -23.591 18.112 -41.591 16.112 -61.446 -0.797 c -4.736 -3.649 -5.925 -5.041 -8.805 -7.621 c -5.66 -5.07 -5.28 -17.38 -4.47 -24.92 c 0.05 -0.51 -0.468 -0.892 -0.933 -0.687 a 0.653 0.653 0 0 0 -0.357 0.397 c -0.57 1.69 -2.24 4.05 -4.07 1.48 c -6.2 -8.71 -16.02 -28.53 -11.19 -38.98 c 1.68 -3.627 3.733 -3.91 6.16 -0.85 a 182.853 182.853 0 0 1 3.78 23.29 a 1.02 1.02 0 0 0 1.56 0.77 c 2.79 -1.75 2.61 -18.93 2.63 -24.22 c 0.02 -4.53 1.12 -8.94 3.8 -13.1 c 4.36 -6.76 4.86 -11.51 5.57 -19.82 c 0.47 -5.53 4.34 -8.12 9.77 -8.21 c 6.39 -0.12 12.69 -0.07 19 -0.93 c 4.02 -0.55 7.4 -1.43 11.53 -0.75 c 6.7 1.1 13.44 1.64 20.22 1.62 c 4.607 -0.013 7.523 0.227 8.75 0.72 c 5.96 2.37 5.56 9.73 6.11 15.22 c 0.44 4.34 2.097 8.447 4.97 12.32 c 6.57 8.88 2.19 25.6 5.64 36.36 a 1.14 1.14 0 0 0 2.22 -0.23 c 0.887 -8.36 2.18 -16.45 3.88 -24.27 z z z z',
     'M 418.91 167.68 q -2.55 11.73-3.88 24.27 a 1.14 1.14 0 01-2.22.23 c -3.45-10.76.93-27.48-5.64-36.36 q -4.31-5.81-4.97-12.32 c -.55-5.49-.15-12.85-6.11-15.22 q -1.84-.74-8.75-.72-10.17.03-20.22-1.62 c -4.13-.68-7.51.2-11.53.75-6.31.86-12.61.81-19 .93-5.43.09-9.3 2.68-9.77 8.21-.71 8.31-1.21 13.06-5.57 19.82-2.68 4.16-3.78 8.57-3.8 13.1-.02 5.29.16 22.47-2.63 24.22 a 1.02 1.02 0 01-1.56-.77 q -1.14-11.78-3.78-23.29-1.48-6.99-1.9-9.7 c -2.49-15.94.13-40.13 13.53-51.15 9.39-7.72 28.53-11.63 40.37-11.51 4.2.05 8.74-.3 12.68.22 13.82 1.82 31.67 5.83 39.42 18.92 9.01 15.21 9.88 35.14 5.33 51.99 z',
@@ -258,6 +288,8 @@ const BODYMAP_FRONT: BodymapViewData = {
 const BODYMAP_BACK: BodymapViewData = {
   viewWidth: 727,
   viewHeight: 1280,
+  offsetX: 718,
+  offsetY: 95,
   outline: [
     'M 1028.14 166.45 c 1.03 5.06 1.36 9.61 6.41 11.53 13.06 4.95 16.74 15.51 23.52 27.48 1.387 2.447 3.863 3.623 7.43 3.53 a 910.025 910.025 0 0136.94-.25 c 6.23.09 9.27-7.55 11.48-12.3 4.31-9.27 10.37-15.83 20.28-18.94.333-.1.603-.287.81-.56 1.92-2.58 3.043-5.43 3.37-8.55 l 2.31-1.51 a .977.977 0 01.99-.08 c 11.92 5.42-3.35 35.31-8.21 42.45-.761 1.11-2.423 1.028-3.06-.15 l -1.26-2.32 c -.133-.253-.32-.297-.56-.13-.34.24-.48.61-.42 1.11.86 7.64.75 16.87-2.96 23.31-.173.3.839.041-3.7 4.71-3.34 3.436-74.18 3.78-75.48-1.38 a 1.465 1.465 0 00-.55-.82 c -4.15-2.97-6.07-7.95-6.16-12.39-.03-1.68.18-14.28-.53-14.63-.207-.1-.33-.037-.37.19-.3 1.553-1.183 2.597-2.65 3.13 a .951.951 0 01-1.07-.32 c -7.29-9.56-12.32-22.18-12.97-33.54-.34-6.04 1.797-9.23 6.41-9.57 zm 29.95 61.71 c .173 14.187 18.967 14.703 19.1-1.37.03-4.05-.38-6.54-4.68-7.3-4.2-.75-11.87-1.47-13.85 2.91-.413.92-.603 2.84-.57 5.76 zm 31.71-3.35 c .36 19.647 18.59 14.82 18.87 5.94.13-3.9 1.32-9.43-2.88-10.79-4.25-1.38-16.12-2.54-15.99 4.85 z',
     'M 1138.38 168.39 q -.49 4.68-3.37 8.55-.31.41-.81.56 c -9.91 3.11-15.97 9.67-20.28 18.94-2.21 4.75-5.25 12.39-11.48 12.3 q -18.46-.25-36.94.25-5.35.14-7.43-3.53 c -6.78-11.97-10.46-22.53-23.52-27.48-5.05-1.92-5.38-6.47-6.41-11.53 q -6.64-26.16 4.43-48.88 c 8.13-16.7 34.61-21.41 51.58-21.04 4.89.11 9.69-.11 14.42.85 18.79 3.8 33.17 8.5 39.34 28.66 q 6.38 20.88.47 42.35 z',
@@ -385,6 +417,428 @@ const BODYMAP_BACK: BodymapViewData = {
 }
 
 
+class BodymapPathFlattener {
+  private static readonly NUMBER_RE: RegExp = /^[+-]?(?:\d+\.\d+|\d+\.?|\.\d+)(?:[eE][+-]?\d+)?/
+  private static readonly CUBIC_STEPS: number = 16
+  private static readonly QUAD_STEPS: number = 10
+  private static readonly ARC_STEPS: number = 8
+
+  private path: string = ''
+  private pos: number = 0
+  private currentPolygon: HitPoint[] = []
+  private outPolygons: HitPoint[][] = []
+  private curX: number = 0
+  private curY: number = 0
+  private startX: number = 0
+  private startY: number = 0
+  private lastCommand: string = ''
+
+  flatten(path: string): HitPoint[][] {
+    this.path = path
+    this.pos = 0
+    this.currentPolygon = []
+    this.outPolygons = []
+    this.curX = 0
+    this.curY = 0
+    this.startX = 0
+    this.startY = 0
+    this.lastCommand = ''
+    while (this.hasMore()) {
+      if (this.peekIsNumber()) {
+        if (this.lastCommand === 'M') {
+          this.execCommand('L')
+        } else if (this.lastCommand === 'm') {
+          this.execCommand('l')
+        } else {
+          this.execCommand(this.lastCommand)
+        }
+        continue
+      }
+      const command: string = this.nextCommand()
+      this.execCommand(command)
+    }
+    if (this.currentPolygon.length > 0) {
+      this.outPolygons.push(this.currentPolygon)
+      this.currentPolygon = []
+    }
+    return this.outPolygons
+  }
+
+  static pointInPolygon(px: number, py: number, vertices: HitPoint[]): boolean {
+    let inside: boolean = false
+    let j: number = vertices.length - 1
+    for (let i = 0; i < vertices.length; i++) {
+      const yi: number = vertices[i].y
+      const yj: number = vertices[j].y
+      if ((yi > py) !== (yj > py)) {
+        const xi: number = vertices[i].x
+        const xj: number = vertices[j].x
+        const crossX: number = ((xj - xi) * (py - yi)) / (yj - yi) + xi
+        if (px < crossX) {
+          inside = !inside
+        }
+      }
+      j = i
+    }
+    return inside
+  }
+
+  private skipSeparators(): void {
+    while (this.pos < this.path.length) {
+      const ch: string = this.path.charAt(this.pos)
+      if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r' || ch === ',') {
+        this.pos++
+      } else {
+        break
+      }
+    }
+  }
+
+  private hasMore(): boolean {
+    this.skipSeparators()
+    return this.pos < this.path.length
+  }
+
+  private peekIsNumber(): boolean {
+    this.skipSeparators()
+    if (this.pos >= this.path.length) {
+      return false
+    }
+    const code: number = this.path.charCodeAt(this.pos)
+    return !((code >= 65 && code <= 90) || (code >= 97 && code <= 122))
+  }
+
+  private nextCommand(): string {
+    this.skipSeparators()
+    if (this.pos < this.path.length) {
+      const ch: string = this.path.charAt(this.pos)
+      this.pos++
+      return ch
+    }
+    return ''
+  }
+
+  private nextNumber(): number {
+    this.skipSeparators()
+    if (this.pos >= this.path.length) {
+      return 0
+    }
+    const rest: string = this.path.substring(this.pos)
+    const match: RegExpExecArray | null = BodymapPathFlattener.NUMBER_RE.exec(rest)
+    if (match === null) {
+      return 0
+    }
+    this.pos += match[0].length
+    return Number(match[0])
+  }
+
+  private nextFlag(): number {
+    this.skipSeparators()
+    if (this.pos >= this.path.length) {
+      return 0
+    }
+    const ch: string = this.path.charAt(this.pos)
+    if (ch === '0' || ch === '1') {
+      this.pos++
+      return ch === '1' ? 1 : 0
+    }
+    return 0
+  }
+
+  private execCommand(command: string): void {
+    if (command === 'M' || command === 'm') {
+      this.execMove(command)
+      return
+    }
+    if (command === 'L' || command === 'l') {
+      this.execLine(command)
+      return
+    }
+    if (command === 'C' || command === 'c') {
+      this.execCubic(command)
+      return
+    }
+    if (command === 'Q' || command === 'q') {
+      this.execQuad(command)
+      return
+    }
+    if (command === 'A' || command === 'a') {
+      this.execArc(command)
+      return
+    }
+    if (command === 'Z' || command === 'z') {
+      this.execClose()
+    }
+  }
+
+  private execMove(command: string): void {
+    const x: number = this.nextNumber()
+    const y: number = this.nextNumber()
+    if (this.currentPolygon.length > 0) {
+      this.outPolygons.push(this.currentPolygon)
+    }
+    this.currentPolygon = []
+    if (command === 'm') {
+      this.curX += x
+      this.curY += y
+    } else {
+      this.curX = x
+      this.curY = y
+    }
+    this.startX = this.curX
+    this.startY = this.curY
+    this.pushVertex(this.curX, this.curY)
+    this.lastCommand = command
+  }
+
+  private execLine(command: string): void {
+    const x: number = this.nextNumber()
+    const y: number = this.nextNumber()
+    if (command === 'l') {
+      this.curX += x
+      this.curY += y
+    } else {
+      this.curX = x
+      this.curY = y
+    }
+    this.pushVertex(this.curX, this.curY)
+    this.lastCommand = command
+  }
+
+  private execCubic(command: string): void {
+    const c1x: number = this.nextNumber()
+    const c1y: number = this.nextNumber()
+    const c2x: number = this.nextNumber()
+    const c2y: number = this.nextNumber()
+    const x: number = this.nextNumber()
+    const y: number = this.nextNumber()
+    let c1xAbs: number = c1x
+    let c1yAbs: number = c1y
+    let c2xAbs: number = c2x
+    let c2yAbs: number = c2y
+    let x2: number = x
+    let y2: number = y
+    if (command === 'c') {
+      c1xAbs = this.curX + c1x
+      c1yAbs = this.curY + c1y
+      c2xAbs = this.curX + c2x
+      c2yAbs = this.curY + c2y
+      x2 = this.curX + x
+      y2 = this.curY + y
+    }
+    this.appendCubic(this.curX, this.curY, c1xAbs, c1yAbs, c2xAbs, c2yAbs, x2, y2)
+    this.curX = x2
+    this.curY = y2
+    this.lastCommand = command
+  }
+
+  private execQuad(command: string): void {
+    const cx: number = this.nextNumber()
+    const cy: number = this.nextNumber()
+    const x: number = this.nextNumber()
+    const y: number = this.nextNumber()
+    let cxAbs: number = cx
+    let cyAbs: number = cy
+    let x2: number = x
+    let y2: number = y
+    if (command === 'q') {
+      cxAbs = this.curX + cx
+      cyAbs = this.curY + cy
+      x2 = this.curX + x
+      y2 = this.curY + y
+    }
+    this.appendQuad(this.curX, this.curY, cxAbs, cyAbs, x2, y2)
+    this.curX = x2
+    this.curY = y2
+    this.lastCommand = command
+  }
+
+  private execArc(command: string): void {
+    const rx: number = this.nextNumber()
+    const ry: number = this.nextNumber()
+    const rotation: number = this.nextNumber()
+    const largeArc: number = this.nextFlag()
+    const sweep: number = this.nextFlag()
+    const x: number = this.nextNumber()
+    const y: number = this.nextNumber()
+    let x2: number = x
+    let y2: number = y
+    if (command === 'a') {
+      x2 = this.curX + x
+      y2 = this.curY + y
+    }
+    this.appendArc(this.curX, this.curY, x2, y2, rx, ry, rotation, largeArc, sweep)
+    this.curX = x2
+    this.curY = y2
+    this.lastCommand = command
+  }
+
+  private execClose(): void {
+    if (this.currentPolygon.length > 0) {
+      this.currentPolygon.push({ x: this.startX, y: this.startY })
+      this.outPolygons.push(this.currentPolygon)
+      this.currentPolygon = []
+    }
+    this.curX = this.startX
+    this.curY = this.startY
+    this.lastCommand = 'Z'
+  }
+
+  private pushVertex(x: number, y: number): void {
+    const point: HitPoint = { x: x, y: y }
+    this.currentPolygon.push(point)
+  }
+
+  private appendCubic(x1: number, y1: number, c1x: number, c1y: number, c2x: number, c2y: number, x2: number, y2: number): void {
+    const steps: number = BodymapPathFlattener.CUBIC_STEPS
+    for (let step = 1; step <= steps; step++) {
+      const t: number = step / steps
+      const mt: number = 1 - t
+      const a: number = mt * mt * mt
+      const b: number = 3 * mt * mt * t
+      const c: number = 3 * mt * t * t
+      const d: number = t * t * t
+      this.pushVertex(a * x1 + b * c1x + c * c2x + d * x2, a * y1 + b * c1y + c * c2y + d * y2)
+    }
+  }
+
+  private appendQuad(x1: number, y1: number, cx: number, cy: number, x2: number, y2: number): void {
+    const steps: number = BodymapPathFlattener.QUAD_STEPS
+    for (let step = 1; step <= steps; step++) {
+      const t: number = step / steps
+      const mt: number = 1 - t
+      this.pushVertex(mt * mt * x1 + 2 * mt * t * cx + t * t * x2, mt * mt * y1 + 2 * mt * t * cy + t * t * y2)
+    }
+  }
+
+  private appendArc(x1: number, y1: number, x2: number, y2: number, rxIn: number, ryIn: number,
+    rotationDeg: number, largeArcFlag: number, sweepFlag: number): void {
+    let rx: number = Math.abs(rxIn)
+    let ry: number = Math.abs(ryIn)
+    if (rx < 0.0001 || ry < 0.0001) {
+      this.pushVertex(x2, y2)
+      return
+    }
+    const phi: number = (rotationDeg * Math.PI) / 180
+    const cosPhi: number = Math.cos(phi)
+    const sinPhi: number = Math.sin(phi)
+    const dx: number = (x1 - x2) / 2
+    const dy: number = (y1 - y2) / 2
+    const x1p: number = cosPhi * dx + sinPhi * dy
+    const y1p: number = -sinPhi * dx + cosPhi * dy
+    const lambda: number = (x1p * x1p) / (rx * rx) + (y1p * y1p) / (ry * ry)
+    if (lambda > 1) {
+      const factor: number = Math.sqrt(lambda)
+      rx = rx * factor
+      ry = ry * factor
+    }
+    const rxSq: number = rx * rx
+    const rySq: number = ry * ry
+    const x1pSq: number = x1p * x1p
+    const y1pSq: number = y1p * y1p
+    const numerator: number = rxSq * rySq - rxSq * y1pSq - rySq * x1pSq
+    const denominator: number = rxSq * y1pSq + rySq * x1pSq
+    let coef: number = 0
+    if (denominator > 0.000001) {
+      coef = Math.sqrt(Math.max(0, numerator / denominator))
+    }
+    if (largeArcFlag === sweepFlag) {
+      coef = -coef
+    }
+    const cxp: number = coef * ((rx * y1p) / ry)
+    const cyp: number = coef * (-(ry * x1p) / rx)
+    const cx: number = cosPhi * cxp - sinPhi * cyp + (x1 + x2) / 2
+    const cy: number = sinPhi * cxp + cosPhi * cyp + (y1 + y2) / 2
+    const theta1: number = this.arcAngle((x1p - cxp) / rx, (y1p - cyp) / ry)
+    let deltaTheta: number = this.arcAngle((-x1p - cxp) / rx, (-y1p - cyp) / ry) - theta1
+    if (sweepFlag === 0 && deltaTheta > 0) {
+      deltaTheta -= 2 * Math.PI
+    } else if (sweepFlag !== 0 && deltaTheta < 0) {
+      deltaTheta += 2 * Math.PI
+    }
+    const steps: number = BodymapPathFlattener.ARC_STEPS
+    for (let step = 1; step <= steps; step++) {
+      const theta: number = theta1 + deltaTheta * (step / steps)
+      const rxCos: number = rx * Math.cos(theta)
+      const rySin: number = ry * Math.sin(theta)
+      const px: number = cx + cosPhi * rxCos - sinPhi * rySin
+      const py: number = cy + sinPhi * rxCos + cosPhi * rySin
+      this.pushVertex(px, py)
+    }
+  }
+
+  private arcAngle(ux: number, uy: number): number {
+    let angle: number = Math.atan2(uy, ux)
+    if (angle < 0) {
+      angle += 2 * Math.PI
+    }
+    return angle
+  }
+}
+
+function buildMuscleHitRegions(view: BodymapViewData): MuscleHitRegion[] {
+  const flattener: BodymapPathFlattener = new BodymapPathFlattener()
+  const regions: MuscleHitRegion[] = []
+  for (let muscleIndex = 0; muscleIndex < view.muscles.length; muscleIndex++) {
+    const muscle: BodymapMuscleData = view.muscles[muscleIndex]
+    const polygons: HitPoint[][] = []
+    for (let pathIndex = 0; pathIndex < muscle.paths.length; pathIndex++) {
+      const subPolygons: HitPoint[][] = flattener.flatten(muscle.paths[pathIndex])
+      for (let subIndex = 0; subIndex < subPolygons.length; subIndex++) {
+        polygons.push(subPolygons[subIndex])
+      }
+    }
+    let minX: number = 1e9
+    let minY: number = 1e9
+    let maxX: number = -1e9
+    let maxY: number = -1e9
+    for (let polyIndex = 0; polyIndex < polygons.length; polyIndex++) {
+      const vertices: HitPoint[] = polygons[polyIndex]
+      for (let vertexIndex = 0; vertexIndex < vertices.length; vertexIndex++) {
+        const point: HitPoint = vertices[vertexIndex]
+        if (point.x < minX) {
+          minX = point.x
+        }
+        if (point.x > maxX) {
+          maxX = point.x
+        }
+        if (point.y < minY) {
+          minY = point.y
+        }
+        if (point.y > maxY) {
+          maxY = point.y
+        }
+      }
+    }
+    const region: MuscleHitRegion = {
+      key: muscle.key,
+      minX: minX,
+      minY: minY,
+      maxX: maxX,
+      maxY: maxY,
+      polygons: polygons
+    }
+    regions.push(region)
+  }
+  return regions
+}
+
+function hitTestMuscleView(regions: MuscleHitRegion[], modelX: number, modelY: number): string {
+  for (let index = regions.length - 1; index >= 0; index--) {
+    const region: MuscleHitRegion = regions[index]
+    if (modelX < region.minX || modelX > region.maxX || modelY < region.minY || modelY > region.maxY) {
+      continue
+    }
+    for (let polyIndex = 0; polyIndex < region.polygons.length; polyIndex++) {
+      if (BodymapPathFlattener.pointInPolygon(modelX, modelY, region.polygons[polyIndex])) {
+        return region.key
+      }
+    }
+  }
+  return ''
+}
+
+
 @Component
 export struct PencilReviewContent {
   @State private timeScale: string = 'week'
@@ -405,6 +859,7 @@ export struct PencilReviewContent {
   @State private showGoalModal: boolean = false
   @State private goalWeight: number = 68
   @State private goalInputText: string = '68'
+  @State private selectedMuscleKey: string = ''
 
   private mmFrontSettings: RenderingContextSettings = new RenderingContextSettings(true)
   private mmFrontContext: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.mmFrontSettings)
@@ -412,6 +867,8 @@ export struct PencilReviewContent {
   private mmBackContext: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.mmBackSettings)
   private wgSettings: RenderingContextSettings = new RenderingContextSettings(true)
   private wgContext: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.wgSettings)
+  private frontHitRegions: MuscleHitRegion[] = []
+  private backHitRegions: MuscleHitRegion[] = []
 
   async aboutToAppear(): Promise<void> {
     const now: number = Date.now()
@@ -708,6 +1165,38 @@ export struct PencilReviewContent {
     return '胸部训练量最高，核心最少。'
   }
 
+  private muscleLabel(key: string): string {
+    const index: number = this.staticIndex(MM_MUSCLE_KEYS, key)
+    if (index < 0 || index >= MM_MUSCLE_LABELS.length) {
+      return ''
+    }
+    return MM_MUSCLE_LABELS[index]
+  }
+
+  private muscleStatWord(level: number, words: string[]): string {
+    const index: number = level - 1
+    if (index < 0 || index >= words.length) {
+      return '—'
+    }
+    return words[index]
+  }
+
+  private muscleDetailValue(): string {
+    const level: number = this.muscleLevel(this.selectedMuscleKey)
+    if (this.muscleMode === 'balance') {
+      return (level * 10 + 8).toString() + ' 组'
+    }
+    if (this.muscleMode === 'fatigue') {
+      return this.muscleStatWord(level, MM_FATIGUE_WORDS)
+    }
+    return this.muscleStatWord(level, MM_STRENGTH_WORDS)
+  }
+
+  private muscleDetailBarWidth(): string {
+    const level: number = this.muscleLevel(this.selectedMuscleKey)
+    return (level * 25).toString() + '%'
+  }
+
   private effortAverage(): string {
     let sum: number = 0
     for (let index = 0; index < RIR_BARS.length; index++) {
@@ -855,6 +1344,38 @@ export struct PencilReviewContent {
     this.drawBodymapBack()
   }
 
+  private ensureHitRegions(): void {
+    if (this.frontHitRegions.length === 0) {
+      this.frontHitRegions = buildMuscleHitRegions(BODYMAP_FRONT)
+      this.backHitRegions = buildMuscleHitRegions(BODYMAP_BACK)
+    }
+  }
+
+  private handleBodymapTap(event: ClickEvent, ctx: CanvasRenderingContext2D, view: BodymapViewData, regions: MuscleHitRegion[]): void {
+    const width: number = ctx.width
+    const height: number = ctx.height
+    if (width <= 0 || height <= 0) {
+      return
+    }
+    const modelX: number = (event.x * view.viewWidth) / width + view.offsetX
+    const modelY: number = (event.y * view.viewHeight) / height + view.offsetY
+    const hit: string = hitTestMuscleView(regions, modelX, modelY)
+    if (hit !== '') {
+      this.selectedMuscleKey = hit
+      this.redrawBodymaps()
+    }
+  }
+
+  private handleFrontBodymapTap(event: ClickEvent): void {
+    this.ensureHitRegions()
+    this.handleBodymapTap(event, this.mmFrontContext, BODYMAP_FRONT, this.frontHitRegions)
+  }
+
+  private handleBackBodymapTap(event: ClickEvent): void {
+    this.ensureHitRegions()
+    this.handleBodymapTap(event, this.mmBackContext, BODYMAP_BACK, this.backHitRegions)
+  }
+
   private drawBodymapView(ctx: CanvasRenderingContext2D, view: BodymapViewData): void {
     const width: number = ctx.width
     const height: number = ctx.height
@@ -866,6 +1387,7 @@ export struct PencilReviewContent {
     const scaleY: number = height / view.viewHeight
     ctx.save()
     ctx.scale(scaleX, scaleY)
+    ctx.translate(-view.offsetX, -view.offsetY)
     ctx.lineJoin = 'round'
     ctx.lineWidth = 2.5
     ctx.fillStyle = SILHOUETTE_FILL
@@ -879,8 +1401,9 @@ export struct PencilReviewContent {
       const muscle: BodymapMuscleData = view.muscles[muscleIndex]
       const level: number = this.muscleLevel(muscle.key)
       ctx.fillStyle = this.muscleFill(level)
-      ctx.strokeStyle = BODY_PATH_STROKE
-      ctx.lineWidth = 2.5
+      const isSelected: boolean = muscle.key === this.selectedMuscleKey
+      ctx.strokeStyle = isSelected ? SELECTED_MUSCLE_STROKE : BODY_PATH_STROKE
+      ctx.lineWidth = isSelected ? 7 : 2.5
       for (let pathIndex = 0; pathIndex < muscle.paths.length; pathIndex++) {
         const path2d: Path2D = new Path2D(muscle.paths[pathIndex])
         ctx.fill(path2d)
@@ -893,6 +1416,7 @@ export struct PencilReviewContent {
   private applyOpenStatsSegment(group: string, key: string): void {
     if (group === 'muscle') {
       this.muscleMode = key
+      this.selectedMuscleKey = ''
       this.redrawBodymaps()
     } else {
       this.effortMode = key
@@ -1218,11 +1742,17 @@ export struct PencilReviewContent {
           .onReady(() => {
             this.drawBodymapFront()
           })
+          .onClick((event: ClickEvent) => {
+            this.handleFrontBodymapTap(event)
+          })
         Canvas(this.mmBackContext)
           .layoutWeight(1)
           .aspectRatio(727 / 1280)
           .onReady(() => {
             this.drawBodymapBack()
+          })
+          .onClick((event: ClickEvent) => {
+            this.handleBackBodymapTap(event)
           })
       }
       .width('100%')
@@ -1249,6 +1779,10 @@ export struct PencilReviewContent {
       .justifyContent(FlexAlign.End)
       .margin({ top: 12 })
 
+      if (this.selectedMuscleKey !== '') {
+        this.muscleDetailRow()
+      }
+
       Text(this.muscleNote())
         .fontFamily('Noto Sans SC')
         .fontSize(12)
@@ -1262,6 +1796,41 @@ export struct PencilReviewContent {
     .backgroundColor('#10171B')
     .borderRadius(25.4)
     .border({ width: 1, color: '#10FFFFFF' })
+  }
+
+  @Builder
+  private muscleDetailRow() {
+    Row({ space: 9 }) {
+      Text(this.muscleLabel(this.selectedMuscleKey))
+        .fontFamily('Noto Sans SC')
+        .fontSize(14)
+        .fontColor('#F7FBF8')
+        .layoutWeight(1)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+      Row() {
+        Row()
+          .width(this.muscleDetailBarWidth())
+          .height('100%')
+          .backgroundColor('#50ECA7')
+          .borderRadius(3)
+      }
+      .width(74)
+      .height(5)
+      .backgroundColor('#20272F')
+      .borderRadius(3)
+      .clip(true)
+      Text(this.muscleDetailValue())
+        .fontFamily('Noto Sans SC')
+        .fontSize(12)
+        .fontColor('#9EFFFFFF')
+        .textAlign(TextAlign.End)
+        .width(52)
+    }
+    .width('100%')
+    .alignItems(VerticalAlign.Center)
+    .padding({ top: 8, bottom: 8 })
+    .margin({ top: 6 })
   }
 
   @Builder
