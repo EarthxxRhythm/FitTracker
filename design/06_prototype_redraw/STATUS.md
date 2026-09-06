@@ -34,6 +34,12 @@
 | 屏 | 参照帧 | MAE | 超阈% | 报告 |
 |---|---|---|---|---|
 | welcome | test_run/prototype-phone/welcome-home.png | 32.91 | 29.77 | test_run/welcome-compare.md |
+| home（seed:today_flow） | test_run/prototype-phone/home-frame.png | 25.66 | 17.43 | test_run/home-compare.md |
+
+Home 基线分解：超阈集中在 band1(84-168 日期/问候文字带,字体度量差+起始位差)、band9(756-844
+底部系统导航指示条/底部tab带)；band6/8 内容中段最低(4.8%/5.6%)。数字差(0/3次 vs 3/5次、0% vs
+14%)源自种子 vs HTML 静态示例，属预期文本差非布局差。收敛循环目标：裁掉状态栏/底部系统带后
+内容区超阈 ≤2%。
 
 ## 新需求：页面自适应设备屏幕（2026-09-07 加入）
 
