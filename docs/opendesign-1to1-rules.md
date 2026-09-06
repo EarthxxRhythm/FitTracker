@@ -10,8 +10,17 @@
 2. **画布口径**：除 `screen-welcome`（`fittracker-welcome-home.html` 内 `.w-frame`，
    430×900 画布 × `SCALE=0.90698` ≈ 390×816）外，其余 14 屏均为 390×844 直绘，
    与设备 vp **1:1**，不再乘任何 SCALE。像素对比：模拟器截图 ÷ 3.3846 后对齐 390×844。
-3. 结构：`@Entry @Component struct`；整屏画布 390×844 用 `Column`/`Scroll`/`Stack`
-   按对应 frame 的 DOM 结构还原；绝对定位元素用 `.position({x,y})`，**数值与 HTML 一致**。
+3. 结构（自适应优先）：`@Entry @Component struct`；整屏画布以 390×844 vp 为设计基准，但**结构化容器一律用流式/弹性布局还原**：`Column/Row/Scroll` + `.layoutWeight()`/百分比宽 + `Flex`，对应 HTML `.appshell`/`.pane` 等 flex 语义；**`.position({x,y})` 绝对定位只用于装饰性覆盖层**（背景艺术、徽章、浮层内锚点），且锚点优先相对容器计算。禁止用固定坐标堆整页内容。
+
+## 自适应与安全区（双基准验收）
+
+- 设计基准 390×844 vp（= 冻结 HTML 画布 = 默认模拟器视口），像素对比验收仍在此 vp 上进行（主区域超阈 ≤2%）。
+- **自适应层**（与像素基准同时满足）：
+  1. 宽度 320–430 vp 竖屏：页面不横向溢出、不出现截断硬编码；页面左右 gutter 用 `SpacingTokens.PAGE_GUTTER`（16），窄屏可按 `>=360` 判断收窄为 16/12。
+  2. 高度不足/超长：`Scroll` 包裹、避免固定高卡片撑破；键盘弹起与底部栏避开用 safe-area/avoidArea。
+  3. 文本：不写死单行定高撑版面；默认 `maxLines + TextOverflow.Ellipsis`；系统字号放大 ≤1.3× 不破版（按钮用 minHeight 而非固定 height 时用 `.constraintSize({ minHeight })`）。
+  4. 平板/横屏/折叠（>600 vp，阶段可选）：结构性栅格用 `GridRow` 断点或 `.layoutWeight` 重排，装饰不溢出即可，不追求 1:1。
+- 验收链：每屏 = ①390vp 像素基准 diff ≤2%（原门槛不变）+ ②响应式冒烟（320/360/430 三档截图无溢出/无错位，以 compare 行带突变或肉眼采样为准）+ ③动效态帧（按压/弹层/celebrate）。
 4. 颜色从 HTML `:root` 原样取用（TOKENS.md 汇总）：`rgba(r,g,b,a)` → `#AARRGGBB`，
    `AA = round(a*255)`。例：`rgba(255,255,255,.56)` → `#8FF3FBF7`。
 5. 字体：中文 `fontFamily('HarmonyOS Sans')`；HTML `--font-num`(Inter) → 数字体令牌；

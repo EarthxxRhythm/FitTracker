@@ -34,3 +34,16 @@
 | 屏 | 参照帧 | MAE | 超阈% | 报告 |
 |---|---|---|---|---|
 | welcome | test_run/prototype-phone/welcome-home.png | 32.91 | 29.77 | test_run/welcome-compare.md |
+
+## 新需求：页面自适应设备屏幕（2026-09-07 加入）
+
+- 双基准验收：① 390vp 像素基准 diff ≤2% 不变；② 自适应层（320–430vp 无溢出/无截断、安全区、
+  字号 ≤1.3× 不破版；>600vp 平板/横屏阶段可选）。
+- 结构规则改为流式/弹性优先（Column/Row/Scroll/layoutWeight/百分比），`.position` 仅限装饰层；
+  规则已写入 docs/opendesign-1to1-rules.md §3 与「自适应与安全区」节。
+
+## 黄金组件基线（进行中）
+
+- BottomTabBar 对齐 HTML：新增 ShadowTokens.TAB_PILL/TAB_PILL_ACTIVE（HTML 0 6px 14px/.30 与
+  0 8px 20px/.34），SURFACE_NAV → rgba(8,12,15,.97)，ShadowTokens.NAV → 0,-8,28,.28；
+  pill 阴影按激活态切换 + .16s implicit 色彩/阴影过渡（对应 HTML .tab/.pill transition）。
