@@ -1,9 +1,9 @@
 /** PencilLoginPage —— FitTracker Login 原型页。功能 #27 */
-import { AppRoutes } from '../../app/AppRoutes'
-import AuthService from '../../common/services/AuthService'
-import SessionManager from '../../common/services/SessionManager'
+import { AppRoutes } from '../../../app/AppRoutes'
+import AuthService from '../../../common/services/AuthService'
+import SessionManager from '../../../common/services/SessionManager'
 import { Context } from '@kit.AbilityKit'
-import { ColorTokens, MotionTokens } from '../../common/styles/DesignTokens'
+import { ColorTokens, MotionTokens } from '../../../common/styles/DesignTokens'
 
 @Entry
 @Component
@@ -17,6 +17,8 @@ struct PencilLoginPage {
   @State socialKey: string = ''
   @State linkKey: string = ''
   @State eyePressed: boolean = false
+  @State revealPassword: boolean = false
+  @State focusedField: string = ''
 
   private contextOrNull(): Context | null {
     const host = this.getUIContext().getHostContext()
@@ -97,8 +99,12 @@ struct PencilLoginPage {
     .alignItems(HorizontalAlign.Center)
   }
 
+  private isFocused(fieldKey: string): boolean {
+    return this.focusedField === fieldKey
+  }
+
   @Builder
-  private buildLoginField(label: string, placeholder: string, iconName: string, isPassword: boolean) {
+  private buildLoginField(label: string, placeholder: string, iconName: string, fieldKey: string, isPassword: boolean) {
     Column({ space: 8 }) {
       Text(label)
         .fontFamily('Noto Sans SC')
@@ -119,7 +125,7 @@ struct PencilLoginPage {
             .fillColor('#8FFFFFFF')
         }
         TextInput({ text: isPassword ? this.password : this.account, placeholder: placeholder })
-          .type(isPassword ? InputType.Password : InputType.Normal)
+          .type(isPassword && !this.revealPassword ? InputType.Password : InputType.Normal)
           .showPasswordIcon(false)
           .layoutWeight(1)
           .fontFamily('Noto Sans SC')
@@ -128,6 +134,12 @@ struct PencilLoginPage {
           .placeholderColor('#66FFFFFF')
           .backgroundColor(Color.Transparent)
           .padding(0)
+          .onFocus(() => {
+            this.focusedField = fieldKey
+          })
+          .onBlur(() => {
+            this.focusedField = ''
+          })
           .onChange((value: string) => {
             if (isPassword) {
               this.password = value
@@ -139,7 +151,7 @@ struct PencilLoginPage {
           Image($rawfile('pencil-lucide-eye.svg'))
             .width(20)
             .height(20)
-            .fillColor('#8FFFFFFF')
+            .fillColor(this.revealPassword ? ColorTokens.ACCENT_PRIMARY : '#8AFFFFFF')
             .onTouch((event: TouchEvent) => {
               if (event.type === TouchType.Down) {
                 this.eyePressed = true
@@ -149,14 +161,17 @@ struct PencilLoginPage {
             })
             .scale({ x: this.eyePressed ? MotionTokens.PRESS_ICON : 1, y: this.eyePressed ? MotionTokens.PRESS_ICON : 1 })
             .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
+            .onClick(() => {
+              this.revealPassword = !this.revealPassword
+            })
         }
       }
       .width('100%')
       .height(52)
       .padding({ left: 16, right: 16 })
-      .backgroundColor('#08FFFFFF')
+      .backgroundColor(this.isFocused(fieldKey) ? '#0D50ECA7' : '#08FFFFFF')
       .borderRadius(18)
-      .border({ width: 1, color: '#14FFFFFF' })
+      .border({ width: 1, color: this.isFocused(fieldKey) ? '#7350ECA7' : '#14FFFFFF' })
       .alignItems(VerticalAlign.Center)
       .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
     }
@@ -255,8 +270,8 @@ struct PencilLoginPage {
         .margin({ top: 18 })
 
         Column({ space: 12 }) {
-          this.buildLoginField('手机号 / 邮箱', '请输入手机号或邮箱', 'mail', false)
-          this.buildLoginField('密码', '请输入密码', 'lock', true)
+          this.buildLoginField('手机号 / 邮箱', '请输入手机号或邮箱', 'mail', 'account', false)
+          this.buildLoginField('密码', '请输入密码', 'lock', 'password', true)
           this.buildAuthAux()
 
           if (this.message.length > 0) {
