@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FitTracker · 计划组原型</title>
+<style>
+  /* ─────────────────────────────────────────────────────────────
+     FitTracker · Cold Emerald Performance（沿用首页设计系统）
+     计划组：点击计划页 master plan card 进入
+     展示当前计划 + 计划组列表（可切换）
+     ───────────────────────────────────────────────────────────── */
+  :root {
+    --ink-0: #0B0F13;
+    --ink-1: #0A0D12;
+    --ink-welcome-0: #10171B;
+    --visual-a: #14241F;
+    --visual-b: #0D1616;
+    --ring-inner: #0D1117;
+    --tab-pill: #141F1D;
+    --tab-pill-active: #182422;
+    --nav-active: #F3FBF7;
+    --nav-inactive: rgba(243,251,247,.56);
+    --accent: #50ECA7;
+    --accent-deep: #45C9A1;
+    --accent-soft: #8CEBCC;
+    --cta-a: #47D994;
+    --cta-b: #53E7A5;
+    --cta-hover-a: #5BE3A5;
+    --cta-hover-b: #6BEDB5;
+    --on-accent: #07100B;
+    --on-accent-2: #08110D;
+    --txt-hi: #F7FBF8;
+    --txt-body: #EDF6F2;
+    --white-90: rgba(243,251,247,.90);
+    --white-87: rgba(255,255,255,.87);
+    --white-70: rgba(255,255,255,.70);
+    --white-65: rgba(255,255,255,.65);
+    --white-62: rgba(255,255,255,.62);
+    --white-60: rgba(255,255,255,.60);
+    --white-54: rgba(255,255,255,.54);
+    --white-40: rgba(255,255,255,.40);
+    --white-32: rgba(255,255,255,.32);
+    --glass-10: rgba(255,255,255,.10);
+    --glass-8: rgba(255,255,255,.08);
+    --glass-6: rgba(255,255,255,.06);
+    --glass-4: rgba(255,255,255,.04);
+    --hairline: rgba(255,255,255,.06);
+    --line-10: rgba(255,255,255,.10);
+    --line-14: rgba(255,255,255,.078);
+    --line-16: rgba(255,255,255,.16);
+    --accent-40: rgba(80,236,167,.40);
+    --accent-32: rgba(69,201,161,.32);
+    --accent-20: rgba(80,236,167,.20);
+    --accent-18: rgba(69,201,161,.18);
+    --accent-17: rgba(80,236,167,.17);
+    --accent-12: rgba(80,236,167,.12);
+    --accent-10: rgba(80,236,167,.10);
+    --accent-07: rgba(80,236,167,.07);
+    --warn: #FFD7C5;
+    --font-cn: "Noto Sans SC", "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", "Microsoft YaHei UI", sans-serif;
+    --font-num: "Inter", "SF Pro Text", -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    --font-mono: "Geist Mono", "JetBrains Mono", "SF Mono", Consolas, "Courier New", monospace;
+    --ease: cubic-bezier(.2, .7, .2, 1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+
+  body {
+    overflow-x: hidden;
+    background: #07090B;
+    color: var(--txt-body);
+    font-family: var(--font-cn);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100vh;
+  }
+
+  .defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+  button { font-family: var(--font-cn); }
+  button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(80,236,167,.28); }
+
+  /* ── 页面外框（非 App 内容） ─────────────────────────────────── */
+  .page-header { max-width: 1120px; margin: 0 auto; padding: 48px 32px 8px; }
+  .kicker { font-size: 13px; letter-spacing: .02em; color: var(--white-54); margin-bottom: 12px; }
+  .page-header h1 {
+    font-size: clamp(30px, 4vw, 44px);
+    font-weight: 700;
+    letter-spacing: 0;
+    color: var(--txt-hi);
+    line-height: 1.18;
+  }
+  .page-sub {
+    margin-top: 14px;
+    font-size: 15px;
+    color: var(--white-60);
+    line-height: 1.6;
+    max-width: 640px;
+  }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 18px; }
+  .meta-badge { font-size: 12px; letter-spacing: .01em; color: var(--white-54); }
+  .meta-badge b { color: var(--white-70); font-weight: 500; }
+
+  .gallery {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 30px 32px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    align-items: flex-start;
+  }
+  .frame-card { flex: 0 1 auto; }
+  .stage-label { display: flex; align-items: baseline; gap: 10px; margin: 0 0 14px 4px; }
+  .stage-label .name { font-size: 15px; font-weight: 600; color: var(--txt-hi); }
+  .stage-label .code { font-family: var(--font-mono); font-size: 11px; color: var(--white-40); }
+  .page-foot {
+    max-width: 1120px;
+    margin: 8px auto 48px;
+    padding: 0 32px;
+    font-size: 12px;
+    color: var(--white-40);
+    line-height: 1.7;
+  }
+  .page-foot b { color: var(--white-70); font-weight: 600; }
+
+  /* ── 手机画布 ─────────────────────────────────────────────── */
+  .phone {
+    position: relative;
+    width: 390px;
+    height: 844px;
+    border-radius: 54px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: #000;
+    overflow: hidden;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,.06) inset,
+      0 0 0 1px rgba(0,0,0,.4),
+      0 32px 80px rgba(0,0,0,.55),
+      0 8px 28px rgba(0,0,0,.45);
+  }
+  .phone::after {
+    content: "";
+    position: absolute;
+    inset: 10px;
+    border-radius: 44px;
+    pointer-events: none;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.025) inset;
+  }
+
+  /* ── 计划组 App 界面 ──────────────────────────────────────── */
+  .appshell {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    background: var(--ink-0);
+  }
+
+  .pd-top {
+    flex: 0 0 auto;
+    display: flex; align-items: center; gap: 8px;
+    padding: 52px 12px 10px;
+    background: rgba(10,13,18,.96);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .pd-back {
+    flex: 0 0 auto;
+    width: 40px; height: 40px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--white-70);
+    display: grid; place-items: center;
+    cursor: pointer;
+    transition: background .16s ease, color .16s ease;
+  }
+  .pd-back:hover { background: rgba(255,255,255,.08); color: var(--txt-hi); }
+  .pd-back svg { width: 22px; height: 22px; }
+  .pd-top-title { flex: 1 1 auto; min-width: 0; text-align: center; }
+  .pd-top-name { display: block; font-size: 16px; font-weight: 700; color: var(--txt-hi); }
+  .pd-top-spacer { flex: 0 0 auto; width: 40px; height: 40px; }
+
+  .pd-scroll {
+    flex: 1 1 auto; min-height: 0;
+    overflow-y: auto; overflow-x: hidden;
+    scrollbar-width: none;
+  }
+  .pd-scroll::-webkit-scrollbar { display: none; }
+  .pd-content { padding: 16px 16px 28px; display: flex; flex-direction: column; gap: 20px; }
+
+  /* 当前计划 */
+  .pg-current {
+    position: relative;
+    border-radius: 20px;
+    border: 1px solid var(--accent-40);
+    background: rgba(80,236,167,.08);
+    box-shadow: 0 14px 28px rgba(0,0,0,.20);
+    padding: 16px 16px 15px;
+  }
+  .pg-current-label { font-size: 11px; font-weight: 700; letter-spacing: .03em; color: var(--accent); }
+  .pg-current-name { margin-top: 9px; padding-right: 76px; font-size: 20px; font-weight: 700; line-height: 1.15; color: var(--txt-hi); }
+  .pg-current-meta { margin-top: 6px; font-size: 12px; color: var(--white-62); }
+  .pg-current-badge {
+    position: absolute;
+    top: 14px; right: 14px;
+    font-size: 10px; font-weight: 700;
+    color: var(--on-accent);
+    background: var(--accent);
+    border-radius: 999px;
+    padding: 4px 10px;
+  }
+
+  /* 计划组 */
+  .pd-sec-label { font-size: 16px; font-weight: 700; letter-spacing: .02em; color: var(--white-54); }
+  .pg-list { display: flex; flex-direction: column; gap: 10px; }
+  .pg-card {
+    display: flex; align-items: center; gap: 13px;
+    width: 100%;
+    min-height: 92px;
+    padding: 13px 14px;
+    border: 1px solid var(--line-14);
+    border-radius: 18px;
+    background: #151B20;
+    text-align: left;
+    cursor: pointer;
+    transition: background .16s ease, border-color .16s ease, transform .12s ease;
+  }
+  .pg-card:hover { background: rgba(255,255,255,.05); border-color: var(--line-16); }
+  .pg-card:active { transform: scale(.99); }
+  .pg-cover {
+    flex: 0 0 auto;
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    background: rgba(80,236,167,.10);
+    border: 1px solid rgba(80,236,167,.22);
+    display: grid; place-items: center;
+    color: var(--accent);
+  }
+  .pg-cover svg { width: 24px; height: 24px; }
+  .pg-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+  .pg-name { font-size: 16px; font-weight: 700; color: var(--txt-hi); }
+  .pg-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+  .pg-audience {
+    font-size: 11px; color: var(--white-62);
+    background: var(--glass-6);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    padding: 3px 9px;
+  }
+  .pg-freq { font-size: 11px; color: var(--white-54); }
+  .pg-days { font-size: 11px; color: var(--white-54); font-family: var(--font-num); }
+  .pg-examples {
+    display: block;
+    font-size: 11px;
+    color: var(--white-54);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .pg-chevron { flex: 0 0 auto; width: 20px; height: 20px; color: var(--white-40); }
+  .pg-chevron svg { width: 100%; height: 100%; }
+
+  /* toast */
+  .pd-toast {
+    position: absolute;
+    left: 50%; bottom: 44px;
+    transform: translateX(-50%) translateY(10px);
+    max-width: 320px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--line-10);
+    background: rgba(13,17,23,.92);
+    color: var(--txt-hi);
+    font-size: 13px;
+    line-height: 1.4;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 9;
+    transition: opacity .18s ease, transform .18s ease;
+  }
+  .pd-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 640px) {
+    .page-header { padding: 32px 20px 4px; }
+    .gallery { padding: 24px 20px 8px; justify-content: center; }
+    .page-foot { padding: 0 20px; }
+  }
+  @media (max-width: 440px) {
+    .phone { transform-origin: top left; }
+    .gallery { padding-left: 16px; padding-right: 16px; }
+    .page-header, .page-foot { padding-left: 16px; padding-right: 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pd-back, .pg-card { transition: none; }
+    .pg-card:active { transform: none; }
+  }
+</style>
+</head>
+<body>
+  <svg class="defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-chevron-left" viewBox="0 0 24 24">
+      <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24">
+      <path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-dumbbell" viewBox="0 0 24 24">
+      <path d="M7 7v10M17 7v10M7 12h10M3.5 9v6M20.5 9v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24">
+      <path d="M12 3 3 8l9 5 9-5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+      <path d="M3 12l9 5 9-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+      <path d="M3 16l9 5 9-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-activity" viewBox="0 0 24 24">
+      <path d="M3 12h4l2.5-7 4 14 2.5-7H21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-zap" viewBox="0 0 24 24">
+      <path d="M13 2.5 4.5 13.5h6l-1 8L19.5 10.5h-6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-target" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <circle cx="12" cy="12" r="0.6" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="i-chevrons-up" viewBox="0 0 24 24">
+      <path d="M7 14l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M7 19l5-5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-chevrons-down" viewBox="0 0 24 24">
+      <path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M7 5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-core" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/>
+    </symbol>
+    <symbol id="i-home" viewBox="0 0 24 24">
+      <path d="M3.5 10.4 12 3.5l8.5 6.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M5.5 9.5V20h13V9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24">
+      <path d="M12 20s-7-4.3-7-9.2A4.2 4.2 0 0 1 12 7.5a4.2 4.2 0 0 1 7 3.3c0 4.9-7 9.2-7 9.2z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    </symbol>
+  </svg>
+
+  <header class="page-header">
+    <div class="kicker">FitTracker · Plan Groups</div>
+    <h1>计划组</h1>
+    <p class="page-sub">点击计划页 master plan card 进入，展示当前计划与可切换的计划组列表。</p>
+    <div class="meta-row">
+      <span class="meta-badge">主题 <b>Cold Emerald</b></span>
+      <span class="meta-badge">视口 <b>390 × 844</b></span>
+      <span class="meta-badge">来源 <b>TRAINING_PLAN_DETAIL</b></span>
+    </div>
+  </header>
+
+  <main class="gallery">
+    <figure class="frame-card" data-od-id="screen-plan-detail">
+      <div class="stage-label">
+        <span class="name">计划组</span>
+        <span class="code">Plan Groups · 只读</span>
+      </div>
+
+      <div class="phone">
+        <div class="appshell">
+          <header class="pd-top" data-od-id="plan-groups-topbar">
+            <button type="button" class="pd-back" id="btn-back" aria-label="返回计划页">
+              <svg><use href="#i-chevron-left"/></svg>
+            </button>
+            <div class="pd-top-title">
+              <span class="pd-top-name">计划组</span>
+            </div>
+            <span class="pd-top-spacer"></span>
+          </header>
+
+          <div class="pd-scroll">
+            <div class="pd-content">
+              <section class="pg-current" data-od-id="plan-groups-current" aria-label="当前计划">
+                <div class="pg-current-label">当前计划</div>
+                <div class="pg-current-name">五日增肌计划</div>
+                <div class="pg-current-meta">增肌 · 5 练分化 · 6 周推进</div>
+                <span class="pg-current-badge">当前使用</span>
+              </section>
+
+              <section data-od-id="plan-groups-list" aria-label="计划组">
+                <div class="pd-sec-label">计划组</div>
+                <div class="pg-list" id="pg-list"></div>
+              </section>
+            </div>
+          </div>
+
+          <div class="pd-toast" id="pd-toast" role="status" aria-live="polite" data-od-id="plan-groups-toast"></div>
+        </div>
+      </div>
+    </figure>
+  </main>
+
+  <footer class="page-foot">
+    <b>说明：</b>计划组结合 <b>hasaneyldrm/exercises-dataset</b>（1,324 个动作）的身体部位 / 器械维度扩充；每张卡的「示例」动作取自该数据集对应分类。点击卡片以轻量 toast 反馈「查看计划详情 / 切换计划」。
+  </footer>
+
+  <script>
+    (function () {
+      var GROUPS = [
+        { name: '上下肢分裂', audience: '初中级健身者', freq: '4 天 / 周', days: 4, icon: 'i-layers', examples: '杠铃卧推 · 杠铃深蹲 · 引体向上' },
+        { name: '推拉腿分裂', audience: '初中高级通用', freq: '3-6 天 / 周', days: 3, icon: 'i-activity', examples: '杠铃卧推 · 引体向上 · 杠铃深蹲' },
+        { name: '全身训练 3x', audience: '初级健身者', freq: '3 天 / 周', days: 3, icon: 'i-zap', examples: '杠铃深蹲 · 杠铃卧推 · 杠铃划船' },
+        { name: '力量举基础', audience: '力量举入门', freq: '3-4 天 / 周', days: 4, icon: 'i-dumbbell', examples: '杠铃深蹲 · 杠铃卧推 · 杠铃硬拉' },
+        { name: '胸背分化', audience: '中高级健身者', freq: '4 天 / 周', days: 4, icon: 'i-target', examples: '杠铃卧推 · 引体向上 · 高位下拉' },
+        { name: '肩臂强化', audience: '初中级健身者', freq: '3 天 / 周', days: 3, icon: 'i-chevrons-up', examples: '哑铃侧平举 · 哑铃弯举 · 绳索下压' },
+        { name: '下肢力量', audience: '初中高级通用', freq: '3 天 / 周', days: 3, icon: 'i-chevrons-down', examples: '杠铃深蹲 · 杠铃硬拉 · 提踵' },
+        { name: '核心腰腹', audience: '初级健身者', freq: '3 天 / 周', days: 3, icon: 'i-core', examples: '卷腹 · 平板支撑 · 悬垂举腿' },
+        { name: '家庭自重', audience: '初级健身者', freq: '3 天 / 周', days: 3, icon: 'i-home', examples: '俯卧撑 · 自重深蹲 · 平板支撑' },
+        { name: '有氧燃脂', audience: '通用', freq: '3-5 天 / 周', days: 3, icon: 'i-heart', examples: '开合跳 · 高抬腿 · 波比跳' }
+      ];
+
+      var list = document.getElementById('pg-list');
+      var toast = document.getElementById('pd-toast');
+      var backBtn = document.getElementById('btn-back');
+      var toastTimer = 0;
+
+      function showToast(msg) {
+        if (!toast) { return; }
+        toast.textContent = msg;
+        window.clearTimeout(toastTimer);
+        toast.classList.add('show');
+        toastTimer = window.setTimeout(function () {
+          toast.classList.remove('show');
+        }, 1800);
+      }
+
+      function renderList() {
+        if (!list) { return; }
+        list.innerHTML = '';
+        GROUPS.forEach(function (g, i) {
+          var card = document.createElement('button');
+          card.type = 'button';
+          card.className = 'pg-card';
+          card.setAttribute('data-od-id', 'plan-group-' + i);
+          card.setAttribute('aria-label', '查看「' + g.name + '」计划详情');
+          card.innerHTML =
+            '<span class="pg-cover"><svg><use href="#' + g.icon + '"/></svg></span>' +
+            '<span class="pg-body">' +
+              '<span class="pg-name">' + g.name + '</span>' +
+              '<span class="pg-meta">' +
+                '<span class="pg-audience">' + g.audience + '</span>' +
+                '<span class="pg-freq">' + g.freq + '</span>' +
+                '<span class="pg-days">' + g.days + ' 个训练日</span>' +
+              '</span>' +
+              '<span class="pg-examples">示例 ' + g.examples + '</span>' +
+            '</span>' +
+            '<span class="pg-chevron"><svg><use href="#i-chevron-right"/></svg></span>';
+          card.addEventListener('click', function () {
+            showToast('原型：查看「' + g.name + '」计划详情');
+          });
+          list.appendChild(card);
+        });
+      }
+
+      if (backBtn) {
+        backBtn.addEventListener('click', function () {
+          showToast('原型：返回计划页');
+        });
+      }
+
+      function fitPhone() {
+        var phone = document.querySelector('.phone');
+        var narrow = window.innerWidth < 440;
+        var scale = narrow ? Math.min(1, (window.innerWidth - 32) / 390) : 1;
+        phone.style.transform = scale < 1 ? 'scale(' + scale + ')' : '';
+        phone.style.transformOrigin = 'top left';
+        phone.style.marginBottom = scale < 1 ? ((scale - 1) * 844) + 'px' : '';
+      }
+      window.addEventListener('resize', fitPhone);
+
+      renderList();
+      fitPhone();
+    })();
+  </script>
+  <script>window.FT_APP={routes:[['.pg-card','planGroup'],['#btn-back','plan']]};</script>
+  <script src="assets/ft-stage.js"></script>
+</body>
+</html>
