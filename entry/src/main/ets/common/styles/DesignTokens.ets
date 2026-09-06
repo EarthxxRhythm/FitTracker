@@ -346,6 +346,9 @@ export class MotionTokens {
   // Ambient pulse
   static readonly DURATION_PULSE: number = 1600
 
+  // Progress / gauge fill (HTML `.35s` width fill on goals/rings)
+  static readonly DURATION_PROGRESS: number = 350
+
   // Completion page
   static readonly DURATION_CF_POP: number = 500
   static readonly DELAY_CF_POP: number = 50
