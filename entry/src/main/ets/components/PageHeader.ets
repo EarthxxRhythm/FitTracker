@@ -2,13 +2,21 @@
  * PageHeader —— 页面标题栏
  * 功能 #26
  */
-import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../common/styles/DesignTokens'
+import {
+  ColorTokens,
+  FontTokens,
+  MotionTokens,
+  RadiusTokens,
+  SpacingTokens,
+  TouchTokens
+} from '../common/styles/DesignTokens'
 
 @Component
 export struct PageHeader {
   @Prop title: string = ''
   @Prop showBack: boolean = true
   onBackClick?: () => void
+  @State private backPressed: boolean = false
 
   private handleBack(): void {
     if (this.onBackClick) {
@@ -33,6 +41,18 @@ export struct PageHeader {
         .backgroundColor(ColorTokens.SURFACE_INPUT)
         .borderRadius(RadiusTokens.MD)
         .border({ width: 1, color: ColorTokens.BORDER_DEFAULT })
+        .scale({
+          x: this.backPressed ? MotionTokens.PRESS_BACK : 1,
+          y: this.backPressed ? MotionTokens.PRESS_BACK : 1
+        })
+        .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
+        .onTouch((event: TouchEvent) => {
+          if (event.type === TouchType.Down) {
+            this.backPressed = true
+          } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+            this.backPressed = false
+          }
+        })
         .onClick(() => {
           this.handleBack()
         })
