@@ -53,6 +53,8 @@ def main(argv):
     ap.add_argument('--density', type=float, default=3.3846, help='px/vp density factor')
     ap.add_argument('--threshold', type=int, default=16, help='diff threshold (0-255)')
     ap.add_argument('--bands', type=int, default=10, help='number of row bands')
+    ap.add_argument('--crop', default=None,
+                    help='logical-row crop as y0,y1 (e.g. 100,740) to measure a content region only')
     args = ap.parse_args(argv)
 
     for p in (args.prototype, args.screenshot):
@@ -68,6 +70,19 @@ def main(argv):
 
     # Align: bring the screenshot down to the prototype's logical pixel size.
     aligned = shot if (sw, sh) == (pw, ph) else shot.resize((pw, ph), Image.LANCZOS)
+
+    # Optional content-region crop (logical rows). All metrics then describe only that band.
+    if args.crop is not None:
+        try:
+            y0, y1 = [int(v) for v in args.crop.split(',')]
+        except Exception:
+            print('ERROR: --crop expects y0,y1 integers', file=sys.stderr)
+            return 2
+        y0 = max(0, min(y0, ph))
+        y1 = max(y0 + 1, min(y1, ph))
+        proto = proto.crop((0, y0, pw, y1))
+        aligned = aligned.crop((0, y0, pw, y1))
+        ph = y1 - y0
 
     diff = ImageChops.difference(proto, aligned)   # per-channel abs diff
     gray = diff.convert('L')                        # luminance-weighted single channel

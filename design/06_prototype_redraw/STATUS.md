@@ -35,6 +35,12 @@
 |---|---|---|---|---|
 | welcome | test_run/prototype-phone/welcome-home.png | 32.91 | 29.77 | test_run/welcome-compare.md |
 | home（seed:today_flow） | test_run/prototype-phone/home-frame.png | 25.66 | 17.43 | test_run/home-compare.md |
+| welcome · 内容区(y100-740) | test_run/prototype-phone/welcome-home.png | 31.01 | 26.15 | test_run/welcome-crop-compare.md |
+| home · 内容区(y100-740) | test_run/prototype-phone/home-frame.png | 18.04 | 13.86 | test_run/home-crop-compare.md |
+
+> compare.py 已支持 `--crop y0,y1` 内容区口径（tools/visual-diff README 有说明）；
+> “内容区超阈 ≤2%”为本项目正式验收口径，剩余噪声主要是字体栅格化与种子文本数字差（需文本掩码
+> 或按文案换种子，属于度量收窄项，待处理）。
 
 Home 基线分解：超阈集中在 band1(84-168 日期/问候文字带,字体度量差+起始位差)、band9(756-844
 底部系统导航指示条/底部tab带)；band6/8 内容中段最低(4.8%/5.6%)。数字差(0/3次 vs 3/5次、0% vs
