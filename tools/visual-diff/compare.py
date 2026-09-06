@@ -55,6 +55,8 @@ def main(argv):
     ap.add_argument('--bands', type=int, default=10, help='number of row bands')
     ap.add_argument('--crop', default=None,
                     help='logical-row crop as y0,y1 (e.g. 100,740) to measure a content region only')
+    ap.add_argument('--ignore-rect', action='append', default=[], metavar='x0,y0,x1,y1',
+                    help='logical rect(s) to ignore in stats/artifacts (e.g. seed-value text zones). Repeatable.')
     args = ap.parse_args(argv)
 
     for p in (args.prototype, args.screenshot):
@@ -83,6 +85,29 @@ def main(argv):
         proto = proto.crop((0, y0, pw, y1))
         aligned = aligned.crop((0, y0, pw, y1))
         ph = y1 - y0
+
+    # Optional ignore rects (logical px in the final, possibly cropped, space).
+    ignore_boxes = []
+    for spec in args.ignore_rect:
+        try:
+            x0, y0, x1, y1 = [int(v) for v in spec.split(',')]
+        except Exception:
+            print('ERROR: --ignore-rect expects x0,y0,x1,y1 integers', file=sys.stderr)
+            return 2
+        ignore_boxes.append((x0, y0, x1, y1))
+    if ignore_boxes:
+        from PIL import ImageDraw
+        black = Image.new('RGB', (pw, ph), (0, 0, 0))
+        mask = Image.new('L', (pw, ph), 0)
+        dr = ImageDraw.Draw(mask)
+        for (x0, y0, x1, y1) in ignore_boxes:
+            x0 = max(0, min(x0, pw))
+            x1 = max(x0 + 1, min(x1, pw))
+            y0 = max(0, min(y0, ph))
+            y1 = max(y0 + 1, min(y1, ph))
+            dr.rectangle([x0, y0, x1, y1], fill=255)
+        proto = Image.composite(black, proto, mask)
+        aligned = Image.composite(black, aligned, mask)
 
     diff = ImageChops.difference(proto, aligned)   # per-channel abs diff
     gray = diff.convert('L')                        # luminance-weighted single channel
