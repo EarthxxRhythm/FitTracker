@@ -1,20 +1,24 @@
 {
     "src":  [
-                "features/pencil/PencilSplashPage",
+                "features/pencil/pages/PencilSplashPage",
                 "features/welcome/pages/PencilWelcomePage",
-                "features/pencil/PencilLoginPage",
-                "features/pencil/PencilRegisterPage",
-                "features/pencil/PencilProfilePage",
+                "features/pencil/pages/PencilLoginPage",
+                "features/pencil/pages/PencilRegisterPage",
+                "features/pencil/pages/PencilProfilePage",
                 "features/onboarding/pages/GoalSetupPage",
                 "app/PencilAppShell",
-                "features/pencil/PencilHomePage",
+                "features/pencil/pages/PencilHomePage",
                 "features/exercise/pages/ExerciseLibraryPage",
                 "features/exercise/pages/ExerciseDetailPage",
                 "features/monetization/pages/MonetizationHubPage",
-                "features/pencil/PencilPlanPage",
-                "features/pencil/PencilPreviewPage",
-                "features/pencil/PencilActivePage",
+                "features/pencil/pages/PencilPlanPage",
+                "features/pencil/pages/PencilPreviewPage",
+                "features/pencil/pages/PencilActivePage",
                 "features/workout/pages/WorkoutCompletePage",
-                "features/pencil/PencilReviewPage"
+                "features/pencil/pages/PencilReviewPage",
+                "features/pencil/pages/PencilPlansPage",
+                "features/pencil/pages/PencilPlanGroupDetailPage",
+                "features/body/pages/BodyDataPage",
+                "features/settings/pages/PencilSettingsPage"
             ]
 }

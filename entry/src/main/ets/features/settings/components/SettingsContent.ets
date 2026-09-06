@@ -81,22 +81,21 @@ export struct SettingsContent {
 
       Column() {
         Row({ space: 10 }) {
-          Row()
-            .width(44)
+          Row() {
+            Path()
+              .width(20)
+              .height(20)
+              .commands('M14 6 L8 12 L14 18')
+              .fillOpacity(0)
+              .stroke('#B3FFFFFF')
+              .strokeWidth(2)
+          }
+          .width(44)
             .height(44)
             .borderRadius(22)
             .backgroundColor('#0CFFFFFF')
             .border({ width: 1, color: '#14FFFFFF' })
             .justifyContent(FlexAlign.Center)
-            .overlay(
-              Path()
-                .width(20)
-                .height(20)
-                .commands('M14 6 L8 12 L14 18')
-                .fillOpacity(0)
-                .stroke('#B3FFFFFF')
-                .strokeWidth(2)
-            )
             .scale({ x: this.backPressed ? MotionTokens.PRESS_BACK : 1, y: this.backPressed ? MotionTokens.PRESS_BACK : 1 })
             .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
             .onTouch((event: TouchEvent) => {
@@ -312,23 +311,20 @@ export struct SettingsContent {
         .fontSize(14)
         .fontColor('#F7FBF8')
       Blank()
-      Stack({ alignContent: Alignment.CenterStart }) {
-        Row()
-          .width(46)
-          .height(28)
-          .borderRadius(14)
-          .backgroundColor(this.isSwitchOn(key) ? '#50ECA7' : '#1FFFFFFF')
-          .border({ width: 1, color: this.isSwitchOn(key) ? '#50ECA7' : '#1AFFFFFF' })
+      Row() {
         Row()
           .width(22)
           .height(22)
           .borderRadius(11)
           .backgroundColor(this.isSwitchOn(key) ? '#07100B' : '#FFFFFF')
-          .translate({ x: this.isSwitchOn(key) ? 20 : 2, y: 0 })
-          .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: MotionTokens.EASE_MOTION })
       }
       .width(46)
       .height(28)
+      .borderRadius(14)
+      .backgroundColor(this.isSwitchOn(key) ? '#50ECA7' : '#1FFFFFFF')
+      .border({ width: 1, color: this.isSwitchOn(key) ? '#50ECA7' : '#1AFFFFFF' })
+      .padding({ left: this.isSwitchOn(key) ? 22 : 2, right: this.isSwitchOn(key) ? 2 : 22 })
+      .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: MotionTokens.EASE_MOTION })
       .onClick(() => {
         this.toggleSwitch(key)
       })
