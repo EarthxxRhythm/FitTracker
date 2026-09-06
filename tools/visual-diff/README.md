@@ -40,6 +40,10 @@ python tools/visual-diff/compare.py .omo/evidence/visual-diff/prototype.png .omo
   prototype's logical size before diffing.
 - `--threshold` per-pixel diff threshold for the "% beyond threshold" metric (default 16).
 - `--bands` number of horizontal row bands (default 10).
+- `--crop y0,y1` measure only a logical content region (e.g. `100,740` to drop the status
+  bar band and the system/bottom-nav band). All metrics, bands, side-by-side and heatmap
+  then describe only that crop. This is the **content-region acceptance口径**：主区域（内容区）
+  超阈像素占比 <=2% 的门槛应在此口径下验证（status/系统条带与文本度量噪声另记）。
 
 ## Reading the report
 
