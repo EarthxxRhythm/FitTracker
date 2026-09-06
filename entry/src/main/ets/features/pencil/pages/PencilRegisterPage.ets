@@ -1,8 +1,8 @@
 /** PencilRegisterPage - FitTracker Register prototype page. */
-import { AppRoutes } from '../../app/AppRoutes'
-import AuthService from '../../common/services/AuthService'
+import { AppRoutes } from '../../../app/AppRoutes'
+import AuthService from '../../../common/services/AuthService'
 import { Context } from '@kit.AbilityKit'
-import { ColorTokens, MotionTokens } from '../../common/styles/DesignTokens'
+import { ColorTokens, MotionTokens } from '../../../common/styles/DesignTokens'
 
 @Entry
 @Component
@@ -18,6 +18,9 @@ struct PencilRegisterPage {
   @State linkKey: string = ''
   @State eyeKey: string = ''
   @State agreePressed: boolean = false
+  @State focusedKey: string = ''
+  @State revealPwd: boolean = false
+  @State revealConfirm: boolean = false
 
   private contextOrNull(): Context | null {
     const host = this.getUIContext().getHostContext()
@@ -81,6 +84,28 @@ struct PencilRegisterPage {
     .alignItems(HorizontalAlign.Center)
   }
 
+  private isFieldFocused(label: string): boolean {
+    return this.focusedKey === label
+  }
+
+  private isPasswordVisible(label: string): boolean {
+    if (label === '密码') {
+      return this.revealPwd
+    }
+    if (label === '确认密码') {
+      return this.revealConfirm
+    }
+    return false
+  }
+
+  private togglePasswordVisible(label: string): void {
+    if (label === '密码') {
+      this.revealPwd = !this.revealPwd
+    } else if (label === '确认密码') {
+      this.revealConfirm = !this.revealConfirm
+    }
+  }
+
   @Builder
   private buildField(label: string, placeholder: string, isPassword: boolean, currentValue: string, onChange: (value: string) => void) {
     Column({ space: 8 }) {
@@ -91,7 +116,7 @@ struct PencilRegisterPage {
         .width('100%')
       Row({ space: 12 }) {
         TextInput({ text: currentValue, placeholder: placeholder })
-          .type(isPassword ? InputType.Password : InputType.Normal)
+          .type(isPassword && !this.isPasswordVisible(label) ? InputType.Password : InputType.Normal)
           .showPasswordIcon(false)
           .layoutWeight(1)
           .fontFamily('Noto Sans SC')
@@ -99,6 +124,12 @@ struct PencilRegisterPage {
           .fontColor('#F7FBF8')
           .placeholderColor('#66FFFFFF')
           .padding(0)
+          .onFocus(() => {
+            this.focusedKey = label
+          })
+          .onBlur(() => {
+            this.focusedKey = ''
+          })
           .onChange((value: string) => {
             onChange(value)
           })
@@ -106,7 +137,7 @@ struct PencilRegisterPage {
           Image($rawfile('pencil-lucide-eye.svg'))
             .width(20)
             .height(20)
-            .fillColor('#8FFFFFFF')
+            .fillColor(this.isPasswordVisible(label) ? ColorTokens.ACCENT_PRIMARY : '#8AFFFFFF')
             .onTouch((event: TouchEvent) => {
               if (event.type === TouchType.Down) {
                 this.eyeKey = label
@@ -116,14 +147,17 @@ struct PencilRegisterPage {
             })
             .scale({ x: this.eyeKey === label ? MotionTokens.PRESS_ICON : 1, y: this.eyeKey === label ? MotionTokens.PRESS_ICON : 1 })
             .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
+            .onClick(() => {
+              this.togglePasswordVisible(label)
+            })
         }
       }
       .width('100%')
       .height(52)
       .padding({ left: 16, right: 16 })
-      .backgroundColor('#05FFFFFF')
+      .backgroundColor(this.isFieldFocused(label) ? '#0D50ECA7' : '#05FFFFFF')
       .borderRadius(18)
-      .border({ width: 1, color: '#14FFFFFF' })
+      .border({ width: 1, color: this.isFieldFocused(label) ? '#7350ECA7' : '#14FFFFFF' })
       .alignItems(VerticalAlign.Center)
       .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
     }
