@@ -74,7 +74,8 @@ export struct BottomTabBar {
     .justifyContent(FlexAlign.Center)
     .backgroundColor(this.isCurrent(item) ? ColorTokens.ACCENT_DEEP : ColorTokens.ACCENT_PRIMARY)
     .borderRadius(RadiusTokens.TAB_ACTIVE)
-    .shadow(ShadowTokens.ACCENT)
+    .shadow(this.isCurrent(item) ? ShadowTokens.TAB_PILL_ACTIVE : ShadowTokens.TAB_PILL)
+    .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: MotionTokens.EASE_MOTION })
   }
 
   build() {
@@ -96,6 +97,7 @@ export struct BottomTabBar {
                 .lineHeight(FontTokens.NAV_LABEL_LINE_HEIGHT)
                 .fontWeight(this.isCurrent(item) ? FontWeight.Bold : FontTokens.NAV_LABEL_WEIGHT)
                 .fontColor(this.getLabelColor(item))
+                .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: MotionTokens.EASE_MOTION })
             }
             .justifyContent(FlexAlign.Center)
             .alignItems(HorizontalAlign.Center)
