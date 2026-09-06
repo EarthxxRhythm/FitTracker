@@ -70,22 +70,21 @@ export struct PlansContent {
 
       Column() {
         Row({ space: 10 }) {
-          Row()
-            .width(44)
+          Row() {
+            Path()
+              .width(20)
+              .height(20)
+              .commands('M14 6 L8 12 L14 18')
+              .fillOpacity(0)
+              .stroke('#B3FFFFFF')
+              .strokeWidth(2)
+          }
+          .width(44)
             .height(44)
             .borderRadius(22)
             .backgroundColor('#0CFFFFFF')
             .border({ width: 1, color: '#14FFFFFF' })
             .justifyContent(FlexAlign.Center)
-            .overlay(
-              Path()
-                .width(20)
-                .height(20)
-                .commands('M14 6 L8 12 L14 18')
-                .fillOpacity(0)
-                .stroke('#B3FFFFFF')
-                .strokeWidth(2)
-            )
             .scale({ x: this.backPressed ? MotionTokens.PRESS_BACK : 1, y: this.backPressed ? MotionTokens.PRESS_BACK : 1 })
             .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
             .onTouch((event: TouchEvent) => {
@@ -204,19 +203,19 @@ export struct PlansContent {
   @Builder
   private groupCard(group: GroupCard) {
     Row({ space: 12 }) {
-      Row()
-        .width(46)
-        .height(46)
-        .borderRadius(15)
-        .backgroundColor('#1A50ECA7')
-        .border({ width: 1, color: '#4050ECA7' })
-        .justifyContent(FlexAlign.Center)
-        .overlay(
-          Image($rawfile('pencil-lucide-dumbbell.svg'))
-            .width(20)
-            .height(20)
-            .fillColor('#50ECA7')
-        )
+      Row() {
+        Image($rawfile('pencil-lucide-dumbbell.svg'))
+          .width(20)
+          .height(20)
+          .fillColor('#50ECA7')
+      }
+      .width(46)
+      .height(46)
+      .borderRadius(15)
+      .backgroundColor('#1A50ECA7')
+      .border({ width: 1, color: '#4050ECA7' })
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
       Column({ space: 5 }) {
         Text(group.name)
           .fontFamily('Noto Sans SC')

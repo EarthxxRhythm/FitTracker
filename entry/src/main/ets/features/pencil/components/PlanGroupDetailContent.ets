@@ -100,22 +100,21 @@ export struct PlanGroupDetailContent {
 
       Column() {
         Row({ space: 10 }) {
-          Row()
-            .width(44)
+          Row() {
+            Path()
+              .width(20)
+              .height(20)
+              .commands('M14 6 L8 12 L14 18')
+              .fillOpacity(0)
+              .stroke('#B3FFFFFF')
+              .strokeWidth(2)
+          }
+          .width(44)
             .height(44)
             .borderRadius(22)
             .backgroundColor('#0CFFFFFF')
             .border({ width: 1, color: '#14FFFFFF' })
             .justifyContent(FlexAlign.Center)
-            .overlay(
-              Path()
-                .width(20)
-                .height(20)
-                .commands('M14 6 L8 12 L14 18')
-                .fillOpacity(0)
-                .stroke('#B3FFFFFF')
-                .strokeWidth(2)
-            )
             .scale({ x: this.backPressed ? MotionTokens.PRESS_BACK : 1, y: this.backPressed ? MotionTokens.PRESS_BACK : 1 })
             .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
             .onTouch((event: TouchEvent) => {
