@@ -69,6 +69,16 @@ Home 基线分解：超阈集中在 band1(84-168 日期/问候文字带,字体�
 - 批次 C/新建：screen-library / body / settings / plans / plan-group
 - 新页注册（main_pages.json + AppRoutes）由协调者统一做；验收 = 390vp ≤2% + 320/360/430 冒烟 + 动效帧。
 
+## ✅ 2026-09-07 全队列执行完成（13/13 outbox）
+
+- 修复：Login/Register 输入聚焦态+密码可见（commit）；新建 Body/Settings/Plans/PlanGroupDetail
+  四页（薄壳+内容组件，静态镜像示例数据）并注册到 main_pages.json(20 页)/AppRoutes（+4 常量）。
+- 核验无改动：Home(有基线)、Plan、Profile、Active、Review、Preview、Complete、Library。
+- 全量编译绿（assembleHap exit=0）与 check-gates 全过。
+- 待办：1) 新页路由接线（profile 快捷入口/plans 点击跳计划组详情/body 与 settings 单位联动）；
+  2) 设备像素/响应式/动效帧验收（13 屏逐屏 --crop 内容区 ≤2%）；3) 趋势折线、封面 icon、
+  错误提示逐字段等已标 gaps；4) 数据可信回归（训练闭环 smoke）。
+
 ## 设备验证状态
 
 - 已打通：渲染参照帧 → 装 HAP → 截图 → compare.py 数值报告（welcome 基线 MAE 32.91/超阈 29.77%，
