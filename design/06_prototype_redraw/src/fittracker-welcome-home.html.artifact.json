@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "fittracker-welcome-home.html",
+  "entry": "fittracker-welcome-home.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-16T10:44:32.871Z",
+  "updatedAt": "2026-08-16T10:44:32.871Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FitTracker · 品牌标识系统</title>
+<style>
+  /* ── FitTracker · Cold Emerald 品牌标识系统（沿用首页设计系统）────────── */
+  :root {
+    --ink-0: #0B0F13;
+    --ink-1: #0A0D12;
+    --canvas: #07100F;
+    --surface: #0D1117;
+    --surface-2: #14241F;
+    --accent: #50ECA7;
+    --accent-deep: #45C9A1;
+    --accent-soft: #8CEBCC;
+    --accent-ink: #0E7A52; /* 亮底文字/线条，WCAG AA ≥4.5:1 */
+    --cta-a: #47D994;
+    --cta-b: #53E7A5;
+    --on-accent: #07100B;
+    --txt-hi: #F7FBF8;
+    --txt-body: #EDF6F2;
+    --warn: #FFD7C5;
+    --glass-10: rgba(255,255,255,.10);
+    --glass-8: rgba(255,255,255,.08);
+    --glass-6: rgba(255,255,255,.06);
+    --hairline: rgba(255,255,255,.08);
+    --font-cn: "Noto Sans SC", "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --font-num: "Inter", "SF Pro Text", -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    --font-mono: "Geist Mono", "JetBrains Mono", "SF Mono", Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background: #07090B;
+    color: var(--txt-body);
+    font-family: var(--font-cn);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    line-height: 1.6;
+  }
+
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 32px; }
+
+  /* 页头 */
+  .page-header { padding: 54px 0 8px; }
+  .kicker {
+    font-family: var(--font-cn);
+    font-size: 13px;
+    letter-spacing: .02em;
+    color: rgba(255,255,255,.54);
+    margin-bottom: 12px;
+  }
+  .page-header h1 {
+    font-size: clamp(32px, 4.5vw, 48px);
+    font-weight: 700;
+    letter-spacing: 0;
+    color: var(--txt-hi);
+    line-height: 1.18;
+  }
+  .page-sub {
+    margin-top: 14px;
+    font-size: 16px;
+    color: rgba(255,255,255,.62);
+    max-width: 720px;
+  }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 20px; }
+  .meta-badge {
+    font-family: var(--font-cn);
+    font-size: 12px;
+    letter-spacing: .01em;
+    color: rgba(255,255,255,.54);
+    background: none;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+  }
+  .meta-badge b { color: rgba(255,255,255,.70); font-weight: 500; }
+
+  /* 章节 */
+  section { padding: 52px 0 8px; }
+  .sec-head { margin-bottom: 26px; }
+  .sec-num {
+    font-family: var(--font-cn);
+    font-size: 12px;
+    letter-spacing: .02em;
+    color: rgba(255,255,255,.54);
+    margin-bottom: 8px;
+  }
+  .sec-head h2 { font-size: 28px; font-weight: 700; color: var(--txt-hi); letter-spacing: 0; }
+  .sec-head p { margin-top: 8px; font-size: 15px; color: rgba(255,255,255,.58); max-width: 760px; }
+
+  /* 符号卡片 */
+  .sym-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .sym-card {
+    border: 1px solid var(--hairline);
+    border-radius: 22px;
+    background: rgba(255,255,255,.025);
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .sym-card.reco { border-color: rgba(80,236,167,.42); }
+  .sym-name { font-size: 16px; font-weight: 700; color: var(--txt-hi); }
+  .sym-name small { display: block; font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--accent); letter-spacing: .08em; margin-top: 3px; }
+  .sym-desc { font-size: 13px; color: rgba(255,255,255,.58); }
+  .reco-tag {
+    align-self: flex-start;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: .1em;
+    color: var(--on-accent);
+    background: var(--accent);
+    border-radius: 999px;
+    padding: 4px 10px;
+    text-transform: uppercase;
+  }
+  .tile-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .tile {
+    border-radius: 22%;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255,255,255,.09);
+  }
+  .tile.dark { background: var(--ink-0); color: var(--accent); }
+  .tile.light { background: #F5F5F7; color: var(--ink-0); border-color: rgba(0,0,0,.08); }
+  .tile.mono-w { background: var(--ink-0); color: #FFFFFF; }
+  .tile.mono-k { background: #F5F5F7; color: var(--ink-0); }
+  .tile.xl { width: 112px; height: 112px; }
+  .tile.xl svg { width: 62px; height: 62px; }
+  .tile.sm { width: 44px; height: 44px; }
+  .tile.sm svg { width: 24px; height: 24px; }
+
+  /* 字标 */
+  .wm-row { display: flex; flex-direction: column; gap: 20px; }
+  .wm-card {
+    border: 1px solid var(--hairline);
+    border-radius: 22px;
+    background: var(--ink-0);
+    padding: 34px 30px;
+  }
+  .wm-label { font-family: var(--font-mono); font-size: 11px; color: rgba(255,255,255,.5); letter-spacing: .08em; margin-bottom: 14px; }
+  .wm-caps {
+    font-family: var(--font-num);
+    font-weight: 700;
+    font-size: clamp(28px, 4vw, 42px);
+    letter-spacing: .18em;
+    color: var(--txt-hi);
+    line-height: 1;
+  }
+  .wm-caps .tr { color: var(--accent); }
+  .wm-case {
+    font-family: var(--font-num);
+    font-size: clamp(30px, 4.2vw, 46px);
+    letter-spacing: -.02em;
+    line-height: 1;
+  }
+  .wm-case .fit { font-weight: 700; color: var(--txt-hi); }
+  .wm-case .tracker { font-weight: 400; color: var(--accent); }
+  .wm-pulse { display: block; width: 100%; margin-top: 18px; height: 10px; color: var(--accent); }
+
+  /* 组合标 */
+  .combo-row { display: flex; flex-direction: column; gap: 18px; }
+  .combo {
+    border: 1px solid var(--hairline);
+    border-radius: 22px;
+    background: var(--ink-0);
+    padding: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+  }
+  .combo.stack { flex-direction: column; gap: 14px; }
+  .combo .sym { color: var(--accent); }
+  .combo .sym svg { width: 46px; height: 46px; display: block; }
+  .combo.stack .sym svg { width: 58px; height: 58px; }
+  .combo .word {
+    font-family: var(--font-num);
+    font-weight: 700;
+    font-size: 30px;
+    letter-spacing: .16em;
+    color: var(--txt-hi);
+  }
+  .combo .word span { color: var(--accent); }
+  .combo-note { font-size: 13px; color: rgba(255,255,255,.5); margin-top: 8px; }
+
+  /* 配色 */
+  .swatch-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .swatch {
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    overflow: hidden;
+    background: rgba(255,255,255,.03);
+  }
+  .swatch .chip { height: 74px; }
+  .swatch .info { padding: 12px 14px; }
+  .swatch .name { font-size: 13px; font-weight: 600; color: var(--txt-hi); }
+  .swatch .role { font-size: 12px; color: rgba(255,255,255,.55); margin-top: 2px; }
+  .swatch .hex { font-family: var(--font-mono); font-size: 11px; color: var(--accent); margin-top: 6px; }
+
+  /* 规则 */
+  .rule-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .rule {
+    border: 1px solid var(--hairline);
+    border-radius: 18px;
+    padding: 20px 22px;
+    background: rgba(255,255,255,.025);
+  }
+  .rule h3 { font-size: 15px; font-weight: 700; color: var(--txt-hi); margin-bottom: 8px; }
+  .rule p, .rule li { font-size: 13.5px; color: rgba(255,255,255,.62); }
+  .rule ul { padding-left: 18px; margin-top: 4px; }
+  .rule li { margin: 3px 0; }
+  .ok { color: var(--accent); font-weight: 600; }
+  .bad { color: var(--warn); font-weight: 600; }
+
+  table.contrast { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+  table.contrast th, table.contrast td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--hairline);
+    color: rgba(255,255,255,.7);
+  }
+  table.contrast th { color: var(--txt-hi); font-weight: 600; font-size: 12px; }
+  table.contrast td.ratio { font-family: var(--font-mono); color: var(--accent); }
+  table.contrast td.fail { color: var(--warn); font-weight: 700; }
+
+  .clearspace {
+    display: flex;
+    align-items: center;
+    gap: 26px;
+    border: 1px dashed rgba(255,255,255,.18);
+    border-radius: 18px;
+    padding: 26px;
+    background: rgba(255,255,255,.02);
+  }
+  .clearspace .cs-sym { color: var(--accent); }
+  .clearspace .cs-sym svg { width: 44px; height: 44px; display: block; }
+  .clearspace .cs-txt { font-size: 13px; color: rgba(255,255,255,.62); }
+  .clearspace .cs-txt b { color: var(--txt-hi); }
+
+  /* 代码块 */
+  pre {
+    background: #05080A;
+    border: 1px solid var(--hairline);
+    border-radius: 16px;
+    padding: 20px;
+    overflow: auto;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: #D8F5E9;
+    white-space: pre;
+  }
+  pre .c { color: #5E6B66; }
+  pre .k { color: var(--accent); }
+  pre .s { color: #8CEBCC; }
+
+  .prompt-card {
+    border: 1px solid var(--hairline);
+    border-radius: 18px;
+    padding: 18px 20px;
+    background: rgba(255,255,255,.025);
+    margin-bottom: 14px;
+  }
+  .prompt-card h3 { font-size: 15px; font-weight: 700; color: var(--txt-hi); margin-bottom: 6px; }
+  .prompt-card .meta { font-family: var(--font-mono); font-size: 11px; color: var(--accent); margin-bottom: 10px; }
+  .prompt-card pre { background: #05080A; margin: 8px 0 0; font-size: 12px; }
+
+  /* 选定方向 · 栅格概念 */
+  .shot-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: start; }
+  .shot {
+    border: 1px solid var(--hairline);
+    border-radius: 18px;
+    overflow: hidden;
+    background: var(--ink-0);
+  }
+  .shot img { display: block; width: 100%; height: auto; }
+  .shot figcaption { padding: 10px 14px; font-size: 12.5px; color: rgba(255,255,255,.62); }
+
+  .foot { padding: 40px 0 64px; font-size: 12px; color: rgba(255,255,255,.45); }
+  .foot b { color: rgba(255,255,255,.68); font-weight: 600; }
+
+  @media (max-width: 900px) {
+    .sym-grid { grid-template-columns: 1fr; }
+    .swatch-grid { grid-template-columns: repeat(2, 1fr); }
+    .rule-grid { grid-template-columns: 1fr; }
+    .shot-grid { grid-template-columns: 1fr; }
+    .wrap { padding: 0 20px; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- 符号定义（可复用到任意屏幕） -->
+  <svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
+    <symbol id="ft-pulse-arrow" viewBox="0 0 48 48">
+      <g fill="none" stroke="currentColor" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 41 L14 13 L38 13"/>
+        <path d="M14 27 L20.4 27 L24 17.2 L28 34.8 L32 24.8 L38 27"/>
+      </g>
+    </symbol>
+    <symbol id="ft-target-pulse" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="8.3" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/>
+      <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4.2 12h2l1.5-4.4 1.3 5.4 1.1-3.9 1.7 3.9 1.1-1"/>
+        <path d="M11 10.2l1.9 1.8-1.9 1.8"/>
+      </g>
+    </symbol>
+    <symbol id="ft-peak-f" viewBox="0 0 24 24">
+      <g fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6.5 21V5"/>
+        <path d="M6.5 5h6.5l3-2.8"/>
+        <path d="M6.5 12h8"/>
+      </g>
+    </symbol>
+  </svg>
+
+  <header class="page-header wrap">
+    <div class="kicker">FitTracker · Brand Identity</div>
+    <h1>品牌标识系统</h1>
+    <p class="page-sub">为 FitTracker 在既有「冷峻翡翠 · Cold Emerald」设计系统之上，建立原创、可落地的标识语言：三个符号方向、两款字标、组合标、配色、使用规则与生成 prompt 路线。</p>
+    <div class="meta-row">
+      <span class="meta-badge">主题 <b>Cold Emerald</b></span>
+      <span class="meta-badge">已选定方向 <b>脉搏 F</b></span>
+      <span class="meta-badge">强调色 <b>#50ECA7</b></span>
+      <span class="meta-badge">交付 <b>矢量 SVG · 原创</b></span>
+    </div>
+  </header>
+
+  <!-- 00.5 选定方向 · 矢量主标识 -->
+  <section class="wrap" data-od-id="selected-direction">
+    <div class="sec-head">
+      <div class="sec-num">00.5 · Selected</div>
+      <h2>选定方向 · 脉搏 F</h2>
+      <p>锁定「脉搏 F」：清晰的大写 F（竖笔 + 顶横 + 中间一道心跳脉搏），粗线宽、无箭头，一眼可读。下方为最终矢量主符号（暗底 / 亮底 / 单色白 / 单色墨）；栅格概念图待按 07 的新 prompt 重跑。</p>
+    </div>
+    <div class="tile-row">
+      <span class="tile dark xl"><svg><use href="#ft-pulse-arrow"/></svg></span>
+      <span class="tile light xl"><svg><use href="#ft-pulse-arrow"/></svg></span>
+      <span class="tile mono-w sm"><svg><use href="#ft-pulse-arrow"/></svg></span>
+      <span class="tile mono-k sm"><svg><use href="#ft-pulse-arrow"/></svg></span>
+    </div>
+  </section>
+
+  <!-- 00 审美方向与约束 -->
+  <section class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">00 · Direction</div>
+      <h2>审美方向与约束</h2>
+      <p>沿用现有冷峻翡翠系统，仅升级 logo 形态。标识负责「运动 + 追踪」两个语义，气质更大胆、更有艺术表现力，同时保持精准克制。</p>
+    </div>
+    <div class="rule-grid">
+      <div class="rule">
+        <h3>做</h3>
+        <ul>
+          <li>清晰大写 F，中间横笔为一道心跳脉搏，无箭头。</li>
+          <li>粗线宽、圆角端点、宽字距大写几何无衬线。</li>
+          <li>只用翡翠一个强调色 + 深墨底。</li>
+          <li>克制留白，图形永远是最强的一层。</li>
+        </ul>
+      </div>
+      <div class="rule">
+        <h3>不做</h3>
+        <ul>
+          <li>前进箭头 / 斜切速度线（避免 F1 联想）。</li>
+          <li>哑铃 / 肌肉 / 心跳拟物插画。</li>
+          <li>渐变金属、厚重投影、多色噪点描边。</li>
+          <li>第二套高饱和强调色。</li>
+          <li>把脉搏折线做成杂乱心电图。</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 01 符号 -->
+  <section class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">01 · Symbol</div>
+      <h2>符号 · 主方向与备选</h2>
+      <p>主方向为「脉搏 F」（已选定）；下方保留旧备选符号作参考。每个符号提供 暗底 / 亮底 / 单色白 / 单色墨 四种变体。</p>
+    </div>
+    <div class="sym-grid">
+      <div class="sym-card reco" data-od-id="sym-a">
+        <span class="reco-tag">已选定</span>
+        <div class="sym-name">脉搏 F<small>PULSE F</small></div>
+        <div class="sym-desc">清晰大写 F：竖笔 + 顶横，中间横笔为一道心跳脉搏。粗线宽、圆角端点、无箭头，语义「记录脉搏、继续前进」，可读性与识别度最高。</div>
+        <div class="tile-row">
+          <span class="tile dark xl"><svg><use href="#ft-pulse-arrow"/></svg></span>
+          <span class="tile light xl"><svg><use href="#ft-pulse-arrow"/></svg></span>
+          <span class="tile mono-w sm"><svg><use href="#ft-pulse-arrow"/></svg></span>
+          <span class="tile mono-k sm"><svg><use href="#ft-pulse-arrow"/></svg></span>
+        </div>
+      </div>
+      <div class="sym-card" data-od-id="sym-b">
+        <div class="sym-name">目标脉冲<small>TARGET PULSE</small></div>
+        <div class="sym-desc">轨道环 + 中心节点 + 贯穿的脉搏箭头，语义「在目标轨道上追踪每一次心跳」。更适合作为独立 App 图标。</div>
+        <div class="tile-row">
+          <span class="tile dark xl"><svg><use href="#ft-target-pulse"/></svg></span>
+          <span class="tile light xl"><svg><use href="#ft-target-pulse"/></svg></span>
+          <span class="tile mono-w sm"><svg><use href="#ft-target-pulse"/></svg></span>
+          <span class="tile mono-k sm"><svg><use href="#ft-target-pulse"/></svg></span>
+        </div>
+      </div>
+      <div class="sym-card" data-od-id="sym-c">
+        <div class="sym-name">峰形 F<small>PEAK F</small></div>
+        <div class="sym-desc">字母 F 的上横笔上挑成山峰，语义「登顶与进步」。品牌专属字母资产，适合需要「F」记忆点的场景。</div>
+        <div class="tile-row">
+          <span class="tile dark xl"><svg><use href="#ft-peak-f"/></svg></span>
+          <span class="tile light xl"><svg><use href="#ft-peak-f"/></svg></span>
+          <span class="tile mono-w sm"><svg><use href="#ft-peak-f"/></svg></span>
+          <span class="tile mono-k sm"><svg><use href="#ft-peak-f"/></svg></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 字标 -->
+  <section class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">02 · Wordmark</div>
+      <h2>字标 · 两款</h2>
+      <p>字重与字距已固化，便于跨端复刻。字体栈：Inter / SF Pro Text / Helvetica Neue（几何无衬线）。</p>
+    </div>
+    <div class="wm-row">
+      <div class="wm-card" data-od-id="wm-caps">
+        <div class="wm-label">W1 · 全大写 · 宽字距 · 导航/紧凑场景</div>
+        <div class="wm-caps">FIT<span class="tr">TRACKER</span></div>
+        <svg class="wm-pulse" viewBox="0 0 120 10" preserveAspectRatio="none" aria-hidden="true">
+          <polyline points="0,5 45,5 52,1 59,5 120,5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="wm-card" data-od-id="wm-case">
+        <div class="wm-label">W2 · 首字母大写 · 双字重 · 展示/欢迎场景</div>
+        <div class="wm-case"><span class="fit">Fit</span><span class="tracker">Tracker</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 组合标 -->
+  <section class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">03 · Lockup</div>
+      <h2>组合标</h2>
+      <p>符号 + 字标的横向与纵向锁定。以选定方向「脉搏 F」为默认。</p>
+    </div>
+    <div class="combo-row">
+      <div class="combo" data-od-id="combo-h">
+        <span class="sym"><svg><use href="#ft-pulse-arrow"/></svg></span>
+        <span class="word">FIT<span>TRACKER</span></span>
+      </div>
+      <div class="combo stack" data-od-id="combo-v">
+        <span class="sym"><svg><use href="#ft-pulse-arrow"/></svg></span>
+        <span class="word">FIT<span>TRACKER</span></span>
+      </div>
+      <div class="combo-note">横向锁定用于顶栏 / 页脚；纵向锁定用于登录页、欢迎页与社交头像。符号与字标间距 = 0.55 × 符号宽度。</div>
+    </div>
+  </section>
+
+  <!-- 04 配色 -->
+  <section class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">04 · Color</div>
+      <h2>配色</h2>
+      <p>主翡翠只在暗底发光；亮底文字/线条改用深翡翠，保证可读性。</p>
+    </div>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="chip" style="background:#50ECA7"></div><div class="info"><div class="name">主强调 Emerald</div><div class="role">动作 / 链接 / 标识强调</div><div class="hex">#50ECA7</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#45C9A1"></div><div class="info"><div class="name">强调深 Emerald Deep</div><div class="role">按下 / 次级</div><div class="hex">#45C9A1</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#8CEBCC"></div><div class="info"><div class="name">强调浅 Emerald Soft</div><div class="role">点缀 / 高亮细节</div><div class="hex">#8CEBCC</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#0E7A52"></div><div class="info"><div class="name">深翡翠 Emerald Ink</div><div class="role">亮底文字/线条（AA）</div><div class="hex">#0E7A52</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#0B0F13"></div><div class="info"><div class="name">墨黑 Ink</div><div class="role">品牌深底</div><div class="hex">#0B0F13</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#07100F"></div><div class="info"><div class="name">深绿黑 Canvas</div><div class="role">沉浸底 / 完成页</div><div class="hex">#07100F</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#0D1117"></div><div class="info"><div class="name">面板 Surface</div><div class="role">卡片 / 浮层</div><div class="hex">#0D1117</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#F7FBF8"></div><div class="info"><div class="name">文字 Hi</div><div class="role">主文字（暗底）</div><div class="hex">#F7FBF8</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#EDF6F2"></div><div class="info"><div class="name">文字 Body</div><div class="role">正文（暗底）</div><div class="hex">#EDF6F2</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#07100B"></div><div class="info"><div class="name">强调上 on-accent</div><div class="role">翡翠按钮上的文字</div><div class="hex">#07100B</div></div></div>
+      <div class="swatch"><div class="chip" style="background:#FFD7C5"></div><div class="info"><div class="name">警示 Warn</div><div class="role">错误 / 提醒</div><div class="hex">#FFD7C5</div></div></div>
+    </div>
+  </section>
+
+  <!-- 05 使用规则 -->
+  <section class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">05 · Usage</div>
+      <h2>使用规则</h2>
+    </div>
+
+    <div class="rule-grid">
+      <div class="rule">
+        <h3>清晰空间</h3>
+        <div class="clearspace" style="margin-top:6px">
+          <span class="cs-sym"><svg><use href="#ft-pulse-arrow"/></svg></span>
+          <span class="cs-txt">符号四周留白 ≥ <b>0.5 × 符号宽度</b>；组合标中符号与字标间距 = <b>0.55 × 符号宽度</b>。虚线为最小保护区。</span>
+        </div>
+      </div>
+      <div class="rule">
+        <h3>最小尺寸</h3>
+        <ul>
+          <li>符号：UI 内 ≥ <b>24px</b>；App 图标母版 <b>1024px</b>。</li>
+          <li>全大写字标：高度 ≥ <b>12px</b>；双字重字标：高度 ≥ <b>20px</b>。</li>
+          <li>低于下限时改用单符号，不放字标。</li>
+        </ul>
+      </div>
+      <div class="rule">
+        <h3>变体</h3>
+        <ul>
+          <li><span class="ok">暗底</span>：翡翠 #50ECA7（默认）。</li>
+          <li><span class="ok">亮底</span>：墨黑 #0B0F13 或深翡翠 #0E7A52。</li>
+          <li><span class="ok">单色</span>：纯白（玻璃/导航）或纯墨（打印/传真）。</li>
+        </ul>
+      </div>
+      <div class="rule">
+        <h3>禁忌</h3>
+        <ul>
+          <li><span class="bad">禁止</span>拉伸、旋转、加投影、加渐变金属。</li>
+          <li><span class="bad">禁止</span>在亮底用主翡翠做文字（对比 1.5:1，不达标）。</li>
+          <li><span class="bad">禁止</span>更换圆角为全圆或改变折线角度。</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="rule" style="margin-top:18px">
+      <h3>对比度（实测）</h3>
+      <table class="contrast">
+        <tr><th>前景</th><th>背景</th><th>对比度</th><th>等级</th></tr>
+        <tr><td>#50ECA7 翡翠</td><td>#0B0F13 墨黑</td><td class="ratio">12.73:1</td><td>AAA</td></tr>
+        <tr><td>#50ECA7 翡翠</td><td>#07100F 深绿黑</td><td class="ratio">12.75:1</td><td>AAA</td></tr>
+        <tr><td>#F7FBF8 文字 Hi</td><td>#0B0F13 墨黑</td><td class="ratio">18.42:1</td><td>AAA</td></tr>
+        <tr><td>#07100B on-accent</td><td>#50ECA7 翡翠</td><td class="ratio">12.77:1</td><td>AAA</td></tr>
+        <tr><td>#0E7A52 深翡翠</td><td>#F5F5F7 亮灰</td><td class="ratio">4.91:1</td><td>AA</td></tr>
+        <tr><td>#50ECA7 翡翠</td><td>#FFFFFF 纯白</td><td class="ratio fail">1.51:1</td><td>不达标</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <!-- 06 落地 -->
+  <section class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">06 · Drop-in</div>
+      <h2>落到当前 artifact</h2>
+      <p>现有屏幕用 <code>#i-activity</code> 占位 + 纯文字 <code>FITTRACKER</code>。替换为下方矢量符号即可，颜色随 <code>color</code> 继承，无需改布局。</p>
+    </div>
+    <pre><span class="c">&lt;!-- 1) 替换 #i-activity 内的路径为「脉搏 F」（stroke 随 currentColor 继承） --&gt;</span>
+<span class="k">&lt;g</span> <span class="s">fill="none" stroke="currentColor" stroke-width="2.6"</span>
+   <span class="s">stroke-linecap="round" stroke-linejoin="round"</span><span class="k">&gt;</span>
+  <span class="k">&lt;path</span> <span class="s">d="M7 20.5 L7 6.5 L19 6.5"</span><span class="k">/&gt;</span>
+  <span class="k">&lt;path</span> <span class="s">d="M7 13.5 L10.2 13.5 L12 8.6 L14 17.4 L16 12.4 L19 13.5"</span><span class="k">/&gt;</span>
+<span class="k">&lt;/g&gt;</span>
+
+<span class="c">&lt;!-- 2) 替换占位 use（保持不变，三处引用自动生效） --&gt;</span>
+<span class="k">&lt;svg&gt;&lt;use</span> <span class="s">href="#i-activity"</span><span class="k">/&gt;&lt;/svg&gt;</span>   <span class="c">原：#i-activity</span>
+
+<span class="c">&lt;!-- 3) 字标：翡翠收尾 + 宽字距 --&gt;</span>
+<span class="k">&lt;span</span> <span class="s">class="word"</span><span class="k">&gt;</span>FIT<span class="k">&lt;span</span> <span class="s">style="color:var(--accent)"</span><span class="k">&gt;</span>TRACKER<span class="k">&lt;/span&gt;&lt;/span&gt;</span></pre>
+  </section>
+
+  <!-- 07 生成 prompt 路线 -->
+  <section class="wrap">
+    <div class="sec-head">
+      <div class="sec-num">07 · Prompts</div>
+      <h2>生成 prompt 路线</h2>
+      <p>以下 prompt 可直接投喂 imagegen 复跑栅格概念图。文字类（字标/组合标）优先选 nano-banana；纯符号可选 gpt-image / nano-banana。主符号统一带「no text / no arrow」并保留翡翠渐变。</p>
+    </div>
+
+    <div class="prompt-card">
+      <h3>P1 · 主符号 脉搏 F（1:1）</h3>
+      <div class="meta">subject=bold letter F + heartbeat · style=bold emerald line · palette=emerald on dark</div>
+      <pre>Premium minimalist logo symbol for a high-end fitness tracking brand: a bold, instantly readable capital letter F drawn with a thick rounded line. The vertical stem and top bar are clean and geometric, while the middle bar is a single heartbeat pulse line (flat baseline, one sharp up-spike, one dip, back to baseline). Solid emerald #50ECA7 line art on a deep near-black teal background #0B0F13. Bold weight, round caps, generous clear space, centered square composition. Flat vector, crisp anti-aliased edges, no arrow, no text, no gradient, no drop shadow, no watermark.</pre>
+    </div>
+
+    <div class="prompt-card">
+      <h3>P2 · 符号 B 目标脉冲（1:1）</h3>
+      <div class="meta">subject=target ring + pulse · style=minimal vector · palette=emerald on dark</div>
+      <pre>Minimalist app icon: a thin circular progress ring with a small solid dot at its center, and a single angular heartbeat pulse line passing through the center dot, ending in a small forward arrow. Emerald green line art (hex #50ECA7) on a deep near-black teal rounded square (hex #0B0F13). Flat vector, premium Apple-like restraint, no gradients, no drop shadow, no text, no letters, square composition.</pre>
+    </div>
+
+    <div class="prompt-card">
+      <h3>P3 · 符号 C 峰形 F（1:1）</h3>
+      <div class="meta">subject=F monogram · style=minimal vector · palette=emerald on dark</div>
+      <pre>Minimalist geometric monogram logo for a fitness brand named FitTracker: a stylized letter F drawn with sharp angular strokes whose top arm ascends into a mountain-peak tip, suggesting progress and summit. Single continuous emerald green stroke (hex #50ECA7) on deep near-black teal (hex #0B0F13). Flat vector, no gradients, no drop shadow, no extra text, square composition.</pre>
+    </div>
+
+    <div class="prompt-card">
+      <h3>P4 · 字标（16:9）</h3>
+      <div class="meta">subject=logotype · style=geometric sans · text fidelity required</div>
+      <pre>Premium geometric sans-serif logotype for a fitness brand named FITTRACKER, all caps, wide letter-spacing, crisp vector letters. Render FIT in near-white and TRACKER in emerald green (hex #50ECA7) on a deep near-black background (hex #0B0F13). Flat vector, no gradients, no drop shadow, no icon, horizontal lockup, sharp vector edges.</pre>
+    </div>
+
+    <div class="prompt-card">
+      <h3>P5 · 组合标 横向锁定（16:9）</h3>
+      <div class="meta">subject=emblem + wordmark · style=minimal vector · text fidelity required</div>
+      <pre>Brand lockup for a fitness app: on the left a small abstract emerald pulse-brush letter F emblem, on the right the wordmark FITTRACKER in a geometric sans-serif with FIT in near-white and TRACKER in emerald green (hex #50ECA7), all on deep near-black (hex #0B0F13). Flat vector, minimal, precise, premium restraint, horizontal composition, no gradients.</pre>
+    </div>
+
+    <div class="prompt-card">
+      <h3>P6 · App 图标母版（1:1 · 高清）</h3>
+      <div class="meta">subject=app icon · style=flat vector · resolution=high</div>
+      <pre>Premium iOS-style app icon for FitTracker, 1024px: an abstract emerald pulse-brush letter F emblem (hex #50ECA7) centered on a deep near-black teal rounded-square tile (hex #0B0F13) with a very subtle darker vignette. Flat vector, crisp, no text, no gradients, no gloss, generous padding.</pre>
+    </div>
+
+    <div class="prompt-card">
+      <h3>P7 · 亮底变体</h3>
+      <div class="meta">subject=same emblem · style=minimal vector · palette=ink on light</div>
+      <pre>Light variant of the same emblem: near-black ink (hex #0B0F13) on a pale neutral background (hex #F5F5F7), flat vector, no text, no gradients, no drop shadow, square composition.</pre>
+    </div>
+  </section>
+
+  <footer class="foot wrap">
+    <b>已选定方向：</b>符号「脉搏 F」+ 全大写字标 + 横向组合标。矢量符号为清晰大写 F + 心跳脉搏横笔（无箭头）；实际落地使用同款矢量 SVG（见 06 落地）。
+  </footer>
+</body>
+</html>

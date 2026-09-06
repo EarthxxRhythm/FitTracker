@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "fittracker-webapp.html",
+  "entry": "fittracker-webapp.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-09-05T13:06:33.017Z",
+  "updatedAt": "2026-09-05T13:06:33.017Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

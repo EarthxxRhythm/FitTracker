@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>openGym Stats 组件 · 1:1 还原</title>
+<style>
+  :root {
+    --bg: #000000;
+    --bg-el: #0e0e10;
+    --surface: #1c1c1e;
+    --surface-2: #2c2c2e;
+    --surface-3: #3a3a3c;
+    --label: #ffffff;
+    --label-2: #ebebf599;
+    --label-3: #ebebf552;
+    --label-4: #ebebf52e;
+    --sep: #54545899;
+    --sep-op: #54545857;
+    --green: #30d158;
+    --red: #ff453a;
+    --orange: #ff9f0a;
+    --yellow: #ffd60a;
+    --acc: var(--green);
+    --acc-2: #248a3d;
+    --on-acc: #000000;
+    --acc-soft: color-mix(in srgb, var(--acc) 16%, transparent);
+    --acc-line: color-mix(in srgb, var(--acc) 38%, transparent);
+    --r-sm: 8px;
+    --r: 12px;
+    --r-lg: 16px;
+    --r-xl: 22px;
+    --r-card: 14px;
+    --pad: 16px;
+    --ease: cubic-bezier(.32, .72, 0, 1);
+    --fast: .14s;
+    --med: .22s;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { background: #000; -webkit-text-size-adjust: 100%; font-size: 16px; overflow-x: clip; }
+  body {
+    background: #050506;
+    color: var(--label);
+    letter-spacing: -.01em;
+    -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto, "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.29;
+    overflow-x: clip;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; letter-spacing: inherit; background: transparent; border: none; }
+  :focus-visible { outline: 2.5px solid var(--acc); outline-offset: 2px; border-radius: 6px; }
+
+  .page-note {
+    max-width: 430px;
+    margin: 0 auto;
+    padding: 20px 16px 12px;
+    color: #9a9aa0;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .page-note b { color: #e6e6e8; font-weight: 600; }
+
+  .phone {
+    position: relative;
+    width: 390px;
+    height: 844px;
+    margin: 0 auto 40px;
+    border-radius: 54px;
+    border: 1px solid #2a2a2c;
+    background: #000;
+    overflow: hidden;
+    box-shadow: 0 32px 80px rgba(0,0,0,.55);
+  }
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    padding: 12px 16px 24px;
+    gap: 14px;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .screen::-webkit-scrollbar { display: none; }
+
+  .card {
+    background: var(--bg-el);
+    border: 1px solid #1f1f21;
+    border-radius: var(--r-xl);
+    padding: 16px;
+  }
+  .card-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .card-title h2 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -.022em;
+    line-height: 1.1;
+  }
+  .card-title .meta { font-size: 12px; color: var(--label-3); }
+
+  /* 分段控件（openGym .seg） */
+  .seg {
+    background: var(--surface-3);
+    isolation: isolate;
+    border-radius: 9px;
+    padding: 2px;
+    display: flex;
+    position: relative;
+    width: 100%;
+    --n: 3;
+    --i: 0;
+  }
+  .seg-sel {
+    position: absolute;
+    inset: 2px;
+    z-index: 0;
+    width: calc((100% - 4px) / var(--n));
+    transform: translateX(calc(100% * var(--i)));
+    background: var(--surface);
+    border-radius: 7px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+    transition: transform var(--med) var(--ease);
+  }
+  .seg button {
+    z-index: 1;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 32px;
+    padding: 0 8px;
+    letter-spacing: -.006em;
+    color: var(--label-2);
+    font-size: 13px;
+    font-weight: 400;
+    border-radius: 7px;
+    transition: opacity var(--fast) ease, color var(--fast) ease;
+  }
+  .seg button.on { color: var(--label); font-weight: 600; }
+  .seg button:active { opacity: .5; }
+
+  /* 身体肌肉地图 */
+  .bodymap {
+    --bm-base: color-mix(in srgb, var(--label) 11%, var(--surface));
+    justify-content: center;
+    align-items: flex-start;
+    gap: 6px;
+    display: flex;
+    margin-top: 14px;
+  }
+  .bm-v { flex: 1; min-width: 0; height: auto; max-height: min(44vh, 330px); }
+  .bm-sil { fill: color-mix(in srgb, var(--label) 18%, var(--surface)); }
+  .bm-m { fill: var(--bm-base); transition: fill var(--med) var(--ease); }
+  .bm-m.l1 { fill: color-mix(in srgb, var(--acc) 32%, var(--bm-base)); }
+  .bm-m.l2 { fill: color-mix(in srgb, var(--acc) 56%, var(--bm-base)); }
+  .bm-m.l3 { fill: color-mix(in srgb, var(--acc) 78%, var(--bm-base)); }
+  .bm-m.l4 { fill: var(--acc); }
+  .hm-fatigue .bm-m.l4 { fill: var(--red); }
+  .hm-fatigue .bm-m.l3 { fill: var(--orange); }
+  .hm-fatigue .bm-m.l2 { fill: var(--yellow); }
+  .hm-fatigue .bm-m.l1 { fill: color-mix(in srgb, var(--yellow) 32%, var(--bm-base)); }
+  .hm-strength .bm-m.l4 { fill: var(--yellow); filter: drop-shadow(0 0 1.5px var(--yellow)); }
+  .bm-m.sel { stroke: var(--label); stroke-width: 7px; }
+  .bm-v path { stroke: var(--surface); stroke-width: 2.5px; stroke-linejoin: round; }
+  .bodymap.tappable .bm-m { cursor: pointer; }
+
+  .hm-legend {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    margin-top: 12px;
+    font-size: 11px;
+    color: var(--label-3);
+  }
+  .hm-c { width: 10px; height: 10px; border-radius: 3px; background: var(--surface-2); }
+  .hm-c.l1 { background: color-mix(in srgb, var(--acc) 32%, var(--surface-2)); }
+  .hm-c.l2 { background: color-mix(in srgb, var(--acc) 56%, var(--surface-2)); }
+  .hm-c.l3 { background: color-mix(in srgb, var(--acc) 78%, var(--surface-2)); }
+  .hm-c.l4 { background: var(--acc); }
+  .hm-fatigue .hm-c.l4 { background: var(--red); }
+  .hm-fatigue .hm-c.l3 { background: var(--orange); }
+  .hm-fatigue .hm-c.l2 { background: var(--yellow); }
+  .hm-strength .hm-c.l4 { background: var(--yellow); }
+
+  .hm-note { margin-top: 10px; font-size: 12px; color: var(--label-3); line-height: 1.45; }
+
+  /* 选中肌肉详情行 */
+  .mrow {
+    align-items: center;
+    gap: 9px;
+    padding: 8px 0;
+    display: flex;
+    margin-top: 6px;
+  }
+  .mrow .nm { text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; font-size: 14px; overflow: hidden; }
+  .mrow .bar { background: var(--surface-2); border-radius: 3px; flex: none; width: 74px; height: 5px; overflow: hidden; }
+  .mrow .bar i { background: var(--acc); border-radius: 3px; height: 100%; display: block; }
+  .mrow .v { color: var(--label-2); text-align: right; flex: none; min-width: 52px; font-size: 12px; }
+
+  /* 图表 */
+  .chart { width: 100%; overflow: hidden; margin-top: 6px; }
+  .chart svg { width: 100%; height: auto; display: block; }
+
+  /* 体重目标头部动作 */
+  .wg-actions { display: flex; align-items: center; gap: 8px; }
+  .pill {
+    background: var(--surface-2);
+    color: var(--label-2);
+    border-radius: 99px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .pill.goal { background: var(--acc-soft); color: var(--acc); }
+  .log-btn {
+    background: var(--surface-2);
+    color: var(--label);
+    border-radius: 99px;
+    padding: 6px 13px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .wg-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--label-3);
+  }
+  .wg-foot .cur { font-size: 17px; font-weight: 600; color: var(--label); letter-spacing: -.01em; }
+
+  /* 1RM 列表 */
+  .rm-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--sep-op);
+  }
+  .rm-row:last-child { border-bottom: 0; }
+  .rm-name { flex: 1 1 auto; min-width: 0; font-size: 15px; }
+  .rm-src { flex: 0 0 auto; font-size: 11px; color: var(--label-3); }
+  .rm-value { flex: 0 0 auto; font-size: 17px; font-weight: 700; letter-spacing: -.02em; }
+  .rm-value .u { font-size: 11px; color: var(--acc); font-weight: 500; margin-left: 2px; }
+</style>
+</head>
+<body>
+  <p class="page-note">以下为 <b>openGym Stats</b> 三个组件的 1:1 还原：体重与目标、肌肉地图、估算 1RM。身体图使用 openGym 原始 SVG 路径，视觉 token 取自其 CSS。</p>
+
+  <div class="phone">
+    <div class="screen">
+      <!-- 体重与目标 -->
+      <section class="card" data-od-id="openstats-weight-goal">
+        <div class="card-title">
+          <h2>体重与目标</h2>
+          <div class="wg-actions">
+            <span class="pill goal">目标 68 kg</span>
+            <button class="log-btn" type="button">记录</button>
+          </div>
+        </div>
+        <div class="chart" aria-label="体重曲线与目标线">
+          <svg viewBox="0 0 342 132" role="img">
+            <line x1="12" y1="16" x2="330" y2="16" stroke="#2c2c2e" stroke-width="1" />
+            <line x1="12" y1="44" x2="330" y2="44" stroke="#2c2c2e" stroke-width="1" />
+            <line x1="12" y1="72" x2="330" y2="72" stroke="#2c2c2e" stroke-width="1" />
+            <line x1="12" y1="100" x2="330" y2="100" stroke="#2c2c2e" stroke-width="1" />
+            <line x1="12" y1="90" x2="330" y2="90" stroke="#ebebf552" stroke-width="1" stroke-dasharray="4 4" />
+            <polygon points="12,120 12,42 57,49 102,47 147,58 192,64 237,60 282,68 330,74 330,120" fill="rgba(48,209,88,.12)" />
+            <polyline points="12,42 57,49 102,47 147,58 192,64 237,60 282,68 330,74" fill="none" stroke="#30d158" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+            <circle cx="12" cy="42" r="3" fill="#30d158" />
+            <circle cx="57" cy="49" r="3" fill="#30d158" />
+            <circle cx="102" cy="47" r="3" fill="#30d158" />
+            <circle cx="147" cy="58" r="3" fill="#30d158" />
+            <circle cx="192" cy="64" r="3" fill="#30d158" />
+            <circle cx="237" cy="60" r="3" fill="#30d158" />
+            <circle cx="282" cy="68" r="3" fill="#30d158" />
+            <circle cx="330" cy="74" r="3" fill="#30d158" />
+          </svg>
+        </div>
+        <div class="wg-foot">
+          <span>当前 <span class="cur">69.2 kg</span></span>
+          <span>较上月 -0.8 kg</span>
+        </div>
+      </section>
+
+      <!-- 肌肉地图 -->
+      <section class="card" data-od-id="openstats-muscle-map">
+        <div class="card-title">
+          <h2>肌肉地图</h2>
+          <span class="meta" id="mm-meta">近 30 天 · 训练量</span>
+        </div>
+        <div class="seg" id="mm-seg" role="group" aria-label="肌肉地图模式">
+          <span class="seg-sel"></span>
+          <button type="button" class="on" data-mode="balance">肌肉平衡</button>
+          <button type="button" data-mode="fatigue">疲劳</button>
+          <button type="button" data-mode="strength">力量</button>
+        </div>
+        <div class="bodymap tappable" id="bodymap"></div>
+        <div class="hm-legend" id="hm-legend" aria-hidden="true">
+          <span>低</span>
+          <span class="hm-c l1"></span>
+          <span class="hm-c l2"></span>
+          <span class="hm-c l3"></span>
+          <span class="hm-c l4"></span>
+          <span>高</span>
+        </div>
+        <div id="mm-detail"></div>
+        <p class="hm-note" id="mm-note">胸部训练量最高，核心最少。</p>
+      </section>
+
+      <!-- 估算 1RM -->
+      <section class="card" data-od-id="openstats-estimated-1rm">
+        <div class="card-title">
+          <h2>估算 1RM</h2>
+          <span class="meta">来自最佳有效组</span>
+        </div>
+        <div class="rm-row">
+          <span class="rm-name">杠铃卧推</span>
+          <span class="rm-src">6月10日 · 第3组</span>
+          <span class="rm-value">62.5<span class="u">kg</span></span>
+        </div>
+        <div class="rm-row">
+          <span class="rm-name">杠铃深蹲</span>
+          <span class="rm-src">6月8日 · 第2组</span>
+          <span class="rm-value">95<span class="u">kg</span></span>
+        </div>
+        <div class="rm-row">
+          <span class="rm-name">杠铃硬拉</span>
+          <span class="rm-src">6月5日 · 第1组</span>
+          <span class="rm-value">105<span class="u">kg</span></span>
+        </div>
+        <div class="rm-row">
+          <span class="rm-name">杠铃划船</span>
+          <span class="rm-src">6月3日 · 第2组</span>
+          <span class="rm-value">58<span class="u">kg</span></span>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="assets/opengym-ref/body-paths.iife.js"></script>
+  <script>
+    (function () {
+      var RO = ['head', 'hair', 'neck', 'hands', 'feet', 'knees', 'ankles'];
+      var NO = ['trapezius', 'deltoids', 'chest', 'upper-back', 'serratus', 'biceps', 'triceps', 'forearm', 'abs', 'obliques', 'lower-back', 'gluteal', 'quadriceps', 'hamstring', 'adductors', 'hip-flexors', 'calves', 'tibialis'];
+      var LABELS = { trapezius: '斜方肌', deltoids: '肩', chest: '胸', 'upper-back': '上背', serratus: '前锯肌', biceps: '二头', triceps: '三头', forearm: '前臂', abs: '腹', obliques: '腹斜肌', 'lower-back': '下背', gluteal: '臀', quadriceps: '股四头', hamstring: '腘绳肌', adductors: '内收肌', 'hip-flexors': '髋屈肌', calves: '小腿', tibialis: '胫骨' };
+      var LEVELS = {
+        balance: { chest: 4, quadriceps: 4, gluteal: 3, hamstring: 3, deltoids: 3, biceps: 3, triceps: 3, 'upper-back': 3, abs: 3, obliques: 2, 'lower-back': 2, serratus: 2, forearm: 2, trapezius: 2, calves: 2, adductors: 1, 'hip-flexors': 1, tibialis: 1 },
+        fatigue: { chest: 2, quadriceps: 4, gluteal: 4, hamstring: 3, 'upper-back': 3, deltoids: 2, biceps: 2, triceps: 2, calves: 1, abs: 1, obliques: 1, 'lower-back': 1, serratus: 1, forearm: 1, trapezius: 1, adductors: 1, 'hip-flexors': 1, tibialis: 1 },
+        strength: { chest: 4, quadriceps: 4, gluteal: 3, hamstring: 3, 'upper-back': 3, deltoids: 3, biceps: 2, triceps: 2, abs: 2, calves: 2, obliques: 1, 'lower-back': 1, serratus: 1, forearm: 1, trapezius: 1, adductors: 1, 'hip-flexors': 1, tibialis: 1 }
+      };
+      var META = { balance: '近 30 天 · 训练量', fatigue: '当前恢复状态', strength: '力量与最佳成绩' };
+      var NOTE = {
+        balance: '胸部训练量最高，核心最少。',
+        fatigue: '腿部与臀部疲劳度较高，建议优先恢复。',
+        strength: '胸部与腿部力量最强，核心相对薄弱。'
+      };
+
+      var body = window.BODY_PATHS && window.BODY_PATHS.male;
+      var bodymap = document.getElementById('bodymap');
+      var seg = document.getElementById('mm-seg');
+      var meta = document.getElementById('mm-meta');
+      var note = document.getElementById('mm-note');
+      var detail = document.getElementById('mm-detail');
+      var legend = document.getElementById('hm-legend');
+      var currentMode = 'balance';
+      var selected = null;
+
+      function buildView(view, mode) {
+        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'bm-v');
+        svg.setAttribute('viewBox', view.vb);
+        svg.setAttribute('role', 'img');
+        svg.setAttribute('aria-label', '肌肉地图');
+        RO.forEach(function (k) {
+          (view.p[k] || []).forEach(function (d) {
+            var p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            p.setAttribute('class', 'bm-sil');
+            p.setAttribute('d', d);
+            svg.appendChild(p);
+          });
+        });
+        NO.forEach(function (k) {
+          if (!view.p[k]) { return; }
+          var lvl = LEVELS[mode][k] || 0;
+          view.p[k].forEach(function (d) {
+            var p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            p.setAttribute('class', 'bm-m l' + lvl + (selected === k ? ' sel' : ''));
+            p.setAttribute('data-muscle', k);
+            p.setAttribute('d', d);
+            var title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+            title.textContent = LABELS[k];
+            p.appendChild(title);
+            p.addEventListener('click', function () { selectMuscle(k); });
+            svg.appendChild(p);
+          });
+        });
+        return svg;
+      }
+
+      function renderBody() {
+        if (!body) { return; }
+        bodymap.className = 'bodymap tappable' + (currentMode === 'fatigue' ? ' hm-fatigue' : '') + (currentMode === 'strength' ? ' hm-strength' : '');
+        if (legend) {
+          legend.className = 'hm-legend' + (currentMode === 'fatigue' ? ' hm-fatigue' : '') + (currentMode === 'strength' ? ' hm-strength' : '');
+        }
+        bodymap.innerHTML = '';
+        bodymap.appendChild(buildView(body.front, currentMode));
+        bodymap.appendChild(buildView(body.back, currentMode));
+      }
+
+      function selectMuscle(k) {
+        selected = k;
+        renderBody();
+        var lvl = LEVELS[currentMode][k] || 0;
+        var val = currentMode === 'balance' ? (lvl * 10 + 8) + ' 组' : currentMode === 'fatigue' ? (['已恢复', '恢复中', '略疲劳', '疲劳'][lvl] || '—') : (['弱', '一般', '中', '强'][lvl] || '—');
+        detail.innerHTML = '';
+        var row = document.createElement('div');
+        row.className = 'mrow';
+        var nm = document.createElement('span');
+        nm.className = 'nm';
+        nm.textContent = LABELS[k];
+        var bar = document.createElement('div');
+        bar.className = 'bar';
+        var fill = document.createElement('i');
+        fill.style.width = (lvl * 25) + '%';
+        bar.appendChild(fill);
+        var v = document.createElement('span');
+        v.className = 'v';
+        v.textContent = val;
+        row.appendChild(nm);
+        row.appendChild(bar);
+        row.appendChild(v);
+        detail.appendChild(row);
+      }
+
+      function applyMode(mode) {
+        currentMode = mode;
+        selected = null;
+        var order = ['balance', 'fatigue', 'strength'];
+        seg.style.setProperty('--i', order.indexOf(mode));
+        Array.prototype.forEach.call(seg.querySelectorAll('button'), function (b) {
+          b.classList.toggle('on', b.getAttribute('data-mode') === mode);
+        });
+        meta.textContent = META[mode];
+        note.textContent = NOTE[mode];
+        detail.innerHTML = '';
+        renderBody();
+      }
+
+      Array.prototype.forEach.call(seg.querySelectorAll('button'), function (b) {
+        b.addEventListener('click', function () { applyMode(b.getAttribute('data-mode')); });
+      });
+
+      renderBody();
+    })();
+  </script>
+</body>
+</html>

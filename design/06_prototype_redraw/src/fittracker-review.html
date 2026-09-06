@@ -1,0 +1,1831 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FitTracker · 训练回顾</title>
+<style>
+  /* ────────────────────────────────────────────────────────────────
+     FitTracker · Cold Emerald Performance（与首页同一设计系统）
+     主题：黑绿深色基底 + 冷翡翠强调 + 深色微层级
+     ──────────────────────────────────────────────────────────────── */
+  :root {
+    --ink-0: #0B0F13;
+    --ink-1: #0A0D12;
+    --ink-welcome-0: #10171B;
+    --visual-a: #14241F;
+    --visual-b: #0D1616;
+    --ring-inner: #0D1117;
+    --tab-pill: #141F1D;
+    --tab-pill-active: #182422;
+    --nav-active: #F3FBF7;
+    --nav-inactive: rgba(243,251,247,.56);
+    --accent: #50ECA7;
+    --accent-deep: #45C9A1;
+    --accent-soft: #8CEBCC;
+    --cta-a: #47D994;
+    --cta-b: #53E7A5;
+    --cta-hover-a: #5BE3A5;
+    --cta-hover-b: #6BEDB5;
+    --on-accent: #07100B;
+    --on-accent-2: #08110D;
+    --txt-hi: #F7FBF8;
+    --txt-body: #EDF6F2;
+    --white-90: rgba(243,251,247,.90);
+    --white-87: rgba(255,255,255,.87);
+    --white-70: rgba(255,255,255,.70);
+    --white-65: rgba(255,255,255,.65);
+    --white-62: rgba(255,255,255,.62);
+    --white-60: rgba(255,255,255,.60);
+    --white-54: rgba(255,255,255,.54);
+    --white-40: rgba(255,255,255,.40);
+    --white-32: rgba(255,255,255,.32);
+    --glass-10: rgba(255,255,255,.10);
+    --glass-8: rgba(255,255,255,.08);
+    --glass-6: rgba(255,255,255,.06);
+    --glass-4: rgba(255,255,255,.04);
+    --hairline: rgba(255,255,255,.06);
+    --line-10: rgba(255,255,255,.10);
+    --line-14: rgba(255,255,255,.078);
+    --line-16: rgba(255,255,255,.16);
+    --accent-40: rgba(80,236,167,.40);
+    --accent-32: rgba(69,201,161,.32);
+    --accent-20: rgba(80,236,167,.20);
+    --accent-18: rgba(69,201,161,.18);
+    --accent-17: rgba(80,236,167,.17);
+    --accent-12: rgba(80,236,167,.12);
+    --accent-10: rgba(80,236,167,.10);
+    --accent-07: rgba(80,236,167,.07);
+    --warn: #FFD7C5;
+    --font-cn: "Noto Sans SC", "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", "Microsoft YaHei UI", sans-serif;
+    --font-num: "Inter", "SF Pro Text", -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    --font-mono: "Geist Mono", "JetBrains Mono", "SF Mono", Consolas, "Courier New", monospace;
+
+    /* 回顾页补充 tokens（源自 PencilReviewPage.ets 内联值，同一冷翡翠色系） */
+    --surface-stat: #171D24;
+    --white-48: rgba(255,255,255,.478);
+    --white-56: rgba(255,255,255,.561);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+
+  body {
+    overflow-x: hidden;
+    background: #07090B;
+    color: var(--txt-body);
+    font-family: var(--font-cn);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100vh;
+  }
+
+  .defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+  /* ── 页面外框（非 App 内容） ───────────────────────────────────── */
+  .page-header {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 48px 32px 8px;
+  }
+
+  .kicker {
+    font-family: var(--font-cn);
+    font-size: 13px;
+    letter-spacing: .02em;
+    color: var(--white-54);
+    margin-bottom: 12px;
+  }
+
+  .page-header h1 {
+    font-family: var(--font-cn);
+    font-size: clamp(30px, 4vw, 44px);
+    font-weight: 700;
+    letter-spacing: 0;
+    color: var(--txt-hi);
+    line-height: 1.18;
+  }
+
+  .page-sub {
+    margin-top: 14px;
+    font-size: 15px;
+    color: var(--white-60);
+    line-height: 1.6;
+    max-width: 640px;
+  }
+
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    margin-top: 20px;
+  }
+
+  .meta-badge {
+    font-family: var(--font-cn);
+    font-size: 12px;
+    letter-spacing: .01em;
+    color: var(--white-54);
+    background: none;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+  }
+
+  .meta-badge b { color: var(--white-70); font-weight: 500; }
+
+  /* ── 画廊 ──────────────────────────────────────────────────────── */
+  .gallery {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 28px 32px 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    align-items: flex-start;
+  }
+
+  .frame-card { flex: 0 1 auto; }
+
+  .stage-label {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 0 0 14px 4px;
+  }
+
+  .stage-label .name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--txt-hi);
+  }
+
+  .stage-label .code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--white-40);
+  }
+
+  /* ── 手机画布 ──────────────────────────────────────────────────── */
+  .phone {
+    position: relative;
+    width: 390px;
+    height: 844px;
+    border-radius: 54px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: #000;
+    overflow: hidden;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,.06) inset,
+      0 0 0 1px rgba(0,0,0,.4),
+      0 32px 80px rgba(0,0,0,.55),
+      0 8px 28px rgba(0,0,0,.45);
+  }
+
+  .phone::after {
+    content: "";
+    position: absolute;
+    inset: 10px;
+    border-radius: 44px;
+    pointer-events: none;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.025) inset;
+    z-index: 3;
+  }
+
+  /* 回顾页 AppShell：纯色深底 */
+  .review-shell {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    background: var(--ink-0);
+  }
+
+  .viewport {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .pane {
+    position: absolute; inset: 0;
+    opacity: 0;
+    visibility: hidden;
+  }
+  .pane.active { opacity: 1; visibility: visible; z-index: 1; }
+
+  .pane-scroll { height: 100%; overflow-y: auto; scrollbar-width: none; }
+  .pane-scroll::-webkit-scrollbar { display: none; }
+
+  /* ── 回顾页内容 ───────────────────────────────────────────────── */
+  .review-content {
+    padding: 52.6px 16.3px 36.3px;
+  }
+
+  [hidden] { display: none !important; }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .review-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 16.3px;
+  }
+
+  /* 时间尺度切换 */
+  .review-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .seg {
+    display: inline-flex;
+    background: rgba(255,255,255,.047);
+    border: 1px solid var(--line-10);
+    border-radius: 999px;
+    padding: 3px;
+  }
+  .seg-btn {
+    height: 44px;
+    padding: 0 20px;
+    border: 0;
+    background: transparent;
+    border-radius: 999px;
+    font-family: var(--font-cn);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--white-62);
+    cursor: pointer;
+    transition: background .18s ease, color .18s ease, transform .12s ease;
+  }
+  .seg-btn:hover { color: var(--txt-hi); }
+  .seg-btn:active { transform: scale(.97); }
+  .seg-btn.active {
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 600;
+  }
+  /* 月度训练节奏（日历式） */
+  .month-cal {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .mc-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .mc-label { font-size: 15px; font-weight: 700; color: var(--txt-hi); }
+  .mc-meta { font-size: 10.9px; color: var(--white-48); }
+  /* 月度训练热力图（GitHub 风格） */
+  .month-cal .hm-body {
+    display: flex;
+    gap: 10px;
+  }
+  .month-cal .hm-days {
+    display: grid;
+    grid-template-rows: repeat(7, 20px);
+    gap: 5px;
+    flex: none;
+    width: 16px;
+  }
+  .month-cal .hm-days span {
+    font-size: 10px;
+    line-height: 20px;
+    color: var(--white-48);
+    text-align: right;
+  }
+  .month-cal .hm-grid {
+    display: flex;
+    gap: 5px;
+    flex: 1;
+    min-width: 0;
+  }
+  .month-cal .hm-col {
+    display: grid;
+    grid-template-rows: repeat(7, 20px);
+    gap: 5px;
+    flex: 1;
+    min-width: 0;
+  }
+  .month-cal .hm-c {
+    width: 100%;
+    height: 20px;
+    border-radius: 6px;
+    background: rgba(255,255,255,.055);
+  }
+  .month-cal .hm-c.l1 { background: color-mix(in srgb, var(--accent) 26%, rgba(255,255,255,.055)); }
+  .month-cal .hm-c.l2 { background: color-mix(in srgb, var(--accent) 50%, rgba(255,255,255,.055)); }
+  .month-cal .hm-c.l3 { background: color-mix(in srgb, var(--accent) 74%, rgba(255,255,255,.055)); }
+  .month-cal .hm-c.l4 { background: var(--accent); }
+  .month-cal .hm-c.today { box-shadow: 0 0 0 1.5px var(--accent); }
+  .month-cal .hm-c.future { opacity: .24; }
+  .month-cal .hm-legend {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    font-size: 10.5px;
+    color: var(--white-48);
+  }
+  .month-cal .hm-legend .hm-c {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex: none;
+  }
+
+  /* 月度训练日历（带日期，代替 GitHub 式热力图） */
+  .month-cal .hm-tip {
+    font-size: 11px;
+    color: var(--white-48);
+    line-height: 1.55;
+  }
+  .month-cal .mcal-head {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+  }
+  .month-cal .mcal-head span {
+    text-align: center;
+    font-size: 10px;
+    line-height: 20px;
+    color: var(--white-40);
+  }
+  .month-cal .mcal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+  }
+  .month-cal .mcal-cell {
+    height: 34px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-num);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--white-70);
+    background: rgba(255, 255, 255, .035);
+    border: 1px solid rgba(255, 255, 255, .06);
+  }
+  .month-cal .mcal-cell.l1 {
+    background: color-mix(in srgb, var(--accent) 26%, rgba(255, 255, 255, .055));
+    color: var(--txt-hi);
+    border-color: transparent;
+  }
+  .month-cal .mcal-cell.l2 {
+    background: color-mix(in srgb, var(--accent) 50%, rgba(255, 255, 255, .055));
+    color: var(--txt-hi);
+    border-color: transparent;
+  }
+  .month-cal .mcal-cell.l3 {
+    background: color-mix(in srgb, var(--accent) 74%, rgba(255, 255, 255, .055));
+    color: var(--on-accent);
+    border-color: transparent;
+  }
+  .month-cal .mcal-cell.l4 {
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 700;
+    border-color: transparent;
+  }
+  .month-cal .mcal-cell.today { box-shadow: 0 0 0 1.5px var(--txt-hi); }
+  .month-cal .mcal-space { background: transparent; border: 0; }
+  .month-cal .month-legend {
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+  }
+  .month-cal .month-legend .ml {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+  .month-cal .month-legend .ml .hm-c {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    display: block;
+    flex: none;
+    background: rgba(255, 255, 255, .05);
+  }
+  .month-cal .month-legend .ml b {
+    font-size: 9px;
+    font-weight: 400;
+    color: var(--white-48);
+  }
+
+  /* 本周概览卡 */
+  .overview {
+    min-height: 145.1px;
+    border-radius: 25.4px;
+    background: rgba(255,255,255,.031);
+    border: 1px solid rgba(255,255,255,.063);
+    padding: 16.3px;
+    display: flex;
+    flex-direction: column;
+    gap: 12.7px;
+  }
+  .ov-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .ov-week { font-size: 12.7px; font-weight: 600; color: var(--white-70); }
+  .ov-badge {
+    flex: 0 0 auto;
+    font-family: var(--font-num);
+    font-size: 10.9px;
+    font-weight: 600;
+    color: var(--accent);
+    background: rgba(80,236,167,.102);
+    border-radius: 999px;
+    padding: 5.4px 9.1px;
+    line-height: 1;
+  }
+  .ov-headline {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -.01em;
+    color: var(--txt-hi);
+  }
+  .ov-desc {
+    font-size: 11.8px;
+    line-height: 15.9px;
+    color: var(--white-48);
+  }
+
+  /* 数据卡行 */
+  .stats {
+    display: flex;
+    gap: 9.1px;
+    height: 73.5px;
+  }
+  .stat {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 73.5px;
+    background: var(--surface-stat);
+    border: 1px solid rgba(255,255,255,.039);
+    border-radius: 18.1px;
+    padding: 12.7px;
+    display: flex;
+    flex-direction: column;
+    gap: 4.5px;
+  }
+  .s-label { font-size: 10.9px; color: var(--white-48); }
+  .s-row { display: flex; align-items: flex-end; gap: 3.6px; }
+  .s-value {
+    font-family: var(--font-mono);
+    font-size: 21.8px;
+    font-weight: 700;
+    color: var(--txt-hi);
+    line-height: 1;
+  }
+  .s-unit { font-size: 10.9px; color: var(--accent); line-height: 1.15; }
+
+  /* 训练节奏柱状图 */
+  .weekly {
+    border-radius: 25.4px;
+    background: rgba(255,255,255,.027);
+    border: 1px solid rgba(255,255,255,.078);
+    padding: 16.3px;
+    display: flex;
+    flex-direction: column;
+    gap: 12.7px;
+  }
+  .wk-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .wk-title { font-size: 14.5px; font-weight: 700; color: var(--txt-hi); }
+  .wk-sub { font-size: 10.9px; color: var(--white-48); }
+  .wk-bars {
+    display: flex;
+    gap: 9.1px;
+    height: 136.1px;
+    align-items: flex-end;
+  }
+  .bar-col {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 136.1px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 7.3px;
+  }
+  .bar { width: 100%; border-radius: 9.1px; }
+  .bar.on { background: var(--accent); }
+  .bar.off { background: var(--accent-20); }
+  .bar-label { font-size: 10px; line-height: 1; }
+  .bar-label.on { color: var(--accent); }
+  .bar-label.off { color: var(--white-54); }
+
+  /* 部位训练分布 */
+  .distribution {
+    border-radius: 25.4px;
+    background: rgba(255,255,255,.031);
+    border: 1px solid var(--line-10);
+    padding: 16.3px;
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+  }
+  .dist-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .dist-title { font-size: 14.5px; font-weight: 700; color: var(--txt-hi); }
+  .dist-sub { font-size: 10.9px; color: var(--white-48); }
+  .dist-row {
+    display: grid;
+    grid-template-columns: 44px 1fr 44px;
+    align-items: center;
+    gap: 10px;
+  }
+  .dist-label { font-size: 11.8px; color: var(--white-70); }
+  .dist-track { height: 6px; border-radius: 999px; background: var(--line-14); overflow: hidden; }
+  .dist-fill { height: 100%; border-radius: 999px; background: var(--accent); }
+  .dist-value {
+    font-family: var(--font-mono);
+    font-size: 11.8px;
+    font-weight: 700;
+    color: var(--txt-hi);
+    text-align: right;
+  }
+
+  /* 体重与目标曲线 */
+  .weight-goal {
+    border-radius: 25.4px;
+    background: rgba(255,255,255,.027);
+    border: 1px solid rgba(255,255,255,.078);
+    padding: 16.3px;
+    display: flex;
+    flex-direction: column;
+    gap: 12.7px;
+  }
+  .wg-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .wg-title { font-size: 14.5px; font-weight: 700; color: var(--txt-hi); }
+  .wg-sub { font-size: 10.9px; color: var(--white-48); }
+  .wg-chart { width: 100%; height: auto; display: block; }
+  .wg-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .wg-current { font-size: 11.8px; color: var(--txt-hi); }
+  .wg-delta { font-family: var(--font-num); font-size: 11.8px; color: var(--accent); }
+
+  /* 肌肉地图 */
+  .muscle-map {
+    border-radius: 25.4px;
+    background: rgba(255,255,255,.031);
+    border: 1px solid var(--line-10);
+    padding: 16.3px;
+    display: flex;
+    flex-direction: column;
+    gap: 12.7px;
+  }
+  .mm-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .mm-title { font-size: 14.5px; font-weight:700; color: var(--txt-hi); }
+  .mm-sub { font-size: 10.9px; color: var(--white-48); }
+  .mm-seg { align-self: flex-start; }
+  .mm-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 9.1px;
+  }
+  .mm-tile {
+    min-width: 0;
+    border-radius: 18.1px;
+    background: var(--surface-stat);
+    border: 1px solid rgba(255,255,255,.039);
+    padding: 12.7px;
+    display: flex;
+    flex-direction: column;
+    gap: 7.3px;
+  }
+  .mm-name { font-size: 12.7px; font-weight: 600; color: var(--white-70); }
+  .mm-value {
+    font-family: var(--font-num);
+    font-size: 16.3px;
+    font-weight: 700;
+    color: var(--txt-hi);
+    line-height: 1;
+  }
+  .mm-track {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--line-14);
+    overflow: hidden;
+  }
+  .mm-fill { display: block; height: 100%; border-radius: 999px; }
+  .mm-status {
+    font-size: 10px;
+    color: var(--white-48);
+    line-height: 1.2;
+  }
+  .mm-fill.balance { background: var(--accent); }
+  .mm-fill.fatigue-ready { background: var(--accent); }
+  .mm-fill.fatigue-recovering { background: var(--accent-soft); }
+  .mm-fill.fatigue-fatigued { background: var(--warn); }
+  .mm-fill.strength-strong { background: var(--accent-deep); }
+  .mm-fill.strength-mid { background: var(--accent); }
+  .mm-fill.strength-weak { background: var(--white-40); }
+  .mm-status.balance-high, .mm-status.strength-strong { color: var(--accent); }
+  .mm-status.balance-mid, .mm-status.strength-mid { color: var(--white-62); }
+  .mm-status.balance-low, .mm-status.strength-weak { color: var(--white-40); }
+  .mm-status.fatigue-ready { color: var(--accent); }
+  .mm-status.fatigue-recovering { color: var(--accent-soft); }
+  .mm-status.fatigue-fatigued { color: var(--warn); }
+  .mm-note { font-size: 11.8px; color: var(--white-48); line-height: 1.5; }
+
+  /* 估算 1RM */
+  .onerm {
+    border-radius: 25.4px;
+    background: rgba(255,255,255,.031);
+    border: 1px solid var(--line-10);
+    padding: 16.3px;
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+  }
+  .rm-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .rm-title { font-size: 14.5px; font-weight: 700; color: var(--txt-hi); }
+  .rm-sub { font-size: 10.9px; color: var(--white-48); }
+  .rm-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .rm-name { flex: 1 1 auto; font-size: 12.7px; color: var(--white-70); }
+  .rm-src { flex: 0 0 auto; font-size: 10px; color: var(--white-40); }
+  .rm-value {
+    flex: 0 0 auto;
+    font-family: var(--font-num);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--txt-hi);
+    text-align: right;
+  }
+  .rm-value .u { font-size: 10px; color: var(--accent); margin-left: 2px; }
+
+  /* 占位 Tab（回顾以外，诚实标注） */
+  .pane-placeholder {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 100%; padding: 40px 28px; text-align: center;
+  }
+  .pane-placeholder .ic {
+    width: 52px; height: 52px; color: var(--accent);
+    margin-bottom: 18px;
+  }
+  .pane-placeholder .ic svg { width: 100%; height: 100%; }
+  .pane-placeholder .t { font-size: 17px; font-weight: 700; color: var(--txt-hi); }
+  .pane-placeholder .d {
+    margin-top: 8px; font-size: 13px; letter-spacing: .01em; color: var(--white-54); line-height: 1.6; max-width: 260px;
+  }
+  .pane-placeholder .scope {
+    margin-top: 18px;
+    font-family: var(--font-mono);
+    font-size: 10px; letter-spacing: .08em; color: var(--white-40);
+    background: var(--glass-6);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    padding: 6px 12px;
+  }
+
+  /* 底部 Tab 栏 */
+  .tabbar {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(8,12,15,.97);
+    border-top: 1px solid rgba(255,255,255,.05);
+    box-shadow: 0 -8px 28px rgba(0,0,0,.28);
+  }
+  .tab {
+    flex: 1 1 0;
+    height: 56px;
+    background: transparent;
+    border: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-cn);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: .02em;
+    color: var(--nav-inactive);
+    cursor: pointer;
+    border-radius: 18px;
+    transition: background .16s ease, color .16s ease;
+  }
+  .tab:hover {
+    color: rgba(243,251,247,.82);
+  }
+  .tab.active {
+    color: var(--nav-active);
+    font-weight: 600;
+  }
+
+  .tab-center {
+    flex: 1 1 0;
+    height: 56px;
+    background: transparent;
+    border: 0;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .tab-center .pill {
+    width: 72px; height: 44px;
+    border-radius: 18px;
+    border: 0;
+    background: var(--accent);
+    box-shadow: 0 6px 14px rgba(0,0,0,.30);
+    display: grid; place-items: center;
+    color: var(--on-accent);
+    transition: box-shadow .16s ease, transform .12s ease, filter .16s ease;
+  }
+  .tab-center .pill .ic { width: 24px; height: 24px; }
+  .tab-center .pill .ic svg { width: 100%; height: 100%; }
+  .tab-center.active .pill {
+    background: var(--accent-deep);
+    box-shadow: 0 8px 20px rgba(0,0,0,.34);
+  }
+  .tab-center:hover .pill { filter: brightness(1.05); }
+  .tab-center:active .pill { transform: scale(.96); }
+
+  /* 焦点环：按钮保留清晰 emerald 聚焦信号，Tab 用轻量环 */
+  button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(80,236,167,.28);
+  }
+  .tab:focus-visible,
+  .tab-center:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px rgba(80,236,167,.45);
+  }
+
+  /* ── 页脚 ──────────────────────────────────────────────────────── */
+  .page-foot {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 26px 32px 56px;
+    font-size: 12px;
+    color: var(--white-54);
+    line-height: 1.7;
+  }
+  .page-foot b { color: var(--white-70); font-weight: 600; }
+
+  /* ── 响应式：窄屏堆叠，禁止横向滚动 ───────────────────────────── */
+  /* ── openGym Stats 1:1 组件（作用域 .openstats，映射冷翡翠 token） ── */
+  .openstats {
+    --bg: #0B0F13;
+    --bg-el: #10171B;
+    --surface: #171D24;
+    --surface-2: #20272F;
+    --surface-3: #263038;
+    --label: #F7FBF8;
+    --label-2: rgba(243,251,247,.62);
+    --label-3: rgba(243,251,247,.40);
+    --label-4: rgba(243,251,247,.18);
+    --sep: rgba(255,255,255,.10);
+    --sep-op: rgba(255,255,255,.06);
+    --acc: #50ECA7;
+    --acc-2: #45C9A1;
+    --on-acc: #07100B;
+    --acc-soft: rgba(80,236,167,.16);
+    --acc-line: rgba(80,236,167,.38);
+    --red: #F0A48A;
+    --orange: #E5B878;
+    --yellow: #D9C86B;
+    --r-sm: 8px;
+    --r: 12px;
+    --r-lg: 16px;
+    --r-xl: 25.4px;
+    --r-card: 18px;
+    --ease: cubic-bezier(.32, .72, 0, 1);
+    --fast: .14s;
+    --med: .22s;
+    display: flex;
+    flex-direction: column;
+    gap: 16.3px;
+  }
+  .openstats .card {
+    background: var(--bg-el);
+    border: 1px solid rgba(255,255,255,.063);
+    border-radius: var(--r-xl);
+    padding: 16.3px;
+    color: var(--label);
+  }
+  .openstats .card-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .openstats .card-title h2 {
+    font-size: 14.5px;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.1;
+    color: var(--label);
+  }
+  .openstats .card-title .meta { font-size: 10.9px; color: var(--label-3); }
+
+  /* 肌肉地图分段控件：贴合主设计冷翡翠 pill */
+  .openstats .seg {
+    display: flex;
+    width: 100%;
+    background: rgba(255,255,255,.047);
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 999px;
+    padding: 3px;
+  }
+  .openstats .seg .seg-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 36px;
+    padding: 0 12px;
+    border: 0;
+    background: transparent;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(243,251,247,.62);
+    transition: background .18s ease, color .18s ease;
+  }
+  .openstats .seg .seg-btn.active {
+    background: var(--acc);
+    color: var(--on-acc);
+    font-weight: 600;
+  }
+
+  .openstats .bodymap {
+    --bm-base: color-mix(in srgb, var(--label) 11%, var(--surface));
+    justify-content: center;
+    align-items: flex-start;
+    gap: 6px;
+    display: flex;
+    margin-top: 14px;
+  }
+  .openstats .bm-v { flex: 1; min-width: 0; height: auto; max-height: min(44vh, 330px); }
+  .openstats .bm-sil { fill: color-mix(in srgb, var(--label) 18%, var(--surface)); }
+  .openstats .bm-m { fill: var(--bm-base); transition: fill var(--med) var(--ease); }
+  .openstats .bm-m.l1 { fill: color-mix(in srgb, var(--acc) 32%, var(--bm-base)); }
+  .openstats .bm-m.l2 { fill: color-mix(in srgb, var(--acc) 56%, var(--bm-base)); }
+  .openstats .bm-m.l3 { fill: color-mix(in srgb, var(--acc) 78%, var(--bm-base)); }
+  .openstats .bm-m.l4 { fill: var(--acc); }
+  .openstats .hm-fatigue .bm-m.l4 { fill: var(--red); }
+  .openstats .hm-fatigue .bm-m.l3 { fill: var(--orange); }
+  .openstats .hm-fatigue .bm-m.l2 { fill: var(--yellow); }
+  .openstats .hm-fatigue .bm-m.l1 { fill: color-mix(in srgb, var(--yellow) 32%, var(--bm-base)); }
+  .openstats .hm-strength .bm-m.l4 { fill: var(--yellow); filter: drop-shadow(0 0 1.5px var(--yellow)); }
+  .openstats .bm-m.sel { stroke: var(--label); stroke-width: 7px; }
+  .openstats .bm-v path { stroke: var(--surface); stroke-width: 2.5px; stroke-linejoin: round; }
+  .openstats .bodymap.tappable .bm-m { cursor: pointer; }
+
+  .openstats .hm-legend {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    margin-top: 12px;
+    font-size: 11px;
+    color: var(--label-3);
+  }
+  .openstats .hm-c { width: 10px; height: 10px; border-radius: 3px; background: var(--surface-2); }
+  .openstats .hm-c.l1 { background: color-mix(in srgb, var(--acc) 32%, var(--surface-2)); }
+  .openstats .hm-c.l2 { background: color-mix(in srgb, var(--acc) 56%, var(--surface-2)); }
+  .openstats .hm-c.l3 { background: color-mix(in srgb, var(--acc) 78%, var(--surface-2)); }
+  .openstats .hm-c.l4 { background: var(--acc); }
+  .openstats .hm-fatigue .hm-c.l4 { background: var(--red); }
+  .openstats .hm-fatigue .hm-c.l3 { background: var(--orange); }
+  .openstats .hm-fatigue .hm-c.l2 { background: var(--yellow); }
+  .openstats .hm-strength .hm-c.l4 { background: var(--yellow); }
+
+  .openstats .hm-note { margin-top: 10px; font-size: 12px; color: var(--label-3); line-height: 1.45; }
+  .openstats .mrow {
+    align-items: center;
+    gap: 9px;
+    padding: 8px 0;
+    display: flex;
+    margin-top: 6px;
+  }
+  .openstats .mrow .nm { text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; font-size: 14px; overflow: hidden; }
+  .openstats .mrow .bar { background: var(--surface-2); border-radius: 3px; flex: none; width: 74px; height: 5px; overflow: hidden; }
+  .openstats .mrow .bar i { background: var(--acc); border-radius: 3px; height: 100%; display: block; }
+  .openstats .mrow .v { color: var(--label-2); text-align: right; flex: none; min-width: 52px; font-size: 12px; }
+
+  .openstats .chart { width: 100%; overflow: hidden; margin-top: 6px; }
+  .openstats .chart svg { width: 100%; height: auto; display: block; }
+  .openstats .wg-actions { display: flex; align-items: center; gap: 8px; }
+  .openstats .pill {
+    background: var(--surface-2);
+    color: var(--label-2);
+    border-radius: 99px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .openstats .pill.goal { background: var(--acc-soft); color: var(--acc); }
+  .openstats .log-btn {
+    background: var(--surface-2);
+    color: var(--label);
+    border-radius: 99px;
+    padding: 6px 13px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .openstats .wg-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--label-3);
+  }
+  .openstats .wg-foot .cur { font-size: 17px; font-weight: 600; color: var(--label); letter-spacing: -.01em; }
+
+  .openstats .rm-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--sep-op);
+  }
+  .openstats .rm-row:last-child { border-bottom: 0; }
+  .openstats .rm-name { flex: 1 1 auto; min-width: 0; font-size: 15px; }
+  .openstats .rm-src { flex: 0 0 auto; font-size: 11px; color: var(--label-3); }
+  .openstats .rm-value { flex: 0 0 auto; font-size: 17px; font-weight: 700; letter-spacing: -.02em; }
+  .openstats .rm-value .u { font-size: 11px; color: var(--acc); font-weight: 500; margin-left: 2px; }
+
+  /* 体重目标按钮 + 弹窗（冷翡翠） */
+  .goal-btn {
+    flex: 0 0 auto;
+    height: 36px;
+    padding: 0 14px;
+    border: 1px solid rgba(80,236,167,.38);
+    background: rgba(80,236,167,.10);
+    color: var(--accent);
+    border-radius: 999px;
+    font-family: var(--font-num);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .01em;
+    transition: background .18s ease, color .18s ease, border-color .18s ease;
+  }
+  .goal-btn:hover { background: rgba(80,236,167,.16); }
+  .goal-btn:active { transform: scale(.97); }
+
+  .goal-modal {
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+  }
+  .goal-modal[hidden] { display: none; }
+  .goal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(4,6,8,.62);
+    backdrop-filter: blur(5px);
+  }
+  .goal-panel {
+    position: relative;
+    width: min(320px, 100%);
+    background: #10171B;
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 22px;
+    padding: 20px;
+    box-shadow: 0 28px 70px rgba(0,0,0,.55);
+  }
+  .goal-panel h3 { font-size: 16px; font-weight: 700; color: var(--txt-hi); }
+  .goal-panel .sub { margin-top: 6px; font-size: 12px; color: var(--white-54); }
+  .goal-field {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #171D24;
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 14px;
+    padding: 12px 14px;
+  }
+  .goal-field input {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: transparent;
+    border: 0;
+    outline: 0;
+    color: var(--txt-hi);
+    font-family: var(--font-num);
+    font-size: 20px;
+    font-weight: 600;
+  }
+  .goal-field .u { font-size: 13px; color: var(--white-54); }
+  .goal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 18px;
+  }
+  .goal-actions button {
+    height: 40px;
+    padding: 0 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .goal-cancel {
+    background: rgba(255,255,255,.06);
+    color: var(--white-70);
+  }
+  .goal-save {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+
+  .openstats .effort-note { font-size: 11px; color: var(--label-3); line-height: 1.5; margin-top: 12px; }
+  .openstats .effort-stat { display: flex; align-items: baseline; gap: 8px; margin-top: 14px; }
+  .openstats .effort-value { font-family: var(--font-num); font-size: 30px; font-weight: 700; letter-spacing: -.02em; color: var(--label); }
+  .openstats .effort-unit { font-size: 12px; color: var(--label-3); }
+  .openstats .effort-bars { display: flex; gap: 8px; height: 96px; align-items: flex-end; margin-top: 14px; }
+  .openstats .effort-bar { flex: 1 1 0; min-width: 0; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; }
+  .openstats .effort-bar .bar { width: 100%; border-radius: 6px; background: var(--acc); }
+  .openstats .effort-bar .lbl { font-size: 9px; color: var(--label-3); line-height: 1; }
+
+  @media (max-width: 860px) {
+    .page-header { padding: 32px 20px 4px; }
+    .gallery { padding: 20px 20px 0; gap: 36px; justify-content: center; }
+    .page-foot { padding: 22px 20px 44px; }
+  }
+
+  @media (max-width: 440px) {
+    .phone { transform-origin: top left; }
+    .gallery { padding-left: 16px; padding-right: 16px; }
+    .page-header, .page-foot { padding-left: 16px; padding-right: 16px; }
+  }
+</style>
+</head>
+<body>
+
+  <svg class="defs" aria-hidden="true">
+    <symbol id="i-home" viewBox="0 0 24 24">
+      <path d="M3.5 10.4 12 3.5l8.5 6.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M5.5 9.5V20h13V9.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M10 20v-5.4h4V20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-plan" viewBox="0 0 24 24">
+      <rect x="4" y="4" width="16" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M8 4.5v3M16 4.5v3M4.5 9h15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M8 13h3M8 16.5h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-workout" viewBox="0 0 24 24">
+      <path d="M7 5.5v13M17 5.5v13M7 12h10M3.5 9v6M20.5 9v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-review" viewBox="0 0 24 24">
+      <path d="M3.5 17.5 9 12l3.2 3.2L20.5 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M15.5 7h5v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-user" viewBox="0 0 24 24">
+      <circle cx="12" cy="8" r="3.8" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M4.5 20.2c0-3.7 3.2-5.6 7.5-5.6s7.5 1.9 7.5 5.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </symbol>
+  </svg>
+
+  <header class="page-header">
+    <div class="kicker">FitTracker · Review</div>
+    <h1>训练回顾</h1>
+    <p class="page-sub">从 ArkUI 源文件复原的回顾页：支持周 / 月两种时间尺度；周视图为柱状训练节奏，月视图为日历式训练记录，并 1:1 还原 openGym Stats 的体重与目标、肌肉地图、努力程度、估算 1RM 四个组件，与首页共用冷翡翠设计系统。</p>
+    <div class="meta-row">
+      <span class="meta-badge">主题 <b>Cold Emerald</b></span>
+      <span class="meta-badge">视口 <b>390 × 844</b></span>
+      <span class="meta-badge">语言 <b>简体中文</b></span>
+      <span class="meta-badge">来源 <b>PencilReviewPage + openGym Stats</b></span>
+    </div>
+  </header>
+
+  <main class="gallery">
+    <figure class="frame-card" data-od-id="screen-review">
+      <div class="stage-label">
+        <span class="name">训练回顾</span>
+        <span class="code">PencilReviewPage</span>
+      </div>
+      <div class="phone">
+        <div class="review-shell">
+          <div class="viewport" id="viewport">
+            <!-- 回顾 -->
+            <section class="pane active" id="pane-review" role="tabpanel" aria-labelledby="tab-review" data-pane="review" data-od-id="pane-review">
+              <div class="pane-scroll">
+                <div class="review-content">
+                  <div class="review-stats" id="review-stats">
+                    <div class="review-toolbar" data-od-id="review-toolbar">
+                      <div class="seg" role="group" aria-label="时间尺度">
+                        <button class="seg-btn active" type="button" aria-pressed="true" data-scale="week">周</button>
+                        <button class="seg-btn" type="button" aria-pressed="false" data-scale="month">月</button>
+                      </div>
+                      <span class="sr-only" id="scale-live" aria-live="polite"></span>
+                    </div>
+
+                  <article class="overview" data-od-id="card-overview">
+                    <div class="ov-top">
+                      <span class="ov-week" id="ov-week">本周 · 6月 7–13日</span>
+                      <span class="ov-badge" id="ov-badge">↑ +18%</span>
+                    </div>
+                    <p class="ov-headline" id="ov-headline">状态不错，继续保持。</p>
+                    <p class="ov-desc" id="ov-desc">你比上周多完成了 1 次训练，平均训练时长也提升了 12 分钟。</p>
+                  </article>
+
+                  <div class="stats" data-od-id="card-stats">
+                    <div class="stat" data-od-id="stat-workouts">
+                      <span class="s-label">训练</span>
+                      <div class="s-row"><span class="s-value">4</span><span class="s-unit">次</span></div>
+                    </div>
+                    <div class="stat" data-od-id="stat-duration">
+                      <span class="s-label">时长</span>
+                      <div class="s-row"><span class="s-value">186</span><span class="s-unit">分钟</span></div>
+                    </div>
+                    <div class="stat" data-od-id="stat-weight">
+                      <span class="s-label">体重变化</span>
+                      <div class="s-row"><span class="s-value">-0.8</span><span class="s-unit">kg</span></div>
+                    </div>
+                  </div>
+
+                  <section class="weekly" data-od-id="card-activity">
+                    <div class="wk-head">
+                      <span class="wk-title" id="wk-title">训练节奏</span>
+                      <span class="wk-sub" id="wk-sub">过去 7 天</span>
+                    </div>
+                    <div class="wk-bars" data-bars="week" role="img" aria-label="过去 7 天训练节奏柱状图">
+                      <div class="bar-col"><span class="bar off" style="height:52.6px"></span><span class="bar-label off">一</span></div>
+                      <div class="bar-col"><span class="bar on" style="height:83.4px"></span><span class="bar-label on">二</span></div>
+                      <div class="bar-col"><span class="bar on" style="height:67.1px"></span><span class="bar-label on">三</span></div>
+                      <div class="bar-col"><span class="bar off" style="height:38.1px"></span><span class="bar-label off">四</span></div>
+                      <div class="bar-col"><span class="bar on" style="height:105.2px"></span><span class="bar-label on">五</span></div>
+                      <div class="bar-col"><span class="bar on" style="height:74.4px"></span><span class="bar-label on">六</span></div>
+                      <div class="bar-col"><span class="bar off" style="height:41.7px"></span><span class="bar-label off">日</span></div>
+                    </div>
+                    <div class="month-cal" data-bars="month" hidden>
+                      <div class="mc-top">
+                        <span class="mc-label">2026 年 6 月</span>
+                        <span class="mc-meta">训练 17 天 · 720 分钟</span>
+                      </div>
+                      <p class="hm-tip">一格代表一天 · 颜色越深，当天训练量越大</p>
+                      <div class="mcal-head" aria-hidden="true">
+                        <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+                      </div>
+                      <div class="mcal-grid" role="img" aria-label="2026 年 6 月训练日历，每天按训练量着色，共训练 17 天">
+                        <span class="mcal-cell">1</span>
+                        <span class="mcal-cell l2">2</span>
+                        <span class="mcal-cell l1">3</span>
+                        <span class="mcal-cell">4</span>
+                        <span class="mcal-cell l3">5</span>
+                        <span class="mcal-cell l4">6</span>
+                        <span class="mcal-cell">7</span>
+
+                        <span class="mcal-cell">8</span>
+                        <span class="mcal-cell l2">9</span>
+                        <span class="mcal-cell l3">10</span>
+                        <span class="mcal-cell">11</span>
+                        <span class="mcal-cell l2">12</span>
+                        <span class="mcal-cell l4 today">13</span>
+                        <span class="mcal-cell">14</span>
+
+                        <span class="mcal-cell">15</span>
+                        <span class="mcal-cell l3">16</span>
+                        <span class="mcal-cell l1">17</span>
+                        <span class="mcal-cell">18</span>
+                        <span class="mcal-cell l2">19</span>
+                        <span class="mcal-cell l4">20</span>
+                        <span class="mcal-cell">21</span>
+
+                        <span class="mcal-cell">22</span>
+                        <span class="mcal-cell l1">23</span>
+                        <span class="mcal-cell l2">24</span>
+                        <span class="mcal-cell">25</span>
+                        <span class="mcal-cell l3">26</span>
+                        <span class="mcal-cell l3">27</span>
+                        <span class="mcal-cell">28</span>
+
+                        <span class="mcal-cell">29</span>
+                        <span class="mcal-cell l2">30</span>
+                        <span class="mcal-space"></span>
+                        <span class="mcal-space"></span>
+                        <span class="mcal-space"></span>
+                        <span class="mcal-space"></span>
+                        <span class="mcal-space"></span>
+                      </div>
+                      <div class="month-legend" aria-hidden="true">
+                        <span class="ml"><i class="hm-c"></i><b>未练</b></span>
+                        <span class="ml"><i class="hm-c l1"></i><b>轻</b></span>
+                        <span class="ml"><i class="hm-c l2"></i><b>中</b></span>
+                        <span class="ml"><i class="hm-c l3"></i><b>高</b></span>
+                        <span class="ml"><i class="hm-c l4"></i><b>大</b></span>
+                      </div>
+                    </div>
+                  </section>
+
+                  <div class="openstats">
+                  <section class="card" data-od-id="openstats-muscle-map">
+                    <div class="card-title">
+                      <h2>肌肉地图</h2>
+                      <span class="meta" id="mm-meta">近 30 天 · 训练量</span>
+                    </div>
+                    <div class="seg" id="mm-seg" role="group" aria-label="肌肉地图模式">
+                      <button type="button" class="seg-btn active" aria-pressed="true" data-mode="balance">平衡</button>
+                      <button type="button" class="seg-btn" aria-pressed="false" data-mode="fatigue">疲劳</button>
+                      <button type="button" class="seg-btn" aria-pressed="false" data-mode="strength">力量</button>
+                    </div>
+                    <div class="bodymap tappable" id="bodymap"></div>
+                    <div class="hm-legend" id="hm-legend" aria-hidden="true">
+                      <span>低</span>
+                      <span class="hm-c l1"></span>
+                      <span class="hm-c l2"></span>
+                      <span class="hm-c l3"></span>
+                      <span class="hm-c l4"></span>
+                      <span>高</span>
+                    </div>
+                    <div id="mm-detail"></div>
+                    <p class="hm-note" id="mm-note">胸部训练量最高，核心最少。</p>
+                  </section>
+
+                  <section class="card" data-od-id="openstats-weight-goal">
+                    <div class="card-title">
+                      <h2>体重与目标</h2>
+                      <button class="goal-btn" type="button" id="goal-btn" aria-haspopup="dialog">目标 68 kg</button>
+                    </div>
+                    <div class="chart" aria-label="体重曲线与目标线">
+                      <svg viewBox="0 0 342 132" role="img">
+                        <line x1="12" y1="16" x2="330" y2="16" stroke="rgba(255,255,255,.06)" stroke-width="1" />
+                        <line x1="12" y1="44" x2="330" y2="44" stroke="rgba(255,255,255,.06)" stroke-width="1" />
+                        <line x1="12" y1="72" x2="330" y2="72" stroke="rgba(255,255,255,.06)" stroke-width="1" />
+                        <line x1="12" y1="100" x2="330" y2="100" stroke="rgba(255,255,255,.06)" stroke-width="1" />
+                        <line id="goal-line" x1="12" y1="90" x2="330" y2="90" stroke="rgba(255,255,255,.32)" stroke-width="1" stroke-dasharray="4 4" />
+                        <polygon points="12,120 12,42 57,49 102,47 147,58 192,64 237,60 282,68 330,74 330,120" fill="rgba(80,236,167,.12)" />
+                        <polyline points="12,42 57,49 102,47 147,58 192,64 237,60 282,68 330,74" fill="none" stroke="#50ECA7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                        <circle cx="12" cy="42" r="3" fill="#50ECA7" />
+                        <circle cx="57" cy="49" r="3" fill="#50ECA7" />
+                        <circle cx="102" cy="47" r="3" fill="#50ECA7" />
+                        <circle cx="147" cy="58" r="3" fill="#50ECA7" />
+                        <circle cx="192" cy="64" r="3" fill="#50ECA7" />
+                        <circle cx="237" cy="60" r="3" fill="#50ECA7" />
+                        <circle cx="282" cy="68" r="3" fill="#50ECA7" />
+                        <circle cx="330" cy="74" r="3" fill="#50ECA7" />
+                      </svg>
+                    </div>
+                    <div class="wg-foot">
+                      <span>当前 <span class="cur">69.2 kg</span></span>
+                      <span>较上月 -0.8 kg</span>
+                    </div>
+                  </section>
+
+                  <section class="card" data-od-id="openstats-effort">
+                    <div class="card-title">
+                      <h2>努力程度</h2>
+                      <span class="meta">Effort · RIR / RPE</span>
+                    </div>
+                    <div class="seg" id="effort-seg" role="group" aria-label="努力程度刻度">
+                      <button type="button" class="seg-btn active" aria-pressed="true" data-effort="rir">RIR</button>
+                      <button type="button" class="seg-btn" aria-pressed="false" data-effort="rpe">RPE</button>
+                    </div>
+                    <p class="effort-note">RIR 记的是你还剩几次；RPE 用 0–10 表示主观用力，RPE ≈ 10 − RIR。</p>
+                    <div class="effort-stat">
+                      <span class="effort-value" id="effort-value">2.3</span>
+                      <span class="effort-unit" id="effort-unit">RIR · 近 8 次平均</span>
+                    </div>
+                    <div class="effort-bars" id="effort-bars" role="img" aria-label="最近 8 次训练的努力程度"></div>
+                  </section>
+
+                  <section class="card" data-od-id="openstats-estimated-1rm">
+                    <div class="card-title">
+                      <h2>估算 1RM</h2>
+                      <span class="meta">来自最佳有效组</span>
+                    </div>
+                    <div class="rm-row">
+                      <span class="rm-name">杠铃卧推</span>
+                      <span class="rm-src">6月10日 · 第3组</span>
+                      <span class="rm-value">62.5<span class="u">kg</span></span>
+                    </div>
+                    <div class="rm-row">
+                      <span class="rm-name">杠铃深蹲</span>
+                      <span class="rm-src">6月8日 · 第2组</span>
+                      <span class="rm-value">95<span class="u">kg</span></span>
+                    </div>
+                    <div class="rm-row">
+                      <span class="rm-name">杠铃硬拉</span>
+                      <span class="rm-src">6月5日 · 第1组</span>
+                      <span class="rm-value">105<span class="u">kg</span></span>
+                    </div>
+                    <div class="rm-row">
+                      <span class="rm-name">杠铃划船</span>
+                      <span class="rm-src">6月3日 · 第2组</span>
+                      <span class="rm-value">58<span class="u">kg</span></span>
+                    </div>
+                  </section>
+                  </div>
+
+                  </div>
+
+                </div>
+              </div>
+            </section>
+
+            <!-- 首页（占位） -->
+            <section class="pane" id="pane-home" role="tabpanel" aria-labelledby="tab-home" data-pane="home">
+              <div class="pane-placeholder">
+                <span class="ic"><svg><use href="#i-home"/></svg></span>
+                <div class="t">首页</div>
+                <div class="d">今日训练与本周节奏已单独交付。</div>
+                <span class="scope">见 fittracker-welcome-home.html</span>
+              </div>
+            </section>
+
+            <!-- 计划 -->
+            <section class="pane" id="pane-plan" role="tabpanel" aria-labelledby="tab-plan" data-pane="plan">
+              <div class="pane-placeholder">
+                <span class="ic"><svg><use href="#i-plan"/></svg></span>
+                <div class="t">训练计划</div>
+                <div class="d">预设计划与计划详情将在后续补全。</div>
+                <span class="scope">待重建</span>
+              </div>
+            </section>
+
+            <!-- 训练 -->
+            <section class="pane" id="pane-workout" role="tabpanel" aria-labelledby="tab-workout" data-pane="workout">
+              <div class="pane-placeholder">
+                <span class="ic"><svg><use href="#i-workout"/></svg></span>
+                <div class="t">训练执行</div>
+                <div class="d">记录组数、重量与次数的控制台将在后续补全。</div>
+                <span class="scope">待重建</span>
+              </div>
+            </section>
+
+            <!-- 我的 -->
+            <section class="pane" id="pane-profile" role="tabpanel" aria-labelledby="tab-profile" data-pane="profile">
+              <div class="pane-placeholder">
+                <span class="ic"><svg><use href="#i-user"/></svg></span>
+                <div class="t">我的</div>
+                <div class="d">个人资料与设置将在后续补全。</div>
+                <span class="scope">待重建</span>
+              </div>
+            </section>
+          </div>
+
+          <nav class="tabbar" role="tablist" aria-label="主导航">
+            <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="pane-home" id="tab-home" data-tab="home">
+              <span>首页</span>
+            </button>
+            <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="pane-plan" id="tab-plan" data-tab="plan">
+              <span>计划</span>
+            </button>
+            <button class="tab-center" type="button" role="tab" aria-selected="false" aria-controls="pane-workout" id="tab-workout" data-tab="workout" aria-label="训练">
+              <span class="pill"><span class="ic"><svg><use href="#i-workout"/></svg></span></span>
+            </button>
+            <button class="tab active" type="button" role="tab" aria-selected="true" aria-controls="pane-review" id="tab-review" data-tab="review">
+              <span>回顾</span>
+            </button>
+            <button class="tab" type="button" role="tab" aria-selected="false" aria-controls="pane-profile" id="tab-profile" data-tab="profile">
+              <span>我的</span>
+            </button>
+          </nav>
+          <div class="goal-modal" id="goal-modal" hidden>
+            <div class="goal-backdrop" data-close></div>
+            <div class="goal-panel" role="dialog" aria-modal="true" aria-labelledby="goal-modal-title">
+              <h3 id="goal-modal-title">设置体重目标</h3>
+              <p class="sub">输入你的目标体重，更新曲线上的目标线。</p>
+              <label class="goal-field">
+                <input type="number" id="goal-input" inputmode="decimal" step="0.1" min="30" max="200" value="68" />
+                <span class="u">kg</span>
+              </label>
+              <div class="goal-actions">
+                <button class="goal-cancel" type="button" data-close>取消</button>
+                <button class="goal-save" type="button" id="goal-save">保存</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </figure>
+  </main>
+
+  <footer class="page-foot">
+      <b>重建依据：</b>回顾页取自 <b>PencilReviewPage.ets</b>（AppRoutes.REVIEW_HOME），颜色、字号与几何均沿用源文件内联值，并与首页共用同一套冷翡翠 tokens（强调色 <b>#50ECA7</b>、数据卡底 <b>#171D24</b>）。本次将 openGym Stats 屏的体重与目标、肌肉地图、努力程度、估算 1RM 四个组件还原进回顾页（沿用 openGym 原始 token 与身体 SVG 路径），数据为设计稿示例值。底部五个 Tab 可用，默认激活“回顾”；首页 / 计划 / 训练 / 我的四页以“待重建”占位诚实标注。
+  </footer>
+
+  <script src="assets/opengym-ref/body-paths.iife.js"></script>
+  <script>
+    (function () {
+      var viewport = document.getElementById('viewport');
+      var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-tab]'));
+      var panes = Array.prototype.slice.call(document.querySelectorAll('.pane'));
+      var tablist = document.querySelector('.tabbar');
+      var ORDER = ['home', 'plan', 'workout', 'review', 'profile'];
+      var current = 'review';
+      var token = 0;
+      var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      function select(key) {
+        if (key === current) { return; }
+        var dir = ORDER.indexOf(key) >= ORDER.indexOf(current) ? 1 : -1;
+        current = key;
+        token += 1;
+        var myToken = token;
+
+        tabs.forEach(function (t) {
+          var isActive = t.getAttribute('data-tab') === key;
+          t.classList.toggle('active', isActive);
+          t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+        panes.forEach(function (p) {
+          p.classList.toggle('active', p.getAttribute('data-pane') === key);
+        });
+
+        if (reduceMotion) { return; }
+
+        viewport.style.transition = 'none';
+        viewport.style.transform = 'translateX(' + (8 * dir) + 'px) scale(.99)';
+        viewport.style.opacity = '.88';
+        void viewport.offsetWidth;
+        viewport.style.transition = 'transform .16s cubic-bezier(0, 0, .2, 1), opacity .16s ease';
+        viewport.style.transform = 'translateX(0) scale(1)';
+        viewport.style.opacity = '1';
+
+        setTimeout(function () {
+          if (myToken !== token) { return; }
+          viewport.style.transition = '';
+          viewport.style.transform = '';
+          viewport.style.opacity = '';
+        }, 160);
+      }
+
+      tabs.forEach(function (t) {
+        t.addEventListener('click', function () {
+          select(t.getAttribute('data-tab'));
+        });
+      });
+
+      tablist.addEventListener('keydown', function (e) {
+        var idx = ORDER.indexOf(current);
+        var next = null;
+        if (e.key === 'ArrowRight') { next = ORDER[(idx + 1) % ORDER.length]; }
+        else if (e.key === 'ArrowLeft') { next = ORDER[(idx - 1 + ORDER.length) % ORDER.length]; }
+        else if (e.key === 'Home') { next = ORDER[0]; }
+        else if (e.key === 'End') { next = ORDER[ORDER.length - 1]; }
+        if (next === null) { return; }
+        e.preventDefault();
+        select(next);
+        var target = document.getElementById('tab-' + next);
+        if (target) { target.focus(); }
+      });
+
+      // 周 / 月时间尺度切换
+      var scaleButtons = Array.prototype.slice.call(document.querySelectorAll('[data-scale]'));
+      var bars = Array.prototype.slice.call(document.querySelectorAll('[data-bars]'));
+      var statEls = Array.prototype.slice.call(document.querySelectorAll('#review-stats .stat'));
+      var seg = document.querySelector('.review-toolbar .seg');
+      var scaleLive = document.getElementById('scale-live');
+      var currentScale = 'week';
+      var WEEK = {
+        week: '本周 · 6月 7–13日',
+        badge: '↑ +18%',
+        headline: '状态不错，继续保持。',
+        desc: '你比上周多完成了 1 次训练，平均训练时长也提升了 12 分钟。',
+        sub: '过去 7 天',
+        stats: [
+          { label: '训练', value: '4', unit: '次' },
+          { label: '时长', value: '186', unit: '分钟' },
+          { label: '体重变化', value: '-0.8', unit: 'kg' }
+        ]
+      };
+      var MONTH = {
+        week: '本月 · 6月',
+        badge: '↑ +12%',
+        headline: '本月节奏更稳定。',
+        desc: '本月已完成 17 次训练，平均每周 4 次，累计训练 720 分钟。',
+        sub: '每天 · 越深量越大',
+        stats: [
+          { label: '训练', value: '17', unit: '次' },
+          { label: '时长', value: '720', unit: '分钟' },
+          { label: '体重变化', value: '-1.6', unit: 'kg' }
+        ]
+      };
+
+      function applyScale(key) {
+        var data = key === 'month' ? MONTH : WEEK;
+        currentScale = key;
+        document.getElementById('ov-week').textContent = data.week;
+        document.getElementById('ov-badge').textContent = data.badge;
+        document.getElementById('ov-headline').textContent = data.headline;
+        document.getElementById('ov-desc').textContent = data.desc;
+        document.getElementById('wk-sub').textContent = data.sub;
+        statEls.forEach(function (el, i) {
+          el.querySelector('.s-label').textContent = data.stats[i].label;
+          el.querySelector('.s-value').textContent = data.stats[i].value;
+          el.querySelector('.s-unit').textContent = data.stats[i].unit;
+        });
+        bars.forEach(function (b) {
+          b.hidden = b.getAttribute('data-bars') !== key;
+        });
+        scaleButtons.forEach(function (b) {
+          var active = b.getAttribute('data-scale') === key;
+          b.classList.toggle('active', active);
+          b.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        if (scaleLive) {
+          scaleLive.textContent = key === 'month' ? '已切换到月度视图' : '已切换到周视图';
+        }
+      }
+
+      scaleButtons.forEach(function (b) {
+        b.addEventListener('click', function () {
+          applyScale(b.getAttribute('data-scale'));
+        });
+      });
+
+      if (seg) {
+        seg.addEventListener('keydown', function (e) {
+          var next = null;
+          if (e.key === 'ArrowRight') { next = 'month'; }
+          else if (e.key === 'ArrowLeft') { next = 'week'; }
+          if (next === null) { return; }
+          e.preventDefault();
+          applyScale(next);
+          var target = seg.querySelector('[data-scale="' + next + '"]');
+          if (target) { target.focus(); }
+        });
+      }
+
+      // 肌肉地图（openGym Stats 1:1，使用原始身体 SVG 路径）
+      var RO = ['head', 'hair', 'neck', 'hands', 'feet', 'knees', 'ankles'];
+      var NO = ['trapezius', 'deltoids', 'chest', 'upper-back', 'serratus', 'biceps', 'triceps', 'forearm', 'abs', 'obliques', 'lower-back', 'gluteal', 'quadriceps', 'hamstring', 'adductors', 'hip-flexors', 'calves', 'tibialis'];
+      var LABELS = { trapezius: '斜方肌', deltoids: '肩', chest: '胸', 'upper-back': '上背', serratus: '前锯肌', biceps: '二头', triceps: '三头', forearm: '前臂', abs: '腹', obliques: '腹斜肌', 'lower-back': '下背', gluteal: '臀', quadriceps: '股四头', hamstring: '腘绳肌', adductors: '内收肌', 'hip-flexors': '髋屈肌', calves: '小腿', tibialis: '胫骨' };
+      var LEVELS = {
+        balance: { chest: 4, quadriceps: 4, gluteal: 3, hamstring: 3, deltoids: 3, biceps: 3, triceps: 3, 'upper-back': 3, abs: 3, obliques: 2, 'lower-back': 2, serratus: 2, forearm: 2, trapezius: 2, calves: 2, adductors: 1, 'hip-flexors': 1, tibialis: 1 },
+        fatigue: { chest: 2, quadriceps: 4, gluteal: 4, hamstring: 3, 'upper-back': 3, deltoids: 2, biceps: 2, triceps: 2, calves: 1, abs: 1, obliques: 1, 'lower-back': 1, serratus: 1, forearm: 1, trapezius: 1, adductors: 1, 'hip-flexors': 1, tibialis: 1 },
+        strength: { chest: 4, quadriceps: 4, gluteal: 3, hamstring: 3, 'upper-back': 3, deltoids: 3, biceps: 2, triceps: 2, abs: 2, calves: 2, obliques: 1, 'lower-back': 1, serratus: 1, forearm: 1, trapezius: 1, adductors: 1, 'hip-flexors': 1, tibialis: 1 }
+      };
+      var MM_META = { balance: '近 30 天 · 训练量', fatigue: '当前恢复状态', strength: '力量与最佳成绩' };
+      var MM_NOTE = {
+        balance: '胸部训练量最高，核心最少。',
+        fatigue: '腿部与臀部疲劳度较高，建议优先恢复。',
+        strength: '胸部与腿部力量最强，核心相对薄弱。'
+      };
+
+      var bodyPaths = window.BODY_PATHS && window.BODY_PATHS.male;
+      var bodymapEl = document.getElementById('bodymap');
+      var mmSeg = document.getElementById('mm-seg');
+      var mmMeta = document.getElementById('mm-meta');
+      var mmNote = document.getElementById('mm-note');
+      var mmDetail = document.getElementById('mm-detail');
+      var mmLegend = document.getElementById('hm-legend');
+      var mmCurrent = 'balance';
+      var mmSelected = null;
+
+      function buildBodyView(view) {
+        var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('class', 'bm-v');
+        svg.setAttribute('viewBox', view.vb);
+        svg.setAttribute('role', 'img');
+        svg.setAttribute('aria-label', '肌肉地图');
+        RO.forEach(function (k) {
+          (view.p[k] || []).forEach(function (d) {
+            var p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            p.setAttribute('class', 'bm-sil');
+            p.setAttribute('d', d);
+            svg.appendChild(p);
+          });
+        });
+        NO.forEach(function (k) {
+          if (!view.p[k]) { return; }
+          var lvl = LEVELS[mmCurrent][k] || 0;
+          view.p[k].forEach(function (d) {
+            var p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            p.setAttribute('class', 'bm-m l' + lvl + (mmSelected === k ? ' sel' : ''));
+            p.setAttribute('data-muscle', k);
+            p.setAttribute('d', d);
+            var title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+            title.textContent = LABELS[k];
+            p.appendChild(title);
+            p.addEventListener('click', function () { selectMuscle(k); });
+            svg.appendChild(p);
+          });
+        });
+        return svg;
+      }
+
+      function renderBodyMap() {
+        if (!bodyPaths || !bodymapEl) { return; }
+        bodymapEl.className = 'bodymap tappable' + (mmCurrent === 'fatigue' ? ' hm-fatigue' : '') + (mmCurrent === 'strength' ? ' hm-strength' : '');
+        if (mmLegend) {
+          mmLegend.className = 'hm-legend' + (mmCurrent === 'fatigue' ? ' hm-fatigue' : '') + (mmCurrent === 'strength' ? ' hm-strength' : '');
+        }
+        bodymapEl.innerHTML = '';
+        bodymapEl.appendChild(buildBodyView(bodyPaths.front));
+        bodymapEl.appendChild(buildBodyView(bodyPaths.back));
+      }
+
+      function selectMuscle(k) {
+        mmSelected = k;
+        renderBodyMap();
+        var lvl = LEVELS[mmCurrent][k] || 0;
+        var val = mmCurrent === 'balance' ? (lvl * 10 + 8) + ' 组' : mmCurrent === 'fatigue' ? (['已恢复', '恢复中', '略疲劳', '疲劳'][lvl] || '—') : (['弱', '一般', '中', '强'][lvl] || '—');
+        mmDetail.innerHTML = '';
+        var row = document.createElement('div');
+        row.className = 'mrow';
+        var nm = document.createElement('span');
+        nm.className = 'nm';
+        nm.textContent = LABELS[k];
+        var bar = document.createElement('div');
+        bar.className = 'bar';
+        var fill = document.createElement('i');
+        fill.style.width = (lvl * 25) + '%';
+        bar.appendChild(fill);
+        var v = document.createElement('span');
+        v.className = 'v';
+        v.textContent = val;
+        row.appendChild(nm);
+        row.appendChild(bar);
+        row.appendChild(v);
+        mmDetail.appendChild(row);
+      }
+
+      function applyMuscleMode(mode) {
+        mmCurrent = mode;
+        mmSelected = null;
+        Array.prototype.forEach.call(mmSeg ? mmSeg.querySelectorAll('button') : [], function (b) {
+          var active = b.getAttribute('data-mode') === mode;
+          b.classList.toggle('active', active);
+          b.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        if (mmMeta) { mmMeta.textContent = MM_META[mode]; }
+        if (mmNote) { mmNote.textContent = MM_NOTE[mode]; }
+        if (mmDetail) { mmDetail.innerHTML = ''; }
+        renderBodyMap();
+      }
+
+      Array.prototype.forEach.call(mmSeg ? mmSeg.querySelectorAll('button') : [], function (b) {
+        b.addEventListener('click', function () { applyMuscleMode(b.getAttribute('data-mode')); });
+      });
+
+      renderBodyMap();
+
+      // 体重目标：按钮 + 弹窗
+      var goalBtn = document.getElementById('goal-btn');
+      var goalModal = document.getElementById('goal-modal');
+      var goalInput = document.getElementById('goal-input');
+      var goalSave = document.getElementById('goal-save');
+      var goalLine = document.getElementById('goal-line');
+
+      function openGoalModal() {
+        if (!goalModal) { return; }
+        goalModal.hidden = false;
+        if (goalInput && goalBtn) {
+          var m = goalBtn.textContent.match(/([\d.]+)/);
+          goalInput.value = m ? m[1] : '68';
+        }
+        if (goalInput) { goalInput.focus(); }
+      }
+      function closeGoalModal() {
+        if (goalModal) { goalModal.hidden = true; }
+      }
+      function saveGoal() {
+        var val = parseFloat(goalInput && goalInput.value);
+        if (!isFinite(val)) { val = 68; }
+        val = Math.max(30, Math.min(200, val));
+        if (goalBtn) {
+          var display = val % 1 === 0 ? String(val) : val.toFixed(1);
+          goalBtn.textContent = '目标 ' + display + ' kg';
+        }
+        if (goalLine) {
+          var y = 16 + ((71 - val) / 4) * 100;
+          y = Math.max(16, Math.min(116, y));
+          goalLine.setAttribute('y1', y.toFixed(1));
+          goalLine.setAttribute('y2', y.toFixed(1));
+        }
+        closeGoalModal();
+      }
+
+      if (goalBtn) { goalBtn.addEventListener('click', openGoalModal); }
+      if (goalModal) {
+        goalModal.addEventListener('click', function (e) {
+          if (e.target && e.target.hasAttribute && e.target.hasAttribute('data-close')) { closeGoalModal(); }
+        });
+      }
+      if (goalSave) { goalSave.addEventListener('click', saveGoal); }
+      if (goalInput) {
+        goalInput.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { saveGoal(); }
+        });
+      }
+
+      // 努力程度（Effort · RIR / RPE）
+      var effortSeg = document.getElementById('effort-seg');
+      var effortBars = document.getElementById('effort-bars');
+      var effortValue = document.getElementById('effort-value');
+      var effortUnit = document.getElementById('effort-unit');
+      var RIR_DATA = [2, 3, 1, 2, 4, 1, 3, 2];
+      var effortCurrent = 'rir';
+
+      function renderEffort() {
+        var vals = effortCurrent === 'rir' ? RIR_DATA : RIR_DATA.map(function (v) { return 10 - v; });
+        var min = effortCurrent === 'rir' ? 0 : 6;
+        var max = effortCurrent === 'rir' ? 4 : 10;
+        var avg = vals.reduce(function (a, b) { return a + b; }, 0) / vals.length;
+        if (effortValue) { effortValue.textContent = avg.toFixed(1); }
+        if (effortUnit) { effortUnit.textContent = effortCurrent.toUpperCase() + ' · 近 8 次平均'; }
+        if (effortBars) {
+          effortBars.innerHTML = '';
+          vals.forEach(function (v, i) {
+            var col = document.createElement('div');
+            col.className = 'effort-bar';
+            var bar = document.createElement('span');
+            bar.className = 'bar';
+            var h = ((v - min) / (max - min)) * 100;
+            bar.style.height = Math.max(8, h) + '%';
+            var lbl = document.createElement('span');
+            lbl.className = 'lbl';
+            lbl.textContent = String(i + 1);
+            col.appendChild(bar);
+            col.appendChild(lbl);
+            effortBars.appendChild(col);
+          });
+        }
+      }
+
+      Array.prototype.forEach.call(effortSeg ? effortSeg.querySelectorAll('button') : [], function (b) {
+        b.addEventListener('click', function () {
+          effortCurrent = b.getAttribute('data-effort');
+          Array.prototype.forEach.call(effortSeg.querySelectorAll('button'), function (x) {
+            var on = x === b;
+            x.classList.toggle('active', on);
+            x.setAttribute('aria-pressed', on ? 'true' : 'false');
+          });
+          renderEffort();
+        });
+      });
+
+      renderEffort();
+
+      // 窄屏时等比缩小手机画布，避免横向溢出
+      var phones = Array.prototype.slice.call(document.querySelectorAll('.phone'));
+      function fitPhones() {
+        var narrow = window.innerWidth < 440;
+        phones.forEach(function (ph) {
+          var scale = narrow ? Math.min(1, (window.innerWidth - 32) / 390) : 1;
+          ph.style.transform = scale < 1 ? 'scale(' + scale + ')' : '';
+          ph.style.transformOrigin = 'top left';
+          ph.style.marginBottom = scale < 1 ? ((scale - 1) * 844) + 'px' : '';
+        });
+      }
+      window.addEventListener('resize', fitPhones);
+      fitPhones();
+      applyScale('week');
+    })();
+  </script>
+  <script>window.FT_APP={routes:[]};</script>
+  <script src="assets/ft-stage.js"></script>
+</body>
+</html>
