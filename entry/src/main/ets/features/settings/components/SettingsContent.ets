@@ -73,12 +73,7 @@ export struct SettingsContent {
   }
 
   build() {
-    Stack({ alignContent: Alignment.TopStart }) {
-      Column()
-        .width('100%')
-        .height('100%')
-        .linearGradient({ angle: 180, colors: [['#0B0F13', 0], ['#0A0D12', 1]] })
-
+    Stack({ alignContent: Alignment.Bottom }) {
       Column() {
         Row({ space: 10 }) {
           Row() {
@@ -91,23 +86,23 @@ export struct SettingsContent {
               .strokeWidth(2)
           }
           .width(44)
-            .height(44)
-            .borderRadius(22)
-            .backgroundColor('#0CFFFFFF')
-            .border({ width: 1, color: '#14FFFFFF' })
-            .justifyContent(FlexAlign.Center)
-            .scale({ x: this.backPressed ? MotionTokens.PRESS_BACK : 1, y: this.backPressed ? MotionTokens.PRESS_BACK : 1 })
-            .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
-            .onTouch((event: TouchEvent) => {
-              if (event.type === TouchType.Down) {
-                this.backPressed = true
-              } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-                this.backPressed = false
-              }
-            })
-            .onClick(() => {
-              this.handleBack()
-            })
+          .height(44)
+          .borderRadius(22)
+          .backgroundColor('#0CFFFFFF')
+          .border({ width: 1, color: '#14FFFFFF' })
+          .justifyContent(FlexAlign.Center)
+          .scale({ x: this.backPressed ? MotionTokens.PRESS_BACK : 1, y: this.backPressed ? MotionTokens.PRESS_BACK : 1 })
+          .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
+          .onTouch((event: TouchEvent) => {
+            if (event.type === TouchType.Down) {
+              this.backPressed = true
+            } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+              this.backPressed = false
+            }
+          })
+          .onClick(() => {
+            this.handleBack()
+          })
           Text('设置')
             .fontFamily('Noto Sans SC')
             .fontSize(18)
@@ -124,7 +119,7 @@ export struct SettingsContent {
         .alignItems(VerticalAlign.Center)
 
         Scroll() {
-          Column({ space: 16 }) {
+          Column({ space: 14 }) {
             this.generalCard()
             this.dataPrivacyCard()
             this.aboutCard()
@@ -136,6 +131,7 @@ export struct SettingsContent {
               .padding({ left: 6, right: 6, top: 2 })
           }
           .width('100%')
+          .padding({ top: 8, left: 16, right: 16, bottom: 30 })
         }
         .width('100%')
         .layoutWeight(1)
@@ -148,14 +144,18 @@ export struct SettingsContent {
         Text('已保存')
           .fontFamily('Noto Sans SC')
           .fontSize(13)
-          .fontWeight(FontWeight.Medium)
-          .fontColor('#07100B')
-          .backgroundColor('#50ECA7')
+          .fontColor('#F7FBF8')
+          .lineHeight(18)
+          .textAlign(TextAlign.Center)
+          .padding({ left: 16, right: 16, top: 10, bottom: 10 })
+          .constraintSize({ maxWidth: 320 })
+          .backgroundColor('#F00D1117')
+          .border({ width: 1, color: '#1AFFFFFF' })
           .borderRadius(999)
-          .padding({ left: 16, right: 16, top: 8, bottom: 8 })
-          .position({ x: '50%', y: '86%' })
-          .translate({ x: -32 })
-          .transition(TransitionEffect.OPACITY.animation({ duration: MotionTokens.DURATION_OVERLAY, curve: MotionTokens.EASE_MOTION }))
+          .margin({ bottom: 30 })
+          .transition(TransitionEffect.OPACITY
+            .combine(TransitionEffect.translate({ y: 10 }))
+            .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: MotionTokens.EASE_MOTION }))
       }
     }
     .width('100%')
@@ -167,25 +167,25 @@ export struct SettingsContent {
   private generalCard() {
     Column() {
       this.sectionTitle('通用', '')
-      this.segRow('体重单位', ['千克', '磅'], this.unitIndex, (index: number) => {
+      this.segRow('体重单位', ['千克', '磅'], this.unitIndex, true, (index: number) => {
         this.unitIndex = index
         this.showToast('已保存')
       })
-      this.segRow('语言', ['简体中文', 'English'], this.langIndex, (index: number) => {
+      this.segRow('语言', ['简体中文', 'English'], this.langIndex, false, (index: number) => {
         this.langIndex = index
         this.showToast('已保存')
       })
-      this.segRow('周开始日', ['周一', '周日'], this.weekStartIndex, (index: number) => {
+      this.segRow('周开始日', ['周一', '周日'], this.weekStartIndex, false, (index: number) => {
         this.weekStartIndex = index
         this.showToast('已保存')
       })
-      this.switchRow('reminder', '训练提醒')
-      this.switchRow('achievement', '成就提醒')
-      this.switchRow('sound', '声音与震动')
-      this.switchRow('keep-on', '训练中屏幕常亮')
+      this.switchRow('reminder', '训练提醒', false)
+      this.switchRow('achievement', '成就提醒', false)
+      this.switchRow('sound', '声音与震动', false)
+      this.switchRow('keep-on', '训练中屏幕常亮', false)
     }
     .width('100%')
-    .padding({ left: 16, right: 16, top: 14, bottom: 10 })
+    .padding({ left: 16, right: 16, top: 16, bottom: 16 })
     .backgroundColor('#08FFFFFF')
     .border({ width: 1, color: '#1AFFFFFF' })
     .borderRadius(22)
@@ -195,12 +195,12 @@ export struct SettingsContent {
   private dataPrivacyCard() {
     Column() {
       this.sectionTitle('数据与隐私', '')
-      this.chevronRow('健康数据授权', '已授权')
-      this.switchRow('sync', '训练数据同步')
-      this.switchRow('anonymous', '匿名使用数据')
+      this.chevronRow('健康数据授权', '已授权', true)
+      this.switchRow('sync', '训练数据同步', false)
+      this.switchRow('anonymous', '匿名使用数据', false)
     }
     .width('100%')
-    .padding({ left: 16, right: 16, top: 14, bottom: 10 })
+    .padding({ left: 16, right: 16, top: 16, bottom: 16 })
     .backgroundColor('#08FFFFFF')
     .border({ width: 1, color: '#1AFFFFFF' })
     .borderRadius(22)
@@ -216,7 +216,7 @@ export struct SettingsContent {
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
         Text('FitTracker')
-          .fontFamily('Inter')
+          .fontFamily('Noto Sans SC')
           .fontSize(11)
           .fontColor('#9EFFFFFF')
       }
@@ -230,19 +230,18 @@ export struct SettingsContent {
           .fontSize(14)
           .fontColor('#F7FBF8')
         Text('1.0.0')
-          .fontFamily('Inter')
+          .fontFamily('Noto Sans SC')
           .fontSize(12.5)
           .fontColor('#8AFFFFFF')
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
-      .height(52)
-      .border({ width: { top: 1 }, color: '#0FFFFFFF' })
+      .padding({ top: 15, bottom: 15, left: 2, right: 2 })
 
-      this.chevronRow('隐私说明', '')
+      this.chevronRow('隐私说明', '', false)
     }
     .width('100%')
-    .padding({ left: 16, right: 16, top: 14, bottom: 6 })
+    .padding({ left: 16, right: 16, top: 16, bottom: 16 })
     .backgroundColor('#08FFFFFF')
     .border({ width: 1, color: '#1AFFFFFF' })
     .borderRadius(22)
@@ -258,18 +257,18 @@ export struct SettingsContent {
         .fontColor('#F7FBF8')
       if (meta.length > 0) {
         Text(meta)
-          .fontFamily('Inter')
+          .fontFamily('Noto Sans SC')
           .fontSize(11)
           .fontColor('#9EFFFFFF')
       }
     }
     .width('100%')
     .justifyContent(FlexAlign.SpaceBetween)
-    .padding({ bottom: 6 })
+    .padding({ bottom: 4 })
   }
 
   @Builder
-  private segRow(label: string, options: string[], selected: number, onChange: (index: number) => void) {
+  private segRow(label: string, options: string[], selected: number, first: boolean, onChange: (index: number) => void) {
     Row() {
       Text(label)
         .fontFamily('Noto Sans SC')
@@ -280,7 +279,7 @@ export struct SettingsContent {
         ForEach(options, (option: string, index: number) => {
           Button(option)
             .height(30)
-            .padding({ left: 14, right: 14 })
+            .padding({ left: 16, right: 16 })
             .fontFamily('Noto Sans SC')
             .fontSize(12.5)
             .fontWeight(FontWeight.Bold)
@@ -299,12 +298,12 @@ export struct SettingsContent {
       .borderRadius(12)
     }
     .width('100%')
-    .height(58)
-    .border({ width: { top: 1 }, color: '#0FFFFFFF' })
+    .padding({ top: 15, bottom: 15, left: 2, right: 2 })
+    .border({ width: { top: first ? 0 : 1 }, color: '#0FFFFFFF' })
   }
 
   @Builder
-  private switchRow(key: string, label: string) {
+  private switchRow(key: string, label: string, first: boolean) {
     Row() {
       Text(label)
         .fontFamily('Noto Sans SC')
@@ -317,25 +316,29 @@ export struct SettingsContent {
           .height(22)
           .borderRadius(11)
           .backgroundColor(this.isSwitchOn(key) ? '#07100B' : '#FFFFFF')
+          .translate({ x: this.isSwitchOn(key) ? 18 : 0 })
+          .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: MotionTokens.EASE_MOTION })
       }
       .width(46)
       .height(28)
       .borderRadius(14)
       .backgroundColor(this.isSwitchOn(key) ? '#50ECA7' : '#1FFFFFFF')
       .border({ width: 1, color: this.isSwitchOn(key) ? '#50ECA7' : '#1AFFFFFF' })
-      .padding({ left: this.isSwitchOn(key) ? 22 : 2, right: this.isSwitchOn(key) ? 2 : 22 })
+      .padding({ left: 1, top: 1 })
+      .justifyContent(FlexAlign.Start)
+      .alignItems(VerticalAlign.Top)
       .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: MotionTokens.EASE_MOTION })
       .onClick(() => {
         this.toggleSwitch(key)
       })
     }
     .width('100%')
-    .height(52)
-    .border({ width: { top: 1 }, color: '#0FFFFFFF' })
+    .padding({ top: 15, bottom: 15, left: 2, right: 2 })
+    .border({ width: { top: first ? 0 : 1 }, color: '#0FFFFFFF' })
   }
 
   @Builder
-  private chevronRow(label: string, value: string) {
+  private chevronRow(label: string, value: string, first: boolean) {
     Row() {
       Text(label)
         .fontFamily('Noto Sans SC')
@@ -358,7 +361,7 @@ export struct SettingsContent {
         .margin({ left: 6 })
     }
     .width('100%')
-    .height(52)
-    .border({ width: { top: 1 }, color: '#0FFFFFFF' })
+    .padding({ top: 15, bottom: 15, left: 2, right: 2 })
+    .border({ width: { top: first ? 0 : 1 }, color: '#0FFFFFFF' })
   }
 }

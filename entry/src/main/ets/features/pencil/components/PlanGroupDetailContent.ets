@@ -38,6 +38,7 @@ export struct PlanGroupDetailContent {
   @State private backPressed: boolean = false
   @State private ctaPressed: boolean = false
   @State private dayKey: string = ''
+  @State private exerciseKey: string = ''
   @State private activeDay: number = 0
   @State private toastVisible: boolean = false
   @State private toastTimer: number = -1
@@ -46,6 +47,7 @@ export struct PlanGroupDetailContent {
   private readonly planDesc: string = '按动作模式循环：推（胸、肩、三头）、拉（背、二头）、腿（下肢）。每个部位每周练 1-2 次，适合各阶段训练者。'
   private readonly planTags: string[] = ['初中高级通用', '3 天 / 周', '3 个训练日']
   private readonly weekCells: string[] = ['推', '拉', '腿', '休', '休', '休', '休']
+  private readonly dowLabels: string[] = ['一', '二', '三', '四', '五', '六', '日']
   private readonly days: GroupDay[] = [
     createGroupDay('推', '胸大肌 · 三角肌 · 肱三头肌', [
       createGroupExercise('杠铃卧推', 4, '8', '杠铃', '主项 · 肩胛后收下沉'),
@@ -92,114 +94,104 @@ export struct PlanGroupDetailContent {
   }
 
   build() {
-    Stack({ alignContent: Alignment.TopStart }) {
-      Column()
-        .width('100%')
-        .height('100%')
-        .linearGradient({ angle: 180, colors: [['#0B0F13', 0], ['#0A0D12', 1]] })
-
+    Stack({ alignContent: Alignment.Bottom }) {
       Column() {
-        Row({ space: 10 }) {
-          Row() {
-            Path()
-              .width(20)
-              .height(20)
-              .commands('M14 6 L8 12 L14 18')
-              .fillOpacity(0)
-              .stroke('#B3FFFFFF')
-              .strokeWidth(2)
-          }
-          .width(44)
-            .height(44)
-            .borderRadius(22)
-            .backgroundColor('#0CFFFFFF')
-            .border({ width: 1, color: '#14FFFFFF' })
-            .justifyContent(FlexAlign.Center)
-            .scale({ x: this.backPressed ? MotionTokens.PRESS_BACK : 1, y: this.backPressed ? MotionTokens.PRESS_BACK : 1 })
-            .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
-            .onTouch((event: TouchEvent) => {
-              if (event.type === TouchType.Down) {
-                this.backPressed = true
-              } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-                this.backPressed = false
-              }
-            })
-            .onClick(() => {
-              this.handleBack()
-            })
-          Text(this.planName)
-            .fontFamily('Noto Sans SC')
-            .fontSize(18)
-            .fontWeight(FontWeight.Bold)
-            .fontColor('#F7FBF8')
-            .layoutWeight(1)
-            .textAlign(TextAlign.Center)
-          Row()
-            .width(44)
-            .height(44)
-        }
-        .width('100%')
-        .padding({ top: 50, bottom: 12, left: 16, right: 16 })
-        .alignItems(VerticalAlign.Center)
+        this.topBar()
 
         Scroll() {
-          Column({ space: 14 }) {
+          Column({ space: 16 }) {
             this.summaryCard()
-            this.rhythmCard()
+            this.rhythmSection()
             this.dayTabs()
             this.dayPanel()
           }
           .width('100%')
-          .padding({ left: 16, right: 16, bottom: 24 })
+          .padding({ top: 16, bottom: 16, left: 16, right: 16 })
         }
         .width('100%')
         .layoutWeight(1)
         .scrollBar(BarState.Off)
 
-        Button('使用此计划')
-          .width('100%')
-          .height(54)
-          .padding(0)
-          .fontFamily('Noto Sans SC')
-          .fontSize(16)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#07100B')
-          .linearGradient({ angle: 90, colors: [['#47D994', 0], ['#53E7A5', 1]] })
-          .borderRadius(18)
-          .margin({ left: 16, right: 16, bottom: 18, top: 4 })
-          .scale({ x: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1 })
-          .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
-          .onTouch((event: TouchEvent) => {
-            if (event.type === TouchType.Down) {
-              this.ctaPressed = true
-            } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-              this.ctaPressed = false
-            }
-          })
-          .onClick(() => {
-            this.usePlan()
-          })
+        this.ctaBar()
       }
       .width('100%')
       .height('100%')
 
       if (this.toastVisible) {
-        Text('已将「推拉腿分裂」设为当前计划')
-          .fontFamily('Noto Sans SC')
-          .fontSize(13)
-          .fontWeight(FontWeight.Medium)
-          .fontColor('#07100B')
-          .backgroundColor('#50ECA7')
-          .borderRadius(999)
-          .padding({ left: 16, right: 16, top: 8, bottom: 8 })
-          .position({ x: '50%', y: '84%' })
-          .translate({ x: -90 })
-          .transition(TransitionEffect.OPACITY.animation({ duration: MotionTokens.DURATION_OVERLAY, curve: MotionTokens.EASE_MOTION }))
+        Row() {
+          Text('已将「推拉腿分裂」设为当前计划')
+            .fontFamily('Noto Sans SC')
+            .fontSize(13)
+            .fontColor('#F7FBF8')
+            .lineHeight(18)
+            .textAlign(TextAlign.Center)
+        }
+        .padding({ left: 16, right: 16, top: 10, bottom: 10 })
+        .constraintSize({ maxWidth: 320 })
+        .backgroundColor('#F00D1117')
+        .borderRadius(999)
+        .border({ width: 1, color: '#1AFFFFFF' })
+        .margin({ bottom: 88 })
+        .transition(TransitionEffect.OPACITY
+          .combine(TransitionEffect.translate({ y: 10 }))
+          .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: MotionTokens.EASE_MOTION }))
       }
     }
     .width('100%')
     .height('100%')
     .backgroundColor('#0B0F13')
+  }
+
+  @Builder
+  private topBar() {
+    Row({ space: 8 }) {
+      Row() {
+        Path()
+          .width(22)
+          .height(22)
+          .commands('M13.75 4.58 L7.33 11 L13.75 17.42')
+          .fillOpacity(0)
+          .stroke('#B3FFFFFF')
+          .strokeWidth(1.83)
+          .strokeLineCap(LineCapStyle.Round)
+          .strokeLineJoin(LineJoinStyle.Round)
+      }
+      .width(44)
+      .height(44)
+      .borderRadius(14)
+      .justifyContent(FlexAlign.Center)
+      .scale({ x: this.backPressed ? MotionTokens.PRESS_BACK : 1, y: this.backPressed ? MotionTokens.PRESS_BACK : 1 })
+      .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
+      .onTouch((event: TouchEvent) => {
+        if (event.type === TouchType.Down) {
+          this.backPressed = true
+        } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+          this.backPressed = false
+        }
+      })
+      .onClick(() => {
+        this.handleBack()
+      })
+
+      Text(this.planName)
+        .fontFamily('Noto Sans SC')
+        .fontSize(16)
+        .fontWeight(FontWeight.Bold)
+        .fontColor('#F7FBF8')
+        .layoutWeight(1)
+        .textAlign(TextAlign.Center)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+      Row()
+        .width(44)
+        .height(44)
+    }
+    .width('100%')
+    .padding({ top: 52, bottom: 10, left: 12, right: 12 })
+    .alignItems(VerticalAlign.Center)
+    .backgroundColor('#D10A0D12')
+    .border({ width: { bottom: 1 }, color: '#0FFFFFFF' })
   }
 
   @Builder
@@ -210,93 +202,112 @@ export struct PlanGroupDetailContent {
         .fontSize(11)
         .fontWeight(FontWeight.Bold)
         .fontColor('#50ECA7')
-        .letterSpacing(0.4)
+        .letterSpacing(0.33)
       Text(this.planName)
         .fontFamily('Noto Sans SC')
-        .fontSize(30)
+        .fontSize(22)
         .fontWeight(FontWeight.Bold)
+        .lineHeight(26)
         .fontColor('#F7FBF8')
         .margin({ top: 8 })
+        .padding({ right: 8 })
       Text(this.planDesc)
         .fontFamily('Noto Sans SC')
         .fontSize(13)
         .lineHeight(21)
         .fontColor('#9EFFFFFF')
-        .margin({ top: 10 })
-      Row({ space: 8 }) {
+        .margin({ top: 8 })
+      Row({ space: 7 }) {
         ForEach(this.planTags, (tag: string) => {
           Text(tag)
             .fontFamily('Noto Sans SC')
-            .fontSize(10.5)
+            .fontSize(11)
             .fontWeight(FontWeight.Medium)
-            .fontColor('#B3FFFFFF')
-            .padding({ left: 10, right: 10, top: 5, bottom: 5 })
-            .backgroundColor('#0FFFFFFF')
-            .border({ width: 1, color: '#0FFFFFFF' })
+            .fontColor('#50ECA7')
+            .padding({ top: 4, bottom: 4, left: 11, right: 11 })
+            .backgroundColor('#1F50ECA7')
+            .border({ width: 1, color: '#4D50ECA7' })
             .borderRadius(999)
         }, (tag: string) => tag)
-      }
-      .width('100%')
-      .margin({ top: 14 })
-    }
-    .width('100%')
-    .padding(18)
-    .backgroundColor('#08FFFFFF')
-    .border({ width: 1, color: '#1AFFFFFF' })
-    .borderRadius(22)
-  }
-
-  @Builder
-  private rhythmCard() {
-    Column() {
-      Text('每周节奏')
-        .fontFamily('Noto Sans SC')
-        .fontSize(15)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#F7FBF8')
-      Row() {
-        ForEach(this.weekCells, (cell: string, index: number) => {
-          Column() {
-            Text(cell)
-              .fontFamily('Noto Sans SC')
-              .fontSize(12)
-              .fontWeight(this.isWeekRest(cell) ? FontWeight.Medium : FontWeight.Bold)
-              .fontColor(this.isWeekRest(cell) ? '#66FFFFFF' : '#07100B')
-          }
-          .layoutWeight(1)
-          .height(34)
-          .justifyContent(FlexAlign.Center)
-          .borderRadius(10)
-          .backgroundColor(this.isWeekRest(cell) ? '#0FFFFFFF' : '#50ECA7')
-          .margin({ right: index < this.weekCells.length - 1 ? 4 : 0 })
-        }, (cell: string) => cell)
       }
       .width('100%')
       .margin({ top: 12 })
     }
     .width('100%')
-    .padding(16)
-    .backgroundColor('#08FFFFFF')
-    .border({ width: 1, color: '#1AFFFFFF' })
-    .borderRadius(22)
+    .padding({ top: 16, bottom: 15, left: 16, right: 16 })
+    .backgroundColor('#1450ECA7')
+    .border({ width: 1, color: '#6650ECA7' })
+    .borderRadius(20)
+    .shadow({ radius: 28, color: '#33000000', offsetX: 0, offsetY: 14 })
+  }
+
+  @Builder
+  private rhythmSection() {
+    Column({ space: 10 }) {
+      Text('每周节奏')
+        .fontFamily('Noto Sans SC')
+        .fontSize(12)
+        .fontWeight(FontWeight.Bold)
+        .fontColor('#8AFFFFFF')
+        .letterSpacing(0.24)
+      Row({ space: 5 }) {
+        ForEach(this.weekCells, (cell: string, index: number) => {
+          Column({ space: 6 }) {
+            Text(this.dowLabels[index])
+              .fontFamily('Noto Sans SC')
+              .fontSize(11)
+              .fontWeight(FontWeight.Medium)
+              .fontColor('#66FFFFFF')
+            Column() {
+              Text(cell)
+                .fontFamily('Noto Sans SC')
+                .fontSize(12)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(this.isWeekRest(cell) ? '#66FFFFFF' : '#50ECA7')
+            }
+            .width('100%')
+            .height(34)
+            .justifyContent(FlexAlign.Center)
+            .borderRadius(10)
+            .backgroundColor(this.isWeekRest(cell) ? '#08FFFFFF' : '#1F50ECA7')
+            .border({ width: 1, color: this.isWeekRest(cell) ? '#1AFFFFFF' : '#4D50ECA7' })
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Center)
+        }, (cell: string) => cell)
+      }
+      .width('100%')
+    }
+    .width('100%')
   }
 
   @Builder
   private dayTabs() {
-    Row({ space: 8 }) {
-      ForEach(this.days, (day: GroupDay, index: number) => {
-        Button(day.title)
-          .layoutWeight(1)
-          .height(40)
-          .padding(0)
-          .fontFamily('Noto Sans SC')
-          .fontSize(14.5)
-          .fontWeight(this.activeDay === index ? FontWeight.Bold : FontWeight.Medium)
-          .fontColor(this.activeDay === index ? '#07100B' : '#B3FFFFFF')
-          .backgroundColor(this.activeDay === index ? '#50ECA7' : '#0FFFFFFF')
-          .border({ width: 1, color: this.activeDay === index ? '#50ECA7' : '#14FFFFFF' })
+    Scroll() {
+      Row({ space: 8 }) {
+        ForEach(this.days, (day: GroupDay, index: number) => {
+          Button({ type: ButtonType.Normal }) {
+            Column({ space: 3 }) {
+              Text('第 ' + (index + 1).toString() + ' 天')
+                .fontFamily('Inter')
+                .fontSize(11)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(this.activeDay === index ? '#50ECA7' : '#8AFFFFFF')
+              Text(day.title)
+                .fontFamily('Noto Sans SC')
+                .fontSize(14)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(this.activeDay === index ? '#50ECA7' : '#F7FBF8')
+            }
+            .width('100%')
+            .alignItems(HorizontalAlign.Start)
+          }
+          .constraintSize({ minWidth: 96 })
+          .padding({ top: 10, bottom: 10, left: 12, right: 12 })
+          .backgroundColor(this.activeDay === index ? '#2650ECA7' : '#0AFFFFFF')
+          .border({ width: 1, color: this.activeDay === index ? '#7350ECA7' : '#1AFFFFFF' })
           .borderRadius(14)
-          .scale({ x: this.dayKey === day.title ? MotionTokens.PRESS_SEGMENT : 1, y: this.dayKey === day.title ? MotionTokens.PRESS_SEGMENT : 1 })
+          .scale({ x: this.dayKey === day.title ? MotionTokens.PRESS_SHORTCUT : 1, y: this.dayKey === day.title ? MotionTokens.PRESS_SHORTCUT : 1 })
           .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
           .onTouch((event: TouchEvent) => {
             if (event.type === TouchType.Down) {
@@ -308,68 +319,155 @@ export struct PlanGroupDetailContent {
           .onClick(() => {
             this.activeDay = index
           })
-      }, (day: GroupDay) => day.title)
+        }, (day: GroupDay) => day.title)
+      }
+      .padding(2)
     }
     .width('100%')
-    .margin({ top: 2 })
+    .scrollable(ScrollDirection.Horizontal)
+    .scrollBar(BarState.Off)
   }
 
   @Builder
   private dayPanel() {
-    Column() {
-      Text(this.days[this.activeDay].title + '日 · ' + this.days[this.activeDay].focus)
-        .fontFamily('Noto Sans SC')
-        .fontSize(13.5)
-        .fontColor('#B3FFFFFF')
-      Column() {
+    Column({ space: 12 }) {
+      Row({ space: 8 }) {
+        Text(this.days[this.activeDay].title)
+          .fontFamily('Noto Sans SC')
+          .fontSize(16)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#F7FBF8')
+        Text(this.days[this.activeDay].focus)
+          .fontFamily('Noto Sans SC')
+          .fontSize(12)
+          .fontColor('#8AFFFFFF')
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Bottom)
+
+      Column({ space: 9 }) {
         ForEach(this.days[this.activeDay].exercises, (exercise: GroupExercise, index: number) => {
-          Row() {
-            Text((index + 1).toString().padStart(2, '0'))
-              .fontFamily('Inter')
-              .fontSize(11)
-              .fontWeight(FontWeight.Bold)
-              .fontColor('#50ECA7')
-              .width(28)
-            Column({ space: 4 }) {
-              Row({ space: 6 }) {
+          Row({ space: 12 }) {
+            Column() {
+              Text((index + 1).toString())
+                .fontFamily('Inter')
+                .fontSize(13)
+                .fontWeight(FontWeight.Bold)
+                .fontColor('#50ECA7')
+            }
+            .width(28)
+            .height(28)
+            .justifyContent(FlexAlign.Center)
+            .borderRadius(9)
+            .backgroundColor('#1A50ECA7')
+            .border({ width: 1, color: '#3850ECA7' })
+
+            Column({ space: 3 }) {
+              Row({ space: 7 }) {
                 Text(exercise.name)
                   .fontFamily('Noto Sans SC')
-                  .fontSize(15)
+                  .fontSize(14)
                   .fontWeight(FontWeight.Bold)
                   .fontColor('#F7FBF8')
+                  .layoutWeight(1)
+                  .maxLines(1)
+                  .textOverflow({ overflow: TextOverflow.Ellipsis })
                 Text(exercise.equipment)
                   .fontFamily('Noto Sans SC')
-                  .fontSize(10.5)
-                  .fontColor('#66FFFFFF')
-                  .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+                  .fontSize(10)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor('#8AFFFFFF')
+                  .padding({ left: 7, right: 7, top: 2, bottom: 2 })
                   .backgroundColor('#0FFFFFFF')
+                  .border({ width: 1, color: '#0FFFFFFF' })
                   .borderRadius(999)
               }
+              .width('100%')
+              .alignItems(VerticalAlign.Center)
+
               Text(exercise.note)
                 .fontFamily('Noto Sans SC')
-                .fontSize(12)
+                .fontSize(11.5)
                 .fontColor('#8AFFFFFF')
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
             }
             .layoutWeight(1)
             .alignItems(HorizontalAlign.Start)
+
             Text(exercise.sets.toString() + ' × ' + exercise.reps)
               .fontFamily('Inter')
               .fontSize(13)
               .fontWeight(FontWeight.Bold)
-              .fontColor('#50ECA7')
+              .fontColor('#8CEBCC')
           }
           .width('100%')
-          .padding({ top: 12, bottom: 12 })
-          .border({ width: { bottom: 1 }, color: '#0FFFFFFF' })
+          .padding({ top: 12, bottom: 12, left: 13, right: 13 })
+          .alignItems(VerticalAlign.Center)
+          .backgroundColor('#151B20')
+          .border({ width: 1, color: '#14FFFFFF' })
+          .borderRadius(15)
+          .scale({ x: this.exerciseKey === exercise.name ? MotionTokens.PRESS_PRIMARY : 1, y: this.exerciseKey === exercise.name ? MotionTokens.PRESS_PRIMARY : 1 })
+          .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
+          .onTouch((event: TouchEvent) => {
+            if (event.type === TouchType.Down) {
+              this.exerciseKey = exercise.name
+            } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+              this.exerciseKey = ''
+            }
+          })
         }, (exercise: GroupExercise) => exercise.name)
       }
       .width('100%')
-      .margin({ top: 12 })
     }
     .width('100%')
-    .padding(16)
-    .backgroundColor('#08FFFFFF')
-    .border({ width: 1, color: '#1AFFFFFF' })
-    .borderRadius(22)
+  }
+
+  @Builder
+  private ctaBar() {
+    Column() {
+      Button({ type: ButtonType.Normal }) {
+        Row({ space: 7 }) {
+          Path()
+            .width(16)
+            .height(16)
+            .commands('M3.33 8.33 L6.33 11.33 L12.67 4.67')
+            .fillOpacity(0)
+            .stroke('#07100B')
+            .strokeWidth(1.33)
+            .strokeLineCap(LineCapStyle.Round)
+            .strokeLineJoin(LineJoinStyle.Round)
+          Text('使用此计划')
+            .fontFamily('Noto Sans SC')
+            .fontSize(15)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#07100B')
+            .letterSpacing(0.15)
+        }
+        .width('100%')
+        .justifyContent(FlexAlign.Center)
+      }
+      .width('100%')
+      .height(52)
+      .padding(0)
+      .backgroundColor('#50ECA7')
+      .borderRadius(16)
+      .scale({ x: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1 })
+      .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
+      .onTouch((event: TouchEvent) => {
+        if (event.type === TouchType.Down) {
+          this.ctaPressed = true
+        } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+          this.ctaPressed = false
+        }
+      })
+      .onClick(() => {
+        this.usePlan()
+      })
+    }
+    .width('100%')
+    .padding({ top: 12, bottom: 20, left: 16, right: 16 })
+    .backgroundColor('#EB0A0D12')
+    .border({ width: { top: 1 }, color: '#0FFFFFFF' })
   }
 }
