@@ -13,21 +13,20 @@ import { window } from '@kit.ArkUI'
 // 配色（Cold Emerald，就地集中声明）
 // ---------------------------------------------------------------------------
 class LibPalette {
-  static readonly BG_TOP: string = '#0D1316'
-  static readonly BG_BOTTOM: string = '#090C10'
+  static readonly BG_BASE: string = '#0B0F13'
   static readonly ACCENT: string = '#50ECA7'
   static readonly ON_ACCENT: string = '#07100B'
-  static readonly PANEL: string = '#151B20'
   static readonly SHEET_BG: string = '#0E1316'
-  static readonly STROKE: string = 'rgba(255,255,255,0.09)'
-  static readonly TEXT_HI: string = '#E8F0EC'
-  static readonly TEXT_MID: string = '#9AB0A6'
+  static readonly STROKE: string = 'rgba(255,255,255,0.10)'
+  static readonly TEXT_HI: string = '#F7FBF8'
   static readonly WHITE_70: string = 'rgba(255,255,255,0.70)'
   static readonly WHITE_62: string = 'rgba(255,255,255,0.62)'
   static readonly WHITE_54: string = 'rgba(255,255,255,0.54)'
   static readonly WHITE_40: string = 'rgba(255,255,255,0.40)'
+  static readonly WHITE_32: string = 'rgba(255,255,255,0.32)'
   static readonly GLASS_BTN_BG: string = 'rgba(255,255,255,0.047)'
   static readonly GLASS_BTN_BORDER: string = 'rgba(255,255,255,0.08)'
+  static readonly GLASS_CLOSE_BG: string = 'rgba(255,255,255,0.06)'
   static readonly CHIP_BG: string = 'rgba(255,255,255,0.04)'
   static readonly CHIP_BORDER: string = 'rgba(255,255,255,0.10)'
   static readonly CHIP_ACTIVE_BG: string = 'rgba(80,236,167,0.15)'
@@ -40,17 +39,16 @@ class LibPalette {
   static readonly TOAST_BG: string = 'rgba(13,17,23,0.94)'
   static readonly HANDLE: string = 'rgba(255,255,255,0.18)'
   static readonly HAIRLINE: string = 'rgba(255,255,255,0.06)'
-  static readonly CTA_TOP: string = '#53E7A5'
-  static readonly CTA_BOTTOM: string = '#47D994'
   static readonly FOCUS_GLOW: string = 'rgba(80,236,167,0.22)'
   static readonly TAG_BG: string = 'rgba(80,236,167,0.12)'
   static readonly TAG_BORDER: string = 'rgba(80,236,167,0.30)'
-  static readonly BADGE_BG: string = 'rgba(80,236,167,0.10)'
-  static readonly BADGE_BORDER: string = 'rgba(80,236,167,0.22)'
   static readonly FAV_FILTER_ON_BG: string = 'rgba(80,236,167,0.12)'
   static readonly MEDIA_BG: string = 'rgba(255,255,255,0.04)'
   static readonly MEDIA_BG_SHEET: string = 'rgba(255,255,255,0.045)'
 }
+
+// HTML `.lib-fav:active` 按压缩放系数（MotionTokens 无 .9 档，页面级集中声明）。
+const PRESS_HEART_SCALE: number = 0.9
 
 // ---------------------------------------------------------------------------
 // 数据模型与动作库常量
@@ -164,7 +162,6 @@ export struct ExerciseLibraryPage {
   @State private pressedCta: boolean = false
   @State private topInset: number = 50
   @State private bottomInset: number = 0
-  @State private viewportWidth: number = 390
   @State private failedGifIds: string[] = []
   private win: window.Window | null = null
   private toastTimer: number = -1
@@ -371,7 +368,7 @@ export struct ExerciseLibraryPage {
     }
     this.ctaTimer = setTimeout(() => {
       this.ctaBusy = false
-      this.showToast('已把 ' + name + ' 加入今日计划')
+      this.showToast('已把「' + name + '」加入今日计划')
     }, 1600)
   }
 
@@ -391,19 +388,7 @@ export struct ExerciseLibraryPage {
       Column()
         .width('100%')
         .height('100%')
-        .linearGradient({
-          angle: 180,
-          colors: [[LibPalette.BG_TOP, 0.0], [LibPalette.BG_BOTTOM, 1.0]]
-        })
-
-      Column()
-        .width('100%')
-        .height('100%')
-        .radialGradient({
-          center: [this.viewportWidth / 2, 0],
-          radius: 300,
-          colors: [['#1250ECA7', 0.0], ['#0050ECA7', 1.0]]
-        })
+        .backgroundColor(LibPalette.BG_BASE)
 
       Column() {
         this.buildTopBar()
@@ -433,8 +418,8 @@ export struct ExerciseLibraryPage {
               .fontSize(11)
               .fontColor(LibPalette.WHITE_54)
               .textAlign(TextAlign.Center)
-              .lineHeight(16)
-              .margin({ top: 8 })
+              .lineHeight(18)
+              .padding({ left: 6, right: 6, top: 2, bottom: 0 })
           }
           .width('100%')
           .padding({
@@ -494,12 +479,6 @@ export struct ExerciseLibraryPage {
     }
     .width('100%')
     .height('100%')
-    .onAreaChange((oldValue: Area, newValue: Area) => {
-      const w: number = Number(newValue.width)
-      if (w > 0 && w !== this.viewportWidth) {
-        this.viewportWidth = w
-      }
-    })
   }
 
   @Builder
@@ -617,7 +596,7 @@ export struct ExerciseLibraryPage {
   private buildChip(label: string, active: boolean) {
     Text(label)
       .fontSize(13)
-      .fontWeight(active ? FontWeight.Bold : FontWeight.Medium)
+      .fontWeight(active ? 600 : 500)
       .fontColor(active ? LibPalette.ACCENT : LibPalette.WHITE_70)
       .padding({ left: 14, right: 14, top: 8, bottom: 8 })
       .backgroundColor(active ? LibPalette.CHIP_ACTIVE_BG : LibPalette.CHIP_BG)
@@ -630,7 +609,7 @@ export struct ExerciseLibraryPage {
   private buildSmallChip(label: string, active: boolean) {
     Text(label)
       .fontSize(12)
-      .fontWeight(active ? FontWeight.Bold : FontWeight.Medium)
+      .fontWeight(active ? 600 : 500)
       .fontColor(active ? LibPalette.ACCENT : LibPalette.WHITE_70)
       .padding({ left: 12, right: 12, top: 6, bottom: 6 })
       .backgroundColor(active ? LibPalette.CHIP_ACTIVE_BG : LibPalette.CHIP_BG)
@@ -675,6 +654,7 @@ export struct ExerciseLibraryPage {
     .scrollable(ScrollDirection.Horizontal)
     .scrollBar(BarState.Off)
     .width('100%')
+    .margin({ top: -6 })
   }
 
   @Builder
@@ -699,7 +679,7 @@ export struct ExerciseLibraryPage {
             Image($rawfile('pencil-lucide-dumbbell.svg'))
               .width(30)
               .height(30)
-              .fillColor(LibPalette.WHITE_40)
+              .fillColor(LibPalette.WHITE_32)
           }
           .width('100%')
           .aspectRatio(4 / 3)
@@ -735,8 +715,8 @@ export struct ExerciseLibraryPage {
           }
         })
         .scale({
-          x: this.pressedHeartId === item.id ? 0.9 : 1,
-          y: this.pressedHeartId === item.id ? 0.9 : 1
+          x: this.pressedHeartId === item.id ? PRESS_HEART_SCALE : 1,
+          y: this.pressedHeartId === item.id ? PRESS_HEART_SCALE : 1
         })
         .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
         .onClick(() => {
@@ -751,6 +731,7 @@ export struct ExerciseLibraryPage {
           .fontSize(12)
           .fontWeight(600)
           .fontColor(LibPalette.TEXT_HI)
+          .lineHeight(15)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
@@ -790,12 +771,6 @@ export struct ExerciseLibraryPage {
           .fontSize(14)
           .fontWeight(FontWeight.Bold)
           .fontColor(LibPalette.TEXT_HI)
-
-        Text(this.groupItems(equipment).length.toString() + ' 个动作')
-          .fontSize(11)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(LibPalette.WHITE_54)
-          .margin({ left: 8 })
       }
       .width('100%')
       .alignItems(VerticalAlign.Bottom)
@@ -819,10 +794,28 @@ export struct ExerciseLibraryPage {
   private buildEmptyState() {
     Column({ space: 6 }) {
       Column() {
-        Image($rawfile('pencil-lucide-dumbbell.svg'))
-          .width(22)
-          .height(22)
-          .fillColor(LibPalette.WHITE_40)
+        Column({ space: 2 }) {
+          Row({ space: 2 }) {
+            Rect({ width: 7, height: 7, radius: 2 })
+              .fillOpacity(0)
+              .stroke(LibPalette.WHITE_40)
+              .strokeWidth(1.6)
+            Rect({ width: 7, height: 7, radius: 2 })
+              .fillOpacity(0)
+              .stroke(LibPalette.WHITE_40)
+              .strokeWidth(1.6)
+          }
+          Row({ space: 2 }) {
+            Rect({ width: 7, height: 7, radius: 2 })
+              .fillOpacity(0)
+              .stroke(LibPalette.WHITE_40)
+              .strokeWidth(1.6)
+            Rect({ width: 7, height: 7, radius: 2 })
+              .fillOpacity(0)
+              .stroke(LibPalette.WHITE_40)
+              .strokeWidth(1.6)
+          }
+        }
       }
       .width(46)
       .height(46)
@@ -834,7 +827,7 @@ export struct ExerciseLibraryPage {
 
       Text(this.emptyTitle())
         .fontSize(14)
-        .fontWeight(FontWeight.Medium)
+        .fontWeight(600)
         .fontColor(LibPalette.TEXT_HI)
 
       Text(this.emptyHint())
@@ -854,12 +847,10 @@ export struct ExerciseLibraryPage {
         .fontSize(13)
         .fontColor(LibPalette.WHITE_54)
 
-      Blank()
-
       Text(value)
         .layoutWeight(1)
         .fontSize(13)
-        .fontWeight(FontWeight.Bold)
+        .fontWeight(600)
         .fontColor(LibPalette.TEXT_HI)
         .textAlign(TextAlign.End)
         .maxLines(2)
@@ -886,7 +877,7 @@ export struct ExerciseLibraryPage {
             Image($rawfile('pencil-lucide-dumbbell.svg'))
               .width(36)
               .height(36)
-              .fillColor(LibPalette.WHITE_40)
+              .fillColor(LibPalette.WHITE_32)
           }
           .width('100%')
           .aspectRatio(16 / 9)
@@ -907,7 +898,7 @@ export struct ExerciseLibraryPage {
 
         Text('动作演示')
           .fontSize(11)
-          .fontWeight(FontWeight.Bold)
+          .fontWeight(600)
           .fontColor(LibPalette.TEXT_HI)
           .padding({ left: 9, right: 9, top: 4, bottom: 4 })
           .backgroundColor(LibPalette.FAV_BG)
@@ -917,14 +908,17 @@ export struct ExerciseLibraryPage {
       }
       .width('100%')
       .backgroundColor(LibPalette.MEDIA_BG_SHEET)
+      .borderRadius(14)
+      .clip(true)
       .margin({ bottom: 16 })
 
-      Row({ space: 8 }) {
+      Row({ space: 12 }) {
         Text(this.currentExercise().name)
           .layoutWeight(1)
           .fontSize(21)
           .fontWeight(FontWeight.Bold)
           .fontColor(LibPalette.TEXT_HI)
+          .lineHeight(25)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
 
@@ -937,7 +931,7 @@ export struct ExerciseLibraryPage {
         .height(36)
         .borderRadius(18)
         .justifyContent(FlexAlign.Center)
-        .backgroundColor(LibPalette.CHIP_BG)
+        .backgroundColor(LibPalette.GLASS_CLOSE_BG)
         .border({ width: 1, color: LibPalette.CHIP_BORDER })
         .onTouch((event: TouchEvent) => {
           if (event.type === TouchType.Down) {
@@ -956,13 +950,13 @@ export struct ExerciseLibraryPage {
         })
       }
       .width('100%')
-      .alignItems(VerticalAlign.Center)
+      .alignItems(VerticalAlign.Top)
 
       Flex({ wrap: FlexWrap.Wrap }) {
         ForEach(this.sheetTags(), (tag: string) => {
           Text(tag)
             .fontSize(11.5)
-            .fontWeight(FontWeight.Bold)
+            .fontWeight(600)
             .fontColor(LibPalette.ACCENT)
             .padding({ left: 11, right: 11, top: 4, bottom: 4 })
             .backgroundColor(LibPalette.TAG_BG)
@@ -998,10 +992,7 @@ export struct ExerciseLibraryPage {
         .fontSize(15)
         .fontWeight(FontWeight.Bold)
         .fontColor(LibPalette.ON_ACCENT)
-        .linearGradient({
-          angle: 180,
-          colors: [[LibPalette.CTA_TOP, 0.0], [LibPalette.CTA_BOTTOM, 1.0]]
-        })
+        .backgroundColor(LibPalette.ACCENT)
         .opacity(this.ctaBusy ? 0.92 : 1)
         .enabled(!this.ctaBusy)
         .onTouch((event: TouchEvent) => {

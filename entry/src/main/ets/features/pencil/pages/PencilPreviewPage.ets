@@ -1,13 +1,13 @@
 /** PencilPreviewPage —— FitTracker 训练预览页（依据 fittracker-training-preview.html 还原）。 */
 
 import { Context } from '@kit.AbilityKit'
-import { AppRoutes } from '../../app/AppRoutes'
-import { MotionTokens } from '../../common/styles/DesignTokens'
-import { TrainingPlan, UserGoal } from '../../shared/models/TrainingModels'
-import { WorkoutPreviewExercise, WorkoutPreviewSummary } from '../../shared/services/WorkoutPreviewService'
-import GoalRepository from '../../shared/services/GoalRepository'
-import PlanEngine from '../../shared/services/PlanEngine'
-import WorkoutPreviewService from '../../shared/services/WorkoutPreviewService'
+import { AppRoutes } from '../../../app/AppRoutes'
+import { ColorTokens, MotionTokens } from '../../../common/styles/DesignTokens'
+import { TrainingPlan, UserGoal } from '../../../shared/models/TrainingModels'
+import { WorkoutPreviewExercise, WorkoutPreviewSummary } from '../../../shared/services/WorkoutPreviewService'
+import GoalRepository from '../../../shared/services/GoalRepository'
+import PlanEngine from '../../../shared/services/PlanEngine'
+import WorkoutPreviewService from '../../../shared/services/WorkoutPreviewService'
 
 interface PreviewExerciseItem {
   name: string
@@ -112,10 +112,14 @@ struct PencilPreviewPage {
     Row() {
       Row({ space: 12 }) {
         Stack({ alignContent: Alignment.Center }) {
-          Text('‹')
-            .fontFamily('Noto Sans SC')
-            .fontSize(30)
-            .fontColor('#D1FFFFFF')
+          Path()
+            .width(21)
+            .height(21)
+            .commands('M13.6 4.4 L7.4 10.5 L13.6 16.6')
+            .fillOpacity(0)
+            .stroke('#D1FFFFFF')
+            .strokeWidth(1.8)
+            .strokeLineCap(LineCapStyle.Round)
         }
         .width(44)
         .height(44)
@@ -134,14 +138,25 @@ struct PencilPreviewPage {
         })
         .scale({ x: this.backPressed ? MotionTokens.PRESS_ICON : 1, y: this.backPressed ? MotionTokens.PRESS_ICON : 1 })
         .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
+
+        Text('训练预览')
+          .fontFamily('Noto Sans SC')
+          .fontSize(17)
+          .fontWeight(600)
+          .fontColor('#F7FBF8')
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .layoutWeight(1)
       }
       .alignItems(VerticalAlign.Center)
+      .layoutWeight(1)
 
       Stack({ alignContent: Alignment.Center }) {
-        Text('⋯')
-          .fontFamily('Noto Sans SC')
-          .fontSize(22)
-          .fontColor('#D1FFFFFF')
+        Row({ space: 3 }) {
+          Circle({ width: 3.6, height: 3.6 }).fill('#D1FFFFFF')
+          Circle({ width: 3.6, height: 3.6 }).fill('#D1FFFFFF')
+          Circle({ width: 3.6, height: 3.6 }).fill('#D1FFFFFF')
+        }
       }
       .width(44)
       .height(44)
@@ -172,7 +187,6 @@ struct PencilPreviewPage {
       Text(this.dayBadge)
         .fontFamily('Geist Mono')
         .fontSize(11)
-        .fontWeight(FontWeight.Medium)
         .fontColor('#50ECA7')
         .letterSpacing(2)
 
@@ -212,7 +226,7 @@ struct PencilPreviewPage {
     Text(text)
       .fontFamily('Noto Sans SC')
       .fontSize(12)
-      .fontWeight(FontWeight.Medium)
+      .fontWeight(600)
       .fontColor('#8AFFFFFF')
       .letterSpacing(0.96)
       .padding({ left: 6, right: 6 })
@@ -225,7 +239,7 @@ struct PencilPreviewPage {
       Text(item.name)
         .fontFamily('Noto Sans SC')
         .fontSize(16)
-        .fontWeight(FontWeight.Medium)
+        .fontWeight(item.current ? 600 : 500)
         .fontColor(item.current ? '#F7FBF8' : '#E0FFFFFF')
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -235,6 +249,7 @@ struct PencilPreviewPage {
         .fontSize(14)
         .fontWeight(FontWeight.Medium)
         .fontColor(item.current ? '#50ECA7' : '#8AFFFFFF')
+        .margin({ left: 12 })
     }
     .width('100%')
     .height(52)
@@ -289,10 +304,7 @@ struct PencilPreviewPage {
         .fontSize(16)
         .fontWeight(FontWeight.Bold)
         .fontColor('#07100B')
-        .linearGradient({
-          angle: 180,
-          colors: [['#53E7A5', 0], ['#47D994', 1]]
-        })
+        .backgroundColor(ColorTokens.ACCENT_PRIMARY)
         .borderRadius(26)
         .shadow({
           radius: 28,
@@ -331,42 +343,21 @@ struct PencilPreviewPage {
   }
 
   build() {
-    Stack({ alignContent: Alignment.TopStart }) {
-      Column()
-        .width('100%')
-        .height('100%')
-        .linearGradient({
-          angle: 180,
-          colors: [['#0D1316', 0], ['#090C10', 1]]
-        })
-
-      Column()
-        .width('100%')
-        .height('100%')
-        .radialGradient({
-          center: [195, 169],
-          radius: 468,
-          colors: [['#1450ECA7', 0], ['#0050ECA7', 0.6]]
-        })
-
-      Column() {
-        this.buildTopBar()
-        this.buildHero()
-        this.buildExerciseList()
-        this.buildActionSection()
-        this.buildHomeIndicator()
-      }
-      .width('100%')
-      .height('100%')
-      .padding({
-        left: 18,
-        right: 18,
-        top: 24,
-        bottom: 12
-      })
+    Column() {
+      this.buildTopBar()
+      this.buildHero()
+      this.buildExerciseList()
+      this.buildActionSection()
+      this.buildHomeIndicator()
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#0A0D12')
+    .padding({
+      left: 18,
+      right: 18,
+      top: 56,
+      bottom: 12
+    })
+    .backgroundColor('#0B0F13')
   }
 }

@@ -23,22 +23,22 @@ const CONFETTI_PIECES: ConfettiPiece[] = [
   { id: 'cf1', x: 66, y: 96, width: 7, height: 12, rot: -24, color: '#8CEBCC' },
   { id: 'cf2', x: 108, y: 42, width: 9, height: 16, rot: 33, color: '#45C9A1' },
   { id: 'cf3', x: 152, y: 128, width: 7, height: 13, rot: -12, color: '#7EF0CB' },
-  { id: 'cf4', x: 196, y: 26, width: 8, height: 15, rot: 41, color: '#F3FBF7' },
+  { id: 'cf4', x: 196, y: 26, width: 8, height: 15, rot: 41, color: '#E6F3FBF7' },
   { id: 'cf5', x: 238, y: 108, width: 9, height: 14, rot: -33, color: '#50ECA7' },
   { id: 'cf6', x: 282, y: 34, width: 7, height: 12, rot: 15, color: '#8CEBCC' },
   { id: 'cf7', x: 322, y: 92, width: 8, height: 15, rot: -21, color: '#45C9A1' },
   { id: 'cf8', x: 356, y: 40, width: 8, height: 13, rot: 28, color: '#7EF0CB' },
-  { id: 'cf9', x: 42, y: 178, width: 8, height: 14, rot: -18, color: '#F3FBF7' },
+  { id: 'cf9', x: 42, y: 178, width: 8, height: 14, rot: -18, color: '#E6F3FBF7' },
   { id: 'cf10', x: 92, y: 234, width: 7, height: 12, rot: 26, color: '#50ECA7' },
   { id: 'cf11', x: 138, y: 288, width: 8, height: 14, rot: -40, color: '#8CEBCC' },
   { id: 'cf12', x: 182, y: 186, width: 9, height: 15, rot: 12, color: '#45C9A1' },
   { id: 'cf13', x: 226, y: 252, width: 7, height: 13, rot: -26, color: '#7EF0CB' },
-  { id: 'cf14', x: 270, y: 300, width: 8, height: 14, rot: 36, color: '#F3FBF7' },
+  { id: 'cf14', x: 270, y: 300, width: 8, height: 14, rot: 36, color: '#E6F3FBF7' },
   { id: 'cf15', x: 312, y: 176, width: 8, height: 15, rot: -14, color: '#50ECA7' },
   { id: 'cf16', x: 352, y: 226, width: 7, height: 12, rot: 22, color: '#8CEBCC' },
   { id: 'cf17', x: 58, y: 320, width: 8, height: 14, rot: -30, color: '#45C9A1' },
   { id: 'cf18', x: 132, y: 356, width: 7, height: 12, rot: 17, color: '#7EF0CB' },
-  { id: 'cf19', x: 214, y: 330, width: 8, height: 14, rot: -22, color: '#F3FBF7' }
+  { id: 'cf19', x: 214, y: 330, width: 8, height: 14, rot: -22, color: '#E6F3FBF7' }
 ]
 
 @Entry
@@ -57,8 +57,6 @@ export struct WorkoutCompletePage {
   @State private dockOpacity: number = 0
   @State private confettiFall: number = 0
   @State private ctaPressed: boolean = false
-  @State private statsOffsetY: number = 14
-  @State private statsOpacity: number = 0
   @State private summary: WorkoutSummary = WorkoutSummaryService.createEmptySummary()
   @State private streakCount: number = 0
   @State private weekActiveFlags: boolean[] = [false, false, false, false, false, false, false]
@@ -109,10 +107,6 @@ export struct WorkoutCompletePage {
     this.getUIContext().animateTo({ duration: MotionTokens.DURATION_CF_RISE_FAST, curve: MotionTokens.EASE_MOTION, delay: 260 }, () => {
       this.subOffsetY = 0
       this.subOpacity = 1
-    })
-    this.getUIContext().animateTo({ duration: MotionTokens.DURATION_CF_RISE_BASE, curve: MotionTokens.EASE_MOTION, delay: 320 }, () => {
-      this.statsOffsetY = 0
-      this.statsOpacity = 1
     })
     this.getUIContext().animateTo({ duration: MotionTokens.DURATION_CF_RISE_BASE, curve: MotionTokens.EASE_MOTION, delay: 360 }, () => {
       this.streakOffsetY = 0
@@ -209,18 +203,16 @@ export struct WorkoutCompletePage {
         Scroll() {
           Column() {
             this.completionHero()
-            Blank()
-              .height(30)
-            this.statsRow()
-            Blank()
-              .height(14)
             this.streakCard()
           }
           .width('100%')
-          .padding({ left: 20, right: 20, top: 48, bottom: 24 })
+          .padding({ left: 20, right: 20, top: 48, bottom: 48 })
+          .constraintSize({ minHeight: '100%' })
+          .justifyContent(FlexAlign.Center)
         }
         .layoutWeight(1)
         .width('100%')
+        .scrollBar(BarState.Off)
 
         Column() {
           Button('继续')
@@ -296,10 +288,15 @@ export struct WorkoutCompletePage {
           .borderRadius(51)
           .backgroundColor('#122D28')
           .border({ width: 1, color: '#3B50ECA7' })
-        Image($rawfile('pencil-lucide-trophy.svg'))
+        Path()
           .width(80)
           .height(80)
-          .fillColor('#7EF0CB')
+          .commands('M31.04 59.88 L49.28 59.88 M40.16 50.76 L40.16 59.88 M28.76 21.12 L51.56 21.12 L53.84 32.52 C53.84 39.36 49.28 43.92 40.16 43.92 C31.04 43.92 26.48 39.36 26.48 32.52 Z M24.2 21.12 L56.12 21.12 M24.2 32.52 L19.64 32.52 A4.56 4.56 0 0 0 24.2 37.08 M56.12 32.52 L60.68 32.52 A4.56 4.56 0 0 1 56.12 37.08')
+          .fillOpacity(0)
+          .stroke('#7EF0CB')
+          .strokeWidth(4.56)
+          .strokeLineCap(LineCapStyle.Round)
+          .strokeLineJoin(LineJoinStyle.Round)
       }
       .width(102)
       .height(102)
@@ -331,48 +328,13 @@ export struct WorkoutCompletePage {
   }
 
   @Builder
-  private statsRow() {
-    Row({ space: 10 }) {
-      this.statCell('训练时长', this.summary.durationText)
-      this.statCell('完成组数', this.summary.completedSets.toString() + ' 组')
-      this.statCell('训练容量', this.summary.totalVolume.toString() + ' kg')
-    }
-    .width('100%')
-    .opacity(this.statsOpacity)
-    .translate({ y: this.statsOffsetY })
-  }
-
-  @Builder
-  private statCell(label: string, value: string) {
-    Column({ space: 6 }) {
-      Text(value)
-        .fontFamily('HarmonyOS Sans')
-        .fontSize(17)
-        .lineHeight(22)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#50ECA7')
-      Text(label)
-        .fontFamily('HarmonyOS Sans')
-        .fontSize(12)
-        .lineHeight(16)
-        .fontColor('#8AFFFFFF')
-    }
-    .layoutWeight(1)
-    .padding({ top: 14, bottom: 14 })
-    .backgroundColor('#171C23')
-    .borderRadius(20)
-    .border({ width: 1, color: '#14FFFFFF' })
-    .alignItems(HorizontalAlign.Center)
-  }
-
-  @Builder
   private streakCard() {
     Column({ space: 12 }) {
       Row() {
         Text('训练连续记录')
           .fontFamily('HarmonyOS Sans')
           .fontSize(18)
-          .lineHeight(22)
+          .lineHeight(21.6)
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
         Text(this.streakCount > 0 ? '连续 ' + this.streakCount.toString() + ' 天' : '开始连续训练')
@@ -396,6 +358,7 @@ export struct WorkoutCompletePage {
             Text(day)
               .fontFamily('HarmonyOS Sans')
               .fontSize(11)
+              .lineHeight(11)
               .fontColor(this.weekActiveFlags[index] ? '#50ECA7' : '#8AFFFFFF')
           }
           .layoutWeight(1)
@@ -409,6 +372,7 @@ export struct WorkoutCompletePage {
     .backgroundColor('#171C23')
     .borderRadius(28)
     .border({ width: 1, color: '#14FFFFFF' })
+    .margin({ top: 30 })
     .opacity(this.streakOpacity)
     .translate({ y: this.streakOffsetY })
   }
