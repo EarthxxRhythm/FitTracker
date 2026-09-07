@@ -93,89 +93,73 @@ export struct ProfileContent {
   }
 
   build() {
-    Stack() {
-      Column()
-        .width('100%')
-        .height('100%')
-        .linearGradient({
-          angle: 180,
-          colors: [['#0B0F13', 0], ['#0D1117', 0.52], ['#0A0D12', 1]]
-        })
-
-      Column()
-        .width('100%')
-        .height('100%')
-        .radialGradient({
-          center: [195, -67.2],
-          radius: 163.3,
-          colors: [['#1550ECA7', 0], ['#0050ECA7', 1]]
-        })
-
-      Scroll() {
-        Column({ space: 12 }) {
-          this.buildProfileHeader()
-          this.buildWeeklyOverview()
-          this.buildStreak()
-          this.buildAchievements()
-          this.buildShortcuts()
-        }
-        .width('100%')
-        .constraintSize({ minHeight: '100%' })
-        .padding({ left: 16.3, right: 16.3, top: 24, bottom: 16 })
+    Scroll() {
+      Column({ space: 16 }) {
+        this.buildProfileHeader()
+        this.buildWeeklyOverview()
+        this.buildStreak()
+        this.buildAchievements()
+        this.buildShortcuts()
       }
       .width('100%')
-      .layoutWeight(1)
-      .scrollBar(BarState.Off)
+      .constraintSize({ minHeight: '100%' })
+      .padding({ left: 16, right: 16, top: 53, bottom: 30 })
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#0A0D12')
+    .scrollBar(BarState.Off)
+    .backgroundColor('#0B0F13')
   }
 
   @Builder
   private buildProfileHeader() {
-    Row({ space: 10.9 }) {
+    Row({ space: 12 }) {
       Stack() {
         Column()
-          .width(50.8)
-          .height(50.8)
-          .borderRadius(25.4)
+          .width(52)
+          .height(52)
+          .borderRadius(26)
           .backgroundColor('#1A50ECA7')
-          .border({ width: 0.9, color: '#4A50ECA7' })
+          .border({ width: 1, color: '#4D50ECA7' })
         Text(this.avatarLetter)
           .fontFamily('Inter')
-          .fontSize(21.8)
+          .fontSize(22)
           .fontWeight(FontWeight.Bold)
           .fontColor('#50ECA7')
       }
-      .width(50.8)
-      .height(50.8)
-      Column({ space: 2.7 }) {
+      .width(52)
+      .height(52)
+      Column({ space: 4 }) {
         Text(this.nickname)
           .fontFamily('Inter')
-          .fontSize(20)
+          .fontSize(21)
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
+          .lineHeight(25.2)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
         Text(this.goalSubtitle)
           .fontFamily('Inter')
-          .fontSize(11.8)
-          .fontColor('#7AFFFFFF')
+          .fontSize(12.5)
+          .fontColor('#9EFFFFFF')
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
       Stack() {
         Column()
-          .width(38.1)
-          .height(38.1)
-          .borderRadius(19)
+          .width(44)
+          .height(44)
+          .borderRadius(22)
           .backgroundColor('#0CFFFFFF')
-          .border({ width: 0.9, color: '#14FFFFFF' })
+          .border({ width: 1, color: '#14FFFFFF' })
         Image($rawfile('pencil-lucide-settings-2.svg'))
-          .width(18.1)
-          .height(18.1)
+          .width(20)
+          .height(20)
       }
-      .width(38.1)
-      .height(38.1)
+      .width(44)
+      .height(44)
       .onTouch((event: TouchEvent) => {
         if (event.type === TouchType.Down) {
           this.settingsPressed = true
@@ -190,83 +174,93 @@ export struct ProfileContent {
       })
     }
     .width('100%')
-    .padding({ top: 0, bottom: 12 })
+    .padding({ top: 0, bottom: 0 })
+    .alignItems(VerticalAlign.Center)
   }
 
   @Builder
   private buildWeeklyOverview() {
-    Column({ space: 10 }) {
+    Column({ space: 0 }) {
       Row() {
         Text('\u672c\u5468\u6982\u89c8')
           .fontFamily('Inter')
-          .fontSize(16.3)
+          .fontSize(17)
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
         Text(this.weekRangeText)
           .fontFamily('Inter')
-          .fontSize(10.9)
-          .fontColor('#7AFFFFFF')
+          .fontSize(11)
+          .fontColor('#9EFFFFFF')
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
-      .alignItems(VerticalAlign.Center)
+      .alignItems(VerticalAlign.Bottom)
+      .margin({ bottom: 14 })
 
-      Row({ space: 5.4 }) {
+      Row({ space: 8 }) {
         Text(this.weekDurationText)
-          .fontFamily('Geist Mono')
-          .fontSize(32)
+          .fontFamily('Inter')
+          .fontSize(48)
           .fontWeight(FontWeight.Bold)
           .fontColor('#50ECA7')
-        Text('分钟')
+          .letterSpacing(-0.96)
+          .lineHeight(48)
+        Text('\u5206\u949f')
           .fontFamily('Inter')
-          .fontSize(12.7)
-          .fontColor('#7AFFFFFF')
+          .fontSize(16)
+          .fontColor('#9EFFFFFF')
       }
       .width('100%')
       .alignItems(VerticalAlign.Bottom)
+      .margin({ top: 2 })
 
-      Text('本周训练时长')
+      Text('\u672c\u5468\u8bad\u7ec3\u65f6\u957f')
         .fontFamily('Inter')
-        .fontSize(10)
-        .fontColor('#66FFFFFF')
+        .fontSize(12)
+        .fontColor('#8AFFFFFF')
+        .margin({ top: 8 })
 
       Row()
         .width('100%')
         .height(1)
         .backgroundColor('#0FFFFFFF')
+        .margin({ top: 15, bottom: 13 })
 
-      Row({ space: 9.1 }) {
+      Row({ space: 12 }) {
         this.buildFocusMeta('\u8bad\u7ec3', this.weekCountText, '\u6b21')
         this.buildFocusMeta('\u6d88\u8017', this.weekCaloriesText, '\u5343\u5361')
       }
       .width('100%')
     }
     .width('100%')
-    .padding(16.3)
-    .backgroundColor('#08FFFFFF')
-    .borderRadius(25.4)
-    .border({ width: 0.9, color: '#10FFFFFF' })
+    .padding(18)
+    .backgroundColor('#0F50ECA7')
+    .borderRadius(28)
+    .border({ width: 1, color: '#3850ECA7' })
   }
 
   @Builder
   private buildFocusMeta(label: string, value: string, unit: string) {
-    Column({ space: 1.8 }) {
+    Column({ space: 4 }) {
       Text(label)
         .fontFamily('Inter')
-        .fontSize(10)
+        .fontSize(10.5)
         .fontWeight(FontWeight.Medium)
-        .fontColor('#66FFFFFF')
-      Row({ space: 2.7 }) {
+        .fontColor('#9EFFFFFF')
+      Row({ space: 3 }) {
         Text(value)
-          .fontFamily('Geist Mono')
-          .fontSize(18.1)
+          .fontFamily('Inter')
+          .fontSize(20)
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
+          .lineHeight(20)
         Text(unit)
           .fontFamily('Inter')
-          .fontSize(10)
-          .fontColor('#66FFFFFF')
+          .fontSize(10.5)
+          .fontColor('#9EFFFFFF')
+          .lineHeight(12)
       }
+      .alignItems(VerticalAlign.Bottom)
     }
     .layoutWeight(1)
     .alignItems(HorizontalAlign.Start)
@@ -274,23 +268,24 @@ export struct ProfileContent {
 
   @Builder
   private buildStreak() {
-    Column({ space: 8 }) {
+    Column({ space: 0 }) {
       Row() {
         Text('\u8bad\u7ec3\u8fde\u7eed\u8bb0\u5f55')
           .fontFamily('Inter')
-          .fontSize(16.3)
+          .fontSize(17)
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
         Text('\u8fde\u7eed 6 \u5929')
-          .fontFamily('Geist Mono')
-          .fontSize(11.8)
+          .fontFamily('Inter')
+          .fontSize(12)
           .fontWeight(FontWeight.Bold)
           .fontColor('#50ECA7')
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
-      .alignItems(VerticalAlign.Center)
-      Row({ space: 7.3 }) {
+      .alignItems(VerticalAlign.Bottom)
+      .margin({ bottom: 14 })
+      Row({ space: 7 }) {
         this.buildStreakDay('\u4e00', true)
         this.buildStreakDay('\u4e8c', true)
         this.buildStreakDay('\u4e09', true)
@@ -300,29 +295,28 @@ export struct ProfileContent {
         this.buildStreakDay('\u65e5', false)
       }
       .width('100%')
-      .height(45.3)
     }
     .width('100%')
-    .height(100)
-    .padding(16.3)
-    .backgroundColor('#171C23')
-    .borderRadius(25.4)
-    .border({ width: 0.9, color: '#14FFFFFF' })
+    .padding(16)
+    .backgroundColor('#06FFFFFF')
+    .borderRadius(22)
+    .border({ width: 1, color: '#1AFFFFFF' })
   }
 
   @Builder
   private buildStreakDay(label: string, active: boolean) {
-    Column({ space: 5.4 }) {
+    Column({ space: 6 }) {
       Column()
-        .width(25.4)
-        .height(25.4)
-        .borderRadius(12.7)
+        .width(28)
+        .height(28)
+        .borderRadius(14)
         .backgroundColor(active ? '#50ECA7' : '#14FFFFFF')
+        .border({ width: 1, color: active ? '#50ECA7' : '#14FFFFFF' })
       Text(label)
         .fontFamily('Inter')
-        .fontSize(10)
+        .fontSize(10.5)
         .fontWeight(FontWeight.Medium)
-        .fontColor(active ? '#50ECA7' : '#7AFFFFFF')
+        .fontColor(active ? '#50ECA7' : '#9EFFFFFF')
     }
     .layoutWeight(1)
     .alignItems(HorizontalAlign.Center)
@@ -330,108 +324,107 @@ export struct ProfileContent {
 
   @Builder
   private buildAchievements() {
-    Column({ space: 8 }) {
+    Column({ space: 0 }) {
       Text('\u6700\u8fd1\u6210\u5c31')
         .fontFamily('Inter')
-        .fontSize(16.3)
+        .fontSize(17)
         .fontWeight(FontWeight.Bold)
         .fontColor('#F7FBF8')
+        .margin({ bottom: 12 })
       this.buildAchievement('\u7a33\u5b9a\u8f93\u51fa', '\u8fde\u7eed\u8bad\u7ec3 7 \u5929', '\u672c\u5468\u5b8c\u6210\u5ea6 86%', 'flame')
       this.buildAchievement('\u91cd\u91cf\u7a81\u7834', '\u6df1\u8e72\u8fbe\u5230 80 kg', '\u5237\u65b0\u4e2a\u4eba\u6700\u4f73', 'trophy')
     }
     .width('100%')
-    .height(152)
-    .padding(16.3)
-    .backgroundColor('#08FFFFFF')
-    .borderRadius(25.4)
-    .border({ width: 0.9, color: '#10FFFFFF' })
+    .padding(16)
+    .backgroundColor('#06FFFFFF')
+    .borderRadius(22)
+    .border({ width: 1, color: '#1AFFFFFF' })
   }
 
   @Builder
   private buildAchievement(title: string, note: string, value: string, icon: string) {
-    Row({ space: 10.9 }) {
+    Row({ space: 12 }) {
       Stack() {
         Column()
-          .width(36.3)
-          .height(36.3)
-          .borderRadius(12.7)
+          .width(40)
+          .height(40)
+          .borderRadius(13)
           .backgroundColor(icon === 'trophy' ? '#1FD3B487' : '#1A50ECA7')
         if (icon === 'flame') {
           Image($rawfile('pencil-lucide-flame.svg'))
-            .width(18.1)
-            .height(18.1)
+            .width(20)
+            .height(20)
             .fillColor('#50ECA7')
         } else {
           Image($rawfile('pencil-lucide-trophy.svg'))
-            .width(18.1)
-            .height(18.1)
+            .width(20)
+            .height(20)
             .fillColor('#D3B487')
         }
       }
-      .width(36.3)
-      .height(36.3)
-      Column({ space: 2.7 }) {
+      .width(40)
+      .height(40)
+      Column({ space: 3 }) {
         Text(title)
           .fontFamily('Inter')
-          .fontSize(12.7)
+          .fontSize(14)
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
         Text(note)
           .fontFamily('Inter')
-          .fontSize(10.9)
-          .fontColor('#8FFFFFFF')
+          .fontSize(12)
+          .fontColor('#9EFFFFFF')
       }
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
       Text(value)
         .fontFamily('Inter')
-        .fontSize(10)
+        .fontSize(11)
         .fontColor(icon === 'trophy' ? '#D3B487' : '#50ECA7')
     }
     .width('100%')
-    .height(46)
-    .padding({ top: 6, bottom: 6 })
+    .padding({ top: 7, bottom: 7 })
   }
 
   @Builder
   private buildShortcuts() {
-    Row({ space: 9.1 }) {
+    Row({ space: 8 }) {
       this.buildShortcut('\u8eab\u4f53\u6570\u636e', 'scale')
       this.buildShortcut('\u52a8\u4f5c\u5e93', 'dumbbell')
-      this.buildShortcut('\u8bad\u7ec3\u504f\u597d', 'sliders')
     }
     .width('100%')
-    .height(42.6)
+    .height(46)
   }
 
   @Builder
   private buildShortcut(label: string, icon: string) {
-    Row({ space: 7.3 }) {
+    Row({ space: 8 }) {
       if (icon === 'scale') {
-        Image($rawfile('pencil-lucide-scale-balance.svg')).width(16.3).height(16.3)
-      } else if (icon === 'dumbbell') {
-        Image($rawfile('pencil-lucide-dumbbell.svg')).width(16.3).height(16.3)
+        Image($rawfile('pencil-lucide-scale-balance.svg')).width(18).height(18)
       } else {
-        Image($rawfile('pencil-lucide-sliders.svg')).width(16.3).height(16.3)
+        Image($rawfile('pencil-lucide-dumbbell.svg')).width(18).height(18)
       }
       Text(label)
         .fontFamily('Inter')
-        .fontSize(11.8)
+        .fontSize(13)
         .fontWeight(FontWeight.Medium)
         .fontColor('#B3FFFFFF')
         .layoutWeight(1)
-      Text('\u203a')
-        .fontFamily('Inter')
-        .fontSize(16.3)
-        .fontColor('#7AFFFFFF')
+      Path()
+        .width(18)
+        .height(18)
+        .commands('M9 6 L15 12 L9 18')
+        .fillOpacity(0)
+        .stroke('#9EFFFFFF')
+        .strokeWidth(2)
     }
     .layoutWeight(1)
-    .height(42.6)
-    .padding({ left: 10.9, right: 10.9, top: 12.7, bottom: 12.7 })
+    .height(46)
+    .padding({ left: 12, right: 12 })
     .backgroundColor('#0CFFFFFF')
-    .borderRadius(16.3)
-    .border({ width: 0.9, color: '#10FFFFFF' })
-    .justifyContent(FlexAlign.SpaceBetween)
+    .borderRadius(16)
+    .border({ width: 1, color: '#1AFFFFFF' })
+    .alignItems(VerticalAlign.Center)
     .onTouch((event: TouchEvent) => {
       if (event.type === TouchType.Down) {
         this.shortcutKey = icon
@@ -444,13 +437,10 @@ export struct ProfileContent {
     .onClick(() => {
       if (icon === 'scale') {
         this.getUIContext().getRouter().pushUrl({ url: AppRoutes.BODY_DATA })
-      } else if (icon === 'dumbbell') {
-        this.getUIContext().getRouter().pushUrl({ url: AppRoutes.EXERCISE_LIBRARY })
       } else {
-        this.getUIContext().getRouter().pushUrl({ url: AppRoutes.SETTINGS })
+        this.getUIContext().getRouter().pushUrl({ url: AppRoutes.EXERCISE_LIBRARY })
       }
     })
   }
 
 }
-
