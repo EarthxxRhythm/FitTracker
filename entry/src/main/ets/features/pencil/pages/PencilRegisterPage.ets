@@ -197,6 +197,7 @@ struct PencilRegisterPage {
         .alignItems(HorizontalAlign.Center)
         .margin({ top: 14 })
 
+        Scroll() {
         Column({ space: 12 }) {
           this.buildField('昵称', '给自己起个名字', false, this.nickname, (value: string) => {
             this.nickname = value
@@ -212,9 +213,12 @@ struct PencilRegisterPage {
           })
         }
         .width('100%')
-        .layoutWeight(1)
+        .constraintSize({ minHeight: '100%' })
         .justifyContent(FlexAlign.Center)
         .margin({ top: 8, bottom: 8 })
+        }
+        .layoutWeight(1)
+        .scrollBar(BarState.Off)
 
         Row({ space: 8 }) {
           Text('□')
