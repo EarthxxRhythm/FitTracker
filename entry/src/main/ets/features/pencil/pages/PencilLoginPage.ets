@@ -269,6 +269,7 @@ struct PencilLoginPage {
         .justifyContent(FlexAlign.Center)
         .margin({ top: 18 })
 
+        Scroll() {
         Column({ space: 12 }) {
           this.buildLoginField('手机号 / 邮箱', '请输入手机号或邮箱', 'mail', 'account', false)
           this.buildLoginField('密码', '请输入密码', 'lock', 'password', true)
@@ -316,9 +317,12 @@ struct PencilLoginPage {
           .width('100%')
         }
         .width('100%')
-        .layoutWeight(1)
+        .constraintSize({ minHeight: '100%' })
         .justifyContent(FlexAlign.Center)
         .margin({ top: 10, bottom: 10 })
+        }
+        .layoutWeight(1)
+        .scrollBar(BarState.Off)
 
         Row({ space: 6 }) {
           Text('还没有账号？')
