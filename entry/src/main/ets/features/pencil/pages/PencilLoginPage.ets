@@ -19,6 +19,7 @@ struct PencilLoginPage {
   @State eyePressed: boolean = false
   @State revealPassword: boolean = false
   @State focusedField: string = ''
+  @State remember: boolean = false
 
   private contextOrNull(): Context | null {
     const host = this.getUIContext().getHostContext()
@@ -104,7 +105,7 @@ struct PencilLoginPage {
   }
 
   @Builder
-  private buildLoginField(label: string, placeholder: string, iconName: string, fieldKey: string, isPassword: boolean) {
+  private buildLoginField(label: string, placeholder: string, fieldKey: string, isPassword: boolean) {
     Column({ space: 8 }) {
       Text(label)
         .fontFamily('Noto Sans SC')
@@ -113,17 +114,6 @@ struct PencilLoginPage {
         .fontColor('#9EFFFFFF')
         .width('100%')
       Row({ space: 12 }) {
-        if (iconName === 'mail') {
-          Image($rawfile('pencil-lucide-mail.svg'))
-            .width(19)
-            .height(19)
-            .fillColor('#8FFFFFFF')
-        } else {
-          Image($rawfile('pencil-lucide-lock-keyhole.svg'))
-            .width(19)
-            .height(19)
-            .fillColor('#8FFFFFFF')
-        }
         TextInput({ text: isPassword ? this.password : this.account, placeholder: placeholder })
           .type(isPassword && !this.revealPassword ? InputType.Password : InputType.Normal)
           .showPasswordIcon(false)
@@ -148,22 +138,28 @@ struct PencilLoginPage {
             }
           })
         if (isPassword) {
-          Image($rawfile('pencil-lucide-eye.svg'))
-            .width(20)
-            .height(20)
-            .fillColor(this.revealPassword ? ColorTokens.ACCENT_PRIMARY : '#8AFFFFFF')
-            .onTouch((event: TouchEvent) => {
-              if (event.type === TouchType.Down) {
-                this.eyePressed = true
-              } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-                this.eyePressed = false
-              }
-            })
-            .scale({ x: this.eyePressed ? MotionTokens.PRESS_ICON : 1, y: this.eyePressed ? MotionTokens.PRESS_ICON : 1 })
-            .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
-            .onClick(() => {
-              this.revealPassword = !this.revealPassword
-            })
+          Stack() {
+            Image($rawfile('pencil-lucide-eye.svg'))
+              .width(20)
+              .height(20)
+              .fillColor(this.revealPassword ? ColorTokens.ACCENT_PRIMARY : '#8AFFFFFF')
+              .onTouch((event: TouchEvent) => {
+                if (event.type === TouchType.Down) {
+                  this.eyePressed = true
+                } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                  this.eyePressed = false
+                }
+              })
+              .scale({ x: this.eyePressed ? MotionTokens.PRESS_ICON : 1, y: this.eyePressed ? MotionTokens.PRESS_ICON : 1 })
+              .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
+              .onClick(() => {
+                this.revealPassword = !this.revealPassword
+              })
+          }
+          .width(44)
+          .height(44)
+          .borderRadius(10)
+          .margin({ right: -10 })
         }
       }
       .width('100%')
@@ -182,10 +178,26 @@ struct PencilLoginPage {
   private buildAuthAux() {
     Row() {
       Row({ space: 8 }) {
-        Text('□')
-          .fontFamily('HarmonyOS Sans')
-          .fontSize(18)
-          .fontColor('#8FFFFFFF')
+        Stack({ alignContent: Alignment.Center }) {
+          if (this.remember) {
+            Path()
+              .width(9)
+              .height(5)
+              .commands('M0 2 L3 5 L9 0')
+              .fillOpacity(0)
+              .stroke('#07100B')
+              .strokeWidth(2)
+          }
+        }
+        .width(18)
+        .height(18)
+        .borderRadius(6)
+        .backgroundColor(this.remember ? ColorTokens.ACCENT_PRIMARY : '#0AFFFFFF')
+        .border({ width: 1, color: this.remember ? ColorTokens.ACCENT_PRIMARY : '#2EFFFFFF' })
+        .onClick(() => {
+          this.remember = !this.remember
+        })
+        .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: Curve.EaseInOut })
         Text('记住我')
           .fontFamily('Noto Sans SC')
           .fontSize(13)
@@ -223,30 +235,61 @@ struct PencilLoginPage {
     }
     .width('100%')
     .height(18)
+    .margin({ top: 24, bottom: 16 })
+  }
+
+  @Builder
+  private buildSocialIcon(key: string) {
+    if (key === 'wechat') {
+      Stack() {
+        Path()
+          .commands('M12 3.5c-4.7 0-8.5 3.2-8.5 7.1 0 2.2 1.2 4.1 3.1 5.4l-.9 3.3 3.5-1.9c.9.2 1.8.3 2.8.3 4.7 0 8.5-3.2 8.5-7.1S16.7 3.5 12 3.5Z')
+          .width(20)
+          .height(20)
+          .fillOpacity(0)
+          .stroke('#B3FFFFFF')
+          .strokeWidth(1.6)
+        Path()
+          .commands('M7.6 10.6a1 1 0 1 0 2 0a1 1 0 1 0 -2 0 M11 10.6a1 1 0 1 0 2 0a1 1 0 1 0 -2 0 M14.4 10.6a1 1 0 1 0 2 0a1 1 0 1 0 -2 0')
+          .width(20)
+          .height(20)
+          .fill('#B3FFFFFF')
+      }
+    } else {
+      Path()
+        .commands('M16.7 12.9c0-2.1 1.7-3.1 1.8-3.2-1-1.4-2.5-1.6-3-1.7-1.3-.1-2.5.8-3.1.8-.6 0-1.6-.8-2.6-.7-1.4 0-2.6.8-3.3 2-1.4 2.4-.4 6 1 8 .7 1 1.5 2.1 2.5 2 1 0 1.4-.6 2.6-.6s1.5.6 2.6.6c1.1 0 1.7-1 2.4-2 .7-1.1 1-2.2 1.1-2.2-.1 0-2.1-.8-2.1-3.2zM14.2 6.1c.6-.7 1-1.6.9-2.6-.9 0-1.9.6-2.5 1.3-.5.6-1 1.6-.9 2.6 1 .1 1.9-.5 2.5-1.3z')
+          .width(20)
+          .height(20)
+          .fill('#B3FFFFFF')
+    }
   }
 
   @Builder
   private buildSocialButton(label: string, key: string) {
-    Text(label)
-      .layoutWeight(1)
-      .height(50)
-      .textAlign(TextAlign.Center)
-      .fontFamily('Noto Sans SC')
-      .fontSize(14)
-      .fontWeight(FontWeight.Medium)
-      .fontColor('#F7FBF8')
-      .backgroundColor('#08FFFFFF')
-      .borderRadius(16)
-      .border({ width: 1, color: '#1AFFFFFF' })
-      .onTouch((event: TouchEvent) => {
-        if (event.type === TouchType.Down) {
-          this.socialKey = key
-        } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-          this.socialKey = ''
-        }
-      })
-      .scale({ x: this.socialKey === key ? MotionTokens.PRESS_SHORTCUT : 1, y: this.socialKey === key ? MotionTokens.PRESS_SHORTCUT : 1 })
-      .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
+    Row({ space: 9 }) {
+      this.buildSocialIcon(key)
+      Text(label)
+        .fontFamily('Noto Sans SC')
+        .fontSize(14)
+        .fontWeight(600)
+        .fontColor('#F7FBF8')
+    }
+    .layoutWeight(1)
+    .height(50)
+    .justifyContent(FlexAlign.Center)
+    .alignItems(VerticalAlign.Center)
+    .backgroundColor('#08FFFFFF')
+    .borderRadius(16)
+    .border({ width: 1, color: '#1AFFFFFF' })
+    .onTouch((event: TouchEvent) => {
+      if (event.type === TouchType.Down) {
+        this.socialKey = key
+      } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        this.socialKey = ''
+      }
+    })
+    .scale({ x: this.socialKey === key ? MotionTokens.PRESS_SHORTCUT : 1, y: this.socialKey === key ? MotionTokens.PRESS_SHORTCUT : 1 })
+    .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
   }
 
   build() {
@@ -254,25 +297,25 @@ struct PencilLoginPage {
       Column()
         .width('100%')
         .height('100%')
-        .linearGradient({ angle: 180, colors: [['#0B0F13', 0], ['#0A0D12', 1]] })
+        .backgroundColor('#10171B')
       Column() {
         Row() {
           this.buildBrandHeader()
         }
         .width('100%')
         .justifyContent(FlexAlign.Center)
-        .margin({ top: 20 })
+        .margin({ top: 8, bottom: 22 })
         Row() {
           this.buildAuthHead()
         }
         .width('100%')
         .justifyContent(FlexAlign.Center)
-        .margin({ top: 18 })
+        .margin({ bottom: 26 })
 
         Scroll() {
-        Column({ space: 12 }) {
-          this.buildLoginField('手机号 / 邮箱', '请输入手机号或邮箱', 'mail', 'account', false)
-          this.buildLoginField('密码', '请输入密码', 'lock', 'password', true)
+        Column({ space: 14 }) {
+          this.buildLoginField('手机号 / 邮箱', '请输入手机号或邮箱', 'account', false)
+          this.buildLoginField('密码', '请输入密码', 'password', true)
           this.buildAuthAux()
 
           if (this.message.length > 0) {
@@ -292,9 +335,9 @@ struct PencilLoginPage {
             .fontSize(16)
             .fontWeight(FontWeight.Bold)
             .fontColor('#07100B')
-            .linearGradient({ angle: 90, colors: [['#47D994', 0], ['#53E7A5', 1]] })
+            .backgroundColor(ColorTokens.ACCENT_PRIMARY)
             .borderRadius(18)
-            .shadow({ radius: 24, color: '#66000000', offsetX: 0, offsetY: 10 })
+            .shadow({ radius: 26, color: 'rgba(0,0,0,0.38)', offsetX: 0, offsetY: 12 })
             .onClick(() => {
               this.login()
             })
