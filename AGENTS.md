@@ -27,25 +27,26 @@ entry/src/main/ets/
 
 `entry/src/main/resources/base/profile/main_pages.json` 是页面注册的唯一事实来源；`app/AppRoutes.ets` 是代码中的路由常量来源。新页面必须同时满足：文件存在、注册到 `main_pages.json`、由 `AppRoutes` 或明确的父页面引用。
 
-当前注册主线：
+页面统一放在 `features/<feature>/pages/`；Tab 内容等无 `@Entry` 的界面体放 `features/<feature>/components/`。当前注册主线：
 
-- `features/pencil/PencilSplashPage`
+- `features/pencil/pages/PencilSplashPage`
 - `features/welcome/pages/PencilWelcomePage`
-- `features/pencil/PencilLoginPage`
-- `features/pencil/PencilRegisterPage`
-- `features/pencil/PencilProfilePage`
+- `features/pencil/pages/PencilLoginPage`
+- `features/pencil/pages/PencilRegisterPage`
+- `features/pencil/pages/PencilProfilePage`
 - `features/onboarding/pages/GoalSetupPage`
 - `app/PencilAppShell`
-- `features/pencil/PencilHomePage`
+- `features/pencil/pages/PencilHomePage`
 - `features/exercise/pages/ExerciseLibraryPage`
 - `features/exercise/pages/ExerciseDetailPage`
 - `features/monetization/pages/MonetizationHubPage`
-- `features/pencil/PencilPlanPage`
-- `features/pencil/PencilPreviewPage`
-- `features/pencil/PencilActivePage`
+- `features/pencil/pages/PencilPlanPage`
+- `features/pencil/pages/PencilPreviewPage`
+- `features/pencil/pages/PencilActivePage`
 - `features/workout/pages/WorkoutCompletePage`
-- `features/workout/pages/WorkoutSummaryPage`
-- `features/pencil/PencilReviewPage`
+- `features/pencil/pages/PencilReviewPage`
+
+pencil 的 Tab 界面体组件：`features/pencil/components/` 下 `HomeContent` / `PlanContent` / `ProfileContent` / `ReviewContent` / `ActiveContent`，供 `PencilAppShell` 与对应薄壳注册页复用。
 
 旧的 `pages/Index`、`pages/ProfilePage`、旧认证页、旧标签栏、旧常量和未注册的旧功能页已经移除。不要重新创建历史壳，也不要把已归档页面加入主路由。
 
@@ -104,3 +105,13 @@ Agent 默认按以下顺序优先使用已装好的提效工具，避免低效�
 - **并行拆块**：2+ 个无共享状态、无顺序依赖的任务并行执行，走本项目的 `cluster/` 文件信箱协议（见上一节）或用 `dispatching-parallel-agents`；复杂多文件特性先由 TaskManager 拆块。
 - **上下文发现走子代理**：内部规范/模式用 `ContextScout`，外部库最新文档用 `ExternalScout` 或 `context7`，不自己逐文件翻。
 - **HarmonyOS 构建/文档走 `deveco-cli`**：scaffold/build/run/debug/devices/docs 均通过它，不裸跑 hvigorw 或凭训练数据猜 SDK API。
+
+## 并行优先原则（2026-09-07 起）
+
+工作量大或重复度高时，先判断能否并行：
+
+1. 拆分成**互不重叠**的子单元（不同文件/不同屏/不同服务）。
+2. 用 pi `subagent` 工具并行派 `app-engineer`/`spec-scout`/`qa-device`（默认 ≤4，agentScope both，任务自包含写入 cluster/inbox，结果回 cluster/outbox）。
+3. **单写者纪律**：构建(assembleHap)、装 HAP、设备截图、git 提交只由主会话/协调者执行；子代理只编辑 owner_files 并本地静态自洽。
+4. 同文件、同设备、有数据依赖的任务不并行（会互相覆盖/串行化），显式说明原因。
+5. 并行批次后统一编译+验收，达标才合并/提交。
