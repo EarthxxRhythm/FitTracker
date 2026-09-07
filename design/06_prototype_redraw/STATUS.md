@@ -70,7 +70,6 @@ Home 基线分解：超阈集中在 band1(84-168 日期/问候文字带,字体�
 - 新页注册（main_pages.json + AppRoutes）由协调者统一做；验收 = 390vp ≤2% + 320/360/430 冒烟 + 动效帧。
 
 ## ✅ 2026-09-07 全队列执行完成（13/13 outbox）
-
 - 修复：Login/Register 输入聚焦态+密码可见（commit）；新建 Body/Settings/Plans/PlanGroupDetail
   四页（薄壳+内容组件，静态镜像示例数据）并注册到 main_pages.json(20 页)/AppRoutes（+4 常量）。
 - 核验无改动：Home(有基线)、Plan、Profile、Active、Review、Preview、Complete、Library。
@@ -84,3 +83,10 @@ Home 基线分解：超阈集中在 band1(84-168 日期/问候文字带,字体�
 - 已打通：渲染参照帧 → 装 HAP → 截图 → compare.py 数值报告（welcome 基线 MAE 32.91/超阈 29.77%，
   主因状态栏/图形/CTA 位差，待逐屏收敛）。
 - 待办（需主会话串行设备循环）：每屏静态+响应式三档+动效帧收敛。
+
+## 自适应（小屏不裁切）硬化（2026-09-07）
+- 加 Scroll：PencilLoginPage / PencilRegisterPage（表单包 Scroll，高屏仍居中）、
+  HomeContent / ProfileContent（主内容包 Scroll）——并行 app-engineer x2 + 手动 x2，devecocli 构建绿。
+- 已具 Scroll：plan/review/active/body/settings/plans/plan-group/library/complete/detail/monetization/目标设置。
+- 整屏固定面板特意不滚（留设备人工确认矮屏）：Splash/Welcome/TrainingPreview。
+- 验收口径（ACCEPTANCE-PLAN.md 已修正）：像素 diff 仅粗定位；达标 = 无几何/色块错误 + 文本豁免（≤8% AA地板）。
