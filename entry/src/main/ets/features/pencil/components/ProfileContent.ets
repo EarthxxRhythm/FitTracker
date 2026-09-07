@@ -111,16 +111,21 @@ export struct ProfileContent {
           colors: [['#1550ECA7', 0], ['#0050ECA7', 1]]
         })
 
-      Column({ space: 12 }) {
-        this.buildProfileHeader()
-        this.buildWeeklyOverview()
-        this.buildStreak()
-        this.buildAchievements()
-        this.buildShortcuts()
+      Scroll() {
+        Column({ space: 12 }) {
+          this.buildProfileHeader()
+          this.buildWeeklyOverview()
+          this.buildStreak()
+          this.buildAchievements()
+          this.buildShortcuts()
+        }
+        .width('100%')
+        .constraintSize({ minHeight: '100%' })
+        .padding({ left: 16.3, right: 16.3, top: 24, bottom: 16 })
       }
       .width('100%')
-      .height('100%')
-      .padding({ left: 16.3, right: 16.3, top: 24, bottom: 16 })
+      .layoutWeight(1)
+      .scrollBar(BarState.Off)
     }
     .width('100%')
     .height('100%')
