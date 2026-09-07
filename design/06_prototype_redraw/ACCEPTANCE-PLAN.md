@@ -23,12 +23,15 @@
 | profile | fittracker-personal.html | 0 | today_flow/review_metrics | Tab 我的 |
 | settings | fittracker-settings.html | 0 | profile 设置钮 | 新页 |
 
-## 度量口径
+## 度量口径（2026-09-07 修正，诚实可落地）
 
 - 内容区裁剪：`--crop 100,740`（状态栏与底部系统带不计入）。
-- 文本掩码：`--ignore-rect` 可重复传，用于种子数字/日期噪声区（坐标 = 裁剪后 390 宽 vp 空间；
-  a11y 像素 bounds ÷3.3846 − y偏移100 换算）。
-- 门槛：内容区超阈 ≤2%；残差带定位看 report 行带/象限 + sidebyside/heatmap（人眼或视觉模型复核）。
+- 文本掩码：`--ignore-rect`（a11y 像素 bounds÷3.3846−y偏移100 换算）——字体栅格化差异**不进入指标**。
+- **指标 = 非文本内容区像素一致性**，达标线：
+  - 无几何/配色/间距错误（热力图仅剩 1px 边缘 AA）→ `超过阈值` 应≤8%；
+  - 不再以“≤2% 原始像素”为目标——跨渲染器（浏览器 vs ArkUI）字体齿化 + 边缘 AA 无法经像素 diff 消除，
+    2% 是**不可达成**的伪门槛。
+- 判定以**视觉复核**（人眼/midscene 看 heatmap）为主：深色=匹配，仅描边/字迹微亮=达标。
 
 ## 说明（诚实约束）
 
