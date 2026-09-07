@@ -188,37 +188,42 @@ export struct HomeContent {
           colors: [['#1F50ECA7', 0], ['#0050ECA7', 1]]
         })
       Column() {
-        Column() {
-          Column({ space: 6 }) {
-            Text(this.currentDateText)
-              .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
-              .fontSize(14)
-              .fontColor('#B3FFFFFF')
-              .fontWeight(FontWeight.Medium)
-              .width('100%')
-            Text(this.greetingText)
-              .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
-              .fontSize(40)
-              .lineHeight(39)
-              .fontWeight(FontWeight.Bold)
-              .fontColor('#F7FBF8')
-              .width('100%')
+        Scroll() {
+          Column() {
+            Column({ space: 6 }) {
+              Text(this.currentDateText)
+                .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
+                .fontSize(14)
+                .fontColor('#B3FFFFFF')
+                .fontWeight(FontWeight.Medium)
+                .width('100%')
+              Text(this.greetingText)
+                .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
+                .fontSize(40)
+                .lineHeight(39)
+                .fontWeight(FontWeight.Bold)
+                .fontColor('#F7FBF8')
+                .width('100%')
+            }
+            Row()
+              .height(19)
+            this.todayCard()
+            Row()
+              .height(16)
+            this.weekPanel()
           }
-          Row()
-            .height(19)
-          this.todayCard()
-          Row()
-            .height(16)
-          this.weekPanel()
+          .width('100%')
+          .constraintSize({ minHeight: '100%' })
+          .padding({
+            left: 16,
+            right: 16,
+            top: 53,
+            bottom: 40
+          })
         }
+        .layoutWeight(1)
         .width('100%')
-        .height('100%')
-        .padding({
-          left: 16,
-          right: 16,
-          top: 53,
-          bottom: 40
-        })
+        .scrollBar(BarState.Off)
       }
       .width('100%')
       .height('100%')
