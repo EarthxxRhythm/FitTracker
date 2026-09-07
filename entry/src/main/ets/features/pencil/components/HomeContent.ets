@@ -190,17 +190,17 @@ export struct HomeContent {
       Column() {
         Scroll() {
           Column() {
-            Column({ space: 6 }) {
+            Column({ space: 5.4 }) {
               Text(this.currentDateText)
                 .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
-                .fontSize(14)
+                .fontSize(12.7)
                 .fontColor('#B3FFFFFF')
                 .fontWeight(FontWeight.Medium)
                 .width('100%')
               Text(this.greetingText)
                 .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
-                .fontSize(40)
-                .lineHeight(39)
+                .fontSize(36.3)
+                .lineHeight(43.56)
                 .fontWeight(FontWeight.Bold)
                 .fontColor('#F7FBF8')
                 .width('100%')
@@ -218,7 +218,7 @@ export struct HomeContent {
             left: 16,
             right: 16,
             top: 53,
-            bottom: 40
+            bottom: 36
           })
         }
         .layoutWeight(1)
@@ -242,41 +242,48 @@ export struct HomeContent {
   @Builder
   private todayCard() {
     Column() {
-      Row({ space: 18 }) {
+      Row({ space: 14 }) {
         Column({ space: 8 }) {
           Text('\u4eca\u65e5\u8bad\u7ec3')
             .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
-            .fontSize(14)
+            .fontSize(12.7)
             .fontWeight(FontWeight.Bold)
             .fontColor('#50ECA7')
           Row({ space: 8 }) {
             Text('\u4e0a\u80a2\u529b\u91cf')
               .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
-              .fontSize(24)
+              .fontSize(22)
               .fontWeight(FontWeight.Bold)
               .fontColor('#F7FBF8')
             Text('\u63a8\u8350')
               .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
-              .fontSize(10)
+              .fontSize(9)
               .fontWeight(FontWeight.Bold)
               .fontColor('#50ECA7')
-              .width(42)
-              .height(18)
-              .padding(0)
-              .textAlign(TextAlign.Center)
+              .backgroundColor('#1F50ECA7')
+              .border({ width: 1, color: '#2B50ECA7' })
+              .borderRadius(999)
+              .padding({ left: 8, right: 8, top: 3, bottom: 3 })
           }
           Text('\u80f8\u90e8 \u00b7 \u80a9\u90e8 \u00b7 \u4e09\u5934\u808c')
             .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
-            .fontSize(14)
+            .fontSize(12.7)
             .fontColor('#9EFFFFFF')
-          Text('\u8bad\u7ec3\u65e5 \u00b7 \u5efa\u8bae\u5b8c\u6210')
-            .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
-            .fontSize(12)
-            .fontWeight(FontWeight.Bold)
-            .fontColor('#50ECA7')
-            .width(160)
-            .height(18)
-            .padding(0)
+          Row({ space: 7 }) {
+            Stack({ alignContent: Alignment.Center }) {
+              Circle({ width: 12, height: 12 })
+                .fill('#1F50ECA7')
+              Circle({ width: 6, height: 6 })
+                .fill('#50ECA7')
+            }
+            .width(12)
+            .height(12)
+            Text('\u8bad\u7ec3\u65e5 \u00b7 \u5efa\u8bae\u5b8c\u6210')
+              .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
+              .fontSize(10.9)
+              .fontWeight(FontWeight.Medium)
+              .fontColor('#89FFFFFF')
+          }
         }
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
@@ -293,15 +300,16 @@ export struct HomeContent {
             .borderRadius(39)
             .backgroundColor('#0D1117')
             .border({ width: 1, color: '#17FFFFFF' })
+            .shadow({ radius: 16, color: 'rgba(0,0,0,0.32)', offsetX: 0, offsetY: 6 })
           Column({ space: 2 }) {
             Text(this.weeklyProgressPercent.toString() + '%')
               .fontFamily(HomeContent.NUMBER_FONT_FAMILY)
-              .fontSize(18.1)
+              .fontSize(19)
               .fontWeight(FontWeight.Bold)
-              .fontColor('#50ECA7')
+              .fontColor('#F7FBF8')
             Text('\u672c\u5468\u8fdb\u5ea6')
               .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
-              .fontSize(10)
+              .fontSize(9.5)
               .fontColor('#8AFFFFFF')
           }
           .alignItems(HorizontalAlign.Center)
@@ -309,37 +317,36 @@ export struct HomeContent {
         .width(96)
         .height(96)
         .shadow({ radius: 9, color: 'rgba(80,236,167,0.28)', offsetX: 0, offsetY: 0 })
-        .translate({ y: 6 })
+        .margin({ top: 4 })
       }
       .width('100%')
-      .height(103)
       .justifyContent(FlexAlign.SpaceBetween)
       .alignItems(VerticalAlign.Top)
       Row()
-        .height(16)
+        .height(18)
       Row()
         .width('100%')
         .height(1)
-        .backgroundColor('#14FFFFFF')
+        .linearGradient({ angle: 90, colors: [['#00FFFFFF', 0], ['#21FFFFFF', 0.5], ['#00FFFFFF', 1]] })
       Row()
-        .height(18)
-      Row({ space: 5 }) {
+        .height(16)
+      Row({ space: 10 }) {
         this.metric('dumbbell', '\u52a8\u4f5c\u6570', this.todayExerciseCount.toString(), '\u4e2a\u52a8\u4f5c')
         this.metric('clock-3', '\u9884\u8ba1\u7528\u65f6', this.todayDurationMinutes.toString(), '\u5206\u949f')
         this.metric('target', '\u76ee\u6807\u808c\u7fa4', this.todayMuscleGroupCount.toString(), '\u4e2a\u808c\u7fa4')
       }
       .width('100%')
-      .height(96)
-      Blank()
+      Row()
+        .height(16)
       Button('\u5f00\u59cb\u8bad\u7ec3')
         .width('100%')
         .height(40)
-        .fontSize(15)
+        .fontSize(13.6)
         .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
         .fontWeight(FontWeight.Bold)
         .fontColor('#08110D')
-        .linearGradient({ angle: 90, colors: [['#47D994', 0], ['#53E7A5', 1]] })
-        .borderRadius(22)
+        .backgroundColor('#50ECA7')
+        .borderRadius(20)
         .onTouch((event: TouchEvent) => {
           if (event.type === TouchType.Down) {
             this.primaryPressed = true
@@ -358,12 +365,12 @@ export struct HomeContent {
       Button('\u67e5\u770b\u9884\u89c8')
         .width('100%')
         .height(40)
-        .fontSize(15)
+        .fontSize(13.6)
         .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
         .fontWeight(FontWeight.Medium)
         .fontColor('#F7FBF8')
         .backgroundColor('#08FFFFFF')
-        .borderRadius(22)
+        .borderRadius(20)
         .onTouch((event: TouchEvent) => {
           if (event.type === TouchType.Down) {
             this.ghostPressed = true
@@ -380,12 +387,11 @@ export struct HomeContent {
         })
     }
     .width('100%')
-    .layoutWeight(1)
-    .padding(18)
-    .linearGradient({ angle: 180, colors: [['#0AFFFFFF', 0], ['#05FFFFFF', 1]] })
-    .borderRadius(28)
-    .border({ width: 1, color: '#10FFFFFF' })
-    .shadow({ radius: 48, color: '#38000000', offsetX: 0, offsetY: 24 })
+    .padding({ left: 18, right: 18, top: 20, bottom: 18 })
+    .backgroundColor('#0F50ECA7')
+    .borderRadius(26)
+    .border({ width: 1, color: '#3850ECA7' })
+    .shadow({ radius: 44, color: 'rgba(0,0,0,0.24)', offsetX: 0, offsetY: 22 })
   }
 
   @Builder
@@ -410,10 +416,7 @@ export struct HomeContent {
           .fontSize(10)
           .fontWeight(FontWeight.Bold)
           .fontColor('#50ECA7')
-          .width(63)
           .height(20)
-          .padding(0)
-          .textAlign(TextAlign.Center)
           .translate({ y: 2 })
       }
       .width('100%')
@@ -421,16 +424,16 @@ export struct HomeContent {
       .justifyContent(FlexAlign.SpaceBetween)
       Row()
         .height(18)
-      Row({ space: 5 }) {
+      Row({ space: 7 }) {
         ForEach(this.weekDays, (item: HomeWeekDayItem) => {
           this.weekDay(item.label, item.dateText, item.isTrained)
         }, (item: HomeWeekDayItem) => item.dateText + '_' + item.label)
       }
-      .width(319)
-      .height(62)
+      .width('100%')
+      .height(78)
     }
     .width('100%')
-    .height(152)
+    .height(168)
     .padding(16)
     .backgroundColor('#08FFFFFF')
     .borderRadius(27.2)
@@ -440,7 +443,7 @@ export struct HomeContent {
 
   @Builder
   private metric(iconName: string, label: string, value: string, note: string) {
-    Column({ space: 4 }) {
+    Column({ space: 5 }) {
       Stack({ alignContent: Alignment.Center }) {
         if (iconName === 'dumbbell') {
           Image($rawfile('pencil-home-metric-dumbbell.svg'))
@@ -504,17 +507,18 @@ export struct HomeContent {
         .textOverflow({ overflow: TextOverflow.Ellipsis })
     }
     .layoutWeight(1)
-    .height(96)
     .alignItems(HorizontalAlign.Center)
   }
 
   @Builder
   private weekDay(day: string, date: string, active: boolean) {
-    Column({ space: 3 }) {
+    Column({ space: 8 }) {
       Text(day)
         .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
-        .fontSize(9.5)
-        .fontColor(active ? '#F7FBF8' : '#8AFFFFFF')
+        .fontSize(10)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(active ? '#F7FBF8' : '#9EFFFFFF')
+        .height(14)
       Stack({ alignContent: Alignment.Center }) {
         Column()
           .width(34)
@@ -536,17 +540,19 @@ export struct HomeContent {
       .height(34)
       .shadow({
         radius: active ? 4 : 0,
-        color: active ? 'rgba(80,236,167,0.20)' : 'rgba(0,0,0,0)',
+        color: active ? 'rgba(80,236,167,0.12)' : 'rgba(0,0,0,0)',
         offsetX: 0,
         offsetY: 0
       })
       Text(date)
         .fontFamily(HomeContent.NUMBER_FONT_FAMILY)
-        .fontSize(9)
-        .fontColor(active ? '#50ECA7' : '#66FFFFFF')
+        .fontSize(10)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(active ? '#50ECA7' : '#8AFFFFFF')
+        .height(14)
     }
     .layoutWeight(1)
-    .height(62)
+    .height(78)
     .alignItems(HorizontalAlign.Center)
   }
 }
