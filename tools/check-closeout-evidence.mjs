@@ -6,8 +6,19 @@ const authRoot = resolve(repoRoot, 'midscene_run', 'auth')
 const focusedRoot = resolve(repoRoot, 'midscene_run', 'focused')
 const outputJson = process.argv.includes('--json')
 
+function directoryExists(dirPath) {
+  try {
+    return statSync(dirPath).isDirectory()
+  } catch {
+    return false
+  }
+}
+
 function walkFiles(rootDir, fileName) {
   const results = []
+  if (!directoryExists(rootDir)) {
+    return results
+  }
 
   function walk(currentDir) {
     const entries = readdirSync(currentDir, { withFileTypes: true })
@@ -119,6 +130,35 @@ function artifactFor(summary) {
 }
 
 function main() {
+  const missingRoots = []
+  if (!directoryExists(authRoot)) {
+    missingRoots.push(authRoot)
+  }
+  if (!directoryExists(focusedRoot)) {
+    missingRoots.push(focusedRoot)
+  }
+  if (missingRoots.length > 0) {
+    const missingRelative = missingRoots.map((p) => relative(repoRoot, p).replace(/\\/g, '/'))
+    const hint =
+      '这些是设备回归产物目录（已被 .gitignore 忽略）。先跑 tools/auth-regression.ps1 / ' +
+      'tools/dev-smoke.ps1 生成证据，或确认本检查是否仍适用于当前阶段。'
+    if (outputJson) {
+      console.log(JSON.stringify({ status: 'evidence-missing', missingRoots: missingRelative, hint }, null, 2))
+    } else {
+      console.log('FitTracker closeout evidence')
+      console.log('')
+      console.log('[MISSING] 证据目录不存在，无法评估 closeout：')
+      for (const p of missingRelative) {
+        console.log(`  ${p}`)
+      }
+      console.log('')
+      console.log(hint)
+      console.log('')
+      console.log('结论：evidence-missing（不是「未通过」，而是无证据可评）')
+    }
+    process.exit(2)
+  }
+
   const authSummaries = getSummaries(authRoot, 'midscene-auth-regression-summary.md', 'auth')
   const focusedSummaries = getSummaries(focusedRoot, 'midscene-entrypoints-smoke-summary.md', 'focused')
 

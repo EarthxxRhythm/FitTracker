@@ -1,12 +1,13 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
-import { resolve } from 'node:path'
 
-function runCommand(command, args, cwd = process.cwd()) {
+// Windows 上 devecocli 是 .cmd，spawnSync 不带 shell 无法解析。
+const USE_SHELL = process.platform === 'win32'
+
+function runCommand(command, args, cwd = process.cwd(), useShell = false) {
   const result = spawnSync(command, args, {
     cwd,
     encoding: 'utf8',
-    shell: false
+    shell: useShell
   })
 
   const output = `${result.stdout || ''}${result.stderr || ''}`.trim()
@@ -23,9 +24,23 @@ function parseOutput(raw) {
   return raw
 }
 
+/**
+ * 探测 devecocli 是否可用，返回版本号字符串；不可用返回 null。
+ * 本仓库约定 HarmonyOS 构建走 deveco-cli（AGENTS.md「提效约定」），不裸跑 hvigorw。
+ */
+function detectDevecoCli() {
+  const probe = runCommand('devecocli', ['--version'], process.cwd(), USE_SHELL)
+  if (probe.status !== 0) {
+    return null
+  }
+  return parseOutput(probe.output).split(/\r?\n/)[0].trim()
+}
+
 function main() {
   const repoRoot = process.cwd()
-  const devEcoEnvScript = resolve(repoRoot, 'tools/deveco-env.ps1')
+  const argv = process.argv.slice(2)
+  const skipBuild = argv.includes('--skip-build')
+
   const steps = [
     {
       name: 'content build',
@@ -59,26 +74,40 @@ function main() {
     console.log(`[build-gates] ${step.name} passed`)
   }
 
-  const hvigorw = 'C:/Program Files/Huawei/DevEco Studio/tools/hvigor/bin/hvigorw.bat'
-  if (!existsSync(hvigorw)) {
-    console.warn('[build-gates] 未检测到 hvigorw，已跳过汇编类检查。请在本机安装 DevEco Studio 后重试。')
+  // ---- ArkTS 编译门禁 ----
+  // 历史问题：这里曾只准备 DevEco 环境就打印 "hvigorw baseline check passed"，
+  // 从未真正调用编译器 —— 于是「main_pages.json 注册了 5 个不存在的页面」
+  // 这类 HEAD 级破损长期潜伏。现在改为真实编译，且无法编译时绝不声称通过。
+  if (skipBuild) {
+    console.warn('[build-gates] ⚠ --skip-build：ArkTS 编译门禁被显式跳过，产物未经编译验证。')
+    console.warn('[build-gates]   仅在明确已知编译状态时使用；提交前请去掉该参数。')
     return
   }
 
-  const envPrepare = runCommand('powershell', [
-    '-ExecutionPolicy',
-    'Bypass',
-    '-File',
-    devEcoEnvScript
-  ], repoRoot)
-  if (envPrepare.status !== 0) {
+  const version = detectDevecoCli()
+  if (version === null) {
     throw new Error(
-      `[build-gates] DevEco env prepare failed (exit ${envPrepare.status})\n` +
-      `${parseOutput(envPrepare.output)}`
+      '[build-gates] ArkTS 编译门禁无法执行：PATH 中未找到 devecocli。\n' +
+      '本仓库约定 HarmonyOS 构建走 deveco-cli（AGENTS.md「提效约定」）。\n' +
+      '建议: npm i -g @deveco/deveco-cli 后重跑；确需跳过请显式传 --skip-build。'
     )
   }
-  console.log('[build-gates] DevEco env prepare passed')
-  console.log('[build-gates] hvigorw baseline check passed')
+
+  console.log(`[build-gates] ArkTS 编译门禁：devecocli ${version}`)
+  const build = runCommand(
+    'devecocli',
+    ['build', '--modules', 'entry@default', '--build-mode', 'debug'],
+    repoRoot,
+    USE_SHELL
+  )
+  if (build.status !== 0) {
+    throw new Error(
+      `[build-gates] ArkTS 编译失败 (exit ${build.status})\n` +
+      `${parseOutput(build.output)}\n` +
+      '建议: 以上是真实编译输出；修编译错误本身，不要用 git stash / checkout 清空工作区来绕过门禁。'
+    )
+  }
+  console.log('[build-gates] ArkTS 编译通过')
 }
 
 try {
