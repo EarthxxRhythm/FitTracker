@@ -21,8 +21,7 @@ function Get-DefaultTaskFile {
   $candidates = @(
     'docs/tasks.workout-loop.json',
     'docs/tasks.content-plan.json',
-    'docs/tasks.regression-flow.json',
-    'tasks.phase2.json'
+    'docs/tasks.regression-flow.json'
   )
 
   foreach ($candidate in $candidates) {
