@@ -1,6 +1,6 @@
 # FitTracker 项目约束
 
-> 最后核对：2026-08-01。本文只描述当前主线；历史设计、旧路由和已归档计划不作为实现依据。
+> 最后核对：2026-09-11（页面清单与 features 边界已按 `main_pages.json` 实际 20 页校准）。本文只描述当前主线；历史设计、旧路由和已归档计划不作为实现依据。
 
 ## 项目概览
 
@@ -18,6 +18,8 @@ entry/src/main/ets/
 │   ├── welcome/          # 欢迎页
 │   ├── onboarding/       # 目标设置
 │   ├── exercise/         # 动作库与动作详情
+│   ├── body/             # 身体数据
+│   ├── settings/         # 设置
 │   ├── monetization/     # 会员能力展示
 │   └── workout/          # 训练完成、摘要及训练流兼容服务
 ├── shared/               # 跨功能内容、计划、复盘、备份、同步和内存仓库
@@ -45,8 +47,12 @@ entry/src/main/ets/
 - `features/pencil/pages/PencilActivePage`
 - `features/workout/pages/WorkoutCompletePage`
 - `features/pencil/pages/PencilReviewPage`
+- `features/pencil/pages/PencilPlansPage`
+- `features/pencil/pages/PencilPlanGroupDetailPage`
+- `features/body/pages/BodyDataPage`
+- `features/settings/pages/PencilSettingsPage`
 
-pencil 的 Tab 界面体组件：`features/pencil/components/` 下 `HomeContent` / `PlanContent` / `ProfileContent` / `ReviewContent` / `ActiveContent`，供 `PencilAppShell` 与对应薄壳注册页复用。
+pencil 的界面体组件：`features/pencil/components/` 下 `HomeContent` / `PlanContent` / `ProfileContent` / `ReviewContent` / `ActiveContent` / `PlansContent` / `PlanGroupDetailContent`，供 `PencilAppShell` 与对应薄壳注册页复用；`features/body/components/BodyDataContent` 与 `features/settings/components/SettingsContent` 同理。
 
 旧的 `pages/Index`、`pages/ProfilePage`、旧认证页、旧标签栏、旧常量和未注册的旧功能页已经移除。不要重新创建历史壳，也不要把已归档页面加入主路由。
 

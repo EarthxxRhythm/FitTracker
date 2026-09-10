@@ -66,12 +66,13 @@
     "summary": "在 focused smoke 通过后，按视觉基座和 6 个页面的边界整理一次聚焦提交。",
     "validation": [
       "git status --short",
-      "git diff --stat -- entry/src/main/ets/common/styles/DesignTokens.ets entry/src/main/ets/components/AppButton.ets entry/src/main/ets/components/AppCard.ets entry/src/main/ets/components/PageHeader.ets entry/src/main/ets/pages/HomePage.ets entry/src/main/ets/features/workout/pages/WorkoutPreviewPage.ets entry/src/main/ets/features/workout/pages/ActiveWorkoutPage.ets entry/src/main/ets/features/workout/pages/WorkoutSummaryPage.ets entry/src/main/ets/features/review/pages/ReviewHomePage.ets entry/src/main/ets/features/exercise/pages/ExerciseDetailPage.ets"
+      "git diff --stat -- entry/src/main/ets/common/styles/DesignTokens.ets entry/src/main/ets/components/AppButton.ets entry/src/main/ets/components/AppCard.ets entry/src/main/ets/components/PageHeader.ets entry/src/main/ets/features/pencil/pages/PencilHomePage.ets entry/src/main/ets/features/pencil/pages/PencilPreviewPage.ets entry/src/main/ets/features/pencil/pages/PencilActivePage.ets entry/src/main/ets/features/workout/pages/WorkoutCompletePage.ets entry/src/main/ets/features/pencil/pages/PencilReviewPage.ets entry/src/main/ets/features/exercise/pages/ExerciseDetailPage.ets"
     ],
     "doneDefinition": [
       "提交边界不混入 content-sync",
       "不混入 test_run 和博客产物"
-    ]
+    ],
+    "note": "2026-09-11 校准：validation 中的 5 个页面路径原属 pencil 主线之前的布局（pages/HomePage、features/workout/{WorkoutPreviewPage,ActiveWorkoutPage,WorkoutSummaryPage}、features/review/ReviewHomePage），已替换为当前主线等价页面。"
   },
   {
     "id": "monetization-001",

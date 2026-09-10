@@ -110,7 +110,7 @@ powershell -ExecutionPolicy Bypass -File tools/dev-smoke.ps1
 - 新增测试通过
 - 相关旧测试未破坏
 - 必要时补短链路 smoke
-- 只有涉及路由、持久化或训练主链路收口时，再跑 `tools/premerge-regression.ps1`
+- 只有涉及路由、持久化或训练主链路收口时，再跑合并前回归 —— 原计划的 `tools/premerge-regression.ps1` 已失效（从未落地），当前等价：`tools/workout-chain-smoke.ps1` 或 `tools/dev-smoke.ps1 -Target both`
 
 ### Step 5. 记录与交接
 
