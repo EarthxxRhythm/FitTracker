@@ -1,11 +1,11 @@
 ﻿/** PencilSplashPage 鈥斺€?FitTracker Splash 鍘熷瀷椤点€傚姛鑳?#27 */
-import { AppRoutes } from '../../app/AppRoutes'
-import LaunchRequestStore from '../../app/LaunchRequestStore'
-import SessionManager from '../../common/services/SessionManager'
+import { AppRoutes } from '../../../app/AppRoutes'
+import LaunchRequestStore from '../../../app/LaunchRequestStore'
+import SessionManager from '../../../common/services/SessionManager'
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
 import { text } from '@kit.ArkGraphics2D'
-import DeviceSeedService from '../../shared/services/DeviceSeedService'
+import DeviceSeedService from '../../../shared/services/DeviceSeedService'
 
 @Entry
 @Component
