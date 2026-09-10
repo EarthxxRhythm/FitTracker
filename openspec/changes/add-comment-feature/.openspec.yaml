@@ -2,3 +2,9 @@ schema: spec-driven
 change: add-comment-feature
 status: proposed
 created: 2026-04-28
+note: >-
+  2026-09-11 校准：提案正文引用的 WorkoutRecorderPage.ets / StatsPage.ets 均已删除。
+  其中「会话持久化」部分已由 common/services/WorkoutSessionService.ets 实现
+  （saveSession / updateSession / replaceSessions / getSessions），WorkoutSession 模型亦含 notes 字段；
+  但「训练完成页备注输入 UI」尚未落地（WorkoutCompletePage.ets 内无备注输入控件）。
+  若要继续该功能，需按当前 pencil 主线（features/pencil/pages、features/workout/pages）重写提案。

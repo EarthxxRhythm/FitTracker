@@ -59,6 +59,12 @@ function main() {
       command: 'git',
       args: ['diff', '--check'],
       help: '清理制表符/尾随空白后重跑。'
+    },
+    {
+      name: 'doc dead-refs',
+      command: 'node',
+      args: ['tools/check-dead-refs.mjs'],
+      help: '文档/配置里引用了仓库内已不存在的路径。改为当前路径；若该引用本就是「已归档/已删除」说明，请在同一句带上失效措辞（脚本据此豁免）。'
     }
   ]
 

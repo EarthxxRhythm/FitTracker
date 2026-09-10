@@ -7,7 +7,12 @@ Use this file to record only the blockers that should change task routing.
 - `midscene.provider_overdue`
   - status: active on 2026-06-11
   - scope: `focused-smoke`, `auth-regression`, closeout evidence refresh
-  - note: latest `both` rerun failed with `403 AccountOverdueError` from the external Midscene provider, and fresh AI-assisted `current-plan` / `membership` live-pass attempts on 2026-06-11 were blocked at the startup assertion for the same reason. Treat this as an external evidence-refresh blocker, not as proof of an app regression. Use `node tools/check-closeout-evidence.mjs` for artifact checks, `tools/live-device-probe.ps1` for provider-independent short live-device route probes, and `tools/seed-review-metrics-device.ps1` + `tools/live-device-probe.ps1 -Scenario review-metrics` when review-page data consistency needs fresh device proof.
+  - note: latest `both` rerun failed with `403 AccountOverdueError` from the external Midscene provider, and fresh AI-assisted `current-plan` / `membership` live-pass attempts on 2026-06-11 were blocked at the startup assertion for the same reason. Treat this as an external evidence-refresh blocker, not as proof of an app regression.
+  - tooling (2026-09-11 corrected): this entry used to recommend `tools/live-device-probe.ps1`, which has since been **archived** to `docs/archive/legacy-cleanup-2026-09/tools/`（其断言针对旧页面布局，与 pencil 主线不符）. Provider-independent device probing now uses:
+    - `devecocli ui layout`（当前屏可见节点树）+ `devecocli ui screenshot --path <png>`
+    - `devecocli log --level E --from 5m --tail 200`（错误日志）
+    - `node tools/check-closeout-evidence.mjs`（证据门禁；源目录缺失时返回 `evidence-missing` 并 exit 2，不再抛 ENOENT 栈）
+    - 仍然有效的设备脚本：`tools/auth-regression.ps1`、`tools/dev-smoke.ps1`、`tools/seed-review-metrics-device.ps1`
 
 ## Inactive / Cleared
 

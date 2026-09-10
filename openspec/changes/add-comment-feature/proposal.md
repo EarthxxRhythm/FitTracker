@@ -1,5 +1,12 @@
 # Proposal: Add Comment Feature
 
+> **2026-09-11 状态校准（部分实现）**
+> - **已实现**：训练会话持久化 —— `common/services/WorkoutSessionService.ets`
+>   （`saveSession` / `updateSession` / `replaceSessions` / `getSessions`）；`WorkoutSession` 模型含 `notes` 字段。
+> - **未落地**：训练完成页的备注输入 UI（`features/workout/pages/WorkoutCompletePage.ets` 内无备注输入控件）。
+> - **引用失效**：本文提到的 `WorkoutRecorderPage.ets`、`StatsPage.ets` 均已删除。
+> - 结论：保留记录，但不作为现成任务；若继续该功能，须按 pencil 主线页面结构重写。
+
 ## Summary
 
 Add the ability for users to write and save training session notes (训练感受备注) when completing a workout. This is Feature #26 from the feature checklist, currently marked as implemented but missing the notes input and session persistence in the WorkoutRecorderPage.
