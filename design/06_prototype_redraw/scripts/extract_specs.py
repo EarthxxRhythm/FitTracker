@@ -141,15 +141,15 @@ def build_manifest() -> str:
         "register": "PencilRegisterPage.ets",
         "plan": "PencilPlanPage.ets / PlanContent",
         "workout": "PencilPreviewPage.ets",
-        "plans": "计划组（未注册，待建）",
-        "planGroup": "计划组详细（未注册，待建）",
+        "plans": "PencilPlansPage.ets / PlansContent",
+        "planGroup": "PencilPlanGroupDetailPage.ets / PlanGroupDetailContent",
         "active": "PencilActivePage.ets / ActiveContent",
         "complete": "WorkoutCompletePage.ets",
         "review": "PencilReviewPage.ets / ReviewContent",
         "library": "ExerciseLibraryPage.ets",
-        "body": "身体数据（未注册，待建）",
+        "body": "BodyDataPage.ets / BodyDataContent",
         "profile": "PencilProfilePage.ets / ProfileContent",
-        "settings": "设置（未注册，待建）",
+        "settings": "PencilSettingsPage.ets / SettingsContent",
     }
     for i, (route, f, frame, zh) in enumerate(ROUTES, 1):
         lines.append(f"| {i} | `{route}` | `{f}` | `{frame}` | {zh} | {mapping[route]} |")
