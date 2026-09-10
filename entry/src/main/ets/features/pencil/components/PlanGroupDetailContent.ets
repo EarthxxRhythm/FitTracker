@@ -35,6 +35,11 @@ function createGroupDay(title: string, focus: string, exercises: GroupExercise[]
 
 @Component
 export struct PlanGroupDetailContent {
+  // 路由参数（由 PencilPlanGroupDetailPage 从 getParams() 转入）。
+  // 缺省时回落到内置的「推拉腿分裂」详情——该组的日程数据是唯一完整的一份。
+  @Prop groupName: string = ''
+  @Prop groupTags: string[] = []
+
   @State private backPressed: boolean = false
   @State private ctaPressed: boolean = false
   @State private dayKey: string = ''
@@ -46,6 +51,29 @@ export struct PlanGroupDetailContent {
   private readonly planName: string = '推拉腿分裂'
   private readonly planDesc: string = '按动作模式循环：推（胸、肩、三头）、拉（背、二头）、腿（下肢）。每个部位每周练 1-2 次，适合各阶段训练者。'
   private readonly planTags: string[] = ['初中高级通用', '3 天 / 周', '3 个训练日']
+
+  /** 未传参、或传的正是内置详情对应的组 → 用内置内容。 */
+  private isDefaultGroup(): boolean {
+    return this.groupName.length === 0 || this.groupName === this.planName
+  }
+
+  private displayName(): string {
+    return this.isDefaultGroup() ? this.planName : this.groupName
+  }
+
+  private displayTags(): string[] {
+    if (this.isDefaultGroup() || this.groupTags.length === 0) {
+      return this.planTags
+    }
+    return this.groupTags
+  }
+
+  private displayDesc(): string {
+    if (this.isDefaultGroup()) {
+      return this.planDesc
+    }
+    return '「' + this.groupName + '」的详细训练安排待补充，以下日程为示例。'
+  }
   private readonly weekCells: string[] = ['推', '拉', '腿', '休', '休', '休', '休']
   private readonly dowLabels: string[] = ['一', '二', '三', '四', '五', '六', '日']
   private readonly days: GroupDay[] = [
@@ -173,7 +201,7 @@ export struct PlanGroupDetailContent {
         this.handleBack()
       })
 
-      Text(this.planName)
+      Text(this.displayName())
         .fontFamily('Noto Sans SC')
         .fontSize(16)
         .fontWeight(FontWeight.Bold)
@@ -203,7 +231,7 @@ export struct PlanGroupDetailContent {
         .fontWeight(FontWeight.Bold)
         .fontColor('#50ECA7')
         .letterSpacing(0.33)
-      Text(this.planName)
+      Text(this.displayName())
         .fontFamily('Noto Sans SC')
         .fontSize(22)
         .fontWeight(FontWeight.Bold)
@@ -211,14 +239,14 @@ export struct PlanGroupDetailContent {
         .fontColor('#F7FBF8')
         .margin({ top: 8 })
         .padding({ right: 8 })
-      Text(this.planDesc)
+      Text(this.displayDesc())
         .fontFamily('Noto Sans SC')
         .fontSize(13)
         .lineHeight(21)
         .fontColor('#9EFFFFFF')
         .margin({ top: 8 })
       Row({ space: 7 }) {
-        ForEach(this.planTags, (tag: string) => {
+        ForEach(this.displayTags(), (tag: string) => {
           Text(tag)
             .fontFamily('Noto Sans SC')
             .fontSize(11)

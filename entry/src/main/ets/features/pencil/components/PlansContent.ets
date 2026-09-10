@@ -26,9 +26,6 @@ function createGroupCard(name: string, audience: string, freq: string, days: num
 export struct PlansContent {
   @State private backPressed: boolean = false
   @State private pressedCardKey: string = ''
-  @State private toastVisible: boolean = false
-  @State private toastText: string = ''
-  @State private toastTimer: number = -1
 
   // 封面 icon 与 HTML `<symbol id="i-*">` 一一对应（layers/activity/zap/dumbbell/target/chevrons-up/down/core/home/heart）。
   private readonly groups: GroupCard[] = [
@@ -46,23 +43,6 @@ export struct PlansContent {
 
   private handleBack(): void {
     this.getUIContext().getRouter().back()
-  }
-
-  private showCardToast(name: string): void {
-    this.toastText = '原型：查看「' + name + '」计划详情'
-    this.toastVisible = true
-    if (this.toastTimer >= 0) {
-      clearTimeout(this.toastTimer)
-    }
-    this.toastTimer = setTimeout(() => {
-      this.toastVisible = false
-    }, 1800)
-  }
-
-  aboutToDisappear(): void {
-    if (this.toastTimer >= 0) {
-      clearTimeout(this.toastTimer)
-    }
   }
 
   build() {
@@ -147,20 +127,6 @@ export struct PlansContent {
       }
       .width('100%')
       .height('100%')
-
-      if (this.toastVisible) {
-        Text(this.toastText)
-          .fontFamily('Noto Sans SC')
-          .fontSize(13)
-          .fontColor('#F7FBF8')
-          .backgroundColor('#EB0D1117')
-          .border({ width: 1, color: '#1AFFFFFF' })
-          .borderRadius(999)
-          .padding({ left: 16, right: 16, top: 10, bottom: 10 })
-          .position({ x: '50%', y: '100%' })
-          .translate({ x: -110, y: -82 })
-          .transition(TransitionEffect.OPACITY.animation({ duration: MotionTokens.DURATION_OVERLAY, curve: MotionTokens.EASE_MOTION }))
-      }
     }
     .width('100%')
     .height('100%')
@@ -283,7 +249,13 @@ export struct PlansContent {
       }
     })
     .onClick(() => {
-      this.getUIContext().getRouter().pushUrl({ url: AppRoutes.PLAN_GROUP_DETAIL })
+      this.getUIContext().getRouter().pushUrl({
+        url: AppRoutes.PLAN_GROUP_DETAIL,
+        params: {
+          groupName: group.name,
+          groupTags: [group.audience, group.freq, group.days.toString() + ' 个训练日']
+        }
+      })
     })
   }
 
