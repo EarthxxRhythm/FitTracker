@@ -17,6 +17,7 @@ otherwise the `--width`/`--height` defaults (390x844) are used.
 
 import argparse
 import os
+import pathlib
 import re
 import shutil
 import subprocess
@@ -117,9 +118,22 @@ def count_screens(html):
     return max(n, 1)
 
 
-def build_page(html, screen_index):
-    """Inject the isolation script right before </body> (or at end)."""
+def build_page(html, screen_index, base_dir_uri):
+    """Inject a <base> tag plus the isolation script, right before </body>.
+
+    The page is written to a temp dir before rendering, so WITHOUT <base> every relative
+    asset path (e.g. `assets/exercise-gifs/*.gif`) resolves against that temp dir and
+    silently fails to load -- yielding a reference frame with missing images (the causes
+    a bogus pixel diff). <base href> pins relative URLs back to the source directory.
+    """
     inject = _INJECT_TEMPLATE.replace('{screen_index}', str(screen_index))
+    base_tag = '<base href="%s/">' % base_dir_uri
+    if '<head>' in html:
+        html = html.replace('<head>', '<head>' + base_tag, 1)
+    elif '<html>' in html:
+        html = html.replace('<html>', '<html><head>' + base_tag + '</head>', 1)
+    else:
+        html = base_tag + html
     if '</body>' in html:
         return html.replace('</body>', inject + '</body>', 1)
     return html + inject
@@ -156,7 +170,8 @@ def main(argv):
         print('ERROR: no Chromium-based browser found (Edge/Chrome)', file=sys.stderr)
         return 2
 
-    page = build_page(html, args.screen)
+    src_dir_uri = pathlib.Path(os.path.dirname(os.path.abspath(args.html_path))).as_uri()
+    page = build_page(html, args.screen, src_dir_uri)
     with tempfile.NamedTemporaryFile('w', suffix='.html', delete=False,
                                      encoding='utf-8') as tf:
         tf.write(page)
@@ -165,7 +180,6 @@ def main(argv):
     out_abs = os.path.abspath(args.out)
     os.makedirs(os.path.dirname(out_abs), exist_ok=True)
 
-    import pathlib
     uri = pathlib.Path(tmp_html).as_uri()
 
     cmd = [
