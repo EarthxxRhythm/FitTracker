@@ -320,8 +320,9 @@ export struct ExerciseLibraryPage {
   // 弹层 / toast
   // -------------------------------------------------------------------------
   private currentExercise(): ExerciseItem {
+    const selectedId: string = this.selectedId
     for (let index = 0; index < EXERCISES.length; index++) {
-      if (EXERCISES[index].id === this.selectedId) {
+      if (EXERCISES[index].id === selectedId) {
         return EXERCISES[index]
       }
     }

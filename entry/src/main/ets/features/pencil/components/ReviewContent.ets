@@ -1241,9 +1241,10 @@ export struct ReviewContent {
   }
 
   private effortAverage(): string {
+    const isRpe: boolean = this.effortMode === 'rpe'
     let sum: number = 0
     for (let index = 0; index < RIR_BARS.length; index++) {
-      if (this.effortMode === 'rpe') {
+      if (isRpe) {
         sum += 10 - RIR_BARS[index]
       } else {
         sum += RIR_BARS[index]
