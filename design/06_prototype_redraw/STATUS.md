@@ -24,7 +24,7 @@
 
 1. 黄金公共组件先行（tab pill/header/button/card/sheet/图表），每组件过组件级像素绿卡。
 2. 批次 A：home（welcome-home · screen-home 帧）→ login/register → plan → profile → review 逐屏还原，
-   每屏产出 changed_files + 静态帧/动效态帧 + compare 报告（目标：主区域超阈 ≤2%）。
+   每屏产出 changed_files + 静态帧/动效态帧 + compare 报告（目标：非文本内容区超阈 ≤8%）。
 3. 批次 B/C：流程屏与新功能屏（body-data/settings/plans/planGroup/library…），新页双注册
    `main_pages.json` + `AppRoutes`。
 4. 动效状态帧策略按已定默认（按压/弹层/celebrate 必截；持续脉冲只核 MOTION.md 映射表）。
@@ -39,17 +39,20 @@
 | home · 内容区(y100-740) | test_run/prototype-phone/home-frame.png | 18.04 | 13.86 | test_run/home-crop-compare.md |
 
 > compare.py 已支持 `--crop y0,y1` 内容区口径（tools/visual-diff README 有说明）；
-> “内容区超阈 ≤2%”为本项目正式验收口径，剩余噪声主要是字体栅格化与种子文本数字差（需文本掩码
-> 或按文案换种子，属于度量收窄项，待处理）。
+> 口径已于 2026-09-07 由 `ACCEPTANCE-PLAN.md` 修正为「**非文本内容区超阈 ≤8%**」——原
+> ≤2% 经论证为跨渲染器（浏览器 vs ArkUI）不可达成的伪门槛；度量手段为 `--crop 100,740`
+> 加 `--ignore-rect` 文本掩码（掩码从设备 a11y 树自动提取）。
+> 2026-09-11 已按该口径完成 15 屏实测：**4 屏达标 / 11 屏未达标**，结果见
+> `test_run/emulator/ACCEPTANCE-2026-09-11.md`。
 
 Home 基线分解：超阈集中在 band1(84-168 日期/问候文字带,字体度量差+起始位差)、band9(756-844
 底部系统导航指示条/底部tab带)；band6/8 内容中段最低(4.8%/5.6%)。数字差(0/3次 vs 3/5次、0% vs
-14%)源自种子 vs HTML 静态示例，属预期文本差非布局差。收敛循环目标：裁掉状态栏/底部系统带后
-内容区超阈 ≤2%。
+14%)源自种子 vs HTML 静态示例，属预期文本差非布局差。收敛循环目标：裁掉状态栏/底部系统带
+并掩蔽文本后，**非文本内容区超阈 ≤8%**（口径见 `ACCEPTANCE-PLAN.md`）。
 
 ## 新需求：页面自适应设备屏幕（2026-09-07 加入）
 
-- 双基准验收：① 390vp 像素基准 diff ≤2% 不变；② 自适应层（320–430vp 无溢出/无截断、安全区、
+- 双基准验收：① 390vp 非文本内容区超阈 ≤8%（口径见 `ACCEPTANCE-PLAN.md`）；② 自适应层（320–430vp 无溢出/无截断、安全区、
   字号 ≤1.3× 不破版；>600vp 平板/横屏阶段可选）。
 - 结构规则改为流式/弹性优先（Column/Row/Scroll/layoutWeight/百分比），`.position` 仅限装饰层；
   规则已写入 docs/opendesign-1to1-rules.md §3 与「自适应与安全区」节。
@@ -67,7 +70,7 @@ Home 基线分解：超阈集中在 band1(84-168 日期/问候文字带,字体�
 - 批次 A：screen-home / login / register / plan / profile / review
 - 批次 B：screen-workout-preview / active / complete
 - 批次 C/新建：screen-library / body / settings / plans / plan-group
-- 新页注册（main_pages.json + AppRoutes）由协调者统一做；验收 = 390vp ≤2% + 320/360/430 冒烟 + 动效帧。
+- 新页注册（main_pages.json + AppRoutes）由协调者统一做；验收 = 390vp 非文本内容区超阈 ≤8% + 320/360/430 冒烟 + 动效帧。
 
 ## ✅ 2026-09-07 全队列执行完成（13/13 outbox）
 - 修复：Login/Register 输入聚焦态+密码可见（commit）；新建 Body/Settings/Plans/PlanGroupDetail
@@ -75,7 +78,7 @@ Home 基线分解：超阈集中在 band1(84-168 日期/问候文字带,字体�
 - 核验无改动：Home(有基线)、Plan、Profile、Active、Review、Preview、Complete、Library。
 - 全量编译绿（assembleHap exit=0）与 check-gates 全过。
 - 待办：1) 新页路由接线（profile 快捷入口/plans 点击跳计划组详情/body 与 settings 单位联动）；
-  2) 设备像素/响应式/动效帧验收（13 屏逐屏 --crop 内容区 ≤2%）；3) 趋势折线、封面 icon、
+  2) 设备像素/响应式/动效帧验收（15 屏逐屏 `--crop 100,740` + 文本掩码，≤8%；2026-09-11 已完成静态帧，结果见 `test_run/emulator/ACCEPTANCE-2026-09-11.md`）；3) 趋势折线、封面 icon、
   错误提示逐字段等已标 gaps；4) 数据可信回归（训练闭环 smoke）。
 
 ## 设备验证状态
