@@ -13,15 +13,15 @@
 | 4 | `register` | `fittracker-auth.html` | `screen-register` | 注册 | PencilRegisterPage.ets |
 | 5 | `plan` | `fittracker-plan.html` | `screen-plan` | 计划 Tab | PencilPlanPage.ets / PlanContent |
 | 6 | `workout` | `fittracker-training-preview.html` | `screen-training-preview` | 训练 Tab-预览 | PencilPreviewPage.ets |
-| 7 | `plans` | `fittracker-plan-detail.html` | `screen-plan-detail` | 计划组 | 计划组（未注册，待建） |
-| 8 | `planGroup` | `fittracker-plan-group-detail.html` | `screen-plan-group-detail` | 计划组详细 | 计划组详细（未注册，待建） |
+| 7 | `plans` | `fittracker-plan-detail.html` | `screen-plan-detail` | 计划组 | PencilPlansPage.ets / PlansContent |
+| 8 | `planGroup` | `fittracker-plan-group-detail.html` | `screen-plan-group-detail` | 计划组详细 | PencilPlanGroupDetailPage.ets / PlanGroupDetailContent |
 | 9 | `active` | `fittracker-training.html` | `screen-training` | 训练执行 | PencilActivePage.ets / ActiveContent |
 | 10 | `complete` | `fittracker-training-complete.html` | `screen-training-complete` | 训练完成 | WorkoutCompletePage.ets |
 | 11 | `review` | `fittracker-review.html` | `screen-review` | 训练回顾 Tab | PencilReviewPage.ets / ReviewContent |
 | 12 | `library` | `fittracker-exercise-library.html` | `screen-exercise-library` | 动作库 | ExerciseLibraryPage.ets |
-| 13 | `body` | `fittracker-body-data.html` | `screen-body-data` | 身体数据 | 身体数据（未注册，待建） |
+| 13 | `body` | `fittracker-body-data.html` | `screen-body-data` | 身体数据 | BodyDataPage.ets / BodyDataContent |
 | 14 | `profile` | `fittracker-personal.html` | `screen-personal` | 我的 Tab | PencilProfilePage.ets / ProfileContent |
-| 15 | `settings` | `fittracker-settings.html` | `screen-settings` | 设置 | 设置（未注册，待建） |
+| 15 | `settings` | `fittracker-settings.html` | `screen-settings` | 设置 | PencilSettingsPage.ets / SettingsContent |
 
 外壳入口：`fittracker-webapp.html`（15 路由预览壳，390×844 iframe）。
 
