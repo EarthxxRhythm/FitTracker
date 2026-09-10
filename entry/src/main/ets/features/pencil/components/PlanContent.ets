@@ -1,5 +1,6 @@
 /** PlanContent - 计划 Tab 界面体（供 PencilAppShell 与独立注册页复用）。 */
 
+import { AppRoutes } from '../../../app/AppRoutes'
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 import GoalRepository from '../../../shared/services/GoalRepository'
 import PlanEngine from '../../../shared/services/PlanEngine'
@@ -382,6 +383,9 @@ export struct PlanContent {
     })
     .scale({ x: this.masterPressed ? MotionTokens.PRESS_ICON : 1, y: this.masterPressed ? MotionTokens.PRESS_ICON : 1 })
     .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
+    .onClick(() => {
+      this.getUIContext().getRouter().pushUrl({ url: AppRoutes.PLANS })
+    })
   }
 
   @Builder

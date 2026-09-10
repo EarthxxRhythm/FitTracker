@@ -1,4 +1,5 @@
 /** PlansContent —— 计划组列表页界面体（对应 plan-detail.html · screen-plan-detail）。 */
+import { AppRoutes } from '../../../app/AppRoutes'
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 
 interface GroupCard {
@@ -282,7 +283,7 @@ export struct PlansContent {
       }
     })
     .onClick(() => {
-      this.showCardToast(group.name)
+      this.getUIContext().getRouter().pushUrl({ url: AppRoutes.PLAN_GROUP_DETAIL })
     })
   }
 
