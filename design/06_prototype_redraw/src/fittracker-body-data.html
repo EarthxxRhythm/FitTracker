@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FitTracker 身体数据页原型</title>
+<style>
+  /* ── FitTracker · Cold Emerald Performance（沿用首页设计系统）────────── */
+  :root {
+    --ink-0: #0B0F13;
+    --ink-1: #0A0D12;
+    --ink-welcome-0: #10171B;
+    --visual-a: #14241F;
+    --visual-b: #0D1616;
+    --ring-inner: #0D1117;
+    --tab-pill: #141F1D;
+    --tab-pill-active: #182422;
+    --nav-active: #F3FBF7;
+    --nav-inactive: rgba(243,251,247,.56);
+    --accent: #50ECA7;
+    --accent-deep: #45C9A1;
+    --accent-soft: #8CEBCC;
+    --cta-a: #47D994;
+    --cta-b: #53E7A5;
+    --cta-hover-a: #5BE3A5;
+    --cta-hover-b: #6BEDB5;
+    --on-accent: #07100B;
+    --on-accent-2: #08110D;
+    --txt-hi: #F7FBF8;
+    --txt-body: #EDF6F2;
+    --white-90: rgba(243,251,247,.90);
+    --white-87: rgba(255,255,255,.87);
+    --white-70: rgba(255,255,255,.70);
+    --white-65: rgba(255,255,255,.65);
+    --white-62: rgba(255,255,255,.62);
+    --white-60: rgba(255,255,255,.60);
+    --white-54: rgba(255,255,255,.54);
+    --white-40: rgba(255,255,255,.40);
+    --white-32: rgba(255,255,255,.32);
+    --glass-10: rgba(255,255,255,.10);
+    --glass-8: rgba(255,255,255,.08);
+    --glass-6: rgba(255,255,255,.06);
+    --glass-4: rgba(255,255,255,.04);
+    --hairline: rgba(255,255,255,.06);
+    --line-10: rgba(255,255,255,.10);
+    --line-14: rgba(255,255,255,.078);
+    --line-16: rgba(255,255,255,.16);
+    --accent-40: rgba(80,236,167,.40);
+    --accent-32: rgba(69,201,161,.32);
+    --accent-20: rgba(80,236,167,.20);
+    --accent-18: rgba(69,201,161,.18);
+    --accent-17: rgba(80,236,167,.17);
+    --accent-12: rgba(80,236,167,.12);
+    --accent-10: rgba(80,236,167,.10);
+    --accent-07: rgba(80,236,167,.07);
+    --stat-bg: #14181E;
+    --streak-bg: #171C23;
+    --warn: #FFD7C5;
+    --gold: #D3B487;
+    --gold-12: rgba(211,180,135,.12);
+    --font-cn: "Noto Sans SC", "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", "Microsoft YaHei UI", sans-serif;
+    --font-num: "Inter", "SF Pro Text", -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    --font-mono: "Geist Mono", "JetBrains Mono", "SF Mono", Consolas, "Courier New", monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+  body {
+    overflow-x: hidden;
+    background: #07090B;
+    color: var(--txt-body);
+    font-family: var(--font-cn);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100vh;
+  }
+  .defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+  button { font-family: inherit; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ── 页面外壳（非 App 内容）────────────────────────────────────────── */
+  .page-header { max-width: 1120px; margin: 0 auto; padding: 48px 32px 8px; }
+  .kicker { font-size: 13px; letter-spacing: .02em; color: var(--white-54); margin-bottom: 12px; }
+  .page-header h1 { font-size: clamp(30px, 4vw, 44px); font-weight: 700; letter-spacing: 0; color: var(--txt-hi); line-height: 1.18; }
+  .page-sub { margin-top: 14px; font-size: 15px; color: var(--white-60); line-height: 1.6; max-width: 680px; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 20px; }
+  .meta-badge { font-size: 12px; letter-spacing: .01em; color: var(--white-54); background: none; border: 0; padding: 0; }
+  .meta-badge b { color: var(--white-70); font-weight: 500; }
+
+  .gallery { max-width: 1120px; margin: 0 auto; padding: 28px 32px 8px; display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start; justify-content: center; }
+  .frame-card { flex: 0 1 auto; }
+  .stage-label { display: flex; align-items: baseline; gap: 10px; margin: 0 0 14px 4px; }
+  .stage-label .name { font-size: 15px; font-weight: 600; color: var(--txt-hi); }
+  .stage-label .code { font-family: var(--font-mono); font-size: 11px; color: var(--white-40); }
+
+  .phone {
+    position: relative; width: 390px; height: 844px; border-radius: 54px;
+    border: 1px solid rgba(255,255,255,.10); background: #000; overflow: hidden;
+    box-shadow: 0 1px 0 rgba(255,255,255,.06) inset, 0 0 0 1px rgba(0,0,0,.4),
+      0 32px 80px rgba(0,0,0,.55), 0 8px 28px rgba(0,0,0,.45);
+  }
+  .phone::after { content: ""; position: absolute; inset: 10px; border-radius: 44px; pointer-events: none; box-shadow: 0 0 0 1px rgba(255,255,255,.025) inset; }
+
+  /* ── App 外壳 ─────────────────────────────────────────────────────── */
+  .appshell { position: absolute; inset: 0; display: flex; flex-direction: column; background: var(--ink-0); }
+
+  .bd-top {
+    flex: 0 0 auto; display: flex; align-items: center; gap: 10px;
+    padding: 52px 16px 12px;
+  }
+  .bd-back {
+    width: 44px; height: 44px; border-radius: 50%; flex: 0 0 auto;
+    background: rgba(255,255,255,.047); border: 1px solid rgba(255,255,255,.08);
+    display: grid; place-items: center; color: var(--white-70); cursor: pointer; text-decoration: none;
+    transition: background .18s ease, border-color .18s ease, color .18s ease, transform .12s ease;
+  }
+  .bd-back svg { width: 20px; height: 20px; }
+  .bd-back:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.16); color: var(--txt-hi); }
+  .bd-back:active { transform: scale(.94); }
+  .bd-title { flex: 1 1 auto; font-size: 18px; font-weight: 700; color: var(--txt-hi); text-align: center; }
+  .bd-date { width: 44px; flex: 0 0 auto; text-align: center; font-family: var(--font-num); font-size: 11px; color: var(--white-54); }
+  .bd-date b { display: block; font-size: 13px; color: var(--white-70); font-weight: 600; }
+
+  .bd-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+  .bd-scroll::-webkit-scrollbar { display: none; }
+  .bd-content { padding: 6px 16px 30px; display: flex; flex-direction: column; gap: 14px; }
+
+  .card {
+    border-radius: 22px; border: 1px solid var(--line-10);
+    background: rgba(255,255,255,.031); padding: 16px;
+  }
+  .card.focus {
+    border-radius: 26px; border: 1px solid rgba(80,236,167,.22);
+    background: rgba(80,236,167,.06);
+    box-shadow: 0 20px 40px rgba(0,0,0,.22); padding: 18px;
+  }
+  .card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+  .card-title { font-size: 16px; font-weight: 700; color: var(--txt-hi); line-height: 1.2; }
+  .card-meta { font-size: 11px; color: var(--white-62); white-space: nowrap; }
+
+  /* ── 体重概览 ─────────────────────────────────────────────────────── */
+  .weight-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .weight-label { font-size: 12px; color: var(--white-62); }
+  .weight-date { font-family: var(--font-num); font-size: 11px; color: var(--white-54); }
+  .weight-value { margin-top: 10px; display: flex; align-items: baseline; gap: 7px; }
+  .weight-value b { font-family: var(--font-num); font-size: 56px; font-weight: 700; line-height: 1; letter-spacing: -.02em; color: var(--txt-hi); }
+  .weight-value span { font-size: 16px; color: var(--white-62); }
+  .weight-delta { display: inline-flex; align-items: center; gap: 5px; margin-top: 12px; font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-10); border-radius: 999px; padding: 5px 11px; }
+  .weight-delta svg { width: 13px; height: 13px; }
+
+  .goal { margin-top: 16px; padding-top: 15px; border-top: 1px solid var(--hairline); }
+  .goal-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .goal-label { font-size: 12px; color: var(--white-62); }
+  .goal-value { font-family: var(--font-num); font-size: 12px; font-weight: 600; color: var(--txt-hi); }
+  .goal-track { margin-top: 10px; height: 7px; border-radius: 999px; background: var(--glass-8); overflow: hidden; }
+  .goal-fill { height: 100%; border-radius: 999px; background: var(--accent); transition: width .35s var(--ease, cubic-bezier(.32,.72,.3,1)); }
+
+  /* ── 身体成分 ─────────────────────────────────────────────────────── */
+  .fat-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .fat-value { font-family: var(--font-num); font-size: 24px; font-weight: 700; color: var(--accent); line-height: 1; }
+  .fat-value small { font-size: 13px; font-weight: 600; color: var(--white-62); }
+  .fat-range { position: relative; height: 30px; margin: 8px 0 4px; }
+  .fat-track { position: absolute; top: 11px; left: 0; right: 0; height: 8px; border-radius: 999px; background: var(--glass-8); }
+  .fat-zone { position: absolute; top: 11px; height: 8px; border-radius: 999px; background: var(--accent-20); }
+  .fat-marker { position: absolute; top: 6px; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); border: 3px solid var(--ink-0); box-shadow: 0 0 0 1px rgba(80,236,167,.5); transform: translateX(-50%); }
+  .fat-scale { display: flex; justify-content: space-between; font-family: var(--font-num); font-size: 10px; color: var(--white-40); }
+
+  .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+  .metric-tile { border-radius: 16px; background: rgba(255,255,255,.025); border: 1px solid var(--hairline); padding: 13px 14px; }
+  .mt-label { font-size: 11.5px; color: var(--white-62); }
+  .mt-value { margin-top: 7px; font-family: var(--font-num); font-size: 21px; font-weight: 700; line-height: 1; color: var(--txt-hi); }
+  .mt-value .unit { font-size: 12px; font-weight: 600; color: var(--white-62); }
+  .mt-note { margin-top: 6px; font-size: 10.5px; color: var(--accent); }
+  .mt-note.mut { color: var(--white-40); }
+
+  /* ── 体重趋势 ─────────────────────────────────────────────────────── */
+  .seg { display: flex; gap: 2px; background: rgba(255,255,255,.06); border: 1px solid var(--line-10); border-radius: 12px; padding: 3px; }
+  .seg button { height: 30px; padding: 0 14px; border: 0; border-radius: 9px; background: transparent; color: var(--white-62); font-size: 12.5px; font-weight: 600; cursor: pointer; transition: background .16s ease, color .16s ease; }
+  .seg button.active { background: var(--accent); color: var(--on-accent); }
+  .seg button:not(.active):hover { color: var(--txt-hi); }
+  .trend-cap { margin-top: 3px; font-size: 11px; color: var(--white-54); }
+  .trend-chart { width: 100%; height: 150px; margin-top: 4px; }
+  .trend-chart svg { width: 100%; height: 100%; display: block; }
+
+  /* ── 围度记录 ─────────────────────────────────────────────────────── */
+  .measure-list { display: flex; flex-direction: column; }
+  .measure-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 0; }
+  .measure-row + .measure-row { border-top: 1px solid var(--hairline); }
+  .ms-label { font-size: 13.5px; color: var(--white-70); }
+  .ms-value { display: flex; align-items: baseline; gap: 9px; }
+  .ms-num { font-family: var(--font-num); font-size: 14px; font-weight: 600; color: var(--txt-hi); }
+  .ms-delta { font-family: var(--font-num); font-size: 11.5px; color: var(--accent); white-space: nowrap; }
+  .ms-delta.down { color: var(--white-54); }
+
+  /* ── 主操作 ───────────────────────────────────────────────────────── */
+  .bd-cta {
+    width: 100%; height: 54px; border: 0; border-radius: 17px; cursor: pointer;
+    background: var(--accent);
+    color: var(--on-accent); font-size: 15px; font-weight: 700; letter-spacing: .01em;
+    box-shadow: 0 12px 28px rgba(0,0,0,.32);
+    transition: filter .16s ease, transform .12s ease, box-shadow .16s ease;
+  }
+  .bd-cta:hover { filter: brightness(1.06); }
+  .bd-cta:active { transform: scale(.98); box-shadow: 0 8px 18px rgba(0,0,0,.30); }
+
+  .foot-note { font-size: 11px; color: var(--white-40); line-height: 1.65; padding: 0 4px; }
+
+  /* ── 记录底部面板 ─────────────────────────────────────────────────── */
+  .sheet-layer { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
+  .sheet-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); opacity: 0; transition: opacity .2s ease; pointer-events: none; }
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: var(--ink-1); border-top: 1px solid var(--line-10);
+    border-radius: 28px 28px 0 0; padding: 12px 20px 30px;
+    transform: translateY(102%); transition: transform .3s cubic-bezier(.32,.72,.3,1);
+    pointer-events: auto; box-shadow: 0 -24px 60px rgba(0,0,0,.45);
+  }
+  .sheet-layer.open .sheet { transform: translateY(0); }
+  .sheet-layer.open .sheet-backdrop { opacity: 1; pointer-events: auto; }
+  .sheet-grip { width: 40px; height: 4px; border-radius: 999px; background: var(--white-32); margin: 0 auto 18px; }
+  .sheet-title { font-size: 17px; font-weight: 700; color: var(--txt-hi); text-align: center; }
+  .sheet-sub { margin-top: 5px; font-size: 12px; color: var(--white-54); text-align: center; }
+  .sheet-input-wrap { margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .sheet-input {
+    width: 140px; font-family: var(--font-num); font-size: 40px; font-weight: 700; color: var(--txt-hi);
+    background: var(--glass-6); border: 1px solid var(--line-14); border-radius: 18px;
+    padding: 8px 14px; text-align: center; -moz-appearance: textfield;
+  }
+  .sheet-input::-webkit-outer-spin-button, .sheet-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .sheet-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .sheet-unit { font-size: 16px; color: var(--white-62); }
+  .sheet-hint { margin-top: 14px; font-size: 11.5px; color: var(--accent); text-align: center; min-height: 16px; }
+  .sheet-actions { margin-top: 20px; display: flex; gap: 10px; }
+  .sheet-save, .sheet-cancel { flex: 1 1 0; height: 50px; border-radius: 16px; font-size: 14.5px; font-weight: 600; cursor: pointer; }
+  .sheet-save { border: 0; background: var(--accent); color: var(--on-accent); transition: filter .16s ease, transform .12s ease; }
+  .sheet-save:hover { filter: brightness(1.06); }
+  .sheet-cancel { background: var(--glass-6); border: 1px solid var(--line-14); color: var(--white-70); transition: background .16s ease, color .16s ease; }
+  .sheet-cancel:hover { background: var(--glass-10); color: var(--txt-hi); }
+
+  .page-foot { max-width: 1120px; margin: 0 auto; padding: 26px 32px 56px; font-size: 12px; color: var(--white-40); line-height: 1.7; }
+  .page-foot b { color: var(--white-70); font-weight: 600; }
+
+  @media (max-width: 860px) {
+    .page-header { padding: 32px 20px 4px; }
+    .gallery { padding: 20px 20px 0; justify-content: center; }
+    .page-foot { padding: 22px 20px 44px; }
+  }
+  @media (max-width: 440px) {
+    .phone { transform-origin: top left; }
+    .page-header, .page-foot { padding-left: 16px; padding-right: 16px; }
+    .gallery { padding-left: 16px; padding-right: 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sheet { transition: none; }
+    .goal-fill { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+  <svg class="defs" aria-hidden="true">
+    <symbol id="i-back" viewBox="0 0 24 24">
+      <path d="m15 18-6-6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-down" viewBox="0 0 24 24">
+      <path d="M12 5v14M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-up" viewBox="0 0 24 24">
+      <path d="M12 19V5M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24">
+      <path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+  </svg>
+
+  <header class="page-header">
+    <div class="kicker">FitTracker · 界面原型</div>
+    <h1>身体数据页</h1>
+    <p class="page-sub">延续 Cold Emerald 深色翡翠体系，将「我的」页下的身体数据入口展开为完整一屏：体重概览、身体成分、体重趋势与围度记录，并支持记录今日体重。</p>
+    <div class="meta-row">
+      <span class="meta-badge">主题 <b>Cold Emerald</b></span>
+      <span class="meta-badge">视口 <b>390 × 844</b></span>
+      <span class="meta-badge">来源 <b>PencilProfilePage · 身体数据二级页</b></span>
+    </div>
+  </header>
+
+  <main class="gallery">
+    <figure class="frame-card" data-od-id="screen-body-data">
+      <div class="stage-label">
+        <span class="name">身体数据</span>
+        <span class="code">Body Data · 二级页</span>
+      </div>
+      <div class="phone">
+        <div class="appshell">
+          <header class="bd-top">
+            <a class="bd-back" href="fittracker-personal.html" aria-label="返回个人页" data-od-id="btn-back">
+              <svg><use href="#i-back"/></svg>
+            </a>
+            <span class="bd-title">身体数据</span>
+            <span class="bd-date"><b>21</b>8月</span>
+          </header>
+
+          <div class="bd-scroll">
+            <div class="bd-content">
+
+              <!-- 体重概览 -->
+              <section class="card focus" data-od-id="body-weight-summary">
+                <div class="weight-head">
+                  <span class="weight-label">当前体重</span>
+                  <span class="weight-date">今日 · 更新于 07:40</span>
+                </div>
+                <div class="weight-value"><b id="hero-weight">72.5</b><span>kg</span></div>
+                <span class="weight-delta" id="hero-delta">
+                  <svg><use href="#i-down"/></svg>
+                  <span>较上周 −0.3 kg</span>
+                </span>
+                <div class="goal">
+                  <div class="goal-head">
+                    <span class="goal-label">增肌目标 74.0 kg</span>
+                    <span class="goal-value" id="goal-gap">还差 1.5 kg</span>
+                  </div>
+                  <div class="goal-track"><div class="goal-fill" id="goal-fill" style="width: 98%;"></div></div>
+                </div>
+              </section>
+
+              <!-- 身体成分 -->
+              <section class="card" data-od-id="body-composition">
+                <div class="card-head">
+                  <h2 class="card-title">身体成分</h2>
+                  <span class="card-meta">目标 · 增肌</span>
+                </div>
+                <div class="fat-head">
+                  <span class="fat-value" id="fat-value">16.2<small>%</small></span>
+                  <span class="fat-label" style="font-size: 11px; color: var(--white-62);">体脂率 · 健康区间 10–20%</span>
+                </div>
+                <div class="fat-range">
+                  <div class="fat-track"></div>
+                  <div class="fat-zone" style="left: 25%; width: 50%;"></div>
+                  <div class="fat-marker" style="left: 56%;"></div>
+                </div>
+                <div class="fat-scale">
+                  <span>偏低</span><span>健康</span><span>偏高</span>
+                </div>
+                <div class="metric-grid">
+                  <div class="metric-tile" data-od-id="metric-bmi">
+                    <div class="mt-label">BMI</div>
+                    <div class="mt-value">22.9</div>
+                    <div class="mt-note">正常范围</div>
+                  </div>
+                  <div class="metric-tile" data-od-id="metric-muscle">
+                    <div class="mt-label">骨骼肌</div>
+                    <div class="mt-value">34.2 <span class="unit">kg</span></div>
+                    <div class="mt-note mut">标准</div>
+                  </div>
+                  <div class="metric-tile" data-od-id="metric-bmr">
+                    <div class="mt-label">基础代谢</div>
+                    <div class="mt-value">1710 <span class="unit">kcal</span></div>
+                    <div class="mt-note mut">估算值</div>
+                  </div>
+                  <div class="metric-tile" data-od-id="metric-water">
+                    <div class="mt-label">身体水分</div>
+                    <div class="mt-value">58.2 <span class="unit">%</span></div>
+                    <div class="mt-note">正常范围</div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 体重趋势 -->
+              <section class="card" data-od-id="body-trend">
+                <div class="card-head">
+                  <div>
+                    <h2 class="card-title">体重趋势</h2>
+                    <p class="trend-cap" id="trend-cap">近 7 天 · −0.3 kg</p>
+                  </div>
+                  <div class="seg" data-seg="period" role="group" aria-label="趋势时间范围">
+                    <button type="button" data-period="week" class="active">周</button>
+                    <button type="button" data-period="month">月</button>
+                    <button type="button" data-period="year">年</button>
+                  </div>
+                </div>
+                <div class="trend-chart">
+                  <svg id="trend-svg" viewBox="0 0 326 140" role="img" aria-label="体重趋势折线图" preserveAspectRatio="xMidYMid meet"></svg>
+                </div>
+              </section>
+
+              <!-- 围度记录 -->
+              <section class="card" data-od-id="body-measurements">
+                <div class="card-head">
+                  <h2 class="card-title">围度记录</h2>
+                  <span class="card-meta">较上月</span>
+                </div>
+                <div class="measure-list">
+                  <div class="measure-row">
+                    <span class="ms-label">胸围</span>
+                    <span class="ms-value"><span class="ms-num">96.0 cm</span><span class="ms-delta">+0.5</span></span>
+                  </div>
+                  <div class="measure-row">
+                    <span class="ms-label">腰围</span>
+                    <span class="ms-value"><span class="ms-num">78.0 cm</span><span class="ms-delta down">−1.0</span></span>
+                  </div>
+                  <div class="measure-row">
+                    <span class="ms-label">臀围</span>
+                    <span class="ms-value"><span class="ms-num">92.0 cm</span><span class="ms-delta">+0.3</span></span>
+                  </div>
+                  <div class="measure-row">
+                    <span class="ms-label">臂围</span>
+                    <span class="ms-value"><span class="ms-num">34.5 cm</span><span class="ms-delta">+0.2</span></span>
+                  </div>
+                  <div class="measure-row">
+                    <span class="ms-label">大腿围</span>
+                    <span class="ms-value"><span class="ms-num">54.0 cm</span><span class="ms-delta">+0.4</span></span>
+                  </div>
+                </div>
+              </section>
+
+              <button class="bd-cta" type="button" data-od-id="btn-record-weight">记录今日体重</button>
+              <p class="foot-note">身体数据仅保存在本机；单位可在「设置」中切换为磅（lbs）。本页数值为界面示例，用于展示信息层级与交互。</p>
+
+            </div>
+          </div>
+
+          <!-- 记录底部面板 -->
+          <div class="sheet-layer" id="sheet-layer" aria-hidden="true">
+            <div class="sheet-backdrop" data-close-sheet></div>
+            <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+              <div class="sheet-grip"></div>
+              <div class="sheet-title" id="sheet-title">记录今日体重</div>
+              <div class="sheet-sub">每次记录都会被纳入体重趋势</div>
+              <div class="sheet-input-wrap">
+                <input class="sheet-input" id="sheet-input" type="number" inputmode="decimal" step="0.1" min="1" max="500" value="72.5" aria-label="今日体重" />
+                <span class="sheet-unit">kg</span>
+              </div>
+              <p class="sheet-hint" id="sheet-hint" role="alert"></p>
+              <div class="sheet-actions">
+                <button class="sheet-cancel" type="button" data-close-sheet>取消</button>
+                <button class="sheet-save" type="button" data-od-id="btn-save-weight">保存</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </figure>
+  </main>
+
+  <footer class="page-foot">
+    <b>身体数据页内容依据：</b>展开 <b>fittracker-personal.html</b> 中「身体数据」二级页，沿用首页 <b>fittracker-welcome-home.html</b> 的 Cold Emerald 内联值（强调色 <b>#50ECA7</b>，主按钮为纯色填充），并补充身体成分、围度与「记录体重」交互。返回按钮链接回个人页。
+  </footer>
+
+  <script>
+    (function () {
+      var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      /* ── 体重趋势折线图 ─────────────────────────────────────────── */
+      var X = [20, 68, 115, 163, 210, 258, 305];
+      var TOP = 18, BOTTOM = 100, BASE = 112, LABEL_Y = 126;
+      var SERIES = {
+        week:  { vals: [72.8, 72.6, 72.7, 72.4, 72.6, 72.5, 72.5], labels: ['一','二','三','四','五','六','日'], cap: '近 7 天 · −0.3 kg' },
+        month: { vals: [71.8, 71.9, 72.2, 72.0, 72.3, 72.4, 72.5], labels: ['8周前','','','4周前','','','本周'], cap: '近 30 天 · +0.7 kg' },
+        year:  { vals: [68.2, 68.9, 69.6, 70.4, 71.0, 71.8, 72.5], labels: ['去年9月','','','3月','','','现在'], cap: '近 12 个月 · +4.5 kg' }
+      };
+
+      function drawChart(key) {
+        var s = SERIES[key];
+        var lo = Math.min.apply(null, s.vals);
+        var hi = Math.max.apply(null, s.vals);
+        var span = (hi - lo) || 1;
+        var pts = s.vals.map(function (v, i) {
+          return { x: X[i], y: BOTTOM - ((v - lo) / span) * (BOTTOM - TOP) };
+        });
+        var line = pts.map(function (p) { return p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ');
+        var area = X[0] + ',' + BASE + ' ' + line + ' ' + X[X.length - 1] + ',' + BASE;
+        var dots = pts.map(function (p, i) {
+          var last = i === pts.length - 1;
+          var r = last ? 4.5 : 3;
+          var fill = last ? '#50ECA7' : '#0B0F13';
+          return '<circle cx="' + p.x + '" cy="' + p.y.toFixed(1) + '" r="' + r + '" fill="' + fill + '" stroke="#50ECA7" stroke-width="1.5"/>';
+        }).join('');
+        var labels = s.labels.map(function (l, i) {
+          if (!l) { return ''; }
+          return '<text x="' + X[i] + '" y="' + LABEL_Y + '" fill="rgba(255,255,255,.5)" font-size="9" text-anchor="middle">' + l + '</text>';
+        }).join('');
+        var html =
+          '<defs><linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">' +
+          '<stop offset="0" stop-color="#50ECA7" stop-opacity=".18"/>' +
+          '<stop offset="1" stop-color="#50ECA7" stop-opacity="0"/></linearGradient></defs>' +
+          '<line x1="20" y1="20" x2="305" y2="20" stroke="rgba(255,255,255,.06)"/>' +
+          '<line x1="20" y1="100" x2="305" y2="100" stroke="rgba(255,255,255,.10)"/>' +
+          '<polygon points="' + area + '" fill="url(#trendFill)"/>' +
+          '<polyline points="' + line + '" fill="none" stroke="#50ECA7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+          dots + labels;
+        document.getElementById('trend-svg').innerHTML = html;
+        document.getElementById('trend-cap').textContent = s.cap;
+      }
+      drawChart('week');
+
+      var seg = document.querySelector('[data-seg="period"]');
+      seg.querySelectorAll('button').forEach(function (b) {
+        b.addEventListener('click', function () {
+          seg.querySelectorAll('button').forEach(function (x) { x.classList.remove('active'); });
+          b.classList.add('active');
+          drawChart(b.getAttribute('data-period'));
+        });
+      });
+
+      /* ── 记录体重底部面板 ─────────────────────────────────────────── */
+      var sheetLayer = document.getElementById('sheet-layer');
+      var sheetInput = document.getElementById('sheet-input');
+      var sheetHint = document.getElementById('sheet-hint');
+      var heroWeight = document.getElementById('hero-weight');
+      var heroDelta = document.getElementById('hero-delta');
+      var goalGap = document.getElementById('goal-gap');
+      var goalFill = document.getElementById('goal-fill');
+      var GOAL = 74.0;
+
+      function setGoalUI(current) {
+        var gap = Math.max(0, GOAL - current);
+        var pct = Math.min(100, Math.round((current / GOAL) * 100));
+        goalGap.textContent = gap <= 0.05 ? '已达目标' : ('还差 ' + gap.toFixed(1) + ' kg');
+        goalFill.style.width = pct + '%';
+      }
+
+      function openSheet() {
+        sheetInput.value = heroWeight.textContent;
+        sheetHint.textContent = '';
+        sheetLayer.classList.add('open');
+        sheetLayer.setAttribute('aria-hidden', 'false');
+        setTimeout(function () { sheetInput.focus(); sheetInput.select(); }, reduceMotion ? 0 : 320);
+      }
+      function closeSheet() {
+        sheetLayer.classList.remove('open');
+        sheetLayer.setAttribute('aria-hidden', 'true');
+      }
+
+      document.getElementById('btn-record-weight').addEventListener('click', openSheet);
+      document.querySelectorAll('[data-close-sheet]').forEach(function (el) {
+        el.addEventListener('click', closeSheet);
+      });
+
+      document.querySelector('.sheet-save').addEventListener('click', function () {
+        var v = parseFloat(sheetInput.value);
+        if (!isFinite(v) || v <= 0 || v > 500) {
+          sheetHint.textContent = '请输入 0–500 之间的有效体重';
+          sheetInput.focus();
+          return;
+        }
+        heroWeight.textContent = v.toFixed(1);
+        heroDelta.innerHTML = '<svg><use href="#i-check"/></svg><span>今日已记录 · 刚刚</span>';
+        setGoalUI(v);
+        closeSheet();
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && sheetLayer.classList.contains('open')) {
+          closeSheet();
+        }
+      });
+    })();
+  </script>
+  <script>window.FT_APP={routes:[['.bd-back','profile']]};</script>
+  <script src="assets/ft-stage.js"></script>
+</body>
+</html>

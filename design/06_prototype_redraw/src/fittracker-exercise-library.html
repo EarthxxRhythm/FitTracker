@@ -1,0 +1,918 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FitTracker · 动作库页原型</title>
+<style>
+  /* ── FitTracker · Cold Emerald Performance（沿用首页设计系统）────────────── */
+  :root {
+    --ink-0: #0B0F13;
+    --ink-1: #0A0D12;
+    --ink-welcome-0: #10171B;
+    --visual-a: #14241F;
+    --visual-b: #0D1616;
+    --ring-inner: #0D1117;
+    --tab-pill: #141F1D;
+    --tab-pill-active: #182422;
+    --nav-active: #F3FBF7;
+    --nav-inactive: rgba(243,251,247,.56);
+    --accent: #50ECA7;
+    --accent-deep: #45C9A1;
+    --accent-soft: #8CEBCC;
+    --cta-a: #47D994;
+    --cta-b: #53E7A5;
+    --cta-hover-a: #5BE3A5;
+    --cta-hover-b: #6BEDB5;
+    --on-accent: #07100B;
+    --on-accent-2: #08110D;
+    --txt-hi: #F7FBF8;
+    --txt-body: #EDF6F2;
+    --white-90: rgba(243,251,247,.90);
+    --white-87: rgba(255,255,255,.87);
+    --white-70: rgba(255,255,255,.70);
+    --white-65: rgba(255,255,255,.65);
+    --white-62: rgba(255,255,255,.62);
+    --white-60: rgba(255,255,255,.60);
+    --white-54: rgba(255,255,255,.54);
+    --white-40: rgba(255,255,255,.40);
+    --white-32: rgba(255,255,255,.32);
+    --glass-10: rgba(255,255,255,.10);
+    --glass-8: rgba(255,255,255,.08);
+    --glass-6: rgba(255,255,255,.06);
+    --glass-4: rgba(255,255,255,.04);
+    --hairline: rgba(255,255,255,.06);
+    --line-10: rgba(255,255,255,.10);
+    --line-14: rgba(255,255,255,.078);
+    --line-16: rgba(255,255,255,.16);
+    --accent-40: rgba(80,236,167,.40);
+    --accent-32: rgba(69,201,161,.32);
+    --accent-20: rgba(80,236,167,.20);
+    --accent-18: rgba(69,201,161,.18);
+    --accent-17: rgba(80,236,167,.17);
+    --accent-12: rgba(80,236,167,.12);
+    --accent-10: rgba(80,236,167,.10);
+    --accent-07: rgba(80,236,167,.07);
+    --warn: #FFD7C5;
+    --font-cn: "Noto Sans SC", "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", "Microsoft YaHei UI", sans-serif;
+    --font-num: "Inter", "SF Pro Text", -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    --font-mono: "Geist Mono", "JetBrains Mono", "SF Mono", Consolas, "Courier New", monospace;
+    --ease: cubic-bezier(.2, .7, .2, 1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+
+  body {
+    overflow-x: hidden;
+    background: #07090B;
+    color: var(--txt-body);
+    font-family: var(--font-cn);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100vh;
+  }
+
+  .defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+  button { font-family: var(--font-cn); }
+  button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(80,236,167,.28); }
+
+  /* ── 页面外壳（非 App 内容）────────────────────────────────────────────── */
+  .page-header {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 48px 32px 8px;
+  }
+  .kicker { font-size: 13px; letter-spacing: .02em; color: var(--white-54); margin-bottom: 12px; }
+  .page-header h1 { font-size: clamp(30px, 4vw, 44px); font-weight: 700; color: var(--txt-hi); line-height: 1.18; }
+  .page-sub { margin-top: 14px; font-size: 15px; color: var(--white-60); line-height: 1.6; max-width: 660px; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 20px; }
+  .meta-badge { font-size: 12px; color: var(--white-54); }
+  .meta-badge b { color: var(--white-70); font-weight: 500; }
+
+  .gallery {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 30px 32px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .frame-card { flex: 0 1 auto; }
+  .stage-label { display: flex; align-items: baseline; gap: 10px; margin: 0 0 14px 4px; }
+  .stage-label .name { font-size: 15px; font-weight: 600; color: var(--txt-hi); }
+  .stage-label .code { font-family: var(--font-mono); font-size: 11px; color: var(--white-40); }
+
+  .page-foot {
+    max-width: 1120px;
+    margin: 8px auto 48px;
+    padding: 0 32px;
+    font-size: 12px;
+    color: var(--white-40);
+    line-height: 1.7;
+  }
+  .page-foot b { color: var(--white-70); font-weight: 600; }
+
+  /* ── 手机画布 ──────────────────────────────────────────────────────────── */
+  .phone {
+    position: relative;
+    width: 390px;
+    height: 844px;
+    border-radius: 54px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: #000;
+    overflow: hidden;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,.06) inset,
+      0 0 0 1px rgba(0,0,0,.4),
+      0 32px 80px rgba(0,0,0,.55),
+      0 8px 28px rgba(0,0,0,.45);
+  }
+  .phone::after {
+    content: "";
+    position: absolute;
+    inset: 10px;
+    border-radius: 44px;
+    pointer-events: none;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.025) inset;
+  }
+
+  /* ── 动作库屏 ─────────────────────────────────────────────────────────── */
+  .st-frame {
+    position: absolute;
+    inset: 0;
+    background: var(--ink-0);
+    overflow: hidden;
+  }
+  .st-content { position: absolute; inset: 0; display: flex; flex-direction: column; }
+
+  .st-top {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 50px 16px 12px;
+  }
+  .st-back {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.047);
+    border: 1px solid rgba(255,255,255,.08);
+    display: grid;
+    place-items: center;
+    color: var(--white-70);
+    cursor: pointer;
+    flex: 0 0 auto;
+    transition: background .18s var(--ease), border-color .18s var(--ease), color .18s var(--ease), transform .12s var(--ease);
+  }
+  .st-back svg { width: 20px; height: 20px; }
+  .st-back:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.16); color: var(--txt-hi); }
+  .st-back:active { transform: scale(.94); }
+  .st-title { flex: 1 1 auto; font-size: 18px; font-weight: 700; color: var(--txt-hi); text-align: center; }
+
+  .st-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+  .st-scroll::-webkit-scrollbar { display: none; }
+  .st-scroll-inner {
+    padding: 8px 16px 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .st-foot-note { font-size: 11px; color: var(--white-54); line-height: 1.6; padding: 2px 6px 0; text-align: center; }
+
+  /* ── 动作库组件 ────────────────────────────────────────────────────────── */
+  .lib-fav-filter {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.047);
+    border: 1px solid rgba(255,255,255,.08);
+    display: grid;
+    place-items: center;
+    color: var(--white-70);
+    cursor: pointer;
+    flex: 0 0 auto;
+    transition: background .18s var(--ease), border-color .18s var(--ease), color .18s var(--ease), transform .12s var(--ease);
+  }
+  .lib-fav-filter svg { width: 20px; height: 20px; }
+  .lib-fav-filter:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.16); color: var(--txt-hi); }
+  .lib-fav-filter:active { transform: scale(.94); }
+  .lib-fav-filter.on { color: var(--accent); border-color: rgba(80,236,167,.45); background: rgba(80,236,167,.12); }
+
+  .lib-search {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    height: 44px;
+    padding: 0 14px;
+    border-radius: 14px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--line-10);
+    transition: border-color .18s var(--ease), background .18s var(--ease);
+  }
+  .lib-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(80,236,167,.22); background: rgba(255,255,255,.055); }
+  .lib-search svg { width: 17px; height: 17px; color: var(--white-40); flex: 0 0 auto; }
+  .lib-search input {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: none;
+    border: 0;
+    outline: none;
+    color: var(--txt-hi);
+    font-family: var(--font-cn);
+    font-size: 14px;
+  }
+  .lib-search input::placeholder { color: var(--white-40); }
+
+  .cat-row { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px; margin: 0 -2px; }
+  .cat-row::-webkit-scrollbar { display: none; }
+  .cat-chip {
+    flex: 0 0 auto;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--line-10);
+    color: var(--white-70);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background .16s var(--ease), border-color .16s var(--ease), color .16s var(--ease);
+  }
+  .cat-chip:hover { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.16); }
+  .cat-chip.active { background: rgba(80,236,167,.15); border-color: rgba(80,236,167,.45); color: var(--accent); font-weight: 600; }
+  .cat-row[hidden] { display: none; }
+  .cat-row[data-muscle-row] { margin-top: -6px; }
+  .cat-row[data-muscle-row] .cat-chip { padding: 6px 12px; font-size: 12px; }
+
+  .eq-group { display: flex; flex-direction: column; gap: 10px; }
+  .eq-title {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--txt-hi);
+  }
+
+
+  .lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .lib-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    border-radius: 14px;
+    background: rgba(255,255,255,.031);
+    border: 1px solid var(--line-10);
+    cursor: pointer;
+    text-align: left;
+    overflow: hidden;
+    transition: background .18s var(--ease), border-color .18s var(--ease), transform .12s var(--ease);
+  }
+  .lib-card:hover { background: rgba(255,255,255,.055); border-color: rgba(255,255,255,.18); }
+  .lib-card:active { transform: scale(.985); }
+  .lib-card:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(80,236,167,.28); }
+
+  .lib-media {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    background: rgba(255,255,255,.04);
+    overflow: hidden;
+  }
+  .lib-media-fallback {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: var(--white-32);
+  }
+  .lib-media-fallback svg { width: 30px; height: 30px; }
+  .lib-media img {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 30%;
+    display: block;
+    background: rgba(255,255,255,.03);
+  }
+  .lib-fav {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(7,10,12,.62);
+    border: 1px solid rgba(255,255,255,.16);
+    backdrop-filter: blur(6px);
+    color: var(--white-70);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: color .16s var(--ease), background .16s var(--ease), border-color .16s var(--ease), transform .12s var(--ease);
+  }
+  .lib-fav svg { width: 16px; height: 16px; }
+  .lib-fav:hover { color: var(--txt-hi); background: rgba(7,10,12,.78); }
+  .lib-fav:active { transform: scale(.9); }
+  .lib-fav.on { color: var(--accent); background: rgba(7,10,12,.72); }
+
+  .lib-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    padding: 8px 8px 9px;
+  }
+  .lib-card-name { font-size: 12px; font-weight: 600; color: var(--txt-hi); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .lib-empty {
+    padding: 38px 20px 34px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .lib-empty-ic {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.05);
+    border: 1px solid var(--line-10);
+    display: grid;
+    place-items: center;
+    color: var(--white-40);
+    margin-bottom: 6px;
+  }
+  .lib-empty-ic svg { width: 22px; height: 22px; }
+  .lib-empty-title { font-size: 14px; font-weight: 600; color: var(--txt-hi); }
+  .lib-empty-hint { font-size: 12px; color: var(--white-54); line-height: 1.5; }
+
+  .lib-sheet { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+  .lib-sheet.open { pointer-events: auto; }
+  .lib-sheet-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(4,7,9,.55);
+    opacity: 0;
+    transition: opacity .22s var(--ease);
+  }
+  .lib-sheet.open .lib-sheet-backdrop { opacity: 1; }
+  .lib-sheet-card {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 12px 18px 20px;
+    border-radius: 26px 26px 0 0;
+    background: #0E1316;
+    border: 1px solid var(--line-10);
+    border-bottom: 0;
+    transform: translateY(100%);
+    transition: transform .28s cubic-bezier(.32, .72, .3, 1);
+    max-height: 84%;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .lib-sheet-card::-webkit-scrollbar { display: none; }
+  .lib-sheet.open .lib-sheet-card { transform: translateY(0); }
+  .lib-sheet-handle { width: 40px; height: 4px; border-radius: 999px; background: rgba(255,255,255,.18); margin: 0 auto 16px; }
+  .lib-sheet-media {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    border-radius: 14px;
+    overflow: hidden;
+    background: rgba(255,255,255,.045);
+    margin-bottom: 16px;
+  }
+  .lib-sheet-media-fallback {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: var(--white-32);
+  }
+  .lib-sheet-media-fallback svg { width: 36px; height: 36px; }
+  .lib-sheet-media img {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .lib-sheet-media-tag {
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    z-index: 2;
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--txt-hi);
+    background: rgba(7,10,12,.62);
+    border: 1px solid rgba(255,255,255,.16);
+    backdrop-filter: blur(6px);
+  }
+  .lib-sheet-head { display: flex; align-items: flex-start; gap: 12px; }
+  .lib-sheet-title { flex: 1 1 auto; font-size: 21px; font-weight: 700; color: var(--txt-hi); line-height: 1.2; }
+  .lib-sheet-close {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    background: rgba(255,255,255,.06);
+    border: 1px solid var(--line-10);
+    color: var(--white-70);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: background .16s var(--ease), color .16s var(--ease);
+  }
+  .lib-sheet-close svg { width: 18px; height: 18px; }
+  .lib-sheet-close:hover { background: rgba(255,255,255,.1); color: var(--txt-hi); }
+  .lib-sheet-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+  .lib-sheet-tag {
+    font-size: 11.5px;
+    color: var(--accent);
+    background: rgba(80,236,167,.12);
+    border: 1px solid rgba(80,236,167,.3);
+    border-radius: 999px;
+    padding: 4px 11px;
+    font-weight: 600;
+  }
+  .lib-sheet-rows { display: flex; flex-direction: column; margin-top: 6px; }
+  .lib-sheet-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 0; border-bottom: 1px solid var(--hairline); }
+  .lib-sheet-row .k { font-size: 13px; color: var(--white-54); flex: 0 0 auto; }
+  .lib-sheet-row .v { font-size: 13px; color: var(--txt-hi); text-align: right; font-weight: 600; }
+  .lib-sheet-tip { margin-top: 14px; font-size: 13px; color: var(--white-62); line-height: 1.65; }
+  .lib-sheet-cta {
+    width: 100%;
+    height: 52px;
+    margin-top: 18px;
+    border-radius: 16px;
+    border: 0;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: .01em;
+    cursor: pointer;
+    transition: filter .16s var(--ease), transform .12s var(--ease);
+  }
+  .lib-sheet-cta:hover { filter: brightness(1.05); }
+  .lib-sheet-cta:active { transform: scale(.985); }
+  .lib-sheet-cta:disabled { cursor: default; filter: none; opacity: .92; }
+
+  .st-toast {
+    position: absolute;
+    left: 50%;
+    bottom: 30px;
+    transform: translateX(-50%) translateY(10px);
+    max-width: 320px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(13,17,23,.94);
+    color: var(--txt-hi);
+    font-size: 13px;
+    line-height: 1.4;
+    text-align: center;
+    z-index: 8;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .18s var(--ease), transform .18s var(--ease);
+  }
+  .st-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── 响应式：窄屏堆叠，禁止横向滚动 ─────────────────────────────────── */
+  @media (max-width: 860px) {
+    .page-header { padding: 32px 20px 4px; }
+    .gallery { padding: 24px 20px 8px; gap: 36px; }
+    .page-foot { padding: 0 20px; }
+  }
+
+  @media (max-width: 440px) {
+    .phone { transform-origin: top left; }
+    .gallery { padding-left: 16px; padding-right: 16px; }
+    .page-header, .page-foot { padding-left: 16px; padding-right: 16px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .st-toast, .lib-sheet-card, .lib-sheet-backdrop { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+  <svg class="defs" aria-hidden="true">
+    <symbol id="i-back" viewBox="0 0 24 24">
+      <path d="M15.5 5 8.5 12l7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-search" viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <path d="m16 16 4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-close" viewBox="0 0 24 24">
+      <path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24">
+      <path d="M12 20.5S4 15.2 4 9.9A4.4 4.4 0 0 1 12 6.9a4.4 4.4 0 0 1 8 3c0 5.3-8 10.6-8 10.6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-heart-fill" viewBox="0 0 24 24">
+      <path d="M12 20.5S4 15.2 4 9.9A4.4 4.4 0 0 1 12 6.9a4.4 4.4 0 0 1 8 3c0 5.3-8 10.6-8 10.6z" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-library" viewBox="0 0 24 24">
+      <rect x="4" y="4" width="7" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <rect x="13" y="4" width="7" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <rect x="4" y="13" width="7" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+      <rect x="13" y="13" width="7" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+    </symbol>
+    <symbol id="i-workout" viewBox="0 0 24 24">
+      <path d="M7 5.5v13M17 5.5v13M7 12h10M3.5 9v6M20.5 9v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+  </svg>
+
+  <header class="page-header">
+    <div class="kicker">FitTracker · Exercise Library</div>
+    <h1>动作库页 · 浏览与筛选动作</h1>
+    <p class="page-sub">沿用首页 Cold Emerald 设计系统，将个人页「动作库」入口独立为完整动作库屏：按身体部位筛选、关键词搜索、收藏与动作详情，支持一键加入训练计划。</p>
+    <div class="meta-row">
+      <span class="meta-badge">主题 <b>Cold Emerald</b></span>
+      <span class="meta-badge">视口 <b>390 × 844</b></span>
+      <span class="meta-badge">状态 <b>动作库</b></span>
+      <span class="meta-badge">入口 <b>个人页 · 动作库</b></span>
+      <span class="meta-badge">依据 <b>PencilProfilePage</b></span>
+    </div>
+  </header>
+
+  <main class="gallery">
+    <figure class="frame-card" data-od-id="screen-exercise-library">
+      <div class="stage-label">
+        <span class="name">动作库</span>
+        <span class="code">ExerciseLibraryPage</span>
+      </div>
+      <div class="phone">
+        <div class="st-frame">
+          <div class="st-content">
+
+            <header class="st-top" data-od-id="library-topbar">
+              <button class="st-back" type="button" aria-label="返回个人页" data-action="back">
+                <svg><use href="#i-back"/></svg>
+              </button>
+              <span class="st-title">动作库</span>
+              <button class="lib-fav-filter" type="button" data-od-id="btn-favorites" aria-label="只看收藏" aria-pressed="false">
+                <svg><use href="#i-heart"/></svg>
+              </button>
+            </header>
+
+            <div class="st-scroll">
+              <div class="st-scroll-inner">
+                <div class="lib-search" role="search">
+                  <svg><use href="#i-search"/></svg>
+                  <input type="search" placeholder="搜索动作、肌群或器械" data-lib-search aria-label="搜索动作" />
+                </div>
+
+                <div class="cat-row" role="group" aria-label="部位" data-part-row>
+                  <button class="cat-chip active" type="button" aria-pressed="true" data-part="全部">全部</button>
+                  <button class="cat-chip" type="button" aria-pressed="false" data-part="胸部">胸部</button>
+                  <button class="cat-chip" type="button" aria-pressed="false" data-part="背部">背部</button>
+                  <button class="cat-chip" type="button" aria-pressed="false" data-part="肩部">肩部</button>
+                  <button class="cat-chip" type="button" aria-pressed="false" data-part="手臂">手臂</button>
+                  <button class="cat-chip" type="button" aria-pressed="false" data-part="腿部">腿部</button>
+                  <button class="cat-chip" type="button" aria-pressed="false" data-part="核心">核心</button>
+                </div>
+
+                <div class="cat-row" role="group" aria-label="具体肌群" data-muscle-row></div>
+
+                <div class="lib-groups" data-lib-groups></div>
+                <div class="lib-empty" data-lib-empty hidden>
+                  <span class="lib-empty-ic" aria-hidden="true"><svg><use href="#i-library"/></svg></span>
+                  <span class="lib-empty-title" data-lib-empty-title>没有匹配的动作</span>
+                  <span class="lib-empty-hint" data-lib-empty-hint>换个关键词或筛选条件试试</span>
+                </div>
+
+                <p class="st-foot-note">动作数据为演示内容；点击卡片查看动作要点，点右上角心形可收藏。</p>
+              </div>
+            </div>
+
+            <div class="lib-sheet" data-lib-sheet aria-hidden="true">
+              <div class="lib-sheet-backdrop" data-sheet-close></div>
+              <div class="lib-sheet-card" role="dialog" aria-modal="true" aria-label="动作详情">
+                <div class="lib-sheet-handle"></div>
+                <div class="lib-sheet-media">
+                  <span class="lib-sheet-media-fallback" aria-hidden="true"><svg><use href="#i-workout"/></svg></span>
+                  <img data-lib-detail-gif alt="" loading="lazy" />
+                  <span class="lib-sheet-media-tag">动作演示</span>
+                </div>
+                <div class="lib-sheet-head">
+                  <h3 class="lib-sheet-title" data-lib-detail-name>动作名</h3>
+                  <button class="lib-sheet-close" type="button" aria-label="关闭" data-sheet-close><svg><use href="#i-close"/></svg></button>
+                </div>
+                <div class="lib-sheet-tags" data-lib-detail-tags></div>
+                <div class="lib-sheet-rows">
+                  <div class="lib-sheet-row"><span class="k">目标肌群</span><span class="v" data-lib-detail-muscles></span></div>
+                  <div class="lib-sheet-row"><span class="k">器械</span><span class="v" data-lib-detail-equipment></span></div>
+                  <div class="lib-sheet-row"><span class="k">难度</span><span class="v" data-lib-detail-level></span></div>
+                </div>
+                <div class="lib-sheet-tip" data-lib-detail-tip></div>
+                <button class="lib-sheet-cta" type="button" data-od-id="add-to-plan">加入训练计划</button>
+              </div>
+            </div>
+
+            <div class="st-toast" role="status" aria-live="polite" data-od-id="library-toast"></div>
+          </div>
+        </div>
+      </div>
+    </figure>
+  </main>
+
+  <footer class="page-foot">
+    <b>重建依据：</b>本页将原「训练偏好」入口重构为「动作库」。色彩、字号、圆角沿用首页 <b>fittracker-welcome-home.html</b> 的 Cold Emerald 内联值（强调色 <b>#50ECA7</b>）；搜索栏下为「部位 → 具体肌群」两级横向分类，筛选结果按「杠铃 / 哑铃 / 器械 / 弹力带 / 自重」分组、每组三张动作卡，关键词搜索与心形收藏实时过滤，点击卡片弹出动作详情底部弹层，主按钮为翡翠渐变填充。动作演示 GIF © Gym visual（gymvisual.com），经 <b>hasaneyldrm/exercises-dataset</b> 授权转载。
+  </footer>
+
+  <script>
+    (function () {
+      var EQUIPMENT_ORDER = ['杠铃', '哑铃', '器械', '弹力带', '自重'];
+      var EQUIPMENT_SLUG = { '杠铃': 'barbell', '哑铃': 'dumbbell', '器械': 'machine', '弹力带': 'band', '自重': 'bodyweight' };
+      var MUSCLES = {
+        '胸部': ['胸大肌'],
+        '背部': ['背阔肌', '菱形肌'],
+        '肩部': ['三角肌前束', '三角肌中束', '三角肌后束'],
+        '手臂': ['肱二头肌', '肱三头肌'],
+        '腿部': ['股四头肌', '腘绳肌'],
+        '核心': ['腹直肌']
+      };
+      var EXERCISES = [
+        { id: 'push-up', name: '俯卧撑', part: '胸部', muscle: '胸大肌', equipment: '自重', level: '入门', muscles: '胸大肌 · 三角肌前束 · 肱三头肌', tip: '核心收紧，身体保持一条直线，下放至胸部接近地面后推起。' },
+        { id: 'barbell-bench-press', name: '杠铃卧推', part: '胸部', muscle: '胸大肌', equipment: '杠铃', level: '进阶', muscles: '胸大肌 · 三角肌前束 · 肱三头肌', tip: '肩胛后收下沉，杠铃下放至胸部中段，推起时呼气。' },
+        { id: 'dumbbell-fly', name: '哑铃飞鸟', part: '胸部', muscle: '胸大肌', equipment: '哑铃', level: '进阶', muscles: '胸大肌', tip: '肘部保持微屈，双臂向两侧展开至胸部充分拉伸，再夹拢。' },
+        { id: 'cable-crossover', name: '绳索夹胸', part: '胸部', muscle: '胸大肌', equipment: '器械', level: '进阶', muscles: '胸大肌内侧', tip: '身体略前倾，双手向身体中线夹拢，顶峰收缩 1 秒。' },
+        { id: 'pull-up', name: '引体向上', part: '背部', muscle: '背阔肌', equipment: '自重', level: '进阶', muscles: '背阔肌 · 肱二头肌', tip: '肩胛下沉，将胸部引向横杆，避免摆动借力。' },
+        { id: 'barbell-row', name: '杠铃划船', part: '背部', muscle: '背阔肌', equipment: '杠铃', level: '进阶', muscles: '背阔肌 · 斜方肌 · 菱形肌', tip: '髋部后移、背部平直，将杠铃拉向腹部，肩胛主动后收。' },
+        { id: 'seated-row', name: '坐姿划船', part: '背部', muscle: '菱形肌', equipment: '器械', level: '入门', muscles: '背阔肌 · 菱形肌', tip: '挺胸收腹，肘部贴近身体向后拉，挤压肩胛骨。' },
+        { id: 'lat-pulldown', name: '高位下拉', part: '背部', muscle: '背阔肌', equipment: '器械', level: '入门', muscles: '背阔肌', tip: '下拉至锁骨上方，控制还原，避免耸肩和身体后仰。' },
+        { id: 'band-pulldown', name: '弹力带高位下拉', part: '背部', muscle: '背阔肌', equipment: '弹力带', level: '入门', muscles: '背阔肌', tip: '固定弹力带于高位，下拉至锁骨，控制还原。' },
+        { id: 'overhead-press', name: '站姿推举', part: '肩部', muscle: '三角肌前束', equipment: '哑铃', level: '进阶', muscles: '三角肌前中束', tip: '核心收紧，将哑铃推至头顶上方，避免腰部过度反弓。' },
+        { id: 'lateral-raise', name: '侧平举', part: '肩部', muscle: '三角肌中束', equipment: '哑铃', level: '入门', muscles: '三角肌中束', tip: '肘部微屈，抬至与肩同高即可，避免耸肩借力。' },
+        { id: 'band-lateral-raise', name: '弹力带侧平举', part: '肩部', muscle: '三角肌中束', equipment: '弹力带', level: '入门', muscles: '三角肌中束', tip: '踩住弹力带，双臂向两侧抬至与肩同高。' },
+        { id: 'face-pull', name: '面拉', part: '肩部', muscle: '三角肌后束', equipment: '器械', level: '入门', muscles: '三角肌后束 · 上背', tip: '拉向面部，肘部外展高于手腕，改善圆肩体态。' },
+        { id: 'biceps-curl', name: '二头弯举', part: '手臂', muscle: '肱二头肌', equipment: '哑铃', level: '入门', muscles: '肱二头肌', tip: '上臂贴紧身体，避免摆动借力，顶峰收缩。' },
+        { id: 'triceps-pushdown', name: '绳索下压', part: '手臂', muscle: '肱三头肌', equipment: '器械', level: '入门', muscles: '肱三头肌', tip: '肘部固定于身体两侧，下压至手臂完全伸直。' },
+        { id: 'squat', name: '深蹲', part: '腿部', muscle: '股四头肌', equipment: '杠铃', level: '进阶', muscles: '股四头肌 · 臀大肌', tip: '膝盖与脚尖同向，下蹲至大腿接近平行地面，保持躯干稳定。' },
+        { id: 'lunge', name: '弓步蹲', part: '腿部', muscle: '股四头肌', equipment: '哑铃', level: '入门', muscles: '股四头肌 · 臀大肌', tip: '前膝与脚尖同向，身体垂直下沉，后膝轻触地面。' },
+        { id: 'leg-press', name: '腿举', part: '腿部', muscle: '股四头肌', equipment: '器械', level: '入门', muscles: '股四头肌 · 臀大肌', tip: '下放至膝盖约 90 度，避免完全锁死膝关节。' },
+        { id: 'leg-curl', name: '腿弯举', part: '腿部', muscle: '腘绳肌', equipment: '器械', level: '入门', muscles: '腘绳肌', tip: '控制离心下放，顶峰收缩大腿后侧。' },
+        { id: 'band-squat', name: '弹力带深蹲', part: '腿部', muscle: '股四头肌', equipment: '弹力带', level: '入门', muscles: '股四头肌 · 臀大肌', tip: '踩住弹力带下蹲，起身时保持弹力带张力。' },
+        { id: 'plank', name: '平板支撑', part: '核心', muscle: '腹直肌', equipment: '自重', level: '入门', muscles: '腹横肌 · 腹直肌', tip: '身体保持一条直线，收紧核心与臀部，避免塌腰。' },
+        { id: 'crunch', name: '卷腹', part: '核心', muscle: '腹直肌', equipment: '自重', level: '入门', muscles: '腹直肌', tip: '下背贴地，卷起上背而非颈部，呼气时收缩腹部。' },
+        { id: 'hanging-leg-raise', name: '悬垂举腿', part: '核心', muscle: '腹直肌', equipment: '自重', level: '熟练', muscles: '腹直肌 · 髂腰肌', tip: '控制身体不摆动，抬腿至与地面平行或更高。' }
+      ];
+
+      var groupsEl = document.querySelector('[data-lib-groups]');
+      var emptyEl = document.querySelector('[data-lib-empty]');
+      var searchEl = document.querySelector('[data-lib-search]');
+      var sheet = document.querySelector('[data-lib-sheet]');
+      var favFilter = document.querySelector('[data-od-id="btn-favorites"]');
+      var toast = document.querySelector('[data-od-id="library-toast"]');
+      var partRow = document.querySelector('[data-part-row]');
+      var muscleRow = document.querySelector('[data-muscle-row]');
+      var currentPart = '全部';
+      var currentMuscle = '全部肌群';
+      var query = '';
+      var favOnly = false;
+      var favorites = {};
+      var toastTimer = 0;
+
+      function showToast(message) {
+        if (!toast) { return; }
+        toast.textContent = message;
+        window.clearTimeout(toastTimer);
+        toast.classList.add('show');
+        toastTimer = window.setTimeout(function () { toast.classList.remove('show'); }, 1900);
+      }
+
+      function cardHtml(ex) {
+        var fav = favorites[ex.id];
+        return '' +
+          '<article class="lib-card" data-od-id="exercise-card-' + ex.id + '" data-id="' + ex.id + '" tabindex="0" role="button" aria-label="查看 ' + ex.name + ' 详情">' +
+            '<div class="lib-media">' +
+              '<span class="lib-media-fallback" aria-hidden="true"><svg><use href="#i-workout"/></svg></span>' +
+              '<img src="assets/exercise-gifs/' + ex.id + '.gif" alt="' + ex.name + ' 动作演示" loading="lazy" />' +
+              '<button class="lib-fav' + (fav ? ' on' : '') + '" type="button" data-fav="' + ex.id + '" aria-label="' + (fav ? '取消收藏' : '收藏') + ex.name + '" aria-pressed="' + (fav ? 'true' : 'false') + '">' +
+                '<svg><use href="' + (fav ? '#i-heart-fill' : '#i-heart') + '"/></svg>' +
+              '</button>' +
+            '</div>' +
+            '<div class="lib-body">' +
+              '<span class="lib-card-name">' + ex.name + '</span>' +
+            '</div>' +
+          '</article>';
+      }
+
+      function buildMuscleRow() {
+        if (!muscleRow) { return; }
+        if (currentPart === '全部') {
+          muscleRow.hidden = true;
+          muscleRow.innerHTML = '';
+          return;
+        }
+        muscleRow.hidden = false;
+        var muscles = MUSCLES[currentPart] || [];
+        var chips = '<button class="cat-chip' + (currentMuscle === '全部肌群' ? ' active' : '') + '" type="button" aria-pressed="' + (currentMuscle === '全部肌群' ? 'true' : 'false') + '" data-muscle="全部肌群">全部肌群</button>';
+        muscles.forEach(function (m) {
+          chips += '<button class="cat-chip' + (currentMuscle === m ? ' active' : '') + '" type="button" aria-pressed="' + (currentMuscle === m ? 'true' : 'false') + '" data-muscle="' + m + '">' + m + '</button>';
+        });
+        muscleRow.innerHTML = chips;
+      }
+
+      function render() {
+        var list = EXERCISES.filter(function (ex) {
+          if (currentPart !== '全部' && ex.part !== currentPart) { return false; }
+          if (currentMuscle !== '全部肌群' && ex.muscle !== currentMuscle) { return false; }
+          if (favOnly && !favorites[ex.id]) { return false; }
+          if (query) {
+            var hay = (ex.name + ' ' + ex.part + ' ' + ex.muscle + ' ' + ex.equipment + ' ' + ex.muscles).toLowerCase();
+            if (hay.indexOf(query.toLowerCase()) === -1) { return false; }
+          }
+          return true;
+        });
+
+        if (emptyEl) {
+          emptyEl.hidden = list.length !== 0;
+          if (list.length === 0) {
+            var titleEl = emptyEl.querySelector('[data-lib-empty-title]');
+            var hintEl = emptyEl.querySelector('[data-lib-empty-hint]');
+            if (titleEl) { titleEl.textContent = favOnly ? '暂无收藏' : (query ? '没有匹配的动作' : '该部位暂无动作'); }
+            if (hintEl) { hintEl.textContent = favOnly ? '点右上角心形，收藏常用动作' : (query ? '换个关键词试试' : '换个部位或肌群筛选试试'); }
+          }
+        }
+
+        if (groupsEl) {
+          groupsEl.innerHTML = EQUIPMENT_ORDER.map(function (eq) {
+            var items = list.filter(function (ex) { return ex.equipment === eq; });
+            if (items.length === 0) { return ''; }
+            return '<section class="eq-group" data-od-id="group-' + (EQUIPMENT_SLUG[eq] || 'equipment') + '">' +
+              '<h2 class="eq-title">' + eq + '</h2>' +
+              '<div class="lib-grid">' + items.map(cardHtml).join('') + '</div>' +
+            '</section>';
+          }).join('');
+        }
+      }
+
+      var lastTrigger = null;
+      function openDetail(ex, trigger) {
+        lastTrigger = trigger || null;
+        var gif = document.querySelector('[data-lib-detail-gif]');
+        if (gif) {
+          gif.src = 'assets/exercise-gifs/' + ex.id + '.gif';
+          gif.alt = ex.name + ' 动作演示';
+          gif.style.display = '';
+        }
+        document.querySelector('[data-lib-detail-name]').textContent = ex.name;
+        document.querySelector('[data-lib-detail-tags]').innerHTML = '<span class="lib-sheet-tag">' + ex.part + '</span><span class="lib-sheet-tag">' + ex.equipment + '</span><span class="lib-sheet-tag">' + ex.level + '</span>';
+        document.querySelector('[data-lib-detail-muscles]').textContent = ex.muscles;
+        document.querySelector('[data-lib-detail-equipment]').textContent = ex.equipment;
+        document.querySelector('[data-lib-detail-level]').textContent = ex.level;
+        document.querySelector('[data-lib-detail-tip]').textContent = ex.tip;
+        if (sheet) {
+          sheet.classList.add('open');
+          sheet.setAttribute('aria-hidden', 'false');
+          var closeBtn = sheet.querySelector('.lib-sheet-close');
+          if (closeBtn) { window.setTimeout(function () { closeBtn.focus(); }, 280); }
+        }
+      }
+      function closeDetail() {
+        if (sheet) { sheet.classList.remove('open'); sheet.setAttribute('aria-hidden', 'true'); }
+        if (lastTrigger) { lastTrigger.focus(); lastTrigger = null; }
+      }
+
+      if (partRow) {
+        partRow.addEventListener('click', function (e) {
+          var chip = e.target.closest('[data-part]');
+          if (!chip) { return; }
+          partRow.querySelectorAll('.cat-chip').forEach(function (c) { c.classList.remove('active'); c.setAttribute('aria-pressed', 'false'); });
+          chip.classList.add('active');
+          chip.setAttribute('aria-pressed', 'true');
+          currentPart = chip.getAttribute('data-part');
+          currentMuscle = '全部肌群';
+          buildMuscleRow();
+          render();
+        });
+      }
+
+      if (muscleRow) {
+        muscleRow.addEventListener('click', function (e) {
+          var chip = e.target.closest('[data-muscle]');
+          if (!chip) { return; }
+          muscleRow.querySelectorAll('.cat-chip').forEach(function (c) { c.classList.remove('active'); c.setAttribute('aria-pressed', 'false'); });
+          chip.classList.add('active');
+          chip.setAttribute('aria-pressed', 'true');
+          currentMuscle = chip.getAttribute('data-muscle');
+          render();
+        });
+      }
+
+      if (searchEl) {
+        searchEl.addEventListener('input', function () {
+          query = searchEl.value.trim();
+          render();
+        });
+      }
+
+      if (favFilter) {
+        favFilter.addEventListener('click', function () {
+          favOnly = !favOnly;
+          favFilter.classList.toggle('on', favOnly);
+          favFilter.setAttribute('aria-pressed', favOnly ? 'true' : 'false');
+          render();
+        });
+      }
+
+      if (groupsEl) {
+        groupsEl.addEventListener('click', function (e) {
+          var favBtn = e.target.closest('[data-fav]');
+          if (favBtn) {
+            var id = favBtn.getAttribute('data-fav');
+            favorites[id] = !favorites[id];
+            render();
+            return;
+          }
+          var card = e.target.closest('.lib-card');
+          if (card) {
+            var ex = EXERCISES.filter(function (x) { return x.id === card.getAttribute('data-id'); })[0];
+            if (ex) { openDetail(ex, card); }
+          }
+        });
+        groupsEl.addEventListener('keydown', function (e) {
+          if (e.key !== 'Enter' && e.key !== ' ') { return; }
+          var card = e.target.closest('.lib-card');
+          if (!card) { return; }
+          e.preventDefault();
+          var ex = EXERCISES.filter(function (x) { return x.id === card.getAttribute('data-id'); })[0];
+          if (ex) { openDetail(ex, card); }
+        });
+        groupsEl.addEventListener('error', function (e) {
+          var img = e.target;
+          if (img && img.tagName === 'IMG') { img.style.display = 'none'; }
+        }, true);
+      }
+
+      document.querySelectorAll('[data-sheet-close]').forEach(function (el) {
+        el.addEventListener('click', closeDetail);
+      });
+
+      var sheetGif = document.querySelector('[data-lib-detail-gif]');
+      if (sheetGif) {
+        sheetGif.addEventListener('error', function () { sheetGif.style.display = 'none'; });
+      }
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && sheet && sheet.classList.contains('open')) {
+          e.preventDefault();
+          closeDetail();
+        }
+      });
+
+      var cta = document.querySelector('[data-od-id="add-to-plan"]');
+      if (cta) {
+        cta.addEventListener('click', function () {
+          var name = document.querySelector('[data-lib-detail-name]').textContent;
+          cta.disabled = true;
+          cta.textContent = '已加入今日计划';
+          window.setTimeout(function () { cta.disabled = false; cta.textContent = '加入训练计划'; }, 1600);
+          showToast('已把「' + name + '」加入今日计划');
+        });
+      }
+
+      var backBtn = document.querySelector('[data-action="back"]');
+      if (backBtn) {
+        backBtn.addEventListener('click', function () {
+          showToast('返回个人页（原型）');
+        });
+      }
+
+      buildMuscleRow();
+      render();
+
+      var phones = Array.prototype.slice.call(document.querySelectorAll('.phone'));
+      function fitPhones() {
+        var narrow = window.innerWidth < 440;
+        phones.forEach(function (ph) {
+          var scale = narrow ? Math.min(1, (window.innerWidth - 32) / 390) : 1;
+          ph.style.transform = scale < 1 ? 'scale(' + scale + ')' : '';
+          ph.style.transformOrigin = 'top left';
+          ph.style.marginBottom = scale < 1 ? ((scale - 1) * 844) + 'px' : '';
+        });
+      }
+      window.addEventListener('resize', fitPhones);
+      fitPhones();
+    })();
+  </script>
+  <script>window.FT_APP={routes:[['[data-action="back"]','profile']]};</script>
+  <script src="assets/ft-stage.js"></script>
+</body>
+</html>

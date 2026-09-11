@@ -95,6 +95,42 @@ struct PencilWelcomePage {
           y: 40
         })
 
+      // 原型 .w-visual 卡片容器：382×208、圆角 30、背景 var(--visual-a)=#14241F、
+      // 边框 var(--line-14)=rgba(255,255,255,.078)。app 侧此前完全缺失这个容器 ——
+      // 它才是 welcome band8（mean diff 104.92）的真正来源：大面积色块缺失；
+      // 下面的同心圆与图标都只是卡片内部的装饰。
+      Column()
+        .width(347)
+        .height(189)
+        .borderRadius(30)
+        .backgroundColor('#14241F')
+        .border({ width: 1, color: '#145FFFFFF' })
+        .shadow({ radius: 36, color: '#57000000', offsetX: 0, offsetY: 18 })
+        .position({ x: 0, y: 0 })
+
+      // 原型 w-visual 的 3 个同心圆（SVG viewBox 坐标 cx=265 cy=85, r=80/58/38，
+      // 转左上角坐标 = cx-r, cy-r）。此前 app 侧完全缺失，是 welcome band8 差异主因。
+      Circle({ width: 160, height: 160 })
+        .fill(Color.Transparent)
+        .stroke('#50ECA7')
+        .strokeOpacity(0.10)
+        .strokeWidth(1.5)
+        .position({ x: 185, y: 5 })
+
+      Circle({ width: 116, height: 116 })
+        .fill(Color.Transparent)
+        .stroke('#50ECA7')
+        .strokeOpacity(0.17)
+        .strokeWidth(1.5)
+        .position({ x: 207, y: 27 })
+
+      Circle({ width: 76, height: 76 })
+        .fill(Color.Transparent)
+        .stroke('#50ECA7')
+        .strokeOpacity(0.14)
+        .strokeWidth(1.5)
+        .position({ x: 227, y: 47 })
+
       Image($rawfile('pencil-lucide-person-standing.svg'))
         .width(92)
         .height(92)
@@ -185,7 +221,8 @@ struct PencilWelcomePage {
         }
         .width('100%')
         .justifyContent(FlexAlign.Center)
-        .margin({ top: 76 })
+        // 原型 .w-logo top:118（画布）×0.90698 = vp 107，实测偏上 19vp
+        .margin({ top: 95 })
 
         Text('TRAIN SMARTER. LIVE STRONGER.')
           .width(182)
@@ -223,10 +260,10 @@ struct PencilWelcomePage {
           this.buildTrainingVisual()
         }
         .width('100%')
-        .layoutWeight(1)
+        .height(189)
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
-        .padding({ top: 24, bottom: 24 })
+        .padding({ top: 0, bottom: 0 })
 
         Column({ space: 12 }) {
           Stack({ alignContent: Alignment.Center }) {
@@ -270,6 +307,9 @@ struct PencilWelcomePage {
         .width('100%')
         .constraintSize({ maxWidth: 382 })
         .height(52)
+        // 原型 .w-cta top:684（画布）×0.90698 = vp 620.4；补偿 flex 布局累积的偏移
+        // （logo 下移 19 后同步减 19，保持 CTA 停在 vp 620）
+        .margin({ top: 75 })
 
         Text('本地记录 · 无需注册 · 随时开始')
           .width('100%')
@@ -281,7 +321,7 @@ struct PencilWelcomePage {
           .lineHeight(1.45 * 11)
           .textAlign(TextAlign.Center)
           .translate({ x: 0, y: -2 })
-          .margin({ top: 12, bottom: 8 })
+          .margin({ top: 116, bottom: 8 })
       }
       .width('100%')
       .height('100%')

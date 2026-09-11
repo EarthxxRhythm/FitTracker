@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FitTracker · 计划组详细页原型</title>
+<style>
+  /* ─────────────────────────────────────────────────────────────
+     FitTracker · Cold Emerald Performance（沿用首页设计系统）
+     计划组详细页：从「计划组」列表点击进入
+     展示单个计划组的训练结构：概要 + 分日动作清单 + 使用计划
+     ───────────────────────────────────────────────────────────── */
+  :root {
+    --ink-0: #0B0F13;
+    --ink-1: #0A0D12;
+    --ink-welcome-0: #10171B;
+    --visual-a: #14241F;
+    --visual-b: #0D1616;
+    --ring-inner: #0D1117;
+    --tab-pill: #141F1D;
+    --tab-pill-active: #182422;
+    --nav-active: #F3FBF7;
+    --nav-inactive: rgba(243,251,247,.56);
+    --accent: #50ECA7;
+    --accent-deep: #45C9A1;
+    --accent-soft: #8CEBCC;
+    --cta-a: #47D994;
+    --cta-b: #53E7A5;
+    --cta-hover-a: #5BE3A5;
+    --cta-hover-b: #6BEDB5;
+    --on-accent: #07100B;
+    --on-accent-2: #08110D;
+    --txt-hi: #F7FBF8;
+    --txt-body: #EDF6F2;
+    --white-90: rgba(243,251,247,.90);
+    --white-87: rgba(255,255,255,.87);
+    --white-70: rgba(255,255,255,.70);
+    --white-65: rgba(255,255,255,.65);
+    --white-62: rgba(255,255,255,.62);
+    --white-60: rgba(255,255,255,.60);
+    --white-54: rgba(255,255,255,.54);
+    --white-40: rgba(255,255,255,.40);
+    --white-32: rgba(255,255,255,.32);
+    --glass-10: rgba(255,255,255,.10);
+    --glass-8: rgba(255,255,255,.08);
+    --glass-6: rgba(255,255,255,.06);
+    --glass-4: rgba(255,255,255,.04);
+    --hairline: rgba(255,255,255,.06);
+    --line-10: rgba(255,255,255,.10);
+    --line-14: rgba(255,255,255,.078);
+    --line-16: rgba(255,255,255,.16);
+    --accent-40: rgba(80,236,167,.40);
+    --accent-32: rgba(69,201,161,.32);
+    --accent-20: rgba(80,236,167,.20);
+    --accent-18: rgba(69,201,161,.18);
+    --accent-17: rgba(80,236,167,.17);
+    --accent-12: rgba(80,236,167,.12);
+    --accent-10: rgba(80,236,167,.10);
+    --accent-07: rgba(80,236,167,.07);
+    --warn: #FFD7C5;
+    --font-cn: "Noto Sans SC", "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", "Microsoft YaHei UI", sans-serif;
+    --font-num: "Inter", "SF Pro Text", -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    --font-mono: "Geist Mono", "JetBrains Mono", "SF Mono", Consolas, "Courier New", monospace;
+    --ease: cubic-bezier(.2, .7, .2, 1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+
+  body {
+    overflow-x: hidden;
+    background: #07090B;
+    color: var(--txt-body);
+    font-family: var(--font-cn);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100vh;
+  }
+
+  .defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+  button { font-family: var(--font-cn); }
+  button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(80,236,167,.28); }
+
+  /* ── 页面外框（非 App 内容） ─────────────────────────────────── */
+  .page-header { max-width: 1120px; margin: 0 auto; padding: 48px 32px 8px; }
+  .kicker { font-size: 13px; letter-spacing: .02em; color: var(--white-54); margin-bottom: 12px; }
+  .page-header h1 { font-size: clamp(30px, 4vw, 44px); font-weight: 700; color: var(--txt-hi); line-height: 1.18; }
+  .page-sub { margin-top: 14px; font-size: 15px; color: var(--white-60); line-height: 1.6; max-width: 660px; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 20px; }
+  .meta-badge { font-size: 12px; color: var(--white-54); }
+  .meta-badge b { color: var(--white-70); font-weight: 500; }
+
+  .gallery { max-width: 1120px; margin: 0 auto; padding: 30px 32px 16px; display: flex; flex-wrap: wrap; gap: 40px; align-items: flex-start; }
+  .frame-card { flex: 0 1 auto; }
+  .stage-label { display: flex; align-items: baseline; gap: 10px; margin: 0 0 14px 4px; }
+  .stage-label .name { font-size: 15px; font-weight: 600; color: var(--txt-hi); }
+  .stage-label .code { font-family: var(--font-mono); font-size: 11px; color: var(--white-40); }
+  .page-foot { max-width: 1120px; margin: 8px auto 48px; padding: 0 32px; font-size: 12px; color: var(--white-40); line-height: 1.7; }
+  .page-foot b { color: var(--white-70); font-weight: 600; }
+
+  /* ── 手机画布 ─────────────────────────────────────────────── */
+  .phone {
+    position: relative;
+    width: 390px;
+    height: 844px;
+    border-radius: 54px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: #000;
+    overflow: hidden;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,.06) inset,
+      0 0 0 1px rgba(0,0,0,.4),
+      0 32px 80px rgba(0,0,0,.55),
+      0 8px 28px rgba(0,0,0,.45);
+  }
+  .phone::after {
+    content: "";
+    position: absolute;
+    inset: 10px;
+    border-radius: 44px;
+    pointer-events: none;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.025) inset;
+  }
+
+  /* ── 计划组详细 App 界面 ───────────────────────────────────── */
+  .appshell {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    background: var(--ink-0);
+  }
+
+  .pgd-top {
+    flex: 0 0 auto;
+    display: flex; align-items: center; gap: 8px;
+    padding: 52px 12px 10px;
+    background: rgba(10,13,18,.82);
+    border-bottom: 1px solid var(--hairline);
+    backdrop-filter: blur(10px);
+  }
+  .pgd-back {
+    flex: 0 0 auto;
+    width: 44px; height: 44px;
+    border: 0;
+    border-radius: 14px;
+    background: transparent;
+    color: var(--white-70);
+    display: grid; place-items: center;
+    cursor: pointer;
+    transition: background .16s var(--ease), color .16s var(--ease);
+  }
+  .pgd-back:hover { background: rgba(255,255,255,.08); color: var(--txt-hi); }
+  .pgd-back:active { transform: scale(.94); }
+  .pgd-back svg { width: 22px; height: 22px; }
+  .pgd-title { flex: 1 1 auto; min-width: 0; text-align: center; }
+  .pgd-title-name { display: block; font-size: 16px; font-weight: 700; color: var(--txt-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pgd-top-spacer { flex: 0 0 auto; width: 44px; height: 44px; }
+
+  .pgd-scroll {
+    flex: 1 1 auto; min-height: 0;
+    overflow-y: auto; overflow-x: hidden;
+    scrollbar-width: none;
+  }
+  .pgd-scroll::-webkit-scrollbar { display: none; }
+  .pgd-content { padding: 16px 16px 16px; display: flex; flex-direction: column; gap: 16px; }
+
+  /* 概要卡 */
+  .pgd-summary {
+    position: relative;
+    border-radius: 20px;
+    border: 1px solid var(--accent-40);
+    background: rgba(80,236,167,.08);
+    box-shadow: 0 14px 28px rgba(0,0,0,.20);
+    padding: 16px 16px 15px;
+  }
+  .pgd-summary-label { font-size: 11px; font-weight: 700; letter-spacing: .03em; color: var(--accent); }
+  .pgd-summary-name { margin-top: 8px; padding-right: 8px; font-size: 22px; font-weight: 700; line-height: 1.18; color: var(--txt-hi); }
+  .pgd-summary-desc { margin-top: 8px; font-size: 13px; line-height: 1.6; color: var(--white-62); }
+  .pgd-summary-meta { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+  .pgd-tag {
+    font-size: 11px; font-weight: 600;
+    color: var(--accent);
+    background: rgba(80,236,167,.12);
+    border: 1px solid rgba(80,236,167,.3);
+    border-radius: 999px;
+    padding: 4px 11px;
+  }
+
+  /* 每周节奏 */
+  .pgd-rhythm { display: flex; flex-direction: column; gap: 10px; }
+  .pgd-rhythm-label { font-size: 12px; font-weight: 700; letter-spacing: .02em; color: var(--white-54); }
+  .pgd-rhythm-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+  .pgd-rhythm-day { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .pgd-rhythm-dow { font-size: 11px; font-weight: 600; color: var(--white-40); }
+  .pgd-rhythm-cell {
+    width: 100%;
+    height: 34px;
+    border-radius: 10px;
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 700;
+    background: rgba(80,236,167,.12);
+    border: 1px solid rgba(80,236,167,.3);
+    color: var(--accent);
+  }
+  .pgd-rhythm-cell.rest {
+    background: rgba(255,255,255,.03);
+    border: 1px solid var(--line-10);
+    color: var(--white-40);
+  }
+
+  /* 分日标签 */
+  .pgd-days { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px; margin: 0 -2px; }
+  .pgd-days::-webkit-scrollbar { display: none; }
+  .pgd-day-tab {
+    flex: 0 0 auto;
+    min-width: 96px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--line-10);
+    color: var(--white-70);
+    text-align: left;
+    cursor: pointer;
+    transition: background .16s var(--ease), border-color .16s var(--ease), color .16s var(--ease), transform .12s var(--ease);
+  }
+  .pgd-day-tab:hover { background: rgba(255,255,255,.07); border-color: var(--line-16); }
+  .pgd-day-tab:active { transform: scale(.98); }
+  .pgd-day-tab.active { background: rgba(80,236,167,.15); border-color: rgba(80,236,167,.45); }
+  .pgd-day-tab .n { display: block; font-family: var(--font-num); font-size: 11px; font-weight: 600; color: var(--white-54); }
+  .pgd-day-tab .t { display: block; margin-top: 3px; font-size: 14px; font-weight: 700; color: var(--txt-hi); }
+  .pgd-day-tab.active .n { color: var(--accent); }
+  .pgd-day-tab.active .t { color: var(--accent); }
+
+  /* 训练日面板 */
+  .pgd-day-panel { display: flex; flex-direction: column; gap: 12px; }
+  .pgd-day-head { display: flex; align-items: baseline; gap: 8px; }
+  .pgd-day-head .t { font-size: 16px; font-weight: 700; color: var(--txt-hi); }
+  .pgd-day-head .focus { font-size: 12px; color: var(--white-54); }
+  .pgd-ex-list { display: flex; flex-direction: column; gap: 9px; }
+  .pgd-ex {
+    display: flex; align-items: center; gap: 12px;
+    width: 100%;
+    padding: 12px 13px;
+    border: 1px solid var(--line-14);
+    border-radius: 15px;
+    background: #151B20;
+    text-align: left;
+    cursor: pointer;
+    transition: background .16s var(--ease), border-color .16s var(--ease), transform .12s var(--ease);
+  }
+  .pgd-ex:hover { background: rgba(255,255,255,.05); border-color: var(--line-16); }
+  .pgd-ex:active { transform: scale(.99); }
+  .pgd-ex-idx {
+    flex: 0 0 auto;
+    width: 28px; height: 28px;
+    border-radius: 9px;
+    background: rgba(80,236,167,.10);
+    border: 1px solid rgba(80,236,167,.22);
+    color: var(--accent);
+    display: grid; place-items: center;
+    font-family: var(--font-num);
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .pgd-ex-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .pgd-ex-line { display: flex; align-items: center; gap: 7px; min-width: 0; }
+  .pgd-ex-name { flex: 1 1 auto; min-width: 0; font-size: 14px; font-weight: 700; color: var(--txt-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pgd-ex-eq { flex: 0 0 auto; font-size: 10px; font-weight: 600; color: var(--white-54); background: var(--glass-6); border: 1px solid var(--hairline); border-radius: 999px; padding: 2px 7px; white-space: nowrap; }
+  .pgd-ex-note { font-size: 11.5px; color: var(--white-54); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pgd-ex-reps {
+    flex: 0 0 auto;
+    font-family: var(--font-num);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent-soft);
+    white-space: nowrap;
+  }
+
+  /* 底部使用计划 CTA */
+  .pgd-cta-bar {
+    flex: 0 0 auto;
+    padding: 12px 16px 20px;
+    border-top: 1px solid var(--hairline);
+    background: rgba(10,13,18,.92);
+    backdrop-filter: blur(10px);
+  }
+  .pgd-cta {
+    width: 100%;
+    height: 52px;
+    border: 0;
+    border-radius: 16px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: .01em;
+    cursor: pointer;
+    transition: filter .16s var(--ease), transform .12s var(--ease);
+  }
+  .pgd-cta:hover { filter: brightness(1.05); }
+  .pgd-cta:active { transform: scale(.985); }
+  .pgd-cta:disabled { cursor: default; filter: none; opacity: .92; }
+
+  /* toast */
+  .pgd-toast {
+    position: absolute;
+    left: 50%; bottom: 88px;
+    transform: translateX(-50%) translateY(10px);
+    max-width: 320px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--line-10);
+    background: rgba(13,17,23,.94);
+    color: var(--txt-hi);
+    font-size: 13px;
+    line-height: 1.4;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 9;
+    transition: opacity .18s var(--ease), transform .18s var(--ease);
+  }
+  .pgd-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 640px) {
+    .page-header { padding: 32px 20px 4px; }
+    .gallery { padding: 24px 20px 8px; justify-content: center; }
+    .page-foot { padding: 0 20px; }
+  }
+  @media (max-width: 440px) {
+    .phone { transform-origin: top left; }
+    .gallery { padding-left: 16px; padding-right: 16px; }
+    .page-header, .page-foot { padding-left: 16px; padding-right: 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pgd-back, .pgd-day-tab, .pgd-ex, .pgd-toast { transition: none; }
+  }
+</style>
+</head>
+<body>
+  <svg class="defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-chevron-left" viewBox="0 0 24 24">
+      <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24">
+      <path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+  </svg>
+
+  <header class="page-header">
+    <div class="kicker">FitTracker · Plan Group Detail</div>
+    <h1>计划组详细页</h1>
+    <p class="page-sub">从「计划组」列表点击进入，展示单个计划组的训练结构：概要、分日动作清单与「使用此计划」入口。</p>
+    <div class="meta-row">
+      <span class="meta-badge">主题 <b>Cold Emerald</b></span>
+      <span class="meta-badge">视口 <b>390 × 844</b></span>
+      <span class="meta-badge">入口 <b>计划组 · 卡片</b></span>
+    </div>
+  </header>
+
+  <main class="gallery">
+    <figure class="frame-card" data-od-id="screen-plan-group-detail">
+      <div class="stage-label">
+        <span class="name">计划组详细页</span>
+        <span class="code">PlanGroupDetail</span>
+      </div>
+
+      <div class="phone">
+        <div class="appshell">
+          <header class="pgd-top" data-od-id="pgd-topbar">
+            <button type="button" class="pgd-back" id="btn-back" aria-label="返回计划组">
+              <svg><use href="#i-chevron-left"/></svg>
+            </button>
+            <div class="pgd-title">
+              <span class="pgd-title-name" id="pgd-title">推拉腿分裂</span>
+            </div>
+            <span class="pgd-top-spacer"></span>
+          </header>
+
+          <div class="pgd-scroll">
+            <div class="pgd-content">
+              <section class="pgd-summary" data-od-id="pgd-summary" aria-label="计划组概要">
+                <div class="pgd-summary-label">计划组</div>
+                <h2 class="pgd-summary-name" id="pgd-name">推拉腿分裂</h2>
+                <p class="pgd-summary-desc" id="pgd-desc">按动作模式循环：推（胸、肩、三头）、拉（背、二头）、腿（下肢）。每个部位每周练 1-2 次，适合各阶段训练者。</p>
+                <div class="pgd-summary-meta" id="pgd-meta"></div>
+              </section>
+
+              <section class="pgd-rhythm" data-od-id="pgd-rhythm" aria-label="每周节奏">
+                <div class="pgd-rhythm-label">每周节奏</div>
+                <div class="pgd-rhythm-grid" id="pgd-rhythm"></div>
+              </section>
+
+              <nav class="pgd-days" role="tablist" aria-label="训练日" id="pgd-days" data-od-id="pgd-days"></nav>
+
+              <section class="pgd-day-panel" id="pgd-panel" aria-live="polite"></section>
+            </div>
+          </div>
+
+          <footer class="pgd-cta-bar" data-od-id="pgd-cta-bar">
+            <button class="pgd-cta" type="button" id="btn-use" data-od-id="use-plan">
+              <svg style="display:inline;width:16px;height:16px;vertical-align:-2px;margin-right:7px;"><use href="#i-check"/></svg><span id="pgd-cta-label">使用此计划</span>
+            </button>
+          </footer>
+
+          <div class="pgd-toast" id="pgd-toast" role="status" aria-live="polite" data-od-id="pgd-toast"></div>
+        </div>
+      </div>
+    </figure>
+  </main>
+
+  <footer class="page-foot">
+    <b>说明：</b>本页沿用首页 Cold Emerald 设计系统（强调色 <b>#50ECA7</b>）。示例计划组为「推拉腿分裂」，分 3 个训练日、12 个动作（组数 × 次数为演示数据）。顶部为概要卡，中部为分日标签 + 动作清单，底部为「使用此计划」主按钮。
+  </footer>
+
+  <script>
+    (function () {
+      var PLAN = {
+        name: '推拉腿分裂',
+        audience: '初中高级通用',
+        freq: '3 天 / 周',
+        totalDays: 3,
+        desc: '按动作模式循环：推（胸、肩、三头）、拉（背、二头）、腿（下肢）。每个部位每周练 1-2 次，适合各阶段训练者。',
+        tags: ['初中高级通用', '3 天 / 周', '3 个训练日'],
+        week: ['推', '拉', '腿', '休', '休', '休', '休'],
+        days: [
+          {
+            title: '推',
+            focus: '胸大肌 · 三角肌 · 肱三头肌',
+            exercises: [
+              { id: 'barbell-bench-press', name: '杠铃卧推', sets: 4, reps: '8', equipment: '杠铃', note: '主项 · 肩胛后收下沉' },
+              { id: 'overhead-press', name: '站姿推举', sets: 3, reps: '10', equipment: '哑铃', note: '核心收紧 · 不反弓' },
+              { id: 'lateral-raise', name: '哑铃侧平举', sets: 3, reps: '12', equipment: '哑铃', note: '轻重量控制 · 不耸肩' },
+              { id: 'triceps-pushdown', name: '绳索下压', sets: 3, reps: '12', equipment: '器械', note: '肘部固定 · 顶峰收缩' }
+            ]
+          },
+          {
+            title: '拉',
+            focus: '背阔肌 · 菱形肌 · 肱二头肌',
+            exercises: [
+              { id: 'pull-up', name: '引体向上', sets: 4, reps: '8', equipment: '自重', note: '肩胛下沉 · 可负重' },
+              { id: 'barbell-row', name: '杠铃划船', sets: 4, reps: '10', equipment: '杠铃', note: '背部平直 · 肩胛后收' },
+              { id: 'lat-pulldown', name: '高位下拉', sets: 3, reps: '12', equipment: '器械', note: '下拉至锁骨 · 不耸肩' },
+              { id: 'biceps-curl', name: '二头弯举', sets: 3, reps: '12', equipment: '哑铃', note: '上臂贴紧 · 不借力' }
+            ]
+          },
+          {
+            title: '腿',
+            focus: '股四头肌 · 腘绳肌 · 臀大肌',
+            exercises: [
+              { id: 'squat', name: '杠铃深蹲', sets: 4, reps: '8', equipment: '杠铃', note: '主项 · 膝盖同脚尖' },
+              { id: 'leg-press', name: '腿举', sets: 3, reps: '12', equipment: '器械', note: '下放至 90° · 不锁膝' },
+              { id: 'leg-curl', name: '腿弯举', sets: 3, reps: '12', equipment: '器械', note: '控制离心 · 顶峰收缩' },
+              { id: 'lunge', name: '弓步蹲', sets: 3, reps: '12', equipment: '哑铃', note: '每侧 · 身体垂直下沉' }
+            ]
+          }
+        ]
+      };
+
+      var daysEl = document.getElementById('pgd-days');
+      var panelEl = document.getElementById('pgd-panel');
+      var metaEl = document.getElementById('pgd-meta');
+      var rhythmEl = document.getElementById('pgd-rhythm');
+      var toast = document.getElementById('pgd-toast');
+      var backBtn = document.getElementById('btn-back');
+      var useBtn = document.getElementById('btn-use');
+      var useLabel = document.getElementById('pgd-cta-label');
+      var titleEl = document.getElementById('pgd-title');
+      var nameEl = document.getElementById('pgd-name');
+      var descEl = document.getElementById('pgd-desc');
+      var currentDay = 0;
+      var toastTimer = 0;
+
+      function showToast(msg) {
+        if (!toast) { return; }
+        toast.textContent = msg;
+        window.clearTimeout(toastTimer);
+        toast.classList.add('show');
+        toastTimer = window.setTimeout(function () { toast.classList.remove('show'); }, 1800);
+      }
+
+      function renderHeader() {
+        if (titleEl) { titleEl.textContent = PLAN.name; }
+        if (nameEl) { nameEl.textContent = PLAN.name; }
+        if (descEl) { descEl.textContent = PLAN.desc; }
+        if (metaEl) {
+          metaEl.innerHTML = PLAN.tags.map(function (t) {
+            return '<span class="pgd-tag">' + t + '</span>';
+          }).join('');
+        }
+      }
+
+      var DOW = ['一', '二', '三', '四', '五', '六', '日'];
+      function renderRhythm() {
+        if (!rhythmEl) { return; }
+        rhythmEl.innerHTML = PLAN.week.map(function (label, i) {
+          var isRest = label === '休';
+          return '<div class="pgd-rhythm-day">' +
+            '<span class="pgd-rhythm-dow">' + DOW[i] + '</span>' +
+            '<span class="pgd-rhythm-cell' + (isRest ? ' rest' : '') + '">' + label + '</span>' +
+          '</div>';
+        }).join('');
+      }
+
+      function renderTabs() {
+        if (!daysEl) { return; }
+        daysEl.innerHTML = PLAN.days.map(function (d, i) {
+          var active = i === currentDay;
+          return '<button class="pgd-day-tab' + (active ? ' active' : '') + '" type="button" role="tab" ' +
+            'aria-selected="' + (active ? 'true' : 'false') + '" data-day="' + i + '" data-od-id="pgd-day-tab-' + i + '">' +
+            '<span class="n">第 ' + (i + 1) + ' 天</span>' +
+            '<span class="t">' + d.title + '</span>' +
+          '</button>';
+        }).join('');
+      }
+
+      function renderPanel() {
+        if (!panelEl) { return; }
+        var day = PLAN.days[currentDay];
+        if (!day) { return; }
+        var rows = day.exercises.map(function (ex, i) {
+          return '<button class="pgd-ex" type="button" data-ex-id="' + ex.id + '" aria-label="' + ex.name + ' ' + ex.sets + ' 组 × ' + ex.reps + ' 次">' +
+            '<span class="pgd-ex-idx">' + (i + 1) + '</span>' +
+            '<span class="pgd-ex-body">' +
+              '<span class="pgd-ex-line"><span class="pgd-ex-name">' + ex.name + '</span><span class="pgd-ex-eq">' + ex.equipment + '</span></span>' +
+              '<span class="pgd-ex-note">' + ex.note + '</span>' +
+            '</span>' +
+            '<span class="pgd-ex-reps">' + ex.sets + ' × ' + ex.reps + '</span>' +
+          '</button>';
+        }).join('');
+        panelEl.innerHTML =
+          '<div class="pgd-day-head"><span class="t">' + day.title + '</span><span class="focus">' + day.focus + '</span></div>' +
+          '<div class="pgd-ex-list">' + rows + '</div>';
+      }
+
+      function render() {
+        renderTabs();
+        renderPanel();
+      }
+
+      if (daysEl) {
+        daysEl.addEventListener('click', function (e) {
+          var tab = e.target.closest('[data-day]');
+          if (!tab) { return; }
+          currentDay = parseInt(tab.getAttribute('data-day'), 10);
+          renderTabs();
+          renderPanel();
+        });
+      }
+
+      if (panelEl) {
+        panelEl.addEventListener('click', function (e) {
+          var ex = e.target.closest('[data-ex-id]');
+          if (!ex) { return; }
+          var name = ex.querySelector('.pgd-ex-name');
+          showToast('原型：查看「' + (name ? name.textContent : '动作') + '」详情');
+        });
+      }
+
+      if (backBtn) {
+        backBtn.addEventListener('click', function () { showToast('原型：返回计划组'); });
+      }
+
+      if (useBtn) {
+        useBtn.addEventListener('click', function () {
+          useBtn.disabled = true;
+          if (useLabel) { useLabel.textContent = '已切换到此计划'; }
+          showToast('已切换到「' + PLAN.name + '」');
+          window.setTimeout(function () {
+            useBtn.disabled = false;
+            if (useLabel) { useLabel.textContent = '使用此计划'; }
+          }, 1600);
+        });
+      }
+
+      function fitPhone() {
+        var phone = document.querySelector('.phone');
+        var narrow = window.innerWidth < 440;
+        var scale = narrow ? Math.min(1, (window.innerWidth - 32) / 390) : 1;
+        phone.style.transform = scale < 1 ? 'scale(' + scale + ')' : '';
+        phone.style.transformOrigin = 'top left';
+        phone.style.marginBottom = scale < 1 ? ((scale - 1) * 844) + 'px' : '';
+      }
+      window.addEventListener('resize', fitPhone);
+
+      renderHeader();
+      renderRhythm();
+      render();
+      fitPhone();
+    })();
+  </script>
+  <script>window.FT_APP={routes:[['#btn-back','plans']]};</script>
+  <script src="assets/ft-stage.js"></script>
+</body>
+</html>

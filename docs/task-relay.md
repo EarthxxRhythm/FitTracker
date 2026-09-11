@@ -48,7 +48,7 @@ powershell -ExecutionPolicy Bypass -File tools/task-relay.ps1 -RunChecks -WriteP
 - 日常 focused smoke 优先用 `powershell -ExecutionPolicy Bypass -File tools/dev-smoke.ps1`
 - 当前默认短入口是 `current-plan`，只测 `Home -> Preview -> Active`
 - `backup-card` 和 `media-card` 继续保留为补充入口；需要一起跑时用 `-Target both`
-- 只有在涉及路由、持久化或训练主链路合并前，再补 `tools/premerge-regression.ps1`
+- 只有在涉及路由、持久化或训练主链路合并前，再补合并前回归 —— 原计划的 `tools/premerge-regression.ps1` 已失效（该脚本从未落地），当前等价方案：`tools/workout-chain-smoke.ps1` 或 `tools/dev-smoke.ps1 -Target both`
 
 ## 适用场景
 

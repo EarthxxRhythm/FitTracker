@@ -352,7 +352,7 @@ function Run-WorkoutChain {
 
   $page = Get-CurrentPagePath -Label 'welcome'
   $welcomeAttempts = 0
-  while (($page -eq 'features/pencil/PencilSplashPage' -or $page.Length -eq 0) -and $welcomeAttempts -lt 6) {
+  while (($page -eq 'features/pencil/pages/PencilSplashPage' -or $page.Length -eq 0) -and $welcomeAttempts -lt 6) {
     Start-Sleep -Seconds 1
     $welcomeAttempts += 1
     $page = Get-CurrentPagePath -Label ('welcome-wait-' + $welcomeAttempts.ToString())
@@ -362,12 +362,12 @@ function Run-WorkoutChain {
   $Steps.Add('welcome -> login') | Out-Null
   Click-Text -Text $TextStartUse -Phase 'welcome-to-login'
   $page = Get-CurrentPagePath -Label 'login'
-  Assert-PagePath -Actual $page -Expected 'features/pencil/PencilLoginPage' -Phase 'login'
+  Assert-PagePath -Actual $page -Expected 'features/pencil/pages/PencilLoginPage' -Phase 'login'
   Capture-Screen -Label 'login'
 
   Click-Text -Text $TextRegisterNow -Phase 'login-to-register'
   $page = Get-CurrentPagePath -Label 'register'
-  Assert-PagePath -Actual $page -Expected 'features/pencil/PencilRegisterPage' -Phase 'register'
+  Assert-PagePath -Actual $page -Expected 'features/pencil/pages/PencilRegisterPage' -Phase 'register'
   Capture-Screen -Label 'register'
 
   Input-TextByHint -Hint $TextNicknameHint -Value $TestNickname -Phase 'register-nickname'
@@ -380,7 +380,7 @@ function Run-WorkoutChain {
   Start-Sleep -Seconds 1
   Click-Text -Text $TextRegister -Phase 'register-submit'
   $page = Get-CurrentPagePath -Label 'login-after-register'
-  Assert-PagePath -Actual $page -Expected 'features/pencil/PencilLoginPage' -Phase 'login-after-register'
+  Assert-PagePath -Actual $page -Expected 'features/pencil/pages/PencilLoginPage' -Phase 'login-after-register'
 
   Input-TextByHint -Hint $TextLoginPhoneHint -Value $TestPhone -Phase 'login-phone'
   Input-TextByHint -Hint $TextLoginPasswordHint -Value $TestPassword -Phase 'login-password'
@@ -401,12 +401,12 @@ function Run-WorkoutChain {
 
   Click-Text -Text $TextStartTraining -Phase 'home-to-preview'
   $page = Get-CurrentPagePath -Label 'preview'
-  Assert-PagePath -Actual $page -Expected 'features/pencil/PencilPreviewPage' -Phase 'home-to-preview'
+  Assert-PagePath -Actual $page -Expected 'features/pencil/pages/PencilPreviewPage' -Phase 'home-to-preview'
   Capture-Screen -Label 'preview'
 
   Click-Text -Text $TextStartTraining -Phase 'preview-to-active'
   $page = Get-CurrentPagePath -Label 'active'
-  Assert-PagePath -Actual $page -Expected 'features/pencil/PencilActivePage' -Phase 'preview-to-active'
+  Assert-PagePath -Actual $page -Expected 'features/pencil/pages/PencilActivePage' -Phase 'preview-to-active'
   $activeLayout = Capture-Layout -Label 'active'
   if (Has-BottomTabs -LayoutPath $activeLayout) {
     throw 'Bottom navigation tabs are visible on the standalone active workout page.'
@@ -419,7 +419,7 @@ function Run-WorkoutChain {
     Click-Text -Text $TextCompleteSet -Phase ($clickPhase + '-complete')
     if ($setIndex -lt 6) {
       $page = Get-CurrentPagePath -Label ($clickPhase + '-still-active')
-      if ($page -ne 'features/pencil/PencilActivePage') {
+      if ($page -ne 'features/pencil/pages/PencilActivePage') {
         throw ('Unexpected page after set ' + $setIndex.ToString() + ': ' + $page)
       }
     }

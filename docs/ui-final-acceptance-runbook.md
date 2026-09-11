@@ -2,6 +2,16 @@
 
 Last updated: 2026-06-11
 
+> ⚠️ **2026-09-11 校准：本文档引用的工具链已失效，保留仅作方法论参考。**
+> 已归档（移入 `docs/archive/legacy-cleanup-2026-09/tools/`，`tools/` 下已不存在）的脚本：`tools/prepare-ui-acceptance.mjs`、`tools/generate-ui-acceptance-record.mjs`、`tools/export-ui-acceptance-samples.mjs`、`tools/live-device-probe.ps1`
+> 文中的 `midscene_run/...` 证据路径与 `WorkoutSummaryPage` 等页名同属 pencil 主线之前的体系。
+> **当前视觉验收主线**：
+> - `design/06_prototype_redraw/ACCEPTANCE-PLAN.md` —— 验收口径
+> - `design/06_prototype_redraw/STATUS.md` —— 进度与基线数值
+> - `design/06_prototype_redraw/scripts/check_sync.py` —— 上游设计源对账
+> - `tools/visual-diff/compare.py` —— 像素对比（`--crop` 内容区口径）
+> - 设备侧：`devecocli emulator start "<name>"` → `devecocli run` → `devecocli ui screenshot`
+
 ## Purpose
 
 This runbook turns the remaining UI/UX closeout gap into a short, repeatable manual pass.

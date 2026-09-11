@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "fittracker-exercise-library.html",
+  "entry": "fittracker-exercise-library.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-23T08:50:11.591Z",
+  "updatedAt": "2026-08-23T08:50:11.591Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

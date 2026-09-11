@@ -1,9 +1,9 @@
 ﻿/** PencilAppShell —— 统一持有底部 Tab 与常驻内容视口。功能 #27 */
 import { BottomTabBar } from '../components/BottomTabBar'
-import { PencilHomeContent } from '../features/pencil/PencilHomePage'
-import { PencilPlanContent } from '../features/pencil/PencilPlanPage'
-import { PencilReviewContent } from '../features/pencil/PencilReviewPage'
-import { PencilProfileContent } from '../features/pencil/PencilProfilePage'
+import { HomeContent } from '../features/pencil/components/HomeContent'
+import { PlanContent } from '../features/pencil/components/PlanContent'
+import { ReviewContent } from '../features/pencil/components/ReviewContent'
+import { ProfileContent } from '../features/pencil/components/ProfileContent'
 import { AppRoutes } from './AppRoutes'
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
@@ -109,7 +109,7 @@ export struct PencilAppShell {
   private contentViewport() {
     Stack() {
       Column() {
-        PencilHomeContent()
+        HomeContent()
       }
       .width('100%')
       .height('100%')
@@ -117,7 +117,7 @@ export struct PencilAppShell {
       .zIndex(this.layer(PencilTabKey.HOME))
 
       Column() {
-        PencilPlanContent()
+        PlanContent()
       }
       .width('100%')
       .height('100%')
@@ -125,7 +125,7 @@ export struct PencilAppShell {
       .zIndex(this.layer(PencilTabKey.PLAN))
 
       Column() {
-        PencilReviewContent()
+        ReviewContent()
       }
       .width('100%')
       .height('100%')
@@ -133,7 +133,7 @@ export struct PencilAppShell {
       .zIndex(this.layer(PencilTabKey.REVIEW))
 
       Column() {
-        PencilProfileContent()
+        ProfileContent()
       }
       .width('100%')
       .height('100%')

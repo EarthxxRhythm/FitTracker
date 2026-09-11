@@ -5,6 +5,7 @@
 import {
   ColorTokens,
   FontTokens,
+  MotionTokens,
   RadiusTokens,
   ShadowConfig,
   ShadowTokens,
@@ -21,6 +22,7 @@ export struct AppButton {
   @Prop loading: boolean = false
   @Prop block: boolean = false
   onButtonClick?: () => void
+  @State private pressed: boolean = false
 
   private getHeight(): number {
     if (this.buttonSize === 'hero') {
@@ -156,7 +158,7 @@ export struct AppButton {
         Text(this.text)
           .fontSize(this.getFontSize())
           .fontColor(this.getTextColor())
-          .fontWeight(FontWeight.Medium)
+          .fontWeight(this.type === 'primary' ? FontWeight.Bold : FontWeight.Medium)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
@@ -172,6 +174,21 @@ export struct AppButton {
     .borderRadius(this.buttonSize === 'hero' ? RadiusTokens.CONTROL : RadiusTokens.MD)
     .shadow(this.getShadow())
     .constraintSize({ minHeight: TouchTokens.MIN_TARGET })
+    .scale({
+      x: this.pressed && !this.disabled ? MotionTokens.PRESS_PRIMARY : 1,
+      y: this.pressed && !this.disabled ? MotionTokens.PRESS_PRIMARY : 1
+    })
+    .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
+    .onTouch((event: TouchEvent) => {
+      if (this.disabled || this.loading) {
+        return
+      }
+      if (event.type === TouchType.Down) {
+        this.pressed = true
+      } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        this.pressed = false
+      }
+    })
     .opacity(this.disabled ? 0.72 : 1)
     .enabled(!this.disabled && !this.loading)
     .onClick(() => {
