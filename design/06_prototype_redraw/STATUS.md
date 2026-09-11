@@ -93,3 +93,33 @@ Home 基线分解：超阈集中在 band1(84-168 日期/问候文字带,字体�
 - 已具 Scroll：plan/review/active/body/settings/plans/plan-group/library/complete/detail/monetization/目标设置。
 - 整屏固定面板特意不滚（留设备人工确认矮屏）：Splash/Welcome/TrainingPreview。
 - 验收口径（ACCEPTANCE-PLAN.md 已修正）：像素 diff 仅粗定位；达标 = 无几何/色块错误 + 文本豁免（≤8% AA地板）。
+
+
+## 2026-09-11 · 滚动边界对齐 + auth 缩放基准修复
+
+**背景**：用户要求「非列表等溢出需滑动的组件保持固定」；核对原型后选定「忠于原型、双向对齐滚动边界」。
+
+**关键发现（与既有文档冲突，以源码为准）**：
+
+- `fittracker-auth.html:62` 定义 `--active-scale: 0.90698`，`.auth-frame`（:176-185）为 **430×900 画布 × 0.90698 ≈ 390×816**——login/register 与 welcome 同属「缩放画布」，**不是** 390×844 直绘。`README.md` 与 `docs/opendesign-1to1-rules.md` 硬规则 2 的「除 welcome 外 14 屏均 390 直绘」对 auth **不成立**。
+- `restore-accept.ps1` 只做 `force-stop + start`，**不导航**，因此无法到达 login/register（冷启动落 Welcome，login 需点「开始使用」再进）。既有 `test_run/emulator/ACCEPTANCE-2026-09-11.md` 中 login/register 的数字口径**存疑**（可能截的是 Welcome 屏）。
+
+**变更（4 文件）**：
+
+- `PencilLoginPage.ets` / `PencilRegisterPage.ets`：brand/标题/form/switch 统一移入单层 `Scroll`（对齐 `.auth-scroll` 整页滚）；补 `430×900 + scale(0.90698, centerX/Y=0)` 缩放容器；去除原型不存在的 `justifyContent(Center)`；内容 padding 采用原型 `.auth-content` 的 `76/24/28`。
+- `ActiveContent.ets`：`demoCard()` 移入 `Scroll`（对齐 `.wo-scroll` 含 demo-card）；`topProgress()` / `dock()` 保持在外。
+- `ReviewContent.ets`：`segmentedControl()` 移入 `Scroll` 顶部（对齐 `.pane-scroll` 含 `.review-toolbar`）。
+- `PlanContent.ets`：**核对结论 = 无需改动**——`plan.html:182-190` 的 `.plan-content{height:100%}` + `.current-plan/.today-plan` 用 `flex:2:8` 分配，内容永不溢出，`.pane-scroll` 的滚动不触发。
+
+**设备实测**（390vp，`--crop 100,740`，文本掩码，口径见 `ACCEPTANCE-PLAN.md`）：
+
+| 屏 | 基线（2026-09-11） | 本次 | 判定 |
+|---|---|---|---|
+| login | 13.46 / 10.02% | 11.85 / 9.32% | 改善 |
+| register | 18.80 / 12.28% | 15.36 / 10.00% | 改善 |
+| active | 4.80 / 6.58% | 5.10 / 6.53% | 持平（达标） |
+| review | 11.56 / 11.49% | 11.99 / 11.75% | 持平 |
+
+login 剩余差异集中在 band 6-7（CTA/分割线/社交按钮区，32.8%/29.0%），上半部 band 0-5 为 0.5%-8.4%。
+
+**复现方式**：`restore-accept.ps1` 对 auth 屏无效；正确路径为 `bm clean` → `aa start` → `uitest uiInput click <「开始使用」坐标>` 到 login，再点「立即注册」到 register。掩码生成见 `test_run/genmask.py`（从 `uitest dumpLayout` 的文本 bounds ÷3.3846 换算）。
