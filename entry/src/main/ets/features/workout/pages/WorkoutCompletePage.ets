@@ -245,13 +245,15 @@ export struct WorkoutCompletePage {
         .opacity(this.dockOpacity)
         .translate({ y: this.dockOffsetY })
       }
-      .width('100%')
-      .height('100%')
+      .width(430)
+      .height(930.6)
+      .scale({ x: 0.90698, y: 0.90698, centerX: 0, centerY: 0 })
 
       this.confettiLayer()
     }
     .width('100%')
     .height('100%')
+    .clip(true)
     .backgroundColor('#07100F')
   }
 
