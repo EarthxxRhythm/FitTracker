@@ -1470,14 +1470,16 @@ export struct ReviewContent {
   build() {
     Stack() {
       Column() {
-        Column() {
-          this.segmentedControl()
-        }
-        .width('100%')
-        .padding({ left: 16.3, right: 16.3, top: 24, bottom: 8 })
-
         Scroll() {
           Column({ space: 16.3 }) {
+            // 时间尺度切换随内容滚动（原型 .pane-scroll ⊃ .review-content ⊃ .review-stats ⊃ .review-toolbar）。
+            // 左右缩进由本 Column 的 16.3 统一提供，此处归零避免双重内边距；top 16 与本 Column 的 8 合成原 24。
+            Column() {
+              this.segmentedControl()
+            }
+            .width('100%')
+            .padding({ left: 0, right: 0, top: 16, bottom: 0 })
+
             this.overviewCard()
             this.statsRow()
             this.activityCard()

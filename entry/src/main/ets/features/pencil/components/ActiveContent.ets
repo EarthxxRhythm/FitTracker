@@ -314,18 +314,17 @@ export struct ActiveContent {
 
       Column() {
         this.topProgress()
-        Column() {
-          this.demoCard()
-        }
-        .width('100%')
-        .padding({ left: 18, right: 18, top: 16, bottom: 0 })
         Scroll() {
-          this.setList()
+          Column({ space: 14 }) {
+            this.demoCard()
+            this.setList()
+          }
+          .width('100%')
+          .padding({ left: 18, right: 18, top: 16, bottom: 24 })
         }
         .align(Alignment.Top)
         .layoutWeight(1)
         .width('100%')
-        .padding({ left: 18, right: 18, top: 14, bottom: 24 })
         this.dock()
       }
       .width('100%')
