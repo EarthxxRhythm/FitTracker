@@ -207,187 +207,192 @@ struct PencilRegisterPage {
         .linearGradient({ angle: 180, colors: [['#0B0F13', 0], ['#0A0D12', 1]] })
 
       Column() {
-        Row() {
-          this.buildBrandHeader()
-        }
-        .width('100%')
-        .justifyContent(FlexAlign.Center)
-        .margin({ top: 8, bottom: 22 })
-        Column({ space: 0 }) {
-          Text('CREATE ACCOUNT')
-            .fontFamily('Geist Mono')
-            .fontSize(11)
-            .fontWeight(FontWeight.Bold)
-            .letterSpacing(1.5)
-            .fontColor('#50ECA7')
-            .margin({ bottom: 11 })
-          Text('创建账号')
-            .fontFamily('Noto Sans SC')
-            .fontSize(35)
-            .fontWeight(FontWeight.Bold)
-            .lineHeight(41.3)
-            .letterSpacing(-0.35)
-            .fontColor('#F7FBF8')
-          Text('开始记录每一次训练，见证看得见的进步')
-            .fontFamily('Noto Sans SC')
-            .fontSize(15)
-            .fontColor('#A6FFFFFF')
-            .margin({ top: 11 })
-        }
-        .width('100%')
-        .alignItems(HorizontalAlign.Center)
-
         Scroll() {
-        Column({ space: 14 }) {
-          this.buildField('昵称', '给自己起个名字', false, this.nickname, this.nicknameError, (value: string) => {
-            this.nickname = value
-            if (this.nicknameError.length > 0) { this.nicknameError = '' }
-          })
-          this.buildField('手机号', '请输入手机号', false, this.phone, this.phoneError, (value: string) => {
-            this.phone = value
-            if (this.phoneError.length > 0) { this.phoneError = '' }
-          })
-          this.buildField('密码', '设置 8 位以上密码', true, this.password, this.passwordError, (value: string) => {
-            this.password = value
-            if (this.passwordError.length > 0) { this.passwordError = '' }
-          })
-          this.buildField('确认密码', '再次输入密码', true, this.confirmPassword, this.confirmError, (value: string) => {
-            this.confirmPassword = value
-            if (this.confirmError.length > 0) { this.confirmError = '' }
-          })
-        }
-        .width('100%')
-        .constraintSize({ minHeight: '100%' })
-        .justifyContent(FlexAlign.Center)
-        .margin({ top: 8, bottom: 8 })
-        }
-        .layoutWeight(1)
-        .scrollBar(BarState.Off)
-
-        Row({ space: 10 }) {
-          Stack({ alignContent: Alignment.Center }) {
-            if (this.agreeChecked) {
-              Path()
-                .width(11)
-                .height(6)
-                .commands('M0 3 L4 6 L11 0')
-                .fillOpacity(0)
-                .stroke('#07100B')
-                .strokeWidth(2)
+          Column() {
+            Row() {
+              this.buildBrandHeader()
             }
-          }
-          .width(18)
-          .height(18)
-          .borderRadius(6)
-          .backgroundColor(this.agreeChecked ? '#50ECA7' : '#0AFFFFFF')
-          .border({ width: 1, color: this.agreeChecked ? '#50ECA7' : '#2EFFFFFF' })
-          .margin({ top: 1 })
-          .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: Curve.EaseInOut })
-          .onClick(() => {
-            this.agreeChecked = !this.agreeChecked
-          })
-          Text() {
-            Span('我已阅读并同意')
-            Span('《用户协议》')
-              .fontColor('#50ECA7')
-              .fontWeight(FontWeight.Medium)
-              .onClick(() => {
-                this.message = '查看协议（原型）'
-              })
-            Span('与')
-            Span('《隐私政策》')
-              .fontColor('#50ECA7')
-              .fontWeight(FontWeight.Medium)
-              .onClick(() => {
-                this.message = '查看协议（原型）'
-              })
-          }
-          .fontFamily('Noto Sans SC')
-          .fontSize(12.5)
-          .fontColor('#8AFFFFFF')
-          .lineHeight(19)
-        }
-        .width('100%')
-        .alignItems(VerticalAlign.Top)
-        .onTouch((event: TouchEvent) => {
-          if (event.type === TouchType.Down) {
-            this.agreePressed = true
-          } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-            this.agreePressed = false
-          }
-        })
-        .scale({ x: this.agreePressed ? MotionTokens.PRESS_CHIP : 1, y: this.agreePressed ? MotionTokens.PRESS_CHIP : 1 })
-        .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: Curve.EaseInOut })
-        .margin({ top: 4, bottom: 10 })
-
-        if (this.message.length > 0) {
-          Text(this.message)
-            .fontFamily('Noto Sans SC')
-            .fontSize(13)
-            .fontColor('#FFD7C5')
             .width('100%')
-            .margin({ bottom: 10 })
-        }
-
-        Button(this.loading ? '注册中…' : '注册')
-          .width('100%')
-          .height(52)
-          .padding(0)
-          .fontFamily('Noto Sans SC')
-          .fontSize(16)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#07100B')
-          .backgroundColor('#50ECA7')
-          .borderRadius(18)
-          .shadow({ radius: 26, color: '#61000000', offsetX: 0, offsetY: 12 })
-          .onClick(() => {
-            this.register()
-          })
-          .onTouch((event: TouchEvent) => {
-            if (event.type === TouchType.Down) {
-              this.ctaPressed = true
-            } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-              this.ctaPressed = false
+            .justifyContent(FlexAlign.Center)
+            .margin({ top: 8, bottom: 22 })
+            Column({ space: 0 }) {
+              Text('CREATE ACCOUNT')
+                .fontFamily('Geist Mono')
+                .fontSize(11)
+                .fontWeight(FontWeight.Bold)
+                .letterSpacing(1.5)
+                .fontColor('#50ECA7')
+                .margin({ bottom: 11 })
+              Text('创建账号')
+                .fontFamily('Noto Sans SC')
+                .fontSize(35)
+                .fontWeight(FontWeight.Bold)
+                .lineHeight(41.3)
+                .letterSpacing(-0.35)
+                .fontColor('#F7FBF8')
+              Text('开始记录每一次训练，见证看得见的进步')
+                .fontFamily('Noto Sans SC')
+                .fontSize(15)
+                .fontColor('#A6FFFFFF')
+                .margin({ top: 11 })
             }
-          })
-          .scale({ x: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1 })
-          .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
-          .margin({ bottom: 10 })
+            .width('100%')
+            .alignItems(HorizontalAlign.Center)
 
-        Row({ space: 6 }) {
-          Text('已有账号？')
-            .fontFamily('Noto Sans SC')
-            .fontSize(14)
-            .fontColor('#99FFFFFF')
-          Text('直接登录')
-            .fontFamily('Noto Sans SC')
-            .fontSize(14)
-            .fontWeight(FontWeight.Bold)
-            .fontColor('#50ECA7')
-            .onClick(() => {
-              this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.LOGIN })
-            })
+            Column({ space: 14 }) {
+              this.buildField('昵称', '给自己起个名字', false, this.nickname, this.nicknameError, (value: string) => {
+                this.nickname = value
+                if (this.nicknameError.length > 0) { this.nicknameError = '' }
+              })
+              this.buildField('手机号', '请输入手机号', false, this.phone, this.phoneError, (value: string) => {
+                this.phone = value
+                if (this.phoneError.length > 0) { this.phoneError = '' }
+              })
+              this.buildField('密码', '设置 8 位以上密码', true, this.password, this.passwordError, (value: string) => {
+                this.password = value
+                if (this.passwordError.length > 0) { this.passwordError = '' }
+              })
+              this.buildField('确认密码', '再次输入密码', true, this.confirmPassword, this.confirmError, (value: string) => {
+                this.confirmPassword = value
+                if (this.confirmError.length > 0) { this.confirmError = '' }
+              })
+            }
+            .width('100%')
+            .margin({ top: 8, bottom: 8 })
+
+            Row({ space: 10 }) {
+              Stack({ alignContent: Alignment.Center }) {
+                if (this.agreeChecked) {
+                  Path()
+                    .width(11)
+                    .height(6)
+                    .commands('M0 3 L4 6 L11 0')
+                    .fillOpacity(0)
+                    .stroke('#07100B')
+                    .strokeWidth(2)
+                }
+              }
+              .width(18)
+              .height(18)
+              .borderRadius(6)
+              .backgroundColor(this.agreeChecked ? '#50ECA7' : '#0AFFFFFF')
+              .border({ width: 1, color: this.agreeChecked ? '#50ECA7' : '#2EFFFFFF' })
+              .margin({ top: 1 })
+              .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: Curve.EaseInOut })
+              .onClick(() => {
+                this.agreeChecked = !this.agreeChecked
+              })
+              Text() {
+                Span('我已阅读并同意')
+                Span('《用户协议》')
+                  .fontColor('#50ECA7')
+                  .fontWeight(FontWeight.Medium)
+                  .onClick(() => {
+                    this.message = '查看协议（原型）'
+                  })
+                Span('与')
+                Span('《隐私政策》')
+                  .fontColor('#50ECA7')
+                  .fontWeight(FontWeight.Medium)
+                  .onClick(() => {
+                    this.message = '查看协议（原型）'
+                  })
+              }
+              .fontFamily('Noto Sans SC')
+              .fontSize(12.5)
+              .fontColor('#8AFFFFFF')
+              .lineHeight(19)
+            }
+            .width('100%')
+            .alignItems(VerticalAlign.Top)
             .onTouch((event: TouchEvent) => {
               if (event.type === TouchType.Down) {
-                this.linkKey = 'login'
+                this.agreePressed = true
               } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-                this.linkKey = ''
+                this.agreePressed = false
               }
             })
-            .scale({ x: this.linkKey === 'login' ? MotionTokens.PRESS_CHIP : 1, y: this.linkKey === 'login' ? MotionTokens.PRESS_CHIP : 1 })
-            .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
+            .scale({ x: this.agreePressed ? MotionTokens.PRESS_CHIP : 1, y: this.agreePressed ? MotionTokens.PRESS_CHIP : 1 })
+            .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: Curve.EaseInOut })
+            .margin({ top: 4, bottom: 10 })
+
+            if (this.message.length > 0) {
+              Text(this.message)
+                .fontFamily('Noto Sans SC')
+                .fontSize(13)
+                .fontColor('#FFD7C5')
+                .width('100%')
+                .margin({ bottom: 10 })
+            }
+
+            Button(this.loading ? '注册中…' : '注册')
+              .width('100%')
+              .height(52)
+              .padding(0)
+              .fontFamily('Noto Sans SC')
+              .fontSize(16)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#07100B')
+              .backgroundColor('#50ECA7')
+              .borderRadius(18)
+              .shadow({ radius: 26, color: '#61000000', offsetX: 0, offsetY: 12 })
+              .onClick(() => {
+                this.register()
+              })
+              .onTouch((event: TouchEvent) => {
+                if (event.type === TouchType.Down) {
+                  this.ctaPressed = true
+                } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                  this.ctaPressed = false
+                }
+              })
+              .scale({ x: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1 })
+              .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
+              .margin({ bottom: 10 })
+
+            Row({ space: 6 }) {
+              Text('已有账号？')
+                .fontFamily('Noto Sans SC')
+                .fontSize(14)
+                .fontColor('#99FFFFFF')
+              Text('直接登录')
+                .fontFamily('Noto Sans SC')
+                .fontSize(14)
+                .fontWeight(FontWeight.Bold)
+                .fontColor('#50ECA7')
+                .onClick(() => {
+                  this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.LOGIN })
+                })
+                .onTouch((event: TouchEvent) => {
+                  if (event.type === TouchType.Down) {
+                    this.linkKey = 'login'
+                  } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                    this.linkKey = ''
+                  }
+                })
+                .scale({ x: this.linkKey === 'login' ? MotionTokens.PRESS_CHIP : 1, y: this.linkKey === 'login' ? MotionTokens.PRESS_CHIP : 1 })
+                .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
+            }
+            .width('100%')
+            .height(24)
+            .justifyContent(FlexAlign.Center)
+            .margin({ bottom: 12 })
+          }
+          .width('100%')
+          .constraintSize({ minHeight: '100%' })
+          .padding({ left: 24, right: 24, top: 76, bottom: 28 })
         }
         .width('100%')
-        .height(24)
-        .justifyContent(FlexAlign.Center)
-        .margin({ bottom: 12 })
+        .height('100%')
+        .scrollBar(BarState.Off)
       }
-      .width('100%')
-      .height('100%')
-      .padding({ left: 24, right: 24 })
+      .width(430)
+      .height(900)
+      .scale({ x: 0.90698, y: 0.90698, centerX: 0, centerY: 0 })
     }
     .width('100%')
     .height('100%')
+    .clip(true)
     .backgroundColor(ColorTokens.BG_PRIMARY)
   }
 }

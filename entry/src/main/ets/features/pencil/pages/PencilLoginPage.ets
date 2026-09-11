@@ -299,108 +299,113 @@ struct PencilLoginPage {
         .height('100%')
         .backgroundColor('#10171B')
       Column() {
-        Row() {
-          this.buildBrandHeader()
-        }
-        .width('100%')
-        .justifyContent(FlexAlign.Center)
-        .margin({ top: 8, bottom: 22 })
-        Row() {
-          this.buildAuthHead()
-        }
-        .width('100%')
-        .justifyContent(FlexAlign.Center)
-        .margin({ bottom: 26 })
-
         Scroll() {
-        Column({ space: 14 }) {
-          this.buildLoginField('手机号 / 邮箱', '请输入手机号或邮箱', 'account', false)
-          this.buildLoginField('密码', '请输入密码', 'password', true)
-          this.buildAuthAux()
-
-          if (this.message.length > 0) {
-            Text(this.message)
-              .fontFamily('Noto Sans SC')
-              .fontSize(13)
-              .fontColor(ColorTokens.ERROR)
-              .width('100%')
-              .textAlign(TextAlign.Center)
-          }
-
-          Button(this.loading ? '登录中…' : '登录')
+          Column() {
+            Row() {
+              this.buildBrandHeader()
+            }
             .width('100%')
-            .height(52)
-            .padding(0)
-            .fontFamily('Noto Sans SC')
-            .fontSize(16)
-            .fontWeight(FontWeight.Bold)
-            .fontColor('#07100B')
-            .backgroundColor(ColorTokens.ACCENT_PRIMARY)
-            .borderRadius(18)
-            .shadow({ radius: 26, color: 'rgba(0,0,0,0.38)', offsetX: 0, offsetY: 12 })
-            .onClick(() => {
-              this.login()
-            })
-            .onTouch((event: TouchEvent) => {
-              if (event.type === TouchType.Down) {
-                this.ctaPressed = true
-              } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-                this.ctaPressed = false
+            .justifyContent(FlexAlign.Center)
+            .margin({ top: 8, bottom: 22 })
+            Row() {
+              this.buildAuthHead()
+            }
+            .width('100%')
+            .justifyContent(FlexAlign.Center)
+            .margin({ bottom: 26 })
+
+            Column({ space: 14 }) {
+              this.buildLoginField('手机号 / 邮箱', '请输入手机号或邮箱', 'account', false)
+              this.buildLoginField('密码', '请输入密码', 'password', true)
+              this.buildAuthAux()
+
+              if (this.message.length > 0) {
+                Text(this.message)
+                  .fontFamily('Noto Sans SC')
+                  .fontSize(13)
+                  .fontColor(ColorTokens.ERROR)
+                  .width('100%')
+                  .textAlign(TextAlign.Center)
               }
-            })
-            .scale({ x: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1 })
-            .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
 
-          this.buildAuthDivider()
+              Button(this.loading ? '登录中…' : '登录')
+                .width('100%')
+                .height(52)
+                .padding(0)
+                .fontFamily('Noto Sans SC')
+                .fontSize(16)
+                .fontWeight(FontWeight.Bold)
+                .fontColor('#07100B')
+                .backgroundColor(ColorTokens.ACCENT_PRIMARY)
+                .borderRadius(18)
+                .shadow({ radius: 26, color: 'rgba(0,0,0,0.38)', offsetX: 0, offsetY: 12 })
+                .onClick(() => {
+                  this.login()
+                })
+                .onTouch((event: TouchEvent) => {
+                  if (event.type === TouchType.Down) {
+                    this.ctaPressed = true
+                  } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                    this.ctaPressed = false
+                  }
+                })
+                .scale({ x: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1 })
+                .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
 
-          Row({ space: 12 }) {
-            this.buildSocialButton('微信', 'wechat')
-            this.buildSocialButton('Apple', 'apple')
+              this.buildAuthDivider()
+
+              Row({ space: 12 }) {
+                this.buildSocialButton('微信', 'wechat')
+                this.buildSocialButton('Apple', 'apple')
+              }
+              .width('100%')
+            }
+            .width('100%')
+            .margin({ top: 10, bottom: 10 })
+
+            Row({ space: 6 }) {
+              Text('还没有账号？')
+                .fontFamily('Noto Sans SC')
+                .fontSize(14)
+                .fontColor('#99FFFFFF')
+              Text('立即注册')
+                .fontFamily('Noto Sans SC')
+                .fontSize(14)
+                .fontWeight(FontWeight.Bold)
+                .fontColor('#50ECA7')
+                .onClick(() => {
+                  this.getUIContext().getRouter().pushUrl({ url: AppRoutes.REGISTER })
+                })
+                .onTouch((event: TouchEvent) => {
+                  if (event.type === TouchType.Down) {
+                    this.linkKey = 'register'
+                  } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                    this.linkKey = ''
+                  }
+                })
+                .scale({ x: this.linkKey === 'register' ? MotionTokens.PRESS_CHIP : 1, y: this.linkKey === 'register' ? MotionTokens.PRESS_CHIP : 1 })
+                .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
+            }
+            .width('100%')
+            .height(24)
+            .justifyContent(FlexAlign.Center)
+            .margin({ bottom: 16 })
           }
           .width('100%')
+          .constraintSize({ minHeight: '100%' })
+          .padding({ left: 24, right: 24, top: 76, bottom: 28 })
         }
         .width('100%')
-        .constraintSize({ minHeight: '100%' })
-        .justifyContent(FlexAlign.Center)
-        .margin({ top: 10, bottom: 10 })
-        }
-        .layoutWeight(1)
+        .height('100%')
         .scrollBar(BarState.Off)
-
-        Row({ space: 6 }) {
-          Text('还没有账号？')
-            .fontFamily('Noto Sans SC')
-            .fontSize(14)
-            .fontColor('#99FFFFFF')
-          Text('立即注册')
-            .fontFamily('Noto Sans SC')
-            .fontSize(14)
-            .fontWeight(FontWeight.Bold)
-            .fontColor('#50ECA7')
-            .onClick(() => {
-              this.getUIContext().getRouter().pushUrl({ url: AppRoutes.REGISTER })
-            })
-            .onTouch((event: TouchEvent) => {
-              if (event.type === TouchType.Down) {
-                this.linkKey = 'register'
-              } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-                this.linkKey = ''
-              }
-            })
-            .scale({ x: this.linkKey === 'register' ? MotionTokens.PRESS_CHIP : 1, y: this.linkKey === 'register' ? MotionTokens.PRESS_CHIP : 1 })
-            .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
-        }
-        .width('100%')
-        .height(24)
-        .justifyContent(FlexAlign.Center)
-        .margin({ bottom: 16 })
       }
-      .width('100%')
-      .height('100%')
-      .padding({ left: 24, right: 24 })
+      .width(430)
+      .height(900)
+      .scale({ x: 0.90698, y: 0.90698, centerX: 0, centerY: 0 })
     }
     .width('100%')
     .height('100%')
+    .clip(true)
     .backgroundColor(ColorTokens.BG_PRIMARY)
   }
 }
