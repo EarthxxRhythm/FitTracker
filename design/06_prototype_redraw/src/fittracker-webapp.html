@@ -1,0 +1,600 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FitTracker · 连续网页版原型</title>
+<style>
+  :root {
+    --ink-0: #0B0F13;
+    --ink-1: #0A0D12;
+    --bg: #07090B;
+    --surface: #10171B;
+    --surface-2: #121A1E;
+    --nav-active: #F3FBF7;
+    --nav-inactive: rgba(243, 251, 247, .56);
+    --accent: #50ECA7;
+    --accent-deep: #45C9A1;
+    --accent-soft: #8CEBCC;
+    --on-accent: #07100B;
+    --txt-hi: #F7FBF8;
+    --txt-body: #EDF6F2;
+    --white-70: rgba(255, 255, 255, .70);
+    --white-54: rgba(243, 251, 247, .54);
+    --white-40: rgba(243, 251, 247, .40);
+    --white-32: rgba(243, 251, 247, .32);
+    --hairline: rgba(255, 255, 255, .07);
+    --line-10: rgba(255, 255, 255, .10);
+    --accent-20: rgba(80, 236, 167, .20);
+    --accent-12: rgba(80, 236, 167, .12);
+    --accent-08: rgba(80, 236, 167, .08);
+    --font-cn: "Noto Sans SC", "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", "Microsoft YaHei UI", sans-serif;
+    --font-num: "Inter", "SF Pro Text", -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    --ease: cubic-bezier(.2, .7, .2, 1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--txt-body);
+    font-family: var(--font-cn);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  button { font-family: var(--font-cn); cursor: pointer; }
+  button:focus-visible, a:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(80, 236, 167, .30);
+  }
+  .defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+  .wa-app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .wa-top {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    height: 58px;
+    padding: 0 18px;
+    border-bottom: 1px solid var(--hairline);
+    background: rgba(7, 9, 11, .92);
+    position: relative;
+    z-index: 30;
+  }
+  .wa-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .wa-brand .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-12);
+    flex: 0 0 auto;
+  }
+  .wa-brand .word {
+    font-family: var(--font-num);
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: .08em;
+    color: var(--txt-hi);
+    white-space: nowrap;
+  }
+  .wa-brand .sep { width: 1px; height: 14px; background: var(--hairline); }
+  .wa-brand .sub { font-size: 12px; color: var(--white-54); white-space: nowrap; }
+
+  .wa-top-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .wa-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 17px;
+    border: 1px solid var(--hairline);
+    background: var(--surface);
+    color: var(--white-70);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .wa-chip .live {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .wa-chip b { color: var(--txt-hi); font-weight: 600; }
+
+  .wa-btn {
+    height: 40px;
+    min-width: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 0 14px;
+    border-radius: 12px;
+    border: 1px solid var(--hairline);
+    background: var(--surface);
+    color: var(--white-70);
+    font-size: 13px;
+    transition: background var(--ease) .18s, color var(--ease) .18s, border-color var(--ease) .18s;
+  }
+  .wa-btn .ic { width: 17px; height: 17px; display: inline-block; }
+  .wa-btn .ic svg { width: 100%; height: 100%; display: block; }
+  .wa-btn:hover { background: var(--surface-2); color: var(--txt-hi); border-color: var(--line-10); }
+  .wa-btn:active { transform: scale(.97); }
+  .wa-btn.primary {
+    background: var(--accent);
+    border-color: transparent;
+    color: var(--on-accent);
+    font-weight: 600;
+  }
+  .wa-btn.primary:hover { background: var(--accent-soft); color: var(--on-accent); }
+  .wa-btn:disabled { opacity: .42; cursor: default; transform: none; }
+  .wa-btn:disabled:hover { background: var(--surface); color: var(--white-70); }
+
+  .wa-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 26px 24px 30px;
+    overflow-y: auto;
+  }
+  .wa-frame-wrap {
+    position: relative;
+    width: 390px;
+    height: 844px;
+    flex: 0 0 auto;
+    transform-origin: top center;
+  }
+  .wa-frame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 46px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .12);
+    background: #000;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, .05) inset,
+      0 0 0 1px rgba(0, 0, 0, .5),
+      0 28px 80px rgba(0, 0, 0, .5);
+    transition: opacity .24s ease;
+    opacity: 1;
+  }
+  .wa-frame.loading { opacity: .35; }
+  .wa-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #0B0F13; }
+  .wa-frame .loading-dot {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 0 rgba(80, 236, 167, .45);
+    animation: wa-pulse 1.2s ease infinite;
+  }
+  .wa-frame:not(.loading) .loading-dot { display: none; }
+  @keyframes wa-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(80, 236, 167, .45); }
+    70% { box-shadow: 0 0 0 9px rgba(80, 236, 167, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(80, 236, 167, 0); }
+  }
+
+  .wa-drawer {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .wa-drawer.open { visibility: visible; pointer-events: auto; }
+  .wa-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(4, 6, 8, .66);
+    opacity: 0;
+    transition: opacity .2s ease;
+  }
+  .wa-drawer.open .wa-backdrop { opacity: 1; }
+  .wa-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(330px, 88vw);
+    background: #0D1215;
+    border-right: 1px solid var(--hairline);
+    box-shadow: 24px 0 64px rgba(0, 0, 0, .45);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(-104%);
+    transition: transform .24s var(--ease);
+  }
+  .wa-drawer.open .wa-panel { transform: translateX(0); }
+  .wa-panel-head {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 16px 13px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .wa-panel-head .t { font-size: 15px; font-weight: 600; color: var(--txt-hi); }
+  .wa-panel-head .n { font-size: 11px; color: var(--white-40); margin-top: 2px; }
+  .wa-panel-close {
+    margin-left: auto;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 0;
+    background: transparent;
+    color: var(--white-54);
+  }
+  .wa-panel-close:hover { color: var(--txt-hi); background: rgba(255, 255, 255, .06); }
+
+  .wa-panel-scroll {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 12px 10px 28px;
+  }
+  .wa-group { margin-bottom: 10px; }
+  .wa-group-title {
+    display: block;
+    font-size: 11px;
+    letter-spacing: .04em;
+    color: var(--white-32);
+    padding: 10px 10px 6px;
+  }
+  .wa-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 44px;
+    padding: 7px 10px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--white-70);
+    text-align: left;
+    transition: background .16s ease, color .16s ease;
+  }
+  .wa-row:hover { background: rgba(255, 255, 255, .05); color: var(--txt-hi); }
+  .wa-row.current { background: var(--accent-08); color: var(--txt-hi); }
+  .wa-row .mark {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid var(--white-32);
+    flex: 0 0 auto;
+  }
+  .wa-row.current .mark {
+    background: var(--accent);
+    border-color: transparent;
+    box-shadow: 0 0 0 3px var(--accent-12);
+  }
+  .wa-row .label { font-size: 14px; font-weight: 500; }
+  .wa-row .hint { font-size: 11px; color: var(--white-32); margin-left: auto; }
+
+  .wa-hint {
+    flex: 0 0 auto;
+    text-align: center;
+    padding: 10px 16px 14px;
+    font-size: 11px;
+    color: var(--white-32);
+  }
+  .wa-hint kbd {
+    font-family: var(--font-num);
+    font-size: 10px;
+    color: var(--white-40);
+    border: 1px solid var(--hairline);
+    border-radius: 5px;
+    padding: 1px 5px;
+    background: var(--surface);
+  }
+
+  .wa-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 720px) {
+    .wa-top { height: 52px; padding: 0 12px; gap: 10px; }
+    .wa-brand .sub, .wa-brand .sep { display: none; }
+    .wa-btn { padding: 0 10px; }
+    .wa-chip b { max-width: 118px; overflow: hidden; text-overflow: ellipsis; }
+    .wa-main { padding: 14px 12px 18px; align-items: flex-start; }
+    .wa-hint { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .wa-panel, .wa-frame { transition: none; }
+    .loading-dot { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<svg class="defs" aria-hidden="true">
+  <symbol id="i-grid" viewBox="0 0 24 24">
+    <rect x="4" y="4" width="6.4" height="6.4" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/>
+    <rect x="13.6" y="4" width="6.4" height="6.4" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/>
+    <rect x="4" y="13.6" width="6.4" height="6.4" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/>
+    <rect x="13.6" y="13.6" width="6.4" height="6.4" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/>
+  </symbol>
+  <symbol id="i-back" viewBox="0 0 24 24">
+    <path d="M15 5 8 12l7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="i-close" viewBox="0 0 24 24">
+    <path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-forward" viewBox="0 0 24 24">
+    <path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+</svg>
+
+<div class="wa-app" data-od-id="web-app-shell">
+  <header class="wa-top">
+    <div class="wa-brand">
+      <span class="dot" aria-hidden="true"></span>
+      <span class="word">FITTRACKER</span>
+      <span class="sep" aria-hidden="true"></span>
+      <span class="sub">连续网页版原型</span>
+    </div>
+    <div class="wa-top-actions">
+      <span class="wa-chip" aria-hidden="true">
+        <span class="live"></span>
+        <span>当前 · </span><b id="screenLabel">欢迎页</b>
+      </span>
+      <button class="wa-btn" type="button" id="btnBack" aria-label="返回上一屏">
+        <span class="ic"><svg><use href="#i-back"/></svg></span>
+        <span>返回</span>
+      </button>
+      <button class="wa-btn primary" type="button" id="btnMenu" aria-label="打开全部页面目录" aria-expanded="false" aria-controls="pageDrawer">
+        <span class="ic"><svg><use href="#i-grid"/></svg></span>
+        <span>全部页面</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="wa-main" id="waMain">
+    <div class="wa-frame-wrap" id="frameWrap">
+      <div class="wa-frame" id="frameShell">
+        <span class="loading-dot" aria-hidden="true"></span>
+        <iframe id="appFrame" title="FitTracker 页面预览" tabindex="-1"></iframe>
+      </div>
+    </div>
+  </main>
+
+  <div class="wa-hint">
+    在 App 内用底部导航、返回与主按钮真实跳转；目录可直达任意一屏。
+  </div>
+</div>
+
+<div class="wa-drawer" id="pageDrawer" role="dialog" aria-modal="true" aria-label="全部页面目录">
+  <div class="wa-backdrop" data-close-drawer></div>
+  <div class="wa-panel">
+    <div class="wa-panel-head">
+      <div>
+        <div class="t">全部页面</div>
+        <div class="n">共 <span id="pageCount">15</span> 屏 · 连续可点</div>
+      </div>
+      <button class="wa-panel-close" type="button" aria-label="关闭目录" data-close-drawer>
+        <svg><use href="#i-close"/></svg>
+      </button>
+    </div>
+    <nav class="wa-panel-scroll" id="pageNav" aria-label="页面列表"></nav>
+  </div>
+</div>
+
+<div class="wa-sr" role="status" aria-live="polite" id="liveStatus"></div>
+
+<script>
+(function () {
+  var ROUTE_ORDER = ['welcome', 'login', 'register', 'home', 'plan', 'workout', 'plans', 'planGroup', 'active', 'complete', 'review', 'library', 'body', 'profile', 'settings'];
+  var GROUPS = [
+    { title: '启动与账号', keys: ['welcome', 'login', 'register'] },
+    { title: '主导航', keys: ['home', 'plan', 'workout', 'review', 'profile'] },
+    { title: '计划流程', keys: ['plans', 'planGroup'] },
+    { title: '训练进行中', keys: ['active', 'complete'] },
+    { title: '我的功能', keys: ['library', 'body', 'settings'] }
+  ];
+  var ROUTES = {
+    welcome: { file: 'fittracker-welcome-home.html', frame: 'screen-welcome', label: '欢迎页', hint: '启动' },
+    login: { file: 'fittracker-auth.html', frame: 'screen-login', label: '登录', hint: '账号' },
+    register: { file: 'fittracker-auth.html', frame: 'screen-register', label: '注册', hint: '账号' },
+    home: { file: 'fittracker-welcome-home.html', frame: 'screen-home', label: '首页', hint: 'Tab' },
+    plan: { file: 'fittracker-plan.html', frame: 'screen-plan', label: '计划', hint: 'Tab' },
+    workout: { file: 'fittracker-training-preview.html', frame: 'screen-training-preview', label: '训练', hint: 'Tab' },
+    plans: { file: 'fittracker-plan-detail.html', frame: 'screen-plan-detail', label: '计划组', hint: '计划' },
+    planGroup: { file: 'fittracker-plan-group-detail.html', frame: 'screen-plan-group-detail', label: '计划组详细', hint: '计划' },
+    active: { file: 'fittracker-training.html', frame: 'screen-training', label: '训练执行', hint: '进行中' },
+    complete: { file: 'fittracker-training-complete.html', frame: 'screen-training-complete', label: '训练完成', hint: '进行中' },
+    review: { file: 'fittracker-review.html', frame: 'screen-review', label: '训练回顾', hint: 'Tab' },
+    library: { file: 'fittracker-exercise-library.html', frame: 'screen-exercise-library', label: '动作库', hint: '我的' },
+    body: { file: 'fittracker-body-data.html', frame: 'screen-body-data', label: '身体数据', hint: '我的' },
+    profile: { file: 'fittracker-personal.html', frame: 'screen-personal', label: '我的', hint: 'Tab' },
+    settings: { file: 'fittracker-settings.html', frame: 'screen-settings', label: '设置', hint: '我的' }
+  };
+
+  var frame = document.getElementById('appFrame');
+  var frameShell = document.getElementById('frameShell');
+  var labelEl = document.getElementById('screenLabel');
+  var statusEl = document.getElementById('liveStatus');
+  var backBtn = document.getElementById('btnBack');
+  var menuBtn = document.getElementById('btnMenu');
+  var drawer = document.getElementById('pageDrawer');
+  var navEl = document.getElementById('pageNav');
+  var countEl = document.getElementById('pageCount');
+  var liveTimer = null;
+  var stack = [];
+  var current = '';
+  var lastReady = '';
+
+  function meta(key) { return ROUTES[key] || ROUTES.welcome; }
+
+  function applyScale() {
+    var main = document.getElementById('waMain');
+    if (!main) { return; }
+    var rect = main.getBoundingClientRect();
+    var wrap = document.getElementById('frameWrap');
+    var scale = Math.min(1, (rect.width - 20) / 390, (rect.height - 20) / 844);
+    scale = Math.max(scale, 0.22);
+    wrap.style.transform = 'scale(' + scale + ')';
+    wrap.style.marginBottom = (-844 * (1 - scale)) + 'px';
+  }
+
+  function renderNav() {
+    navEl.innerHTML = '';
+    var html = '';
+    GROUPS.forEach(function (g) {
+      html += '<div class="wa-group" role="group" aria-label="' + g.title + '">';
+      html += '<span class="wa-group-title">' + g.title + '</span>';
+      g.keys.forEach(function (key) {
+        var r = meta(key);
+        html += '<button type="button" class="wa-row" data-route="' + key + '" role="link" aria-current="' + (key === current ? 'page' : 'false') + '">';
+        html += '<span class="mark" aria-hidden="true"></span>';
+        html += '<span class="label">' + r.label + '</span>';
+        html += '<span class="hint">' + r.hint + '</span></button>';
+      });
+      html += '</div>';
+    });
+    navEl.innerHTML = html;
+    countEl.textContent = String(ROUTE_ORDER.length);
+    Array.prototype.forEach.call(navEl.querySelectorAll('[data-route]'), function (btn) {
+      btn.addEventListener('click', function () {
+        go(btn.getAttribute('data-route'), true);
+        closeDrawer();
+      });
+    });
+  }
+
+  function setLoading(on) {
+    frameShell.classList.toggle('loading', on);
+  }
+
+  function paint(key, push) {
+    var r = meta(key);
+    if (push && stack[stack.length - 1] !== key) { stack.push(key); }
+    if (key !== current) {
+      current = key;
+      setLoading(true);
+      frame.setAttribute('src', r.file + '?stage=1&frame=' + r.frame);
+      labelEl.textContent = r.label;
+      lastReady = '';
+      try { localStorage.setItem('ft-webapp-last', key); } catch (e) {}
+      try {
+        if (location.hash !== '#/' + key) { location.hash = '#/' + key; }
+      } catch (e) { /* ignore */ }
+    }
+    var activeRow = navEl.querySelector('[data-route="' + key + '"]');
+    Array.prototype.forEach.call(navEl.querySelectorAll('[data-route]'), function (row) {
+      var on = row === activeRow;
+      row.classList.toggle('current', on);
+      row.setAttribute('aria-current', on ? 'page' : 'false');
+    });
+    backBtn.disabled = stack.length <= 1;
+    statusEl.textContent = '当前页面：' + r.label;
+  }
+
+  function go(key, push) {
+    if (!ROUTES[key]) { key = 'home'; }
+    paint(key, !!push);
+  }
+
+  function closeDrawer() {
+    drawer.classList.remove('open');
+    menuBtn.setAttribute('aria-expanded', 'false');
+    menuBtn.focus();
+  }
+  function openDrawer() {
+    drawer.classList.add('open');
+    menuBtn.setAttribute('aria-expanded', 'true');
+    var first = navEl.querySelector('.wa-row');
+    if (first) { first.focus(); }
+  }
+
+  backBtn.addEventListener('click', function () {
+    if (stack.length > 1) {
+      stack.pop();
+      go(stack[stack.length - 1], false);
+    }
+  });
+  menuBtn.addEventListener('click', function () {
+    if (drawer.classList.contains('open')) { closeDrawer(); } else { openDrawer(); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-close-drawer]'), function (el) {
+    el.addEventListener('click', closeDrawer);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && drawer.classList.contains('open')) {
+      closeDrawer();
+    }
+  });
+
+  window.addEventListener('message', function (ev) {
+    if (ev.source !== frame.contentWindow) { return; }
+    var data = ev.data;
+    if (!data || !data.type) { return; }
+    if (data.type === 'ft-app:navigate') {
+      var to = data.payload && data.payload.to;
+      if (to && ROUTES[to]) { go(to, true); }
+    } else if (data.type === 'ft-app:ready') {
+      if (lastReady !== current) {
+        lastReady = current;
+        window.setTimeout(function () { setLoading(false); }, 60);
+      }
+    }
+  });
+
+  frame.addEventListener('load', function () {
+    window.setTimeout(function () { setLoading(false); }, 700);
+  });
+
+  window.addEventListener('hashchange', function () {
+    var key = (location.hash || '').replace(/^#\/?/, '');
+    if (ROUTES[key] && key !== current) {
+      go(key, true);
+    }
+  });
+  window.addEventListener('resize', applyScale);
+
+  var initial = (location.hash || '').replace(/^#\/?/, '');
+  if (!ROUTES[initial]) {
+    try { initial = localStorage.getItem('ft-webapp-last') || 'welcome'; } catch (e) { initial = 'welcome'; }
+  }
+  if (!ROUTES[initial]) { initial = 'welcome'; }
+  stack = [initial];
+  renderNav();
+  paint(initial, false);
+  applyScale();
+})();
+</script>
+</body>
+</html>

@@ -64,3 +64,10 @@ Thumbs.db
 
 # Python bytecode cache
 **/__pycache__/
+
+# Local agent runtime/planning state (archive product code only)
+/.opencode/data/
+/.opencode/screenshot/
+/.sisyphus/
+/.claude/
+/.rivet/

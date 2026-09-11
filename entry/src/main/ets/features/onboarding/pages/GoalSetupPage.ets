@@ -255,12 +255,13 @@ export struct GoalSetupPage {
   }
 
   getRestrictionSummaryText(): string {
-    if (this.selectedRestrictedMuscleIds.length === 0) {
+    const selectedIds: string[] = this.selectedRestrictedMuscleIds
+    if (selectedIds.length === 0) {
       return '无特别限制'
     }
     let summary: string = ''
     for (let index = 0; index < RESTRICTED_MUSCLE_OPTIONS.length; index++) {
-      if (this.containsValue(this.selectedRestrictedMuscleIds, RESTRICTED_MUSCLE_OPTIONS[index].id)) {
+      if (this.containsValue(selectedIds, RESTRICTED_MUSCLE_OPTIONS[index].id)) {
         summary = this.appendSummaryLabel(summary, RESTRICTED_MUSCLE_OPTIONS[index].label)
       }
     }

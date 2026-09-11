@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "fittracker-review.html",
+  "entry": "fittracker-review.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-17T02:00:23.645Z",
+  "updatedAt": "2026-08-17T02:00:23.645Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

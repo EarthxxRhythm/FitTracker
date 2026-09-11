@@ -70,7 +70,7 @@ export class ColorTokens {
   static readonly SURFACE_CARD_HERO_RAISED: string = '#182422'
   static readonly SURFACE_CARD_SUBTLE: string = '#111918'
   static readonly SURFACE_CARD_MUTED: string = '#0F1716'
-  static readonly SURFACE_NAV: string = 'rgba(9,16,15,0.94)'
+  static readonly SURFACE_NAV: string = 'rgba(8,12,15,0.97)'
   static readonly SURFACE_BUTTON_SECONDARY: string = '#1A2825'
   static readonly SURFACE_BUTTON_SECONDARY_PRESSED: string = '#20332E'
   static readonly CTA_SECONDARY_BG: string = 'rgba(255,255,255,0.08)'
@@ -297,10 +297,25 @@ export class ShadowTokens {
   }
 
   static readonly NAV: ShadowConfig = {
-    radius: 20,
-    color: 'rgba(0,0,0,0.22)',
+    radius: 28,
+    color: 'rgba(0,0,0,0.28)',
     offsetX: 0,
-    offsetY: -4
+    offsetY: -8
+  }
+
+  // Bottom tab center pill elevation (HTML: 0 6px 14px rgba(0,0,0,.30) / active 0 8px 20px rgba(0,0,0,.34))
+  static readonly TAB_PILL: ShadowConfig = {
+    radius: 14,
+    color: 'rgba(0,0,0,0.30)',
+    offsetX: 0,
+    offsetY: 6
+  }
+
+  static readonly TAB_PILL_ACTIVE: ShadowConfig = {
+    radius: 20,
+    color: 'rgba(0,0,0,0.34)',
+    offsetX: 0,
+    offsetY: 8
   }
 
   static readonly FOCUS: ShadowConfig = {
@@ -345,6 +360,9 @@ export class MotionTokens {
 
   // Ambient pulse
   static readonly DURATION_PULSE: number = 1600
+
+  // Progress / gauge fill (HTML `.35s` width fill on goals/rings)
+  static readonly DURATION_PROGRESS: number = 350
 
   // Completion page
   static readonly DURATION_CF_POP: number = 500

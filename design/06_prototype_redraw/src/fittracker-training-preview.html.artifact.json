@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "fittracker-training-preview.html",
+  "entry": "fittracker-training-preview.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-17T02:28:28.756Z",
+  "updatedAt": "2026-08-17T02:28:28.756Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

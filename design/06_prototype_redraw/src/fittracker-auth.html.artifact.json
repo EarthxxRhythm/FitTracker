@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "fittracker-auth.html",
+  "entry": "fittracker-auth.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-08-17T03:51:05.916Z",
+  "updatedAt": "2026-08-17T03:51:05.916Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FitTracker · 训练预览页原型</title>
+<style>
+  /* ────────────────────────────────────────────────────────────────
+     FitTracker · Cold Emerald Performance（沿用首页设计系统）
+     主题：黑绿深色基底 + 冷翡翠强调 + 深色微层级
+     本屏依据参考图 image-1 重排：编辑部化信息层级 + 分组动作清单
+     ──────────────────────────────────────────────────────────────── */
+  :root {
+    --ink-0: #0B0F13;
+    --ink-1: #0A0D12;
+    --ink-welcome-0: #10171B;
+    --visual-a: #14241F;
+    --visual-b: #0D1616;
+    --ring-inner: #0D1117;
+    --tab-pill: #141F1D;
+    --tab-pill-active: #182422;
+    --nav-active: #F3FBF7;
+    --nav-inactive: rgba(243,251,247,.56);
+    --accent: #50ECA7;
+    --accent-deep: #45C9A1;
+    --accent-soft: #8CEBCC;
+    --cta-a: #47D994;
+    --cta-b: #53E7A5;
+    --cta-hover-a: #5BE3A5;
+    --cta-hover-b: #6BEDB5;
+    --on-accent: #07100B;
+    --on-accent-2: #08110D;
+    --txt-hi: #F7FBF8;
+    --txt-body: #EDF6F2;
+    --white-90: rgba(243,251,247,.90);
+    --white-87: rgba(255,255,255,.87);
+    --white-70: rgba(255,255,255,.70);
+    --white-65: rgba(255,255,255,.65);
+    --white-62: rgba(255,255,255,.62);
+    --white-60: rgba(255,255,255,.60);
+    --white-54: rgba(255,255,255,.54);
+    --white-40: rgba(255,255,255,.40);
+    --white-32: rgba(255,255,255,.32);
+    --glass-10: rgba(255,255,255,.10);
+    --glass-8: rgba(255,255,255,.08);
+    --glass-6: rgba(255,255,255,.06);
+    --glass-4: rgba(255,255,255,.04);
+    --hairline: rgba(255,255,255,.06);
+    --line-10: rgba(255,255,255,.10);
+    --line-14: rgba(255,255,255,.078);
+    --line-16: rgba(255,255,255,.16);
+    --accent-40: rgba(80,236,167,.40);
+    --accent-32: rgba(69,201,161,.32);
+    --accent-20: rgba(80,236,167,.20);
+    --accent-18: rgba(69,201,161,.18);
+    --accent-17: rgba(80,236,167,.17);
+    --accent-12: rgba(80,236,167,.12);
+    --accent-10: rgba(80,236,167,.10);
+    --accent-07: rgba(80,236,167,.07);
+    --warn: #FFD7C5;
+    --font-cn: "Noto Sans SC", "HarmonyOS Sans SC", "PingFang SC", "Microsoft YaHei", "Microsoft YaHei UI", sans-serif;
+    --font-num: "Inter", "SF Pro Text", -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    --font-mono: "Geist Mono", "JetBrains Mono", "SF Mono", Consolas, "Courier New", monospace;
+    --ease: cubic-bezier(.2, .7, .2, 1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+
+  body {
+    overflow-x: hidden;
+    background: #07090B;
+    color: var(--txt-body);
+    font-family: var(--font-cn);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100vh;
+  }
+
+  .defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+  button { font-family: var(--font-cn); }
+  button:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(80,236,167,.28); }
+
+  /* ── 页面外框（非 App 内容） ─────────────────────────────────── */
+  .page-header {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 48px 32px 8px;
+  }
+  .kicker {
+    font-family: var(--font-cn);
+    font-size: 13px;
+    letter-spacing: .02em;
+    color: var(--white-54);
+    margin-bottom: 12px;
+  }
+  .page-header h1 {
+    font-size: clamp(30px, 4vw, 44px);
+    font-weight: 700;
+    letter-spacing: 0;
+    color: var(--txt-hi);
+    line-height: 1.18;
+  }
+  .page-sub {
+    margin-top: 14px;
+    font-size: 15px;
+    color: var(--white-60);
+    line-height: 1.6;
+    max-width: 660px;
+  }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 20px; }
+  .meta-badge {
+    font-family: var(--font-cn);
+    font-size: 12px;
+    letter-spacing: .01em;
+    color: var(--white-54);
+  }
+  .meta-badge b { color: var(--white-70); font-weight: 500; }
+
+  .gallery {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 30px 32px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    align-items: flex-start;
+  }
+  .frame-card { flex: 0 1 auto; }
+  .stage-label {
+    display: flex; align-items: baseline; gap: 10px;
+    margin: 0 0 14px 4px;
+  }
+  .stage-label .name { font-size: 15px; font-weight: 600; color: var(--txt-hi); }
+  .stage-label .code { font-family: var(--font-mono); font-size: 11px; color: var(--white-40); }
+
+  .page-foot {
+    max-width: 1120px;
+    margin: 8px auto 48px;
+    padding: 0 32px;
+    font-size: 12px;
+    color: var(--white-40);
+    line-height: 1.7;
+  }
+  .page-foot b { color: var(--white-70); font-weight: 600; }
+
+  /* ── 手机画布 ─────────────────────────────────────────────── */
+  .phone {
+    position: relative;
+    width: 390px;
+    height: 844px;
+    border-radius: 54px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: #000;
+    overflow: hidden;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,.06) inset,
+      0 0 0 1px rgba(0,0,0,.4),
+      0 32px 80px rgba(0,0,0,.55),
+      0 8px 28px rgba(0,0,0,.45);
+  }
+  .phone::after {
+    content: "";
+    position: absolute;
+    inset: 10px;
+    border-radius: 44px;
+    pointer-events: none;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.025) inset;
+  }
+
+  /* ── 训练预览屏（依据 image-1 参考重排） ─────────────────────── */
+  .pv-frame {
+    position: absolute;
+    inset: 0;
+    background: var(--ink-0);
+    overflow: hidden;
+  }
+  .pv-content {
+    position: absolute;
+    inset: 0;
+    padding: 56px 18px 12px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 顶部：返回 + 标题 + 更多 */
+  .pv-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .pv-topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+  .pv-icon-btn {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255,255,255,.078);
+    border-radius: 15px;
+    background: rgba(255,255,255,.031);
+    color: rgba(255,255,255,.82);
+    cursor: pointer;
+    transition: background .18s var(--ease), border-color .18s var(--ease), color .18s var(--ease), transform .12s var(--ease);
+  }
+  .pv-icon-btn svg { width: 21px; height: 21px; }
+  .pv-icon-btn:hover {
+    background: rgba(255,255,255,.08);
+    border-color: rgba(255,255,255,.16);
+    color: var(--txt-hi);
+  }
+  .pv-icon-btn:active { transform: scale(.96); }
+  .pv-topbar-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--txt-hi);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 居中标题区 */
+  .pv-hero {
+    margin-top: 16px;
+    text-align: center;
+  }
+  .pv-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: .18em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  .pv-title {
+    margin-top: 8px;
+    font-size: 32px;
+    line-height: 1.12;
+    font-weight: 700;
+    letter-spacing: .01em;
+    color: var(--txt-hi);
+  }
+  .pv-sub {
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    font-weight: 500;
+    color: var(--white-54);
+  }
+
+  /* 脉冲标志 */
+  .pv-emblem {
+    margin: 14px auto 0;
+    width: 64px;
+    height: 64px;
+    color: var(--accent);
+  }
+  .pv-emblem svg { width: 100%; height: 100%; display: block; }
+
+  /* 动作清单 */
+  .pv-list {
+    margin-top: 16px;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    overflow: hidden;
+  }
+  .pv-group { display: flex; flex-direction: column; }
+  .pv-group + .pv-group { margin-top: 18px; }
+  .pv-group-label {
+    padding: 0 6px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    color: var(--white-54);
+  }
+  .pv-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    height: 52px;
+    padding: 0 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,.055);
+    background: rgba(255,255,255,.026);
+  }
+  .pv-item + .pv-item { margin-top: 7px; }
+  .pv-item-left {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+  .pv-item-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 16px;
+    font-weight: 500;
+    color: rgba(255,255,255,.88);
+  }
+  .pv-item-meta {
+    flex: 0 0 auto;
+    font-family: var(--font-num);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--white-54);
+  }
+
+  /* 当前动作：翡翠高亮 */
+  .pv-item.current {
+    border-color: rgba(80,236,167,.28);
+    background: var(--accent-10);
+  }
+  .pv-item.current .pv-item-name {
+    color: var(--txt-hi);
+    font-weight: 600;
+  }
+  .pv-item.current .pv-item-meta { color: var(--accent); }
+
+  /* 底部：提示 + 主按钮 + home 指示条 */
+  .pv-action {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .pv-note {
+    text-align: center;
+    font-size: 12px;
+    line-height: 1.5;
+    font-weight: 500;
+    color: var(--white-54);
+  }
+  .pv-btn-primary {
+    width: 100%;
+    height: 52px;
+    border: 0;
+    border-radius: 26px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 14px 28px rgba(0,0,0,.24);
+    transition: filter .18s var(--ease), box-shadow .18s var(--ease), transform .12s var(--ease);
+  }
+  .pv-btn-primary:hover {
+    filter: brightness(1.06);
+    box-shadow: 0 16px 32px rgba(0,0,0,.28);
+  }
+  .pv-btn-primary:active { transform: scale(.985); }
+
+  .pv-home-indicator {
+    margin: 8px auto 0;
+    width: 134px;
+    height: 5px;
+    border-radius: 3px;
+    background: rgba(255,255,255,.25);
+  }
+
+  /* 开始训练的轻量反馈 */
+  .pv-toast {
+    position: absolute;
+    left: 50%;
+    bottom: 86px;
+    transform: translateX(-50%) translateY(10px);
+    max-width: 320px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.10);
+    background: rgba(13,17,23,.92);
+    color: var(--txt-hi);
+    font-size: 13px;
+    line-height: 1.4;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .18s var(--ease), transform .18s var(--ease);
+  }
+  .pv-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ── 响应式：窄屏堆叠，禁止横向滚动 ───────────────────────── */
+  @media (max-width: 860px) {
+    .page-header { padding: 32px 20px 4px; }
+    .gallery { padding: 24px 20px 8px; gap: 36px; justify-content: center; }
+    .page-foot { padding: 0 20px; }
+  }
+
+  @media (max-width: 440px) {
+    .phone { transform-origin: top left; }
+    .gallery { padding-left: 16px; padding-right: 16px; }
+    .page-header, .page-foot { padding-left: 16px; padding-right: 16px; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="page-header">
+    <div class="kicker">FitTracker · Workout Preview</div>
+    <h1>训练预览页 · 动作确认</h1>
+    <p class="page-sub">以参考图 image-1 为基准重排训练前确认页：顶部返回与更多菜单、居中训练日信息、脉冲标志、分组的动作清单（当前动作翡翠高亮），以及底部翡翠色主按钮。</p>
+    <div class="meta-row">
+      <span class="meta-badge">主题 <b>Cold Emerald</b></span>
+      <span class="meta-badge">视口 <b>390 × 844</b></span>
+      <span class="meta-badge">状态 <b>训练预览</b></span>
+      <span class="meta-badge">入口 <b>开始训练 / 训练 Tab</b></span>
+      <span class="meta-badge">依据 <b>参考图 image-1</b></span>
+    </div>
+  </header>
+
+  <main class="gallery">
+    <figure class="frame-card" data-od-id="screen-training-preview">
+      <div class="stage-label">
+        <span class="name">训练预览</span>
+        <span class="code">PencilPreviewPage</span>
+      </div>
+      <div class="phone">
+        <div class="pv-frame">
+          <div class="pv-content">
+
+            <header class="pv-topbar" data-od-id="preview-topbar">
+              <div class="pv-topbar-left">
+                <button class="pv-icon-btn" type="button" data-od-id="back-home" aria-label="返回首页">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M15.5 5 8.5 12l7 7" />
+                  </svg>
+                </button>
+                <span class="pv-topbar-title">训练预览</span>
+              </div>
+              <button class="pv-icon-btn" type="button" data-od-id="preview-menu" aria-label="更多选项">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle cx="19" cy="12" r="1.8" />
+                </svg>
+              </button>
+            </header>
+
+            <header class="pv-hero" data-od-id="preview-hero">
+              <div class="pv-eyebrow">Day 01</div>
+              <h1 class="pv-title">训练预览</h1>
+              <p class="pv-sub">第 1 天 · 上肢力量</p>
+            </header>
+
+            <div class="pv-emblem" data-od-id="preview-emblem" aria-hidden="true">
+              <svg viewBox="0 0 64 64" fill="none">
+                <circle cx="32" cy="32" r="27" stroke="rgba(80,236,167,.30)" stroke-width="2" />
+                <path d="M18 32h7l3.5-9 7 18 3.5-9h7" stroke="#50ECA7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </div>
+
+            <section class="pv-list" data-od-id="exercise-list" aria-label="动作清单">
+              <div class="pv-group">
+                <div class="pv-group-label">热身动作</div>
+                <div class="pv-item" data-od-id="exercise-warm-1">
+                  <div class="pv-item-left">
+                    <span class="pv-item-name">弹力带肩袖激活</span>
+                  </div>
+                  <span class="pv-item-meta">2 × 15</span>
+                </div>
+                <div class="pv-item" data-od-id="exercise-warm-2">
+                  <div class="pv-item-left">
+                    <span class="pv-item-name">肩胛俯卧撑</span>
+                  </div>
+                  <span class="pv-item-meta">2 × 12</span>
+                </div>
+              </div>
+
+              <div class="pv-group">
+                <div class="pv-group-label">主动作</div>
+                <div class="pv-item current" data-od-id="exercise-primary-1">
+                  <div class="pv-item-left">
+                    <span class="pv-item-name">杠铃卧推</span>
+                  </div>
+                  <span class="pv-item-meta">4 × 6</span>
+                </div>
+                <div class="pv-item" data-od-id="exercise-primary-2">
+                  <div class="pv-item-left">
+                    <span class="pv-item-name">上斜哑铃卧推</span>
+                  </div>
+                  <span class="pv-item-meta">3 × 8</span>
+                </div>
+                <div class="pv-item" data-od-id="exercise-primary-3">
+                  <div class="pv-item-left">
+                    <span class="pv-item-name">坐姿肩推</span>
+                  </div>
+                  <span class="pv-item-meta">3 × 10</span>
+                </div>
+                <div class="pv-item" data-od-id="exercise-primary-4">
+                  <div class="pv-item-left">
+                    <span class="pv-item-name">绳索下压</span>
+                  </div>
+                  <span class="pv-item-meta">3 × 12</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="pv-action" data-od-id="action-section">
+              <p class="pv-note">确认动作与重量后开始训练</p>
+              <button class="pv-btn-primary" type="button" data-od-id="cta-start">开始训练</button>
+            </section>
+
+            <div class="pv-home-indicator" aria-hidden="true"></div>
+          </div>
+
+          <div class="pv-toast" role="status" aria-live="polite" data-od-id="start-toast">已准备进入训练执行</div>
+        </div>
+      </div>
+    </figure>
+  </main>
+
+  <footer class="page-foot">
+    <b>重建依据：</b>训练预览屏以参考图 <b>image-1.png</b> 为视觉基准，沿用首页同一套 Cold Emerald 内联色值（强调色 <b>#50ECA7</b>，主按钮为翡翠渐变填充）。顶部为返回与更多菜单，中部为训练日信息与脉冲标志，动作清单分为热身动作与主动作、当前动作以翡翠高亮；点“开始训练”在当前原型中给出进入训练执行的轻量反馈，真实路由应指向 <b>PencilActivePage</b>。
+  </footer>
+
+  <script>
+    (function () {
+      var startBtn = document.querySelector('[data-od-id="cta-start"]');
+      var backBtn = document.querySelector('[data-od-id="back-home"]');
+      var menuBtn = document.querySelector('[data-od-id="preview-menu"]');
+      var toast = document.querySelector('[data-od-id="start-toast"]');
+      var toastTimer = 0;
+
+      function showToast(message) {
+        if (!toast) { return; }
+        toast.textContent = message;
+        window.clearTimeout(toastTimer);
+        toast.classList.add('show');
+        toastTimer = window.setTimeout(function () {
+          toast.classList.remove('show');
+        }, 1800);
+      }
+
+      if (startBtn) {
+        startBtn.addEventListener('click', function () {
+          showToast('已准备进入训练执行');
+        });
+      }
+
+      if (backBtn) {
+        backBtn.addEventListener('click', function () {
+          showToast('返回首页（原型）');
+        });
+      }
+
+      if (menuBtn) {
+        menuBtn.addEventListener('click', function () {
+          showToast('更多选项（原型）');
+        });
+      }
+
+      if (toast && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        toast.style.transition = 'none';
+      }
+
+      var phones = Array.prototype.slice.call(document.querySelectorAll('.phone'));
+      function fitPhones() {
+        var narrow = window.innerWidth < 440;
+        phones.forEach(function (ph) {
+          var scale = narrow ? Math.min(1, (window.innerWidth - 32) / 390) : 1;
+          ph.style.transform = scale < 1 ? 'scale(' + scale + ')' : '';
+          ph.style.transformOrigin = 'top left';
+          ph.style.marginBottom = scale < 1 ? ((scale - 1) * 844) + 'px' : '';
+        });
+      }
+      window.addEventListener('resize', fitPhones);
+      fitPhones();
+    })();
+  </script>
+  <script>window.FT_APP={routes:[['[data-od-id="back-home"]','home'],['[data-od-id="cta-start"]','active']]};</script>
+  <script src="assets/ft-stage.js"></script>
+</body>
+</html>
