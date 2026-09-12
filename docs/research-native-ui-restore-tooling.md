@@ -80,7 +80,8 @@ layout --format json --mode full --depth 2  →  同样无 id 字段
 ## 5. 结论
 
 1. **本项目自建方案（`visual-diff` + `render-prototype` + 文本掩码）方向正确**——业界在此场景（HTML→原生、跨渲染器）确无现成替代。
-2. **可立即吸收一项官方能力**：`ui swipe` 做滚动边界断言（发现三），把此前「无法验证」的部分变成可脚本化断言。
+2. **已吸收一项官方能力**：`ui swipe` 用于滚动边界断言，已落成 `tools\scroll-assert.py`
+   并通过正/负双向试通（见发现三），把此前「无法验证」的滚动语义变成可脚本化断言。
 3. **可顺手替换两项**：`ui layout --format json` 替代文本解析；`ui screenshot` 替代 hdc 截图。
 4. **痛点 ①②③ 仍需自建**：①（坐标失效）无官方 id 可借；②（设备侧动画）跨层，Playwright 帮不上；③（细粒度定位）可考虑"节点树 + 原型 DOM 双向比对"，但属自研。
 
@@ -88,4 +89,12 @@ layout --format json --mode full --depth 2  →  同样无 id 字段
 
 - **网络调研受严重限制**：`web_search` 返回无效结果，`web_fetch` 仅验证了 1 个 URL（Playwright）。华为开发者官网、鸿蒙 UI 测试框架（Hypium/uitest）的官方文档**未取得**。
 - **`--id` 的负结果**限于当前 devecocli 版本与 `layout` 命令；未尝试 HarmonyOS 原生 `uitest` 的 node id 获取途径。
-- **发现三仅验证了 `swipe` 命令可执行**，未完整跑通「三步骤断言」流程（当前屏为 library，非目标验证屏）。
+- ~~发现三仅验证了 `swipe` 命令可执行~~ → **已试通（2026-09-12）**：新增 `tools\scroll-assert.py`，
+  在 body 屏（`.bd-top` 固定 + `.bd-scroll` 滚动）双向验证：
+
+  | 用例 | 参数 | 结果 |
+  |---|---|---|
+  | 正向 | `--fixed "身体数据" --scrolled "当前体重"` | PASS / PASS，exit 0 |
+  | 负向（预期对调） | `--fixed "当前体重" --scrolled "身体数据"` | FAIL / FAIL，exit 1（并列出两条具体原因） |
+
+  负向用例证明脚本**具备鉴别力**，不是恒真断言。用法见脚本头部注释。
