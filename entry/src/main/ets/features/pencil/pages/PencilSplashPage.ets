@@ -1,7 +1,6 @@
 ﻿/** PencilSplashPage 鈥斺€?FitTracker Splash 鍘熷瀷椤点€傚姛鑳?#27 */
 import { AppRoutes } from '../../../app/AppRoutes'
 import LaunchRequestStore from '../../../app/LaunchRequestStore'
-import SessionManager from '../../../common/services/SessionManager'
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
 import { text } from '@kit.ArkGraphics2D'
@@ -109,7 +108,8 @@ struct PencilSplashPage {
         await DeviceSeedService.applyNamedSeed(context, seedKey)
       }
     }
-    if (context !== null && await SessionManager.isLoggedIn(context)) {
+    // 启动不再以登录态作为门槛：直接进入主界面壳。
+    if (context !== null) {
       await this.useSafeWindowLayout(context)
       this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.APP_SHELL })
       return
