@@ -41,7 +41,7 @@ export default function persistenceFallbackServiceTest(): void {
       const goal: UserGoal = PersistenceFallbackService.createDefaultGoal(4000)
       const route: string = StartupDecision.getInitialRoute(goal.goalId.length > 0)
 
-      expect(route).assertEqual(AppRoutes.HOME)
+      expect(route).assertEqual(AppRoutes.APP_SHELL)
     })
 
     it('returns isolated empty workout sessions as default data', 0, () => {

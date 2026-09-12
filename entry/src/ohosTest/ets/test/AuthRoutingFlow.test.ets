@@ -70,7 +70,7 @@ export default function authRoutingFlowTest(): void {
       GoalRepository.clearLocal()
 
       expect(await GoalRepository.hasSavedGoal(getTestContext())).assertTrue()
-      expect(StartupDecision.getInitialRoute(await GoalRepository.hasSavedGoal(getTestContext()))).assertEqual(AppRoutes.HOME)
+      expect(StartupDecision.getInitialRoute(await GoalRepository.hasSavedGoal(getTestContext()))).assertEqual(AppRoutes.APP_SHELL)
     })
   })
 }

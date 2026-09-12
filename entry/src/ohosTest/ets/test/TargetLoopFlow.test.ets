@@ -89,7 +89,7 @@ export default function targetLoopFlowTest(): void {
         now
       )
       GoalRepository.saveLocalGoal(goal)
-      expect(StartupDecision.getInitialRoute(GoalRepository.hasLocalGoal())).assertEqual(AppRoutes.HOME)
+      expect(StartupDecision.getInitialRoute(GoalRepository.hasLocalGoal())).assertEqual(AppRoutes.APP_SHELL)
 
       const savedGoal: UserGoal | undefined = GoalRepository.getLocalGoal()
       expect(savedGoal !== undefined).assertTrue()
