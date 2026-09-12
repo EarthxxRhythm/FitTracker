@@ -129,3 +129,54 @@ flowchart TD
 - **凡含动画媒体的屏**（library 卡片 GIF、active demo、complete confetti），
   比对前先冻结动画或掩蔽媒体区，否则数字失真（已实证）
 - 断言滚动语义前，先用 `--probe` 确认该屏能否滚动（3/5 屏不可滚）
+
+## 9. 首轮探索的补充发现（2026-09-12）
+
+### 9.1 工具边界：spec-bounds-diff.py 只适用「绝对定位屏」
+
+实测确认：
+
+| 屏 | 原型布局 | 工具是否适用 |
+|---|---|---|
+| welcome / complete | `.w-abs` / `.cf-*` 绝对定位 | **适用**（能取到 left/top） |
+| register / login | `.auth-content { display: flex; flex-direction: column }`（`fittracker-auth.html:194-197`） | **不适用** |
+| settings | `.st-top { flex: 0 0 auto }`（`fittracker-settings.html:178-180`） | **不适用** |
+
+**流式元素没有 left/top 声明，工具无从提取**。
+
+用法：先 `grep -n "position: absolute" <原型html>` 确认该屏有绝对定位元素，
+再决定用 `spec-bounds-diff.py`（H2/H3）还是换别的探针。
+
+### 9.2 register 的 H1 结论：成立但幅度不足
+
+- **H1 成立**：`PencilRegisterPage.ets:204-207` 背景层用
+  `linearGradient({ angle: 180, colors: [['#0B0F13', 0], ['#0A0D12', 1]] })`；
+  原型 `fittracker-auth.html` 的 gradient 命中 **0 处**（`.auth-frame` 是
+  `background: var(--ink-welcome-0)` = `#10171B` 纯色）。
+- **但幅度不足**：`#0B0F13` vs `#10171B` 每通道差约 5–9，**低于 compare.py 的阈值 16**，
+  解释不了 band 9 的 mean diff **96.83**。
+- **结论**：register 底部突峰（crop 676–740，57.35%）**另有原因，未定**。
+
+**下一位接手者的下一步**：该区已排除 H1（幅度不足）与 H7（表单页无数据差）。
+建议直接看参照帧与设备截图在 crop 676–740 的差异（对应屏幕 776–840）。
+
+**关于「取景边界」（H8）—— 本轮提出后已自行排除**：曾怀疑 crop 超出原型画布导致差异，
+核算：crop 取屏幕 y 100–740，对应画布 y 110–816，而原型画布高 900，
+**全部落在画布内**，故 H8 不成立。该假设作废。
+
+### 9.3 H1 批量扫描结果（未达标屏）
+
+| 文件 | Gradient 数 | 判定 |
+|---|---|---|
+| PencilRegisterPage.ets | 1 | 成立但幅度不足（见 9.2） |
+| PencilLoginPage.ets | 0 | 排除 |
+| PencilPreviewPage.ets | 0 | 排除 |
+| SettingsContent.ets | 0 | 排除 |
+| ReviewContent.ets | 0 | 排除 |
+| PlanContent.ets | 0 | 排除 |
+| PlanGroupDetailContent.ets | 0 | 排除 |
+| HomeContent.ets | 2（本轮前已记录） | 待办：对照原型 `.appshell` 背景 |
+
+**含义**：H1（自加元素）在未达标屏里**只有 2 处命中**，其中 register 那处幅度不足。
+**H1 不是这批未达标屏的主因** —— 后续探索应把预算投在 H7（数据/口径）、
+H4（字体度量）与新增的 H8（取景边界）上。
