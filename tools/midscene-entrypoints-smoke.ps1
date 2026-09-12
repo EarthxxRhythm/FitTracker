@@ -2,7 +2,7 @@ param(
   [ValidateSet('backup-card', 'media-card', 'current-plan', 'summary-page', 'goal-adjustment', 'plan-detail', 'membership', 'both')]
   [string]$Target = 'current-plan',
   [string]$DeviceId = "",
-  [string]$BundleName = "com.example.fittracker_opencode",
+  [string]$BundleName = "com.earthrhythm.fittracker",
   [string]$AbilityName = "EntryAbility",
   [string]$HapPath = "entry/build/default/outputs/default/entry-default-unsigned.hap",
   [string]$RunRoot = "",

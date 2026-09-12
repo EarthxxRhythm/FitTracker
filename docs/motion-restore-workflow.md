@@ -80,7 +80,7 @@ python tools/capture-prototype-motion.py  # -> test_run/prototype-motion/<page>-
 
 ```powershell
 hdc install entry/build/default/outputs/default/entry-default-unsigned.hap
-hdc shell aa start -a EntryAbility -b com.example.fittracker_opencode
+hdc shell aa start -a EntryAbility -b com.earthrhythm.fittracker
 ```
 
 拿控件坐标（无障碍树，可读文本）：
