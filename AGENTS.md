@@ -111,7 +111,7 @@ Agent 默认按以下顺序优先使用已装好的提效工具，避免低效�
 - **并行拆块**：2+ 个无共享状态、无顺序依赖的任务并行执行，走本项目的 `cluster/` 文件信箱协议（见上一节）或用 `dispatching-parallel-agents`；复杂多文件特性先由 TaskManager 拆块。
 - **上下文发现走子代理**：内部规范/模式用 `ContextScout`，外部库最新文档用 `ExternalScout` 或 `context7`，不自己逐文件翻。
 - **HarmonyOS 构建/文档走 `devecocli`**：scaffold/build/run/debug/devices/docs 均通过它，不裸跑 `hvigorw`、不凭训练数据猜 SDK API。
-- **构建命令**：default HAP 用 `devecocli build --product default`；ohosTest 用 `devecocli build --modules entry@ohosTest --product default`（模块格式 `--modules <module>@<target>`）。实测 `devecocli build` 增量构建 7–11s（`BUILD SUCCESSFUL in 7s / 11s`，端到端 wall time 约 20–30s）；裸跑 `hvigorw assembleHap` 的后台任务曾挂起 17min 无产出，终止后 hvigor daemon 残留 `ESRCH` 坏状态，需等其自行恢复才能再次构建。`tools\*.ps1` 与 `tools\check-gates.mjs` 内部的历史 `hvigorw` 调用保持原样（改动有回归风险），但**新增流程一律走 `devecocli`**。
+- **构建命令**（两条均实测通过）：default HAP `devecocli build --product default`（`BUILD SUCCESSFUL in 11s`）；ohosTest `devecocli build --modules entry@ohosTest --product default`（`BUILD SUCCESSFUL in 1min`，产物 `entry/build/default/outputs/ohosTest/entry-ohosTest-unsigned.hap`）。模块格式 `--modules <module>@<target>`；`--no-parallel` 由 devecocli 内部管理，不再显式传。对照：裸跑 `hvigorw assembleHap` 的后台任务曾挂起 17min 无产出，终止后 hvigor daemon 残留 `ESRCH` 坏状态，需等其自行恢复才能再次构建。`tools\*.ps1` 与 `tools\check-gates.mjs` 内部的历史 `hvigorw` 调用保持原样（改动有回归风险），但**新增流程一律走 `devecocli`**。
 
 ## 并行优先原则（2026-09-07 起）
 
