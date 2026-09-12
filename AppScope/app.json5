@@ -1,7 +1,7 @@
 {
   "app": {
-    "bundleName": "com.example.fittracker_opencode",
-    "vendor": "example",
+    "bundleName": "com.earthrhythm.fittracker",
+    "vendor": "EarthRhythm",
     "versionCode": 1000000,
     "versionName": "1.0.0",
     "icon": "$media:layered_image",
