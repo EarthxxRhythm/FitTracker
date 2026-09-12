@@ -95,7 +95,7 @@ export struct BottomTabBar {
               Text(item.label)
                 .fontSize(FontTokens.NAV_LABEL_SIZE)
                 .lineHeight(FontTokens.NAV_LABEL_LINE_HEIGHT)
-                .fontWeight(this.isCurrent(item) ? FontWeight.Bold : FontTokens.NAV_LABEL_WEIGHT)
+                .fontWeight(this.isCurrent(item) ? 600 : FontTokens.NAV_LABEL_WEIGHT)
                 .fontColor(this.getLabelColor(item))
                 .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: MotionTokens.EASE_MOTION })
             }
@@ -135,7 +135,7 @@ export struct BottomTabBar {
     .backgroundColor(ColorTokens.SURFACE_NAV)
     .border({
       width: { top: 1 },
-      color: ColorTokens.BORDER_HAIRLINE
+      color: 'rgba(255,255,255,0.05)'
     })
     .shadow(ShadowTokens.NAV)
     .alignItems(VerticalAlign.Center)

@@ -22,6 +22,7 @@ export struct PencilAppShell {
   @State @Watch('handleTabChanged') currentTab: string = PencilTabKey.HOME
   @State private viewportOffset: number = 0
   @State private viewportOpacity: number = 1
+  @State private viewportScale: number = 1
   private transitionRunning: boolean = false
   private previousTab: string = PencilTabKey.HOME
   private transitionToken: number = 0
@@ -64,16 +65,13 @@ export struct PencilAppShell {
     this.transitionRunning = true
     this.viewportOffset = 8 * direction
     this.viewportOpacity = 0.88
-    this.getUIContext().animateTo({ duration: 200, curve: Curve.Ease }, () => {
+    this.viewportScale = 0.99
+    this.getUIContext().animateTo({ duration: 160, curve: MotionTokens.EASE_TAB }, () => {
       if (currentTransitionToken !== this.transitionToken) {
         return
       }
       this.viewportOpacity = 1
-    })
-    this.getUIContext().animateTo({ duration: 220, curve: MotionTokens.EASE_MOTION }, () => {
-      if (currentTransitionToken !== this.transitionToken) {
-        return
-      }
+      this.viewportScale = 1
       this.viewportOffset = 0
       this.transitionRunning = false
     })
@@ -143,6 +141,7 @@ export struct PencilAppShell {
     .width('100%')
     .height('100%')
     .translate({ x: this.viewportOffset, y: 0 })
+    .scale({ x: this.viewportScale, y: this.viewportScale })
     .opacity(this.viewportOpacity)
   }
 
