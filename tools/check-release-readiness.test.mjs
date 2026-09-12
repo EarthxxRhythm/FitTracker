@@ -304,3 +304,71 @@ test('signingConfigs 非空但未引用任何材料路径时判 FAIL（空壳配
     cleanup(root)
   }
 })
+
+
+test('devecocli signature generate 写出的 json5 风格配置（无引号键 + 单引号）应被正确解析', function () {
+  const root = makeRoot()
+  const materialDir = mkdtempSync(join(tmpdir(), 'fittracker-material-'))
+  try {
+    function escapePath(value) {
+      return value.replace(/\\/g, '\\\\')
+    }
+
+    const storeFile = join(materialDir, 'release.p12')
+    const certpath = join(materialDir, 'release.cer')
+    const profile = join(materialDir, 'release.p7b')
+    writeFileSync(storeFile, 'material', 'utf8')
+    writeFileSync(certpath, 'material', 'utf8')
+    writeFileSync(profile, 'material', 'utf8')
+
+    // 与 devecocli `signature generate` 实际写出的格式一致：
+    // 无引号键名 + 单引号字符串 + 尾逗号。旧 stripJson5 只处理注释与尾逗号，在此 JSON.parse 崩溃。
+    const json5Text = [
+      '{',
+      '  app: {',
+      '    signingConfigs: [',
+      '      {',
+      "        name: 'default',",
+      "        type: 'HarmonyOS',",
+      '        material: {',
+      "          certpath: '" + escapePath(certpath) + "',",
+      "          keyAlias: 'debugKey',",
+      "          keyPassword: 'secret',",
+      "          profile: '" + escapePath(profile) + "',",
+      "          signAlg: 'SHA256withECDSA',",
+      "          storeFile: '" + escapePath(storeFile) + "',",
+      "          storePassword: 'secret',",
+      '        },',
+      '      },',
+      '    ],',
+      '    products: [',
+      '      {',
+      "        name: 'default',",
+      "        signingConfig: 'default',",
+      '      },',
+      '    ],',
+      '    buildModeSet: [',
+      '      {',
+      "        name: 'debug',",
+      '      },',
+      '      {',
+      "        name: 'release',",
+      '      },',
+      '    ],',
+      '  },',
+      '  modules: [],',
+      '}',
+      ''
+    ].join('\n')
+
+    writeFileSync(join(root, 'build-profile.json5'), json5Text, 'utf8')
+
+    const report = evaluateReleaseReadiness(root, { isTracked: function () { return false } })
+    const result = findResult(report, 'signing-materials')
+    assert.equal(result.level, 'PASS')
+    assert.equal(report.ready, true)
+  } finally {
+    cleanup(materialDir)
+    cleanup(root)
+  }
+})
