@@ -13,7 +13,7 @@
 
 ## 2. 当前真实状态
 
-截至 2026-06-06，仓库的发布口径仍是“内部验收包”，不是正式签名发布包。
+截至 2026-09-12（本轮 release 硬阻断攻关），仓库已消除「判据死锁」，但真实签名材料仍未生成。
 
 已确认的现状：
 
@@ -21,14 +21,12 @@
 - 当前可稳定产出 unsigned HAP：
   - `entry/build/default/outputs/default/entry-default-unsigned.hap`
   - `entry/build/default/outputs/ohosTest/entry-ohosTest-unsigned.hap`
-- 根配置 `build-profile.json5` 中声明了 `release` build mode，但 `app.signingConfigs` 仍为空数组。
-- `default` product 仍绑定 `signingConfig: "default"`，说明 release 配置口子已经留出，但还没有真实可用的 signing material。
-- `entry/build-profile.json5` 目前只定义了 release 期的模块级构建选项，尚未承担正式签名职责。
-- 应用标识仍处于样板状态：
-  - `AppScope/app.json5` 当前 `bundleName` 为 `com.example.fittracker_opencode`
-  - `vendor` 为 `example`
+- 应用身份已替换为正式值：`bundleName = com.earthrhythm.fittracker`，`vendor = EarthRhythm`（原 `com.example.fittracker_opencode` / `example` 已废弃，数据影响见 §9）。
+- 根配置 `build-profile.json5` 声明了 `release` build mode；`app.signingConfigs` 仍为空数组，`default` product 的 `signingConfig: "default"` 引用暂时悬空。
+- `entry/build-profile.json5` 的 release 块已开启混淆（`ruleOptions.enable = true`，规则见 `entry/obfuscation-rules.txt`；实测缺口见 §4.5）。
+- **签名材料尚未生成**：`devecocli auth status` 返回 `Not logged in`，`devecocli signature generate --product default` 直接失败（`Run devecocli auth login to sign in.`）。
 
-结论：**当前仓库具备稳定 unsigned 构建能力，但不具备正式 signed release 交付能力。**
+结论：**判据与实际状态已对齐——`node tools/check-release-readiness.mjs` 现在的 FAIL 准确指向「签名材料未生成」这一真实缺口，而不是判据自身造成的死锁。在登录并生成材料前，仓库仍只具备 unsigned 构建能力。**
 
 ## 3. 当前建议命令
 
@@ -40,8 +38,15 @@ node tools/check-release-readiness.mjs
 
 用途：
 
-- 快速确认 release build mode、signing 配置占位、环境脚本、unsigned 产物、样板应用标识是否处于可继续推进状态
+- 快速确认 release build mode、签名材料、product 引用、环境脚本、unsigned 产物、应用身份是否处于可继续推进状态
 - 当 signing 尚未接入时，脚本会以非零退出码明确提示“release not ready”
+
+签名材料判据（2026-09-12 修正）：
+
+- 旧判据要求「仓库内存在签名材料文件」，与「签名材料不得入库」互斥——两者同时成立时门禁永远 FAIL，形成死锁，无法与发布工程约束同时满足。
+- 新判据只看 `build-profile.json5` 中 `signingConfigs[].material` 引用的路径（`storeFile` / `certpath` / `profile`）是否真实存在：`resolve` + `existsSync`，**仓库内外皆可**；`signingConfigs` 为空或任一引用路径缺失判 FAIL。
+- 附加安全判据：材料落在仓库内**且被 git 追踪**判 FAIL（防止证书入库）；product 的 `signingConfig` 解析不到同名定义判 FAIL。
+- 回归测试：`node --test tools/check-release-readiness.test.mjs`（覆盖空配置 / 路径缺失 / 仓库外材料 PASS / 仓库内被追踪 / 悬空引用 5 个用例）。
 
 ### 3.2 基础构建环境准备
 
@@ -73,11 +78,11 @@ devecocli build --modules entry@ohosTest --product default
 
 ### 4.1 应用身份前置项
 
-- 正式 `bundleName`
-- 正式 `vendor`
-- 对应的 AppGallery Connect 应用条目
+- ✅ 正式 `bundleName`：`com.earthrhythm.fittracker`（已落地于 `AppScope/app.json5`）
+- ✅ 正式 `vendor`：`EarthRhythm`（已落地；若厂商法定登记名不同，请以登记名为准再改一次）
+- ⛔ 对应的 AppGallery Connect 应用条目（需在 AGC 控制台创建，仓库外操作）
 
-当前 `com.example.fittracker_opencode` / `example` 只适合作为开发样板值，不适合作为正式发布身份。
+原 `com.example.fittracker_opencode` / `example` 只适合作为开发样板值。替换 bundleName 会改变本地数据沙箱、导致旧数据不可见，完整机制与迁移路径见 **§9**。
 
 ### 4.2 签名材料前置项
 
@@ -85,19 +90,37 @@ devecocli build --modules entry@ohosTest --product default
 - 与应用身份匹配的 profile / provisioning 材料
 - 本机安全存放策略
 
-当前仓库内未发现可直接用于 release signing 的签名材料文件，也不应把这些材料提交进仓库。
+生成方式（用户指定）：
+
+```powershell
+devecocli auth login                            # 交互登录华为开发者账号
+devecocli signature generate --product default  # 生成材料并自动写入 build-profile.json5
+```
+
+- `signature generate` 默认把材料写到**项目根 `signature/`** 目录，并把 `signingConfigs` 自动写进 `build-profile.json5`。
+- `signature/` 目录与 `*.p12 / *.cer / *.p7b` 等扩展名已加入 `.gitignore`，材料不得入库。
+- **当前状态：blocked** —— `devecocli auth status` 返回 `Not logged in`，`signature generate` 以 `Failed to automatically generate signatures. Run devecocli auth login to sign in.` 失败。该步必须在可交互登录的环境执行；未登录时不得手写假证书或伪路径让门禁变绿。
 
 ### 4.3 构建配置前置项
 
-- 在 `build-profile.json5` 中补齐真实 `signingConfigs`
-- 明确 `default` product 在 release 期实际引用的 signing config 名称
-- 约定签名材料来源是“本机绝对路径”还是“环境变量注入到本地配置”
+- 在 `build-profile.json5` 中补齐真实 `signingConfigs`（由 `signature generate` 自动完成）
+- 明确 `default` product 在 release 期实际引用的 signing config 名称（当前 `"default"` 与 `signature generate` 的默认命名一致）
+- 签名材料来源已约定为 `devecocli signature generate` 的项目根 `signature/` 产物
 
 ### 4.4 验收前置项
 
 - 一次真实 signed HAP 构建记录
 - 一次 signed 包安装 / 启动验证
 - 一份 release closeout 或发布交付记录
+
+### 4.5 release 混淆（已开启配置，尚未实测）
+
+- `entry/build-profile.json5` 的 `ruleOptions.enable` 已由 `false` 改为 `true`；规则文件 `entry/obfuscation-rules.txt` 启用了 `-enable-property-obfuscation` / `-enable-toplevel-obfuscation` / `-enable-filename-obfuscation` / `-enable-export-obfuscation`。
+- ⚠ **本轮只在配置层开启，未在 release 包上实测**（未构建、未装机）。开启混淆后至少需实测以下三条，缺一不可：
+  1. **启动与日志**：release 包冷启动不崩，`devecocli log --level E` 无致命错误；
+  2. **持久化 round-trip**：`common/services/*` 中 11 处 `JSON.parse(json) as Xxx`（`AuthService` / `SessionManager` / `TrainingPlanService` / `WorkoutSessionService` / `WorkoutDraftService` / `FavoriteExerciseService` / `GoalRepository` 等）在「写入 → 冷启动 → 读取」后数据完好；
+  3. **页面路由**：`main_pages.json` 注册的 `@Entry` 页面在 filename 混淆后仍能正常加载。
+- 若上述任一项失败：把 `entry/build-profile.json5` 的 `ruleOptions.enable` 回退为 `false`，并在本文记录原因与实测证据。
 
 ## 5. 建议的后续接入点
 
@@ -140,4 +163,63 @@ devecocli build --modules entry@ohosTest --product default
 
 - `docs/mvp-closeout.md`：记录 MVP 内部验收包，不记录正式签名发布完成
 - 本文档：记录发布与构建工程面的真实状态、命令、缺口与后续接入点
+
+## 9. bundleName 变更的副作用与数据迁移
+
+### 9.1 结论先行
+
+HarmonyOS 按 bundleName 划分应用数据沙箱。**任何一次 bundleName 变更，都会让新包在系统看来是一个全新应用**：原沙箱内的全部本地数据在新包下不可见，用户感知为"数据被清空"。这是平台机制，不是缺陷。
+
+本轮已实际发生该变更：
+
+- 旧（样板）身份：`bundleName = com.example.fittracker_opencode`，`vendor = example`
+- 新（正式）身份：`bundleName = com.earthrhythm.fittracker`，`vendor = EarthRhythm`
+
+**后果**：若旧身份包从未对外分发，则本次变更无实际数据损失；若旧身份包曾安装到任何真实设备（含内测机），该设备上的本地数据在新包下不会自动带过来，需要按 9.4 迁移。后续如再次变更身份，同样遵循本节流程。
+
+### 9.2 机制：沙箱路径随 bundleName 变化
+
+HarmonyOS 为每个应用按其 bundleName 分配独立沙箱目录，应用私有数据（含 Preferences 文件）落在形如 `/data/app/el2/<userId>/base/<bundleName>/` 的路径下。Preferences 由 `preferences.getPreferences(context, <storeName>)` 创建，其物理文件位于该 bundleName 的沙箱内。
+
+- bundleName 不变：`getPreferences` 命中同一目录，数据延续；
+- bundleName 改变：新包沙箱路径不同，`getPreferences` 只会在新目录创建空库，旧数据既不会被读取，也不会被自动迁移。
+
+### 9.3 受影响的数据（当前全部 Preferences store）
+
+下表是当前实现中全部本地数据落点，bundleName 变更后**这 11 个 store 全部从"零"开始**：
+
+| store 名 | 业务含义 | 定义 / 使用位置 |
+| --- | --- | --- |
+| `fit_tracker_auth` | 本地账号凭据 | `entry/src/main/ets/common/services/AuthService.ets` |
+| `fit_tracker_session` | 登录会话 | `entry/src/main/ets/common/services/SessionManager.ets` |
+| `fit_tracker_profile` | 用户资料 | `entry/src/main/ets/common/services/UserProfileService.ets` |
+| `fit_tracker_goal` | 用户目标设置 | `entry/src/main/ets/shared/services/GoalRepository.ets` |
+| `fit_tracker_plans` | 训练计划 | `entry/src/main/ets/common/services/TrainingPlanService.ets` |
+| `fit_tracker_sessions` | 训练记录 | `entry/src/main/ets/common/services/WorkoutSessionService.ets` |
+| `fit_tracker_active_workout` | 进行中的训练草稿 | `entry/src/main/ets/common/services/WorkoutDraftService.ets` |
+| `fit_tracker_favorites` | 收藏的动作 | `entry/src/main/ets/common/services/FavoriteExerciseService.ets` |
+| `fit_tracker_entitlement` | 会员权益状态 | `entry/src/main/ets/shared/services/MonetizationEntitlementService.ets` |
+| `fit_tracker_content_sync` | 内容目录同步状态 | `entry/src/main/ets/shared/services/SyncService.ets` |
+| `fit_tracker_launch_request` | 启动请求（调试种子） | `entry/src/main/ets/app/LaunchRequestStore.ets` |
+
+（`app/AppState.ets` 的 `FitTrackerStores` 中还声明了 `CONTENT` / `PLANS` / `WORKOUTS` / `RECORDS` 常量，但当前代码中未见对它们的引用，不构成数据落点。）
+
+### 9.4 迁移路径
+
+仅在"已经分发过旧 bundleName 的包、且用户留有数据"时才需要迁移：
+
+1. 在**旧包**内使用应用内备份功能，导出本地 JSON 备份包，保存到设备公共目录或外部存储；
+2. 替换 `bundleName` 与 `vendor`，重新构建；
+3. 卸载旧包、安装新包（两者 bundleName 不同，可并存，但建议干净安装）；
+4. 在**新包**内导入第 1 步的备份包；
+5. 校验：训练记录、计划、资料、收藏等是否完整回填。
+
+备份包以内容为单位组织，不依赖沙箱路径，因此是跨 bundleName 迁移的可行载体——但前提是旧包在卸载前已经导出。
+
+### 9.5 上线检查项
+
+- [x] `AppScope/app.json5` 的 `bundleName` / `vendor` 已替换为正式身份（`com.earthrhythm.fittracker` / `EarthRhythm`）；
+- [ ] 已确认不存在"仍需读取旧 bundleName 沙箱数据"的诉求，或已按 9.4 完成迁移；
+- [ ] 替换后重新执行 `node tools/check-release-readiness.mjs`；
+- [ ] 替换后重新走一遍完整回归（`ohosTest` + 关键设备冒烟）。
 

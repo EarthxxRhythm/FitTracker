@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "FitTracker training module"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "FitTracker local-first fitness training app"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "FitTracker"
+    }
+  ]
+}
