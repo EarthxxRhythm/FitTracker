@@ -17,17 +17,25 @@ devecocli ui 提供了 swipe 手势，使这件事可以脚本化断言。
 ----
   --fixed    元素在 T1 的 bounds 与 T0 相同          → PASS（该元素固定）
   --scrolled 元素在 T1 的 bounds 变化 / 或已不可见   → PASS（随内容滚动）
+  --probe    只看本屏是否可滚：swipe 前后可见文本集合是否有变化
+
+为什么需要 --probe
+------------------
+实测发现「内容不足一屏」的屏占多数（login / register / active 都是），
+对它们跑 --scrolled 会得到**假 FAIL**（元素本就不该动）。
+断言前先用 --probe 判断该屏能否滚动，可避免误读。
 
 用法
 ----
-  python tools/scroll-assert.py --fixed "身体数据" --scrolled "当前体重"
+  # 先探测本屏能不能滚
+  python tools/scroll-assert.py --probe
 
-  # 多个元素用逗号分隔
-  python tools/scroll-assert.py --fixed "身体数据,设置" --scrolled "当前体重,身体成分"
+  # 再按结果选断言方向
+  python tools/scroll-assert.py --fixed "身体数据" --scrolled "当前体重"
+  python tools/scroll-assert.py --fixed "FITTRACKER,欢迎回来,登录"   # 不可滚的屏：全 fixed
 
   # 自定义滑动轨迹（默认 660,1900,660,700）与设备
-  python tools/scroll-assert.py --fixed "身体数据" --scrolled "当前体重" \\
-      --swipe 660,1900,660,700 --device 127.0.0.1:5555
+  python tools/scroll-assert.py --probe --swipe 660,1800,660,800 --device 127.0.0.1:5555
 
 退出码
 ------
@@ -68,7 +76,6 @@ def run_swipe(coords, device):
     cmd = ['devecocli', 'ui', 'swipe'] + [str(c) for c in coords]
     if device:
         cmd += ['--device', device]
-    # Windows 上 devecocli 是 .cmd，subprocess 必须经 shell 才解析得到
     proc = subprocess.run(' '.join(cmd), capture_output=True, text=True, encoding='utf-8', shell=True)
     out = (proc.stdout or '') + (proc.stderr or '')
     if proc.returncode != 0:
@@ -92,6 +99,22 @@ def find_bounds(node, text, acc=None):
     return acc
 
 
+def collect_texts(node, acc=None):
+    """收集整棵树里的非空文本，用于判断页面是否可滚。"""
+    if acc is None:
+        acc = set()
+    if isinstance(node, dict):
+        item_text = (node.get('text') or '').strip()
+        if item_text:
+            acc.add(item_text)
+        for value in node.values():
+            collect_texts(value, acc)
+    elif isinstance(node, list):
+        for item in node:
+            collect_texts(item, acc)
+    return acc
+
+
 def describe(found):
     if not found:
         return '不可见'
@@ -102,6 +125,8 @@ def main():
     parser = argparse.ArgumentParser(description='断言页面固定区/滚动区是否符合原型语义')
     parser.add_argument('--fixed', default='', help='应保持固定的元素文本，逗号分隔')
     parser.add_argument('--scrolled', default='', help='应随内容滚动的元素文本，逗号分隔')
+    parser.add_argument('--probe', action='store_true',
+                        help='只探测本屏是否可滚（比对 swipe 前后可见文本集合）')
     parser.add_argument('--swipe', default='660,1900,660,700', help='滑动轨迹 x1,y1,x2,y2')
     parser.add_argument('--device', default='', help='目标设备（名称或序列号）')
     parser.add_argument('--depth', type=int, default=10, help='layout 树深度（默认 10）')
@@ -109,8 +134,8 @@ def main():
 
     fixed_items = [s.strip() for s in args.fixed.split(',') if s.strip()]
     scrolled_items = [s.strip() for s in args.scrolled.split(',') if s.strip()]
-    if not fixed_items and not scrolled_items:
-        parser.error('至少提供 --fixed 或 --scrolled 之一')
+    if not fixed_items and not scrolled_items and not args.probe:
+        parser.error('至少提供 --probe / --fixed / --scrolled 之一')
 
     try:
         coords = [int(x) for x in args.swipe.split(',')]
@@ -129,6 +154,19 @@ def main():
     except RuntimeError as exc:
         print('环境/取景失败：%s' % exc)
         return 2
+
+    # --probe：只判断本屏能否滚动，供选择断言方向
+    if args.probe:
+        texts0 = collect_texts(tree_t0)
+        texts1 = collect_texts(tree_t1)
+        print()
+        if texts0 != texts1:
+            print('本屏可滚：swipe 前后可见文本集合有变化（%d → %d 条）' % (len(texts0), len(texts1)))
+            print('  建议：对内容区元素用 --scrolled 断言')
+            return 0
+        print('本屏不可滚：swipe 前后可见文本集合完全相同（%d 条）' % len(texts0))
+        print('  建议：对页内元素用 --fixed 断言（内容不足一屏，元素本就不该动）')
+        return 0
 
     failures = []
     print()
@@ -160,6 +198,7 @@ def main():
         print('结论：不符合预期 %d 项' % len(failures))
         for item in failures:
             print('  - %s' % item)
+        print('  提示：若元素本就不该动，先用 --probe 确认本屏是否可滚')
         return 1
 
     print('结论：全部符合预期')
