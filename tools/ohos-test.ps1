@@ -1,6 +1,6 @@
 param(
   [string]$DeviceId = "",
-  [string]$BundleName = "com.example.fittracker_opencode",
+  [string]$BundleName = "com.earthrhythm.fittracker",
   [string]$ModuleName = "entry_test",
   [string]$TestRunner = "OpenHarmonyTestRunner",
   [Alias('ClassFilter')]

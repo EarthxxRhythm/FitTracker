@@ -21,7 +21,7 @@ if (!(Test-Path $Hdc)) { throw "hdc not found: $Hdc" }
 $Root = Split-Path $PSScriptRoot -Parent
 Set-Location $Root
 $Hap = 'entry/build/default/outputs/default/entry-default-unsigned.hap'
-$Bundle = 'com.example.fittracker_opencode'
+$Bundle = 'com.earthrhythm.fittracker'
 $Ability = 'EntryAbility'
 $Proto = Join-Path $RunRoot ($Name + '-proto.png')
 $ShotRaw = Join-Path $RunRoot ($Name + '-device.jpeg')

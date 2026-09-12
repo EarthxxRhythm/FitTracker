@@ -1,8 +1,8 @@
 param(
   [string]$DeviceId = '127.0.0.1:5555',
-  [string]$BundleName = 'com.example.fittracker_opencode',
+  [string]$BundleName = 'com.earthrhythm.fittracker',
   [string]$AbilityName = 'EntryAbility',
-  [string]$RemotePreferenceDir = '/data/app/el2/100/base/com.example.fittracker_opencode/haps/entry/preferences'
+  [string]$RemotePreferenceDir = '/data/app/el2/100/base/com.earthrhythm.fittracker/haps/entry/preferences'
 )
 
 $ErrorActionPreference = 'Stop'

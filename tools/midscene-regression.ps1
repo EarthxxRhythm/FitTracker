@@ -1,6 +1,6 @@
 ﻿param(
   [string]$DeviceId = "",
-  [string]$BundleName = "com.example.fittracker_opencode",
+  [string]$BundleName = "com.earthrhythm.fittracker",
   [string]$AbilityName = "EntryAbility",
   [string]$HapPath = "entry/build/default/outputs/default/entry-default-unsigned.hap",
   [string]$RunRoot = "",
