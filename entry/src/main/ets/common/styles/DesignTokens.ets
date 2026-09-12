@@ -375,6 +375,8 @@ export class MotionTokens {
   static readonly EASE_PANEL: ICurve = curves.cubicBezierCurve(0.32, 0.72, 0.3, 1)
   static readonly EASE_FLY: ICurve = curves.cubicBezierCurve(0.16, 0.7, 0.3, 1)
   static readonly EASE_FALL: ICurve = curves.cubicBezierCurve(0.2, 0.55, 0.35, 1)
+  // Tab 切换转场（原型 welcome-home.html 内联 JS：transform .16s cubic-bezier(0,0,.2,1), opacity .16s ease）
+  static readonly EASE_TAB: ICurve = curves.cubicBezierCurve(0, 0, 0.2, 1)
 
   // Press scale factors
   static readonly PRESS_PRIMARY: number = 0.985

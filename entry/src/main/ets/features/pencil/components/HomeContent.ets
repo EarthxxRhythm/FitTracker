@@ -21,7 +21,6 @@ export struct HomeContent {
   private static readonly CHINESE_FONT_FAMILY: string = 'Noto Sans SC'
   private static readonly NUMBER_FONT_FAMILY: string = 'Inter'
   @State private primaryPressed: boolean = false
-  @State private ghostPressed: boolean = false
   @State private currentDateText: string = ''
   @State private greetingText: string = ''
   @State private weeklyProgressPercent: number = 0
@@ -175,18 +174,7 @@ export struct HomeContent {
       Column()
         .width('100%')
         .height('100%')
-        .linearGradient({
-          angle: 180,
-          colors: [['#0B0F13', 0], ['#0A0D12', 1]]
-        })
-      Column()
-        .width('100%')
-        .height('100%')
-        .radialGradient({
-          center: [70, 0],
-          radius: 254,
-          colors: [['#1F50ECA7', 0], ['#0050ECA7', 1]]
-        })
+        .backgroundColor('#0B0F13')
       Column() {
         Scroll() {
           Column() {
@@ -196,6 +184,7 @@ export struct HomeContent {
                 .fontSize(12.7)
                 .fontColor('#B3FFFFFF')
                 .fontWeight(FontWeight.Medium)
+                .letterSpacing(0.127)
                 .width('100%')
               Text(this.greetingText)
                 .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
@@ -249,15 +238,18 @@ export struct HomeContent {
             .fontSize(12.7)
             .fontWeight(FontWeight.Bold)
             .fontColor('#50ECA7')
+            .letterSpacing(0.762)
           Row({ space: 8 }) {
             Text('\u4e0a\u80a2\u529b\u91cf')
               .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
               .fontSize(22)
+              .lineHeight(24.64)
               .fontWeight(FontWeight.Bold)
               .fontColor('#F7FBF8')
             Text('\u63a8\u8350')
               .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
               .fontSize(9)
+              .lineHeight(10.8)
               .fontWeight(FontWeight.Bold)
               .fontColor('#50ECA7')
               .backgroundColor('#1F50ECA7')
@@ -307,6 +299,7 @@ export struct HomeContent {
               .fontSize(19)
               .fontWeight(FontWeight.Bold)
               .fontColor('#F7FBF8')
+              .letterSpacing(-0.38)
             Text('\u672c\u5468\u8fdb\u5ea6')
               .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
               .fontSize(9.5)
@@ -371,17 +364,8 @@ export struct HomeContent {
         .fontColor('#F7FBF8')
         .backgroundColor('#08FFFFFF')
         .borderRadius(20)
-        .onTouch((event: TouchEvent) => {
-          if (event.type === TouchType.Down) {
-            this.ghostPressed = true
-          } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-            this.ghostPressed = false
-          }
-        })
-        .scale({ x: this.ghostPressed ? MotionTokens.PRESS_SHORTCUT : 1, y: this.ghostPressed ? MotionTokens.PRESS_SHORTCUT : 1 })
-        .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
         .padding(0)
-        .border({ width: 1, color: '#10FFFFFF' })
+        .border({ width: 1, color: '#1AFFFFFF' })
         .onClick(() => {
           this.getUIContext().getRouter().pushUrl({ url: AppRoutes.WORKOUT_PREVIEW })
         })
@@ -437,7 +421,7 @@ export struct HomeContent {
     .padding(16)
     .backgroundColor('#08FFFFFF')
     .borderRadius(27.2)
-    .border({ width: 1, color: '#10FFFFFF' })
+    .border({ width: 1, color: '#1AFFFFFF' })
     .shadow({ radius: 36, color: '#24000000', offsetX: 0, offsetY: 18 })
   }
 
@@ -491,6 +475,7 @@ export struct HomeContent {
         .lineHeight(26)
         .fontWeight(FontWeight.Bold)
         .fontColor('#F7FBF8')
+        .letterSpacing(-0.52)
         .width('100%')
         .height(26)
         .textAlign(TextAlign.Center)
@@ -516,7 +501,7 @@ export struct HomeContent {
       Text(day)
         .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
         .fontSize(10)
-        .fontWeight(FontWeight.Medium)
+        .fontWeight(600)
         .fontColor(active ? '#F7FBF8' : '#9EFFFFFF')
         .height(14)
       Stack({ alignContent: Alignment.Center }) {
