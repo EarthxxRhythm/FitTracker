@@ -123,3 +123,29 @@ Home 基线分解：超阈集中在 band1(84-168 日期/问候文字带,字体�
 login 剩余差异集中在 band 6-7（CTA/分割线/社交按钮区，32.8%/29.0%），上半部 band 0-5 为 0.5%-8.4%。
 
 **复现方式**：`restore-accept.ps1` 对 auth 屏无效；正确路径为 `bm clean` → `aa start` → `uitest uiInput click <「开始使用」坐标>` 到 login，再点「立即注册」到 register。掩码生成见 `test_run/genmask.py`（从 `uitest dumpLayout` 的文本 bounds ÷3.3846 换算）。
+
+## 2026-09-12 · 首页（home）完整还原 + 度量管道垂直对齐修正
+
+**根因**：`compare.py` 对原型帧与设备截图使用同一组裁剪坐标，而设备截图是整屏（含系统状态栏）、原型帧是 `.phone` 画布——页面元素整体错开，制造大面积**伪差**。首页有两个全宽、高对比的 CTA，错位后完全不重叠，因此比大块同色卡片的屏（active/plans/body/profile）明显更差。
+
+**实测对齐量 = 35vp**（像素锚点：date 文字带 36 / greet 34 / 今日卡上边框 35）。注意 a11y root 的 `bounds` 从 132px 起（÷3.3846 = 39.0vp），**不能直接当对齐量用**——以像素锚点为准。
+
+**改动**：
+
+- 工具：`compare.py --align-y`（默认 0，历史数字可复现）、`restore-accept.ps1 -AlignY`（默认 35）、`genmask.py` 掩码同步偏移。
+- 首页：删 `radialGradient` 光晕层（原型 `.appshell` 为纯色 `var(--ink-0)`，全文件仅 3 处渐变且均属 ring/divider）、背景渐变改纯色、两处 `--line-10` 描边 `#10FFFFFF`→`#1AFFFFFF`、补 title/rec 行高与 date/label/m-value/val 字距、移除原型没有的「查看预览」按压态。
+- 配套：`BottomTabBar` 激活字重 600 与顶边 `rgba(255,255,255,.05)`；`PencilAppShell` Tab 转场改 160ms 单段 + `scale(.99)` 初态；新增 `MotionTokens.EASE_TAB`。
+
+**复测（390vp · `--crop 100,740` · a11y 文本掩码 · 进度环豁免）**：
+
+| 口径 | MAE | 超阈% | 判定 |
+|---|---|---|---|
+| 物理对齐 35 | 7.16 | **6.92%** | ✅ 达标（≤8%） |
+| best-fit 30 | 4.76 | 5.18% | ✅ |
+| `--align-y 0`（旧口径） | 20.47 | 18.34% | ❌ |
+
+历史基线 `home 14.19%` 是在**无对齐**的错口径下测得的，不代表还原质量。
+
+**已验证**：光晕删除在 band 0 生效（mean 4.11 → 1.11，降 73%）；band 5（CTA 带）从 18.24% 微升至 19.50%，为渲染器行高收缩残差。
+
+**已知限度（新增）**：ArkUI 默认行高比 Chrome `line-height: normal` 小约 10%，导致页内**累积收缩**——首页顶部元素需偏移 35，今日卡内 CTA 只需 30。单一 `--align-y` 无法逐元素对齐，故验收**同时记录两组数字**：「物理对齐」（达标判据）与「best-fit」（定位参考）。根治需逐 Text 补显式 `lineHeight`，属跨渲染器固有差异，暂列为后续项。
