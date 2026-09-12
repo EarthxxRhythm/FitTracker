@@ -148,4 +148,43 @@ login 剩余差异集中在 band 6-7（CTA/分割线/社交按钮区，32.8%/29.
 
 **已验证**：光晕删除在 band 0 生效（mean 4.11 → 1.11，降 73%）；band 5（CTA 带）从 18.24% 微升至 19.50%，为渲染器行高收缩残差。
 
-**已知限度（新增）**：ArkUI 默认行高比 Chrome `line-height: normal` 小约 10%，导致页内**累积收缩**——首页顶部元素需偏移 35，今日卡内 CTA 只需 30。单一 `--align-y` 无法逐元素对齐，故验收**同时记录两组数字**：「物理对齐」（达标判据）与「best-fit」（定位参考）。根治需逐 Text 补显式 `lineHeight`，属跨渲染器固有差异，暂列为后续项。
+**已知限度**：ArkUI 默认行高比 Chrome `line-height: normal` 小约 10%，导致页内**累积收缩**——首页顶部元素需偏移 35，今日卡内 CTA 只需 30。单一 `--align-y` 无法逐元素对齐，故验收**同时记录两组数字**：「物理对齐」（达标判据）与「best-fit」（定位参考）。
+
+## 2026-09-12（续）· 行高收缩根治 —— 直接向 Chrome 取值
+
+**方法**：不再猜 `line-height: normal` 是多少。用 headless Chrome 在原型页面上执行后 `--dump-dom`，从 `<title>` 取回 `getBoundingClientRect()` 实测值。工具：`tools/probe-css-metrics.py`——与 `tools/spec-bounds-diff.py` **互补**：后者读 CSS *声明值*（查坐标是否偏移），前者读渲染后的*计算值*（查尺寸为何不符），`line-height: normal` 与 flex gap 的计算结果只在后者可见。
+
+**Chrome 实测 vs 设备 a11y**：
+
+| 元素 | Chrome 高 | 设备（修前） | 差 |
+|---|---|---|---|
+| `.today-id .label` (12.7px) | 19.00 | 15.4 | +3.60 |
+| `.today-id .muscle` (12.7px) | 19.00 | 15.4 | +3.60 |
+| `.today-id .day` (10.9px) | 16.00 | 13.0 | +3.00 |
+| `.today-id .title-row` | 24.63 | 26.2 | −1.57 |
+| `.today-id` 合计 | **103.63** | 94.6 | **+9.03** |
+| `.today` 卡片总高 | 393.63 | 389.1 | +4.53 |
+
+即 Chrome 对 12.7px 的 `normal` 行高是 19px（≈1.5×），ArkUI 默认仅 ≈1.21×。
+
+**改动**（`HomeContent.ets`）：给 `.today-id` 的 label / muscle 补 `lineHeight(19)`、day 补 `lineHeight(16)`（title/rec 此前已补）。
+
+**验证（复现即证）**：
+
+- 设备 a11y 复测：label 18.9 / muscle 18.9 / day 16.0 / title 24.5 —— 逐项命中 Chrome 值；`.today-id` 从 94.6 恢复到 **102.2**（Chrome 103.63，残余 1.4）。
+- 绿色 CTA 按钮带像素位置：**(458,497) → (461,499)**，下移 3.6vp，与 `today-top` 从 100 → 102.2 的预期一致。
+- 偏移扫描最优点：**30 → 33**，向物理值 35 收敛。
+
+**最终数字**：
+
+| 口径 | 修前 | 修后 | Δ |
+|---|---|---|---|
+| 物理对齐 35 + 掩码 + 环豁免 | 6.92% | **5.65%** | −1.27pt |
+| best-fit 33 + 掩码 + 环豁免 | 5.18%（align 30） | **4.39%** | −0.79pt |
+| `--align-y 0` + 掩码 | 18.34% | 18.88% | — |
+
+**残余**：`.today-id` 仍差 1.4vp（Chrome 103.63 vs 设备 102.2），来自 flex `gap`/`margin` 的取整累积；物理对齐 35 与 best-fit 33 之间仍有 2vp 差，故两组口径**继续并列使用**。
+
+**动效态帧**：设备无 `screenrecord`，160ms 过渡中间帧**无法捕获**。已捕获 Tab 切换**终态**帧（`test_run/restore-accept/tab-plan.jpeg`；点击「计划」tab 后 a11y 确认为计划页，与首页帧 MAE 19.14、内容区行带差异 14–40%），证明切换与渲染正确。过渡曲线只做代码级核对（`MotionTokens.EASE_TAB` = `bezier(0,0,.2,1)`、160ms、初态 `scale(.99)`）。
+
+**响应式**：设备固定 390vp，`devecocli ui window` 只有 `list`（不能改窗口）、`wm size` 不可用 → 无法做 320/360/430 设备截图，**降级为静态审计**：首页链路（`HomeContent` / `BottomTabBar` / `PencilAppShell`）无 ≥320vp 硬编码宽度；全仓仅 `WorkoutCompletePage.ets:248` 有 `.width(430)`，那是该屏缩放画布（430×930.6×0.90698）的原型规格，非缺陷。
