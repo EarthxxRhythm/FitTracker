@@ -3,6 +3,29 @@
 import { AppRoutes } from '../../../app/AppRoutes'
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 
+/**
+ * 还原说明（2026-09-12 重构 · 第二轮）
+ *
+ * 原型 fittracker-welcome-home.html 的 welcome 屏是「430×900 设计空间 × scale(0.90698)」
+ * 画布（.w-frame），屏内元素全部 .w-abs 绝对定位：
+ *   .w-logo     left 24  top 118  382×42
+ *   .w-eyebrow  left 24  top 196
+ *   .w-headline left 24  top 224  width 382  font 42 / line-height 1.3
+ *   .w-sub      left 24  top 336  width 346  font 16 / line-height 1.6
+ *   .w-visual   left 24  top 420  382×208
+ *   .w-cta      left 24  top 684  width 382  (按钮 h 52)
+ *   .w-foot     left 24  top 852  width 382
+ *
+ * 第二轮清理（对照原型源码后确认「原型没有、实现自加」的元素）：
+ *   1. 顶层背景：原型 .w-frame 是 background: var(--ink-welcome-0) = #10171B **纯色**；
+ *      实现曾挂 linearGradient(#10171B→#0A0D12) + radialGradient(center [77.4,108])。
+ *      后者圆心正落在顶部左侧，是 band 0 差异的来源。已改回纯色。
+ *   2. .w-visual 卡片：原型是 background: var(--visual-a) = #14241F **纯色**；
+ *      实现曾挂 linearGradient + radialGradient，已改回纯色。
+ *   3. 删除原型不存在的三处：150×150 与 90×90 两个实心圆、以及 347×189 的重复卡片
+ *      （外层 Stack 已是 382×208 的卡片本体，与原型 .w-visual 同尺寸）。
+ *      原型 SVG 里只有 3 个**描边**圆（r 80/58/38，stroke 无 fill），对应下方 3 个 Circle。
+ */
 @Entry
 @Component
 struct PencilWelcomePage {
@@ -48,68 +71,14 @@ struct PencilWelcomePage {
   @Builder
   private buildTrainingVisual() {
     Stack({ alignContent: Alignment.TopStart }) {
+      // 卡片底：原型 background: var(--visual-a) = #14241F（纯色）
       Column()
         .width('100%')
-        .height(208)
-        .borderRadius(30)
-        .linearGradient({
-          angle: 180,
-          colors: [['#14241F', 0], ['#0D1616', 1]]
-        })
-
-      Column()
-        .width('100%')
-        .height(208)
-        .borderRadius(30)
-        .radialGradient({
-          center: [191, 62.4],
-          radius: 124.8,
-          colors: [['#1F50ECA7', 0], ['#0050ECA7', 1]]
-        })
-
-      Column()
-        .width(150)
-        .height(150)
-        .borderRadius(75)
-        .backgroundColor('#0850ECA7')
-        .border({
-          width: 1,
-          color: '#3350ECA7'
-        })
-        .position({
-          x: 190,
-          y: 10
-        })
-
-      Column()
-        .width(90)
-        .height(90)
-        .borderRadius(45)
-        .backgroundColor('#1250ECA7')
-        .border({
-          width: 1,
-          color: '#6650ECA7'
-        })
-        .position({
-          x: 220,
-          y: 40
-        })
-
-      // 原型 .w-visual 卡片容器：382×208、圆角 30、背景 var(--visual-a)=#14241F、
-      // 边框 var(--line-14)=rgba(255,255,255,.078)。app 侧此前完全缺失这个容器 ——
-      // 它才是 welcome band8（mean diff 104.92）的真正来源：大面积色块缺失；
-      // 下面的同心圆与图标都只是卡片内部的装饰。
-      Column()
-        .width(347)
-        .height(189)
-        .borderRadius(30)
+        .height('100%')
         .backgroundColor('#14241F')
-        .border({ width: 1, color: '#145FFFFFF' })
-        .shadow({ radius: 36, color: '#57000000', offsetX: 0, offsetY: 18 })
-        .position({ x: 0, y: 0 })
 
-      // 原型 w-visual 的 3 个同心圆（SVG viewBox 坐标 cx=265 cy=85, r=80/58/38，
-      // 转左上角坐标 = cx-r, cy-r）。此前 app 侧完全缺失，是 welcome band8 差异主因。
+      // 原型 w-visual 的 3 个同心圆（SVG viewBox cx=265 cy=85, r=80/58/38，
+      // 转左上角坐标 = cx-r, cy-r），均为描边、无填充。
       Circle({ width: 160, height: 160 })
         .fill(Color.Transparent)
         .stroke('#50ECA7')
@@ -165,23 +134,19 @@ struct PencilWelcomePage {
         })
 
       Text('CONSISTENCY > INTENSITY')
-        .width(142)
-        .height(13)
         .fontFamily('Geist Mono')
         .fontSize(10)
         .fontWeight(600)
         .fontColor('#66FFFFFF')
         .lineHeight(10)
         .letterSpacing(1.1)
-        .translate({ x: 0, y: 1 })
         .position({
           x: 24,
           y: 168
         })
     }
-    .width('100%')
+    .width(382)
     .height(208)
-    .constraintSize({ maxWidth: 382 })
     .clip(true)
     .borderRadius(30)
     .border({
@@ -196,45 +161,63 @@ struct PencilWelcomePage {
     })
   }
 
+  @Builder
+  private buildCta() {
+    Stack({ alignContent: Alignment.Center }) {
+      Text('开始使用')
+        .fontFamily('Noto Sans SC')
+        .fontSize(16)
+        .fontWeight(FontWeight.Bold)
+        .fontColor('#07100B')
+        .textAlign(TextAlign.Center)
+    }
+    .width(382)
+    .height(52)
+    .backgroundColor('#50ECA7')
+    .borderRadius(18)
+    .shadow({
+      radius: 24,
+      color: '#66000000',
+      offsetX: 0,
+      offsetY: 10
+    })
+    .onTouch((event: TouchEvent) => {
+      if (event.type === TouchType.Down) {
+        this.ctaPressed = true
+      } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        this.ctaPressed = false
+      }
+    })
+    .scale({ x: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1 })
+    .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
+    .onClick(() => {
+      this.getUIContext().getRouter().pushUrl({ url: AppRoutes.LOGIN })
+    })
+  }
+
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
+      // 背景：原型 .w-frame background: var(--ink-welcome-0) = #10171B（纯色，无渐变）
       Column()
         .width('100%')
         .height('100%')
-        .linearGradient({
-          angle: 180,
-          colors: [['#10171B', 0], ['#0A0D12', 1]]
-        })
+        .backgroundColor('#10171B')
 
-      Column()
-        .width('100%')
-        .height('100%')
-        .radialGradient({
-          center: [77.4, 108],
-          radius: 360,
-          colors: [['#2B50ECA7', 0], ['#0050ECA7', 1]]
-        })
-
-      Column() {
+      // 430×900 设计空间（对齐原型 .w-frame：430×900 × scale(0.90698)）
+      Stack({ alignContent: Alignment.TopStart }) {
         Row() {
           this.buildBrandLockup()
         }
-        .width('100%')
-        .justifyContent(FlexAlign.Center)
-        // 原型 .w-logo top:118（画布）×0.90698 = vp 107，实测偏上 19vp
-        .margin({ top: 95 })
+        .position({ x: 24, y: 118 })
 
         Text('TRAIN SMARTER. LIVE STRONGER.')
-          .width(182)
-          .height(14)
           .fontFamily('Geist Mono')
           .fontSize(11)
           .fontWeight(600)
           .fontColor('#50ECA7')
           .lineHeight(11)
           .letterSpacing(1.3)
-          .translate({ x: 0, y: 1 })
-          .margin({ top: 36 })
+          .position({ x: 24, y: 196 })
 
         Text('把训练，变成\n看得见的进步。')
           .width(382)
@@ -242,9 +225,8 @@ struct PencilWelcomePage {
           .fontSize(42)
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
-          .lineHeight(0.98 * 42)
-          .translate({ x: 0, y: 4 })
-          .margin({ top: 14 })
+          .lineHeight(1.3 * 42)
+          .position({ x: 24, y: 224 })
 
         Text('记录每一次训练，读懂身体反馈。\n用更聪明的方式，持续变强。')
           .width(346)
@@ -252,85 +234,37 @@ struct PencilWelcomePage {
           .fontSize(16)
           .fontWeight(FontWeight.Normal)
           .fontColor('#A6FFFFFF')
-          .lineHeight(1.45 * 16)
-          .translate({ x: 0, y: -1 })
-          .margin({ top: 14 })
+          .lineHeight(1.6 * 16)
+          .position({ x: 24, y: 336 })
 
         Column() {
           this.buildTrainingVisual()
         }
-        .width('100%')
-        .height(189)
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
-        .padding({ top: 0, bottom: 0 })
+        .position({ x: 24, y: 420 })
 
-        Column({ space: 12 }) {
-          Stack({ alignContent: Alignment.Center }) {
-            Text('开始使用')
-              .width(65)
-              .height(23)
-              .fontFamily('Noto Sans SC')
-              .fontSize(16)
-              .fontWeight(FontWeight.Bold)
-              .fontColor('#07100B')
-              .lineHeight(1.4 * 16)
-              .textAlign(TextAlign.Center)
-              .translate({ x: 0, y: -2 })
-          }
-          .width('100%')
-          .height(52)
-          .linearGradient({
-            angle: 90,
-            colors: [['#47D994', 0], ['#53E7A5', 1]]
-          })
-          .borderRadius(18)
-          .shadow({
-            radius: 24,
-            color: '#66000000',
-            offsetX: 0,
-            offsetY: 10
-          })
-          .onTouch((event: TouchEvent) => {
-            if (event.type === TouchType.Down) {
-              this.ctaPressed = true
-            } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-              this.ctaPressed = false
-            }
-          })
-          .scale({ x: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1 })
-          .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
-          .onClick(() => {
-            this.getUIContext().getRouter().pushUrl({ url: AppRoutes.LOGIN })
-          })
+        Column() {
+          this.buildCta()
         }
-        .width('100%')
-        .constraintSize({ maxWidth: 382 })
-        .height(52)
-        // 原型 .w-cta top:684（画布）×0.90698 = vp 620.4；补偿 flex 布局累积的偏移
-        // （logo 下移 19 后同步减 19，保持 CTA 停在 vp 620）
-        .margin({ top: 75 })
+        .position({ x: 24, y: 684 })
 
         Text('本地记录 · 无需注册 · 随时开始')
-          .width('100%')
-          .height(16)
+          .width(382)
           .fontFamily('Noto Sans SC')
           .fontSize(11)
           .fontWeight(FontWeight.Normal)
           .fontColor('#52FFFFFF')
           .lineHeight(1.45 * 11)
           .textAlign(TextAlign.Center)
-          .translate({ x: 0, y: -2 })
-          .margin({ top: 116, bottom: 8 })
+          .position({ x: 24, y: 852 })
       }
-      .width('100%')
-      .height('100%')
-      .alignItems(HorizontalAlign.Center)
-      .padding({ left: 24, right: 24 })
+      .width(430)
+      .height(900)
+      .scale({ x: 0.90698, y: 0.90698, centerX: 0, centerY: 0 })
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#000000')
+    .clip(true)
+    .backgroundColor('#10171B')
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }
