@@ -223,3 +223,37 @@ HarmonyOS 为每个应用按其 bundleName 分配独立沙箱目录，应用私�
 - [ ] 替换后重新执行 `node tools/check-release-readiness.mjs`；
 - [ ] 替换后重新走一遍完整回归（`ohosTest` + 关键设备冒烟）。
 
+
+
+## 10. 实测记录：2026-09-13 首次产出已签名 release HAP
+
+### 执行结果
+
+| 步骤 | 命令 | 结果 |
+|---|---|---|
+| 登录 | `devecocli auth status` | `Current user: 131*******` |
+| 生成材料 | `devecocli signature generate --product default` | 成功；材料写入 `~/.ohos/config/`，签名配置写入 `build-profile.json5` |
+| 门禁 | `node tools/check-release-readiness.mjs` | **exit 0**（接入前为 exit 1） |
+| release 构建 | `devecocli build --product default --build-mode release` | BUILD SUCCESSFUL，产出 `entry-default-signed.hap`（约 22.1 MB），**无 "Will skip sign" 警告** |
+| 安装 | `hdc install entry/build/default/outputs/default/entry-default-signed.hap` | `install bundle successfully` |
+| 冷启动 | `aa start -a EntryAbility -b com.earthrhythm.fittracker` | `start ability successfully`，welcome 页正常渲染 |
+
+结论：**已签名 release HAP 产出并在设备安装启动成功**，混淆开启未破坏启动与渲染。
+
+### 接入签名时暴露的两处门禁缺陷（已修复，commit c4973d3）
+
+1. `devecocli signature generate` 会把 `build-profile.json5` 重写为 json5 风格（无引号键名 + 单引号字符串 + 尾逗号），旧 `stripJson5` 只处理注释与尾逗号 → `JSON.parse` 崩溃，门禁在真实签名配置下失效。
+2. `hasReleaseMode` / `hasModuleReleaseBlock` 用双引号字面量正则匹配结构，在 json5 风格下误判「缺少 release build mode」。
+
+修复后 `stripJson5` 支持单引号字符串与无引号键名，两个结构判据改为基于解析后的对象；回归测试 7 pass / 0 fail。
+
+### 实测到的行为差异（不阻塞上架，待诊断）
+
+`--ps devSeed today_flow` 在 **debug 包**下可让 splash 直达 home；在 **release 包**（混淆开启）下，日志确认 `Launch want params` **已收到** `"devSeed":"today_flow"`，但应用稳定停在 welcome 页，未驱动跳转。两次启动间隔 28 秒均为同一结果，变量只有构建模式。
+
+影响面：`devSeed` 是调试参数，生产启动不携带，因此**不影响正式发布包的功能**；但会使 release 包下的设备截图验收（依赖 seed 直达 home）失效——如需在 release 包上做视觉验收，改用 `devecocli ui click` 导航。
+
+### 注意事项
+
+- `build-profile.json5` 的签名配置含本机绝对路径（`C:\Users\<user>\.ohos\config\...`）与加密密码，**保留在工作区、未提交**。团队与 CI 环境应各自执行 `devecocli signature generate`；门禁在干净环境下判 FAIL 属预期（确无签名材料）。
+- 签名材料本体（`.p12` / `.cer` / `.p7b`）位于仓库外，且 `.gitignore` 已排除相关扩展名。
