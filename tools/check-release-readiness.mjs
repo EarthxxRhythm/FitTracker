@@ -27,12 +27,21 @@ function addResult(results, level, id, title, detail) {
   results.push({ level, id, title, detail })
 }
 
-function hasReleaseMode(buildProfileText) {
-  return /"buildModeSet"\s*:\s*\[[\s\S]*?"name"\s*:\s*"release"/.test(buildProfileText)
+// 注意：devecocli `signature generate` 会把 build-profile.json5 重写成 json5 风格
+// （无引号键 + 单引号字符串），因此不能用「双引号字面量」正则判断结构，必须走解析后的对象。
+function hasReleaseMode(buildProfile) {
+  const app = buildProfile && buildProfile.app ? buildProfile.app : {}
+  const modes = Array.isArray(app.buildModeSet) ? app.buildModeSet : []
+  return modes.some(function (mode) {
+    return mode !== null && typeof mode === 'object' && mode.name === 'release'
+  })
 }
 
-function hasModuleReleaseBlock(entryBuildProfileText) {
-  return /"buildOptionSet"\s*:\s*\[[\s\S]*?"name"\s*:\s*"release"/.test(entryBuildProfileText)
+function hasModuleReleaseBlock(entryBuildProfile) {
+  const blocks = Array.isArray(entryBuildProfile.buildOptionSet) ? entryBuildProfile.buildOptionSet : []
+  return blocks.some(function (block) {
+    return block !== null && typeof block === 'object' && block.name === 'release'
+  })
 }
 
 /**
@@ -43,28 +52,52 @@ function hasModuleReleaseBlock(entryBuildProfileText) {
  */
 function stripJson5(text) {
   let out = ''
-  let inString = false
+  let quote = ''
   let escaped = false
+  let lastSig = ''
+
+  function emit(fragment) {
+    out += fragment
+    for (let k = fragment.length - 1; k >= 0; k--) {
+      const c = fragment[k]
+      if (c !== ' ' && c !== '\t' && c !== '\n' && c !== '\r') {
+        lastSig = c
+        break
+      }
+    }
+  }
 
   for (let i = 0; i < text.length; i++) {
     const ch = text[i]
     const next = text[i + 1]
 
-    if (inString) {
-      out += ch
+    if (quote !== '') {
       if (escaped) {
+        emit(ch)
         escaped = false
-      } else if (ch === '\\') {
-        escaped = true
-      } else if (ch === '"') {
-        inString = false
+        continue
       }
+      if (ch === '\\') {
+        emit(ch)
+        escaped = true
+        continue
+      }
+      if (ch === quote) {
+        emit('"')
+        quote = ''
+        continue
+      }
+      if (quote === "'" && ch === '"') {
+        emit('\\"')
+        continue
+      }
+      emit(ch)
       continue
     }
 
-    if (ch === '"') {
-      inString = true
-      out += ch
+    if (ch === '"' || ch === "'") {
+      quote = ch
+      emit('"')
       continue
     }
 
@@ -72,7 +105,7 @@ function stripJson5(text) {
       while (i < text.length && text[i] !== '\n') {
         i++
       }
-      out += '\n'
+      emit('\n')
       continue
     }
 
@@ -85,7 +118,22 @@ function stripJson5(text) {
       continue
     }
 
-    out += ch
+    // json5 允许无引号键名 —— devecocli `signature generate` 写出的 build-profile.json5
+    // 正是「无引号键 + 单引号字符串」格式，旧实现只处理注释与尾逗号，会 JSON.parse 崩溃。
+    // 只在「对象起始或逗号之后」的键位加引号，避免把值位置的裸标识符也改写。
+    if (/[A-Za-z_$]/.test(ch) && (lastSig === '' || lastSig === '{' || lastSig === ',')) {
+      let j = i
+      while (j < text.length && /[A-Za-z0-9_$]/.test(text[j])) {
+        j++
+      }
+      if (/^\s*:/.test(text.slice(j))) {
+        emit('"' + text.slice(i, j) + '"')
+        i = j - 1
+        continue
+      }
+    }
+
+    emit(ch)
   }
 
   return out.replace(/,(\s*[}\]])/g, '$1')
@@ -175,18 +223,20 @@ export function evaluateReleaseReadiness(rootDir, options) {
 
   const buildProfileText = readText(buildProfilePath)
   const entryBuildProfileText = readText(entryBuildProfilePath)
+  const buildProfile = parseJson5(buildProfileText)
+  const entryBuildProfile = parseJson5(entryBuildProfileText)
   const appScope = parseJson5(readText(appScopePath))
   const bundleName = appScope.app.bundleName
   const vendor = appScope.app.vendor
 
-  if (hasReleaseMode(buildProfileText)) {
+  if (hasReleaseMode(buildProfile)) {
     addResult(results, 'PASS', 'release-mode', '根配置已声明 release build mode', 'build-profile.json5 中存在 release buildModeSet。')
   } else {
     addResult(results, 'FAIL', 'release-mode', '根配置缺少 release build mode', 'release 构建模式未声明，无法继续推进正式发布。')
     ready = false
   }
 
-  if (hasModuleReleaseBlock(entryBuildProfileText)) {
+  if (hasModuleReleaseBlock(entryBuildProfile)) {
     addResult(results, 'PASS', 'module-release-block', '模块配置已声明 release 构建块', 'entry/build-profile.json5 中已有 release buildOptionSet。')
   } else {
     addResult(results, 'FAIL', 'module-release-block', '模块配置缺少 release 构建块', '模块级 release 构建选项缺失。')
@@ -197,7 +247,6 @@ export function evaluateReleaseReadiness(rootDir, options) {
   // 旧判据是「仓库内存在签名材料文件」，与「签名材料不入库」互斥 —— 两者同时成立时永远 FAIL。
   // 新判据：只看 signingConfigs 引用的材料路径是否真实存在（resolve + existsSync，仓库内外皆可）；
   // 材料落在仓库内且被 git 追踪时判 FAIL（防止证书入库）。
-  const buildProfile = parseJson5(buildProfileText)
   const appConfig = buildProfile.app || {}
   const signingConfigs = Array.isArray(appConfig.signingConfigs) ? appConfig.signingConfigs : []
   const products = Array.isArray(appConfig.products) ? appConfig.products : []
