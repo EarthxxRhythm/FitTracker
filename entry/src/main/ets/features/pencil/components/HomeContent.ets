@@ -236,6 +236,7 @@ export struct HomeContent {
           Text('\u4eca\u65e5\u8bad\u7ec3')
             .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
             .fontSize(12.7)
+            .lineHeight(19)
             .fontWeight(FontWeight.Bold)
             .fontColor('#50ECA7')
             .letterSpacing(0.762)
@@ -260,6 +261,7 @@ export struct HomeContent {
           Text('\u80f8\u90e8 \u00b7 \u80a9\u90e8 \u00b7 \u4e09\u5934\u808c')
             .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
             .fontSize(12.7)
+            .lineHeight(19)
             .fontColor('#9EFFFFFF')
           Row({ space: 7 }) {
             Stack({ alignContent: Alignment.Center }) {
@@ -273,6 +275,7 @@ export struct HomeContent {
             Text('\u8bad\u7ec3\u65e5 \u00b7 \u5efa\u8bae\u5b8c\u6210')
               .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
               .fontSize(10.9)
+              .lineHeight(16)
               .fontWeight(FontWeight.Medium)
               .fontColor('#89FFFFFF')
           }
