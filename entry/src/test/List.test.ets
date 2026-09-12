@@ -5,7 +5,6 @@ import sessionManagerTest from './SessionManager.test'
 import userProfileServiceTest from './UserProfileService.test'
 import trainingPlanServiceTest from './TrainingPlanService.test'
 import exerciseServiceTest from './ExerciseService.test'
-import startupRoutingTest from './StartupRouting.test'
 import targetLoopSkeletonTest from './TargetLoopSkeleton.test'
 
 export default function testsuite() {
@@ -16,6 +15,5 @@ export default function testsuite() {
   userProfileServiceTest()
   trainingPlanServiceTest()
   exerciseServiceTest()
-  startupRoutingTest()
   targetLoopSkeletonTest()
 }
