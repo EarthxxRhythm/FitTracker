@@ -78,7 +78,7 @@ class DeviceSeedService {
         now
       )
     )
-    await TrainingPlanService.replaceMyPlans(context, [], '')
+    await TrainingPlanService.enablePlan(context, 'preset_upper_lower')
     await WorkoutDraftService.clearDraft(context)
     await MonetizationEntitlementService.clearEntitlementForTesting(context)
     await WorkoutSessionPersistenceBridgeService.replacePersistedSessions(context, [])
@@ -192,7 +192,7 @@ class DeviceSeedService {
         now
       )
     )
-    await TrainingPlanService.replaceMyPlans(context, [], '')
+    await TrainingPlanService.enablePlan(context, 'preset_upper_lower')
     await WorkoutDraftService.clearDraft(context)
     await MonetizationEntitlementService.clearEntitlementForTesting(context)
     const sessions: WorkoutSession[] = this.createDemoSessions()

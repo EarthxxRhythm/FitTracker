@@ -220,6 +220,7 @@ struct PencilLoginPage {
     }
     .width('100%')
     .height(20)
+    .margin({ top: 2 })
     .justifyContent(FlexAlign.SpaceBetween)
   }
 
@@ -332,6 +333,7 @@ struct PencilLoginPage {
                 .width('100%')
                 .height(52)
                 .padding(0)
+                .margin({ top: 20 })
                 .fontFamily('Noto Sans SC')
                 .fontSize(16)
                 .fontWeight(FontWeight.Bold)
