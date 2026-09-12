@@ -12,7 +12,8 @@ param(
   [string]$IgnoreRect = '',
   [string]$RunRoot = 'test_run/restore-accept',
   [string]$DeviceId = '127.0.0.1:5555',
-  [switch]$SkipInstall
+  [switch]$SkipInstall,
+  [int]$AlignY = 35
 )
 $ErrorActionPreference = 'Stop'
 $Hdc = 'C:\Program Files\Huawei\DevEco Studio\sdk\default\openharmony\toolchains\hdc.exe'
@@ -51,7 +52,7 @@ Start-Sleep -Seconds 9
 if (-not (Test-Path $ShotRaw)) { throw 'screenshot recv failed' }
 
 Write-Host "[4/4] compare (crop=$Crop)"
-$args = @($Proto, $ShotRaw, '--out', $Report, '--crop', $Crop)
+$args = @($Proto, $ShotRaw, '--out', $Report, '--crop', $Crop, '--align-y', $AlignY)
 if ($IgnoreRect) { $args += @('--ignore-rect', $IgnoreRect) }
 python tools/visual-diff/compare.py @args
 if ($LASTEXITCODE -ne 0) { throw 'compare failed' }
