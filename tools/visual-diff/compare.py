@@ -55,6 +55,9 @@ def main(argv):
     ap.add_argument('--bands', type=int, default=10, help='number of row bands')
     ap.add_argument('--crop', default=None,
                     help='logical-row crop as y0,y1 (e.g. 100,740) to measure a content region only')
+    ap.add_argument('--align-y', type=int, default=0,
+                    help='logical rows to shift the screenshot crop DOWN before diffing '
+                         '(compensates for the system status bar; emulator = 39)')
     ap.add_argument('--ignore-rect', action='append', default=[], metavar='x0,y0,x1,y1',
                     help='logical rect(s) to ignore in stats/artifacts (e.g. seed-value text zones). Repeatable.')
     args = ap.parse_args(argv)
@@ -82,9 +85,15 @@ def main(argv):
             return 2
         y0 = max(0, min(y0, ph))
         y1 = max(y0 + 1, min(y1, ph))
+        # The screenshot is the whole screen (status bar included) while the prototype frame is
+        # the bare phone canvas; --align-y shifts the screenshot window down to match.
+        sy0 = max(0, min(y0 + args.align_y, ph))
+        sy1 = max(sy0 + 1, min(y1 + args.align_y, ph))
         proto = proto.crop((0, y0, pw, y1))
-        aligned = aligned.crop((0, y0, pw, y1))
-        ph = y1 - y0
+        aligned = aligned.crop((0, sy0, pw, sy1))
+        ph = min(y1 - y0, sy1 - sy0)
+        proto = proto.crop((0, 0, pw, ph))
+        aligned = aligned.crop((0, 0, pw, ph))
 
     # Optional ignore rects (logical px in the final, possibly cropped, space).
     ignore_boxes = []
