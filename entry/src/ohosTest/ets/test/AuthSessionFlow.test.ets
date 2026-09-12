@@ -54,7 +54,7 @@ export default function authSessionFlowTest(): void {
       if (restoredLoginToken !== null) {
         expect(restoredLoginToken).assertEqual(loginResult.token)
       }
-      expect(StartupDecision.getInitialRoute(true)).assertEqual(AppRoutes.HOME)
+      expect(StartupDecision.getInitialRoute(true)).assertEqual(AppRoutes.APP_SHELL)
     })
   })
 }
