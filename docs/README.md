@@ -27,3 +27,11 @@
 - `docs\prototype-to-arkui-prompt-fittracker.md` —— FitTracker 专属附录：八项规格源落点、15 屏清单与 ArkUI 落点、可执行命令、已踩过的坑、验收口径
 
 用法：先读附录第 1 节确认规格源，再把模板正文的方括号填成附录里的实际路径。
+
+## 发布与合规
+
+- `docs/release-build-runbook.md` —— 构建/发布工程面的真实状态、命令、缺口与接入点；第 9 节记录 bundleName 变更对本地数据沙箱的影响与迁移路径
+- `docs/CHANGELOG.md` —— 版本说明与更新日志
+- `docs/legal/privacy-policy.md` —— 隐私政策（本地优先、零权限、零网络）
+- `docs/legal/user-agreement.md` —— 用户协议
+- `docs/store-listing-screenshot-checklist.md` —— 应用市场上架截图清单（release 包实拍）
