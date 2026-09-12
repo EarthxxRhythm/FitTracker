@@ -54,7 +54,7 @@ rg -n "@keyframes|transition:|animation:|:active|cubic-bezier" <原型目录>/fi
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 . .\tools\deveco-env.ps1
-hvigorw.bat assembleHap --mode module -p product=default
+devecocli build --product default
 node tools/check-gates.mjs
 ```
 
@@ -120,7 +120,7 @@ python tools/compare-motion-frames.py   # -> test_run/motion-diff/report.md + <p
 1) 读 docs/motion-restore-workflow.md（只读）。
 2) rg 提取原型 @keyframes/transition/:active/cubic-bezier，列出规格表。
 3) 按 §2 映射到 ArkUI；时长/缓动/缩放统一用 MotionTokens。
-4) 构建：hvigorw assembleHap --mode module -p product=default，要求 BUILD SUCCESSFUL。
+4) 构建：devecocli build --product default，要求 BUILD SUCCESSFUL。
 5) 用 §5/§6/§7 产出参照帧 + 设备帧 + MAE diff，写 outbox（changed_files + evidence + 缺口）。
 约束：ArkTS strict（不用 any/unknown/as const/解构/for..in/嵌套函数）；只改 owner_files；不回退未提交布局改动。
 ```

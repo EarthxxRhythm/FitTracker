@@ -58,8 +58,8 @@ powershell -ExecutionPolicy Bypass -File tools/deveco-env.ps1
 ### 3.3 当前可复跑的 unsigned 构建
 
 ```powershell
-& 'C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat' assembleHap --mode module -p module=entry@default -p product=default --no-parallel
-& 'C:\Program Files\Huawei\DevEco Studio\tools\hvigor\bin\hvigorw.bat' assembleHap --mode module -p module=entry@ohosTest -p product=default --no-parallel
+devecocli build --modules entry@default --product default
+devecocli build --modules entry@ohosTest --product default
 ```
 
 说明：
