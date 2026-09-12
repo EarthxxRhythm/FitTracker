@@ -9,7 +9,7 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -99,6 +99,8 @@ function makeRoot() {
       '}\n',
     'utf8'
   )
+  // release 混淆规则文件：门禁会校验其存在性，fixture 必须提供
+  writeFileSync(join(entryDir, 'obfuscation-rules.txt'), '-enable-property-obfuscation\n', 'utf8')
 
   const appScopeDir = join(root, 'AppScope')
   mkdirSync(appScopeDir, { recursive: true })
@@ -369,6 +371,41 @@ test('devecocli signature generate 写出的 json5 风格配置（无引号键 +
     assert.equal(report.ready, true)
   } finally {
     cleanup(materialDir)
+    cleanup(root)
+  }
+})
+
+
+test('release 混淆 enable 回退为 false 时判 FAIL（旧门禁在此漏检）', function () {
+  const root = makeRoot()
+  try {
+    writeRootProfile(root, [], 'default')
+    const entryProfilePath = join(root, 'entry', 'build-profile.json5')
+    const original = readFileSync(entryProfilePath, 'utf8')
+    writeFileSync(entryProfilePath, original.replace('"enable": true', '"enable": false'), 'utf8')
+
+    const report = evaluateReleaseReadiness(root, { isTracked: function () { return false } })
+    const result = findResult(report, 'release-obfuscation')
+    assert.ok(result, '应产出 release-obfuscation 结果项')
+    assert.equal(result.level, 'FAIL')
+    assert.equal(report.ready, false)
+  } finally {
+    cleanup(root)
+  }
+})
+
+test('release 混淆规则文件缺失时判 FAIL', function () {
+  const root = makeRoot()
+  try {
+    writeRootProfile(root, [], 'default')
+    rmSync(join(root, 'entry', 'obfuscation-rules.txt'), { force: true })
+
+    const report = evaluateReleaseReadiness(root, { isTracked: function () { return false } })
+    const result = findResult(report, 'release-obfuscation')
+    assert.ok(result, '应产出 release-obfuscation 结果项')
+    assert.equal(result.level, 'FAIL')
+    assert.equal(report.ready, false)
+  } finally {
     cleanup(root)
   }
 })

@@ -45,6 +45,26 @@ function hasModuleReleaseBlock(entryBuildProfile) {
 }
 
 /**
+ * release 块里是否真的开了混淆。
+ * 只判断「存在 name: release 的 buildOptionSet」是不够的 —— enable 回退为 false 时，
+ * 上一版门禁仍会 PASS，导致「混淆已开启」这个声明无法被证伪。
+ */
+function releaseObfuscationState(entryBuildProfile) {
+  const blocks = Array.isArray(entryBuildProfile.buildOptionSet) ? entryBuildProfile.buildOptionSet : []
+  const release = blocks.find(function (block) {
+    return block !== null && typeof block === 'object' && block.name === 'release'
+  })
+  if (release === undefined) {
+    return { found: false, enabled: false, files: [] }
+  }
+  const arkOptions = release.arkOptions || {}
+  const obfuscation = arkOptions.obfuscation || {}
+  const ruleOptions = obfuscation.ruleOptions || {}
+  const files = Array.isArray(ruleOptions.files) ? ruleOptions.files : []
+  return { found: true, enabled: ruleOptions.enable === true, files: files }
+}
+
+/**
  * 把 DevEco 的 .json5 文本降级为可 JSON.parse 的文本：
  * - 去掉 // 与 /* *\/ 注释
  * - 去掉对象/数组尾部的多余逗号
@@ -241,6 +261,29 @@ export function evaluateReleaseReadiness(rootDir, options) {
   } else {
     addResult(results, 'FAIL', 'module-release-block', '模块配置缺少 release 构建块', '模块级 release 构建选项缺失。')
     ready = false
+  }
+
+  // release 混淆是否真正开启。缺少此项时，enable 从 true 回退为 false 仍会被判 PASS，
+  // 使「release 包已开启混淆」这一声明无法被证伪。
+  const obf = releaseObfuscationState(entryBuildProfile)
+  if (!obf.found) {
+    addResult(results, 'FAIL', 'release-obfuscation', '未找到 release 构建块，无法判定混淆开关', 'entry/build-profile.json5 的 buildOptionSet 中没有 name 为 release 的块。')
+    ready = false
+  } else if (!obf.enabled) {
+    addResult(results, 'FAIL', 'release-obfuscation', 'release 混淆处于关闭状态', 'arkOptions.obfuscation.ruleOptions.enable 非 true，release 包不做名称混淆。')
+    ready = false
+  } else {
+    const missingRules = obf.files.filter(function (file) {
+      const cleaned = file.replace(/^\.\//, '')
+      const candidates = [resolve(rootDir, 'entry', cleaned), resolve(rootDir, cleaned)]
+      return !candidates.some(function (candidate) { return existsSync(candidate) })
+    })
+    if (missingRules.length > 0) {
+      addResult(results, 'FAIL', 'release-obfuscation', '混淆规则文件不存在', missingRules.join('；'))
+      ready = false
+    } else {
+      addResult(results, 'PASS', 'release-obfuscation', 'release 混淆已开启且规则文件存在', 'enable=true；规则文件：' + obf.files.join(', '))
+    }
   }
 
   // ---- 签名材料判据（本脚本的核心） ----
