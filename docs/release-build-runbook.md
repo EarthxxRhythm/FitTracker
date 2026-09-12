@@ -257,3 +257,24 @@ HarmonyOS 为每个应用按其 bundleName 分配独立沙箱目录，应用私�
 
 - `build-profile.json5` 的签名配置含本机绝对路径（`C:\Users\<user>\.ohos\config\...`）与加密密码，**保留在工作区、未提交**。团队与 CI 环境应各自执行 `devecocli signature generate`；门禁在干净环境下判 FAIL 属预期（确无签名材料）。
 - 签名材料本体（`.p12` / `.cer` / `.p7b`）位于仓库外，且 `.gitignore` 已排除相关扩展名。
+
+
+### 10.1 混淆后的功能冒烟（2026-09-13，回应审查发现）
+
+审查指出 `entry/obfuscation-rules.txt` 启用了 4 项破坏性选项（`-enable-property-obfuscation` / `-enable-toplevel-obfuscation` / `-enable-filename-obfuscation` / `-enable-export-obfuscation`），而 release 包此前只验过冷启动，存在 built ≠ wired ≠ effective 的风险。据此补测——全部在**已签名 release 包**（`entry-default-signed.hap`，混淆开启）上执行：
+
+| 测项 | 方法 | 结果 |
+|---|---|---|
+| 冷启动 | `aa start` 不带 seed | 落首页，正常渲染 |
+| Tab 路由 | 点 计划(412,2640) / 我的(1155,2640) | 分别渲染「当前计划」「当前 0/0 天」、profile（林/谱尼） |
+| 子页 pushUrl | profile → 设置(1191,399) / 身体数据(350,2446) / 动作库(970,2446) | 分别渲染「设置」「身体数据」「动作库」 |
+| 冷启动后重渲染 | force-stop → start → 进 profile | 正常 |
+| **持久化往返** | 改「周开始日」→ 截图 A → force-stop → 重启 → 回到同屏 → 截图 B → 逐像素比对 | 尺寸一致；差异 bbox 仅 `(143,68,184,120)`（状态栏区域）；平均通道差 **0.03** → 设置保持 |
+
+**结论**：
+- `-enable-filename-obfuscation` **未打断**字符串形式的路由名（tab 切换与 `pushUrl` 子页跳转均正常）。
+- `-enable-property-obfuscation` **未破坏** preferences 的 JSON 字段名往返（设置改动能跨冷启动保持）。
+
+**仍未覆盖**（在 release 包上属未验证）：训练流（preview → active → complete）、备份导入导出、以及 ohosTest 在 release 变体下的运行（ohosTest 产物是 debug 构建，不适用）。
+
+> 配套门禁：`tools/check-release-readiness.mjs` 已新增 `release-obfuscation` 检查项——未找到 release 块、`enable` 非 true、或规则文件缺失均判 FAIL。此前该脚本对混淆开关**零覆盖**（`grep -c obfuscation` = 0），`enable` 回退为 false 也会 PASS。
