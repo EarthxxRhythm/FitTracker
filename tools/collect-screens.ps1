@@ -76,11 +76,11 @@ foreach ($name in $Screens) {
   $proto = Join-Path $OutRoot "$name-proto.png"
   python tools/visual-diff/render-prototype.py $spec.Html $proto --screen $spec.Frame | Out-Null
 
-  # 掩码按物理对齐 35vp 生成（genmask 的第二个参数）
-  $maskArgs = @(((python test_run/genmask.py $dump 35) -join ' ') -split ' ')
-
   $best = $null; $bestPct = 999.0; $lines = @()
   foreach ($a in $Aligns) {
+    # 掩码必须与本轮 compare 的 align 同值。若掩码固定按 35 生成而 compare 扫到 0，
+    # 两者错位 35vp → 文本没被真正掩住 → 指标虚高（实测 library 28.42% vs 自洽 26.73%）。
+    $maskArgs = @(((python test_run/genmask.py $dump $a) -join ' ') -split ' ')
     $rep = Join-Path $OutRoot "$name-a$a.md"
     python tools/visual-diff/compare.py $proto $shot --crop 100,740 --align-y $a $maskArgs --out $rep | Out-Null
     $hit = Select-String -Path $rep -Pattern 'threshold: \*\*([0-9.]+) %' | Select-Object -First 1
