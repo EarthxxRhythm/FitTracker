@@ -238,6 +238,7 @@ struct PencilRegisterPage {
             }
             .width('100%')
             .alignItems(HorizontalAlign.Center)
+            .margin({ bottom: 26 })
 
             Column({ space: 14 }) {
               this.buildField('昵称', '给自己起个名字', false, this.nickname, this.nicknameError, (value: string) => {
@@ -256,99 +257,99 @@ struct PencilRegisterPage {
                 this.confirmPassword = value
                 if (this.confirmError.length > 0) { this.confirmError = '' }
               })
-            }
-            .width('100%')
-            .margin({ top: 8, bottom: 8 })
 
-            Row({ space: 10 }) {
-              Stack({ alignContent: Alignment.Center }) {
-                if (this.agreeChecked) {
-                  Path()
-                    .width(11)
-                    .height(6)
-                    .commands('M0 3 L4 6 L11 0')
-                    .fillOpacity(0)
-                    .stroke('#07100B')
-                    .strokeWidth(2)
+              Row({ space: 10 }) {
+                Stack({ alignContent: Alignment.Center }) {
+                  if (this.agreeChecked) {
+                    Path()
+                      .width(11)
+                      .height(6)
+                      .commands('M0 3 L4 6 L11 0')
+                      .fillOpacity(0)
+                      .stroke('#07100B')
+                      .strokeWidth(2)
+                  }
                 }
-              }
-              .width(18)
-              .height(18)
-              .borderRadius(6)
-              .backgroundColor(this.agreeChecked ? '#50ECA7' : '#0AFFFFFF')
-              .border({ width: 1, color: this.agreeChecked ? '#50ECA7' : '#2EFFFFFF' })
-              .margin({ top: 1 })
-              .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: Curve.EaseInOut })
-              .onClick(() => {
-                this.agreeChecked = !this.agreeChecked
-              })
-              Text() {
-                Span('我已阅读并同意')
-                Span('《用户协议》')
-                  .fontColor('#50ECA7')
-                  .fontWeight(FontWeight.Medium)
-                  .onClick(() => {
-                    this.message = '查看协议（原型）'
-                  })
-                Span('与')
-                Span('《隐私政策》')
-                  .fontColor('#50ECA7')
-                  .fontWeight(FontWeight.Medium)
-                  .onClick(() => {
-                    this.message = '查看协议（原型）'
-                  })
-              }
-              .fontFamily('Noto Sans SC')
-              .fontSize(12.5)
-              .fontColor('#8AFFFFFF')
-              .lineHeight(19)
-            }
-            .width('100%')
-            .alignItems(VerticalAlign.Top)
-            .onTouch((event: TouchEvent) => {
-              if (event.type === TouchType.Down) {
-                this.agreePressed = true
-              } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-                this.agreePressed = false
-              }
-            })
-            .scale({ x: this.agreePressed ? MotionTokens.PRESS_CHIP : 1, y: this.agreePressed ? MotionTokens.PRESS_CHIP : 1 })
-            .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: Curve.EaseInOut })
-            .margin({ top: 4, bottom: 10 })
-
-            if (this.message.length > 0) {
-              Text(this.message)
+                .width(18)
+                .height(18)
+                .borderRadius(6)
+                .backgroundColor(this.agreeChecked ? '#50ECA7' : '#0AFFFFFF')
+                .border({ width: 1, color: this.agreeChecked ? '#50ECA7' : '#2EFFFFFF' })
+                .margin({ top: 1 })
+                .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: Curve.EaseInOut })
+                .onClick(() => {
+                  this.agreeChecked = !this.agreeChecked
+                })
+                Text() {
+                  Span('我已阅读并同意')
+                  Span('《用户协议》')
+                    .fontColor('#50ECA7')
+                    .fontWeight(FontWeight.Medium)
+                    .onClick(() => {
+                      this.message = '查看协议（原型）'
+                    })
+                  Span('与')
+                  Span('《隐私政策》')
+                    .fontColor('#50ECA7')
+                    .fontWeight(FontWeight.Medium)
+                    .onClick(() => {
+                      this.message = '查看协议（原型）'
+                    })
+                }
                 .fontFamily('Noto Sans SC')
-                .fontSize(13)
-                .fontColor('#FFD7C5')
-                .width('100%')
-                .margin({ bottom: 10 })
-            }
-
-            Button(this.loading ? '注册中…' : '注册')
+                .fontSize(12.5)
+                .fontColor('#8AFFFFFF')
+                .lineHeight(19)
+              }
               .width('100%')
-              .height(52)
-              .padding(0)
-              .fontFamily('Noto Sans SC')
-              .fontSize(16)
-              .fontWeight(FontWeight.Bold)
-              .fontColor('#07100B')
-              .backgroundColor('#50ECA7')
-              .borderRadius(18)
-              .shadow({ radius: 26, color: '#61000000', offsetX: 0, offsetY: 12 })
-              .onClick(() => {
-                this.register()
-              })
+              .alignItems(VerticalAlign.Top)
               .onTouch((event: TouchEvent) => {
                 if (event.type === TouchType.Down) {
-                  this.ctaPressed = true
+                  this.agreePressed = true
                 } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-                  this.ctaPressed = false
+                  this.agreePressed = false
                 }
               })
-              .scale({ x: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1 })
-              .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
-              .margin({ bottom: 10 })
+              .scale({ x: this.agreePressed ? MotionTokens.PRESS_CHIP : 1, y: this.agreePressed ? MotionTokens.PRESS_CHIP : 1 })
+              .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: Curve.EaseInOut })
+              .margin({ top: 4 })
+
+              if (this.message.length > 0) {
+                Text(this.message)
+                  .fontFamily('Noto Sans SC')
+                  .fontSize(13)
+                  .fontColor('#FFD7C5')
+                  .width('100%')
+                  .margin({ bottom: 10 })
+              }
+
+              Button(this.loading ? '注册中…' : '注册')
+                .width('100%')
+                .height(52)
+                .padding(0)
+                .fontFamily('Noto Sans SC')
+                .fontSize(16)
+                .fontWeight(FontWeight.Bold)
+                .fontColor('#07100B')
+                .backgroundColor('#50ECA7')
+                .borderRadius(18)
+                .shadow({ radius: 26, color: '#61000000', offsetX: 0, offsetY: 12 })
+                .onClick(() => {
+                  this.register()
+                })
+                .onTouch((event: TouchEvent) => {
+                  if (event.type === TouchType.Down) {
+                    this.ctaPressed = true
+                  } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+                    this.ctaPressed = false
+                  }
+                })
+                .scale({ x: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1 })
+                .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
+                .margin({ top: 20 })
+            }
+            .width('100%')
+            .margin({ top: 10, bottom: 10 })
 
             Row({ space: 6 }) {
               Text('已有账号？')
