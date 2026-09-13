@@ -278,3 +278,100 @@ HarmonyOS 为每个应用按其 bundleName 分配独立沙箱目录，应用私�
 **仍未覆盖**（在 release 包上属未验证）：训练流（preview → active → complete）、备份导入导出、以及 ohosTest 在 release 变体下的运行（ohosTest 产物是 debug 构建，不适用）。
 
 > 配套门禁：`tools/check-release-readiness.mjs` 已新增 `release-obfuscation` 检查项——未找到 release 块、`enable` 非 true、或规则文件缺失均判 FAIL。此前该脚本对混淆开关**零覆盖**（`grep -c obfuscation` = 0），`enable` 回退为 false 也会 PASS。
+
+## 11. `build-profile.json5` 签名配置的处置（决策待定，含两种方案）
+
+### 11.1 现状（可复核）
+
+- `build-profile.json5` **受版本控制追踪**：`git ls-files --error-unmatch build-profile.json5` 命中；HEAD 版本的 `app.signingConfigs` 为空数组（`git show HEAD:build-profile.json5` 第 3 行 `"signingConfigs": []`）。
+- 本机执行 `devecocli signature generate --product default` 后，该文件被原地重写：`signingConfigs[0].material` 现含**本机绝对路径**（`C:\Users\19308\.ohos\config\...cer / .p7b / .p12`）与**口令字段**（`storePassword` / `keyPassword`，为华为加密口令密文）。
+- 该改动当前**仅存在于工作区、未提交**：`git status --porcelain build-profile.json5` → ` M build-profile.json5`。
+- `.gitignore` 已排除 `/signature/`、`*.p12` / `*.cer` / `*.p7b` / `/local.properties`，取向是「本机配置不入库」；但 **`build-profile.json5` 本身不在 `.gitignore` 内**（`grep -n build-profile .gitignore` 无命中），且已被追踪。
+
+> 密文不等于零风险：口令字段为加密口令（非明文），但密文与密钥库文件同时泄露时仍扩大攻击面；本机绝对路径也会暴露开发者账号名与目录结构。
+
+### 11.2 冲突点
+
+`build-profile.json5` 同时扮演两个互斥角色：它是 hvigor 必需的**入口配置**（本应入库、可审查），又被 `devecocli signature generate` **原地写入本机敏感信息**（不应入库）。二者需要一条明确规则。
+
+### 11.3 方案甲：仓库保持「无签名 / 可解析」形态，本机配置不入库
+
+做法：
+
+- 入库的 `build-profile.json5` 只保留 `signingConfigs: []` 及 products / buildModeSet / strictMode 等可入库结构；
+- 本机每次 `signature generate` 后的改动不提交——提交前 `git restore build-profile.json5`，或本机执行 `git update-index --skip-worktree build-profile.json5` 让本机改动默认不进 diff。
+
+代价：
+
+- 依赖人工纪律或本地 git 配置；`git add .` / `git add -A` 会误带入本机路径与口令密文；
+- 干净 clone 与 CI 环境跑 `check-release-readiness.mjs` 必然 FAIL（语义正确：确无材料），无法「零操作」产出 signed 包；
+- `--skip-worktree` 会掩盖上游对 `build-profile.json5` 的真实改动，需团队就「谁能改根配置」达成约定。
+
+### 11.4 方案乙：将 `build-profile.json5` 移出版本控制，仓库改存模板
+
+做法：
+
+- `git rm --cached build-profile.json5` + 在 `.gitignore` 增加 `build-profile.json5`；
+- 仓库改存 `build-profile.example.json5`（`signingConfigs: []` 占位），开发者复制为 `build-profile.json5` 后再由 `signature generate` 或手填。
+
+代价：
+
+- 丢失对根配置（products / buildModeSet / strictMode）的版本追踪与代码审查——此后的根配置变更不再进 diff，回归风险上升；
+- 需持续维护 example 模板与真实文件的同步，`signature generate` 的重写行为会让模板持续漂移；
+- 每个开发环境与 CI 都必须从模板重建；`build-profile.json5` 缺失会使 hvigor 构建直接失败，模板机制必须保证「先复制再构建」；
+- 新人上手与故障定位成本上升。
+
+### 11.5 两方案共同的不变量
+
+- 签名材料本体位于仓库外，其扩展名已被 `.gitignore` 覆盖；
+- 无论选哪个方案，都**不得**把 `signingConfigs` 中的本机路径与本机口令提交进仓库；
+- 干净环境门禁判 FAIL 属预期，不是缺陷。
+
+### 11.6 未决
+
+本文件**不替用户拍板**。请在上述规则落定后，于本节回填「已选定：甲 / 乙」及对应操作命令，并同步修正 `.gitignore`（如选乙）。
+
+## 12. 上架材料待办清单（release closeout）
+
+下表汇总上架前必须就位的材料与当前缺口。**已就位的部分不代表可提交**——缺口列出的项目未清零前，不应宣称可上架。
+
+| # | 材料 | 当前状态 | 缺口 / 阻塞 | 落点 |
+| --- | --- | --- | --- | --- |
+| 1 | 隐私政策 | 正文已具备 | **开发者主体、联系邮箱为占位符，须替换** | `docs/legal/privacy-policy.md` 第十一节（`【上线前须替换为正式开发者主体名称】` / `【上线前须替换为正式联系邮箱】`） |
+| 2 | 用户协议 | 正文已具备 | **同上，须替换占位** | `docs/legal/user-agreement.md` 第十节（同名占位串） |
+| 3 | 应用市场截图 | 规格与清单已定义 | 实拍待 release 签名包 + 目标真机 | `docs/store-listing-screenshot-checklist.md` |
+| 4 | 应用身份（bundleName / vendor） | 已落地：`com.earthrhythm.fittracker` / `EarthRhythm` | AGC 应用条目需在控制台创建（仓库外） | `AppScope/app.json5` |
+| 5 | 已签名 release 包 | 本机已实测产出（见 §10） | 团队 / CI 环境各自 `devecocli signature generate` | `build-profile.json5`（处置见 §11） |
+| 6 | 混淆实测 | 冷启动 / Tab / 子页 / 持久化往返已冒烟（见 §10.1） | 训练流、备份导入导出在 release 包上未覆盖 | `entry/build-profile.json5`、`entry/obfuscation-rules.txt` |
+
+### 12.1 上线前必须替换的占位（硬性）
+
+> 🔴 **隐私政策与用户协议中的「开发者主体」「联系邮箱」当前均为占位符**，是上架前**必须替换**的真实空位：
+>
+> - `docs/legal/privacy-policy.md` 第十一节：`【上线前须替换为正式开发者主体名称】`、`【上线前须替换为正式联系邮箱】`（撰写时位于 L97、L98）
+> - `docs/legal/user-agreement.md` 第十节：同两处占位串（撰写时位于 L74、L75）
+>
+> 未替换将无法通过应用市场合规审核。**本文件不填写具体主体名或邮箱**——由开发者按实际登记信息填入。
+
+另见 `docs/legal/README.md` 的「上线前必须补齐」小节（该 README 同样跟踪这两处占位与「最后更新」日期）。
+
+## 13. 遗留决策：welcome / login / register 三屏从启动流不可达
+
+### 13.1 事实（含 file:line）
+
+- `entry/src/main/ets/features/pencil/pages/PencilSplashPage.ets` L112-116：当 `context !== null` 时直接 `replaceUrl(AppRoutes.APP_SHELL)` 并 `return`；L117-119 的 `replaceUrl(AppRoutes.WELCOME)` 位于 `context === null` 的兜底分支。真机上 `getUIContext().getHostContext()` 恒非空，故 welcome 兜底分支不执行。
+- 全仓 `grep` 路由常量：welcome 的**唯一入口**是上述兜底分支；`PencilWelcomePage.ets` L194 `pushUrl(AppRoutes.LOGIN)` 进入 login；`PencilLoginPage.ets` L379 `pushUrl(AppRoutes.REGISTER)` 进入 register；`PencilRegisterPage.ets` L85 / L364 回到 login。无其他导航者引用这三屏。
+- 三屏仍注册于 `entry/src/main/resources/base/profile/main_pages.json`（第 2-4 条），`AppRoutes.WELCOME / LOGIN / REGISTER` 常量仍在。
+
+**结论**：自 commit `4d6a144`（「取消启动时的登录门槛，直接进入主界面」）起，welcome / login / register 在正常启动流中**不可达**；仅在 `getHostContext()` 返回空的异常路径才落到 welcome。
+
+### 13.2 两个方向（未决，需决定）
+
+- **A. 补入口**：在 profile / 设置页提供「退出登录 / 切换账号」等入口，重新接上 login / register；welcome 作为介绍页可在首启或关于页链接。
+  - 代价：需重接会话 / 登录态语义（当前启动已不看登录态），并回归认证流；既有登录逻辑须与取消门槛后的路径保持一致。
+- **B. 彻底移除**：删除三屏文件、`main_pages.json` 中对应注册、以及 `AppRoutes.WELCOME / LOGIN / REGISTER` 常量，并清理相关测试引用。
+  - 代价：删除已实现且已过视觉验收的界面；若未来引入账号 / 会员联网能力需重建；须同步清理 `entry/src/ohosTest` 中针对这些路由的断言。
+
+### 13.3 未决
+
+本文件**不替用户拍板**。决定后回填所选方案与对应改动清单（涉及 `.ets` 的改动不在本次纯文档范围内）。
