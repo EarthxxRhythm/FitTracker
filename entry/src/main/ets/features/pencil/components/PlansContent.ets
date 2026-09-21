@@ -1,8 +1,12 @@
-/** PlansContent —— 计划组列表页界面体（对应 plan-detail.html · screen-plan-detail）。 */
+/** PlansContent —— 计划组列表页界面体（对应 plan-detail.html · screen-plan-detail）。
+ *  数据源：TrainingPlanService 的预置计划（按分化数成套：二/三/四/五分化）；
+ *  顶部「当前计划」由宿主页在 onPageShow 时读取 getCurrentPlan 后经 @Prop 注入。 */
 import { AppRoutes } from '../../../app/AppRoutes'
 import { MotionTokens } from '../../../common/styles/DesignTokens'
+import TrainingPlanService, { PresetPlan } from '../../../common/services/TrainingPlanService'
 
 interface GroupCard {
+  planId: string
   name: string
   audience: string
   freq: string
@@ -11,35 +15,73 @@ interface GroupCard {
   icon: string
 }
 
-function createGroupCard(name: string, audience: string, freq: string, days: number, examples: string, icon: string): GroupCard {
-  return {
-    name: name,
-    audience: audience,
-    freq: freq,
-    days: days,
-    examples: examples,
-    icon: icon
+/** 计划 id → 封面 icon 键（与 `coverIcon` 内的分支一一对应）。 */
+function iconForPlan(planId: string): string {
+  if (planId === 'preset_upper_lower') {
+    return 'layers'
   }
+  if (planId === 'preset_ppl') {
+    return 'activity'
+  }
+  if (planId === 'preset_split_4') {
+    return 'target'
+  }
+  if (planId === 'preset_bro_split') {
+    return 'dumbbell'
+  }
+  return 'layers'
+}
+
+/** 取首个训练日前 3 个动作名，作为卡片上的「示例」行。 */
+function buildExamples(plan: PresetPlan): string {
+  if (plan.days.length === 0) {
+    return ''
+  }
+  const exercises = plan.days[0].exercises
+  const names: string[] = []
+  const limit: number = exercises.length < 3 ? exercises.length : 3
+  for (let index = 0; index < limit; index++) {
+    names.push(exercises[index].name)
+  }
+  return names.join(' · ')
+}
+
+function createGroupCard(plan: PresetPlan): GroupCard {
+  const card: GroupCard = {
+    planId: plan.id,
+    name: plan.name,
+    audience: plan.targetAudience,
+    freq: plan.weeklyFrequency,
+    days: plan.days.length,
+    examples: buildExamples(plan),
+    icon: iconForPlan(plan.id)
+  }
+  return card
+}
+
+function buildGroupCards(): GroupCard[] {
+  const plans: PresetPlan[] = TrainingPlanService.getAllPresetPlans()
+  const cards: GroupCard[] = []
+  for (let index = 0; index < plans.length; index++) {
+    cards.push(createGroupCard(plans[index]))
+  }
+  return cards
 }
 
 @Component
 export struct PlansContent {
+  // 当前计划（由 PencilPlansPage 在 onPageShow 刷新后注入）。
+  @Prop currentPlanName: string = ''
+  @Prop currentPlanMeta: string = ''
+  @Prop hasCurrentPlan: boolean = false
+
   @State private backPressed: boolean = false
   @State private pressedCardKey: string = ''
+  @State private groups: GroupCard[] = []
 
-  // 封面 icon 与 HTML `<symbol id="i-*">` 一一对应（layers/activity/zap/dumbbell/target/chevrons-up/down/core/home/heart）。
-  private readonly groups: GroupCard[] = [
-    createGroupCard('上下肢分裂', '初中级健身者', '4 天 / 周', 4, '杠铃卧推 · 杠铃深蹲 · 引体向上', 'layers'),
-    createGroupCard('推拉腿分裂', '初中高级通用', '3-6 天 / 周', 3, '杠铃卧推 · 引体向上 · 杠铃深蹲', 'activity'),
-    createGroupCard('全身训练 3x', '初级健身者', '3 天 / 周', 3, '杠铃深蹲 · 杠铃卧推 · 杠铃划船', 'zap'),
-    createGroupCard('力量举基础', '力量举入门', '3-4 天 / 周', 4, '杠铃深蹲 · 杠铃卧推 · 杠铃硬拉', 'dumbbell'),
-    createGroupCard('胸背分化', '中高级健身者', '4 天 / 周', 4, '杠铃卧推 · 引体向上 · 高位下拉', 'target'),
-    createGroupCard('肩臂强化', '初中级健身者', '3 天 / 周', 3, '哑铃侧平举 · 哑铃弯举 · 绳索下压', 'chevrons-up'),
-    createGroupCard('下肢力量', '初中高级通用', '3 天 / 周', 3, '杠铃深蹲 · 杠铃硬拉 · 提踵', 'chevrons-down'),
-    createGroupCard('核心腰腹', '初级健身者', '3 天 / 周', 3, '卷腹 · 平板支撑 · 悬垂举腿', 'core'),
-    createGroupCard('家庭自重', '初级健身者', '3 天 / 周', 3, '俯卧撑 · 自重深蹲 · 平板支撑', 'home'),
-    createGroupCard('有氧燃脂', '通用', '3-5 天 / 周', 3, '开合跳 · 高抬腿 · 波比跳', 'heart')
-  ]
+  aboutToAppear(): void {
+    this.groups = buildGroupCards()
+  }
 
   private handleBack(): void {
     this.getUIContext().getRouter().back()
@@ -112,7 +154,7 @@ export struct PlansContent {
               Column({ space: 10 }) {
                 ForEach(this.groups, (group: GroupCard) => {
                   this.groupCard(group)
-                }, (group: GroupCard) => group.name)
+                }, (group: GroupCard) => group.planId)
               }
               .width('100%')
             }
@@ -142,7 +184,7 @@ export struct PlansContent {
           .fontSize(11)
           .fontWeight(FontWeight.Bold)
           .fontColor('#50ECA7')
-        Text('五日增肌计划')
+        Text(this.hasCurrentPlan ? this.currentPlanName : '尚未启用计划')
           .fontFamily('Noto Sans SC')
           .fontSize(20)
           .fontWeight(FontWeight.Bold)
@@ -150,7 +192,7 @@ export struct PlansContent {
           .lineHeight(23)
           .margin({ top: 9 })
           .padding({ right: 76 })
-        Text('增肌 · 5 练分化 · 6 周推进')
+        Text(this.hasCurrentPlan ? this.currentPlanMeta : '从下方选择一个训练计划开始')
           .fontFamily('Noto Sans SC')
           .fontSize(12)
           .fontColor('#9EFFFFFF')
@@ -160,15 +202,17 @@ export struct PlansContent {
       .padding({ top: 16, right: 16, bottom: 15, left: 16 })
       .alignItems(HorizontalAlign.Start)
 
-      Text('当前使用')
-        .fontFamily('Noto Sans SC')
-        .fontSize(10)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#07100B')
-        .padding({ left: 10, right: 10, top: 4, bottom: 4 })
-        .backgroundColor('#50ECA7')
-        .borderRadius(999)
-        .margin({ top: 14, right: 14 })
+      if (this.hasCurrentPlan) {
+        Text('当前使用')
+          .fontFamily('Noto Sans SC')
+          .fontSize(10)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#07100B')
+          .padding({ left: 10, right: 10, top: 4, bottom: 4 })
+          .backgroundColor('#50ECA7')
+          .borderRadius(999)
+          .margin({ top: 14, right: 14 })
+      }
     }
     .width('100%')
     .backgroundColor('#1450ECA7')
@@ -239,11 +283,11 @@ export struct PlansContent {
     .border({ width: 1, color: '#14FFFFFF' })
     .borderRadius(18)
     .constraintSize({ minHeight: 92 })
-    .scale({ x: this.pressedCardKey === group.name ? MotionTokens.PRESS_PRIMARY : 1, y: this.pressedCardKey === group.name ? MotionTokens.PRESS_PRIMARY : 1 })
+    .scale({ x: this.pressedCardKey === group.planId ? MotionTokens.PRESS_PRIMARY : 1, y: this.pressedCardKey === group.planId ? MotionTokens.PRESS_PRIMARY : 1 })
     .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
     .onTouch((event: TouchEvent) => {
       if (event.type === TouchType.Down) {
-        this.pressedCardKey = group.name
+        this.pressedCardKey = group.planId
       } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
         this.pressedCardKey = ''
       }
@@ -252,8 +296,7 @@ export struct PlansContent {
       this.getUIContext().getRouter().pushUrl({
         url: AppRoutes.PLAN_GROUP_DETAIL,
         params: {
-          groupName: group.name,
-          groupTags: [group.audience, group.freq, group.days.toString() + ' 个训练日']
+          planId: group.planId
         }
       })
     })
