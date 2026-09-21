@@ -34,8 +34,8 @@
 | `fittracker-brand-identity.html` | 30120 | - | FitTracker · 品牌标识系统 |
 | `fittracker-exercise-library.html` | 42383 | screen-exercise-library | FitTracker · 动作库页原型 |
 | `fittracker-personal.html` | 97719 | screen-personal | FitTracker 个人页原型 |
-| `fittracker-plan-detail.html` | 20607 | screen-plan-detail | FitTracker · 计划组原型 |
-| `fittracker-plan-group-detail.html` | 25481 | screen-plan-group-detail | FitTracker · 计划组详细页原型 |
+| `fittracker-plan-detail.html` | 19685 | screen-plan-detail | FitTracker · 计划组原型 |
+| `fittracker-plan-group-detail.html` | 25521 | screen-plan-group-detail | FitTracker · 计划组详细页原型 |
 | `fittracker-plan.html` | 38213 | screen-plan | FitTracker · 计划页原型 |
 | `fittracker-review-openstats-1to1.html` | 18550 | - | openGym Stats 组件 · 1:1 还原 |
 | `fittracker-review.html` | 70759 | screen-review | FitTracker · 训练回顾 |

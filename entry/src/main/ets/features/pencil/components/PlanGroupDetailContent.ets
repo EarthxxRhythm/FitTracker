@@ -110,22 +110,35 @@ export struct PlanGroupDetailContent {
     return muscles.join(' · ')
   }
 
-  /** 周一→周日 7 格节奏：该日若有训练日覆盖则「练」，否则「休」。 */
+  /** 周一→周日 7 格节奏：该日若有训练日覆盖则显示该日短标签，否则「休」。 */
   private buildWeekCells(plan: PresetPlan): string[] {
     const cells: string[] = []
     for (let index = 0; index < 7; index++) {
       const dayNum: number = index === 6 ? 0 : index + 1
-      let training: boolean = false
+      let label: string = '休'
       for (let dayIndex = 0; dayIndex < plan.days.length; dayIndex++) {
         const week: number[] | undefined = plan.days[dayIndex].dayOfWeek
         if (week !== undefined && week.indexOf(dayNum) >= 0) {
-          training = true
+          label = this.shortTag(plan.days[dayIndex].dayLabel)
           break
         }
       }
-      cells.push(training ? '练' : '休')
+      cells.push(label)
     }
     return cells
+  }
+
+  /** 训练日短标签：去掉「周一」前缀取首字，如「推日」→推、「周一 胸部」→胸、「上肢A」→上。 */
+  private shortTag(label: string): string {
+    let text: string = label
+    if (text.length >= 2 && text.substring(0, 1) === '周') {
+      text = text.substring(2)
+    }
+    text = text.trim()
+    if (text.length === 0) {
+      return '练'
+    }
+    return text.substring(0, 1)
   }
 
   private async refreshCurrentState(): Promise<void> {
