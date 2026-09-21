@@ -14,13 +14,13 @@ import TrainingPlanService, { PresetPlan } from '../main/ets/common/services/Tra
 export default function trainingPlanServiceTest() {
   describe('TrainingPlanService — plan count', () => {
 
-    it('should have exactly 5 preset plans', 0, () => {
-      expect(TrainingPlanService.getPlanCount()).assertEqual(5)
+    it('should have exactly 4 preset plans', 0, () => {
+      expect(TrainingPlanService.getPlanCount()).assertEqual(4)
     })
 
-    it('should return 5 plans from getAllPresetPlans', 0, () => {
+    it('should return 4 plans from getAllPresetPlans', 0, () => {
       const plans = TrainingPlanService.getAllPresetPlans()
-      expect(plans.length).assertEqual(5)
+      expect(plans.length).assertEqual(4)
     })
   })
 
@@ -32,10 +32,10 @@ export default function trainingPlanServiceTest() {
       expect(plan!.name).assertContain('五分化')
     })
 
-    it('should find powerlifting plan by id', 0, () => {
-      const plan = TrainingPlanService.getPresetPlanById('preset_powerlifting')
+    it('should find the four-split plan by id', 0, () => {
+      const plan = TrainingPlanService.getPresetPlanById('preset_split_4')
       expect(plan !== undefined).assertTrue()
-      expect(plan!.name).assertContain('力量举')
+      expect(plan!.name).assertContain('四分化')
     })
 
     it('should return undefined for unknown id', 0, () => {
@@ -90,14 +90,14 @@ export default function trainingPlanServiceTest() {
 
   describe('TrainingPlanService — all plan names', () => {
 
-    it('should contain all five expected plan names', 0, () => {
+    it('should contain all four split plan names', 0, () => {
       const plans = TrainingPlanService.getAllPresetPlans()
       const names = plans.map(p => p.name)
-      expect(names.includes('五分化训练')).assertTrue()
-      expect(names.includes('上下肢分化')).assertTrue()
-      expect(names.includes('推拉腿分化')).assertTrue()
-      expect(names.includes('全身训练 3x')).assertTrue()
-      expect(names.includes('力量举基础')).assertTrue()
+      expect(names.includes('二分化（上下肢）')).assertTrue()
+      expect(names.includes('三分化（推拉腿）')).assertTrue()
+      expect(names.includes('四分化')).assertTrue()
+      expect(names.includes('五分化')).assertTrue()
+      expect(names.length).assertEqual(4)
     })
   })
 
@@ -106,13 +106,13 @@ export default function trainingPlanServiceTest() {
     it('should simulate user browsing preset plan card list', 0, () => {
       const plans = TrainingPlanService.getAllPresetPlans()
 
-      // User sees 5 plan cards
-      expect(plans.length).assertEqual(5)
+      // User sees 4 plan cards
+      expect(plans.length).assertEqual(4)
 
       // User reads first plan card: name, audience, frequency
-      expect(plans[0].name).assertEqual('五分化训练')
-      expect(plans[0].targetAudience).assertContain('中高级')
-      expect(plans[0].weeklyFrequency).assertContain('5天')
+      expect(plans[0].name).assertEqual('二分化（上下肢）')
+      expect(plans[0].targetAudience).assertContain('初中级')
+      expect(plans[0].weeklyFrequency).assertContain('4')
 
       // User taps a plan card to preview — verify valid ID
       const plan = TrainingPlanService.getPresetPlanById('preset_ppl')
@@ -145,7 +145,7 @@ export default function trainingPlanServiceTest() {
       expect(plan !== undefined).assertTrue()
 
       // Detail page displays plan meta
-      expect(plan!.name).assertEqual('五分化训练')
+      expect(plan!.name).assertEqual('五分化')
       expect(plan!.targetAudience.length).assertLarger(0)
       expect(plan!.weeklyFrequency.length).assertLarger(0)
 
@@ -323,7 +323,7 @@ export default function trainingPlanServiceTest() {
       const plan = TrainingPlanService.getPresetPlanById('preset_upper_lower')
       const pushDay = plan!.days.find(d => d.dayOfWeek && d.dayOfWeek.includes(1))
       expect(pushDay !== undefined).assertTrue()
-      expect(pushDay!.dayLabel).assertContain('上肢推')
+      expect(pushDay!.dayLabel).assertContain('上肢A')
     })
 
     it('should return today label as valid Chinese day string', 0, () => {

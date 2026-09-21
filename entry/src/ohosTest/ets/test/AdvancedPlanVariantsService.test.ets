@@ -11,6 +11,7 @@ function getPresetPlan(): PresetPlan {
       coverColor: '',
       targetAudience: '',
       weeklyFrequency: '',
+      description: '',
       days: []
     }
   }

@@ -1,6 +1,6 @@
 ﻿/**
  * TrainingPlanService 单元测试
- * 覆盖 5 个预设计划结构、getTodayTraining、getTodayLabel、isTrainingDay
+ * 覆盖 4 个预设分化计划结构、getTodayTraining、getTodayLabel、isTrainingDay
  *
  * 注：enablePlan / getMyPlans / getCurrentPlan / setCurrentPlan / removeMyPlan / hasMyPlans
  * 需要 preferences Context，逻辑正确性通过集成测试验证。
@@ -25,9 +25,9 @@ export default function trainingPlanServiceTest(): void {
     // getAllPresetPlans
     // ============================================================
     describe('getAllPresetPlans', () => {
-      it('should return 5 preset plans', 0, () => {
+      it('should return 4 preset plans', 0, () => {
         const plans = trainingPlanService.getAllPresetPlans()
-        expect(plans.length).assertEqual(5)
+        expect(plans.length).assertEqual(4)
       })
 
       it('each plan should have required fields', 0, () => {
@@ -46,8 +46,8 @@ export default function trainingPlanServiceTest(): void {
     // getPlanCount
     // ============================================================
     describe('getPlanCount', () => {
-      it('should return 5', 0, () => {
-        expect(trainingPlanService.getPlanCount()).assertEqual(5)
+      it('should return 4', 0, () => {
+        expect(trainingPlanService.getPlanCount()).assertEqual(4)
       })
     })
 
@@ -55,30 +55,30 @@ export default function trainingPlanServiceTest(): void {
     // getPresetPlanById
     // ============================================================
     describe('getPresetPlanById', () => {
-      it('should find the 五分化训练 plan', 0, () => {
+      it('should find the 五分化 plan', 0, () => {
         const plan = trainingPlanService.getPresetPlanById('preset_bro_split')
         expect(plan !== undefined).assertTrue()
         if (plan) {
-          expect(plan.name).assertEqual('五分化训练')
+          expect(plan.name).assertEqual('五分化')
           expect(plan.days.length).assertEqual(5)
-          expect(plan.weeklyFrequency).assertEqual('5天/周')
+          expect(plan.weeklyFrequency).assertEqual('5 天/周')
         }
       })
 
-      it('should find the 全身训练 plan', 0, () => {
-        const plan = trainingPlanService.getPresetPlanById('preset_fullbody_3x')
+      it('should find the 四分化 plan', 0, () => {
+        const plan = trainingPlanService.getPresetPlanById('preset_split_4')
         expect(plan !== undefined).assertTrue()
         if (plan) {
-          expect(plan.name).assertEqual('全身训练 3x')
-          expect(plan.days.length).assertEqual(3)
+          expect(plan.name).assertEqual('四分化')
+          expect(plan.days.length).assertEqual(4)
         }
       })
 
-      it('should find the 推拉腿分裂 plan', 0, () => {
+      it('should find the 三分化（推拉腿） plan', 0, () => {
         const plan = trainingPlanService.getPresetPlanById('preset_ppl')
         expect(plan !== undefined).assertTrue()
         if (plan) {
-          expect(plan.name).assertEqual('推拉腿分裂')
+          expect(plan.name).assertEqual('三分化（推拉腿）')
           expect(plan.days.length).assertEqual(3)
         }
       })
@@ -93,7 +93,7 @@ export default function trainingPlanServiceTest(): void {
     // Plan structure validation
     // ============================================================
     describe('Preset Plan Structure', () => {
-      it('五分化训练 should have 5 days with exercises', 0, () => {
+      it('五分化 should have 5 days with exercises', 0, () => {
         const plan = trainingPlanService.getPresetPlanById('preset_bro_split')
         if (plan) {
           expect(plan.days.length).assertEqual(5)
@@ -118,11 +118,11 @@ export default function trainingPlanServiceTest(): void {
         }
       })
 
-      it('力量举基础 should have 4 days', 0, () => {
-        const plan = trainingPlanService.getPresetPlanById('preset_powerlifting')
+      it('四分化 should have 4 days', 0, () => {
+        const plan = trainingPlanService.getPresetPlanById('preset_split_4')
         if (plan) {
           expect(plan.days.length).assertEqual(4)
-          expect(plan.name).assertEqual('力量举基础')
+          expect(plan.name).assertEqual('四分化')
         }
       })
 
@@ -170,6 +170,7 @@ export default function trainingPlanServiceTest(): void {
             coverColor: plan.coverColor,
             targetAudience: plan.targetAudience,
             weeklyFrequency: plan.weeklyFrequency,
+            description: plan.description,
             days: plan.days,
             enabledAt: Date.now()
           }
@@ -188,6 +189,7 @@ export default function trainingPlanServiceTest(): void {
           coverColor: '#000',
           targetAudience: '',
           weeklyFrequency: '',
+          description: '',
           days: [],
           enabledAt: Date.now()
         }
@@ -209,6 +211,7 @@ export default function trainingPlanServiceTest(): void {
             coverColor: plan.coverColor,
             targetAudience: plan.targetAudience,
             weeklyFrequency: plan.weeklyFrequency,
+            description: plan.description,
             days: plan.days,
             enabledAt: Date.now()
           }
@@ -227,6 +230,7 @@ export default function trainingPlanServiceTest(): void {
           coverColor: '#000',
           targetAudience: '',
           weeklyFrequency: '',
+          description: '',
           days: [],
           enabledAt: Date.now()
         }
@@ -280,6 +284,7 @@ export default function trainingPlanServiceTest(): void {
           '#FB8C00',
           '初中高级通用 · 适合恢复良好时冲量',
           '3-6天/周 · 主动作额外加组',
+          '在三分化基础上给主动作额外加组的高容量变体。',
           customDays
         )
         const currentPlan: UserPlan | null = await trainingPlanService.getCurrentPlan(getTestContext())

@@ -1,7 +1,7 @@
 ﻿/**
  * TrainingPlanService —— 训练计划服务
  *
- * 功能 #7: 提供5套预置训练计划数据，每套包含训练日及动作清单
+ * 功能 #7: 提供 4 套按分化数成套的预置训练计划数据（二/三/四/五分化），每套包含训练日及动作清单
  * 功能 #9: 启用预置计划 —— 克隆至我的计划并设为当前计划，持久化存储
  * 预置计划为只读模板，启用时通过克隆生成用户计划
  */
@@ -29,6 +29,7 @@ export interface PresetPlan {
   coverColor: string
   targetAudience: string
   weeklyFrequency: string
+  description: string
   days: TrainingDay[]
 }
 
@@ -62,6 +63,7 @@ function mkPlan(
   coverColor: string,
   targetAudience: string,
   weeklyFrequency: string,
+  description: string,
   days: TrainingDay[]
 ): PresetPlan {
   const plan: PresetPlan = {
@@ -70,171 +72,177 @@ function mkPlan(
     coverColor: coverColor,
     targetAudience: targetAudience,
     weeklyFrequency: weeklyFrequency,
+    description: description,
     days: days
   }
   return plan
 }
 
 // ============================================================
-// Preset Plans — 5 preset training plans
+// Preset Plans — 按分化数成套的 4 套预置训练计划
+//   二分化（上下肢） / 三分化（推拉腿） / 四分化 / 五分化
 // ============================================================
 
 const PRESET_PLANS: PresetPlan[] = [
-  // Plan 1: 五分化训练 (Bro Split)
-  mkPlan('preset_bro_split', '五分化训练', '#1E88E5', '中高级健身者', '5天/周', [
-    mkDay('周一 胸部', [1], [
-      mkExercise('杠铃平板卧推', '胸部', 4, '8-12'),
-      mkExercise('上斜哑铃卧推', '胸部', 3, '8-12'),
-      mkExercise('哑铃飞鸟', '胸部', 3, '12-15'),
-      mkExercise('绳索夹胸', '胸部', 3, '12-15'),
-      mkExercise('双杠臂屈伸', '胸部', 3, '8-12')
-    ]),
-    mkDay('周二 背部', [2], [
-      mkExercise('引体向上', '背部', 4, '8-12'),
-      mkExercise('杠铃划船', '背部', 4, '8-12'),
-      mkExercise('高位下拉', '背部', 3, '10-12'),
-      mkExercise('坐姿划船', '背部', 3, '10-12'),
-      mkExercise('面拉', '背部', 3, '12-15')
-    ]),
-    mkDay('周三 腿部', [3], [
-      mkExercise('杠铃深蹲', '腿部', 4, '8-12'),
-      mkExercise('罗马尼亚硬拉', '腿部', 3, '8-12'),
-      mkExercise('腿举', '腿部', 3, '10-12'),
-      mkExercise('腿弯举', '腿部', 3, '12-15'),
-      mkExercise('提踵', '腿部', 4, '15-20')
-    ]),
-    mkDay('周四 肩部', [4], [
-      mkExercise('杠铃推举', '肩部', 4, '8-12'),
-      mkExercise('哑铃侧平举', '肩部', 3, '12-15'),
-      mkExercise('前平举', '肩部', 3, '12-15'),
-      mkExercise('俯身飞鸟', '肩部', 3, '12-15'),
-      mkExercise('耸肩', '肩部', 3, '12-15')
-    ]),
-    mkDay('周五 手臂', [5], [
-      mkExercise('杠铃弯举', '手臂', 4, '8-12'),
-      mkExercise('哑铃锤式弯举', '手臂', 3, '10-12'),
-      mkExercise('窄距卧推', '手臂', 4, '8-12'),
-      mkExercise('绳索下压', '手臂', 3, '12-15'),
-      mkExercise('集中弯举', '手臂', 3, '12-15')
-    ])
-  ]),
+  // 二分化（上下肢）—— 上肢 / 下肢 交替，每周 4 练
+  mkPlan(
+    'preset_upper_lower',
+    '二分化（上下肢）',
+    '#43A047',
+    '初中级健身者',
+    '4 天/周',
+    '按上肢、下肢两类交替安排，每周各练两次，兼顾训练频率与恢复，适合初中级训练者起步。',
+    [
+      mkDay('上肢A', [1], [
+        mkExercise('杠铃平板卧推', '胸部', 4, '8-12'),
+        mkExercise('哑铃推举', '肩部', 3, '8-12'),
+        mkExercise('上斜哑铃飞鸟', '胸部', 3, '10-15'),
+        mkExercise('侧平举', '肩部', 3, '12-15'),
+        mkExercise('绳索下压', '手臂', 3, '12-15')
+      ]),
+      mkDay('下肢A', [2], [
+        mkExercise('杠铃深蹲', '腿部', 4, '8-12'),
+        mkExercise('罗马尼亚硬拉', '腿部', 3, '8-12'),
+        mkExercise('保加利亚分腿蹲', '腿部', 3, '10-12'),
+        mkExercise('腿弯举', '腿部', 3, '12-15'),
+        mkExercise('提踵', '腿部', 3, '15-20')
+      ]),
+      mkDay('上肢B', [4], [
+        mkExercise('引体向上', '背部', 4, '8-12'),
+        mkExercise('杠铃划船', '背部', 3, '8-12'),
+        mkExercise('高位下拉', '背部', 3, '10-12'),
+        mkExercise('面拉', '背部', 3, '12-15'),
+        mkExercise('杠铃弯举', '手臂', 3, '10-12')
+      ]),
+      mkDay('下肢B', [5], [
+        mkExercise('杠铃深蹲', '腿部', 4, '6-10'),
+        mkExercise('腿举', '腿部', 3, '10-12'),
+        mkExercise('腿弯举', '腿部', 3, '12-15'),
+        mkExercise('腿伸展', '腿部', 3, '12-15'),
+        mkExercise('提踵', '腿部', 3, '15-20')
+      ])
+    ]
+  ),
 
-  // Plan 2: 上下肢分裂 (Upper/Lower)
-  mkPlan('preset_upper_lower', '上下肢分裂', '#43A047', '初中级健身者', '4天/周', [
-    mkDay('周一 上肢A', [1], [
-      mkExercise('杠铃平板卧推', '胸部', 4, '8-12'),
-      mkExercise('哑铃推举', '肩部', 3, '8-12'),
-      mkExercise('上斜哑铃飞鸟', '胸部', 3, '10-15'),
-      mkExercise('侧平举', '肩部', 3, '12-15'),
-      mkExercise('绳索下压', '手臂', 3, '12-15')
-    ]),
-    mkDay('周二 下肢', [2], [
-      mkExercise('杠铃深蹲', '腿部', 4, '8-12'),
-      mkExercise('罗马尼亚硬拉', '腿部', 3, '8-12'),
-      mkExercise('保加利亚分腿蹲', '腿部', 3, '10-12'),
-      mkExercise('腿弯举', '腿部', 3, '12-15'),
-      mkExercise('提踵', '腿部', 3, '15-20')
-    ]),
-    mkDay('周四 上肢B', [4], [
-      mkExercise('引体向上', '背部', 4, '8-12'),
-      mkExercise('杠铃划船', '背部', 3, '8-12'),
-      mkExercise('高位下拉', '背部', 3, '10-12'),
-      mkExercise('面拉', '背部', 3, '12-15'),
-      mkExercise('杠铃弯举', '手臂', 3, '10-12')
-    ]),
-    mkDay('周五 下肢', [5], [
-      mkExercise('杠铃深蹲', '腿部', 4, '6-10'),
-      mkExercise('腿举', '腿部', 3, '10-12'),
-      mkExercise('腿弯举', '腿部', 3, '12-15'),
-      mkExercise('腿伸展', '腿部', 3, '12-15'),
-      mkExercise('提踵', '腿部', 3, '15-20')
-    ])
-  ]),
+  // 三分化（推拉腿）—— 推 / 拉 / 腿 循环，每周 3-6 练
+  mkPlan(
+    'preset_ppl',
+    '三分化（推拉腿）',
+    '#FB8C00',
+    '初中高级通用',
+    '3-6 天/周',
+    '按动作模式循环：推（胸、肩、三头）、拉（背、二头）、腿（下肢）。每个部位每周练 1-2 次，适合各阶段训练者。',
+    [
+      mkDay('推日', [1, 4], [
+        mkExercise('杠铃平板卧推', '胸部', 4, '8-12'),
+        mkExercise('哑铃推举', '肩部', 3, '8-12'),
+        mkExercise('上斜哑铃卧推', '胸部', 3, '8-12'),
+        mkExercise('侧平举', '肩部', 3, '12-15'),
+        mkExercise('窄距卧推', '手臂', 3, '8-12')
+      ]),
+      mkDay('拉日', [2, 5], [
+        mkExercise('引体向上', '背部', 4, '8-12'),
+        mkExercise('杠铃划船', '背部', 4, '8-12'),
+        mkExercise('坐姿划船', '背部', 3, '10-12'),
+        mkExercise('面拉', '背部', 3, '12-15'),
+        mkExercise('杠铃弯举', '手臂', 3, '10-12')
+      ]),
+      mkDay('腿日', [3, 6], [
+        mkExercise('杠铃深蹲', '腿部', 4, '8-12'),
+        mkExercise('罗马尼亚硬拉', '腿部', 3, '8-12'),
+        mkExercise('腿举', '腿部', 3, '10-12'),
+        mkExercise('腿弯举', '腿部', 3, '12-15'),
+        mkExercise('提踵', '腿部', 4, '15-20')
+      ])
+    ]
+  ),
 
-  // Plan 3: 推拉腿分裂 (Push/Pull/Legs)
-  mkPlan('preset_ppl', '推拉腿分裂', '#FB8C00', '初中高级通用', '3-6天/周', [
-    mkDay('推日', [1, 4], [
-      mkExercise('杠铃平板卧推', '胸部', 4, '8-12'),
-      mkExercise('哑铃推举', '肩部', 3, '8-12'),
-      mkExercise('上斜哑铃卧推', '胸部', 3, '8-12'),
-      mkExercise('侧平举', '肩部', 3, '12-15'),
-      mkExercise('窄距卧推', '手臂', 3, '8-12')
-    ]),
-    mkDay('拉日', [2, 5], [
-      mkExercise('引体向上', '背部', 4, '8-12'),
-      mkExercise('杠铃划船', '背部', 4, '8-12'),
-      mkExercise('坐姿划船', '背部', 3, '10-12'),
-      mkExercise('面拉', '背部', 3, '12-15'),
-      mkExercise('杠铃弯举', '手臂', 3, '10-12')
-    ]),
-    mkDay('腿日', [3, 6], [
-      mkExercise('杠铃深蹲', '腿部', 4, '8-12'),
-      mkExercise('罗马尼亚硬拉', '腿部', 3, '8-12'),
-      mkExercise('腿举', '腿部', 3, '10-12'),
-      mkExercise('腿弯举', '腿部', 3, '12-15'),
-      mkExercise('提踵', '腿部', 4, '15-20')
-    ])
-  ]),
+  // 四分化 —— 胸+三头 / 背+二头 / 腿 / 肩+臂，每周 4 练
+  mkPlan(
+    'preset_split_4',
+    '四分化',
+    '#1E88E5',
+    '中高级健身者',
+    '4 天/周',
+    '每个训练日聚焦一个大肌群并搭配协同肌：胸+三头、背+二头、腿、肩+臂，一周循环一次，适合中高级训练者。',
+    [
+      mkDay('胸 + 三头', [1], [
+        mkExercise('杠铃平板卧推', '胸部', 4, '8-12'),
+        mkExercise('上斜哑铃卧推', '胸部', 3, '8-12'),
+        mkExercise('双杠臂屈伸', '胸部', 3, '8-12'),
+        mkExercise('绳索夹胸', '胸部', 3, '12-15'),
+        mkExercise('绳索下压', '手臂', 3, '12-15')
+      ]),
+      mkDay('背 + 二头', [2], [
+        mkExercise('引体向上', '背部', 4, '8-12'),
+        mkExercise('杠铃划船', '背部', 4, '8-12'),
+        mkExercise('高位下拉', '背部', 3, '10-12'),
+        mkExercise('坐姿划船', '背部', 3, '10-12'),
+        mkExercise('杠铃弯举', '手臂', 3, '10-12')
+      ]),
+      mkDay('腿', [4], [
+        mkExercise('杠铃深蹲', '腿部', 4, '8-12'),
+        mkExercise('罗马尼亚硬拉', '腿部', 3, '8-12'),
+        mkExercise('腿举', '腿部', 3, '10-12'),
+        mkExercise('腿弯举', '腿部', 3, '12-15'),
+        mkExercise('提踵', '腿部', 4, '15-20')
+      ]),
+      mkDay('肩 + 臂', [5], [
+        mkExercise('杠铃推举', '肩部', 4, '8-12'),
+        mkExercise('哑铃侧平举', '肩部', 3, '12-15'),
+        mkExercise('俯身飞鸟', '肩部', 3, '12-15'),
+        mkExercise('哑铃锤式弯举', '手臂', 3, '10-12'),
+        mkExercise('绳索下压', '手臂', 3, '12-15')
+      ])
+    ]
+  ),
 
-  // Plan 4: 全身训练 3x (Full Body 3x/week)
-  mkPlan('preset_fullbody_3x', '全身训练 3x', '#8E24AA', '初级健身者', '3天/周', [
-    mkDay('周一 全身', [1], [
-      mkExercise('杠铃深蹲', '腿部', 3, '8-12'),
-      mkExercise('杠铃平板卧推', '胸部', 3, '8-12'),
-      mkExercise('杠铃划船', '背部', 3, '8-12'),
-      mkExercise('杠铃推举', '肩部', 3, '8-12'),
-      mkExercise('杠铃弯举', '手臂', 2, '10-12'),
-      mkExercise('平板支撑', '腹部', 3, '30秒')
-    ]),
-    mkDay('周三 全身', [3], [
-      mkExercise('罗马尼亚硬拉', '腿部', 3, '8-12'),
-      mkExercise('哑铃卧推', '胸部', 3, '8-12'),
-      mkExercise('高位下拉', '背部', 3, '8-12'),
-      mkExercise('侧平举', '肩部', 3, '12-15'),
-      mkExercise('绳索下压', '手臂', 2, '12-15'),
-      mkExercise('卷腹', '腹部', 3, '15-20')
-    ]),
-    mkDay('周五 全身', [5], [
-      mkExercise('杠铃深蹲', '腿部', 3, '8-12'),
-      mkExercise('上斜哑铃卧推', '胸部', 3, '8-12'),
-      mkExercise('坐姿划船', '背部', 3, '10-12'),
-      mkExercise('哑铃推举', '肩部', 3, '8-12'),
-      mkExercise('锤式弯举', '手臂', 2, '10-12'),
-      mkExercise('悬垂举腿', '腹部', 3, '12-15')
-    ])
-  ]),
-
-  // Plan 5: 力量举基础 (Powerlifting)
-  mkPlan('preset_powerlifting', '力量举基础', '#E53935', '力量举入门', '3-4天/周', [
-    mkDay('深蹲日', [1], [
-      mkExercise('杠铃深蹲', '腿部', 5, '5'),
-      mkExercise('前蹲', '腿部', 3, '6-8'),
-      mkExercise('腿弯举', '腿部', 3, '8-12'),
-      mkExercise('提踵', '腿部', 3, '12-15'),
-      mkExercise('平板支撑', '腹部', 3, '30秒')
-    ]),
-    mkDay('卧推日', [2], [
-      mkExercise('杠铃平板卧推', '胸部', 5, '5'),
-      mkExercise('窄距卧推', '手臂', 3, '6-8'),
-      mkExercise('哑铃推举', '肩部', 3, '8-12'),
-      mkExercise('绳索下压', '手臂', 3, '10-12'),
-      mkExercise('面拉', '背部', 3, '12-15')
-    ]),
-    mkDay('硬拉日', [4], [
-      mkExercise('杠铃硬拉', '背部', 5, '5'),
-      mkExercise('杠铃划船', '背部', 3, '6-8'),
-      mkExercise('引体向上', '背部', 3, '6-8'),
-      mkExercise('杠铃弯举', '手臂', 3, '8-12'),
-      mkExercise('卷腹', '腹部', 3, '12-15')
-    ]),
-    mkDay('辅助日（可选）', [5], [
-      mkExercise('腿举', '腿部', 3, '8-12'),
-      mkExercise('坐姿划船', '背部', 3, '10-12'),
-      mkExercise('侧平举', '肩部', 3, '12-15'),
-      mkExercise('锤式弯举', '手臂', 3, '10-12'),
-      mkExercise('提踵', '腿部', 3, '15-20')
-    ])
-  ])
+  // 五分化 —— 胸 / 背 / 腿 / 肩 / 臂，每周 5 练
+  mkPlan(
+    'preset_bro_split',
+    '五分化',
+    '#E53935',
+    '中高级健身者',
+    '5 天/周',
+    '每个肌群单独一天：胸、背、腿、肩、手臂，一周五个训练日，单次容量集中，适合恢复能力较好的中高级训练者。',
+    [
+      mkDay('周一 胸部', [1], [
+        mkExercise('杠铃平板卧推', '胸部', 4, '8-12'),
+        mkExercise('上斜哑铃卧推', '胸部', 3, '8-12'),
+        mkExercise('哑铃飞鸟', '胸部', 3, '12-15'),
+        mkExercise('绳索夹胸', '胸部', 3, '12-15'),
+        mkExercise('双杠臂屈伸', '胸部', 3, '8-12')
+      ]),
+      mkDay('周二 背部', [2], [
+        mkExercise('引体向上', '背部', 4, '8-12'),
+        mkExercise('杠铃划船', '背部', 4, '8-12'),
+        mkExercise('高位下拉', '背部', 3, '10-12'),
+        mkExercise('坐姿划船', '背部', 3, '10-12'),
+        mkExercise('面拉', '背部', 3, '12-15')
+      ]),
+      mkDay('周三 腿部', [3], [
+        mkExercise('杠铃深蹲', '腿部', 4, '8-12'),
+        mkExercise('罗马尼亚硬拉', '腿部', 3, '8-12'),
+        mkExercise('腿举', '腿部', 3, '10-12'),
+        mkExercise('腿弯举', '腿部', 3, '12-15'),
+        mkExercise('提踵', '腿部', 4, '15-20')
+      ]),
+      mkDay('周四 肩部', [4], [
+        mkExercise('杠铃推举', '肩部', 4, '8-12'),
+        mkExercise('哑铃侧平举', '肩部', 3, '12-15'),
+        mkExercise('前平举', '肩部', 3, '12-15'),
+        mkExercise('俯身飞鸟', '肩部', 3, '12-15'),
+        mkExercise('耸肩', '肩部', 3, '12-15')
+      ]),
+      mkDay('周五 手臂', [5], [
+        mkExercise('杠铃弯举', '手臂', 4, '8-12'),
+        mkExercise('哑铃锤式弯举', '手臂', 3, '10-12'),
+        mkExercise('窄距卧推', '手臂', 4, '8-12'),
+        mkExercise('绳索下压', '手臂', 3, '12-15'),
+        mkExercise('集中弯举', '手臂', 3, '12-15')
+      ])
+    ]
+  )
 ]
 
 // ============================================================
@@ -283,6 +291,7 @@ class TrainingPlanService {
       preset.coverColor,
       preset.targetAudience,
       preset.weeklyFrequency,
+      preset.description,
       preset.days
     )
     return this.enableUserPlan(context, userPlan)
@@ -294,6 +303,7 @@ class TrainingPlanService {
     coverColor: string,
     targetAudience: string,
     weeklyFrequency: string,
+    description: string,
     days: TrainingDay[]
   ): Promise<UserPlan | null> {
     const userPlan: UserPlan = this.createUserPlan(
@@ -301,6 +311,7 @@ class TrainingPlanService {
       coverColor,
       targetAudience,
       weeklyFrequency,
+      description,
       days
     )
     return this.enableUserPlan(context, userPlan)
@@ -441,6 +452,7 @@ class TrainingPlanService {
     coverColor: string,
     targetAudience: string,
     weeklyFrequency: string,
+    description: string,
     days: TrainingDay[]
   ): UserPlan {
     const plan: UserPlan = {
@@ -449,6 +461,7 @@ class TrainingPlanService {
       coverColor: coverColor,
       targetAudience: targetAudience,
       weeklyFrequency: weeklyFrequency,
+      description: description,
       days: this.copyTrainingDays(days),
       enabledAt: Date.now()
     }
@@ -470,6 +483,7 @@ class TrainingPlanService {
       coverColor: source.coverColor,
       targetAudience: source.targetAudience,
       weeklyFrequency: source.weeklyFrequency,
+      description: source.description,
       days: this.copyTrainingDays(source.days),
       enabledAt: source.enabledAt
     }

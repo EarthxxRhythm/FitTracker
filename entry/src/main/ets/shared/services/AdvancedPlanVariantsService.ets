@@ -47,6 +47,7 @@ class AdvancedPlanVariantsService {
       coverColor: '',
       targetAudience: '',
       weeklyFrequency: '',
+      description: '',
       days: []
     }
     return this.createPresentation(emptyPlan, true, 'free')

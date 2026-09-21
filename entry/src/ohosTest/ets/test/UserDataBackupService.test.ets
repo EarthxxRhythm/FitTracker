@@ -46,6 +46,7 @@ function createPlan(planId: string, enabledAt: number): UserPlan {
     coverColor: '#00C853',
     targetAudience: '测试',
     weeklyFrequency: '3天/周',
+    description: '',
     days: [{
       dayLabel: '周一',
       dayOfWeek: [1],
