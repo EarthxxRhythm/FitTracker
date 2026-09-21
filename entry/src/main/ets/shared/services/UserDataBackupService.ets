@@ -488,6 +488,7 @@ class UserDataBackupService {
       coverColor: source.coverColor,
       targetAudience: source.targetAudience,
       weeklyFrequency: source.weeklyFrequency,
+      description: source.description,
       days: this.copyPlanDays(source.days),
       enabledAt: source.enabledAt
     }

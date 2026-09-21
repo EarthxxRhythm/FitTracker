@@ -91,6 +91,7 @@ export default function activeWorkoutServiceTest(): void {
           coverColor: presetPlan.coverColor,
           targetAudience: presetPlan.targetAudience,
           weeklyFrequency: presetPlan.weeklyFrequency,
+          description: presetPlan.description,
           days: presetPlan.days,
           enabledAt: 100
         }
@@ -120,6 +121,7 @@ export default function activeWorkoutServiceTest(): void {
           coverColor: presetPlan.coverColor,
           targetAudience: presetPlan.targetAudience,
           weeklyFrequency: presetPlan.weeklyFrequency,
+          description: presetPlan.description,
           days: presetPlan.days,
           enabledAt: 101
         }

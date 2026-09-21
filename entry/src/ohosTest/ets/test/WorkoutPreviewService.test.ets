@@ -85,6 +85,7 @@ export default function workoutPreviewServiceTest(): void {
           coverColor: presetPlan.coverColor,
           targetAudience: presetPlan.targetAudience,
           weeklyFrequency: presetPlan.weeklyFrequency,
+          description: presetPlan.description,
           days: presetPlan.days,
           enabledAt: 123
         }
@@ -116,6 +117,7 @@ export default function workoutPreviewServiceTest(): void {
           coverColor: presetPlan.coverColor,
           targetAudience: presetPlan.targetAudience,
           weeklyFrequency: presetPlan.weeklyFrequency,
+          description: presetPlan.description,
           days: presetPlan.days,
           enabledAt: 456
         }
@@ -153,6 +155,7 @@ export default function workoutPreviewServiceTest(): void {
         coverColor: '#123456',
         targetAudience: 'Test Audience',
         weeklyFrequency: '1 day/week',
+        description: '',
         days: [fallbackDay],
         enabledAt: 789
       }
