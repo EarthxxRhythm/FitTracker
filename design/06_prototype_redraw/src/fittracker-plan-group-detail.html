@@ -167,9 +167,12 @@
   .pgd-summary {
     position: relative;
     border-radius: 20px;
-    border: 1px solid var(--accent-40);
-    background: rgba(80,236,167,.08);
-    box-shadow: 0 14px 28px rgba(0,0,0,.20);
+    border: 1px solid rgba(80,236,167,.34);
+    background:
+      linear-gradient(155deg, rgba(80,236,167,.22) 0%, rgba(80,236,167,.07) 46%, rgba(255,255,255,.015) 100%);
+    box-shadow:
+      0 16px 34px rgba(0,0,0,.26),
+      inset 0 1px 0 rgba(255,255,255,.12);
     padding: 16px 16px 15px;
   }
   .pgd-summary-label { font-size: 11px; font-weight: 700; letter-spacing: .03em; color: var(--accent); }
@@ -197,13 +200,15 @@
     border-radius: 10px;
     display: grid; place-items: center;
     font-size: 12px; font-weight: 700;
-    background: rgba(80,236,167,.12);
-    border: 1px solid rgba(80,236,167,.3);
+    background: linear-gradient(180deg, rgba(80,236,167,.24) 0%, rgba(80,236,167,.10) 100%);
+    border: 1px solid rgba(80,236,167,.36);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
     color: var(--accent);
   }
   .pgd-rhythm-cell.rest {
-    background: rgba(255,255,255,.03);
+    background: linear-gradient(180deg, rgba(255,255,255,.055) 0%, rgba(255,255,255,.018) 100%);
     border: 1px solid var(--line-10);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
     color: var(--white-40);
   }
 
@@ -215,16 +220,21 @@
     min-width: 96px;
     padding: 10px 12px;
     border-radius: 14px;
-    background: rgba(255,255,255,.04);
-    border: 1px solid var(--line-10);
+    background: linear-gradient(180deg, rgba(255,255,255,.065) 0%, rgba(255,255,255,.022) 100%);
+    border: 1px solid var(--line-14);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
     color: var(--white-70);
     text-align: left;
     cursor: pointer;
     transition: background .16s var(--ease), border-color .16s var(--ease), color .16s var(--ease), transform .12s var(--ease);
   }
-  .pgd-day-tab:hover { background: rgba(255,255,255,.07); border-color: var(--line-16); }
+  .pgd-day-tab:hover { background: linear-gradient(180deg, rgba(255,255,255,.09) 0%, rgba(255,255,255,.035) 100%); border-color: var(--line-16); }
   .pgd-day-tab:active { transform: scale(.98); }
-  .pgd-day-tab.active { background: rgba(80,236,167,.15); border-color: rgba(80,236,167,.45); }
+  .pgd-day-tab.active {
+    background: linear-gradient(180deg, rgba(80,236,167,.26) 0%, rgba(80,236,167,.11) 100%);
+    border-color: rgba(80,236,167,.52);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 8px 18px -8px rgba(80,236,167,.55);
+  }
   .pgd-day-tab .n { display: block; font-family: var(--font-num); font-size: 11px; font-weight: 600; color: var(--white-54); }
   .pgd-day-tab .t { display: block; margin-top: 3px; font-size: 14px; font-weight: 700; color: var(--txt-hi); }
   .pgd-day-tab.active .n { color: var(--accent); }
@@ -253,8 +263,9 @@
     flex: 0 0 auto;
     width: 28px; height: 28px;
     border-radius: 9px;
-    background: rgba(80,236,167,.10);
-    border: 1px solid rgba(80,236,167,.22);
+    background: linear-gradient(155deg, rgba(80,236,167,.22) 0%, rgba(80,236,167,.075) 100%);
+    border: 1px solid rgba(80,236,167,.32);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.14);
     color: var(--accent);
     display: grid; place-items: center;
     font-family: var(--font-num);
