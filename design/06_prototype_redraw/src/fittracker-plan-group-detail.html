@@ -126,7 +126,12 @@
   .appshell {
     position: absolute; inset: 0;
     display: flex; flex-direction: column;
-    background: var(--ink-0);
+    /* 环境光：为液态玻璃提供可折射/透出的明暗与色相变化 */
+    background:
+      radial-gradient(58% 38% at 16% 6%, rgba(80,236,167,.12), transparent 68%),
+      radial-gradient(52% 34% at 88% 78%, rgba(69,201,161,.085), transparent 70%),
+      radial-gradient(44% 30% at 94% 16%, rgba(140,235,204,.055), transparent 72%),
+      var(--ink-0);
   }
 
   .pgd-top {
@@ -163,16 +168,20 @@
   .pgd-scroll::-webkit-scrollbar { display: none; }
   .pgd-content { padding: 16px 16px 16px; display: flex; flex-direction: column; gap: 16px; }
 
-  /* 概要卡 */
+  /* 概要卡 —— 液态玻璃：模糊底 + 镜面高光边 + 柔和外投影 */
   .pgd-summary {
     position: relative;
-    border-radius: 20px;
-    border: 1px solid rgba(80,236,167,.34);
+    border-radius: 22px;
+    border: 1px solid rgba(255,255,255,.16);
     background:
-      linear-gradient(155deg, rgba(80,236,167,.22) 0%, rgba(80,236,167,.07) 46%, rgba(255,255,255,.015) 100%);
+      linear-gradient(140deg, rgba(80,236,167,.20) 0%, rgba(255,255,255,.055) 46%, rgba(255,255,255,.015) 100%);
+    -webkit-backdrop-filter: blur(22px) saturate(175%);
+    backdrop-filter: blur(22px) saturate(175%);
     box-shadow:
-      0 16px 34px rgba(0,0,0,.26),
-      inset 0 1px 0 rgba(255,255,255,.12);
+      0 16px 38px rgba(0,0,0,.38),
+      inset 0 1px 0 rgba(255,255,255,.28),
+      inset 0 -1px 0 rgba(255,255,255,.05),
+      inset 0 0 32px rgba(80,236,167,.06);
     padding: 16px 16px 15px;
   }
   .pgd-summary-label { font-size: 11px; font-weight: 700; letter-spacing: .03em; color: var(--accent); }
@@ -197,18 +206,26 @@
   .pgd-rhythm-cell {
     width: 100%;
     height: 34px;
-    border-radius: 10px;
+    border-radius: 11px;
     display: grid; place-items: center;
     font-size: 12px; font-weight: 700;
-    background: linear-gradient(180deg, rgba(80,236,167,.24) 0%, rgba(80,236,167,.10) 100%);
-    border: 1px solid rgba(80,236,167,.36);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
+    background: linear-gradient(150deg, rgba(80,236,167,.26) 0%, rgba(80,236,167,.08) 100%);
+    -webkit-backdrop-filter: blur(10px) saturate(160%);
+    backdrop-filter: blur(10px) saturate(160%);
+    border: 1px solid rgba(255,255,255,.18);
+    box-shadow:
+      0 4px 13px rgba(0,0,0,.28),
+      inset 0 1px 0 rgba(255,255,255,.30);
     color: var(--accent);
   }
   .pgd-rhythm-cell.rest {
-    background: linear-gradient(180deg, rgba(255,255,255,.055) 0%, rgba(255,255,255,.018) 100%);
-    border: 1px solid var(--line-10);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+    background: linear-gradient(150deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,.018) 100%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    backdrop-filter: blur(10px) saturate(140%);
+    border: 1px solid rgba(255,255,255,.10);
+    box-shadow:
+      0 3px 10px rgba(0,0,0,.22),
+      inset 0 1px 0 rgba(255,255,255,.12);
     color: var(--white-40);
   }
 
@@ -219,21 +236,27 @@
     flex: 0 0 auto;
     min-width: 96px;
     padding: 10px 12px;
-    border-radius: 14px;
-    background: linear-gradient(180deg, rgba(255,255,255,.065) 0%, rgba(255,255,255,.022) 100%);
-    border: 1px solid var(--line-14);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+    border-radius: 16px;
+    background: linear-gradient(150deg, rgba(255,255,255,.09) 0%, rgba(255,255,255,.025) 100%);
+    -webkit-backdrop-filter: blur(14px) saturate(150%);
+    backdrop-filter: blur(14px) saturate(150%);
+    border: 1px solid rgba(255,255,255,.13);
+    box-shadow:
+      0 8px 20px rgba(0,0,0,.26),
+      inset 0 1px 0 rgba(255,255,255,.16);
     color: var(--white-70);
     text-align: left;
     cursor: pointer;
     transition: background .16s var(--ease), border-color .16s var(--ease), color .16s var(--ease), transform .12s var(--ease);
   }
-  .pgd-day-tab:hover { background: linear-gradient(180deg, rgba(255,255,255,.09) 0%, rgba(255,255,255,.035) 100%); border-color: var(--line-16); }
+  .pgd-day-tab:hover { background: linear-gradient(150deg, rgba(255,255,255,.13) 0%, rgba(255,255,255,.04) 100%); border-color: rgba(255,255,255,.20); }
   .pgd-day-tab:active { transform: scale(.98); }
   .pgd-day-tab.active {
-    background: linear-gradient(180deg, rgba(80,236,167,.26) 0%, rgba(80,236,167,.11) 100%);
-    border-color: rgba(80,236,167,.52);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 8px 18px -8px rgba(80,236,167,.55);
+    background: linear-gradient(150deg, rgba(80,236,167,.30) 0%, rgba(80,236,167,.10) 100%);
+    border-color: rgba(80,236,167,.55);
+    box-shadow:
+      0 10px 24px rgba(80,236,167,.22),
+      inset 0 1px 0 rgba(255,255,255,.34);
   }
   .pgd-day-tab .n { display: block; font-family: var(--font-num); font-size: 11px; font-weight: 600; color: var(--white-54); }
   .pgd-day-tab .t { display: block; margin-top: 3px; font-size: 14px; font-weight: 700; color: var(--txt-hi); }
@@ -262,10 +285,14 @@
   .pgd-ex-idx {
     flex: 0 0 auto;
     width: 28px; height: 28px;
-    border-radius: 9px;
-    background: linear-gradient(155deg, rgba(80,236,167,.22) 0%, rgba(80,236,167,.075) 100%);
-    border: 1px solid rgba(80,236,167,.32);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.14);
+    border-radius: 10px;
+    background: linear-gradient(150deg, rgba(80,236,167,.26) 0%, rgba(80,236,167,.07) 100%);
+    -webkit-backdrop-filter: blur(8px) saturate(150%);
+    backdrop-filter: blur(8px) saturate(150%);
+    border: 1px solid rgba(255,255,255,.18);
+    box-shadow:
+      0 3px 10px rgba(0,0,0,.26),
+      inset 0 1px 0 rgba(255,255,255,.30);
     color: var(--accent);
     display: grid; place-items: center;
     font-family: var(--font-num);

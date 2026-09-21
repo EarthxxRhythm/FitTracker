@@ -199,6 +199,24 @@ export struct PlanGroupDetailContent {
 
   build() {
     Stack({ alignContent: Alignment.Bottom }) {
+      // 环境光层：为液态玻璃提供可折射/透出的明暗与色相变化（对应原型 .appshell 的径向光晕）
+      Column()
+        .width('100%')
+        .height('100%')
+        .radialGradient({
+          center: ['16%', '6%'],
+          radius: 320,
+          colors: [['#1F50ECA7', 0], ['#0050ECA7', 1]]
+        })
+      Column()
+        .width('100%')
+        .height('100%')
+        .radialGradient({
+          center: ['88%', '78%'],
+          radius: 300,
+          colors: [['#1645C9A1', 0], ['#0045C9A1', 1]]
+        })
+
       Column() {
         this.topBar()
 
@@ -363,10 +381,11 @@ export struct PlanGroupDetailContent {
     }
     .width('100%')
     .padding({ top: 16, bottom: 15, left: 16, right: 16 })
-    .linearGradient({ angle: 155, colors: [['#3850ECA7', 0], ['#1250ECA7', 0.46], ['#04FFFFFF', 1]] })
-    .border({ width: 1, color: '#5750ECA7' })
-    .borderRadius(20)
-    .shadow({ radius: 34, color: '#42000000', offsetX: 0, offsetY: 16 })
+    .linearGradient({ angle: 140, colors: [['#3350ECA7', 0], ['#0EFFFFFF', 0.46], ['#04FFFFFF', 1]] })
+    .backdropBlur(22)
+    .border({ width: 1, color: '#29FFFFFF' })
+    .borderRadius(22)
+    .shadow({ radius: 38, color: '#61000000', offsetX: 0, offsetY: 16 })
   }
 
   @Builder
@@ -398,12 +417,14 @@ export struct PlanGroupDetailContent {
             .justifyContent(FlexAlign.Center)
             .borderRadius(10)
             .linearGradient({
-              angle: 180,
+              angle: 150,
               colors: this.isWeekRest(cell)
-                ? [['#0EFFFFFF', 0], ['#05FFFFFF', 1]]
-                : [['#3D50ECA7', 0], ['#1A50ECA7', 1]]
+                ? [['#12FFFFFF', 0], ['#05FFFFFF', 1]]
+                : [['#4250ECA7', 0], ['#1450ECA7', 1]]
             })
-            .border({ width: 1, color: this.isWeekRest(cell) ? '#1AFFFFFF' : '#5C50ECA7' })
+            .backdropBlur(10)
+            .border({ width: 1, color: this.isWeekRest(cell) ? '#1AFFFFFF' : '#2EFFFFFF' })
+            .shadow({ radius: 13, color: '#42000000', offsetX: 0, offsetY: 4 })
           }
           .layoutWeight(1)
           .alignItems(HorizontalAlign.Center)
@@ -438,12 +459,16 @@ export struct PlanGroupDetailContent {
           .constraintSize({ minWidth: 96 })
           .padding({ top: 10, bottom: 10, left: 12, right: 12 })
           .linearGradient({
-            angle: 180,
+            angle: 150,
             colors: this.activeDay === index
-              ? [['#4250ECA7', 0], ['#1C50ECA7', 1]]
-              : [['#11FFFFFF', 0], ['#06FFFFFF', 1]]
+              ? [['#4D50ECA7', 0], ['#1A50ECA7', 1]]
+              : [['#17FFFFFF', 0], ['#06FFFFFF', 1]]
           })
-          .border({ width: 1, color: this.activeDay === index ? '#8450ECA7' : '#14FFFFFF' })
+          .backdropBlur(14)
+          .border({ width: 1, color: this.activeDay === index ? '#8C50ECA7' : '#21FFFFFF' })
+          .shadow(this.activeDay === index
+            ? { radius: 24, color: '#3850ECA7', offsetX: 0, offsetY: 10 }
+            : { radius: 20, color: '#42000000', offsetX: 0, offsetY: 8 })
           .borderRadius(14)
           .scale({ x: this.dayKey === day.title ? MotionTokens.PRESS_SHORTCUT : 1, y: this.dayKey === day.title ? MotionTokens.PRESS_SHORTCUT : 1 })
           .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
@@ -500,8 +525,10 @@ export struct PlanGroupDetailContent {
             .height(28)
             .justifyContent(FlexAlign.Center)
             .borderRadius(9)
-            .linearGradient({ angle: 155, colors: [['#3850ECA7', 0], ['#1350ECA7', 1]] })
-            .border({ width: 1, color: '#5250ECA7' })
+            .linearGradient({ angle: 150, colors: [['#4250ECA7', 0], ['#1250ECA7', 1]] })
+            .backdropBlur(8)
+            .border({ width: 1, color: '#2EFFFFFF' })
+            .shadow({ radius: 10, color: '#42000000', offsetX: 0, offsetY: 3 })
 
             Column({ space: 3 }) {
               Row({ space: 7 }) {
