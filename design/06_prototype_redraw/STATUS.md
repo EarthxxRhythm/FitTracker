@@ -1,6 +1,17 @@
 # 还原进度与证据（STATUS）
 
-> 更新：2026-09-07。每步产物均随 commit 落库；生成物（截图/报告）在 `test_run/`，不入库。
+> 更新：2026-09-21。每步产物均随 commit 落库；生成物（截图/报告）在 `test_run/`，不入库。
+
+## 计划组改造：按分化数成套（2026-09-21）
+
+计划组页从 10 个硬编码卡片改为 `TrainingPlanService` 的 4 套分化预置计划（二分化（上下肢）/ 三分化（推拉腿）/ 四分化 / 五分化），并接通真实数据闭环：
+
+- 列表 `PlansContent`：数据源 `getAllPresetPlans()`；「当前计划」读 `getCurrentPlan()`（`PencilPlansPage.onPageShow` 注入）。
+- 详情 `PlanGroupDetailContent`：按 `planId` 读 `getPresetPlanById` 渲染训练日与动作；「使用此计划」调用 `enablePlan` **真正落库**。
+- 路由参数：`groupName/groupTags` → `planId`。
+- 原型：`src/fittracker-plan-detail.html`（GROUPS 10→4）、`src/fittracker-plan-group-detail.html`（示例改「三分化（推拉腿）」）已同步，`MANIFEST/MOTION` 重生成，上游 Open Design 副本同步。
+- 验证：`devecocli build` 与 `devecocli build --modules entry@ohosTest` 均 BUILD SUCCESSFUL；设备单测 / 像素验收未运行。
+- 提交：`db4893a`、`615e0d8`、`72b86c0`。
 
 ## 完成
 
