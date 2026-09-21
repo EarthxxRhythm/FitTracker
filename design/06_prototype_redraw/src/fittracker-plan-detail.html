@@ -377,8 +377,8 @@
             <div class="pd-content">
               <section class="pg-current" data-od-id="plan-groups-current" aria-label="当前计划">
                 <div class="pg-current-label">当前计划</div>
-                <div class="pg-current-name">五日增肌计划</div>
-                <div class="pg-current-meta">增肌 · 5 练分化 · 6 周推进</div>
+                <div class="pg-current-name">二分化（上下肢）</div>
+                <div class="pg-current-meta">初中级健身者 · 4 练分化 · 4 天/周</div>
                 <span class="pg-current-badge">当前使用</span>
               </section>
 
@@ -402,16 +402,10 @@
   <script>
     (function () {
       var GROUPS = [
-        { name: '上下肢分裂', audience: '初中级健身者', freq: '4 天 / 周', days: 4, icon: 'i-layers', examples: '杠铃卧推 · 杠铃深蹲 · 引体向上' },
-        { name: '推拉腿分裂', audience: '初中高级通用', freq: '3-6 天 / 周', days: 3, icon: 'i-activity', examples: '杠铃卧推 · 引体向上 · 杠铃深蹲' },
-        { name: '全身训练 3x', audience: '初级健身者', freq: '3 天 / 周', days: 3, icon: 'i-zap', examples: '杠铃深蹲 · 杠铃卧推 · 杠铃划船' },
-        { name: '力量举基础', audience: '力量举入门', freq: '3-4 天 / 周', days: 4, icon: 'i-dumbbell', examples: '杠铃深蹲 · 杠铃卧推 · 杠铃硬拉' },
-        { name: '胸背分化', audience: '中高级健身者', freq: '4 天 / 周', days: 4, icon: 'i-target', examples: '杠铃卧推 · 引体向上 · 高位下拉' },
-        { name: '肩臂强化', audience: '初中级健身者', freq: '3 天 / 周', days: 3, icon: 'i-chevrons-up', examples: '哑铃侧平举 · 哑铃弯举 · 绳索下压' },
-        { name: '下肢力量', audience: '初中高级通用', freq: '3 天 / 周', days: 3, icon: 'i-chevrons-down', examples: '杠铃深蹲 · 杠铃硬拉 · 提踵' },
-        { name: '核心腰腹', audience: '初级健身者', freq: '3 天 / 周', days: 3, icon: 'i-core', examples: '卷腹 · 平板支撑 · 悬垂举腿' },
-        { name: '家庭自重', audience: '初级健身者', freq: '3 天 / 周', days: 3, icon: 'i-home', examples: '俯卧撑 · 自重深蹲 · 平板支撑' },
-        { name: '有氧燃脂', audience: '通用', freq: '3-5 天 / 周', days: 3, icon: 'i-heart', examples: '开合跳 · 高抬腿 · 波比跳' }
+        { name: '二分化（上下肢）', audience: '初中级健身者', freq: '4 天 / 周', days: 4, icon: 'i-layers', examples: '杠铃平板卧推 · 哑铃推举 · 上斜哑铃飞鸟' },
+        { name: '三分化（推拉腿）', audience: '初中高级通用', freq: '3-6 天 / 周', days: 3, icon: 'i-activity', examples: '杠铃平板卧推 · 哑铃推举 · 上斜哑铃卧推' },
+        { name: '四分化', audience: '中高级健身者', freq: '4 天 / 周', days: 4, icon: 'i-target', examples: '杠铃平板卧推 · 上斜哑铃卧推 · 双杠臂屈伸' },
+        { name: '五分化', audience: '中高级健身者', freq: '5 天 / 周', days: 5, icon: 'i-dumbbell', examples: '杠铃平板卧推 · 上斜哑铃卧推 · 哑铃飞鸟' }
       ];
 
       var list = document.getElementById('pg-list');
