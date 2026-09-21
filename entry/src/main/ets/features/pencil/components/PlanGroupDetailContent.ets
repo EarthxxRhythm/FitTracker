@@ -363,10 +363,10 @@ export struct PlanGroupDetailContent {
     }
     .width('100%')
     .padding({ top: 16, bottom: 15, left: 16, right: 16 })
-    .backgroundColor('#1450ECA7')
-    .border({ width: 1, color: '#6650ECA7' })
+    .linearGradient({ angle: 155, colors: [['#3850ECA7', 0], ['#1250ECA7', 0.46], ['#04FFFFFF', 1]] })
+    .border({ width: 1, color: '#5750ECA7' })
     .borderRadius(20)
-    .shadow({ radius: 28, color: '#33000000', offsetX: 0, offsetY: 14 })
+    .shadow({ radius: 34, color: '#42000000', offsetX: 0, offsetY: 16 })
   }
 
   @Builder
@@ -397,8 +397,13 @@ export struct PlanGroupDetailContent {
             .height(34)
             .justifyContent(FlexAlign.Center)
             .borderRadius(10)
-            .backgroundColor(this.isWeekRest(cell) ? '#08FFFFFF' : '#1F50ECA7')
-            .border({ width: 1, color: this.isWeekRest(cell) ? '#1AFFFFFF' : '#4D50ECA7' })
+            .linearGradient({
+              angle: 180,
+              colors: this.isWeekRest(cell)
+                ? [['#0EFFFFFF', 0], ['#05FFFFFF', 1]]
+                : [['#3D50ECA7', 0], ['#1A50ECA7', 1]]
+            })
+            .border({ width: 1, color: this.isWeekRest(cell) ? '#1AFFFFFF' : '#5C50ECA7' })
           }
           .layoutWeight(1)
           .alignItems(HorizontalAlign.Center)
@@ -432,8 +437,13 @@ export struct PlanGroupDetailContent {
           }
           .constraintSize({ minWidth: 96 })
           .padding({ top: 10, bottom: 10, left: 12, right: 12 })
-          .backgroundColor(this.activeDay === index ? '#2650ECA7' : '#0AFFFFFF')
-          .border({ width: 1, color: this.activeDay === index ? '#7350ECA7' : '#1AFFFFFF' })
+          .linearGradient({
+            angle: 180,
+            colors: this.activeDay === index
+              ? [['#4250ECA7', 0], ['#1C50ECA7', 1]]
+              : [['#11FFFFFF', 0], ['#06FFFFFF', 1]]
+          })
+          .border({ width: 1, color: this.activeDay === index ? '#8450ECA7' : '#14FFFFFF' })
           .borderRadius(14)
           .scale({ x: this.dayKey === day.title ? MotionTokens.PRESS_SHORTCUT : 1, y: this.dayKey === day.title ? MotionTokens.PRESS_SHORTCUT : 1 })
           .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
@@ -490,8 +500,8 @@ export struct PlanGroupDetailContent {
             .height(28)
             .justifyContent(FlexAlign.Center)
             .borderRadius(9)
-            .backgroundColor('#1A50ECA7')
-            .border({ width: 1, color: '#3850ECA7' })
+            .linearGradient({ angle: 155, colors: [['#3850ECA7', 0], ['#1350ECA7', 1]] })
+            .border({ width: 1, color: '#5250ECA7' })
 
             Column({ space: 3 }) {
               Row({ space: 7 }) {
