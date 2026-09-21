@@ -1,12 +1,14 @@
-/** PlanGroupDetailContent —— 计划组详细页界面体（对应 plan-group-detail.html · screen-plan-group-detail）。 */
+/** PlanGroupDetailContent —— 计划组详细页界面体（对应 plan-group-detail.html · screen-plan-group-detail）。
+ *  数据源：TrainingPlanService.getPresetPlanById(planId)；「使用此计划」调用 enablePlan 真正落库。 */
 import { MotionTokens } from '../../../common/styles/DesignTokens'
+import TrainingPlanService, { PresetPlan, TrainingDay, UserPlan } from '../../../common/services/TrainingPlanService'
+import { Context } from '@kit.AbilityKit'
 
 interface GroupExercise {
   name: string
   sets: number
   reps: string
-  equipment: string
-  note: string
+  muscle: string
 }
 
 interface GroupDay {
@@ -15,93 +17,136 @@ interface GroupDay {
   exercises: GroupExercise[]
 }
 
-function createGroupExercise(name: string, sets: number, reps: string, equipment: string, note: string): GroupExercise {
-  return {
+function createGroupExercise(name: string, sets: number, reps: string, muscle: string): GroupExercise {
+  const item: GroupExercise = {
     name: name,
     sets: sets,
     reps: reps,
-    equipment: equipment,
-    note: note
+    muscle: muscle
   }
+  return item
 }
 
 function createGroupDay(title: string, focus: string, exercises: GroupExercise[]): GroupDay {
-  return {
+  const item: GroupDay = {
     title: title,
     focus: focus,
     exercises: exercises
   }
+  return item
 }
 
 @Component
 export struct PlanGroupDetailContent {
-  // 路由参数（由 PencilPlanGroupDetailPage 从 getParams() 转入）。
-  // 缺省时回落到内置的「推拉腿分裂」详情——该组的日程数据是唯一完整的一份。
-  @Prop groupName: string = ''
-  @Prop groupTags: string[] = []
+  // 计划 id（由 PencilPlanGroupDetailPage 从 getParams() 转入）。
+  @Prop planId: string = ''
 
+  @State private planName: string = ''
+  @State private planDesc: string = ''
+  @State private planTags: string[] = []
+  @State private days: GroupDay[] = []
+  @State private weekCells: string[] = []
+  @State private notFound: boolean = false
+  @State private isCurrent: boolean = false
   @State private backPressed: boolean = false
   @State private ctaPressed: boolean = false
   @State private dayKey: string = ''
   @State private exerciseKey: string = ''
   @State private activeDay: number = 0
+  @State private toastMessage: string = ''
   @State private toastVisible: boolean = false
   @State private toastTimer: number = -1
 
-  private readonly planName: string = '推拉腿分裂'
-  private readonly planDesc: string = '按动作模式循环：推（胸、肩、三头）、拉（背、二头）、腿（下肢）。每个部位每周练 1-2 次，适合各阶段训练者。'
-  private readonly planTags: string[] = ['初中高级通用', '3 天 / 周', '3 个训练日']
-
-  /** 未传参、或传的正是内置详情对应的组 → 用内置内容。 */
-  private isDefaultGroup(): boolean {
-    return this.groupName.length === 0 || this.groupName === this.planName
-  }
-
-  private displayName(): string {
-    return this.isDefaultGroup() ? this.planName : this.groupName
-  }
-
-  private displayTags(): string[] {
-    if (this.isDefaultGroup() || this.groupTags.length === 0) {
-      return this.planTags
-    }
-    return this.groupTags
-  }
-
-  private displayDesc(): string {
-    if (this.isDefaultGroup()) {
-      return this.planDesc
-    }
-    return '「' + this.groupName + '」的详细训练安排待补充，以下日程为示例。'
-  }
-  private readonly weekCells: string[] = ['推', '拉', '腿', '休', '休', '休', '休']
   private readonly dowLabels: string[] = ['一', '二', '三', '四', '五', '六', '日']
-  private readonly days: GroupDay[] = [
-    createGroupDay('推', '胸大肌 · 三角肌 · 肱三头肌', [
-      createGroupExercise('杠铃卧推', 4, '8', '杠铃', '主项 · 肩胛后收下沉'),
-      createGroupExercise('站姿推举', 3, '10', '哑铃', '核心收紧 · 不反弓'),
-      createGroupExercise('哑铃侧平举', 3, '12', '哑铃', '轻重量控制 · 不耸肩'),
-      createGroupExercise('绳索下压', 3, '12', '器械', '肘部固定 · 顶峰收缩')
-    ]),
-    createGroupDay('拉', '背阔肌 · 菱形肌 · 肱二头肌', [
-      createGroupExercise('引体向上', 4, '8', '自重', '肩胛下沉 · 可负重'),
-      createGroupExercise('杠铃划船', 4, '10', '杠铃', '背部平直 · 肩胛后收'),
-      createGroupExercise('高位下拉', 3, '12', '器械', '下拉至锁骨 · 不耸肩'),
-      createGroupExercise('二头弯举', 3, '12', '哑铃', '上臂贴紧 · 不借力')
-    ]),
-    createGroupDay('腿', '股四头肌 · 腘绳肌 · 臀大肌', [
-      createGroupExercise('杠铃深蹲', 4, '8', '杠铃', '主项 · 膝盖同脚尖'),
-      createGroupExercise('腿举', 3, '12', '器械', '下放至 90° · 不锁膝'),
-      createGroupExercise('腿弯举', 3, '12', '器械', '控制离心 · 顶峰收缩'),
-      createGroupExercise('弓步蹲', 3, '12', '哑铃', '每侧 · 身体垂直下沉')
-    ])
-  ]
+
+  aboutToAppear(): void {
+    this.loadPlan()
+  }
+
+  private async loadPlan(): Promise<void> {
+    const plan: PresetPlan | undefined = TrainingPlanService.getPresetPlanById(this.planId)
+    if (plan === undefined) {
+      this.notFound = true
+      return
+    }
+    this.notFound = false
+    this.planName = plan.name
+    this.planDesc = plan.description
+    this.planTags = [plan.targetAudience, plan.weeklyFrequency, plan.days.length.toString() + ' 个训练日']
+    this.days = this.buildDays(plan)
+    this.weekCells = this.buildWeekCells(plan)
+    this.activeDay = 0
+    await this.refreshCurrentState()
+  }
+
+  private buildDays(plan: PresetPlan): GroupDay[] {
+    const result: GroupDay[] = []
+    for (let dayIndex = 0; dayIndex < plan.days.length; dayIndex++) {
+      const day: TrainingDay = plan.days[dayIndex]
+      const exercises: GroupExercise[] = []
+      for (let exerciseIndex = 0; exerciseIndex < day.exercises.length; exerciseIndex++) {
+        const exercise = day.exercises[exerciseIndex]
+        exercises.push(createGroupExercise(
+          exercise.name,
+          exercise.sets,
+          exercise.reps,
+          exercise.targetMuscle
+        ))
+      }
+      result.push(createGroupDay(day.dayLabel, this.focusOf(day), exercises))
+    }
+    return result
+  }
+
+  /** 该训练日涉及的目标肌群（去重、按出现顺序）。 */
+  private focusOf(day: TrainingDay): string {
+    const muscles: string[] = []
+    for (let index = 0; index < day.exercises.length; index++) {
+      const muscle: string = day.exercises[index].targetMuscle
+      if (muscle.length > 0 && muscles.indexOf(muscle) < 0) {
+        muscles.push(muscle)
+      }
+    }
+    return muscles.join(' · ')
+  }
+
+  /** 周一→周日 7 格节奏：该日若有训练日覆盖则「练」，否则「休」。 */
+  private buildWeekCells(plan: PresetPlan): string[] {
+    const cells: string[] = []
+    for (let index = 0; index < 7; index++) {
+      const dayNum: number = index === 6 ? 0 : index + 1
+      let training: boolean = false
+      for (let dayIndex = 0; dayIndex < plan.days.length; dayIndex++) {
+        const week: number[] | undefined = plan.days[dayIndex].dayOfWeek
+        if (week !== undefined && week.indexOf(dayNum) >= 0) {
+          training = true
+          break
+        }
+      }
+      cells.push(training ? '练' : '休')
+    }
+    return cells
+  }
+
+  private async refreshCurrentState(): Promise<void> {
+    const hostContext: Context | undefined = this.getUIContext().getHostContext()
+    if (hostContext === undefined) {
+      return
+    }
+    const current: UserPlan | null = await TrainingPlanService.getCurrentPlan(hostContext)
+    if (current === null) {
+      this.isCurrent = false
+      return
+    }
+    this.isCurrent = current.name === this.planName
+  }
 
   private handleBack(): void {
     this.getUIContext().getRouter().back()
   }
 
-  private usePlan(): void {
+  private showToast(message: string): void {
+    this.toastMessage = message
     this.toastVisible = true
     if (this.toastTimer >= 0) {
       clearTimeout(this.toastTimer)
@@ -109,6 +154,24 @@ export struct PlanGroupDetailContent {
     this.toastTimer = setTimeout(() => {
       this.toastVisible = false
     }, 1600)
+  }
+
+  private async usePlan(): Promise<void> {
+    if (this.notFound) {
+      return
+    }
+    const hostContext: Context | undefined = this.getUIContext().getHostContext()
+    if (hostContext === undefined) {
+      this.showToast('启用失败：缺少运行环境')
+      return
+    }
+    const enabled: UserPlan | null = await TrainingPlanService.enablePlan(hostContext, this.planId)
+    if (enabled === null) {
+      this.showToast('启用失败，请稍后重试')
+      return
+    }
+    this.isCurrent = true
+    this.showToast('已将「' + enabled.name + '」设为当前计划')
   }
 
   aboutToDisappear(): void {
@@ -126,28 +189,32 @@ export struct PlanGroupDetailContent {
       Column() {
         this.topBar()
 
-        Scroll() {
-          Column({ space: 16 }) {
-            this.summaryCard()
-            this.rhythmSection()
-            this.dayTabs()
-            this.dayPanel()
+        if (this.notFound) {
+          this.emptyState()
+        } else {
+          Scroll() {
+            Column({ space: 16 }) {
+              this.summaryCard()
+              this.rhythmSection()
+              this.dayTabs()
+              this.dayPanel()
+            }
+            .width('100%')
+            .padding({ top: 16, bottom: 16, left: 16, right: 16 })
           }
           .width('100%')
-          .padding({ top: 16, bottom: 16, left: 16, right: 16 })
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .scrollBar(BarState.Off)
+          .layoutWeight(1)
+          .scrollBar(BarState.Off)
 
-        this.ctaBar()
+          this.ctaBar()
+        }
       }
       .width('100%')
       .height('100%')
 
       if (this.toastVisible) {
         Row() {
-          Text('已将「推拉腿分裂」设为当前计划')
+          Text(this.toastMessage)
             .fontFamily('Noto Sans SC')
             .fontSize(13)
             .fontColor('#F7FBF8')
@@ -168,6 +235,26 @@ export struct PlanGroupDetailContent {
     .width('100%')
     .height('100%')
     .backgroundColor('#0B0F13')
+  }
+
+  @Builder
+  private emptyState() {
+    Column({ space: 10 }) {
+      Text('未找到该计划')
+        .fontFamily('Noto Sans SC')
+        .fontSize(16)
+        .fontWeight(FontWeight.Bold)
+        .fontColor('#F7FBF8')
+      Text('计划参数缺失或已下线，请返回重新选择。')
+        .fontFamily('Noto Sans SC')
+        .fontSize(13)
+        .fontColor('#9EFFFFFF')
+    }
+    .width('100%')
+    .layoutWeight(1)
+    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
+    .padding({ left: 16, right: 16 })
   }
 
   @Builder
@@ -201,7 +288,7 @@ export struct PlanGroupDetailContent {
         this.handleBack()
       })
 
-      Text(this.displayName())
+      Text(this.planName)
         .fontFamily('Noto Sans SC')
         .fontSize(16)
         .fontWeight(FontWeight.Bold)
@@ -231,7 +318,7 @@ export struct PlanGroupDetailContent {
         .fontWeight(FontWeight.Bold)
         .fontColor('#50ECA7')
         .letterSpacing(0.33)
-      Text(this.displayName())
+      Text(this.planName)
         .fontFamily('Noto Sans SC')
         .fontSize(22)
         .fontWeight(FontWeight.Bold)
@@ -239,14 +326,14 @@ export struct PlanGroupDetailContent {
         .fontColor('#F7FBF8')
         .margin({ top: 8 })
         .padding({ right: 8 })
-      Text(this.displayDesc())
+      Text(this.planDesc)
         .fontFamily('Noto Sans SC')
         .fontSize(13)
         .lineHeight(21)
         .fontColor('#9EFFFFFF')
         .margin({ top: 8 })
       Row({ space: 7 }) {
-        ForEach(this.displayTags(), (tag: string) => {
+        ForEach(this.planTags, (tag: string) => {
           Text(tag)
             .fontFamily('Noto Sans SC')
             .fontSize(11)
@@ -302,7 +389,7 @@ export struct PlanGroupDetailContent {
           }
           .layoutWeight(1)
           .alignItems(HorizontalAlign.Center)
-        }, (cell: string) => cell)
+        }, (cell: string, index: number) => index.toString() + cell)
       }
       .width('100%')
     }
@@ -347,7 +434,7 @@ export struct PlanGroupDetailContent {
           .onClick(() => {
             this.activeDay = index
           })
-        }, (day: GroupDay) => day.title)
+        }, (day: GroupDay, index: number) => index.toString() + day.title)
       }
       .padding(2)
     }
@@ -369,6 +456,9 @@ export struct PlanGroupDetailContent {
           .fontFamily('Noto Sans SC')
           .fontSize(12)
           .fontColor('#8AFFFFFF')
+          .layoutWeight(1)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
       .width('100%')
       .alignItems(VerticalAlign.Bottom)
@@ -400,7 +490,7 @@ export struct PlanGroupDetailContent {
                   .layoutWeight(1)
                   .maxLines(1)
                   .textOverflow({ overflow: TextOverflow.Ellipsis })
-                Text(exercise.equipment)
+                Text(exercise.muscle)
                   .fontFamily('Noto Sans SC')
                   .fontSize(10)
                   .fontWeight(FontWeight.Medium)
@@ -412,13 +502,6 @@ export struct PlanGroupDetailContent {
               }
               .width('100%')
               .alignItems(VerticalAlign.Center)
-
-              Text(exercise.note)
-                .fontFamily('Noto Sans SC')
-                .fontSize(11.5)
-                .fontColor('#8AFFFFFF')
-                .maxLines(1)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
             }
             .layoutWeight(1)
             .alignItems(HorizontalAlign.Start)
@@ -444,7 +527,7 @@ export struct PlanGroupDetailContent {
               this.exerciseKey = ''
             }
           })
-        }, (exercise: GroupExercise) => exercise.name)
+        }, (exercise: GroupExercise, index: number) => index.toString() + exercise.name)
       }
       .width('100%')
     }
@@ -465,7 +548,7 @@ export struct PlanGroupDetailContent {
             .strokeWidth(1.33)
             .strokeLineCap(LineCapStyle.Round)
             .strokeLineJoin(LineJoinStyle.Round)
-          Text('使用此计划')
+          Text(this.isCurrent ? '已在使用' : '使用此计划')
             .fontFamily('Noto Sans SC')
             .fontSize(15)
             .fontWeight(FontWeight.Bold)
