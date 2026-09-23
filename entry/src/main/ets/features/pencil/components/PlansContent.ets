@@ -97,15 +97,12 @@ export struct PlansContent {
       Column() {
         Row({ space: 8 }) {
           Row() {
-            Path()
+            // 不用 ArkUI Path——其 commands 坐标按物理像素解释（width/height 却是 vp），
+            // 在 3.38 密度下 22vp 的箭头只画出约 4.4×6.5vp 且贴在容器左上；改用 SVG 资源。
+            Image($rawfile('pencil-plan-nav-chevron-left.svg'))
               .width(22)
               .height(22)
-              .commands('M15 5 L8 12 L15 19')
-              .fillOpacity(0)
-              .stroke('#B3FFFFFF')
-              .strokeWidth(2)
-              .strokeLineCap(LineCapStyle.Round)
-              .strokeLineJoin(LineJoinStyle.Round)
+              .opacity(0.7)
           }
           .width(40)
           .height(40)
@@ -267,15 +264,10 @@ export struct PlansContent {
       }
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
-      Path()
+      Image($rawfile('pencil-plan-nav-chevron-right.svg'))
         .width(20)
         .height(20)
-        .commands('M9 5 L16 12 L9 19')
-        .fillOpacity(0)
-        .stroke('#66FFFFFF')
-        .strokeWidth(2)
-        .strokeLineCap(LineCapStyle.Round)
-        .strokeLineJoin(LineJoinStyle.Round)
+        .opacity(0.4)
     }
     .width('100%')
     .padding({ top: 13, right: 14, bottom: 13, left: 14 })
@@ -305,24 +297,13 @@ export struct PlansContent {
   @Builder
   private coverIcon(icon: string) {
     if (icon === 'layers') {
-      Path()
+      Image($rawfile('pencil-plan-cover-layers.svg'))
         .width(24)
         .height(24)
-        .commands('M12 3 L3 8 L12 13 L21 8 Z M3 12 L12 17 L21 12 M3 16 L12 21 L21 16')
-        .fillOpacity(0)
-        .stroke('#50ECA7')
-        .strokeWidth(1.8)
-        .strokeLineJoin(LineJoinStyle.Round)
     } else if (icon === 'activity') {
-      Path()
+      Image($rawfile('pencil-plan-cover-activity.svg'))
         .width(24)
         .height(24)
-        .commands('M3 12 H7 L9.5 5 L13.5 19 L16 12 H21')
-        .fillOpacity(0)
-        .stroke('#50ECA7')
-        .strokeWidth(2)
-        .strokeLineCap(LineCapStyle.Round)
-        .strokeLineJoin(LineJoinStyle.Round)
     } else if (icon === 'zap') {
       Path()
         .width(24)
@@ -333,14 +314,9 @@ export struct PlansContent {
         .strokeWidth(1.8)
         .strokeLineJoin(LineJoinStyle.Round)
     } else if (icon === 'dumbbell') {
-      Path()
+      Image($rawfile('pencil-plan-cover-dumbbell.svg'))
         .width(24)
         .height(24)
-        .commands('M7 7 V17 M17 7 V17 M7 12 H17 M3.5 9 V15 M20.5 9 V15')
-        .fillOpacity(0)
-        .stroke('#50ECA7')
-        .strokeWidth(2)
-        .strokeLineCap(LineCapStyle.Round)
     } else if (icon === 'target') {
       Stack({ alignContent: Alignment.Center }) {
         Circle()
