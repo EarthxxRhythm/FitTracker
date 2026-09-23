@@ -186,6 +186,10 @@ export struct PlansContent {
         }
         .width('100%')
         .layoutWeight(1)
+        // Scroll 一旦设了 layoutWeight（高度受限），内容不足一屏时会居中排布（HarmonyOS FAQ
+        // faqs-arkui-725），把首张卡片推到屏幕中部、顶栏标题与正文之间空出一大块；align(Top)
+        // 强制内容从顶部排布，内容超长时仍正常滚动。
+        .align(Alignment.Top)
         .scrollBar(BarState.Off)
       }
       .width('100%')
