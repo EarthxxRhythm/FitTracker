@@ -371,8 +371,8 @@ export struct PlanGroupDetailContent {
             .fontWeight(FontWeight.Medium)
             .fontColor('#50ECA7')
             .padding({ top: 4, bottom: 4, left: 11, right: 11 })
-            .backgroundColor('#1F50ECA7')
-            .border({ width: 1, color: '#4D50ECA7' })
+            .backgroundColor('#2450ECA7')
+            .border({ width: 1, color: '#1AFFFFFF' })
             .borderRadius(999)
         }, (tag: string) => tag)
       }
@@ -381,11 +381,10 @@ export struct PlanGroupDetailContent {
     }
     .width('100%')
     .padding({ top: 16, bottom: 15, left: 16, right: 16 })
-    .linearGradient({ angle: 140, colors: [['#3350ECA7', 0], ['#0EFFFFFF', 0.46], ['#04FFFFFF', 1]] })
-    .backdropBlur(22)
-    .border({ width: 1, color: '#29FFFFFF' })
+    .backgroundColor('#12241D')
+    .border({ width: 1, color: '#1AFFFFFF' })
     .borderRadius(22)
-    .shadow({ radius: 38, color: '#61000000', offsetX: 0, offsetY: 16 })
+    .shadow({ radius: 30, color: '#5C000000', offsetX: 0, offsetY: 14 })
   }
 
   @Builder
@@ -410,21 +409,17 @@ export struct PlanGroupDetailContent {
                 .fontFamily('Noto Sans SC')
                 .fontSize(12)
                 .fontWeight(FontWeight.Bold)
-                .fontColor(this.isWeekRest(cell) ? '#66FFFFFF' : '#50ECA7')
+                .fontColor(this.isWeekRest(cell) ? '#66FFFFFF' : '#07100B')
             }
             .width('100%')
             .height(34)
             .justifyContent(FlexAlign.Center)
             .borderRadius(10)
-            .linearGradient({
-              angle: 150,
-              colors: this.isWeekRest(cell)
-                ? [['#12FFFFFF', 0], ['#05FFFFFF', 1]]
-                : [['#4250ECA7', 0], ['#1450ECA7', 1]]
-            })
-            .backdropBlur(10)
-            .border({ width: 1, color: this.isWeekRest(cell) ? '#1AFFFFFF' : '#2EFFFFFF' })
-            .shadow({ radius: 13, color: '#42000000', offsetX: 0, offsetY: 4 })
+            .backgroundColor(this.isWeekRest(cell) ? '#151D1B' : '#50ECA7')
+            .border({ width: 1, color: this.isWeekRest(cell) ? '#14FFFFFF' : '#00000000' })
+            .shadow(this.isWeekRest(cell)
+              ? { radius: 0, color: '#00000000', offsetX: 0, offsetY: 0 }
+              : { radius: 12, color: '#3350ECA7', offsetX: 0, offsetY: 4 })
           }
           .layoutWeight(1)
           .alignItems(HorizontalAlign.Center)
@@ -446,29 +441,23 @@ export struct PlanGroupDetailContent {
                 .fontFamily('Inter')
                 .fontSize(11)
                 .fontWeight(FontWeight.Medium)
-                .fontColor(this.activeDay === index ? '#50ECA7' : '#8AFFFFFF')
+                .fontColor(this.activeDay === index ? '#A307100B' : '#8AFFFFFF')
               Text(day.title)
                 .fontFamily('Noto Sans SC')
                 .fontSize(14)
                 .fontWeight(FontWeight.Bold)
-                .fontColor(this.activeDay === index ? '#50ECA7' : '#F7FBF8')
+                .fontColor(this.activeDay === index ? '#07100B' : '#F7FBF8')
             }
             .width('100%')
             .alignItems(HorizontalAlign.Start)
           }
           .constraintSize({ minWidth: 96 })
           .padding({ top: 10, bottom: 10, left: 12, right: 12 })
-          .linearGradient({
-            angle: 150,
-            colors: this.activeDay === index
-              ? [['#4D50ECA7', 0], ['#1A50ECA7', 1]]
-              : [['#17FFFFFF', 0], ['#06FFFFFF', 1]]
-          })
-          .backdropBlur(14)
-          .border({ width: 1, color: this.activeDay === index ? '#8C50ECA7' : '#21FFFFFF' })
+          .backgroundColor(this.activeDay === index ? '#50ECA7' : '#141B1A')
+          .border({ width: 1, color: this.activeDay === index ? '#00000000' : '#14FFFFFF' })
           .shadow(this.activeDay === index
-            ? { radius: 24, color: '#3850ECA7', offsetX: 0, offsetY: 10 }
-            : { radius: 20, color: '#42000000', offsetX: 0, offsetY: 8 })
+            ? { radius: 20, color: '#3D50ECA7', offsetX: 0, offsetY: 8 }
+            : { radius: 0, color: '#00000000', offsetX: 0, offsetY: 0 })
           .borderRadius(14)
           .scale({ x: this.dayKey === day.title ? MotionTokens.PRESS_SHORTCUT : 1, y: this.dayKey === day.title ? MotionTokens.PRESS_SHORTCUT : 1 })
           .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
@@ -519,16 +508,15 @@ export struct PlanGroupDetailContent {
                 .fontFamily('Inter')
                 .fontSize(13)
                 .fontWeight(FontWeight.Bold)
-                .fontColor('#50ECA7')
+                .fontColor('#07100B')
             }
             .width(28)
             .height(28)
             .justifyContent(FlexAlign.Center)
             .borderRadius(9)
-            .linearGradient({ angle: 150, colors: [['#4250ECA7', 0], ['#1250ECA7', 1]] })
-            .backdropBlur(8)
-            .border({ width: 1, color: '#2EFFFFFF' })
-            .shadow({ radius: 10, color: '#42000000', offsetX: 0, offsetY: 3 })
+            .backgroundColor('#50ECA7')
+            .border({ width: 1, color: '#00000000' })
+            .shadow({ radius: 10, color: '#3350ECA7', offsetX: 0, offsetY: 3 })
 
             Column({ space: 3 }) {
               Row({ space: 7 }) {
