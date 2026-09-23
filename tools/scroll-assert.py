@@ -65,8 +65,14 @@ def run_layout(depth, device):
     raw = proc.stdout.strip()
     if not raw:
         raise RuntimeError('ui layout 无输出')
+    # devecocli 会在 JSON 之后追加版本升级提示等非 JSON 行（内容随 CLI 版本变化），
+    # 直接 json.loads 整段会报 "Extra data"；只截取首个 '[' 到末个 ']' 之间的主体再解析。
+    start = raw.find('[')
+    end = raw.rfind(']')
+    if start < 0 or end < start:
+        raise RuntimeError('ui layout 输出未包含 JSON 数组：%s' % raw[:200])
     try:
-        return json.loads(raw)
+        return json.loads(raw[start:end + 1])
     except json.JSONDecodeError as exc:
         raise RuntimeError('ui layout 输出不是合法 JSON：%s' % exc)
 
