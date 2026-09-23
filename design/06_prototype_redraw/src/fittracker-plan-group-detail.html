@@ -168,20 +168,15 @@
   .pgd-scroll::-webkit-scrollbar { display: none; }
   .pgd-content { padding: 16px 16px 16px; display: flex; flex-direction: column; gap: 16px; }
 
-  /* 概要卡 —— 液态玻璃：模糊底 + 镜面高光边 + 柔和外投影 */
+  /* 概要卡 —— 实心强调：不透明深底 + 中性描边 + 顶部内高光 */
   .pgd-summary {
     position: relative;
     border-radius: 22px;
-    border: 1px solid rgba(255,255,255,.16);
-    background:
-      linear-gradient(140deg, rgba(80,236,167,.20) 0%, rgba(255,255,255,.055) 46%, rgba(255,255,255,.015) 100%);
-    -webkit-backdrop-filter: blur(22px) saturate(175%);
-    backdrop-filter: blur(22px) saturate(175%);
+    border: 1px solid rgba(255,255,255,.10);
+    background: #12241D;
     box-shadow:
-      0 16px 38px rgba(0,0,0,.38),
-      inset 0 1px 0 rgba(255,255,255,.28),
-      inset 0 -1px 0 rgba(255,255,255,.05),
-      inset 0 0 32px rgba(80,236,167,.06);
+      0 14px 30px rgba(0,0,0,.36),
+      inset 0 1px 0 rgba(255,255,255,.10);
     padding: 16px 16px 15px;
   }
   .pgd-summary-label { font-size: 11px; font-weight: 700; letter-spacing: .03em; color: var(--accent); }
@@ -191,8 +186,8 @@
   .pgd-tag {
     font-size: 11px; font-weight: 600;
     color: var(--accent);
-    background: rgba(80,236,167,.12);
-    border: 1px solid rgba(80,236,167,.3);
+    background: rgba(80,236,167,.14);
+    border: 1px solid rgba(255,255,255,.10);
     border-radius: 999px;
     padding: 4px 11px;
   }
@@ -209,23 +204,17 @@
     border-radius: 11px;
     display: grid; place-items: center;
     font-size: 12px; font-weight: 700;
-    background: linear-gradient(150deg, rgba(80,236,167,.26) 0%, rgba(80,236,167,.08) 100%);
-    -webkit-backdrop-filter: blur(10px) saturate(160%);
-    backdrop-filter: blur(10px) saturate(160%);
-    border: 1px solid rgba(255,255,255,.18);
+    background: #50ECA7;
+    border: 1px solid transparent;
     box-shadow:
-      0 4px 13px rgba(0,0,0,.28),
-      inset 0 1px 0 rgba(255,255,255,.30);
-    color: var(--accent);
+      0 4px 12px rgba(80,236,167,.20),
+      inset 0 1px 0 rgba(255,255,255,.34);
+    color: #07100B;
   }
   .pgd-rhythm-cell.rest {
-    background: linear-gradient(150deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,.018) 100%);
-    -webkit-backdrop-filter: blur(10px) saturate(140%);
-    backdrop-filter: blur(10px) saturate(140%);
-    border: 1px solid rgba(255,255,255,.10);
-    box-shadow:
-      0 3px 10px rgba(0,0,0,.22),
-      inset 0 1px 0 rgba(255,255,255,.12);
+    background: #151D1B;
+    border: 1px solid rgba(255,255,255,.08);
+    box-shadow: none;
     color: var(--white-40);
   }
 
@@ -237,31 +226,26 @@
     min-width: 96px;
     padding: 10px 12px;
     border-radius: 16px;
-    background: linear-gradient(150deg, rgba(255,255,255,.09) 0%, rgba(255,255,255,.025) 100%);
-    -webkit-backdrop-filter: blur(14px) saturate(150%);
-    backdrop-filter: blur(14px) saturate(150%);
-    border: 1px solid rgba(255,255,255,.13);
-    box-shadow:
-      0 8px 20px rgba(0,0,0,.26),
-      inset 0 1px 0 rgba(255,255,255,.16);
+    background: #141B1A;
+    border: 1px solid rgba(255,255,255,.08);
     color: var(--white-70);
     text-align: left;
     cursor: pointer;
     transition: background .16s var(--ease), border-color .16s var(--ease), color .16s var(--ease), transform .12s var(--ease);
   }
-  .pgd-day-tab:hover { background: linear-gradient(150deg, rgba(255,255,255,.13) 0%, rgba(255,255,255,.04) 100%); border-color: rgba(255,255,255,.20); }
+  .pgd-day-tab:hover { background: #1A2321; border-color: rgba(255,255,255,.14); }
   .pgd-day-tab:active { transform: scale(.98); }
   .pgd-day-tab.active {
-    background: linear-gradient(150deg, rgba(80,236,167,.30) 0%, rgba(80,236,167,.10) 100%);
-    border-color: rgba(80,236,167,.55);
+    background: #50ECA7;
+    border: 1px solid transparent;
     box-shadow:
-      0 10px 24px rgba(80,236,167,.22),
+      0 8px 20px rgba(80,236,167,.24),
       inset 0 1px 0 rgba(255,255,255,.34);
   }
   .pgd-day-tab .n { display: block; font-family: var(--font-num); font-size: 11px; font-weight: 600; color: var(--white-54); }
   .pgd-day-tab .t { display: block; margin-top: 3px; font-size: 14px; font-weight: 700; color: var(--txt-hi); }
-  .pgd-day-tab.active .n { color: var(--accent); }
-  .pgd-day-tab.active .t { color: var(--accent); }
+  .pgd-day-tab.active .n { color: rgba(7,16,11,.64); }
+  .pgd-day-tab.active .t { color: #07100B; }
 
   /* 训练日面板 */
   .pgd-day-panel { display: flex; flex-direction: column; gap: 12px; }
@@ -286,14 +270,12 @@
     flex: 0 0 auto;
     width: 28px; height: 28px;
     border-radius: 10px;
-    background: linear-gradient(150deg, rgba(80,236,167,.26) 0%, rgba(80,236,167,.07) 100%);
-    -webkit-backdrop-filter: blur(8px) saturate(150%);
-    backdrop-filter: blur(8px) saturate(150%);
-    border: 1px solid rgba(255,255,255,.18);
+    background: #50ECA7;
+    border: 1px solid transparent;
     box-shadow:
-      0 3px 10px rgba(0,0,0,.26),
-      inset 0 1px 0 rgba(255,255,255,.30);
-    color: var(--accent);
+      0 3px 10px rgba(80,236,167,.20),
+      inset 0 1px 0 rgba(255,255,255,.34);
+    color: #07100B;
     display: grid; place-items: center;
     font-family: var(--font-num);
     font-size: 13px;
