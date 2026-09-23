@@ -2,6 +2,7 @@
 import { AppRoutes } from '../../../app/AppRoutes'
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 import { Context } from '@kit.AbilityKit'
+import { window } from '@kit.ArkUI'
 import { UserGoal, TrainingPlan, PlanDay, WorkoutSession } from '../../../shared/models/TrainingModels'
 import WorkoutSessionService, { WeeklyStats } from '../../../common/services/WorkoutSessionService'
 import StatsDashboardService, { StatsDashboardSummary } from '../../../shared/services/StatsDashboardService'
@@ -30,8 +31,10 @@ export struct HomeContent {
   @State private weeklyTrainedCount: number = 0
   @State private weeklyPlannedDays: number = 0
   @State private weekDays: HomeWeekDayItem[] = []
+  @State private topInsetVp: number = 0
 
   async aboutToAppear(): Promise<void> {
+    await this.resolveTopInset()
     this.applyDateAndGreeting()
     const context: Context | null = this.contextOrNull()
     if (context === null) {
@@ -50,6 +53,23 @@ export struct HomeContent {
   private contextOrNull(): Context | null {
     const host = this.getUIContext().getHostContext()
     return host === undefined || host === null ? null : host as Context
+  }
+
+  private async resolveTopInset(): Promise<void> {
+    // 原型 .home-content 以屏幕顶为坐标原点（padding-top 53 已把状态栏含在内）；设备侧页面区域
+    // 本身就落在状态栏之下，故须从 53 中扣掉状态栏高度，内容才会落在与原型相同的 53vp。
+    const context: Context | null = this.contextOrNull()
+    if (context === null) {
+      return
+    }
+    try {
+      const mainWindow: window.Window = await window.getLastWindow(context)
+      const avoidArea: window.AvoidArea = mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM)
+      this.topInsetVp = this.getUIContext().px2vp(avoidArea.topRect.height)
+    } catch (e) {
+      // 取不到安全区时按 0 处理，顶距回退为原型的 53vp
+      this.topInsetVp = 0
+    }
   }
 
   private applyDateAndGreeting(): void {
@@ -176,7 +196,7 @@ export struct HomeContent {
         .height('100%')
         .backgroundColor('#0B0F13')
       Column() {
-        Scroll() {
+        Column() {
           Column() {
             Column({ space: 5.4 }) {
               Text(this.currentDateText)
@@ -202,17 +222,15 @@ export struct HomeContent {
             this.weekPanel()
           }
           .width('100%')
-          .constraintSize({ minHeight: '100%' })
           .padding({
             left: 16,
             right: 16,
-            top: 53,
+            top: Math.max(53 - this.topInsetVp, 0),
             bottom: 36
           })
         }
         .layoutWeight(1)
         .width('100%')
-        .scrollBar(BarState.Off)
       }
       .width('100%')
       .height('100%')
