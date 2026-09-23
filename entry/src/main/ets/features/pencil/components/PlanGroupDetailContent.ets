@@ -292,15 +292,12 @@ export struct PlanGroupDetailContent {
   private topBar() {
     Row({ space: 8 }) {
       Row() {
-        Path()
+        // 不用 ArkUI Path——其 commands 坐标按物理像素解释（width/height 却是 vp），
+        // 在 3.38 密度下 22vp 的箭头只画出约 4.4×6.5vp 且贴在容器左上；改用 SVG 资源。
+        Image($rawfile('pencil-plan-nav-chevron-left.svg'))
           .width(22)
           .height(22)
-          .commands('M13.75 4.58 L7.33 11 L13.75 17.42')
-          .fillOpacity(0)
-          .stroke('#B3FFFFFF')
-          .strokeWidth(1.83)
-          .strokeLineCap(LineCapStyle.Round)
-          .strokeLineJoin(LineJoinStyle.Round)
+          .opacity(0.7)
       }
       .width(44)
       .height(44)
@@ -577,15 +574,9 @@ export struct PlanGroupDetailContent {
     Column() {
       Button({ type: ButtonType.Normal }) {
         Row({ space: 7 }) {
-          Path()
+          Image($rawfile('pencil-plan-cta-check.svg'))
             .width(16)
             .height(16)
-            .commands('M3.33 8.33 L6.33 11.33 L12.67 4.67')
-            .fillOpacity(0)
-            .stroke('#07100B')
-            .strokeWidth(1.33)
-            .strokeLineCap(LineCapStyle.Round)
-            .strokeLineJoin(LineJoinStyle.Round)
           Text(this.isCurrent ? '已在使用' : '使用此计划')
             .fontFamily('Noto Sans SC')
             .fontSize(15)
