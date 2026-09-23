@@ -1,6 +1,7 @@
 /** PencilPreviewPage —— FitTracker 训练预览页（依据 fittracker-training-preview.html 还原）。 */
 
 import { Context } from '@kit.AbilityKit'
+import { window } from '@kit.ArkUI'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { ColorTokens, MotionTokens } from '../../../common/styles/DesignTokens'
 import { TrainingPlan, UserGoal } from '../../../shared/models/TrainingModels'
@@ -26,6 +27,7 @@ struct PencilPreviewPage {
   @State private daySubtitle: string = ''
   @State private exerciseItems: PreviewExerciseItem[] = []
   @State private emptyMessage: string = ''
+  @State private topInsetVp: number = 0
 
   private getHostContextOrNull(): Context | null {
     const hostContext = this.getUIContext().getHostContext()
@@ -103,7 +105,25 @@ struct PencilPreviewPage {
     }
   }
 
+  private async resolveTopInset(): Promise<void> {
+    const context: Context | null = this.getHostContextOrNull()
+    if (context === null) {
+      return
+    }
+    try {
+      const mainWindow: window.Window = await window.getLastWindow(context)
+      const avoidArea: window.AvoidArea = mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM)
+      this.topInsetVp = px2vp(avoidArea.topRect.height)
+    } catch (e) {
+      // 取不到安全区时按 0 处理，顶距回退为原型的 56vp
+      this.topInsetVp = 0
+    }
+  }
+
   async aboutToAppear(): Promise<void> {
+    // 原型 .pv-content 以屏幕顶为坐标原点（padding-top 56 已把状态栏含在内）；设备侧页面区域
+    // 本身就落在状态栏之下，故须从 56 中扣掉状态栏高度，顶栏才会落在与原型相同的 56vp。
+    await this.resolveTopInset()
     await this.loadPreview()
   }
 
@@ -112,14 +132,11 @@ struct PencilPreviewPage {
     Row() {
       Row({ space: 12 }) {
         Stack({ alignContent: Alignment.Center }) {
-          Path()
+          // 不用 ArkUI Path——commands 坐标按物理像素解释（width/height 却是 vp），
+          // 21vp 的框里箭头只画在约 6×12px 且偏向左上；改用 SVG 资源随 vp 正确缩放。
+          Image($rawfile('pencil-preview-nav-back.svg'))
             .width(21)
             .height(21)
-            .commands('M13.6 4.4 L7.4 10.5 L13.6 16.6')
-            .fillOpacity(0)
-            .stroke('#D1FFFFFF')
-            .strokeWidth(1.8)
-            .strokeLineCap(LineCapStyle.Round)
         }
         .width(44)
         .height(44)
@@ -356,7 +373,7 @@ struct PencilPreviewPage {
     .padding({
       left: 18,
       right: 18,
-      top: 56,
+      top: Math.max(56 - this.topInsetVp, 0),
       bottom: 12
     })
     .backgroundColor('#0B0F13')
