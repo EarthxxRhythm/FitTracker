@@ -256,6 +256,8 @@ export struct PlanGroupDetailContent {
           }
           .width('100%')
           .layoutWeight(1)
+          // 同 PlansContent：layoutWeight 限高后 Scroll 内容不足一屏会居中，align(Top) 拉回顶部。
+          .align(Alignment.Top)
           .scrollBar(BarState.Off)
 
           this.ctaBar()
