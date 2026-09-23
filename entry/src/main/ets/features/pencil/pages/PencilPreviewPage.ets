@@ -283,6 +283,7 @@ struct PencilPreviewPage {
       }
     }
     .width('100%')
+    .layoutWeight(1)
     .margin({ top: 16 })
   }
 
