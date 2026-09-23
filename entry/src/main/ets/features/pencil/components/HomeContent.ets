@@ -539,13 +539,12 @@ export struct HomeContent {
           // 原型 .dot 的 `transition: background/border-color/box-shadow .18s ease`
           .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: MotionTokens.EASE_MOTION })
         if (active) {
-          Path()
-            .width(11)
-            .height(6)
-            .commands('M0 3 L4 6 L11 0')
-            .fillOpacity(0)
-            .stroke('#07100B')
-            .strokeWidth(2)
+          // 原型 .dot::after：11×6 的 border-left+border-bottom 旋转 -45° 的对勾（2px 描边）。
+          // 不用 ArkUI Path——其 commands 坐标此处按物理像素解释（width/height 却是 vp），
+          // 在 3.38 密度下对勾只有 17×13px 且偏向左上、退化成黑块；改用 SVG 资源，尺寸随 vp 正确缩放。
+          Image($rawfile('pencil-home-check.svg'))
+            .width(13)
+            .height(9)
         }
       }
       .width(34)
