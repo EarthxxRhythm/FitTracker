@@ -231,6 +231,13 @@ export struct HomeContent {
   @Builder
   private todayCard() {
     Column() {
+      // 受光玻璃：原型 .today 的 `box-shadow: 0 1px 0 rgba(255,255,255,.05) inset` 顶部受光边。
+      // ArkUI 的 .shadow() 不支持 inset，且渐变层的白段会被 1vp 卡边框盖住——改用卡内首个 1vp 高光行，
+      // padding-top 由 20 改为 19 以保持总内边距不变。
+      Row()
+        .width('100%')
+        .height(1)
+        .backgroundColor('#0DFFFFFF')
       Row({ space: 14 }) {
         Column({ space: 8 }) {
           Text('\u4eca\u65e5\u8bad\u7ec3')
@@ -252,6 +259,7 @@ export struct HomeContent {
               .fontSize(9)
               .lineHeight(10.8)
               .fontWeight(FontWeight.Bold)
+              .letterSpacing(0.18)
               .fontColor('#50ECA7')
               .backgroundColor('#1F50ECA7')
               .border({ width: 1, color: '#2B50ECA7' })
@@ -277,7 +285,7 @@ export struct HomeContent {
               .fontSize(10.9)
               .lineHeight(16)
               .fontWeight(FontWeight.Medium)
-              .fontColor('#89FFFFFF')
+              .fontColor('#8AFFFFFF')
           }
         }
         .layoutWeight(1)
@@ -293,7 +301,16 @@ export struct HomeContent {
             .width(78)
             .height(78)
             .borderRadius(39)
-            .backgroundColor('#0D1117')
+            // 受光玻璃：原型 .today-ring .inner 的 `radial-gradient(120% 120% at 50% 0%, rgba(255,255,255,.06), transparent 52%), var(--ring-inner)`——
+            // 内圈顶部受光。小圆内用纵向线性渐变近似该径向顶光。
+            .linearGradient({
+              angle: 180,
+              colors: [
+                ['#0FFFFFFF', 0],
+                ['#000D1117', 0.52],
+                ['#0D1117', 1]
+              ]
+            })
             .border({ width: 1, color: '#17FFFFFF' })
             .shadow({ radius: 16, color: 'rgba(0,0,0,0.32)', offsetX: 0, offsetY: 6 })
           Column({ space: 2 }) {
@@ -312,6 +329,9 @@ export struct HomeContent {
         }
         .width(96)
         .height(96)
+        // 原型 .today-ring .outer 是 border-radius:50% 的圆形 drop-shadow 发光；
+        // 容器不设圆角时 ArkUI 阴影会沿方形容器铺开（设备截图里表现为方形衬底）。
+        .borderRadius(48)
         .shadow({ radius: 9, color: 'rgba(80,236,167,0.28)', offsetX: 0, offsetY: 0 })
         .margin({ top: 4 })
       }
@@ -374,7 +394,7 @@ export struct HomeContent {
         })
     }
     .width('100%')
-    .padding({ left: 18, right: 18, top: 20, bottom: 18 })
+    .padding({ left: 18, right: 18, top: 19, bottom: 18 })
     .backgroundColor('#0F50ECA7')
     .borderRadius(26)
     .border({ width: 1, color: '#3850ECA7' })
@@ -514,6 +534,10 @@ export struct HomeContent {
           .borderRadius(17)
           .backgroundColor(active ? '#50ECA7' : '#0FFFFFFF')
           .border({ width: 1, color: active ? '#50ECA7' : '#14FFFFFF' })
+          // 受光玻璃：原型 .week-day.active .dot 第一层 `0 0 0 4px var(--accent-12)` 外圈光晕
+          .shadow({ radius: active ? 4 : 0, color: active ? '#1F50ECA7' : 'rgba(0,0,0,0)', offsetX: 0, offsetY: 0 })
+          // 原型 .dot 的 `transition: background/border-color/box-shadow .18s ease`
+          .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: MotionTokens.EASE_MOTION })
         if (active) {
           Path()
             .width(11)
@@ -526,16 +550,17 @@ export struct HomeContent {
       }
       .width(34)
       .height(34)
+      // 受光玻璃：原型 .week-day.active .dot 第二层 `0 5px 12px rgba(0,0,0,.24)` 下缘投影
       .shadow({
-        radius: active ? 4 : 0,
-        color: active ? 'rgba(80,236,167,0.12)' : 'rgba(0,0,0,0)',
+        radius: active ? 12 : 0,
+        color: active ? '#3D000000' : 'rgba(0,0,0,0)',
         offsetX: 0,
-        offsetY: 0
+        offsetY: active ? 5 : 0
       })
       Text(date)
         .fontFamily(HomeContent.NUMBER_FONT_FAMILY)
         .fontSize(10)
-        .fontWeight(FontWeight.Medium)
+        .fontWeight(600)
         .fontColor(active ? '#50ECA7' : '#8AFFFFFF')
         .height(14)
     }
