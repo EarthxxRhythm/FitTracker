@@ -4,6 +4,8 @@
 import { AppRoutes } from '../../../app/AppRoutes'
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 import TrainingPlanService, { PresetPlan } from '../../../common/services/TrainingPlanService'
+import { Context } from '@kit.AbilityKit'
+import { window } from '@kit.ArkUI'
 
 interface GroupCard {
   planId: string
@@ -78,9 +80,31 @@ export struct PlansContent {
   @State private backPressed: boolean = false
   @State private pressedCardKey: string = ''
   @State private groups: GroupCard[] = []
+  // 系统状态栏高度（vp）。页面区本身落在状态栏之下，原型顶距须扣掉它才不会双计。
+  @State private topInsetVp: number = 0
 
   aboutToAppear(): void {
+    // 列表数据先就绪（首帧不闪空列表），安全区异步到达后仅重算顶栏 padding。
+    // 原型 .pd-top 的 padding-top: 52px 以屏幕顶为原点（已把状态栏含在内）；设备侧页面区本身
+    // 落在状态栏之下，若原样使用 52 就与系统避让重复计数，顶栏下移一个状态栏高度（同
+    // PlanGroupDetailContent / PencilPreviewPage 的局部补偿口径）。
     this.groups = buildGroupCards()
+    this.resolveTopInset()
+  }
+
+  private async resolveTopInset(): Promise<void> {
+    const hostContext: Context | undefined = this.getUIContext().getHostContext()
+    if (hostContext === undefined) {
+      return
+    }
+    try {
+      const mainWindow: window.Window = await window.getLastWindow(hostContext)
+      const avoidArea: window.AvoidArea = mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM)
+      this.topInsetVp = this.getUIContext().px2vp(avoidArea.topRect.height)
+    } catch (e) {
+      // 取不到安全区时按 0 处理，顶距回退为原型的 52vp
+      this.topInsetVp = 0
+    }
   }
 
   private handleBack(): void {
@@ -132,7 +156,7 @@ export struct PlansContent {
             .height(40)
         }
         .width('100%')
-        .padding({ top: 52, bottom: 10, left: 12, right: 12 })
+        .padding({ top: Math.max(52 - this.topInsetVp, 0), bottom: 10, left: 12, right: 12 })
         .alignItems(VerticalAlign.Center)
         .backgroundColor('#F50A0D12')
         .border({ width: { bottom: 1 }, color: '#0FFFFFFF' })

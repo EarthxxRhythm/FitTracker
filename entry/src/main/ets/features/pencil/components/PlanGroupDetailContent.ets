@@ -3,6 +3,7 @@
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 import TrainingPlanService, { PresetPlan, TrainingDay, UserPlan } from '../../../common/services/TrainingPlanService'
 import { Context } from '@kit.AbilityKit'
+import { window } from '@kit.ArkUI'
 
 interface GroupExercise {
   name: string
@@ -56,11 +57,31 @@ export struct PlanGroupDetailContent {
   @State private toastMessage: string = ''
   @State private toastVisible: boolean = false
   @State private toastTimer: number = -1
+  // 系统状态栏高度（vp）。页面区本身落在状态栏之下，原型顶距须扣掉它才不会双计。
+  @State private topInsetVp: number = 0
 
   private readonly dowLabels: string[] = ['一', '二', '三', '四', '五', '六', '日']
 
   aboutToAppear(): void {
+    // 顺序有讲究：loadPlan 的同步段会先把 days 填好，首帧才不会撞上空的 days；
+    // 安全区只是顶栏 padding 的修正项，异步到达后重算即可，不能挡在数据加载前面。
     this.loadPlan()
+    this.resolveTopInset()
+  }
+
+  private async resolveTopInset(): Promise<void> {
+    const hostContext: Context | undefined = this.getUIContext().getHostContext()
+    if (hostContext === undefined) {
+      return
+    }
+    try {
+      const mainWindow: window.Window = await window.getLastWindow(hostContext)
+      const avoidArea: window.AvoidArea = mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM)
+      this.topInsetVp = this.getUIContext().px2vp(avoidArea.topRect.height)
+    } catch (e) {
+      // 取不到安全区时按 0 处理，顶距回退为原型的 52vp
+      this.topInsetVp = 0
+    }
   }
 
   private async loadPlan(): Promise<void> {
@@ -222,7 +243,7 @@ export struct PlanGroupDetailContent {
 
         if (this.notFound) {
           this.emptyState()
-        } else {
+        } else if (this.days.length > 0) {
           Scroll() {
             Column({ space: 16 }) {
               this.summaryCard()
@@ -331,7 +352,7 @@ export struct PlanGroupDetailContent {
         .height(44)
     }
     .width('100%')
-    .padding({ top: 52, bottom: 10, left: 12, right: 12 })
+    .padding({ top: Math.max(52 - this.topInsetVp, 0), bottom: 10, left: 12, right: 12 })
     .alignItems(VerticalAlign.Center)
     .backgroundColor('#D10A0D12')
     .border({ width: { bottom: 1 }, color: '#0FFFFFFF' })
