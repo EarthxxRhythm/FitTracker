@@ -418,9 +418,9 @@ export struct HomeContent {
     }
     .width('100%')
     .padding({ left: 18, right: 18, top: 19, bottom: 18 })
-    .backgroundColor('#0F50ECA7')
+    .backgroundColor('#08FFFFFF')
     .borderRadius(26)
-    .border({ width: 1, color: '#3850ECA7' })
+    .border({ width: 1, color: '#1AFFFFFF' })
     .shadow({ radius: 44, color: 'rgba(0,0,0,0.24)', offsetX: 0, offsetY: 22 })
   }
 
