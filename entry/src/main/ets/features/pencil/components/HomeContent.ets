@@ -249,13 +249,16 @@ export struct HomeContent {
   @Builder
   private todayCard() {
     Column() {
-      // 受光玻璃：原型 .today 的 `box-shadow: 0 1px 0 rgba(255,255,255,.05) inset` 顶部受光边。
-      // ArkUI 的 .shadow() 不支持 inset，且渐变层的白段会被 1vp 卡边框盖住——改用卡内首个 1vp 高光行，
-      // padding-top 由 20 改为 19 以保持总内边距不变。
+      // 受光玻璃：原型 .today 的 `box-shadow: 0 1px 0 rgba(255,255,255,.05) inset` 是紧贴上边框
+      // 内侧的那 1vp 高光。ArkUI 的 .shadow() 不支持 inset，故用一条 1vp 高光行来画。它必须落在
+      // 外层 padding 之外才贴得住边框——只放进内容流会被推到 card_top+19vp（设备实测那里有一条
+      // 原型没有的横线，而 card_top+1 处缺高光）。用 offset 把它上移 18vp 到边框内侧：布局位置
+      // 不变（后续内容仍从 card_top+20vp 起），只改绘制位置。左右沿用 padding 的 18vp 避开圆角。
       Row()
         .width('100%')
         .height(1)
         .backgroundColor('#0DFFFFFF')
+        .offset({ x: 0, y: -18 })
       Row({ space: 14 }) {
         Column({ space: 8 }) {
           Text('\u4eca\u65e5\u8bad\u7ec3')
