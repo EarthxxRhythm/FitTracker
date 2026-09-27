@@ -409,7 +409,11 @@ export struct PlanGroupDetailContent {
     }
     .width('100%')
     .padding({ top: 16, bottom: 15, left: 16, right: 16 })
-    .backgroundColor('#12241D')
+    // Card Surface v1（白系玻璃）：底 rgba(255,255,255,.031) + 描边 rgba(255,255,255,.102)，
+    // 与首页「本周节奏」卡（HomeContent.weekPanel）逐值一致。注意：冻结原型
+    // fittracker-plan-group-detail.html 的 .pgd-summary 写的是绿系实心 #12241D，此处按需求
+    // 取中性玻璃面，属有意偏离（同 PlanContent master card 的先例，原型不手改）。
+    .backgroundColor('#08FFFFFF')
     .border({ width: 1, color: '#1AFFFFFF' })
     .borderRadius(22)
     .shadow({ radius: 30, color: '#5C000000', offsetX: 0, offsetY: 14 })
