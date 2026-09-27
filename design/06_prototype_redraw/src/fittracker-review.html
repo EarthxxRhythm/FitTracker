@@ -1095,7 +1095,7 @@
   .openstats .effort-bars { display: flex; gap: 8px; height: 96px; align-items: flex-end; margin-top: 14px; }
   .openstats .effort-bar { flex: 1 1 0; min-width: 0; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 6px; }
   .openstats .effort-bar .bar { width: 100%; border-radius: 6px; background: var(--acc); }
-  .openstats .effort-bar .lbl { font-size: 9px; color: var(--label-3); line-height: 1; }
+  .openstats .effort-bar .lbl { font-size: 9px; color: var(--label-3); line-height: 12px; height: 12px; }
 
   @media (max-width: 860px) {
     .page-header { padding: 32px 20px 4px; }
@@ -1767,6 +1767,7 @@
       var effortValue = document.getElementById('effort-value');
       var effortUnit = document.getElementById('effort-unit');
       var RIR_DATA = [2, 3, 1, 2, 4, 1, 3, 2];
+      var EFFORT_BAR_TRACK = 78; // 96px 列高扣除 6px 间距与 12px 序号后，柱子实际可用高度
       var effortCurrent = 'rir';
 
       function renderEffort() {
@@ -1783,8 +1784,8 @@
             col.className = 'effort-bar';
             var bar = document.createElement('span');
             bar.className = 'bar';
-            var h = ((v - min) / (max - min)) * 100;
-            bar.style.height = Math.max(8, h) + '%';
+            var h = Math.max(8, ((v - min) / (max - min)) * 100);
+            bar.style.height = ((h / 100) * EFFORT_BAR_TRACK) + 'px';
             var lbl = document.createElement('span');
             lbl.className = 'lbl';
             lbl.textContent = String(i + 1);
