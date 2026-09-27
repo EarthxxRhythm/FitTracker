@@ -1,5 +1,6 @@
 /** ReviewContent - 复盘 Tab 界面体（供 PencilAppShell 与独立注册页复用）。 */
 
+import { LengthMetricsUnit } from '@kit.ArkUI'
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 import ReviewDashboardService, { ReviewDashboardSummary } from '../../../shared/services/ReviewDashboardService'
 import ReviewInsightsService, { ReviewWeeklyTrendItem } from '../../../shared/services/ReviewInsightsService'
@@ -872,11 +873,13 @@ export struct ReviewContent {
   @State private goalPressed: boolean = false
 
   private mmFrontSettings: RenderingContextSettings = new RenderingContextSettings(true)
-  private mmFrontContext: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.mmFrontSettings)
+  private mmFrontContext: CanvasRenderingContext2D =
+    new CanvasRenderingContext2D(this.mmFrontSettings, LengthMetricsUnit.PX)
   private mmBackSettings: RenderingContextSettings = new RenderingContextSettings(true)
-  private mmBackContext: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.mmBackSettings)
+  private mmBackContext: CanvasRenderingContext2D =
+    new CanvasRenderingContext2D(this.mmBackSettings, LengthMetricsUnit.PX)
   private wgSettings: RenderingContextSettings = new RenderingContextSettings(true)
-  private wgContext: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.wgSettings)
+  private wgContext: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.wgSettings, LengthMetricsUnit.PX)
   private frontHitRegions: MuscleHitRegion[] = []
   private backHitRegions: MuscleHitRegion[] = []
 
@@ -1320,6 +1323,7 @@ export struct ReviewContent {
 
   private drawWeightChart(): void {
     const ctx: CanvasRenderingContext2D = this.wgContext
+    // ctx 以 LengthMetricsUnit.PX 构造：ctx.width/height 与绘制坐标同为物理像素。
     const width: number = ctx.width
     const height: number = ctx.height
     if (width <= 0 || height <= 0) {
@@ -1401,8 +1405,9 @@ export struct ReviewContent {
     if (width <= 0 || height <= 0) {
       return
     }
-    const modelX: number = (event.x * view.viewWidth) / width + view.offsetX
-    const modelY: number = (event.y * view.viewHeight) / height + view.offsetY
+    // ctx 为 PX 单位，画布尺寸是物理像素；event.x/y 是 vp，需换算到 px 再映射回模型坐标。
+    const modelX: number = (vp2px(event.x) * view.viewWidth) / width + view.offsetX
+    const modelY: number = (vp2px(event.y) * view.viewHeight) / height + view.offsetY
     const hit: string = hitTestMuscleView(regions, modelX, modelY)
     if (hit !== '') {
       this.selectedMuscleKey = hit
@@ -1421,6 +1426,9 @@ export struct ReviewContent {
   }
 
   private drawBodymapView(ctx: CanvasRenderingContext2D, view: BodymapViewData): void {
+    // ctx 由 LengthMetricsUnit.PX 构造：ctx.width/height 与绘制坐标同为物理像素。
+    // 若用默认 vp 单位，fillRect 等原语按 vp 折算密度、而 Path2D 的字符串坐标按 px 解释，
+    // 两者相差一个屏幕密度——人体图会错位并被裁切（此前表现：正视图只露左上角、背视图整张空白）。
     const width: number = ctx.width
     const height: number = ctx.height
     if (width <= 0 || height <= 0) {
