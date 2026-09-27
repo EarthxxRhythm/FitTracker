@@ -261,13 +261,9 @@ struct PencilRegisterPage {
               Row({ space: 10 }) {
                 Stack({ alignContent: Alignment.Center }) {
                   if (this.agreeChecked) {
-                    Path()
-                      .width(11)
-                      .height(6)
-                      .commands('M0 3 L4 6 L11 0')
-                      .fillOpacity(0)
-                      .stroke('#07100B')
-                      .strokeWidth(2)
+                    Image($rawfile('pencil-auth-check-agree.svg'))
+                      .width(13)
+                      .height(8)
                   }
                 }
                 .width(18)

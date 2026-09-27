@@ -28,6 +28,7 @@ import personalRecordServiceTest from './PersonalRecordService.test'
 import persistenceFallbackServiceTest from './PersistenceFallbackService.test'
 import deviceSeedServiceTest from './DeviceSeedService.test'
 import exerciseMediaResolverServiceTest from './ExerciseMediaResolverService.test'
+import exerciseGifCatalogTest from './ExerciseGifCatalog.test'
 import premiumExerciseContentServiceTest from './PremiumExerciseContentService.test'
 import monetizationEntitlementServiceTest from './MonetizationEntitlementService.test'
 import monetizationGateServiceTest from './MonetizationGateService.test'
@@ -72,6 +73,7 @@ export default function testsuite(): void {
   persistenceFallbackServiceTest()
   deviceSeedServiceTest()
   exerciseMediaResolverServiceTest()
+  exerciseGifCatalogTest()
   premiumExerciseContentServiceTest()
   monetizationEntitlementServiceTest()
   monetizationGateServiceTest()

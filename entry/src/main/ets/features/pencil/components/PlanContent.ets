@@ -14,6 +14,16 @@ import {
   UserGoal
 } from '../../../shared/models/TrainingModels'
 
+/**
+ * 当前计划卡（原型 .master-card）高度，单位 vp。
+ * 原型 390×844 画布下 `.current-plan{flex:2}` 与 `.today-plan{flex:8}` 分的是
+ * 「画布高 - 53(上) - 24(下) - 72(tabbar) - 16(间距)」= 679，卡实高 20% × 679 ≈ 135。
+ * 设备上状态栏(39vp)与手势条 inset 会压缩这段可用高度，若继续按 layoutWeight 分，
+ * 卡片只剩 ~122vp，底部进度行随之上移 ~13vp，与原型不符；故按原型实高定死，
+ * 由下方 deck 区吸收平台差异（计划页整体保持不可滑）。
+ */
+const PLAN_MASTER_CARD_HEIGHT: number = 135
+
 interface PlanExerciseItem {
   name: string
   muscle: string
@@ -276,7 +286,7 @@ export struct PlanContent {
           }, (day: PlanDayItem) => day.title)
         }
         .width('100%')
-        .layoutWeight(4)
+        .layoutWeight(1)
         .clip(true)
         .gesture(
           SwipeGesture({ direction: SwipeDirection.Horizontal })
@@ -368,7 +378,7 @@ export struct PlanContent {
       .alignItems(VerticalAlign.Center)
     }
     .width('100%')
-    .layoutWeight(1)
+    .height(PLAN_MASTER_CARD_HEIGHT)
     .padding({ left: 16, right: 16, top: 14, bottom: 14 })
     .backgroundColor('#0F50ECA7')
     .borderRadius(24)
