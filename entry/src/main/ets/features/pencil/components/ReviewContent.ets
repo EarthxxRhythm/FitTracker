@@ -44,6 +44,13 @@ const ONE_RM_ROWS: OneRmRowItem[] = [
   { name: '杠铃划船', source: '6月3日 · 第2组', value: '58' }
 ]
 
+// 努力程度柱状图：一列总高 96 要同时容纳柱子、6px 间距和 12px 序号，柱子可用高度只有 78
+const EFFORT_BAR_COLUMN_HEIGHT: number = 96
+const EFFORT_BAR_GAP: number = 6
+const EFFORT_BAR_LABEL_HEIGHT: number = 12
+const EFFORT_BAR_TRACK_HEIGHT: number =
+  EFFORT_BAR_COLUMN_HEIGHT - EFFORT_BAR_GAP - EFFORT_BAR_LABEL_HEIGHT
+
 const RIR_BARS: number[] = [2, 3, 1, 2, 4, 1, 3, 2]
 
 const MM_MUSCLE_KEYS: string[] = [
@@ -1275,7 +1282,7 @@ export struct ReviewContent {
     if (percent < 8) {
       percent = 8
     }
-    return percent * 0.96
+    return percent * EFFORT_BAR_TRACK_HEIGHT / 100
   }
 
   private goalWeightText(): string {
@@ -2138,7 +2145,7 @@ export struct ReviewContent {
 
       Row({ space: 8 }) {
         ForEach(RIR_BARS, (value: number, index: number) => {
-          Column({ space: 6 }) {
+          Column({ space: EFFORT_BAR_GAP }) {
             Row()
               .width('100%')
               .height(this.effortBarHeight(index))
@@ -2148,15 +2155,16 @@ export struct ReviewContent {
               .fontFamily('Inter')
               .fontSize(9)
               .fontColor('#66FFFFFF')
+              .height(EFFORT_BAR_LABEL_HEIGHT)
           }
           .layoutWeight(1)
-          .height(96)
+          .height(EFFORT_BAR_COLUMN_HEIGHT)
           .justifyContent(FlexAlign.End)
           .alignItems(HorizontalAlign.Center)
         }, (value: number, index: number) => index.toString())
       }
       .width('100%')
-      .height(96)
+      .height(EFFORT_BAR_COLUMN_HEIGHT)
       .alignItems(VerticalAlign.Bottom)
       .margin({ top: 14 })
     }
