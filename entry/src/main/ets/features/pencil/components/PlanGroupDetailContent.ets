@@ -237,6 +237,14 @@ export struct PlanGroupDetailContent {
           radius: 300,
           colors: [['#1645C9A1', 0], ['#0045C9A1', 1]]
         })
+      Column()
+        .width('100%')
+        .height('100%')
+        .radialGradient({
+          center: ['94%', '16%'],
+          radius: 253,
+          colors: [['#0E8CEBCC', 0], ['#008CEBCC', 1]]
+        })
 
       Column() {
         this.topBar()

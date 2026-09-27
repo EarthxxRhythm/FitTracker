@@ -693,7 +693,7 @@ export struct ActiveContent {
             .width(120)
             .height(120)
             .borderRadius(60)
-            .backgroundColor('#1280ECA7')
+            .backgroundColor('#1250ECA7')
           Row()
             .width(88)
             .height(88)
