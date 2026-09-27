@@ -235,13 +235,10 @@ export struct BodyDataContent {
       Column() {
         Row({ space: 10 }) {
           Row() {
-            Path()
+            Image($rawfile('pencil-plan-nav-chevron-left.svg'))
               .width(20)
               .height(20)
-              .commands('M14 6 L8 12 L14 18')
-              .fillOpacity(0)
-              .stroke('#B3FFFFFF')
-              .strokeWidth(2)
+              .opacity(0.7)
           }
           .width(44)
             .height(44)

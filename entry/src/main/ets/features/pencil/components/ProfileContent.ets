@@ -2,6 +2,7 @@
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { Context } from '@kit.AbilityKit'
+import { window } from '@kit.ArkUI'
 import UserProfileService, { UserProfile } from '../../../common/services/UserProfileService'
 import WorkoutSessionService, { WeeklyStats } from '../../../common/services/WorkoutSessionService'
 import GoalRepository from '../../../shared/services/GoalRepository'
@@ -10,6 +11,7 @@ import { UserGoal } from '../../../shared/models/TrainingModels'
 export struct ProfileContent {
   @State private settingsPressed: boolean = false
   @State private shortcutKey: string = ''
+  @State private topInsetVp: number = 0
   @State private avatarLetter: string = '\u6797'
   @State private nickname: string = '\u8c31\u5c3c'
   @State private goalSubtitle: string = '\u589e\u808c\u7b2c 42 \u5929 \u00b7 \u4fdd\u6301\u8282\u594f'
@@ -23,7 +25,25 @@ export struct ProfileContent {
     return host === undefined || host === null ? null : host as Context
   }
 
+  private async resolveTopInset(): Promise<void> {
+    // 原型 .profile-content 以屏幕顶为坐标原点（padding-top 53 已把状态栏含在内）；设备侧页面区域
+    // 本身就落在状态栏之下，故须从 53 中扣掉状态栏高度，内容才会落在与原型相同的 53vp。
+    const context: Context | null = this.contextOrNull()
+    if (context === null) {
+      return
+    }
+    try {
+      const mainWindow: window.Window = await window.getLastWindow(context)
+      const avoidArea: window.AvoidArea = mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM)
+      this.topInsetVp = this.getUIContext().px2vp(avoidArea.topRect.height)
+    } catch (e) {
+      // 取不到安全区时按 0 处理，顶距回退为原型的 53vp
+      this.topInsetVp = 0
+    }
+  }
+
   async aboutToAppear(): Promise<void> {
+    await this.resolveTopInset()
     // Week range is pure date math and does not depend on persisted data.
     this.weekRangeText = this.computeWeekRangeText()
     const context: Context | null = this.contextOrNull()
@@ -93,21 +113,16 @@ export struct ProfileContent {
   }
 
   build() {
-    Scroll() {
-      Column({ space: 16 }) {
-        this.buildProfileHeader()
-        this.buildWeeklyOverview()
-        this.buildStreak()
-        this.buildAchievements()
-        this.buildShortcuts()
-      }
-      .width('100%')
-      .constraintSize({ minHeight: '100%' })
-      .padding({ left: 16, right: 16, top: 53, bottom: 30 })
+    Column({ space: 16 }) {
+      this.buildProfileHeader()
+      this.buildWeeklyOverview()
+      this.buildStreak()
+      this.buildAchievements()
+      this.buildShortcuts()
     }
     .width('100%')
     .height('100%')
-    .scrollBar(BarState.Off)
+    .padding({ left: 16, right: 16, top: Math.max(53 - this.topInsetVp, 0), bottom: 30 })
     .backgroundColor('#0B0F13')
   }
 
@@ -410,13 +425,10 @@ export struct ProfileContent {
         .fontWeight(FontWeight.Medium)
         .fontColor('#B3FFFFFF')
         .layoutWeight(1)
-      Path()
+      Image($rawfile('pencil-plan-nav-chevron-right.svg'))
         .width(18)
         .height(18)
-        .commands('M9 6 L15 12 L9 18')
-        .fillOpacity(0)
-        .stroke('#9EFFFFFF')
-        .strokeWidth(2)
+        .opacity(0.62)
     }
     .layoutWeight(1)
     .height(46)

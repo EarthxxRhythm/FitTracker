@@ -77,13 +77,10 @@ export struct SettingsContent {
       Column() {
         Row({ space: 10 }) {
           Row() {
-            Path()
+            Image($rawfile('pencil-plan-nav-chevron-left.svg'))
               .width(20)
               .height(20)
-              .commands('M14 6 L8 12 L14 18')
-              .fillOpacity(0)
-              .stroke('#B3FFFFFF')
-              .strokeWidth(2)
+              .opacity(0.7)
           }
           .width(44)
           .height(44)
@@ -351,13 +348,10 @@ export struct SettingsContent {
           .fontSize(12.5)
           .fontColor('#8AFFFFFF')
       }
-      Path()
+      Image($rawfile('pencil-plan-nav-chevron-right.svg'))
         .width(18)
         .height(18)
-        .commands('M9 6 L15 12 L9 18')
-        .fillOpacity(0)
-        .stroke('#66FFFFFF')
-        .strokeWidth(2)
+        .opacity(0.4)
         .margin({ left: 6 })
     }
     .width('100%')
