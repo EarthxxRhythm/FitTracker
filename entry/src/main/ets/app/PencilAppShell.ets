@@ -23,6 +23,9 @@ export struct PencilAppShell {
   @State private viewportOffset: number = 0
   @State private viewportOpacity: number = 1
   @State private viewportScale: number = 1
+  // 常驻 Tab 的「计划」页刷新令牌：切到该 Tab 或从被压栈的页面返回时递增，
+  // 触发 PlanContent 重读当前计划（可能在「计划组」里刚被改过）。
+  @State private planReloadToken: number = 0
   private transitionRunning: boolean = false
   private previousTab: string = PencilTabKey.HOME
   private transitionToken: number = 0
@@ -34,6 +37,14 @@ export struct PencilAppShell {
     }
     const mainWindow: window.Window = await window.getLastWindow(hostContext)
     await mainWindow.setWindowLayoutFullScreen(false)
+  }
+
+  // 从「计划组」列表/详情等被压栈页面返回时重新显示本页——若当前停在「计划」Tab，
+  // 需重读当前计划，否则启用结果不会反映到计划页。
+  onPageShow(): void {
+    if (this.currentTab === PencilTabKey.PLAN) {
+      this.planReloadToken += 1
+    }
   }
 
   private getTabIndex(key: string): number {
@@ -58,6 +69,9 @@ export struct PencilAppShell {
   }
 
   private handleTabChanged(): void {
+    if (this.currentTab === PencilTabKey.PLAN) {
+      this.planReloadToken += 1
+    }
     const direction: number = this.getTabIndex(this.currentTab) >= this.getTabIndex(this.previousTab) ? 1 : -1
     this.previousTab = this.currentTab
     this.transitionToken += 1
@@ -115,7 +129,7 @@ export struct PencilAppShell {
       .zIndex(this.layer(PencilTabKey.HOME))
 
       Column() {
-        PlanContent()
+        PlanContent({ reloadToken: this.planReloadToken })
       }
       .width('100%')
       .height('100%')

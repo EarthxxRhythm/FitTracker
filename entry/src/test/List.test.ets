@@ -4,6 +4,7 @@ import authServiceTest from './AuthService.test'
 import sessionManagerTest from './SessionManager.test'
 import userProfileServiceTest from './UserProfileService.test'
 import trainingPlanServiceTest from './TrainingPlanService.test'
+import planTabModelTest from './PlanTabModel.test'
 import exerciseServiceTest from './ExerciseService.test'
 import targetLoopSkeletonTest from './TargetLoopSkeleton.test'
 
@@ -14,6 +15,7 @@ export default function testsuite() {
   sessionManagerTest()
   userProfileServiceTest()
   trainingPlanServiceTest()
+  planTabModelTest()
   exerciseServiceTest()
   targetLoopSkeletonTest()
 }

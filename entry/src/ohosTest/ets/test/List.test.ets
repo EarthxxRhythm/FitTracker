@@ -5,6 +5,7 @@ import authServiceTest from './AuthService.test'
 import sessionManagerTest from './SessionManager.test'
 import workoutSessionLogicTest from './WorkoutSessionService.test'
 import trainingPlanServiceTest from './TrainingPlanService.test'
+import planTabModelTest from './PlanTabModel.test'
 import startupRoutingTest from './StartupRouting.test'
 import contentRepositoryTest from './ContentRepository.test'
 import contentDatabaseServiceTest from './ContentDatabaseService.test'
@@ -50,6 +51,7 @@ export default function testsuite(): void {
   sessionManagerTest()
   workoutSessionLogicTest()
   trainingPlanServiceTest()
+  planTabModelTest()
   startupRoutingTest()
   contentRepositoryTest()
   contentDatabaseServiceTest()
