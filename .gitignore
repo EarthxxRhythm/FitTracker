@@ -9,6 +9,9 @@
 /default
 /build-*.log
 
+# JVM crash dumps (hvigor / java)
+hs_err_pid*.log
+
 # IDE & Editor
 /.idea
 /.hvigor
