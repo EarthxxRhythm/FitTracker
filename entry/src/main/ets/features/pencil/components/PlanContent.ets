@@ -380,9 +380,12 @@ export struct PlanContent {
     .width('100%')
     .height(PLAN_MASTER_CARD_HEIGHT)
     .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-    .backgroundColor('#0F50ECA7')
+    // Card Surface v1（白系玻璃）：底 rgba(255,255,255,.031) + 描边 rgba(255,255,255,.102)。
+    // 注意：冻结原型 fittracker-plan.html 的 .master-card 写的是绿系（rgba(80,236,167,.06)/.22），
+    // 与原型参考图及 cards.md「不要把所有卡都染绿」相悖，此处按参考图/设计规范取中性。
+    .backgroundColor('#08FFFFFF')
     .borderRadius(24)
-    .border({ width: 1, color: '#3850ECA7' })
+    .border({ width: 1, color: '#1AFFFFFF' })
     .shadow({ radius: 28, color: '#33000000', offsetX: 0, offsetY: 14 })
     .onTouch((event: TouchEvent) => {
       if (event.type === TouchType.Down) {
