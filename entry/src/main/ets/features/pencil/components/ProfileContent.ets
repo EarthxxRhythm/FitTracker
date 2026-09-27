@@ -252,11 +252,14 @@ export struct ProfileContent {
     }
     .width('100%')
     .padding(18)
-    .backgroundColor('#0F50ECA7')
+    // 原型末尾「卡片统一：底色与描边（Card Surface v1）」把 .card / .sub-card / .lib-card /
+    // .card.focus 统一成同一卡面：底色 rgba(255,255,255,.031)=#08FFFFFF、描边 var(--line-10)
+    // =rgba(255,255,255,.10)=#1AFFFFFF。文件前段那份绿色 .card.focus（accent .06 / .22）已被该
+    // 后置规则推翻——本卡不再是绿色强调卡；圆角 28 / padding 18 / 阴影沿用 .card.focus 原值。
+    .backgroundColor('#08FFFFFF')
     .borderRadius(28)
-    .border({ width: 1, color: '#3850ECA7' })
-    // 原型 .card.focus 的 `box-shadow: 0 20px 40px rgba(0,0,0,.22)`：给这张重点卡一层托起阴影，
-    // 否则它只靠 6% 强调色底与 22% 描边，浮在页面上显得平板。ArkUI 的 radius 即模糊半径。
+    .border({ width: 1, color: '#1AFFFFFF' })
+    // .card.focus 的 `box-shadow: 0 20px 40px rgba(0,0,0,.22)`，ArkUI 的 radius 即模糊半径。
     .shadow({ radius: 40, color: '#38000000', offsetX: 0, offsetY: 20 })
   }
 
@@ -319,7 +322,7 @@ export struct ProfileContent {
     }
     .width('100%')
     .padding(16)
-    .backgroundColor('#06FFFFFF')
+    .backgroundColor('#08FFFFFF')
     .borderRadius(22)
     .border({ width: 1, color: '#1AFFFFFF' })
   }
@@ -357,7 +360,7 @@ export struct ProfileContent {
     }
     .width('100%')
     .padding(16)
-    .backgroundColor('#06FFFFFF')
+    .backgroundColor('#08FFFFFF')
     .borderRadius(22)
     .border({ width: 1, color: '#1AFFFFFF' })
   }
