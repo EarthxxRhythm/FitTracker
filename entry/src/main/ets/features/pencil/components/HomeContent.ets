@@ -305,10 +305,16 @@ export struct HomeContent {
               .fontWeight(FontWeight.Medium)
               .fontColor('#8AFFFFFF')
           }
+          // 原型 .today-id .day 是 margin-top:9px，而 .label/.title-row/.muscle 都是 8px；
+          // 外层 Column space:8 统一了间距，这里补回这 1vp。
+          .margin({ top: 1 })
         }
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
-        Stack() {
+        Stack({ alignContent: Alignment.Center }) {
+          // 原型 .today-ring .outer 的 `filter: drop-shadow(0 0 9px rgba(80,236,167,.28))`：
+          // 浏览器实测渲染不出可见光晕（环外沿起 12vp 内的像素恒等于卡片背景色 15,28,27）；
+          // 而 ArkUI 的 .shadow() 会沿 96×96 矩形边界铺出方形光框。两者都不做，只保留环本身。
           Progress({ value: this.weeklyProgressPercent, total: 100, type: ProgressType.Ring })
             .width(96)
             .height(96)
@@ -347,10 +353,6 @@ export struct HomeContent {
         }
         .width(96)
         .height(96)
-        // 原型 .today-ring .outer 是 border-radius:50% 的圆形 drop-shadow 发光；
-        // 容器不设圆角时 ArkUI 阴影会沿方形容器铺开（设备截图里表现为方形衬底）。
-        .borderRadius(48)
-        .shadow({ radius: 9, color: 'rgba(80,236,167,0.28)', offsetX: 0, offsetY: 0 })
         .margin({ top: 4 })
       }
       .width('100%')
@@ -471,30 +473,33 @@ export struct HomeContent {
     Column({ space: 5 }) {
       Stack({ alignContent: Alignment.Center }) {
         if (iconName === 'dumbbell') {
+          // 原型 <symbol id="i-dumbbell">：5 条 1.8 描边的杠铃线段。
+          // 不能用 .fillColor()——它连填充一起改成强调色，未显式 fill="none" 的 path 会被填成实心色块。
           Image($rawfile('pencil-home-metric-dumbbell.svg'))
             .width(20)
             .height(20)
-            .fillColor('#50ECA7')
         } else if (iconName === 'clock-3') {
+          // 原型 <symbol id="i-clock">：r=8.5 描边圆 + 指针。
           Image($rawfile('pencil-home-metric-clock-3.svg'))
             .width(20)
             .height(20)
-            .fillColor('#50ECA7')
         } else {
+          // 原型 <symbol id="i-target">：r=8.5 / 4.6 / 1.2 三同心圆，描边 1.8。
+          // 24 viewBox 显示到 20vp → 外径 14.17vp、中径 7.67vp、线宽 1.5vp。
           Stack({ alignContent: Alignment.Center }) {
-            Circle({ width: 22, height: 22 })
+            Circle({ width: 14.17, height: 14.17 })
               .fill(Color.Transparent)
               .stroke('#50ECA7')
-              .strokeWidth(1.7)
-            Circle({ width: 12, height: 12 })
+              .strokeWidth(1.5)
+            Circle({ width: 7.67, height: 7.67 })
               .fill(Color.Transparent)
               .stroke('#50ECA7')
-              .strokeWidth(1.7)
-            Circle({ width: 3, height: 3 })
+              .strokeWidth(1.5)
+            Circle({ width: 2, height: 2 })
               .fill('#50ECA7')
           }
-          .width(22)
-          .height(22)
+          .width(20)
+          .height(20)
         }
       }
       .width(38)
