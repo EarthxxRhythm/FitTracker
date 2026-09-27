@@ -391,7 +391,7 @@
               <svg><use href="#i-chevron-left"/></svg>
             </button>
             <div class="pgd-title">
-              <span class="pgd-title-name" id="pgd-title">三分化（推拉腿）</span>
+              <span class="pgd-title-name" id="pgd-title">三分化 · 谭成义</span>
             </div>
             <span class="pgd-top-spacer"></span>
           </header>
@@ -400,8 +400,8 @@
             <div class="pgd-content">
               <section class="pgd-summary" data-od-id="pgd-summary" aria-label="计划组概要">
                 <div class="pgd-summary-label">计划组</div>
-                <h2 class="pgd-summary-name" id="pgd-name">三分化（推拉腿）</h2>
-                <p class="pgd-summary-desc" id="pgd-desc">按动作模式循环：推（胸、肩、三头）、拉（背、二头）、腿（下肢）。每个部位每周练 1-2 次，适合各阶段训练者。</p>
+                <h2 class="pgd-summary-name" id="pgd-name">三分化 · 谭成义</h2>
+                <p class="pgd-summary-desc" id="pgd-desc">谭成义三分化（2026版）：胸+肩中束+三头 / 背+肩后束+二头 / 下肢以后侧为主。保留自由重量主项，用 RPE8 与渐进超负荷推进；复合动作留余量，单关节小动作可力竭。</p>
                 <div class="pgd-summary-meta" id="pgd-meta"></div>
               </section>
 
@@ -429,48 +429,48 @@
   </main>
 
   <footer class="page-foot">
-    <b>说明：</b>本页沿用首页 Cold Emerald 设计系统（强调色 <b>#50ECA7</b>）。示例计划组为「三分化（推拉腿）」，分 3 个训练日、12 个动作（组数 × 次数为演示数据）。顶部为概要卡，中部为分日标签 + 动作清单，底部为「使用此计划」主按钮。
+    <b>说明：</b>本页沿用首页 Cold Emerald 设计系统（强调色 <b>#50ECA7</b>）。示例计划组为「三分化 · 谭成义」，分 3 个训练日、12 个动作（组数 × 次数为演示数据）。顶部为概要卡，中部为分日标签 + 动作清单，底部为「使用此计划」主按钮。
   </footer>
 
   <script>
     (function () {
       var PLAN = {
-        name: '三分化（推拉腿）',
-        audience: '初中高级通用',
+        name: '三分化 · 谭成义',
+        audience: '新手与进阶爱好者',
         freq: '3-6 天 / 周',
         totalDays: 3,
-        desc: '按动作模式循环：推（胸、肩、三头）、拉（背、二头）、腿（下肢）。每个部位每周练 1-2 次，适合各阶段训练者。',
-        tags: ['初中高级通用', '3-6 天 / 周', '3 个训练日'],
-        week: ['推', '拉', '腿', '推', '拉', '腿', '休'],
+        desc: '谭成义三分化（2026版）：胸+肩中束+三头 / 背+肩后束+二头 / 下肢以后侧为主。保留自由重量主项，用 RPE8 与渐进超负荷推进；复合动作留余量，单关节小动作可力竭。',
+        tags: ['新手与进阶爱好者', '3-6 天 / 周', '3 个训练日'],
+        week: ['胸', '背', '腿', '胸', '背', '腿', '休'],
         days: [
           {
-            title: '推',
-            focus: '胸大肌 · 三角肌 · 肱三头肌',
+            title: '胸肩三头',
+            focus: '胸部 · 肩部 · 手臂',
             exercises: [
-              { id: 'barbell-bench-press', name: '杠铃卧推', sets: 4, reps: '8', equipment: '杠铃', note: '主项 · 肩胛后收下沉' },
-              { id: 'overhead-press', name: '站姿推举', sets: 3, reps: '10', equipment: '哑铃', note: '核心收紧 · 不反弓' },
-              { id: 'lateral-raise', name: '哑铃侧平举', sets: 3, reps: '12', equipment: '哑铃', note: '轻重量控制 · 不耸肩' },
-              { id: 'triceps-pushdown', name: '绳索下压', sets: 3, reps: '12', equipment: '器械', note: '肘部固定 · 顶峰收缩' }
+              { id: 'barbell-bench-press', name: '杠铃卧推', sets: 4, reps: '12/10/8', equipment: '杠铃', note: '推类主项 · RPE8 留2次余量' },
+              { id: 'incline-dumbbell-press', name: '哑铃上斜卧推', sets: 4, reps: '12', equipment: '哑铃', note: '留2-3次富余量' },
+              { id: 'dip', name: '双杠臂屈伸', sets: 4, reps: '12', equipment: '自重', note: '可做到力竭' },
+              { id: 'skullcrusher', name: '仰卧杠铃臂屈伸', sets: 4, reps: '15→12', equipment: '杠铃', note: '肩屈位 · 递进到4组12' }
             ]
           },
           {
-            title: '拉',
-            focus: '背阔肌 · 菱形肌 · 肱二头肌',
+            title: '背后束二头',
+            focus: '背部 · 肩部 · 手臂',
             exercises: [
-              { id: 'pull-up', name: '引体向上', sets: 4, reps: '8', equipment: '自重', note: '肩胛下沉 · 可负重' },
-              { id: 'barbell-row', name: '杠铃划船', sets: 4, reps: '10', equipment: '杠铃', note: '背部平直 · 肩胛后收' },
-              { id: 'lat-pulldown', name: '高位下拉', sets: 3, reps: '12', equipment: '器械', note: '下拉至锁骨 · 不耸肩' },
-              { id: 'biceps-curl', name: '二头弯举', sets: 3, reps: '12', equipment: '哑铃', note: '上臂贴紧 · 不借力' }
+              { id: 'single-arm-cable-pulldown', name: '单臂钢线下拉', sets: 4, reps: '12（末组10+5）', equipment: '绳索', note: '末组加重量到力竭' },
+              { id: 'neutral-grip-pulldown', name: '对握下拉', sets: 4, reps: '12-8', equipment: '器械', note: '逐步上重量' },
+              { id: 'single-arm-machine-row', name: '单臂器械划船', sets: 4, reps: '10+5', equipment: '器械', note: '末组力竭后再加5次' },
+              { id: 'seated-wide-elbow-row', name: '坐姿开肘划船', sets: 3, reps: '12-15', equipment: '绳索', note: '肩胛内收发力 · 不抡甩' }
             ]
           },
           {
-            title: '腿',
-            focus: '股四头肌 · 腘绳肌 · 臀大肌',
+            title: '腿（后侧为主）',
+            focus: '腿部',
             exercises: [
-              { id: 'squat', name: '杠铃深蹲', sets: 4, reps: '8', equipment: '杠铃', note: '主项 · 膝盖同脚尖' },
-              { id: 'leg-press', name: '腿举', sets: 3, reps: '12', equipment: '器械', note: '下放至 90° · 不锁膝' },
-              { id: 'leg-curl', name: '腿弯举', sets: 3, reps: '12', equipment: '器械', note: '控制离心 · 顶峰收缩' },
-              { id: 'lunge', name: '弓步蹲', sets: 3, reps: '12', equipment: '哑铃', note: '每侧 · 身体垂直下沉' }
+              { id: 'single-leg-deadlift', name: '单腿硬拉', sets: 3, reps: '10-12', equipment: '哑铃', note: '开发髋关节能力' },
+              { id: 'bulgarian-split-squat', name: '保加利亚蹲', sets: 3, reps: '10-12', equipment: '哑铃', note: '对骨盆稳定帮助大' },
+              { id: 'front-squat', name: '颈前深蹲', sets: 3, reps: '10-12', equipment: '杠铃', note: '以股四头肌为主' },
+              { id: 'romanian-deadlift', name: '罗马尼亚硬拉', sets: 3, reps: '10-12', equipment: '杠铃', note: '髋铰链 · 后侧链' }
             ]
           }
         ]

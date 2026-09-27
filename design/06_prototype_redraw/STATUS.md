@@ -2,6 +2,21 @@
 
 > 更新：2026-09-21。每步产物均随 commit 落库；生成物（截图/报告）在 `test_run/`，不入库。
 
+## 计划组 · 三分化换为「三分化 · 谭成义」（2026-09-27）
+
+`preset_ppl` 从通用「三分化（推拉腿）」替换为谭成义三分化（2026 版），**预设 id 未变**（`preset_ppl`），计划组仍为每分化数一张卡：
+
+- 数据层 `TrainingPlanService.PRESET_PLANS`：`name` 改「三分化 · 谭成义」、`targetAudience` 改「新手与进阶爱好者」、`description` 与 3 个训练日全部替换（`dayLabel` = 胸肩三头 / 背后束二头 / 腿（后侧为主），`dayOfWeek` 仍为 [1,4] / [2,5] / [3,6]）。
+- UI 组件零改动：列表与详情均由预设数据派生，`PlansContent.iconForPlan` 按 id 分支（id 未变）。
+- 测试：`entry/src/ohosTest/ets/test/TrainingPlanService.test.ets` 与 `entry/src/test/TrainingPlanService.test.ets` 的断言同步新名与 `dayLabel`。
+- 原型：`src/fittracker-plan-detail.html`（GROUPS 第 2 项）、`src/fittracker-plan-group-detail.html`（顶栏 / 概要 / 页脚 / PLAN 数据）、`_palette-lab.html`（同四处文案 + PLAN 数据）已同步；`MANIFEST.md` / `MOTION.md` 无需重生成（不含计划名）。
+- 内容来源：B 站《凯圣王-谭成义三分化》合集 `BV17ooLBUEqS`（UP 凯圣王）；①《凯圣王-谭成义三分化①——训练计划》`BV1FcdZBNEm3`；动作与组次取自挂在该视频下的 B 站笔记 `cv53098562`（第三方整理，非 UP 本人撰写）。
+- **已知缺口（如实登记，勿当缺陷）**：
+  - 笔记未给出「坐姿开肘划船 / 钢线弯举 / 腿日 5 个动作」的组数次数，落库值为保守填充（3 组 / 10-15 次），**非原文数据**。
+  - 原型示例每天 4 个动作（页脚写「12 个动作」），代码每天 5 个动作（15 个）——这是上一轮就存在的既有漂移，本轮只改动作名与组次、未扩大。
+  - `entry/src/test/` 不参与构建：`devecocli build --modules entry@test` 报 `The module target 'test' is not found in the 'entry'`，该目录断言是死规格，不构成本轮绿色门禁。
+- 验证：`devecocli build`（entry@default）与 `devecocli build --modules entry@ohosTest` 均 BUILD SUCCESSFUL；设备单测 / 像素验收未运行。
+
 ## 计划组改造：按分化数成套（2026-09-21）
 
 计划组页从 10 个硬编码卡片改为 `TrainingPlanService` 的 4 套分化预置计划（二分化（上下肢）/ 三分化（推拉腿）/ 四分化 / 五分化），并接通真实数据闭环：
