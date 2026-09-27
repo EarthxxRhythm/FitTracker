@@ -28,6 +28,8 @@ struct PencilPreviewPage {
   @State private exerciseItems: PreviewExerciseItem[] = []
   @State private emptyMessage: string = ''
   @State private topInsetVp: number = 0
+  // 预览结果留存，供「开始训练」把动作数据带给训练执行页（否则执行页拿不到动作名）。
+  private pendingPreview: WorkoutPreviewSummary | undefined = undefined
 
   private getHostContextOrNull(): Context | null {
     const hostContext = this.getUIContext().getHostContext()
@@ -76,6 +78,18 @@ struct PencilPreviewPage {
     return items
   }
 
+  /** 进入训练执行页；把预览结果一并带过去，执行页据此显示真实动作名与对应演示图。 */
+  private startWorkout(): void {
+    if (this.pendingPreview === undefined) {
+      this.getUIContext().getRouter().pushUrl({ url: AppRoutes.ACTIVE_WORKOUT })
+      return
+    }
+    this.getUIContext().getRouter().pushUrl({
+      url: AppRoutes.ACTIVE_WORKOUT,
+      params: { preview: this.pendingPreview }
+    })
+  }
+
   private async loadPreview(): Promise<void> {
     try {
       const context: Context | null = this.getHostContextOrNull()
@@ -95,6 +109,7 @@ struct PencilPreviewPage {
       this.dayTitle = summary.title
       this.daySubtitle = summary.scheduleSummary
       this.exerciseItems = this.buildExerciseItems(summary)
+      this.pendingPreview = summary
       if (summary.exercises.length === 0) {
         this.emptyMessage = '今天没有训练安排，保持恢复节奏就好'
       } else {
@@ -331,7 +346,7 @@ struct PencilPreviewPage {
           offsetY: 14
         })
         .onClick(() => {
-          this.getUIContext().getRouter().pushUrl({ url: AppRoutes.ACTIVE_WORKOUT })
+          this.startWorkout()
         })
         .onTouch((event: TouchEvent) => {
           if (event.type === TouchType.Down) {
@@ -347,26 +362,12 @@ struct PencilPreviewPage {
     .margin({ top: 16 })
   }
 
-  @Builder
-  private buildHomeIndicator() {
-    Column() {
-      Row()
-        .width(134)
-        .height(5)
-        .borderRadius(3)
-        .backgroundColor('#40FFFFFF')
-    }
-    .width('100%')
-    .margin({ top: 8 })
-  }
-
   build() {
     Column() {
       this.buildTopBar()
       this.buildHero()
       this.buildExerciseList()
       this.buildActionSection()
-      this.buildHomeIndicator()
     }
     .width('100%')
     .height('100%')
@@ -374,7 +375,9 @@ struct PencilPreviewPage {
       left: 18,
       right: 18,
       top: Math.max(56 - this.topInsetVp, 0),
-      bottom: 12
+      // 去掉 home indicator 装饰条后，把它原先占的 8vp 间距 + 5vp 条高归还给底部留白，
+      // 保持按钮到屏幕底仍为 25vp，手势导航条不会贴到按钮上。
+      bottom: 25
     })
     .backgroundColor('#0B0F13')
   }
