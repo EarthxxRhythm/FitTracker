@@ -2,6 +2,7 @@
  *  数据源：TrainingPlanService.getPresetPlanById(planId)；「使用此计划」调用 enablePlan 真正落库。 */
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 import TrainingPlanService, { PresetPlan, TrainingDay, UserPlan } from '../../../common/services/TrainingPlanService'
+import { dayFocusMuscles, shortDayTag } from './PlanTabModel'
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
 
@@ -114,21 +115,9 @@ export struct PlanGroupDetailContent {
           exercise.targetMuscle
         ))
       }
-      result.push(createGroupDay(day.dayLabel, this.focusOf(day), exercises))
+      result.push(createGroupDay(day.dayLabel, dayFocusMuscles(day), exercises))
     }
     return result
-  }
-
-  /** 该训练日涉及的目标肌群（去重、按出现顺序）。 */
-  private focusOf(day: TrainingDay): string {
-    const muscles: string[] = []
-    for (let index = 0; index < day.exercises.length; index++) {
-      const muscle: string = day.exercises[index].targetMuscle
-      if (muscle.length > 0 && muscles.indexOf(muscle) < 0) {
-        muscles.push(muscle)
-      }
-    }
-    return muscles.join(' · ')
   }
 
   /** 周一→周日 7 格节奏：该日若有训练日覆盖则显示该日短标签，否则「休」。 */
@@ -140,26 +129,13 @@ export struct PlanGroupDetailContent {
       for (let dayIndex = 0; dayIndex < plan.days.length; dayIndex++) {
         const week: number[] | undefined = plan.days[dayIndex].dayOfWeek
         if (week !== undefined && week.indexOf(dayNum) >= 0) {
-          label = this.shortTag(plan.days[dayIndex].dayLabel)
+          label = shortDayTag(plan.days[dayIndex].dayLabel)
           break
         }
       }
       cells.push(label)
     }
     return cells
-  }
-
-  /** 训练日短标签：去掉「周一」前缀取首字，如「推日」→推、「周一 胸部」→胸、「上肢A」→上。 */
-  private shortTag(label: string): string {
-    let text: string = label
-    if (text.length >= 2 && text.substring(0, 1) === '周') {
-      text = text.substring(2)
-    }
-    text = text.trim()
-    if (text.length === 0) {
-      return '练'
-    }
-    return text.substring(0, 1)
   }
 
   private async refreshCurrentState(): Promise<void> {

@@ -6,6 +6,16 @@ import GoalRepository from '../../../shared/services/GoalRepository'
 import PlanEngine from '../../../shared/services/PlanEngine'
 import ContentRepository from '../../../shared/services/ContentRepository'
 import WorkoutSessionService, { WeeklyStats } from '../../../common/services/WorkoutSessionService'
+import TrainingPlanService, { UserPlan } from '../../../common/services/TrainingPlanService'
+import {
+  PlanDayItem,
+  PlanExerciseItem,
+  buildPlanDayItemsFromUserPlan,
+  createPlanDayItem,
+  createPlanExerciseItem,
+  daySubtitle,
+  positionBadge
+} from './PlanTabModel'
 import {
   ExerciseContent,
   PlanDay,
@@ -24,59 +34,11 @@ import {
  */
 const PLAN_MASTER_CARD_HEIGHT: number = 135
 
-interface PlanExerciseItem {
-  name: string
-  muscle: string
-  sets: string
-  reps: string
-}
-
-interface PlanDayItem {
-  tag: string
-  title: string
-  focus: string
-  muscle: string
-  duration: string
-  badge: string
-  today: boolean
-  exercises: PlanExerciseItem[]
-}
-
-function createPlanExercise(name: string, muscle: string, sets: string, reps: string): PlanExerciseItem {
-  const item: PlanExerciseItem = {
-    name: name,
-    muscle: muscle,
-    sets: sets,
-    reps: reps
-  }
-  return item
-}
-
-function createPlanDay(
-  tag: string,
-  title: string,
-  focus: string,
-  muscle: string,
-  duration: string,
-  badge: string,
-  today: boolean,
-  exercises: PlanExerciseItem[]
-): PlanDayItem {
-  const item: PlanDayItem = {
-    tag: tag,
-    title: title,
-    focus: focus,
-    muscle: muscle,
-    duration: duration,
-    badge: badge,
-    today: today,
-    exercises: exercises
-  }
-  return item
-}
-
 @Component
 export struct PlanContent {
+  // 数据源优先级：① 计划组「已启用的预置计划」→ ② 目标生成计划。
+  // 「计划组」点「使用此计划」只改 TrainingPlanService 的持久化状态、不重建目标；
+  // 本页若只读目标生成计划，就与「计划组」显示的当前计划对不上。
   @State private activeCard: number = 0
   @State private masterPressed: boolean = false
   @State private planDays: PlanDayItem[] = []
@@ -85,9 +47,16 @@ export struct PlanContent {
   @State private planMeta: string = '完成目标设置后自动生成训练计划'
   @State private weeklyProgress: string = '本周 0 / 0 天'
   @State private progressPercent: number = 0
+  // 刷新令牌：宿主页（PencilAppShell / PencilPlanPage）在页面重新显示或切到「计划」时递增，
+  // 触发重读，避免启用计划后本页残留上一份数据（Tab 常驻，aboutToAppear 只跑一次）。
+  @Prop @Watch('onReloadTokenChanged') reloadToken: number = 0
   private sessionMinutes: number = 45
 
   aboutToAppear(): void {
+    this.loadPlanData()
+  }
+
+  onReloadTokenChanged(): void {
     this.loadPlanData()
   }
 
@@ -96,6 +65,16 @@ export struct PlanContent {
     if (hostContext === undefined) {
       this.applyEmptyState()
       return
+    }
+    try {
+      const current: UserPlan | null = await TrainingPlanService.getCurrentPlan(hostContext)
+      if (current !== null) {
+        this.applyCurrentPlanState(current)
+        await this.loadWeeklyProgress(hostContext, current.days.length)
+        return
+      }
+    } catch (error) {
+      // 读当前预置计划失败时回退到目标生成计划，不把整页打空。
     }
     try {
       const goal: UserGoal | undefined = await GoalRepository.loadGoal(hostContext)
@@ -113,6 +92,14 @@ export struct PlanContent {
     } catch (error) {
       this.applyEmptyState()
     }
+  }
+
+  /** 当前计划态：元信息与「计划组」列表页的当前计划卡同口径，保证两处一致。 */
+  private applyCurrentPlanState(plan: UserPlan): void {
+    this.planDays = buildPlanDayItemsFromUserPlan(plan)
+    this.planName = plan.name.length > 0 ? plan.name : '训练计划'
+    this.goalMeta = plan.targetAudience
+    this.planMeta = plan.targetAudience + ' · ' + plan.days.length.toString() + ' 练分化 · ' + plan.weeklyFrequency
   }
 
   private async loadWeeklyProgress(context: Context, totalDays: number): Promise<void> {
@@ -142,13 +129,12 @@ export struct PlanContent {
       const day: PlanDay = plan.days[index]
       const focusName: string = this.focusMuscleName(day)
       const title: string = focusName.length > 0 ? focusName + '日' : day.title
-      items.push(createPlanDay(
+      items.push(createPlanDayItem(
         this.shortMuscleLabel(focusName),
         title,
         focusName + ' · 训练',
-        focusName,
         this.sessionMinutes.toString() + ' 分钟',
-        this.badgeFor(index),
+        positionBadge(index),
         index === 0,
         this.buildExerciseItems(day.exercises, focusName)
       ))
@@ -167,7 +153,7 @@ export struct PlanContent {
         name = content.nameZh
         muscle = this.exerciseMuscleName(content, dayFocusName)
       }
-      items.push(createPlanExercise(name, muscle, item.targetSets.toString(), item.targetReps))
+      items.push(createPlanExerciseItem(name, muscle, item.targetSets.toString(), item.targetReps))
     }
     return items
   }
@@ -203,19 +189,6 @@ export struct PlanContent {
       return '臂'
     }
     return focusName
-  }
-
-  private badgeFor(index: number): string {
-    if (index === 0) {
-      return '今日'
-    }
-    if (index === 1) {
-      return '明日'
-    }
-    if (index === 2) {
-      return '后天'
-    }
-    return '第 ' + (index + 1).toString() + ' 天'
   }
 
   private goalTypeLabel(goalType: string): string {
@@ -443,7 +416,7 @@ export struct PlanContent {
             .fontColor('#F7FBF8')
             .width('100%')
 
-          Text(day.focus + ' · ' + day.exercises.length.toString() + ' 个动作 · ' + day.duration)
+          Text(daySubtitle(day))
             .fontFamily('Noto Sans SC')
             .fontSize(14)
             .fontColor('#9EFFFFFF')
