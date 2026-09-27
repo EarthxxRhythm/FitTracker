@@ -241,7 +241,7 @@ export struct PlansContent {
     }
     .width('100%')
     .backgroundColor('#1450ECA7')
-    .border({ width: 1, color: '#6680ECA7' })
+    .border({ width: 1, color: '#6650ECA7' })
     .borderRadius(20)
     .shadow({ radius: 28, color: '#33000000', offsetX: 0, offsetY: 14 })
   }
