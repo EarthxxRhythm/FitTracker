@@ -5,6 +5,7 @@ import { window } from '@kit.ArkUI'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { ColorTokens, MotionTokens } from '../../../common/styles/DesignTokens'
 import { TrainingPlan, UserGoal } from '../../../shared/models/TrainingModels'
+import TrainingPlanService, { UserPlan } from '../../../common/services/TrainingPlanService'
 import { WorkoutPreviewExercise, WorkoutPreviewSummary } from '../../../shared/services/WorkoutPreviewService'
 import GoalRepository from '../../../shared/services/GoalRepository'
 import PlanEngine from '../../../shared/services/PlanEngine'
@@ -97,15 +98,28 @@ struct PencilPreviewPage {
         this.emptyMessage = '暂时无法读取训练目标，请稍后重试'
         return
       }
-      const goal: UserGoal | undefined = await GoalRepository.loadGoal(context)
-      if (goal === undefined) {
-        this.emptyMessage = '尚未设置训练目标，请先完成目标设置'
-        return
+      // 数据源优先级与「计划」Tab / 首页一致：① 计划组已启用的预置计划 → ② 目标生成计划。
+      const current: UserPlan | null = await TrainingPlanService.getCurrentPlan(context)
+      let summary: WorkoutPreviewSummary
+      if (current !== null) {
+        summary = WorkoutPreviewService.createPreviewForCurrentPlan(
+          current,
+          '',
+          TrainingPlanService.getTodayLabel(),
+          TrainingPlanService.getTodayTraining(current)
+        )
+      } else {
+        const goal: UserGoal | undefined = await GoalRepository.loadGoal(context)
+        if (goal === undefined) {
+          this.emptyMessage = '尚未设置训练目标，请先完成目标设置'
+          return
+        }
+        const plan: TrainingPlan = PlanEngine.generatePlan(goal)
+        const daySeed: number = this.resolveDaySeed()
+        summary = WorkoutPreviewService.createPreview(plan, daySeed)
       }
-      const plan: TrainingPlan = PlanEngine.generatePlan(goal)
-      const daySeed: number = this.resolveDaySeed()
-      const summary: WorkoutPreviewSummary = WorkoutPreviewService.createPreview(plan, daySeed)
-      this.dayBadge = this.resolveDayBadge(summary.dayId)
+      // 当前计划在休息日不返回具体训练日（dayId 为空），此时不显示误导性的「Day 01」。
+      this.dayBadge = summary.dayId.length === 0 ? '' : this.resolveDayBadge(summary.dayId)
       this.dayTitle = summary.title
       this.daySubtitle = summary.scheduleSummary
       this.exerciseItems = this.buildExerciseItems(summary)

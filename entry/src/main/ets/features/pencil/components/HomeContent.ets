@@ -5,6 +5,9 @@ import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
 import { UserGoal, TrainingPlan, PlanDay, WorkoutSession } from '../../../shared/models/TrainingModels'
 import WorkoutSessionService, { WeeklyStats } from '../../../common/services/WorkoutSessionService'
+import TrainingPlanService, { TrainingDay, UserPlan } from '../../../common/services/TrainingPlanService'
+import ContentRepository from '../../../shared/services/ContentRepository'
+import { dayFocusMuscles } from './PlanTabModel'
 import StatsDashboardService, { StatsDashboardSummary } from '../../../shared/services/StatsDashboardService'
 import GoalRepository from '../../../shared/services/GoalRepository'
 import PlanEngine from '../../../shared/services/PlanEngine'
@@ -25,6 +28,10 @@ export struct HomeContent {
   @State private currentDateText: string = ''
   @State private greetingText: string = ''
   @State private weeklyProgressPercent: number = 0
+  // 今日训练卡文案：与「计划」Tab 同源，随当前计划（或目标生成计划）刷新。
+  @State private todayTitle: string = '尚未启用计划'
+  @State private todayMuscleText: string = '前往计划组选择训练计划'
+  @State private todayStatusText: string = '待安排'
   @State private todayExerciseCount: number = 0
   @State private todayDurationMinutes: number = 0
   @State private todayMuscleGroupCount: number = 0
@@ -100,26 +107,72 @@ export struct HomeContent {
     this.weekDays = this.createWeekDayItems(trainingDates)
     this.weeklyTrainedCount = weeklyStats.count
 
+    // 数据源优先级与「计划」Tab 一致：① 计划组已启用的预置计划 → ② 目标生成计划。
     const goal: UserGoal | undefined = await GoalRepository.loadGoal(context)
-    if (goal === undefined) {
+    const current: UserPlan | null = await TrainingPlanService.getCurrentPlan(context)
+
+    if (current !== null) {
+      const todayTraining: TrainingDay | null = TrainingPlanService.getTodayTraining(current)
+      // 预置计划数据模型没有单次时长字段，暂沿用目标设置里的单次时长作为「预计用时」；
+      // 未设置目标时为 0（数据缺口，见提交说明）。
+      const sessionMinutes: number = goal === undefined ? 0 : goal.sessionMinutes
+      const summary: HomePlanSummary = HomePlanService.createSummaryFromCurrentPlan(
+        current,
+        TrainingPlanService.getTodayLabel(),
+        todayTraining,
+        sessionMinutes
+      )
+      this.todayTitle = summary.todayTitle
+      this.todayMuscleText = todayTraining === null ? '今日无训练安排' : dayFocusMuscles(todayTraining)
+      this.todayStatusText = summary.hasTodayWorkout ? '训练日 · 建议完成' : '休息日 · 恢复优先'
+      this.todayExerciseCount = summary.todayExerciseCount
+      this.todayDurationMinutes = summary.sessionMinutes
+      this.todayMuscleGroupCount = summary.todayMuscleGroupCount
+      this.weeklyPlannedDays = summary.weeklyDays
+    } else if (goal !== undefined) {
+      const plan: TrainingPlan = PlanEngine.generatePlan(goal)
+      const daySeed: number = this.createDaySeed(goal.createdAt, now)
+      const summary: HomePlanSummary = HomePlanService.createSummary(goal, plan, daySeed)
+      const todayDay: PlanDay | undefined = HomePlanService.pickTodayDay(plan, daySeed)
+      this.todayTitle = summary.todayTitle
+      this.todayMuscleText = todayDay === undefined || todayDay.focusMuscleIds.length === 0
+        ? '今日无训练安排'
+        : this.muscleNamesOf(todayDay.focusMuscleIds)
+      this.todayStatusText = summary.hasTodayWorkout ? '训练日 · 建议完成' : '休息日 · 恢复优先'
+      this.todayExerciseCount = summary.todayExerciseCount
+      this.todayDurationMinutes = summary.sessionMinutes
+      this.todayMuscleGroupCount = summary.todayMuscleGroupCount
+      this.weeklyPlannedDays = plan.days.length
+    } else {
       this.applyEmptyState()
       return
     }
-
-    const plan: TrainingPlan = PlanEngine.generatePlan(goal)
-    const daySeed: number = this.createDaySeed(goal.createdAt, now)
-    const summary: HomePlanSummary = HomePlanService.createSummary(goal, plan, daySeed)
-    const todayDay: PlanDay | undefined = HomePlanService.pickTodayDay(plan, daySeed)
-    this.todayExerciseCount = summary.todayExerciseCount
-    this.todayDurationMinutes = summary.sessionMinutes
-    this.todayMuscleGroupCount = todayDay === undefined ? 0 : todayDay.focusMuscleIds.length
-    this.weeklyPlannedDays = plan.days.length
 
     const sessions: WorkoutSession[] = await WorkoutSessionPersistenceBridgeService.loadPersistedSessions(context)
     const dashboard: StatsDashboardSummary = sessions.length === 0
       ? StatsDashboardService.createEmptySummary(now)
       : StatsDashboardService.createSummary(sessions, now)
     this.weeklyProgressPercent = this.createProgressPercent(dashboard.weeklyStats.sessionCount, this.weeklyPlannedDays)
+  }
+
+  /** 目标生成计划的今日肌群名（focusMuscleIds → 中文名）。 */
+  private muscleNamesOf(muscleIds: string[]): string {
+    const names: string[] = []
+    for (let index = 0; index < muscleIds.length; index++) {
+      names.push(ContentRepository.getMuscleName(muscleIds[index]))
+    }
+    return names.join(' · ')
+  }
+
+  /** 首页三格指标取值（在 @Builder 内部调用，保证读到的是最新 @State）。 */
+  private metricValue(iconName: string): string {
+    if (iconName === 'dumbbell') {
+      return this.todayExerciseCount.toString()
+    }
+    if (iconName === 'clock-3') {
+      return this.todayDurationMinutes.toString()
+    }
+    return this.todayMuscleGroupCount.toString()
   }
 
   private createDaySeed(goalCreatedAt: number, now: number): number {
@@ -183,6 +236,9 @@ export struct HomeContent {
 
   private applyEmptyState(): void {
     this.weeklyProgressPercent = 0
+    this.todayTitle = '尚未启用计划'
+    this.todayMuscleText = '前往计划组选择训练计划'
+    this.todayStatusText = '待安排'
     this.todayExerciseCount = 0
     this.todayDurationMinutes = 0
     this.todayMuscleGroupCount = 0
@@ -269,7 +325,7 @@ export struct HomeContent {
             .fontColor('#50ECA7')
             .letterSpacing(0.762)
           Row({ space: 8 }) {
-            Text('\u4e0a\u80a2\u529b\u91cf')
+            Text(this.todayTitle)
               .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
               .fontSize(22)
               .lineHeight(24.64)
@@ -287,7 +343,7 @@ export struct HomeContent {
               .borderRadius(999)
               .padding({ left: 8, right: 8, top: 3, bottom: 3 })
           }
-          Text('\u80f8\u90e8 \u00b7 \u80a9\u90e8 \u00b7 \u4e09\u5934\u808c')
+          Text(this.todayMuscleText)
             .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
             .fontSize(12.7)
             .lineHeight(19)
@@ -301,7 +357,7 @@ export struct HomeContent {
             }
             .width(12)
             .height(12)
-            Text('\u8bad\u7ec3\u65e5 \u00b7 \u5efa\u8bae\u5b8c\u6210')
+            Text(this.todayStatusText)
               .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
               .fontSize(10.9)
               .lineHeight(16)
@@ -370,9 +426,9 @@ export struct HomeContent {
       Row()
         .height(16)
       Row({ space: 10 }) {
-        this.metric('dumbbell', '\u52a8\u4f5c\u6570', this.todayExerciseCount.toString(), '\u4e2a\u52a8\u4f5c')
-        this.metric('clock-3', '\u9884\u8ba1\u7528\u65f6', this.todayDurationMinutes.toString(), '\u5206\u949f')
-        this.metric('target', '\u76ee\u6807\u808c\u7fa4', this.todayMuscleGroupCount.toString(), '\u4e2a\u808c\u7fa4')
+        this.metric('dumbbell', '\u52a8\u4f5c\u6570', '\u4e2a\u52a8\u4f5c')
+        this.metric('clock-3', '\u9884\u8ba1\u7528\u65f6', '\u5206\u949f')
+        this.metric('target', '\u76ee\u6807\u808c\u7fa4', '\u4e2a\u808c\u7fa4')
       }
       .width('100%')
       Row()
@@ -472,7 +528,7 @@ export struct HomeContent {
   }
 
   @Builder
-  private metric(iconName: string, label: string, value: string, note: string) {
+  private metric(iconName: string, label: string, note: string) {
     Column({ space: 5 }) {
       Stack({ alignContent: Alignment.Center }) {
         if (iconName === 'dumbbell') {
@@ -518,7 +574,10 @@ export struct HomeContent {
         .width('100%')
         .height(15)
         .textAlign(TextAlign.Center)
-      Text(value)
+      // 数值必须在这里直接读 @State：若放到调用点的实参表达式里
+      // （this.metric(a, b, this.todayXxx.toString(), c)），ArkUI 不会把该实参表达式登记为依赖，
+      // 这三个数字会永远停在首次渲染的值（设备实测：state 已是 5/3/45，界面长期显示 0）。
+      Text(this.metricValue(iconName))
         .fontFamily(HomeContent.NUMBER_FONT_FAMILY)
         .fontSize(26)
         .lineHeight(26)
