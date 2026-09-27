@@ -223,6 +223,10 @@
   .pane-scroll { height: 100%; overflow-y: auto; scrollbar-width: none; }
   .pane-scroll::-webkit-scrollbar { display: none; }
 
+  /* 个人页是固定布局（内容一屏内，不整页滚动）——与 ArkUI ProfileContent 的固定列一致。
+     滚动行为由「设备视口 − 状态栏 − 底栏」决定，pane 只做撑满 + 裁切。 */
+  .pane-static { height: 100%; overflow: hidden; }
+
   /* ── 个人页内容 ────────────────────────────────────────────────────────── */
   .profile-content {
     padding: 53px 16px 30px;
@@ -1359,7 +1363,7 @@
             </section>
 
             <section class="pane active" id="pane-profile" role="tabpanel" aria-labelledby="tab-profile" data-pane="profile" data-od-id="pane-profile">
-              <div class="pane-scroll">
+              <div class="pane-static">
                 <div class="profile-content">
                   <header class="p-head" data-od-id="profile-header">
                     <div class="avatar" aria-hidden="true">林</div>

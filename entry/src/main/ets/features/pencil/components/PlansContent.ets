@@ -333,14 +333,9 @@ export struct PlansContent {
         .width(24)
         .height(24)
     } else if (icon === 'zap') {
-      Path()
+      Image($rawfile('pencil-plan-cover-zap.svg'))
         .width(24)
         .height(24)
-        .commands('M13 2.5 L4.5 13.5 H10.5 L9.5 21.5 L19.5 10.5 H13.5 Z')
-        .fillOpacity(0)
-        .stroke('#50ECA7')
-        .strokeWidth(1.8)
-        .strokeLineJoin(LineJoinStyle.Round)
     } else if (icon === 'dumbbell') {
       Image($rawfile('pencil-plan-cover-dumbbell.svg'))
         .width(24)
@@ -367,25 +362,13 @@ export struct PlansContent {
       .width(24)
       .height(24)
     } else if (icon === 'chevrons-up') {
-      Path()
+      Image($rawfile('pencil-plan-cover-chevrons-up.svg'))
         .width(24)
         .height(24)
-        .commands('M7 14 L12 9 L17 14 M7 19 L12 14 L17 19')
-        .fillOpacity(0)
-        .stroke('#50ECA7')
-        .strokeWidth(2)
-        .strokeLineCap(LineCapStyle.Round)
-        .strokeLineJoin(LineJoinStyle.Round)
     } else if (icon === 'chevrons-down') {
-      Path()
+      Image($rawfile('pencil-plan-cover-chevrons-down.svg'))
         .width(24)
         .height(24)
-        .commands('M7 10 L12 15 L17 10 M7 5 L12 10 L17 5')
-        .fillOpacity(0)
-        .stroke('#50ECA7')
-        .strokeWidth(2)
-        .strokeLineCap(LineCapStyle.Round)
-        .strokeLineJoin(LineJoinStyle.Round)
     } else if (icon === 'core') {
       Stack({ alignContent: Alignment.Center }) {
         Circle()
@@ -402,25 +385,14 @@ export struct PlansContent {
       .width(24)
       .height(24)
     } else if (icon === 'home') {
-      Path()
+      Image($rawfile('pencil-plan-cover-home.svg'))
         .width(24)
         .height(24)
-        .commands('M3.5 10.4 L12 3.5 L20.5 10.4 M5.5 9.5 V20 H18.5 V9.5')
-        .fillOpacity(0)
-        .stroke('#50ECA7')
-        .strokeWidth(1.8)
-        .strokeLineCap(LineCapStyle.Round)
-        .strokeLineJoin(LineJoinStyle.Round)
     } else {
       // heart（HTML i-heart 的绝对坐标近似）
-      Path()
+      Image($rawfile('pencil-plan-cover-heart.svg'))
         .width(24)
         .height(24)
-        .commands('M12 20 C12 20 5 15.7 5 10.8 A4.2 4.2 0 0 1 12 7.5 A4.2 4.2 0 0 1 19 10.8 C19 15.7 12 20 12 20 Z')
-        .fillOpacity(0)
-        .stroke('#50ECA7')
-        .strokeWidth(1.8)
-        .strokeLineJoin(LineJoinStyle.Round)
     }
   }
 }

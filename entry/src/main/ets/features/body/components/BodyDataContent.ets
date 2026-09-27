@@ -482,15 +482,9 @@ export struct BodyDataContent {
       .width('100%')
 
       Row({ space: 5 }) {
-        Path()
-          .width(13)
-          .height(13)
-          .commands('M6.5 1 L6.5 10.5 M2.5 6.5 L6.5 10.5 L10.5 6.5')
-          .fillOpacity(0)
-          .stroke('#50ECA7')
-          .strokeWidth(2)
-          .strokeLineCap(LineCapStyle.Round)
-          .strokeLineJoin(LineJoinStyle.Round)
+        Image($rawfile('pencil-body-arrow-down.svg'))
+          .width(15)
+          .height(15)
         Text('较上周 −0.3 kg')
           .fontFamily('Noto Sans SC')
           .fontSize(12)

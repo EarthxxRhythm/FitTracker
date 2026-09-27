@@ -202,10 +202,12 @@ export struct ProfileContent {
           .fontSize(17)
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
+          .lineHeight(20.4)
         Text(this.weekRangeText)
           .fontFamily('Inter')
           .fontSize(11)
           .fontColor('#9EFFFFFF')
+          .lineHeight(16)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -233,6 +235,7 @@ export struct ProfileContent {
         .fontFamily('Inter')
         .fontSize(12)
         .fontColor('#8AFFFFFF')
+        .lineHeight(17)
         .margin({ top: 8 })
 
       Row()

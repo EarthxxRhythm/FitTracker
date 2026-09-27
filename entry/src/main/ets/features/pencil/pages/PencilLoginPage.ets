@@ -180,13 +180,9 @@ struct PencilLoginPage {
       Row({ space: 8 }) {
         Stack({ alignContent: Alignment.Center }) {
           if (this.remember) {
-            Path()
-              .width(9)
-              .height(5)
-              .commands('M0 2 L3 5 L9 0')
-              .fillOpacity(0)
-              .stroke('#07100B')
-              .strokeWidth(2)
+            Image($rawfile('pencil-auth-check-remember.svg'))
+              .width(11)
+              .height(7)
           }
         }
         .width(18)
@@ -242,26 +238,15 @@ struct PencilLoginPage {
   @Builder
   private buildSocialIcon(key: string) {
     if (key === 'wechat') {
-      Stack() {
-        Path()
-          .commands('M12 3.5c-4.7 0-8.5 3.2-8.5 7.1 0 2.2 1.2 4.1 3.1 5.4l-.9 3.3 3.5-1.9c.9.2 1.8.3 2.8.3 4.7 0 8.5-3.2 8.5-7.1S16.7 3.5 12 3.5Z')
-          .width(20)
-          .height(20)
-          .fillOpacity(0)
-          .stroke('#B3FFFFFF')
-          .strokeWidth(1.6)
-        Path()
-          .commands('M7.6 10.6a1 1 0 1 0 2 0a1 1 0 1 0 -2 0 M11 10.6a1 1 0 1 0 2 0a1 1 0 1 0 -2 0 M14.4 10.6a1 1 0 1 0 2 0a1 1 0 1 0 -2 0')
-          .width(20)
-          .height(20)
-          .fill('#B3FFFFFF')
-      }
+      Image($rawfile('pencil-social-wechat.svg'))
+        .width(20)
+        .height(20)
+        .opacity(0.7)
     } else {
-      Path()
-        .commands('M16.7 12.9c0-2.1 1.7-3.1 1.8-3.2-1-1.4-2.5-1.6-3-1.7-1.3-.1-2.5.8-3.1.8-.6 0-1.6-.8-2.6-.7-1.4 0-2.6.8-3.3 2-1.4 2.4-.4 6 1 8 .7 1 1.5 2.1 2.5 2 1 0 1.4-.6 2.6-.6s1.5.6 2.6.6c1.1 0 1.7-1 2.4-2 .7-1.1 1-2.2 1.1-2.2-.1 0-2.1-.8-2.1-3.2zM14.2 6.1c.6-.7 1-1.6.9-2.6-.9 0-1.9.6-2.5 1.3-.5.6-1 1.6-.9 2.6 1 .1 1.9-.5 2.5-1.3z')
-          .width(20)
-          .height(20)
-          .fill('#B3FFFFFF')
+      Image($rawfile('pencil-social-apple.svg'))
+        .width(20)
+        .height(20)
+        .opacity(0.7)
     }
   }
 

@@ -3,6 +3,7 @@ import { AppRoutes } from '../../../app/AppRoutes'
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 import { WorkoutSession, WorkoutSet, createWorkoutSession, createWorkoutSet } from '../../../shared/models/TrainingModels'
 import WorkoutRepository from '../../../shared/services/WorkoutRepository'
+import ExerciseGifCatalog from '../../../shared/services/ExerciseGifCatalog'
 import ActiveWorkoutService, {
   ActiveWorkoutExercise,
   ActiveWorkoutSetEntry,
@@ -75,6 +76,7 @@ export struct ActiveContent {
   @State private weight: number = 0
   @State private reps: number = 0
   @State private exerciseName: string = ''
+  @State private exerciseGifSource: string = ExerciseGifCatalog.resolveDemoSource('')
   @State private showModal: boolean = false
   @State private records: SetRecordItem[] = []
   @State private celebrating: boolean = false
@@ -135,6 +137,7 @@ export struct ActiveContent {
       state = this.createEmptyActiveState()
     }
     this.exerciseName = state.currentExerciseName
+    this.exerciseGifSource = ExerciseGifCatalog.resolveDemoSource(state.currentExerciseName)
     this.completed = Math.min(state.completedSets, PROGRESS_SEGMENTS.length)
     const initialValues: InitialSetValues = this.findInitialSetValues(state)
     this.weight = initialValues.weight
@@ -467,143 +470,14 @@ export struct ActiveContent {
 
   @Builder
   private demoVisual() {
-    Stack({ alignContent: Alignment.TopStart }) {
-      Row()
-        .width(276)
-        .height(12)
-        .borderRadius(6)
-        .linearGradient({
-          angle: 180,
-          colors: [['#2A3934', 0], ['#16211F', 1]]
-        })
-        .position({ x: 42, y: 158 })
-
-      Row()
-        .width(12)
-        .height(36)
-        .borderRadius(4)
-        .backgroundColor('#101816')
-        .position({ x: 66, y: 170 })
-
-      Row()
-        .width(12)
-        .height(36)
-        .borderRadius(4)
-        .backgroundColor('#101816')
-        .position({ x: 282, y: 170 })
-
-      Row()
-        .width(32)
-        .height(32)
-        .borderRadius(16)
-        .backgroundColor('#0D1117')
-        .border({ width: 2, color: '#2950ECA7' })
-        .position({ x: 160, y: 56 })
-
-      Row()
-        .width(24)
-        .height(62)
-        .borderRadius(12)
-        .backgroundColor('#0D1117')
-        .border({ width: 2, color: '#2950ECA7' })
-        .position({ x: 164, y: 88 })
-
-      Row()
-        .width(64)
-        .height(15)
-        .borderRadius(7)
-        .backgroundColor('#0D1117')
-        .border({ width: 2, color: '#2950ECA7' })
-        .position({ x: 188, y: 142 })
-
-      Row()
-        .width(64)
-        .height(15)
-        .borderRadius(7)
-        .backgroundColor('#0D1117')
-        .border({ width: 2, color: '#2950ECA7' })
-        .position({ x: 256, y: 142 })
-
-      Path()
-        .width(30)
-        .height(20)
-        .commands('M24 6 L6 14')
-        .fillOpacity(0)
-        .stroke('#0D1117')
-        .strokeWidth(12)
-        .strokeLineCap(LineCapStyle.Round)
-        .position({ x: 144, y: 94 })
-
-      Path()
-        .width(30)
-        .height(20)
-        .commands('M6 6 L24 14')
-        .fillOpacity(0)
-        .stroke('#0D1117')
-        .strokeWidth(12)
-        .strokeLineCap(LineCapStyle.Round)
-        .position({ x: 178, y: 94 })
-
-      Row()
-        .width(312)
-        .height(8)
-        .borderRadius(4)
-        .linearGradient({
-          angle: 180,
-          colors: [['#7E8F96', 0], ['#3B4A45', 1]]
-        })
-        .position({ x: 24, y: 100 })
-
-      Row()
-        .width(34)
-        .height(34)
-        .borderRadius(17)
-        .radialGradient({
-          center: [17, 17],
-          radius: 17,
-          colors: [['#243B35', 0], ['#0F1716', 0.65], ['#080D0C', 1]]
-        })
-        .border({ width: 1.5, color: '#0B0F13' })
-        .position({ x: 23, y: 87 })
-
-      Row()
-        .width(28)
-        .height(28)
-        .borderRadius(14)
-        .radialGradient({
-          center: [14, 14],
-          radius: 14,
-          colors: [['#243B35', 0], ['#0F1716', 0.65], ['#080D0C', 1]]
-        })
-        .border({ width: 1.5, color: '#0B0F13' })
-        .position({ x: 44, y: 90 })
-
-      Row()
-        .width(34)
-        .height(34)
-        .borderRadius(17)
-        .radialGradient({
-          center: [17, 17],
-          radius: 17,
-          colors: [['#243B35', 0], ['#0F1716', 0.65], ['#080D0C', 1]]
-        })
-        .border({ width: 1.5, color: '#0B0F13' })
-        .position({ x: 303, y: 87 })
-
-      Row()
-        .width(28)
-        .height(28)
-        .borderRadius(14)
-        .radialGradient({
-          center: [14, 14],
-          radius: 14,
-          colors: [['#243B35', 0], ['#0F1716', 0.65], ['#080D0C', 1]]
-        })
-        .border({ width: 1.5, color: '#0B0F13' })
-        .position({ x: 288, y: 90 })
-    }
-    .width('100%')
-    .height('100%')
+    // 动作演示内嵌 GIF（rawfile/exercise-gifs-dark）。素材由 tools/build-exercise-gifs-dark.py
+    // 预烘焙成深色版（黑底 + 浅色线条），避免白底在整块深色卡上过亮；用预烘焙而非运行时叠加
+    // 图像效果，结果确定且可离线核对。Contain 保证整幅动作不被裁切。
+    Image($rawfile(this.exerciseGifSource))
+      .width('100%')
+      .height('100%')
+      .objectFit(ImageFit.Contain)
+      .alt(this.currentExerciseLabel() + ' 动作演示')
   }
 
   @Builder
@@ -826,14 +700,9 @@ export struct ActiveContent {
             .borderRadius(44)
             .backgroundColor('#50ECA7')
             .shadow({ radius: 54, color: '#3350ECA7', offsetX: 0, offsetY: 0 })
-          Path()
+          Image($rawfile('pencil-active-set-check.svg'))
             .width(42)
             .height(42)
-            .commands('M8.8 21.9 L16.1 29.2 L33.3 12.3')
-            .fillOpacity(0)
-            .stroke('#07100B')
-            .strokeWidth(5)
-            .strokeLineCap(LineCapStyle.Round)
         }
         .width(120)
         .height(120)
