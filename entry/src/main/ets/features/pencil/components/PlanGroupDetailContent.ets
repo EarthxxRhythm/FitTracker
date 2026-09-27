@@ -480,7 +480,8 @@ export struct PlanGroupDetailContent {
                 .fontWeight(FontWeight.Bold)
                 .fontColor(this.activeDay === index ? '#07100B' : '#F7FBF8')
             }
-            .width('100%')
+            // 原型 .pgd-day-tab 是 flex:0 0 auto + min-width:96px——宽度按内容、多个标签并排横向滚动。
+            // 这里不能给 Column 设 width('100%')：它会撑满 Scroll 视口，导致只有第一个训练日可见。
             .alignItems(HorizontalAlign.Start)
           }
           .constraintSize({ minWidth: 96 })
