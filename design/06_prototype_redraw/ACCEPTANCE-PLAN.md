@@ -147,3 +147,31 @@ login = **9.94%**（发布 10.02%）、home 未掩码 align 35 = **11.66%**（�
 - **未改动共享工具**（`compare.py` / `restore-accept.ps1` / `genmask.py`）默认值。
 - 重新采集后的收敛方法：① 同一次构建同一 HAP；② 逐屏 `align-scan` 取 best-fit 并记录物理 35；
   ③ 掩码由**同一次** a11y dump 生成；④ 每处修复给出修复前后同口径数字。
+
+### 7. 材质偏离登记：计划页 master card（2026-09-28）
+
+`PlanContent.masterCard()` 的卡底/描边**未走冻结原型** `src/fittracker-plan.html` 的绿系，
+按 Card Surface v1 取中性白系，属**有意偏离**，非未还原：
+
+| 项 | 冻结原型 `.master-card` | 实现（Card Surface v1） |
+|---|---|---|
+| 卡底 | `rgba(80,236,167,.06)` → 渲染 (15,28,28) | `#08FFFFFF`（白 .031）→ (19,23,26) |
+| 描边 | `rgba(80,236,167,.22)` → (29,74,59) | `#1AFFFFFF`（白 .102）→ (43,47,49) |
+
+设备无损截图（`uitest screenCap` 的 PNG，非 JPEG——JPEG 4:2:0 会稀释 1vp 细描边）实测：
+卡底 (19,23,26)、四边描边 (43,47,49)，与用户提供的原型参考图 (19,23,26)/(43,46,50) 逐值吻合。
+
+依据：① 原型参考图实测即为白系；② `design/04_component_specs/cards.md`
+「Use green only when the card contains a primary action or a key active state.
+**Do not make all cards green-tinted.**」；③ 原始设计导出
+`design-recovery/exports/FitTracker-rebuilt.html`（`39dcae4` 删除）的卡材质是中性玻璃
+`linear-gradient(180deg,#FFFFFF0A,#FFFFFF05)` + `outline: 1px solid #FFFFFF10`；
+④ 同批提交 `6179b12`（首页今日卡白系 3.1%/10.2%）、`b91e455`（Card Surface v1 去绿改中性）。
+
+验收影响（对冻结原型，master card 区段 y50–200、掩蔽文本、align 37.9）：
+超阈 **4.40% → 3.86%（未破 8% 门禁）**；MAE 2.42 → 3.83（卡底色差约 5/255，低于 16 阈值，
+只进 MAE 不进超阈率）。提交：`7a99d47`。
+
+**待决**：是否同步修正只读规格源 `src/fittracker-plan.html` 的 `.master-card`。
+规则规定 `design/06_prototype_redraw/src/*.html` 为只读规格源，需用户授权后方可改动；
+授权前，任何"照冻结文件比对"的流程都会把上述偏离计为差异，**不得据此回退为绿系**。
