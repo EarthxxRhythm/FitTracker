@@ -255,6 +255,9 @@ export struct ProfileContent {
     .backgroundColor('#0F50ECA7')
     .borderRadius(28)
     .border({ width: 1, color: '#3850ECA7' })
+    // 原型 .card.focus 的 `box-shadow: 0 20px 40px rgba(0,0,0,.22)`：给这张重点卡一层托起阴影，
+    // 否则它只靠 6% 强调色底与 22% 描边，浮在页面上显得平板。ArkUI 的 radius 即模糊半径。
+    .shadow({ radius: 40, color: '#38000000', offsetX: 0, offsetY: 20 })
   }
 
   @Builder
