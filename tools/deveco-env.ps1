@@ -36,7 +36,11 @@ function Add-UniquePathSegments {
     if ([string]::IsNullOrWhiteSpace($segment)) {
       continue
     }
-    if (-not (Test-Path $segment)) {
+    # A PATH segment may point at a protected dir (e.g. per-user WindowsApps) where
+    # Test-Path throws access-denied; under $ErrorActionPreference=Stop that aborts
+    # env prep. Treat inaccessible segments as absent (they should not be on PATH
+    # anyway) via -ErrorAction SilentlyContinue.
+    if (-not (Test-Path -LiteralPath $segment -ErrorAction SilentlyContinue)) {
       continue
     }
 
