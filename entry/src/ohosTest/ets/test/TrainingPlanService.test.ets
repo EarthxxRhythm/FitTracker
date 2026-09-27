@@ -74,11 +74,11 @@ export default function trainingPlanServiceTest(): void {
         }
       })
 
-      it('should find the 三分化（推拉腿） plan', 0, () => {
+      it('should find the 三分化 · 谭成义 plan', 0, () => {
         const plan = trainingPlanService.getPresetPlanById('preset_ppl')
         expect(plan !== undefined).assertTrue()
         if (plan) {
-          expect(plan.name).assertEqual('三分化（推拉腿）')
+          expect(plan.name).assertEqual('三分化 · 谭成义')
           expect(plan.days.length).assertEqual(3)
         }
       })
