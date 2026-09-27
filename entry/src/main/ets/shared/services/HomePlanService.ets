@@ -53,6 +53,7 @@ export interface HomePlanSummary {
   todayLabel: string
   hasTodayWorkout: boolean
   todayRestMessage: string
+  todayMuscleGroupCount: number
   todayExerciseCount: number
   todayExerciseNames: string[]
   recommendedExercises: HomeRecommendedExercise[]
@@ -85,6 +86,7 @@ class HomePlanService {
         todayLabel: '今天是恢复日',
         hasTodayWorkout: false,
         todayRestMessage: '当前安排没有训练动作，今天更适合恢复、散步或拉伸。',
+        todayMuscleGroupCount: 0,
         todayExerciseCount: 0,
         todayExerciseNames: emptyNames,
         recommendedExercises: emptyExercises,
@@ -113,6 +115,7 @@ class HomePlanService {
       todayLabel: '今天训练 | ' + today.title,
       hasTodayWorkout: true,
       todayRestMessage: '',
+      todayMuscleGroupCount: today.focusMuscleIds.length,
       todayExerciseCount: today.exercises.length,
       todayExerciseNames: names,
       recommendedExercises: recommendedExercises,
@@ -125,7 +128,8 @@ class HomePlanService {
   createSummaryFromCurrentPlan(
     plan: UserPlan,
     todayLabel: string,
-    todayTraining: TrainingDay | null
+    todayTraining: TrainingDay | null,
+    sessionMinutes: number
   ): HomePlanSummary {
     const emptyNames: string[] = []
     const primaryMetaText: string = plan.weeklyFrequency
@@ -143,7 +147,7 @@ class HomePlanService {
         planId: plan.id,
         planName: plan.name,
         weeklyDays: plan.days.length,
-        sessionMinutes: 0,
+        sessionMinutes: sessionMinutes,
         primaryMetaText: primaryMetaText,
         secondaryMetaText: secondaryMetaText,
         goalSummary: goalSummary,
@@ -155,6 +159,7 @@ class HomePlanService {
         todayLabel: todayLabel + ' | 休息日',
         hasTodayWorkout: false,
         todayRestMessage: '当前计划今天没有训练安排，保持恢复节奏就好。',
+        todayMuscleGroupCount: 0,
         todayExerciseCount: 0,
         todayExerciseNames: emptyNames,
         recommendedExercises: emptyExercises,
@@ -174,7 +179,7 @@ class HomePlanService {
       planId: plan.id,
       planName: plan.name,
       weeklyDays: plan.days.length,
-      sessionMinutes: 0,
+      sessionMinutes: sessionMinutes,
       primaryMetaText: primaryMetaText,
       secondaryMetaText: secondaryMetaText,
       goalSummary: goalSummary,
@@ -186,6 +191,7 @@ class HomePlanService {
       todayLabel: todayLabel + ' | ' + todayTraining.dayLabel,
       hasTodayWorkout: true,
       todayRestMessage: '',
+      todayMuscleGroupCount: this.countFocusMuscles(todayTraining.exercises),
       todayExerciseCount: todayTraining.exercises.length,
       todayExerciseNames: names,
       recommendedExercises: recommendedExercises,
@@ -228,6 +234,18 @@ class HomePlanService {
       names.push(exercises[index].name)
     }
     return names
+  }
+
+  /** 训练动作涉及的目标肌群去重计数（首页「目标肌群」指标）。 */
+  countFocusMuscles(exercises: ExerciseRef[]): number {
+    const muscles: string[] = []
+    for (let index = 0; index < exercises.length; index++) {
+      const muscle: string = exercises[index].targetMuscle
+      if (muscle.length > 0 && muscles.indexOf(muscle) < 0) {
+        muscles.push(muscle)
+      }
+    }
+    return muscles.length
   }
 
   createRecommendedExercises(exercises: PlannedExercise[]): HomeRecommendedExercise[] {

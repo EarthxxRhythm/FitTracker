@@ -6,6 +6,11 @@ import HomePlanService, {
   HomePlanSummary,
   HomeRecommendedExercise
 } from '../../../main/ets/shared/services/HomePlanService'
+import TrainingPlanService, {
+  PresetPlan,
+  TrainingDay,
+  UserPlan
+} from '../../../main/ets/common/services/TrainingPlanService'
 import PlanEngine from '../../../main/ets/shared/services/PlanEngine'
 
 export default function homePlanServiceTest(): void {
@@ -103,6 +108,64 @@ export default function homePlanServiceTest(): void {
         expect(firstExercise.name.length > 0).assertTrue()
         expect(firstExercise.prescription.length > 0).assertTrue()
         expect(firstExercise.intensityNote.length > 0).assertTrue()
+      }
+    })
+
+    it('builds a home summary from the current enabled preset plan and keeps the duration hint', 0, () => {
+      const presetPlan: PresetPlan | undefined = TrainingPlanService.getPresetPlanById('preset_ppl')
+      expect(presetPlan !== undefined).assertTrue()
+      if (presetPlan !== undefined) {
+        const currentPlan: UserPlan = {
+          id: presetPlan.id,
+          name: presetPlan.name,
+          coverColor: presetPlan.coverColor,
+          targetAudience: presetPlan.targetAudience,
+          weeklyFrequency: presetPlan.weeklyFrequency,
+          description: presetPlan.description,
+          days: presetPlan.days,
+          enabledAt: 42
+        }
+        const trainingDay: TrainingDay = currentPlan.days[0]
+        const summary: HomePlanSummary = HomePlanService.createSummaryFromCurrentPlan(
+          currentPlan,
+          '星期一',
+          trainingDay,
+          45
+        )
+
+        expect(summary.hasTodayWorkout).assertTrue()
+        expect(summary.planId).assertEqual(currentPlan.id)
+        expect(summary.planName).assertEqual('三分化 · 谭成义')
+        expect(summary.todayTitle).assertEqual(trainingDay.dayLabel)
+        expect(summary.todayExerciseCount).assertEqual(trainingDay.exercises.length)
+        expect(summary.todayMuscleGroupCount).assertEqual(3)
+        expect(summary.sessionMinutes).assertEqual(45)
+        expect(summary.weeklyDays).assertEqual(currentPlan.days.length)
+        expect(summary.startRoute.length > 0).assertTrue()
+      }
+    })
+
+    it('reports zero muscle groups and the rest message on a rest day of the current plan', 0, () => {
+      const presetPlan: PresetPlan | undefined = TrainingPlanService.getPresetPlanById('preset_ppl')
+      expect(presetPlan !== undefined).assertTrue()
+      if (presetPlan !== undefined) {
+        const currentPlan: UserPlan = {
+          id: presetPlan.id,
+          name: presetPlan.name,
+          coverColor: presetPlan.coverColor,
+          targetAudience: presetPlan.targetAudience,
+          weeklyFrequency: presetPlan.weeklyFrequency,
+          description: presetPlan.description,
+          days: presetPlan.days,
+          enabledAt: 43
+        }
+        const summary: HomePlanSummary = HomePlanService.createSummaryFromCurrentPlan(currentPlan, '星期日', null, 60)
+
+        expect(summary.hasTodayWorkout).assertFalse()
+        expect(summary.todayTitle).assertEqual('休息日')
+        expect(summary.todayMuscleGroupCount).assertEqual(0)
+        expect(summary.todayExerciseCount).assertEqual(0)
+        expect(summary.sessionMinutes).assertEqual(60)
       }
     })
   })
