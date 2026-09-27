@@ -37,6 +37,15 @@ function createSetRecord(index: number, weight: number, reps: number): SetRecord
 
 const PROGRESS_SEGMENTS: number[] = [0, 1, 2, 3, 4, 5]
 
+// 动作演示卡（容器）高度。原型 .demo-card 为 230，此处有意加高以留出更多版面；
+// 标题条固定在距底 56 处，与原型同口径。
+const DEMO_CARD_HEIGHT: number = 280
+// 演示图自身尺寸，与容器高度解耦——容器加高时图不跟着放大（素材仅 180×180，
+// 放大会变糊）。图在容器内居中。
+const DEMO_MEDIA_SIZE: number = 230
+// 无训练数据时角标回落到原型示例值，保持空态观感。
+const DEMO_CARD_BADGE_FALLBACK: string = '1 / 4'
+
 interface CelebratePiece {
   id: string
   x: number
@@ -77,6 +86,8 @@ export struct ActiveContent {
   @State private reps: number = 0
   @State private exerciseName: string = ''
   @State private exerciseGifSource: string = ExerciseGifCatalog.resolveDemoSource('')
+  @State private exerciseIndex: number = 1
+  @State private exerciseTotal: number = 0
   @State private showModal: boolean = false
   @State private records: SetRecordItem[] = []
   @State private celebrating: boolean = false
@@ -138,6 +149,8 @@ export struct ActiveContent {
     }
     this.exerciseName = state.currentExerciseName
     this.exerciseGifSource = ExerciseGifCatalog.resolveDemoSource(state.currentExerciseName)
+    this.exerciseTotal = state.exercises.length
+    this.exerciseIndex = this.findCurrentExerciseIndex(state)
     this.completed = Math.min(state.completedSets, PROGRESS_SEGMENTS.length)
     const initialValues: InitialSetValues = this.findInitialSetValues(state)
     this.weight = initialValues.weight
@@ -191,6 +204,28 @@ export struct ActiveContent {
       return '未设置动作'
     }
     return this.exerciseName
+  }
+
+  /** 当前进行中的动作序号（1 起）；全部完成时取最后一个。 */
+  private findCurrentExerciseIndex(state: ActiveWorkoutState): number {
+    for (let index = 0; index < state.exercises.length; index++) {
+      const exercise: ActiveWorkoutExercise = state.exercises[index]
+      if (exercise.completedSets < exercise.targetSets) {
+        return index + 1
+      }
+    }
+    if (state.exercises.length === 0) {
+      return 1
+    }
+    return state.exercises.length
+  }
+
+  /** 角标「当前动作 / 动作总数」；无数据时回落原型示例值。 */
+  private exerciseBadgeText(): string {
+    if (this.exerciseTotal <= 0) {
+      return DEMO_CARD_BADGE_FALLBACK
+    }
+    return this.exerciseIndex.toString() + ' / ' + this.exerciseTotal.toString()
   }
 
   private finish(): void {
@@ -414,10 +449,11 @@ export struct ActiveContent {
   @Builder
   private demoCard() {
     Stack({ alignContent: Alignment.TopStart }) {
+      // 卡面不设底色：素材白底已由 build-exercise-gifs-onpage.py 合成成页面底色（不透明），
+      // 图与页面无缝，不出现白色面板。
       Column()
         .width('100%')
         .height('100%')
-        .backgroundColor('#101816')
 
       this.demoVisual()
 
@@ -426,7 +462,7 @@ export struct ActiveContent {
           .fontFamily('Noto Sans SC')
           .fontSize(11)
           .fontColor('#99FFFFFF')
-        Text('1 / 4')
+        Text(this.exerciseBadgeText())
           .fontFamily('Geist Mono')
           .fontSize(12)
           .fontWeight(FontWeight.Bold)
@@ -459,10 +495,10 @@ export struct ActiveContent {
       .backgroundColor('#080D11D1')
       .borderRadius(16)
       .border({ width: 1, color: '#14FFFFFF' })
-      .position({ x: 14, y: 174 })
+      .position({ x: 14, y: DEMO_CARD_HEIGHT - 56 })
     }
     .width('100%')
-    .height(230)
+    .height(DEMO_CARD_HEIGHT)
     .borderRadius(28)
     .border({ width: 1, color: '#14FFFFFF' })
     .clip(true)
@@ -470,14 +506,20 @@ export struct ActiveContent {
 
   @Builder
   private demoVisual() {
-    // 动作演示内嵌 GIF（rawfile/exercise-gifs-dark）。素材由 tools/build-exercise-gifs-dark.py
-    // 预烘焙成深色版（黑底 + 浅色线条），避免白底在整块深色卡上过亮；用预烘焙而非运行时叠加
-    // 图像效果，结果确定且可离线核对。Contain 保证整幅动作不被裁切。
-    Image($rawfile(this.exerciseGifSource))
-      .width('100%')
-      .height('100%')
-      .objectFit(ImageFit.Contain)
-      .alt(this.currentExerciseLabel() + ' 动作演示')
+    // 动作演示内嵌 GIF（rawfile/exercise-gifs-onpage）。素材已按亮度软过渡合成到页面底色：
+    // 无白块、无抠图锯齿，颜色保持原貌。卡面不设底色，图片与页面无缝。
+    // 图按 DEMO_MEDIA_SIZE 固定尺寸并在容器内居中——容器高度变化不会放大素材。
+    Row() {
+      Image($rawfile(this.exerciseGifSource))
+        .width(DEMO_MEDIA_SIZE)
+        .height(DEMO_MEDIA_SIZE)
+        .objectFit(ImageFit.Contain)
+        .alt(this.currentExerciseLabel() + ' 动作演示')
+    }
+    .width('100%')
+    .height('100%')
+    .justifyContent(FlexAlign.Center)
+    .alignItems(VerticalAlign.Center)
   }
 
   @Builder
@@ -652,7 +694,10 @@ export struct ActiveContent {
       }
       .width(342)
       .padding(20)
-      .backgroundColor('#101816')
+      // 底色对齐首页「本周节奏」卡：那张卡是「页底 #0B0F13 + 3.1% 白(#08FFFFFF)」叠出的中性玻璃面，
+      // 等效合成色即 #13161A，此处直接用该不透明色——弹窗底下是半透明蒙层，若照搬半透明白会把
+      // 下页内容透进面板（已实测）。描边 #1AFFFFFF 与首页卡一致，未改动。
+      .backgroundColor('#13161A')
       .borderRadius(28)
       .border({ width: 1, color: '#1AFFFFFF' })
       .shadow({ radius: 60, color: '#80000000', offsetX: 0, offsetY: 28 })

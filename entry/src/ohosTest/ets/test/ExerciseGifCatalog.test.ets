@@ -1,17 +1,19 @@
 /**
  * ExerciseGifCatalog unit test
  * 训练演示 GIF 解析：动作中文名 -> GIF 文件名 -> rawfile 路径，含默认回退。
+ * 目录前缀从被测模块导入（DEMO_GIF_DIRECTORY），避免换素材目录时两处同步。
  */
 import { describe, it, expect } from '@ohos/hypium'
 import ExerciseGifCatalog, {
-  DEFAULT_EXERCISE_GIF_ID
+  DEFAULT_EXERCISE_GIF_ID,
+  DEMO_GIF_DIRECTORY
 } from '../../../main/ets/shared/services/ExerciseGifCatalog'
 
 export default function exerciseGifCatalogTest(): void {
   describe('ExerciseGifCatalog', () => {
     it('resolves a known exercise name to its gif rawfile path', 0, () => {
       expect(ExerciseGifCatalog.resolveGifId('杠铃卧推')).assertEqual('barbell-bench-press')
-      expect(ExerciseGifCatalog.resolveDemoSource('杠铃卧推')).assertEqual('exercise-gifs/barbell-bench-press.gif')
+      expect(ExerciseGifCatalog.resolveDemoSource('杠铃卧推')).assertEqual(DEMO_GIF_DIRECTORY + 'barbell-bench-press.gif')
 
       expect(ExerciseGifCatalog.resolveGifId('深蹲')).assertEqual('squat')
       expect(ExerciseGifCatalog.resolveGifId('杠铃深蹲')).assertEqual('squat')
@@ -28,10 +30,10 @@ export default function exerciseGifCatalogTest(): void {
       expect(ExerciseGifCatalog.resolveGifId('')).assertEqual(DEFAULT_EXERCISE_GIF_ID)
       expect(ExerciseGifCatalog.resolveGifId('   ')).assertEqual(DEFAULT_EXERCISE_GIF_ID)
       expect(ExerciseGifCatalog.resolveGifId('不存在的动作名')).assertEqual(DEFAULT_EXERCISE_GIF_ID)
-      expect(ExerciseGifCatalog.resolveDemoSource('')).assertEqual('exercise-gifs/' + DEFAULT_EXERCISE_GIF_ID + '.gif')
+      expect(ExerciseGifCatalog.resolveDemoSource('')).assertEqual(DEMO_GIF_DIRECTORY + DEFAULT_EXERCISE_GIF_ID + '.gif')
     })
 
-    it('maps every gif id to its .gif rawfile path under exercise-gifs/', 0, () => {
+    it('maps every gif id to its .gif rawfile path', 0, () => {
       const gifIds: string[] = [
         'barbell-bench-press', 'push-up', 'dumbbell-fly', 'cable-crossover', 'pull-up',
         'barbell-row', 'seated-row', 'lat-pulldown', 'band-pulldown', 'overhead-press',
@@ -41,7 +43,7 @@ export default function exerciseGifCatalogTest(): void {
       ]
       for (let index = 0; index < gifIds.length; index++) {
         const gifId: string = gifIds[index]
-        expect(ExerciseGifCatalog.demoSourceOfGifId(gifId)).assertEqual('exercise-gifs/' + gifId + '.gif')
+        expect(ExerciseGifCatalog.demoSourceOfGifId(gifId)).assertEqual(DEMO_GIF_DIRECTORY + gifId + '.gif')
       }
     })
   })

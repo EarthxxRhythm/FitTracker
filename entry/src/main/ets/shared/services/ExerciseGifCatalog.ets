@@ -1,9 +1,10 @@
 /**
  * ExerciseGifCatalog -- 训练演示 GIF 的解析目录。
  *
- * 素材位于 rawfile/exercise-gifs/<gifId>.gif（180×180、12 帧动作演示，白底）。
- * 训练执行页的动作卡把**卡面背景取成与素材同色**（见 ActiveContent.demoVisual），
- * 白底与卡面融为一体，不再是深色底衬上一块突兀的白；不做反相等颜色改写，保持素材原貌。
+ * 素材位于 rawfile/exercise-gifs-onpage/<gifId>.gif（180×180、12 帧动作演示），
+ * 由 tools/build-exercise-gifs-onpage.py 把原白底素材**按亮度软过渡合成到页面底色**上：
+ * 颜色不动、白底区即页面底色、边缘是逐像素插值而非 1 bit 阈值，故既无白块也无锯齿。
+ * 训练执行页的动作卡相应不设卡面底色（见 ActiveContent.demoVisual）。
  *
  * 文件名沿用动作库的 kebab 英文命名；训练执行页拿到的是动作中文名（内容库 nameZh），
  * 两套命名空间在此收敛：中文名 -> GIF 文件名 -> rawfile 路径。
@@ -13,7 +14,8 @@
 
 export const DEFAULT_EXERCISE_GIF_ID: string = 'barbell-bench-press'
 
-const DEMO_GIF_DIRECTORY: string = 'exercise-gifs/'
+/** 演示素材目录（导出供单测断言复用，避免改目录时多处同步）。 */
+export const DEMO_GIF_DIRECTORY: string = 'exercise-gifs-onpage/'
 const GIF_SUFFIX: string = '.gif'
 
 interface ExerciseGifGroup {
