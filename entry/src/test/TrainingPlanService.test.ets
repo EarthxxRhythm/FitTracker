@@ -2,7 +2,7 @@
  * TrainingPlanService 单元测试
  *
  * 测试预置训练计划服务：
- *   - 计划总数正确（5套）
+ *   - 计划总数正确（4 套）
  *   - 按ID查找计划
  *   - 计划结构完整性（name, coverColor, targetAudience, weeklyFrequency, days）
  *   - 每个训练日包含动作清单
@@ -94,7 +94,7 @@ export default function trainingPlanServiceTest() {
       const plans = TrainingPlanService.getAllPresetPlans()
       const names = plans.map(p => p.name)
       expect(names.includes('二分化（上下肢）')).assertTrue()
-      expect(names.includes('三分化（推拉腿）')).assertTrue()
+      expect(names.includes('三分化 · 谭成义')).assertTrue()
       expect(names.includes('四分化')).assertTrue()
       expect(names.includes('五分化')).assertTrue()
       expect(names.length).assertEqual(4)
@@ -120,8 +120,8 @@ export default function trainingPlanServiceTest() {
       expect(plan!.days.length).assertEqual(3)
 
       // User sees training days in the plan
-      expect(plan!.days[0].dayLabel).assertContain('推')
-      expect(plan!.days[1].dayLabel).assertContain('拉')
+      expect(plan!.days[0].dayLabel).assertContain('胸')
+      expect(plan!.days[1].dayLabel).assertContain('背')
       expect(plan!.days[2].dayLabel).assertContain('腿')
 
       // Each day has exercises with complete info
@@ -239,7 +239,7 @@ export default function trainingPlanServiceTest() {
       expect(preset !== undefined).assertTrue()
 
       // Verify all fields that would be carried over
-      expect(preset!.name).assertContain('推拉腿')
+      expect(preset!.name).assertContain('谭成义')
       expect(preset!.coverColor).assertContain('#')
       expect(preset!.targetAudience.length).assertLarger(0)
       expect(preset!.weeklyFrequency.length).assertLarger(0)
