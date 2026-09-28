@@ -1602,9 +1602,10 @@ export struct ReviewContent {
     .width('100%')
     .constraintSize({ minHeight: 145.1 })
     .padding(16.3)
+    // 卡面统一 Card Surface v1（与首页「本周节奏」卡一致）：底 3.1% 白 + 描边 10.2% 白。
     .backgroundColor('#08FFFFFF')
     .borderRadius(25.4)
-    .border({ width: 1, color: '#10FFFFFF' })
+    .border({ width: 1, color: '#1AFFFFFF' })
   }
 
   @Builder
@@ -1640,9 +1641,9 @@ export struct ReviewContent {
     .layoutWeight(1)
     .height(73.5)
     .padding(12.7)
-    .backgroundColor('#171D24')
+    .backgroundColor('#08FFFFFF')
     .borderRadius(18.1)
-    .border({ width: 1, color: '#0AFFFFFF' })
+    .border({ width: 1, color: '#1AFFFFFF' })
     .alignItems(HorizontalAlign.Start)
   }
 
@@ -1692,9 +1693,9 @@ export struct ReviewContent {
     }
     .width('100%')
     .padding(16.3)
-    .backgroundColor('#07FFFFFF')
+    .backgroundColor('#08FFFFFF')
     .borderRadius(25.4)
-    .border({ width: 1, color: '#14FFFFFF' })
+    .border({ width: 1, color: '#1AFFFFFF' })
   }
 
   @Builder
@@ -1948,9 +1949,9 @@ export struct ReviewContent {
     }
     .width('100%')
     .padding(16.3)
-    .backgroundColor('#10171B')
+    .backgroundColor('#08FFFFFF')
     .borderRadius(25.4)
-    .border({ width: 1, color: '#10FFFFFF' })
+    .border({ width: 1, color: '#1AFFFFFF' })
   }
 
   @Builder
@@ -2085,9 +2086,9 @@ export struct ReviewContent {
     }
     .width('100%')
     .padding(16.3)
-    .backgroundColor('#10171B')
+    .backgroundColor('#08FFFFFF')
     .borderRadius(25.4)
-    .border({ width: 1, color: '#10FFFFFF' })
+    .border({ width: 1, color: '#1AFFFFFF' })
   }
 
   @Builder
@@ -2170,9 +2171,9 @@ export struct ReviewContent {
     }
     .width('100%')
     .padding(16.3)
-    .backgroundColor('#10171B')
+    .backgroundColor('#08FFFFFF')
     .borderRadius(25.4)
-    .border({ width: 1, color: '#10FFFFFF' })
+    .border({ width: 1, color: '#1AFFFFFF' })
   }
 
   @Builder
@@ -2229,9 +2230,9 @@ export struct ReviewContent {
     }
     .width('100%')
     .padding(16.3)
-    .backgroundColor('#10171B')
+    .backgroundColor('#08FFFFFF')
     .borderRadius(25.4)
-    .border({ width: 1, color: '#10FFFFFF' })
+    .border({ width: 1, color: '#1AFFFFFF' })
   }
 
   @Builder

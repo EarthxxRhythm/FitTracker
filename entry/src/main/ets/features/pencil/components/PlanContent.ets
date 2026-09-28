@@ -487,9 +487,10 @@ export struct PlanContent {
     }
     .width(342)
     .height('100%')
-    .backgroundColor('#151B20')
+    // Card Surface v1：与首页「本周节奏」卡（HomeContent.weekPanel）一致——底 3.1% 白 + 描边 10.2% 白。
+    .backgroundColor('#08FFFFFF')
     .borderRadius(24)
-    .border({ width: 1, color: '#17FFFFFF' })
+    .border({ width: 1, color: '#1AFFFFFF' })
     .shadow({ radius: 36, color: '#52000000', offsetX: 0, offsetY: 18 })
     .position({ x: 8, y: 0 })
     .translate({ x: this.rel(index) * 294.12, y: 16 * Math.abs(this.rel(index)) })
