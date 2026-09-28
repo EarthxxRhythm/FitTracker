@@ -37,6 +37,11 @@ function createSetRecord(index: number, weight: number, reps: number): SetRecord
 
 const PROGRESS_SEGMENTS: number[] = [0, 1, 2, 3, 4, 5]
 
+// 分段进度条胶囊高度。原型 .duo-seg 为 12px；此处有意加高——12vp 时 3vp 的圆点环
+// 要占掉一半高度、绿芯只剩 6vp，显得偏细；加高后环占比接近圆点自身（3/18），
+// 且与当前段 18vp 的圆点 marker 接近齐平。内条与外容器必须同用此值。
+const PROGRESS_SEGMENT_HEIGHT: number = 16
+
 // 动作演示卡（容器）高度。原型 .demo-card 为 230，此处有意加高以留出更多版面；
 // 标题条固定在距底 56 处，与原型同口径。
 const DEMO_CARD_HEIGHT: number = 280
@@ -425,7 +430,7 @@ export struct ActiveContent {
           Stack({ alignContent: Alignment.Center }) {
             Row()
               .width('100%')
-              .height(12)
+              .height(PROGRESS_SEGMENT_HEIGHT)
               .backgroundColor(this.segmentBackground(index))
               .borderRadius(999)
               .border({ width: this.segmentBorderWidth(index), color: this.segmentBorder(index) })
@@ -443,7 +448,7 @@ export struct ActiveContent {
             }
           }
           .layoutWeight(1)
-          .height(12)
+          .height(PROGRESS_SEGMENT_HEIGHT)
         }, (index: number) => index.toString())
       }
       .width('100%')
