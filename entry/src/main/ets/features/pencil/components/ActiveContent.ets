@@ -442,7 +442,9 @@ export struct ActiveContent {
     }
     .width('100%')
     .padding({ left: 18, right: 18, top: 14, bottom: 12 })
-    .backgroundColor('#0A0D12F5')
+    // 原型 .wo-top: rgba(10,13,18,.96)。ArkUI 的 8 位色是 #AARRGGBB，
+    // 曾误按 #RRGGBBAA 写成 #0A0D12F5（= 4% 透明 + RGB(13,18,245)），顶栏因此比主体偏蓝。
+    .backgroundColor('#F50A0D12')
     .border({ width: { bottom: 1 }, color: '#0FFFFFFF' })
   }
 
@@ -469,7 +471,8 @@ export struct ActiveContent {
           .fontColor('#50ECA7')
       }
       .padding({ left: 10, right: 10, top: 6, bottom: 6 })
-      .backgroundColor('#080D11D1')
+      // 原型 .demo-position: rgba(8,13,17,.82)（同族笔误，原为 #080D11D1）
+      .backgroundColor('#D1080D11')
       .borderRadius(999)
       .border({ width: 1, color: '#1AFFFFFF' })
       .position({ x: 14, y: 14 })
@@ -492,7 +495,8 @@ export struct ActiveContent {
       .height(42)
       .padding({ left: 14, right: 14, top: 10, bottom: 10 })
       .justifyContent(FlexAlign.SpaceBetween)
-      .backgroundColor('#080D11D1')
+      // 原型 .demo-caption: rgba(8,13,17,.82)（同族笔误，原为 #080D11D1）
+      .backgroundColor('#D1080D11')
       .borderRadius(16)
       .border({ width: 1, color: '#14FFFFFF' })
       .position({ x: 14, y: DEMO_CARD_HEIGHT - 56 })
@@ -598,7 +602,8 @@ export struct ActiveContent {
     }
     .width('100%')
     .padding({ left: 18, right: 18, top: 12, bottom: 18 })
-    .backgroundColor('#0A0D12FA')
+    // 原型 .wo-dock: rgba(10,13,18,.98)（同族笔误，原为 #0A0D12FA）
+    .backgroundColor('#FA0A0D12')
     .border({ width: { top: 1 }, color: '#0FFFFFFF' })
   }
 
