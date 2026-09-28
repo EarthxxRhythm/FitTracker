@@ -1,4 +1,8 @@
-/** PencilPreviewPage —— FitTracker 训练预览页（依据 fittracker-training-preview.html 还原）。 */
+/** PencilPreviewContent —— FitTracker 训练预览内容（依据 fittracker-training-preview.html 还原）。
+ *
+ * 原为 @Entry 路由页 PencilPreviewPage；现改由 PencilAppShell 的 bindContentCover 以
+ * 「中心缩放弹出」的全模态形态承载，故去掉 @Entry 并更名为内容组件（文件路径暂沿用）。
+ */
 
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
@@ -17,9 +21,8 @@ interface PreviewExerciseItem {
   current: boolean
 }
 
-@Entry
 @Component
-struct PencilPreviewPage {
+export struct PencilPreviewContent {
   @State private backPressed: boolean = false
   @State private morePressed: boolean = false
   @State private ctaPressed: boolean = false
@@ -29,8 +32,16 @@ struct PencilPreviewPage {
   @State private exerciseItems: PreviewExerciseItem[] = []
   @State private emptyMessage: string = ''
   @State private topInsetVp: number = 0
+  // 由 PencilAppShell 的全模态传入：请求关闭该模态（返回键 / 开始训练后离开）。
+  onRequestClose?: () => void
   // 预览结果留存，供「开始训练」把动作数据带给训练执行页（否则执行页拿不到动作名）。
   private pendingPreview: WorkoutPreviewSummary | undefined = undefined
+
+  private requestClose(): void {
+    if (this.onRequestClose !== undefined) {
+      this.onRequestClose()
+    }
+  }
 
   private getHostContextOrNull(): Context | null {
     const hostContext = this.getUIContext().getHostContext()
@@ -81,6 +92,8 @@ struct PencilPreviewPage {
 
   /** 进入训练执行页；把预览结果一并带过去，执行页据此显示真实动作名与对应演示图。 */
   private startWorkout(): void {
+    // 先关闭全模态（触发缩放淡出），再推入训练执行页，避免模态层盖住执行页。
+    this.requestClose()
     if (this.pendingPreview === undefined) {
       this.getUIContext().getRouter().pushUrl({ url: AppRoutes.ACTIVE_WORKOUT })
       return
@@ -173,7 +186,7 @@ struct PencilPreviewPage {
         .backgroundColor('#08FFFFFF')
         .border({ width: 1, color: '#14FFFFFF' })
         .onClick(() => {
-          this.getUIContext().getRouter().back()
+          this.requestClose()
         })
         .onTouch((event: TouchEvent) => {
           if (event.type === TouchType.Down) {
