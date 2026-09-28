@@ -35,6 +35,18 @@ import {
  */
 const PLAN_MASTER_CARD_HEIGHT: number = 135
 
+/**
+ * 训练日卡（原型 .deck-card）宽度，单位 vp。
+ * 原型 .deck-card 是 left:24px / right:24px（相对 358vp 宽的 .deck）→ 卡宽 310vp；
+ * 其相邻卡步长也印证了这个宽度：stepPx() = (deck 宽 − 48) × 0.86 = 310 × 0.86。
+ * 设备实现原写死 342vp（左右各 24vp），比原型宽 32vp、两侧留白偏窄。
+ */
+const PLAN_DECK_CARD_WIDTH: number = 310
+/** 卡在 deck Stack 内的左侧起点：原型卡距屏幕 40vp（页边距 16 + deck 内 left 24）− Stack 自身起点 16vp。 */
+const PLAN_DECK_CARD_OFFSET_X: number = 24
+/** 相邻卡的横向步长（原型 stepPx()）；与卡宽绑定，改宽度须同步。 */
+const PLAN_DECK_STEP_X: number = PLAN_DECK_CARD_WIDTH * 0.86
+
 @Component
 export struct PlanContent {
   // 数据源优先级：① 计划组「已启用的预置计划」→ ② 目标生成计划。
@@ -524,14 +536,14 @@ export struct PlanContent {
         .borderRadius(24)
         .animation({ duration: MotionTokens.DURATION_MARKER, curve: MotionTokens.EASE_MOTION })
     }
-    .width(342)
+    .width(PLAN_DECK_CARD_WIDTH)
     .height('100%')
     // 卡面底色改由卡内首层 Column 承担（叠放场景需用不透明合成色，见 deckCard 顶部注释）。
     .borderRadius(24)
     .border({ width: 1, color: '#1AFFFFFF' })
     .shadow({ radius: 36, color: '#52000000', offsetX: 0, offsetY: 18 })
-    .position({ x: 8, y: 0 })
-    .translate({ x: this.rel(index) * 294.12, y: 16 * Math.abs(this.rel(index)) })
+    .position({ x: PLAN_DECK_CARD_OFFSET_X, y: 0 })
+    .translate({ x: this.rel(index) * PLAN_DECK_STEP_X, y: 16 * Math.abs(this.rel(index)) })
     .rotate({ angle: this.rel(index) * 6 })
     .scale({ x: this.scaleFor(this.rel(index)), y: this.scaleFor(this.rel(index)) })
     .opacity(this.opacityFor(this.rel(index)))
