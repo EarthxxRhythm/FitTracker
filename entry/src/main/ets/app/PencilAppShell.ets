@@ -21,17 +21,11 @@ enum PencilTabKey {
 @Component
 export struct PencilAppShell {
   @State @Watch('handleTabChanged') currentTab: string = PencilTabKey.HOME
-  @State private viewportOffset: number = 0
-  @State private viewportOpacity: number = 1
-  @State private viewportScale: number = 1
   // 常驻 Tab 的「计划」页刷新令牌：切到该 Tab 或从被压栈的页面返回时递增，
   // 触发 PlanContent 重读当前计划（可能在「计划组」里刚被改过）。
   @State private planReloadToken: number = 0
-  // 训练预览的全模态开关（bindContentCover）。
+  // 训练预览的全模态开关。
   @State private showPreview: boolean = false
-  private transitionRunning: boolean = false
-  private previousTab: string = PencilTabKey.HOME
-  private transitionToken: number = 0
 
   async aboutToAppear(): Promise<void> {
     const hostContext: Context | undefined = this.getUIContext().getHostContext()
@@ -59,19 +53,6 @@ export struct PencilAppShell {
     return false
   }
 
-  private getTabIndex(key: string): number {
-    if (key === PencilTabKey.HOME) {
-      return 0
-    }
-    if (key === PencilTabKey.PLAN) {
-      return 1
-    }
-    if (key === PencilTabKey.REVIEW) {
-      return 2
-    }
-    return 3
-  }
-
   private isVisible(key: string): Visibility {
     return this.currentTab === key ? Visibility.Visible : Visibility.Hidden
   }
@@ -80,27 +61,11 @@ export struct PencilAppShell {
     return this.currentTab === key ? 1 : 0
   }
 
+  // Tab 切换不带内容区转场：按需求直接切换（「训练」按钮打开的预览弹层动效保留）。
   private handleTabChanged(): void {
     if (this.currentTab === PencilTabKey.PLAN) {
       this.planReloadToken += 1
     }
-    const direction: number = this.getTabIndex(this.currentTab) >= this.getTabIndex(this.previousTab) ? 1 : -1
-    this.previousTab = this.currentTab
-    this.transitionToken += 1
-    const currentTransitionToken: number = this.transitionToken
-    this.transitionRunning = true
-    this.viewportOffset = 8 * direction
-    this.viewportOpacity = 0.88
-    this.viewportScale = 0.99
-    this.getUIContext().animateTo({ duration: 160, curve: MotionTokens.EASE_TAB }, () => {
-      if (currentTransitionToken !== this.transitionToken) {
-        return
-      }
-      this.viewportOpacity = 1
-      this.viewportScale = 1
-      this.viewportOffset = 0
-      this.transitionRunning = false
-    })
   }
 
   private selectTab(key: string): void {
@@ -170,9 +135,6 @@ export struct PencilAppShell {
     }
     .width('100%')
     .height('100%')
-    .translate({ x: this.viewportOffset, y: 0 })
-    .scale({ x: this.viewportScale, y: this.viewportScale })
-    .opacity(this.viewportOpacity)
   }
 
   build() {
