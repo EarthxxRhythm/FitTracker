@@ -402,6 +402,16 @@ export struct PlanContent {
   @Builder
   private deckCard(day: PlanDayItem, index: number) {
     Stack() {
+      // 卡面：Card Surface v1 的观感 = 页面底色(#0B0F13) 叠 3.1% 白玻璃(#08FFFFFF)，实测成色 #13171A。
+      // 但 deck 是 prev/front/next 三张叠放，半透明卡面挡不住背后的卡——相邻卡的字与描边会透过当前卡
+      // 显示（原型 .deck-card 用不透明 #151B20 才有遮挡）。故这里直接用合成色做不透明卡面：观感与玻璃
+      // 卡一致，同时恢复遮挡。圆角须与卡面一致——Stack 未开 clip，直角会从圆角外露出来。
+      Column()
+        .width('100%')
+        .height('100%')
+        .borderRadius(24)
+        .backgroundColor('#13171A')
+
       Column() {
         Column({ space: 14 }) {
           Row({ space: 10 }) {
@@ -516,8 +526,7 @@ export struct PlanContent {
     }
     .width(342)
     .height('100%')
-    // Card Surface v1：与首页「本周节奏」卡（HomeContent.weekPanel）一致——底 3.1% 白 + 描边 10.2% 白。
-    .backgroundColor('#08FFFFFF')
+    // 卡面底色改由卡内首层 Column 承担（叠放场景需用不透明合成色，见 deckCard 顶部注释）。
     .borderRadius(24)
     .border({ width: 1, color: '#1AFFFFFF' })
     .shadow({ radius: 36, color: '#52000000', offsetX: 0, offsetY: 18 })
