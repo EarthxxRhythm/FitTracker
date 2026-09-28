@@ -2,6 +2,7 @@
 
 import { AppRoutes } from '../../../app/AppRoutes'
 import { MotionTokens } from '../../../common/styles/DesignTokens'
+import { window } from '@kit.ArkUI'
 import GoalRepository from '../../../shared/services/GoalRepository'
 import PlanEngine from '../../../shared/services/PlanEngine'
 import ContentRepository from '../../../shared/services/ContentRepository'
@@ -41,6 +42,8 @@ export struct PlanContent {
   // 本页若只读目标生成计划，就与「计划组」显示的当前计划对不上。
   @State private activeCard: number = 0
   @State private masterPressed: boolean = false
+  // 系统状态栏高度（vp）。页面区本身落在状态栏之下，原型顶距须扣掉它才不会双计。
+  @State private topInsetVp: number = 0
   @State private planDays: PlanDayItem[] = []
   @State private planName: string = '训练计划'
   @State private goalMeta: string = '尚未设置目标'
@@ -53,7 +56,28 @@ export struct PlanContent {
   private sessionMinutes: number = 45
 
   aboutToAppear(): void {
+    this.resolveTopInset()
     this.loadPlanData()
+  }
+
+  /**
+   * 原型 .plan-content 的 padding-top: 53 以屏幕顶为原点（已把状态栏含在内）；设备侧页面区本身
+   * 落在状态栏之下，若原样使用 53 就与系统避让重复计数，卡片整体下移一个状态栏高度（实测 39vp）。
+   * 口径同 HomeContent / PlansContent / PlanGroupDetailContent。
+   */
+  private async resolveTopInset(): Promise<void> {
+    const hostContext: Context | undefined = this.getUIContext().getHostContext()
+    if (hostContext === undefined) {
+      return
+    }
+    try {
+      const mainWindow: window.Window = await window.getLastWindow(hostContext)
+      const avoidArea: window.AvoidArea = mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM)
+      this.topInsetVp = this.getUIContext().px2vp(avoidArea.topRect.height)
+    } catch (e) {
+      // 取不到安全区时按 0 处理，顶距回退为原型的 53vp
+      this.topInsetVp = 0
+    }
   }
 
   onReloadTokenChanged(): void {
@@ -278,10 +302,11 @@ export struct PlanContent {
       }
       .width('100%')
       .height('100%')
+      // 原型以屏幕顶为原点；设备页面区已在状态栏下方，扣掉状态栏高度才是与原型一致的 53vp 顶距。
       .padding({
         left: 16,
         right: 16,
-        top: 53,
+        top: Math.max(53 - this.topInsetVp, 0),
         bottom: 24
       })
     }
@@ -471,6 +496,10 @@ export struct PlanContent {
         .width('100%')
         .layoutWeight(1)
         .margin({ top: 14 })
+        // Scroll 被 layoutWeight 限高后内容不足一屏会垂直居中（faqs-arkui-725），留白被平分成
+        // 「清单上方 / 清单下方」各一块。原型 .deck-card 是 space-between，动作清单贴卡片底部、
+        // 余量留在标题与清单之间；故用 align(Bottom) 还原原型排布。
+        .align(Alignment.Bottom)
         .scrollBar(BarState.Off)
       }
       .width('100%')
