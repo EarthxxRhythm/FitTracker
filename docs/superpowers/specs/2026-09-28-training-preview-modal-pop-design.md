@@ -1,134 +1,142 @@
 # 训练预览页「缩放弹出」转场设计
 
 Date: 2026-09-28
-Status: Draft for review
+Status: Implemented · 设备已验证
 
 ## Decision Summary
 
-把「训练预览页」（原 `PencilPreviewPage`，一个 `@Entry` 路由页）改造为挂在 app 外壳上的**全模态弹出层**（`bindContentCover`），呈现方式为**从中心缩放弹出**：从 `scale 0.92 + opacity 0` 放大淡入到 `1.0`，关闭时反向。底层 shell 保持不动、由系统模态遮罩自动压暗。
+把「训练预览页」（原 `PencilPreviewPage`，一个 `@Entry` 路由页）改造为挂在 app 外壳（`PencilAppShell`）内的**覆盖层**，呈现方式为**从中心缩放弹出**：内容从 `scale 0.92 + opacity 0` 放大淡入到 `1.0`，遮罩从透明淡入到 60% 黑；关闭时反向。
 
-不采用「给路由页加 `pageTransition`」的替代方案——`pageTransition` 只描述本页转场，被压栈的 shell 会按系统默认转场各演各的，且 280ms 转场在模拟器上无法逐帧核验（`docs/motion-restore-workflow.md` §9），行为不可预测。
+**实现载体由 `bindContentCover` 改判为壳内覆盖层**——设计阶段首选 ArkUI 全模态，设备实测发现其在本 SDK 下不可用（见「关键设备发现」），故改为覆盖层：与仓内其余内容组件走同一套状态传播路径，转场由 `TransitionEffect` 声明式控制。
+
+不采用「给路由页加 `pageTransition`」的方案——`pageTransition` 只描述本页转场，被压栈的 shell 会按系统默认转场各演各的。
 
 ## 背景与现状
 
-训练预览页当前是独立路由页，两个入口都走系统默认整屏转场：
+训练预览页原为独立路由页，两个入口都走系统默认整屏转场：
 
-- `entry/src/main/ets/app/PencilAppShell.ets:174` —— 底部中央训练按钮 `router.pushUrl({ url: AppRoutes.WORKOUT_PREVIEW })`
-- `entry/src/main/ets/features/pencil/components/HomeContent.ets:456` —— 首页主卡按钮，同样 `pushUrl(WORKOUT_PREVIEW)`
-- `entry/src/main/ets/app/AppRoutes.ets:18` —— `WORKOUT_PREVIEW = 'features/pencil/pages/PencilPreviewPage'`
-- `entry/src/main/resources/base/profile/main_pages.json` —— 第 13 项注册 `features/pencil/pages/PencilPreviewPage`
+- `entry/src/main/ets/app/PencilAppShell.ets` —— 底部中央训练按钮
+- `entry/src/main/ets/features/pencil/components/HomeContent.ets` —— 首页主卡「开始训练」与「查看预览」两个按钮
 
-全仓**没有任何** `bindContentCover` / `bindSheet` / `Navigation` / `pageTransition` 用法，页面转场一律为系统默认。
+`HomeContent` 还有第二个消费方 `PencilHomePage.ets`（`aboutToAppear` 立即 `replaceUrl` 到 AppShell 的薄壳，用户无法与其交互）。
 
-预览页内部会在 `aboutToAppear` 中调用 `resolveTopInset()` 取 `getWindowAvoidArea(TYPE_SYSTEM).topRect.height`，顶栏 `padding-top` 取 `Math.max(56 - topInsetVp, 0)`（因设备页面区落在状态栏之下，须从原型 56vp 中扣掉状态栏高度）。**此布局逻辑必须保持不变。**
+`AppRoutes.WORKOUT_PREVIEW` 另被 `HomePlanService.ets:123/199`（`startRoute` 字段）与 `TargetLoopFlow.test.ets:103` 断言引用。
+
+预览页顶栏沿用既有口径：`resolveTopInset()` 取 `getWindowAvoidArea(TYPE_SYSTEM).topRect`，`padding-top = Math.max(56 - topInsetVp, 0)`。**该逻辑未改动。**
 
 ## 目标 / 非目标
 
 目标：
 
-- 进入预览页时呈现「缩放弹出」观感：`0.92 → 1.0` 缩放 + 淡入，约 280ms。
-- 底层 shell 保留可见并由模态遮罩压暗，符合「像 iOS 模态框」的语义。
-- 预览页内部布局、文案、尺寸、数据加载逻辑**一行不改**。
+- 进入预览页时呈现「缩放弹出」：`0.92 → 1.0` 缩放 + 淡入，280ms。
+- 底层 shell 保持可见并由遮罩压暗。
+- 预览页内部布局、文案、尺寸、数据加载逻辑保持不变。
 
 非目标：
 
-- 不改动其他页面（设置、计划组、身体数据等）的转场行为。
+- 不改动其他页面的转场行为。
 - 不引入 `Navigation` 架构重构。
-- 不改动「开始训练」的数据传递契约（仍把 `pendingPreview` 带给训练执行页）。
+- 不改动 `HomePlanService.startRoute` 的取值与相关测试断言。
 
 ## 架构与数据流
 
 ```mermaid
 flowchart TD
-  A["首页 查看预览按钮<br/>HomeContent.ets:456"] -->|onOpenPreview 回调| C
-  B["底部中央训练按钮<br/>PencilAppShell.ets:174"] -->|置 state| C
-  C["shell<br/>@State showPreview = true"] -->|bindContentCover isShow| D
-  D["PencilPreviewContent 全模态层<br/>scale 0.92→1 + fade in"] --> E["落定：全屏预览<br/>布局与现状逐像素一致"]
-  D -->|返回键 / 侧滑| F["showPreview = false<br/>缩放淡出 1→0.92"]
+  A["首页「开始训练」/「查看预览」<br/>HomeContent.ets"] -->|onOpenPreview 回调| C
+  B["底部中央训练按钮<br/>PencilAppShell.ets"] -->|置 state| C
+  C["PencilAppShell<br/>@State showPreview = true"] --> D
+  D["Stack 覆盖层（if showPreview）<br/>遮罩 opacity 0→0.6 + 内容 scale 0.92→1"] --> E["落定：预览内容<br/>布局与历史 dump 逐像素一致"]
+  D -->|返回键 / 预览内返回| F["showPreview = false<br/>反向转场"]
   D -->|开始训练| G["showPreview = false<br/>+ pushUrl(ACTIVE_WORKOUT, {preview})"]
 ```
 
-数据流不变：预览数据仍由 `PencilPreviewContent.aboutToAppear` 内的 `loadPreview()` 读取（`TrainingPlanService.getCurrentPlan` → `WorkoutPreviewService`，无当前计划时回落 `GoalRepository.loadGoal` + `PlanEngine.generatePlan`），结果存入内部 `pendingPreview`。「开始训练」把 `pendingPreview` 作为 `params.preview` 传给训练执行页。
+数据流不变：预览数据由 `PencilPreviewContent.aboutToAppear → loadPreview()` 读取，结果存入内部 state。「开始训练」把 `pendingPreview` 作为 `params.preview` 传给训练执行页。
 
 ## 组件与职责
 
 | 单元 | 职责 | 依赖 |
 |---|---|---|
-| `PencilPreviewContent`（由 `PencilPreviewPage` 改造） | 渲染预览内容、加载预览数据、持有 `pendingPreview`；对外暴露 `onRequestClose: () => void` 用于关闭 | 复用现有一切服务，无新增依赖 |
-| `PencilAppShell` | 持有 `@State showPreview`；挂载 `bindContentCover` 承载模态内容；向 `HomeContent` 传入 `onOpenPreview` 回调；训练按钮改为置 `showPreview = true` | `MotionTokens` |
-| `HomeContent` | 「查看预览」按钮由直接 `pushUrl` 改为调用新增的 `onOpenPreview` 回调 | — |
-| `AppRoutes` / `main_pages.json` | 移除 `WORKOUT_PREVIEW` 注册（预览页不再是路由页） | — |
+| `PencilPreviewContent`（由 `PencilPreviewPage` 改造，文件路径暂沿用） | 渲染预览内容、加载预览数据、持有 `pendingPreview`；对外暴露 `onRequestClose: () => void` | 复用现有一切服务 |
+| `PencilAppShell` | 持有 `@State showPreview`；以 `Stack` + `if` 承载覆盖层与遮罩；`onBackPress` 接管返回；向 `HomeContent` 传 `onOpenPreview` | `MotionTokens` |
+| `HomeContent` | 两处按钮由直接 `pushUrl` 改为调用可选回调 `onOpenPreview`（`PencilHomePage` 薄壳不注入） | — |
+| `main_pages.json` | 移除预览页注册（不再是路由页） | — |
+| `AppRoutes` | **保留** `WORKOUT_PREVIEW` 常量并加注（仍被 `HomePlanService` 与测试引用，无生产代码据此 `pushUrl`） | — |
 
-## 转场参数
-
-挂在 shell 根组件上的全模态：
+## 转场参数（as-built）
 
 ```ts
-.bindContentCover(
-  this.showPreview,
-  () => { this.previewCover() },
-  {
-    // 自定义转场：中心缩放 .92→1 + 淡入；关闭时反向
-    transition: TransitionEffect.scale({
-        x: MotionTokens.MODAL_POP_SCALE,
-        y: MotionTokens.MODAL_POP_SCALE
-      })
-      .combine(TransitionEffect.opacity(0))
-      .animation({ duration: 280, curve: MotionTokens.EASE_PANEL }),
-    // true = 内容避开系统安全区，页面区仍落在状态栏之下，
-    // 使预览页现有 56 - topInsetVp 的顶栏计算继续成立
-    enableSafeArea: true
-  }
-)
+if (this.showPreview) {
+  // 遮罩：淡入到 60% 黑
+  Column().width('100%').height('100%').backgroundColor('#000000').opacity(0.6)
+    .transition(TransitionEffect.OPACITY.animation({
+      duration: MotionTokens.DURATION_OVERLAY,   // 220
+      curve: MotionTokens.EASE_MOTION
+    }))
+
+  // 内容：中心缩放弹出
+  Column() { PencilPreviewContent({ onRequestClose: () => { this.showPreview = false } }) }
+    .width('100%').height('100%')
+    .transition(
+      TransitionEffect.scale({ x: MotionTokens.MODAL_POP_SCALE, y: MotionTokens.MODAL_POP_SCALE }) // 0.92
+        .combine(TransitionEffect.OPACITY)
+        .animation({ duration: MotionTokens.DURATION_PANEL, curve: MotionTokens.EASE_PANEL })      // 280
+    )
+}
 ```
 
-- `duration: 280` 与 `MotionTokens.EASE_PANEL`（`cubic-bezier(.32,.72,.3,1)`）复用仓内既有弹层语汇（原型 `.lib-sheet-card` 规格），不新增魔法值；新增 `MotionTokens.MODAL_POP_SCALE = 0.92` 一个常量。
-- 缩放中心默认为模态中心（`50%`），符合「从中心弹出」。
+`MotionTokens` 新增 `MODAL_POP_SCALE = 0.92`；时长/曲线复用既有弹层语汇，不新增魔法值。
 
-### API 依据（本机 SDK 类型声明，非推断）
+## 关键设备发现（决定实现载体）
 
-- `ContentCoverOptions.transition?: TransitionEffect`（since 12）—— `.../ets/component/common.d.ts:15110`
-- `ContentCoverOptions.enableSafeArea?: boolean`（since 20）—— `common.d.ts:15121`
-- `ContentCoverOptions.modalTransition?: ModalTransition`（默认 `DEFAULT`）—— `common.d.ts:15090`
-- `TransitionEffect.scale(ScaleOptions)` / `.combine()` / `.opacity()` / `.animation()` —— `common.d.ts:7443 / 7593 / 7477 / 7571`
-- 本仓 `compatibleSdkVersion: '6.0.2(22)'`（`build-profile.json5:23`），上述 API 全部可用。
+1. **`bindContentCover` 的第二参数必须传 `@Builder` 的调用态**（`this.previewCover()`）。传箭头包装 `() => { this.previewCover() }` 时模态**完全不出现**（点击事件已到达 Button、状态已置真，但无任何模态节点，日志无报错）。
+2. 改用调用态后模态出现，但**内容被固化为快照**：`PencilPreviewContent.aboutToAppear` 内的异步加载已把 `items` 置为 5（探针实测），界面却始终停在初始态（`Day 01`/`训练预览`/`暂无训练动作`）——该子树不随子组件状态重渲染。
+3. 因此改用壳内覆盖层 + `TransitionEffect`，状态传播与仓内其余组件一致，问题消失。
 
 ## 边界与错误处理
 
-- **返回**：预览页内的返回按钮与系统侧滑/返回键都走「关闭模态」（`showPreview = false`），不再调用 `router.back()`；用 `onWillDismiss` 保证系统手势关闭时状态同步。
-- **开始训练**：点击后在同一次交互里先置 `showPreview = false`（触发缩放淡出）再 `pushUrl(ACTIVE_WORKOUT, { preview })`，避免模态层残留盖住训练执行页；`pendingPreview` 为空时按现状仅 `pushUrl` 不带参。
-- **数据加载失败**：`loadPreview()` 原有 try/catch 与空态文案（`暂时无法读取训练目标…` / `尚未设置训练目标…` / `今天没有训练安排…`）保持不变。
-- **重复触发**：`showPreview` 已为 `true` 时再次点击入口不重复打开（幂等）。
+- **返回**：预览内返回按钮与系统返回键都走 `showPreview = false`（shell 的 `onBackPress` 返回 `true` 拦截）。
+- **开始训练**：先置 `showPreview = false` 再 `pushUrl(ACTIVE_WORKOUT, { preview })`，避免覆盖层残留盖住执行页。
+- **数据加载失败**：`loadPreview()` 原有 try/catch 与空态文案保持不变。
+- **重复触发**：`if (this.showPreview)` 保证幂等。
 
 ## 受影响文件
 
-- 改：`entry/src/main/ets/features/pencil/pages/PencilPreviewPage.ets`（去 `@Entry` → 组件 `PencilPreviewContent`）
-- 改：`entry/src/main/ets/app/PencilAppShell.ets`（`@State showPreview` + `bindContentCover` + 训练按钮）
-- 改：`entry/src/main/ets/features/pencil/components/HomeContent.ets`（入口改回调）
-- 改：`entry/src/main/ets/app/AppRoutes.ets`（移除 `WORKOUT_PREVIEW`）
-- 改：`entry/src/main/resources/base/profile/main_pages.json`（移除预览页注册）
-- 改：`entry/src/main/ets/common/styles/DesignTokens.ets`（新增 `MODAL_POP_SCALE`）
+- `entry/src/main/ets/features/pencil/pages/PencilPreviewPage.ets`（去 `@Entry`，更名 `PencilPreviewContent`，加 `onRequestClose`，返回改回调，开始训练先关闭）
+- `entry/src/main/ets/app/PencilAppShell.ets`（覆盖层 + 遮罩 + `onBackPress` + 两处入口改置 state）
+- `entry/src/main/ets/features/pencil/components/HomeContent.ets`（可选 `onOpenPreview` 回调，替换两处 `pushUrl`；移除已无用的 `AppRoutes` import）
+- `entry/src/main/ets/app/AppRoutes.ets`（保留常量 + 加注）
+- `entry/src/main/resources/base/profile/main_pages.json`（移除预览页注册）
+- `entry/src/main/ets/common/styles/DesignTokens.ets`（新增 `MODAL_POP_SCALE`）
 
-## 测试与验证策略
+## 验证证据
 
-本改动是纯 UI 转场，无独立业务逻辑分支，验证分两层：
+自动化门禁（`node tools/check-gates.mjs`，exit 0）：
 
-1. **编译门禁**：`devecocli build --modules entry@default --build-mode debug` 必须 `BUILD SUCCESSFUL`；`node tools/check-gates.mjs` 通过。这是主要自动化证据。
-2. **设备视觉验证**（非 mock 的真实路径）：
-   - 装 HAP → `aa start --ps devSeed today_flow` 落首页 → 点击「查看预览」→ 截图确认预览页渲染正常、顶栏位置与改动前一致（复用既有 `topInset` 断言值：与 `BodyDataPage`/`SettingsPage` 同口径）。
-   - `screenrecord` 录制进入/退出过程，确认 `0.92 → 1.0` 缩放弹出观感与底层压暗。
-   - 从预览页点「开始训练」，确认能正常落到训练执行页且动作名正确（`pendingPreview` 传参未因改造丢失）。
+```
+[build-gates] content build passed
+[build-gates] main page check passed
+[build-gates] git whitespace/style passed
+[build-gates] doc dead-refs passed
+[build-gates] ArkTS 编译门禁：devecocli 1.3.4
+[build-gates] ArkTS 编译通过
+```
 
-上述设备步骤若当前无可用模拟器/设备，则显式标注「未在真实设备验证」，不假装通过。
+设备验证（模拟器 127.0.0.1:5555，1320×2856）：
+
+- **入口可达**：首页点「查看预览」（Button 中心 660,1660）→ 覆盖层弹出，`uitest dumpLayout` 出现 `训练预览`、`Day 01`、`主动作`、`杠铃平板卧推`、`哑铃推举`、`确认动作与重量后开始训练`。
+- **数据正确**：动作条目渲染为 5 条（空态文案 `暂无训练动作` 为 0 次命中）。
+- **布局无漂移**：顶栏标题 `[250,229][1111,298]` 与历史 dump 逐像素一致；CTA `[60,2502][1260,2678]` 与历史 dump 的主流值（`layout-pv-after/pv2/pv3.json`）**完全一致**。
+- **链路闭合**：覆盖层内点「开始训练」→ 成功落到训练执行页并带上动作数据（页面显示「杠铃平板卧推」）。
+- **动画生效**：将转场时长临时放大到 2000ms 后连拍 5 帧，CTA 绿色包围盒宽度为 1086 → … → 1190（满宽 1198），首帧 ≈0.906 倍（起始 0.92）、随后单调收敛到 1.0——若 `TransitionEffect` 未生效，首帧即应为满宽。
 
 ## 风险与未决
 
-- **模态与路由页层级**：预览模态打开时 `pushUrl(ACTIVE_WORKOUT)` 的层级关系需设备实测；采用「先关模态再跳转」规避。
-- **安全区行为**：`enableSafeArea: true` 是否能让模态内容区精确等同于原路由页页面区，需设备截图比对；若不符，改用按安全区显式补 padding，保持顶栏 56vp 观感不变。
-- **遮罩浓度**：`bindContentCover` 的遮罩为系统默认，不额外定制；深色主题（页面底 `#0B0F13`）下遮罩差异微弱，符合预期。
+- **退出动画未单独取证**：关闭方向复用同一 `TransitionEffect`（`if` 移除节点触发），机制与进入一致，但未逐帧单独验证。
+- **预览页文件路径未整理**：`pages/PencilPreviewPage.ets` 内现为 `PencilPreviewContent`，路径与命名略不符（改名涉删/移文件，未纳入本次范围）。
+- **`WORKOUT_PREVIEW` 常量为悬空标识**：其值指向已移除注册的路由路径，仅作 `HomePlanService.startRoute` 与测试的标识使用，无生产 `pushUrl` 消费。
 
 ## 反证 / 复现
 
-- 现状复现（RED 基线）：改动前，从首页点「查看预览」进入预览页，转场为系统默认（非缩放弹出）——以此作为「改动前的行为证据」，改动后同路径应变为缩放弹出。
-- 若 `enableSafeArea: true` 后顶栏位置与改动前不一致（设备实测偏差 > 1px），即为设计假设被推翻，按「风险与未决」第二条回退处理。
-- 若模态内 `pushUrl` 被模态层遮挡导致训练执行页不可见，即为边界处理失效，证明「先关模态」策略必要且需确认生效。
+- 改动前从首页点「查看预览」为系统默认整屏转场；改动后同路径为 0.92→1 缩放 + 遮罩淡入。
+- 假设「`bindContentCover` 可用」已被设备实测推翻（模态不出现 / 内容固化），故实现改判为覆盖层。
+- 复现：`hdc install -r entry/build/default/outputs/default/entry-default-signed.hap` → `aa start -a EntryAbility -b com.earthrhythm.fittracker --ps devSeed today_flow` → 点击 (660,1660) → `uitest dumpLayout` 校验 `训练预览` 与动作条目。
