@@ -203,7 +203,7 @@ export struct PencilAppShell {
           .backgroundColor('#000000')
           .opacity(0.6)
           .transition(TransitionEffect.OPACITY.animation({
-            duration: MotionTokens.DURATION_OVERLAY,
+            duration: MotionTokens.DURATION_MODAL_SCRIM,
             curve: MotionTokens.EASE_MOTION
           }))
 
@@ -219,7 +219,7 @@ export struct PencilAppShell {
         .transition(
           TransitionEffect.scale({ x: MotionTokens.MODAL_POP_SCALE, y: MotionTokens.MODAL_POP_SCALE })
             .combine(TransitionEffect.OPACITY)
-            .animation({ duration: MotionTokens.DURATION_PANEL, curve: MotionTokens.EASE_PANEL })
+            .animation({ duration: MotionTokens.DURATION_MODAL_POP, curve: MotionTokens.EASE_PANEL })
         )
       }
     }
