@@ -28,7 +28,7 @@ Status: Implemented · 设备已验证
 
 目标：
 
-- 进入预览页时呈现「缩放弹出」：`0.92 → 1.0` 缩放 + 淡入，280ms。
+- 进入预览页时呈现「缩放弹出」：`0.92 → 1.0` 缩放 + 淡入，200ms。
 - 底层 shell 保持可见并由遮罩压暗。
 - 预览页内部布局、文案、尺寸、数据加载逻辑保持不变。
 
@@ -69,7 +69,7 @@ if (this.showPreview) {
   // 遮罩：淡入到 60% 黑
   Column().width('100%').height('100%').backgroundColor('#000000').opacity(0.6)
     .transition(TransitionEffect.OPACITY.animation({
-      duration: MotionTokens.DURATION_OVERLAY,   // 220
+      duration: MotionTokens.DURATION_MODAL_SCRIM,   // 160
       curve: MotionTokens.EASE_MOTION
     }))
 
@@ -79,12 +79,14 @@ if (this.showPreview) {
     .transition(
       TransitionEffect.scale({ x: MotionTokens.MODAL_POP_SCALE, y: MotionTokens.MODAL_POP_SCALE }) // 0.92
         .combine(TransitionEffect.OPACITY)
-        .animation({ duration: MotionTokens.DURATION_PANEL, curve: MotionTokens.EASE_PANEL })      // 280
+        .animation({ duration: MotionTokens.DURATION_MODAL_POP, curve: MotionTokens.EASE_PANEL })   // 200
     )
 }
 ```
 
-`MotionTokens` 新增 `MODAL_POP_SCALE = 0.92`；时长/曲线复用既有弹层语汇，不新增魔法值。
+`MotionTokens` 新增 `MODAL_POP_SCALE = 0.92`、`DURATION_MODAL_POP = 200`、`DURATION_MODAL_SCRIM = 160`。
+
+**时长为何不复用共享 token**：`DURATION_PANEL`(280) 与 `DURATION_OVERLAY`(220) 是 sheet 面板语汇，动作库与身体数据的 sheet 转场也在用；改值会连带改掉它们。首版据此取值后体感偏长，故单独取值——弹出转场比 sheet 更短更利落。
 
 ## 关键设备发现（决定实现载体）
 
@@ -128,6 +130,7 @@ if (this.showPreview) {
 - **布局无漂移**：顶栏标题 `[250,229][1111,298]` 与历史 dump 逐像素一致；CTA `[60,2502][1260,2678]` 与历史 dump 的主流值（`layout-pv-after/pv2/pv3.json`）**完全一致**。
 - **链路闭合**：覆盖层内点「开始训练」→ 成功落到训练执行页并带上动作数据（页面显示「杠铃平板卧推」）。
 - **动画生效**：将转场时长临时放大到 2000ms 后连拍 5 帧，CTA 绿色包围盒宽度为 1086 → … → 1190（满宽 1198），首帧 ≈0.906 倍（起始 0.92）、随后单调收敛到 1.0——若 `TransitionEffect` 未生效，首帧即应为满宽。
+- **时长缩短可测**：同一连拍法下，280ms 版首帧宽 1086（需 4~5 帧落定），200ms 版首帧宽 1172、第 2 帧即达满宽 1198——转场确实变短。
 
 ## 风险与未决
 
