@@ -323,24 +323,32 @@ export struct ActiveContent {
     WorkoutRepository.saveSession(session)
   }
 
+  // 分段进度条：已完成段采用「圆点」的样式——实心 accent + ink-0 粗描边环（形状仍是胶囊），
+  // 整排因此读作一串珠子；未完成/当前段同时抬高填充浓度（「实一点」）。
   private segmentBackground(index: number): string {
     if (index < this.completed) {
       return '#50ECA7'
     }
     if (index === this.completed) {
-      return '#2950ECA7'
+      return '#3D50ECA7'
     }
-    return '#12FFFFFF'
+    return '#1FFFFFFF'
   }
 
   private segmentBorder(index: number): string {
     if (index < this.completed) {
-      return '#50ECA7'
+      // 与 .duo-marker 的 border 同色（ink-0），即圆点那圈深色环
+      return '#0B0F13'
     }
     if (index === this.completed) {
-      return '#8050ECA7'
+      return '#9950ECA7'
     }
-    return '#0DFFFFFF'
+    return '#1AFFFFFF'
+  }
+
+  // 已完成段用圆点的 3vp 描边宽度，其余保持 1vp
+  private segmentBorderWidth(index: number): number {
+    return index < this.completed ? 3 : 1
   }
 
   build() {
@@ -420,7 +428,7 @@ export struct ActiveContent {
               .height(12)
               .backgroundColor(this.segmentBackground(index))
               .borderRadius(999)
-              .border({ width: 1, color: this.segmentBorder(index) })
+              .border({ width: this.segmentBorderWidth(index), color: this.segmentBorder(index) })
               .shadow({ radius: index === this.completed ? 2 : 0, color: index === this.completed ? '#1F50ECA7' : '#00000000', offsetX: 0, offsetY: 0 })
               .scale({ x: index === this.segPopIndex ? 1.12 : 1, y: index === this.segPopIndex ? 1.12 : 1 })
               .animation({ duration: MotionTokens.DURATION_SEG_POP, curve: MotionTokens.EASE_MOTION })
