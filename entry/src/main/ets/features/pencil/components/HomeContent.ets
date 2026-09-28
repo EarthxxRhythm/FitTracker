@@ -1,5 +1,4 @@
 ﻿/** HomeContent - 首页 Tab 界面体（供 PencilAppShell 与独立注册页复用）。 */
-import { AppRoutes } from '../../../app/AppRoutes'
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
@@ -22,6 +21,9 @@ interface HomeWeekDayItem {
 
 @Component
 export struct HomeContent {
+  // 由 PencilAppShell 传入：打开训练预览全模态。
+  // 独立注册页 PencilHomePage 是立即 replaceUrl 到 AppShell 的薄壳，不传此回调。
+  onOpenPreview?: () => void
   private static readonly CHINESE_FONT_FAMILY: string = 'Noto Sans SC'
   private static readonly NUMBER_FONT_FAMILY: string = 'Inter'
   @State private primaryPressed: boolean = false
@@ -60,6 +62,13 @@ export struct HomeContent {
   private contextOrNull(): Context | null {
     const host = this.getUIContext().getHostContext()
     return host === undefined || host === null ? null : host as Context
+  }
+
+  /** 打开训练预览全模态（由 PencilAppShell 提供）。未注入时静默不响应。 */
+  private openPreview(): void {
+    if (this.onOpenPreview !== undefined) {
+      this.onOpenPreview()
+    }
   }
 
   private async resolveTopInset(): Promise<void> {
@@ -453,7 +462,7 @@ export struct HomeContent {
         .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
         .padding(0)
         .onClick(() => {
-          this.getUIContext().getRouter().pushUrl({ url: AppRoutes.WORKOUT_PREVIEW })
+          this.openPreview()
         })
       Row()
         .height(8)
@@ -469,7 +478,7 @@ export struct HomeContent {
         .padding(0)
         .border({ width: 1, color: '#1AFFFFFF' })
         .onClick(() => {
-          this.getUIContext().getRouter().pushUrl({ url: AppRoutes.WORKOUT_PREVIEW })
+          this.openPreview()
         })
     }
     .width('100%')

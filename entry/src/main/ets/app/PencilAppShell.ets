@@ -4,6 +4,7 @@ import { HomeContent } from '../features/pencil/components/HomeContent'
 import { PlanContent } from '../features/pencil/components/PlanContent'
 import { ReviewContent } from '../features/pencil/components/ReviewContent'
 import { ProfileContent } from '../features/pencil/components/ProfileContent'
+import { PencilPreviewContent } from '../features/pencil/pages/PencilPreviewPage'
 import { AppRoutes } from './AppRoutes'
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
@@ -26,6 +27,8 @@ export struct PencilAppShell {
   // 常驻 Tab 的「计划」页刷新令牌：切到该 Tab 或从被压栈的页面返回时递增，
   // 触发 PlanContent 重读当前计划（可能在「计划组」里刚被改过）。
   @State private planReloadToken: number = 0
+  // 训练预览的全模态开关（bindContentCover）。
+  @State private showPreview: boolean = false
   private transitionRunning: boolean = false
   private previousTab: string = PencilTabKey.HOME
   private transitionToken: number = 0
@@ -45,6 +48,15 @@ export struct PencilAppShell {
     if (this.currentTab === PencilTabKey.PLAN) {
       this.planReloadToken += 1
     }
+  }
+
+  // 训练预览覆盖层打开时，系统返回键先关闭它，不退出页面。
+  onBackPress(): boolean {
+    if (this.showPreview) {
+      this.showPreview = false
+      return true
+    }
+    return false
   }
 
   private getTabIndex(key: string): number {
@@ -121,7 +133,11 @@ export struct PencilAppShell {
   private contentViewport() {
     Stack() {
       Column() {
-        HomeContent()
+        HomeContent({
+          onOpenPreview: () => {
+            this.showPreview = true
+          }
+        })
       }
       .width('100%')
       .height('100%')
@@ -160,20 +176,52 @@ export struct PencilAppShell {
   }
 
   build() {
-    Column() {
+    Stack() {
       Column() {
-        this.contentViewport()
-      }
-      .layoutWeight(1)
-      .width('100%')
-      .clip(true)
-
-      BottomTabBar({
-        currentKey: $currentTab,
-        workoutAction: () => {
-          this.getUIContext().getRouter().pushUrl({ url: AppRoutes.WORKOUT_PREVIEW })
+        Column() {
+          this.contentViewport()
         }
-      })
+        .layoutWeight(1)
+        .width('100%')
+        .clip(true)
+
+        BottomTabBar({
+          currentKey: $currentTab,
+          workoutAction: () => {
+            this.showPreview = true
+          }
+        })
+      }
+      .width('100%')
+      .height('100%')
+
+      if (this.showPreview) {
+        // 训练预览「中心缩放弹出」：遮罩淡入 + 内容 0.92 → 1 缩放淡入（关闭时反向）。
+        Column()
+          .width('100%')
+          .height('100%')
+          .backgroundColor('#000000')
+          .opacity(0.6)
+          .transition(TransitionEffect.OPACITY.animation({
+            duration: MotionTokens.DURATION_OVERLAY,
+            curve: MotionTokens.EASE_MOTION
+          }))
+
+        Column() {
+          PencilPreviewContent({
+            onRequestClose: () => {
+              this.showPreview = false
+            }
+          })
+        }
+        .width('100%')
+        .height('100%')
+        .transition(
+          TransitionEffect.scale({ x: MotionTokens.MODAL_POP_SCALE, y: MotionTokens.MODAL_POP_SCALE })
+            .combine(TransitionEffect.OPACITY)
+            .animation({ duration: MotionTokens.DURATION_PANEL, curve: MotionTokens.EASE_PANEL })
+        )
+      }
     }
     .width('100%')
     .height('100%')

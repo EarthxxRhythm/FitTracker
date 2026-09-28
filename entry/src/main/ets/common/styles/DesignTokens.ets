@@ -378,6 +378,9 @@ export class MotionTokens {
   // Tab 切换转场（原型 welcome-home.html 内联 JS：transform .16s cubic-bezier(0,0,.2,1), opacity .16s ease）
   static readonly EASE_TAB: ICurve = curves.cubicBezierCurve(0, 0, 0.2, 1)
 
+  // 全模态弹出转场（训练预览页 bindContentCover）：中心缩放的起始比例
+  static readonly MODAL_POP_SCALE: number = 0.92
+
   // Press scale factors
   static readonly PRESS_PRIMARY: number = 0.985
   static readonly PRESS_CHIP: number = 0.97
