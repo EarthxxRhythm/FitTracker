@@ -1,5 +1,6 @@
 /** SettingsContent —— 设置二级页界面体（对应 settings.html · screen-settings，390 直绘）。 */
 import { MotionTokens } from '../../../common/styles/DesignTokens'
+import { window } from '@kit.ArkUI'
 
 interface SwitchRow {
   key: string
@@ -18,6 +19,32 @@ function createSwitchRow(key: string, label: string, on: boolean): SwitchRow {
 @Component
 export struct SettingsContent {
   @State private backPressed: boolean = false
+  // 系统状态栏高度（vp）。页面区本身落在状态栏之下，原型顶距须扣掉它才不会双计。
+  @State private topInsetVp: number = 0
+
+  aboutToAppear(): void {
+    this.resolveTopInset()
+  }
+
+  /**
+   * 原型 .st-top 的 padding-top: 50 以屏幕顶为原点（已把状态栏含在内）；设备侧页面区本身落在
+   * 状态栏之下，若原样使用 50 就与系统避让重复计数，顶栏整体下移一个状态栏高度（实测 39vp）。
+   * 口径同 HomeContent / PlansContent / PlanGroupDetailContent / PlanContent / BodyDataContent。
+   */
+  private async resolveTopInset(): Promise<void> {
+    const hostContext: Context | undefined = this.getUIContext().getHostContext()
+    if (hostContext === undefined) {
+      return
+    }
+    try {
+      const mainWindow: window.Window = await window.getLastWindow(hostContext)
+      const avoidArea: window.AvoidArea = mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM)
+      this.topInsetVp = this.getUIContext().px2vp(avoidArea.topRect.height)
+    } catch (e) {
+      // 取不到安全区时按 0 处理，顶距回退为原型的 50vp
+      this.topInsetVp = 0
+    }
+  }
   @State private toastVisible: boolean = false
   @State private toastTimer: number = -1
   @State private unitIndex: number = 0
@@ -112,7 +139,8 @@ export struct SettingsContent {
             .height(44)
         }
         .width('100%')
-        .padding({ top: 50, bottom: 12, left: 16, right: 16 })
+        // 原型以屏幕顶为原点；设备页面区已在状态栏下方，扣掉状态栏高度才是与原型一致的 50vp 顶距。
+        .padding({ top: Math.max(50 - this.topInsetVp, 0), bottom: 12, left: 16, right: 16 })
         .alignItems(VerticalAlign.Center)
 
         Scroll() {
