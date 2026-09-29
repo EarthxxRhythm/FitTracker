@@ -1,135 +1,143 @@
 /**
- * AuthService — 用户认证模拟服务
- * 内存级用户存储，供 RegisterPage 与 LoginPage 共享。
- * 后续迭代将替换为真实后端 API。
+ * AuthService —— 认证门面（singleton）。
+ *
+ * 统一入口：探测云环境（cloud / sandbox）并转发到对应 AuthProvider；
+ * 登录/注册成功后自动写入 SessionManager 会话快照，供启动分流与 UI 展示。
+ * AGC 接入（Wave 5）时替换 resolveProvider 的云端分支，调用面不变。
  */
-import SessionManager from './SessionManager'
+import { Context } from '@kit.AbilityKit'
 import { preferences } from '@kit.ArkData'
+import { AuthProvider } from './auth/AuthProvider'
+import SandboxAuthProvider from './auth/SandboxAuthProvider'
+import CloudEnvironment from './CloudEnvironment'
+import SessionManager from './SessionManager'
+import { AuthResult, AuthSession, VerifyCodeResult } from './auth/AuthTypes'
 
-const STORE_NAME = 'fit_tracker_auth'
-const KEY_USERS = 'users'
-
-export interface AuthResult {
-  success: boolean
-  message: string
-  token: string
-}
-
-interface AuthUser {
-  phone: string
-  password: string
-}
+/** 历史 mock 存储（旧版明文用户目录），仅用于清理残留。 */
+const LEGACY_STORE_NAME: string = 'fit_tracker_auth'
+const LEGACY_KEY_USERS: string = 'users'
 
 class AuthService {
-  private users: Map<string, string> = new Map()
+  private provider: AuthProvider | null = null
+  private testingProvider: AuthProvider | null = null
 
-  register(phone: string, password: string): AuthResult {
-    const trimmed = phone.trim()
-    if (this.users.has(trimmed)) {
-      return { success: false, message: '该手机号已注册', token: '' }
-    }
-    this.users.set(trimmed, password)
-    const token = SessionManager.generateToken(trimmed)
-    return { success: true, message: '注册成功', token: token }
+  /** 当前生效的认证提供方标识（'sandbox' | 'agc'）。 */
+  getActiveProviderId(): string {
+    return this.resolveProvider().getProviderId()
   }
 
-  login(phone: string, password: string): AuthResult {
-    const trimmed = phone.trim()
-    if (!this.users.has(trimmed)) {
-      return { success: false, message: '该手机号尚未注册，请先注册', token: '' }
-    }
-    if (this.users.get(trimmed) !== password) {
-      return { success: false, message: '密码错误，请重试', token: '' }
-    }
-    const token = SessionManager.generateToken(trimmed)
-    return { success: true, message: '登录成功', token: token }
+  /** 是否运行在 AGC 云认证模式。 */
+  isCloudMode(): boolean {
+    return this.getActiveProviderId() === 'agc'
   }
 
-  isRegistered(phone: string): boolean {
-    return this.users.has(phone.trim())
+  /** 测试注入：替换提供方；传 null 恢复默认解析。 */
+  setProviderForTesting(provider: AuthProvider | null): void {
+    this.testingProvider = provider
   }
 
-  clearLocalUsers(): void {
-    this.users.clear()
+  async requestPhoneCode(context: Context, phone: string): Promise<VerifyCodeResult> {
+    const provider: AuthProvider = await this.prepare(context)
+    return provider.requestPhoneCode(phone)
   }
 
-  async registerLocal(context: Context, phone: string, password: string): Promise<AuthResult> {
-    await this.loadPersistedUsers(context)
-    const result: AuthResult = this.register(phone, password)
-    if (result.success) {
-      await this.savePersistedUsers(context)
-    }
+  async loginWithPhoneCode(context: Context, phone: string, code: string): Promise<AuthResult> {
+    const provider: AuthProvider = await this.prepare(context)
+    const result: AuthResult = await provider.loginWithPhoneCode(phone, code)
+    await this.persistSessionIfNeeded(context, result)
     return result
   }
 
-  async loginLocal(context: Context, phone: string, password: string): Promise<AuthResult> {
-    await this.loadPersistedUsers(context)
-    return this.login(phone, password)
+  async requestEmailCode(context: Context, email: string): Promise<VerifyCodeResult> {
+    const provider: AuthProvider = await this.prepare(context)
+    return provider.requestEmailCode(email)
   }
 
-  async isRegisteredLocal(context: Context, phone: string): Promise<boolean> {
-    await this.loadPersistedUsers(context)
-    return this.isRegistered(phone)
+  async registerWithEmail(
+    context: Context,
+    email: string,
+    password: string,
+    code: string,
+    nickname: string
+  ): Promise<AuthResult> {
+    const provider: AuthProvider = await this.prepare(context)
+    const result: AuthResult = await provider.registerWithEmail(email, password, code, nickname)
+    await this.persistSessionIfNeeded(context, result)
+    return result
   }
 
+  async loginWithEmailPassword(context: Context, email: string, password: string): Promise<AuthResult> {
+    const provider: AuthProvider = await this.prepare(context)
+    const result: AuthResult = await provider.loginWithEmailPassword(email, password)
+    await this.persistSessionIfNeeded(context, result)
+    return result
+  }
+
+  async loginWithThirdParty(context: Context, thirdPartyId: string): Promise<AuthResult> {
+    const provider: AuthProvider = await this.prepare(context)
+    const result: AuthResult = await provider.loginWithThirdParty(thirdPartyId)
+    await this.persistSessionIfNeeded(context, result)
+    return result
+  }
+
+  /** 退出登录：清理提供方会话 + 本地会话快照/token。业务数据清理见 AccountDataLifecycle（Wave 3）。 */
+  async logout(context: Context): Promise<void> {
+    const provider: AuthProvider = await this.prepare(context)
+    await provider.signOut()
+    await SessionManager.clearSession(context)
+    await SessionManager.clearToken(context)
+  }
+
+  /** 供 DeviceSeedService / 测试：在沙盒模式直接播种账号并建立会话快照（AGC 实现不支持时返回 null）。 */
+  async seedSandboxSession(context: Context, phone: string, nickname: string): Promise<void> {
+    await CloudEnvironment.initialize(context)
+    const provider: AuthProvider = this.resolveProvider()
+    const session: AuthSession | null = await provider.seedAccount(context, phone, nickname)
+    if (session !== null) {
+      await SessionManager.saveSession(context, session)
+    }
+  }
+
+  /** 清空内存用户目录（测试 beforeEach 与门面清理使用）。 */
+  clearLocalUsers(): void {
+    this.resolveProvider().clearAllData()
+  }
+
+  /** 清除持久化用户目录（沙盒存储 + 历史 mock 存储残留）。 */
   async clearPersistedUsers(context: Context): Promise<void> {
-    this.clearLocalUsers()
+    const provider: AuthProvider = await this.prepare(context)
+    await provider.clearPersisted(context)
     try {
-      const prefs = await preferences.getPreferences(context, STORE_NAME)
-      await prefs.delete(KEY_USERS)
+      const prefs = await preferences.getPreferences(context, LEGACY_STORE_NAME)
+      await prefs.delete(LEGACY_KEY_USERS)
       await prefs.flush()
     } catch (error) {
-      // Keep local users cleared even if persistent storage is unavailable.
+      // 历史存储不存在时无需处理
     }
   }
 
-  private async loadPersistedUsers(context: Context): Promise<void> {
-    try {
-      const prefs = await preferences.getPreferences(context, STORE_NAME)
-      const json = await prefs.get(KEY_USERS, '[]') as string
-      const users: AuthUser[] = this.parseUsers(json)
-      this.users.clear()
-      for (let index = 0; index < users.length; index++) {
-        const user: AuthUser = users[index]
-        if (user.phone.length > 0) {
-          this.users.set(user.phone, user.password)
-        }
-      }
-    } catch (error) {
-      // Fall back to in-memory users for the current session.
+  private async persistSessionIfNeeded(context: Context, result: AuthResult): Promise<void> {
+    if (result.success && result.session !== null) {
+      await SessionManager.saveSession(context, result.session)
     }
   }
 
-  private async savePersistedUsers(context: Context): Promise<void> {
-    const users: AuthUser[] = this.createUserList()
-    try {
-      const prefs = await preferences.getPreferences(context, STORE_NAME)
-      await prefs.put(KEY_USERS, JSON.stringify(users))
-      await prefs.flush()
-    } catch (error) {
-      // Registration still works in memory if local persistence is unavailable.
+  private resolveProvider(): AuthProvider {
+    if (this.testingProvider !== null) {
+      return this.testingProvider
     }
+    if (this.provider === null) {
+      // Wave 5：CloudEnvironment.isAgcConfigured() 为真时切换为 AgcAuthProvider
+      this.provider = SandboxAuthProvider
+    }
+    return this.provider
   }
 
-  private parseUsers(json: string): AuthUser[] {
-    try {
-      return JSON.parse(json) as AuthUser[]
-    } catch (error) {
-      const users: AuthUser[] = []
-      return users
-    }
-  }
-
-  private createUserList(): AuthUser[] {
-    const users: AuthUser[] = []
-    this.users.forEach((password: string, phone: string) => {
-      const user: AuthUser = {
-        phone: phone,
-        password: password
-      }
-      users.push(user)
-    })
-    return users
+  private async prepare(context: Context): Promise<AuthProvider> {
+    await CloudEnvironment.initialize(context)
+    const provider: AuthProvider = this.resolveProvider()
+    await provider.attachContext(context)
+    return provider
   }
 }
 

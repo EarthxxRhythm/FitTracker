@@ -6,9 +6,11 @@
  */
 import { preferences } from '@kit.ArkData'
 import { util } from '@kit.ArkTS'
+import { AuthSession } from './auth/AuthTypes'
 
 const STORE_NAME = 'fit_tracker_session'
 const TOKEN_KEY = 'auth_token'
+const SNAPSHOT_KEY = 'session_snapshot'
 const TOKEN_EXPIRY_DAYS = 7
 
 interface JwtHeader {
@@ -21,6 +23,12 @@ interface TokenPayload {
   iat: number
   exp: number
 }
+
+/**
+ * 会话快照类型别名（= AuthSession，单一真源在 auth/AuthTypes）。
+ * 供启动分流（isLoggedIn）与 UI 展示；云端权威校验由 AuthProvider 承担。
+ */
+export type SessionSnapshot = AuthSession
 
 class SessionManager {
   private lastPersistenceError: string = ''
@@ -121,17 +129,81 @@ class SessionManager {
     }
   }
 
+  async saveSession(context: Context, snapshot: SessionSnapshot): Promise<void> {
+    this.lastPersistenceError = ''
+    try {
+      const prefs = await preferences.getPreferences(context, STORE_NAME)
+      await prefs.put(SNAPSHOT_KEY, JSON.stringify(snapshot))
+      await prefs.flush()
+    } catch (error) {
+      this.lastPersistenceError = 'save_session_failed'
+    }
+  }
+
+  async getSession(context: Context): Promise<SessionSnapshot | null> {
+    this.lastPersistenceError = ''
+    try {
+      const prefs = await preferences.getPreferences(context, STORE_NAME)
+      const json = await prefs.get(SNAPSHOT_KEY, '') as string
+      if (json.trim().length === 0) {
+        return null
+      }
+      const snapshot = JSON.parse(json) as SessionSnapshot
+      if (!this.isValidSnapshot(snapshot)) {
+        return null
+      }
+      return snapshot
+    } catch (error) {
+      this.lastPersistenceError = 'load_session_failed'
+      return null
+    }
+  }
+
+  async clearSession(context: Context): Promise<void> {
+    this.lastPersistenceError = ''
+    try {
+      const prefs = await preferences.getPreferences(context, STORE_NAME)
+      await prefs.delete(SNAPSHOT_KEY)
+      await prefs.flush()
+    } catch (error) {
+      this.lastPersistenceError = 'clear_session_failed'
+    }
+  }
+
+  /**
+   * 登录态判定 = 本地会话快照存在（乐观判定）。
+   * 云端权威性由提供方在首次云操作失败（401）时强制登出校正。
+   */
   async isLoggedIn(context: Context): Promise<boolean> {
     try {
-      const token = await this.getToken(context)
-      if (!token) {
+      const snapshot: SessionSnapshot | null = await this.getSession(context)
+      if (snapshot === null) {
         return false
       }
-      return this.validateToken(token)
+      return snapshot.userId.length > 0
     } catch (error) {
       this.lastPersistenceError = 'check_login_failed'
       return false
     }
+  }
+
+  private isValidSnapshot(snapshot: SessionSnapshot): boolean {
+    if (snapshot === null || snapshot === undefined) {
+      return false
+    }
+    if (typeof snapshot.userId !== 'string' || snapshot.userId.length === 0) {
+      return false
+    }
+    if (typeof snapshot.displayName !== 'string' || typeof snapshot.phone !== 'string') {
+      return false
+    }
+    if (typeof snapshot.email !== 'string' || typeof snapshot.providerId !== 'string') {
+      return false
+    }
+    if (typeof snapshot.signedInAt !== 'number' || !Number.isFinite(snapshot.signedInAt)) {
+      return false
+    }
+    return true
   }
 }
 

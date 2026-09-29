@@ -1,6 +1,9 @@
-﻿/** PencilSplashPage 鈥斺€?FitTracker Splash 鍘熷瀷椤点€傚姛鑳?#27 */
+/** PencilSplashPage —— FitTracker Splash 原型页。功能 #27 */
 import { AppRoutes } from '../../../app/AppRoutes'
+import { StartupDecision } from '../../../app/AppState'
 import LaunchRequestStore from '../../../app/LaunchRequestStore'
+import SessionManager from '../../../common/services/SessionManager'
+import GoalRepository from '../../../shared/services/GoalRepository'
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
 import { text } from '@kit.ArkGraphics2D'
@@ -108,10 +111,14 @@ struct PencilSplashPage {
         await DeviceSeedService.applyNamedSeed(context, seedKey)
       }
     }
-    // 启动不再以登录态作为门槛：直接进入主界面壳。
+    // 强制登录门槛（PRD 3.1）：未登录 → 登录页；已登录按目标状态分流主壳/目标设置。
     if (context !== null) {
       await this.useSafeWindowLayout(context)
-      this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.APP_SHELL })
+      const hasValidSession: boolean = await SessionManager.isLoggedIn(context)
+      const hasGoal: boolean = hasValidSession ? await GoalRepository.hasSavedGoal(context) : false
+      this.getUIContext().getRouter().replaceUrl({
+        url: StartupDecision.getInitialRoute(hasValidSession, hasGoal)
+      })
       return
     }
     setTimeout(() => {

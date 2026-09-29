@@ -247,7 +247,7 @@ struct PencilWelcomePage {
         }
         .position({ x: 24, y: 684 })
 
-        Text('本地记录 · 无需注册 · 随时开始')
+        Text('登录后云端同步 · 跨设备恢复')
           .width(382)
           .fontFamily('Noto Sans SC')
           .fontSize(11)

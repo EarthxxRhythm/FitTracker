@@ -2,7 +2,7 @@ import { abilityDelegatorRegistry } from '@kit.TestKit'
 import { describe, beforeEach, afterEach, it, expect } from '@ohos/hypium'
 import { AppRoutes } from '../../../main/ets/app/AppRoutes'
 import { StartupDecision } from '../../../main/ets/app/AppState'
-import AuthService, { AuthResult } from '../../../main/ets/common/services/AuthService'
+import AuthService from '../../../main/ets/common/services/AuthService'
 import SessionManager from '../../../main/ets/common/services/SessionManager'
 import { UserGoal } from '../../../main/ets/shared/models/TrainingModels'
 import GoalRepository from '../../../main/ets/shared/services/GoalRepository'
@@ -17,6 +17,7 @@ export default function authRoutingFlowTest(): void {
     beforeEach(async () => {
       GoalRepository.clearLocal()
       await GoalRepository.clearSavedGoal(getTestContext())
+      await SessionManager.clearSession(getTestContext())
       await SessionManager.clearToken(getTestContext())
       await AuthService.clearPersistedUsers(getTestContext())
     })
@@ -24,39 +25,30 @@ export default function authRoutingFlowTest(): void {
     afterEach(async () => {
       GoalRepository.clearLocal()
       await GoalRepository.clearSavedGoal(getTestContext())
+      await SessionManager.clearSession(getTestContext())
       await SessionManager.clearToken(getTestContext())
       await AuthService.clearPersistedUsers(getTestContext())
     })
 
-    it('registers logs in restores session and routes by saved goal state', 0, async () => {
+    it('routes by session and saved goal state across login lifecycle', 0, async () => {
+      const context: Context = getTestContext()
       const phone: string = '13700002828'
-      const password: string = 'pass2828'
 
-      const registerResult: AuthResult = await AuthService.registerLocal(getTestContext(), phone, password)
-      expect(registerResult.success).assertTrue()
-      await SessionManager.saveToken(getTestContext(), registerResult.token)
-      expect(await SessionManager.isLoggedIn(getTestContext())).assertTrue()
+      // 未登录 → 登录页
+      expect(await SessionManager.isLoggedIn(context)).assertFalse()
+      expect(StartupDecision.getInitialRoute(await SessionManager.isLoggedIn(context), false)).assertEqual(AppRoutes.LOGIN)
 
-      await SessionManager.clearToken(getTestContext())
-      AuthService.clearLocalUsers()
-
-      const loginResult: AuthResult = await AuthService.loginLocal(getTestContext(), phone, password)
+      // 手机验证码登录（未注册自动注册）
+      await AuthService.requestPhoneCode(context, phone)
+      const loginResult = await AuthService.loginWithPhoneCode(context, phone, '000000')
       expect(loginResult.success).assertTrue()
-      await SessionManager.saveToken(getTestContext(), loginResult.token)
+      expect(await SessionManager.isLoggedIn(context)).assertTrue()
 
-      AuthService.clearLocalUsers()
-      GoalRepository.clearLocal()
-      const restoredToken: string | null = await SessionManager.getToken(getTestContext())
-      expect(restoredToken !== null).assertTrue()
-      if (restoredToken !== null) {
-        expect(SessionManager.validateToken(restoredToken)).assertTrue()
-        expect(SessionManager.getUserIdFromToken(restoredToken)).assertEqual(phone)
-      }
+      // 已登录且无目标 → 目标设置
+      expect(await GoalRepository.hasSavedGoal(context)).assertFalse()
+      expect(StartupDecision.getInitialRoute(await SessionManager.isLoggedIn(context), await GoalRepository.hasSavedGoal(context))).assertEqual(AppRoutes.GOAL_SETUP)
 
-      expect(await SessionManager.isLoggedIn(getTestContext())).assertTrue()
-      expect(await GoalRepository.hasSavedGoal(getTestContext())).assertFalse()
-      expect(StartupDecision.getInitialRoute(await GoalRepository.hasSavedGoal(getTestContext()))).assertEqual(AppRoutes.GOAL_SETUP)
-
+      // 保存目标后 → 主壳
       const goal: UserGoal = GoalSetupService.createCurrentGoalFromSelection(
         'hypertrophy',
         'beginner',
@@ -66,11 +58,11 @@ export default function authRoutingFlowTest(): void {
         [],
         1000
       )
-      await GoalRepository.saveGoal(getTestContext(), goal)
+      await GoalRepository.saveGoal(context, goal)
       GoalRepository.clearLocal()
 
-      expect(await GoalRepository.hasSavedGoal(getTestContext())).assertTrue()
-      expect(StartupDecision.getInitialRoute(await GoalRepository.hasSavedGoal(getTestContext()))).assertEqual(AppRoutes.APP_SHELL)
+      expect(await GoalRepository.hasSavedGoal(context)).assertTrue()
+      expect(StartupDecision.getInitialRoute(await SessionManager.isLoggedIn(context), await GoalRepository.hasSavedGoal(context))).assertEqual(AppRoutes.APP_SHELL)
     })
   })
 }

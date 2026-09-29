@@ -2,8 +2,9 @@ import { abilityDelegatorRegistry } from '@kit.TestKit'
 import { describe, beforeEach, afterEach, it, expect } from '@ohos/hypium'
 import { AppRoutes } from '../../../main/ets/app/AppRoutes'
 import { StartupDecision } from '../../../main/ets/app/AppState'
-import AuthService, { AuthResult } from '../../../main/ets/common/services/AuthService'
-import SessionManager from '../../../main/ets/common/services/SessionManager'
+import AuthService from '../../../main/ets/common/services/AuthService'
+import SessionManager, { SessionSnapshot } from '../../../main/ets/common/services/SessionManager'
+import { AuthResult } from '../../../main/ets/common/services/auth/AuthTypes'
 
 function getTestContext(): Context {
   return abilityDelegatorRegistry.getAbilityDelegator().getAppContext()
@@ -12,49 +13,41 @@ function getTestContext(): Context {
 export default function authSessionFlowTest(): void {
   describe('AuthSessionFlow', () => {
     beforeEach(async () => {
+      await SessionManager.clearSession(getTestContext())
       await SessionManager.clearToken(getTestContext())
       await AuthService.clearPersistedUsers(getTestContext())
     })
 
     afterEach(async () => {
+      await SessionManager.clearSession(getTestContext())
       await SessionManager.clearToken(getTestContext())
       await AuthService.clearPersistedUsers(getTestContext())
     })
 
-    it('registers logs in and restores persisted token session', 0, async () => {
+    it('logs in with phone code and restores the persisted session snapshot', 0, async () => {
+      const context: Context = getTestContext()
       const phone: string = '13700002727'
-      const password: string = 'pass2727'
 
-      const registerResult: AuthResult = await AuthService.registerLocal(getTestContext(), phone, password)
-      expect(registerResult.success).assertTrue()
-      expect(registerResult.token).assertContain('.')
-      expect(SessionManager.validateToken(registerResult.token)).assertTrue()
-      expect(SessionManager.getUserIdFromToken(registerResult.token)).assertEqual(phone)
+      const issueResult = await AuthService.requestPhoneCode(context, phone)
+      expect(issueResult.success).assertTrue()
 
-      await SessionManager.saveToken(getTestContext(), registerResult.token)
-      const restoredRegisterToken: string | null = await SessionManager.getToken(getTestContext())
-      expect(SessionManager.getLastPersistenceError()).assertEqual('')
-      expect(restoredRegisterToken !== null).assertTrue()
-      if (restoredRegisterToken !== null) {
-        expect(restoredRegisterToken).assertEqual(registerResult.token)
-        expect(SessionManager.validateToken(restoredRegisterToken)).assertTrue()
-        expect(SessionManager.getUserIdFromToken(restoredRegisterToken)).assertEqual(phone)
-      }
-      expect(await SessionManager.isLoggedIn(getTestContext())).assertTrue()
-
-      AuthService.clearLocalUsers()
-      const loginResult: AuthResult = await AuthService.loginLocal(getTestContext(), phone, password)
+      const loginResult: AuthResult = await AuthService.loginWithPhoneCode(context, phone, '000000')
       expect(loginResult.success).assertTrue()
-      expect(loginResult.token).assertContain('.')
-      expect(SessionManager.getUserIdFromToken(loginResult.token)).assertEqual(phone)
+      expect(loginResult.session !== null).assertTrue()
 
-      await SessionManager.saveToken(getTestContext(), loginResult.token)
-      const restoredLoginToken: string | null = await SessionManager.getToken(getTestContext())
-      expect(restoredLoginToken !== null).assertTrue()
-      if (restoredLoginToken !== null) {
-        expect(restoredLoginToken).assertEqual(loginResult.token)
+      // 会话快照持久化后可恢复，且登录态判定基于快照
+      const restoredSnapshot: SessionSnapshot | null = await SessionManager.getSession(context)
+      expect(SessionManager.getLastPersistenceError()).assertEqual('')
+      expect(restoredSnapshot !== null).assertTrue()
+      if (restoredSnapshot !== null) {
+        expect(restoredSnapshot.userId).assertEqual('sandbox:' + phone)
+        expect(restoredSnapshot.signedInAt > 0).assertTrue()
       }
-      expect(StartupDecision.getInitialRoute(true)).assertEqual(AppRoutes.APP_SHELL)
+      expect(await SessionManager.isLoggedIn(context)).assertTrue()
+
+      // 分流矩阵：未登录 → 登录页；已登录且有目标 → 主壳
+      expect(StartupDecision.getInitialRoute(false, false)).assertEqual(AppRoutes.LOGIN)
+      expect(StartupDecision.getInitialRoute(true, true)).assertEqual(AppRoutes.APP_SHELL)
     })
   })
 }

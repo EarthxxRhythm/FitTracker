@@ -15,7 +15,16 @@ export class FitTrackerStores {
 }
 
 export class StartupDecision {
-  static getInitialRoute(hasGoal: boolean): string {
+  /**
+   * 冷启动分流矩阵（强制登录，PRD 3.1 口径）：
+   *  - 未登录 → 登录页
+   *  - 已登录且无目标 → 目标设置
+   *  - 已登录且有目标 → 主壳
+   */
+  static getInitialRoute(hasValidSession: boolean, hasGoal: boolean): string {
+    if (!hasValidSession) {
+      return AppRoutes.LOGIN
+    }
     if (hasGoal) {
       return AppRoutes.APP_SHELL
     }

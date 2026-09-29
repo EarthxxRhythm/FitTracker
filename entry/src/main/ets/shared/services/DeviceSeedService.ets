@@ -3,7 +3,6 @@
  */
 import { Context } from '@kit.AbilityKit'
 import AuthService from '../../common/services/AuthService'
-import SessionManager from '../../common/services/SessionManager'
 import TrainingPlanService from '../../common/services/TrainingPlanService'
 import WorkoutDraftService from '../../common/services/WorkoutDraftService'
 import UserProfileService, { UserProfile } from '../../common/services/UserProfileService'
@@ -56,12 +55,9 @@ class DeviceSeedService {
   private async applyTodayFlowSeed(context: Context): Promise<void> {
     const now: number = Date.now()
     const seededPhone: string = '13800138000'
-    const seededPassword: string = '123456'
     const seededEquipmentIds: string[] = ['eq_bodyweight', 'eq_dumbbell']
     await AuthService.clearPersistedUsers(context)
-    const registerResult = await AuthService.registerLocal(context, seededPhone, seededPassword)
-    const token: string = registerResult.success ? registerResult.token : SessionManager.generateToken(seededPhone)
-    await SessionManager.saveToken(context, token)
+    await AuthService.seedSandboxSession(context, seededPhone, '谱尼')
     await GoalRepository.saveGoal(
       context,
       createUserGoal(
@@ -84,8 +80,7 @@ class DeviceSeedService {
 
   private async applyReviewMetricsSeed(context: Context): Promise<void> {
     const now: number = Date.now()
-    const token: string = SessionManager.generateToken('13900009999')
-    await SessionManager.saveToken(context, token)
+    await AuthService.seedSandboxSession(context, '13900009999', '谱尼')
     await GoalRepository.saveGoal(
       context,
       createUserGoal(
@@ -147,12 +142,9 @@ class DeviceSeedService {
   private async applyDemoDataSeed(context: Context): Promise<void> {
     const now: number = Date.now()
     const seededPhone: string = '13800138000'
-    const seededPassword: string = '123456'
     const seededEquipmentIds: string[] = ['eq_dumbbell', 'eq_barbell', 'eq_bodyweight']
     await AuthService.clearPersistedUsers(context)
-    const registerResult = await AuthService.registerLocal(context, seededPhone, seededPassword)
-    const token: string = registerResult.success ? registerResult.token : SessionManager.generateToken(seededPhone)
-    await SessionManager.saveToken(context, token)
+    await AuthService.seedSandboxSession(context, seededPhone, '谱尼')
     const demoProfile: UserProfile = {
       nickname: '谱尼',
       avatar: '谱',
