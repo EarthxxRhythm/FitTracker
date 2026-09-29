@@ -25,4 +25,5 @@ export class AppRoutes {
   static readonly PLAN_GROUP_DETAIL: string = 'features/pencil/pages/PencilPlanGroupDetailPage'
   static readonly BODY_DATA: string = 'features/body/pages/BodyDataPage'
   static readonly SETTINGS: string = 'features/settings/pages/PencilSettingsPage'
+  static readonly ACCOUNT_SYNC: string = 'features/account/pages/AccountSyncPage'
 }

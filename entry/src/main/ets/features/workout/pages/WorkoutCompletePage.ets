@@ -4,6 +4,7 @@ import { MotionTokens } from '../../../common/styles/DesignTokens'
 import WorkoutSessionService from '../../../common/services/WorkoutSessionService'
 import WorkoutSessionPersistenceBridgeService from '../../../features/workout/services/WorkoutSessionPersistenceBridgeService'
 import WorkoutSummaryService, { WorkoutSummary } from '../../../shared/services/WorkoutSummaryService'
+import CloudSyncService from '../../../shared/services/CloudSyncService'
 import { WorkoutSession } from '../../../shared/models/TrainingModels'
 
 const STREAK_DAYS: string[] = ['一', '二', '三', '四', '五', '六', '日']
@@ -62,9 +63,19 @@ export struct WorkoutCompletePage {
   @State private weekActiveFlags: boolean[] = [false, false, false, false, false, false, false]
   private confettiTimer: number = -1
 
+  /** 训练完成后触发一次后台云同步（静默，失败不阻塞完成页）。 */
+  private async triggerCloudSync(): Promise<void> {
+    const host = this.getUIContext().getHostContext()
+    if (host === undefined || host === null) {
+      return
+    }
+    await CloudSyncService.requestBackgroundSync(host as Context)
+  }
+
   aboutToAppear(): void {
     this.playEntranceAnimations()
     this.loadWorkoutStats()
+    this.triggerCloudSync()
     this.confettiTimer = setTimeout(() => {
       this.confettiVisible = false
       this.confettiTimer = -1
