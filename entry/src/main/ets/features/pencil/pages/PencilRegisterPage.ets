@@ -1,53 +1,130 @@
-/** PencilRegisterPage - FitTracker Register prototype page. */
+/** PencilRegisterPage —— 注册页（邮箱 + 验证码 + 密码 + 昵称）。功能 #27 · 云端化改造（Wave 1） */
 import { AppRoutes } from '../../../app/AppRoutes'
+import { StartupDecision } from '../../../app/AppState'
 import AuthService from '../../../common/services/AuthService'
+import CloudEnvironment from '../../../common/services/CloudEnvironment'
+import GoalRepository from '../../../shared/services/GoalRepository'
 import { Context } from '@kit.AbilityKit'
-import { ColorTokens, MotionTokens } from '../../../common/styles/DesignTokens'
+import { MotionTokens } from '../../../common/styles/DesignTokens'
+
+const COUNTDOWN_SECONDS: number = 60
 
 @Entry
 @Component
 struct PencilRegisterPage {
 
   @State nickname: string = ''
-  @State phone: string = ''
+  @State email: string = ''
+  @State code: string = ''
   @State password: string = ''
   @State confirmPassword: string = ''
   @State nicknameError: string = ''
-  @State phoneError: string = ''
+  @State emailError: string = ''
+  @State codeError: string = ''
   @State passwordError: string = ''
   @State confirmError: string = ''
   @State message: string = ''
+  @State hint: string = ''
   @State loading: boolean = false
+  @State sendingCode: boolean = false
+  @State countdown: number = 0
+  @State agreeChecked: boolean = false
+  @State agreePressed: boolean = false
   @State ctaPressed: boolean = false
   @State linkKey: string = ''
   @State eyeKey: string = ''
-  @State agreePressed: boolean = false
-  @State agreeChecked: boolean = false
   @State focusedKey: string = ''
   @State revealPwd: boolean = false
   @State revealConfirm: boolean = false
+  @State sandboxMode: boolean = false
+  private codeTimer: number = -1
 
   private contextOrNull(): Context | null {
     const host = this.getUIContext().getHostContext()
     return host === undefined || host === null ? null : host as Context
   }
 
+  async aboutToAppear(): Promise<void> {
+    const context = this.contextOrNull()
+    if (context !== null) {
+      await CloudEnvironment.initialize(context)
+      this.sandboxMode = !CloudEnvironment.isAgcConfigured()
+    }
+  }
+
+  aboutToDisappear(): void {
+    if (this.codeTimer >= 0) {
+      clearInterval(this.codeTimer)
+      this.codeTimer = -1
+    }
+  }
+
+  private startCountdown(): void {
+    this.countdown = COUNTDOWN_SECONDS
+    if (this.codeTimer >= 0) {
+      clearInterval(this.codeTimer)
+    }
+    this.codeTimer = setInterval(() => {
+      if (this.countdown > 0) {
+        this.countdown = this.countdown - 1
+      }
+      if (this.countdown <= 0 && this.codeTimer >= 0) {
+        clearInterval(this.codeTimer)
+        this.codeTimer = -1
+      }
+    }, 1000)
+  }
+
+  private async sendEmailCode(): Promise<void> {
+    this.message = ''
+    this.hint = ''
+    this.emailError = ''
+    if (this.email.length === 0) {
+      this.emailError = '请输入邮箱'
+      return
+    }
+    const context = this.contextOrNull()
+    if (context === null) {
+      this.message = '当前页面不可用，请重试'
+      return
+    }
+    this.sendingCode = true
+    const result = await AuthService.requestEmailCode(context, this.email)
+    this.sendingCode = false
+    if (!result.success) {
+      this.emailError = result.message
+      return
+    }
+    this.startCountdown()
+    if (result.devCodeHint.length > 0) {
+      this.hint = '验证码已发送（演示码 ' + result.devCodeHint + '）'
+    } else {
+      this.hint = '验证码已发送至邮箱'
+    }
+  }
+
   private async register(): Promise<void> {
     this.nicknameError = ''
-    this.phoneError = ''
+    this.emailError = ''
+    this.codeError = ''
     this.passwordError = ''
     this.confirmError = ''
     this.message = ''
+    this.hint = ''
     if (this.nickname.length === 0) {
       this.nicknameError = '请输入昵称'
       return
     }
-    if (this.phone.length === 0) {
-      this.phoneError = '请输入手机号'
+    if (this.email.length === 0) {
+      this.emailError = '请输入邮箱'
       return
     }
-    if (!/^1[3-9]\d{9}$/.test(this.phone)) {
-      this.phoneError = '请输入正确的手机号'
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email)) {
+      this.emailError = '请输入正确的邮箱'
+      return
+    }
+    if (this.code.length === 0) {
+      this.codeError = '请输入邮箱验证码'
       return
     }
     if (this.password.length === 0) {
@@ -67,7 +144,7 @@ struct PencilRegisterPage {
       return
     }
     if (!this.agreeChecked) {
-      this.message = '请先阅读并同意用户协议'
+      this.message = '请先阅读并同意用户协议与隐私政策'
       return
     }
     const context = this.contextOrNull()
@@ -76,13 +153,16 @@ struct PencilRegisterPage {
       return
     }
     this.loading = true
-    const result = await AuthService.registerLocal(context, this.phone, this.password)
+    const result = await AuthService.registerWithEmail(context, this.email, this.password, this.code, this.nickname)
     this.loading = false
     if (!result.success) {
       this.message = result.message
       return
     }
-    this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.LOGIN })
+    const hasGoal: boolean = await GoalRepository.hasSavedGoal(context)
+    this.getUIContext().getRouter().replaceUrl({
+      url: StartupDecision.getInitialRoute(true, hasGoal)
+    })
   }
 
   @Builder
@@ -110,8 +190,20 @@ struct PencilRegisterPage {
     .alignItems(HorizontalAlign.Center)
   }
 
-  private isFieldFocused(label: string): boolean {
-    return this.focusedKey === label
+  @Builder
+  private buildSandboxBanner() {
+    if (this.sandboxMode) {
+      Text('演示模式：云服务未配置，验证码为 000000')
+        .fontFamily('Noto Sans SC')
+        .fontSize(12)
+        .fontColor('#D3B487')
+        .width('100%')
+        .textAlign(TextAlign.Center)
+        .padding({ top: 9, bottom: 9 })
+        .backgroundColor('#14D3B487')
+        .borderRadius(12)
+        .border({ width: 1, color: '#26D3B487' })
+    }
   }
 
   private isPasswordVisible(label: string): boolean {
@@ -164,7 +256,7 @@ struct PencilRegisterPage {
           Image($rawfile('pencil-lucide-eye.svg'))
             .width(20)
             .height(20)
-            .fillColor(this.isPasswordVisible(label) ? ColorTokens.ACCENT_PRIMARY : '#8AFFFFFF')
+            .fillColor(this.isPasswordVisible(label) ? '#50ECA7' : '#8AFFFFFF')
             .onTouch((event: TouchEvent) => {
               if (event.type === TouchType.Down) {
                 this.eyeKey = label
@@ -182,13 +274,76 @@ struct PencilRegisterPage {
       .width('100%')
       .height(52)
       .padding({ left: 16, right: 16 })
-      .backgroundColor(errorMessage.length > 0 ? '#0AFFB096' : (this.isFieldFocused(label) ? '#0D50ECA7' : '#08FFFFFF'))
+      .backgroundColor(errorMessage.length > 0 ? '#0AFFB096' : (this.focusedKey === label ? '#0D50ECA7' : '#08FFFFFF'))
       .borderRadius(18)
-      .border({ width: 1, color: errorMessage.length > 0 ? '#8CFFB096' : (this.isFieldFocused(label) ? '#7350ECA7' : '#14FFFFFF') })
+      .border({ width: 1, color: errorMessage.length > 0 ? '#8CFFB096' : (this.focusedKey === label ? '#7350ECA7' : '#14FFFFFF') })
       .alignItems(VerticalAlign.Center)
       .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
       if (errorMessage.length > 0) {
         Text(errorMessage)
+          .fontFamily('Noto Sans SC')
+          .fontSize(12)
+          .fontColor('#FFD7C5')
+          .width('100%')
+          .margin({ top: 7 })
+      }
+    }
+    .width('100%')
+  }
+
+  @Builder
+  private buildCodeField() {
+    Column() {
+      Text('邮箱验证码')
+        .fontFamily('Noto Sans SC')
+        .fontSize(13)
+        .fontColor('#9EFFFFFF')
+        .width('100%')
+        .margin({ bottom: 8 })
+      Row({ space: 10 }) {
+        TextInput({ text: this.code, placeholder: '请输入邮箱验证码' })
+          .type(InputType.Number)
+          .maxLength(6)
+          .showPasswordIcon(false)
+          .layoutWeight(1)
+          .fontFamily('Noto Sans SC')
+          .fontSize(16)
+          .fontColor('#F7FBF8')
+          .placeholderColor('#66FFFFFF')
+          .padding(0)
+          .onFocus(() => {
+            this.focusedKey = 'code'
+          })
+          .onBlur(() => {
+            this.focusedKey = ''
+          })
+          .onChange((value: string) => {
+            this.code = value
+          })
+        Button(this.countdown > 0 ? this.countdown.toString() + 's' : '获取验证码')
+          .height(36)
+          .padding({ left: 14, right: 14 })
+          .fontFamily('Noto Sans SC')
+          .fontSize(12.5)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(this.countdown > 0 ? '#66FFFFFF' : '#07100B')
+          .backgroundColor(this.countdown > 0 ? '#0FFFFFFF' : '#50ECA7')
+          .borderRadius(12)
+          .enabled(this.countdown === 0 && !this.sendingCode)
+          .onClick(() => {
+            this.sendEmailCode()
+          })
+      }
+      .width('100%')
+      .height(52)
+      .padding({ left: 16, right: 10 })
+      .backgroundColor(this.codeError.length > 0 ? '#0AFFB096' : (this.focusedKey === 'code' ? '#0D50ECA7' : '#08FFFFFF'))
+      .borderRadius(18)
+      .border({ width: 1, color: this.codeError.length > 0 ? '#8CFFB096' : (this.focusedKey === 'code' ? '#7350ECA7' : '#14FFFFFF') })
+      .alignItems(VerticalAlign.Center)
+      .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
+      if (this.codeError.length > 0) {
+        Text(this.codeError)
           .fontFamily('Noto Sans SC')
           .fontSize(12)
           .fontColor('#FFD7C5')
@@ -235,20 +390,27 @@ struct PencilRegisterPage {
                 .fontSize(15)
                 .fontColor('#A6FFFFFF')
                 .margin({ top: 11 })
+              Text('手机号用户可在登录页用验证码直接登录（自动注册）')
+                .fontFamily('Noto Sans SC')
+                .fontSize(12)
+                .fontColor('#66FFFFFF')
+                .margin({ top: 8 })
             }
             .width('100%')
             .alignItems(HorizontalAlign.Center)
             .margin({ bottom: 26 })
 
             Column({ space: 14 }) {
+              this.buildSandboxBanner()
               this.buildField('昵称', '给自己起个名字', false, this.nickname, this.nicknameError, (value: string) => {
                 this.nickname = value
                 if (this.nicknameError.length > 0) { this.nicknameError = '' }
               })
-              this.buildField('手机号', '请输入手机号', false, this.phone, this.phoneError, (value: string) => {
-                this.phone = value
-                if (this.phoneError.length > 0) { this.phoneError = '' }
+              this.buildField('邮箱', '请输入邮箱', false, this.email, this.emailError, (value: string) => {
+                this.email = value
+                if (this.emailError.length > 0) { this.emailError = '' }
               })
+              this.buildCodeField()
               this.buildField('密码', '设置 8 位以上密码', true, this.password, this.passwordError, (value: string) => {
                 this.password = value
                 if (this.passwordError.length > 0) { this.passwordError = '' }
@@ -282,14 +444,14 @@ struct PencilRegisterPage {
                     .fontColor('#50ECA7')
                     .fontWeight(FontWeight.Medium)
                     .onClick(() => {
-                      this.message = '查看协议（原型）'
+                      this.hint = '查看协议（原型）'
                     })
                   Span('与')
                   Span('《隐私政策》')
                     .fontColor('#50ECA7')
                     .fontWeight(FontWeight.Medium)
                     .onClick(() => {
-                      this.message = '查看协议（原型）'
+                      this.hint = '查看协议（原型）'
                     })
                 }
                 .fontFamily('Noto Sans SC')
@@ -316,7 +478,14 @@ struct PencilRegisterPage {
                   .fontSize(13)
                   .fontColor('#FFD7C5')
                   .width('100%')
-                  .margin({ bottom: 10 })
+              }
+              if (this.hint.length > 0) {
+                Text(this.hint)
+                  .fontFamily('Noto Sans SC')
+                  .fontSize(13)
+                  .fontColor('#50ECA7')
+                  .width('100%')
+                  .textAlign(TextAlign.Center)
               }
 
               Button(this.loading ? '注册中…' : '注册')
@@ -342,7 +511,7 @@ struct PencilRegisterPage {
                 })
                 .scale({ x: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1 })
                 .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
-                .margin({ top: 20 })
+                .margin({ top: 14 })
             }
             .width('100%')
             .margin({ top: 10, bottom: 10 })
@@ -390,6 +559,6 @@ struct PencilRegisterPage {
     .width('100%')
     .height('100%')
     .clip(true)
-    .backgroundColor(ColorTokens.BG_PRIMARY)
+    .backgroundColor('#10171B')
   }
 }

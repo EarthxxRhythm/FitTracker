@@ -39,7 +39,7 @@ export default function persistenceFallbackServiceTest(): void {
 
     it('routes startup to home when fallback default goal is available', 0, () => {
       const goal: UserGoal = PersistenceFallbackService.createDefaultGoal(4000)
-      const route: string = StartupDecision.getInitialRoute(goal.goalId.length > 0)
+      const route: string = StartupDecision.getInitialRoute(true, goal.goalId.length > 0)
 
       expect(route).assertEqual(AppRoutes.APP_SHELL)
     })

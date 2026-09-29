@@ -327,11 +327,11 @@ export default function targetLoopSkeletonTest() {
     })
 
     it('routes users with goals to home page on startup', 0, () => {
-      expect(StartupDecision.getInitialRoute(true)).assertEqual(AppRoutes.APP_SHELL)
+      expect(StartupDecision.getInitialRoute(true, true)).assertEqual(AppRoutes.APP_SHELL)
     })
 
     it('routes users without goals to onboarding goal setup on startup', 0, () => {
-      expect(StartupDecision.getInitialRoute(false)).assertEqual('features/onboarding/pages/GoalSetupPage')
+      expect(StartupDecision.getInitialRoute(true, false)).assertEqual('features/onboarding/pages/GoalSetupPage')
     })
 
     it('stores the current goal locally', 0, () => {

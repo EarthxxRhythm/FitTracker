@@ -35,6 +35,7 @@ import startupContentSyncFlowTest from './StartupContentSyncFlow.test'
 import authSessionFlowTest from './AuthSessionFlow.test'
 import targetLoopFlowTest from './TargetLoopFlow.test'
 import authRoutingFlowTest from './AuthRoutingFlow.test'
+import authFlowSandboxTest from './AuthFlowSandbox.test'
 
 export default function testsuite(): void {
   abilityTest()
@@ -74,4 +75,5 @@ export default function testsuite(): void {
   authSessionFlowTest()
   targetLoopFlowTest()
   authRoutingFlowTest()
+  authFlowSandboxTest()
 }

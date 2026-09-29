@@ -28,6 +28,7 @@ function getTestContext(): Context {
 async function resetSeededData(): Promise<void> {
   const context: Context = getTestContext()
   WorkoutRepository.clear()
+  await SessionManager.clearSession(context)
   await SessionManager.clearToken(context)
   await GoalRepository.clearSavedGoal(context)
   await WorkoutSessionPersistenceBridgeService.replacePersistedSessions(context, [])
