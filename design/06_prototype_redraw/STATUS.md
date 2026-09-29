@@ -116,7 +116,7 @@ Home 基线分解：超阈集中在 band1(84-168 日期/问候文字带,字体�
 ## 自适应（小屏不裁切）硬化（2026-09-07）
 - 加 Scroll：PencilLoginPage / PencilRegisterPage（表单包 Scroll，高屏仍居中）、
   HomeContent / ProfileContent（主内容包 Scroll）——并行 app-engineer x2 + 手动 x2，devecocli 构建绿。
-- 已具 Scroll：plan/review/active/body/settings/plans/plan-group/library/complete/detail/monetization/目标设置。
+- 已具 Scroll：plan/review/active/body/settings/plans/plan-group/library/complete/detail/目标设置。
 - 整屏固定面板特意不滚（留设备人工确认矮屏）：Splash/Welcome/TrainingPreview。
 - 验收口径（ACCEPTANCE-PLAN.md 已修正）：像素 diff 仅粗定位；达标 = 无几何/色块错误 + 文本豁免（≤8% AA地板）。
 

@@ -5,7 +5,6 @@ import { UserGoal, WorkoutSession } from '../../../main/ets/shared/models/Traini
 import TrainingPlanService, { UserPlan } from '../../../main/ets/common/services/TrainingPlanService'
 import WorkoutDraftService, { WorkoutDraftSnapshot } from '../../../main/ets/common/services/WorkoutDraftService'
 import GoalRepository from '../../../main/ets/shared/services/GoalRepository'
-import MonetizationEntitlementService from '../../../main/ets/shared/services/MonetizationEntitlementService'
 import DeviceSeedService from '../../../main/ets/shared/services/DeviceSeedService'
 import PersonalRecordService, {
   ExercisePersonalRecordDetail
@@ -31,7 +30,6 @@ async function resetSeededData(): Promise<void> {
   WorkoutRepository.clear()
   await SessionManager.clearToken(context)
   await GoalRepository.clearSavedGoal(context)
-  await MonetizationEntitlementService.clearEntitlementForTesting(context)
   await WorkoutSessionPersistenceBridgeService.replacePersistedSessions(context, [])
 }
 
@@ -46,7 +44,6 @@ export default function deviceSeedServiceTest(): void {
 
       const applied: boolean = await DeviceSeedService.applyNamedSeed(context, 'review_metrics')
       const goal: UserGoal | undefined = await GoalRepository.loadGoal(context)
-      const entitlement = await MonetizationEntitlementService.readEntitlement(context)
       const sessions: WorkoutSession[] = await WorkoutSessionPersistenceBridgeService.loadPersistedSessions(context)
       const summary: ReviewDashboardSummary = ReviewDashboardService.createSummary(sessions)
       const recentRecords: ReviewRecentSessionRecord[] = ReviewInsightsService.filterRecentRecords(
@@ -66,9 +63,6 @@ export default function deviceSeedServiceTest(): void {
         expect(goal.weeklyDays).assertEqual(3)
         expect(goal.sessionMinutes).assertEqual(45)
       }
-      expect(entitlement.userId).assertEqual('13900009999')
-      expect(entitlement.tier).assertEqual('pro')
-      expect(entitlement.source).assertEqual('debug_override')
 
       expect(sessions.length).assertEqual(2)
       expect(summary.sessionCount).assertEqual(2)

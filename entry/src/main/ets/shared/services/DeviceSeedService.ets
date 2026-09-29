@@ -14,9 +14,7 @@ import {
   createWorkoutSession,
   createWorkoutSet
 } from '../models/TrainingModels'
-import { createMonetizationEntitlement } from '../models/MonetizationModels'
 import GoalRepository from './GoalRepository'
-import MonetizationEntitlementService from './MonetizationEntitlementService'
 import WorkoutSessionPersistenceBridgeService from '../../features/workout/services/WorkoutSessionPersistenceBridgeService'
 
 interface DemoSetTemplate {
@@ -80,7 +78,6 @@ class DeviceSeedService {
     )
     await TrainingPlanService.enablePlan(context, 'preset_upper_lower')
     await WorkoutDraftService.clearDraft(context)
-    await MonetizationEntitlementService.clearEntitlementForTesting(context)
     await WorkoutSessionPersistenceBridgeService.replacePersistedSessions(context, [])
     await WorkoutSessionPersistenceBridgeService.syncRepositoryFromPersistence(context)
   }
@@ -101,22 +98,6 @@ class DeviceSeedService {
         [],
         now,
         now
-      )
-    )
-    await MonetizationEntitlementService.writeEntitlement(
-      context,
-      createMonetizationEntitlement(
-        '13900009999',
-        'pro',
-        'debug_override',
-        'active',
-        'pro_lifetime',
-        'fittracker_pro_lifetime',
-        now,
-        0,
-        now,
-        now,
-        1
       )
     )
 
@@ -194,7 +175,6 @@ class DeviceSeedService {
     )
     await TrainingPlanService.enablePlan(context, 'preset_upper_lower')
     await WorkoutDraftService.clearDraft(context)
-    await MonetizationEntitlementService.clearEntitlementForTesting(context)
     const sessions: WorkoutSession[] = this.createDemoSessions()
     await WorkoutSessionPersistenceBridgeService.replacePersistedSessions(context, sessions)
     await WorkoutSessionPersistenceBridgeService.syncRepositoryFromPersistence(context)

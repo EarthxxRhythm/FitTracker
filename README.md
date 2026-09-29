@@ -87,7 +87,7 @@ FitTracker/
 ├── entry/
 │   ├── src/main/ets/
 │   │   ├── app/                  启动、路由常量（AppRoutes.ets）、应用壳（PencilAppShell）
-│   │   ├── features/             pencil（视觉主线）/ welcome / onboarding / exercise / body / settings / monetization / workout
+│   │   ├── features/             pencil（视觉主线）/ welcome / onboarding / exercise / body / settings / workout
 │   │   ├── shared/               跨功能服务：内容目录、计划引擎、复盘、备份、同步、内存仓库
 │   │   ├── common/               认证、会话、计划 / 训练持久化、设计令牌（styles\DesignTokens.ets）
 │   │   ├── components/           可复用 ArkUI 组件
@@ -116,7 +116,6 @@ flowchart LR
   end
   Home --> P[训练预览] --> A[训练执行] --> C[完成摘要]
   Home --> Lib[动作库 → 动作详情]
-  Review --> Mon[会员中心]
   Profile --> Body[身体数据]
   Profile --> Set[设置]
 ```

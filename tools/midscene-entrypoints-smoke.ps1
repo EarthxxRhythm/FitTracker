@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('backup-card', 'media-card', 'current-plan', 'summary-page', 'goal-adjustment', 'plan-detail', 'membership', 'both')]
+  [ValidateSet('backup-card', 'media-card', 'current-plan', 'summary-page', 'goal-adjustment', 'plan-detail', 'both')]
   [string]$Target = 'current-plan',
   [string]$DeviceId = "",
   [string]$BundleName = "com.earthrhythm.fittracker",
@@ -99,9 +99,6 @@ function Write-SmokeSummary {
     $summaryLines += "- review page to goal adjustment page"
   } elseif ($Target -eq 'plan-detail') {
     $summaryLines += "- home preset plan card to training plan detail"
-  } elseif ($Target -eq 'membership') {
-    $summaryLines += "- review advanced insights entry to membership hub"
-    $summaryLines += "- membership local preview tier switch"
   } else {
     $summaryLines += "- review page backup card"
     $summaryLines += "- exercise detail media card"
@@ -326,7 +323,7 @@ function Ensure-FitTrackerForegroundAfterLaunch {
     [int]$PauseSeconds = 2
   )
 
-  $foregroundPrompt = "A visible FitTracker screen is in the foreground. It may be the startup page, login page, register page, goal setup page, home page, workout preview page, review page, membership or entitlement page, or exercise detail page. There is no system home screen covering the app."
+  $foregroundPrompt = "A visible FitTracker screen is in the foreground. It may be the startup page, login page, register page, goal setup page, home page, workout preview page, review page, or exercise detail page. There is no system home screen covering the app."
 
   Launch-AppToForeground -Title $TitlePrefix -PauseSeconds $PauseSeconds
   Invoke-Midscene -Title "capture foreground after launch" -CommandArgs @("take_screenshot")
@@ -637,42 +634,6 @@ function Run-PlanDetailSmoke {
     -RetryAssertPrompt "The training plan detail page is visible. It shows a preset plan title, training day counts or total exercise counts, a list of training days, and an action to start or enable this plan. There is no crash dialog."
 }
 
-function Run-MembershipSmoke {
-  Ensure-HomeRoute
-  Invoke-VisualActWithRetry `
-    -Title "open review page for membership flow" `
-    -PrimaryPrompt "On the FitTracker home page, open the training review page. Prefer the primary destination strip item for review if visible. Otherwise tap the secondary action that opens the training review page. Stop when the training review page is visible." `
-    -PrimaryAssertTitle "assert review page for membership flow" `
-    -PrimaryAssertPrompt "The training review page is visible. It shows review content such as history, trends, records, or backup sections, and there is no crash dialog." `
-    -RetryPrompt "If the training review page is still not visible, return to the FitTracker home page if needed and open the training review page again. Stop when the training review page is visible." `
-    -RetryAssertTitle "assert review page for membership flow after retry" `
-    -RetryAssertPrompt "The training review page is visible. It shows review content such as history, trends, records, or backup sections, and there is no crash dialog."
-
-  Invoke-VisualAct -Title "scroll to advanced insights entry" -Prompt "On the training review page, scroll until the advanced insights upgrade entry is fully visible. It should mention advanced insights, locked or unlocked status, feature bullets, and a main action button that opens the membership or entitlement page."
-  Invoke-VisualAssert -Title "assert advanced insights upgrade entry" -Prompt "The advanced insights upgrade entry is visible on the training review page. It includes a title for advanced insights, a visible status badge, several feature bullets, and a main action button that opens the membership page."
-
-  Invoke-VisualActWithRetry `
-    -Title "open membership hub from review" `
-    -PrimaryPrompt "On the advanced insights upgrade entry, tap the main action button that opens the membership or entitlement page. Stop when the membership page is visible." `
-    -PrimaryAssertTitle "assert membership hub page" `
-    -PrimaryAssertPrompt "The membership page is visible. It shows a title for membership or entitlements, current entitlement status, product or tier cards, and there is no crash dialog." `
-    -RetryPrompt "If the membership page is still not visible, stay inside the FitTracker app, return to the training review page if needed, and tap the advanced insights entry action button again. Stop when the membership page is visible." `
-    -RetryAssertTitle "assert membership hub page after retry" `
-    -RetryAssertPrompt "The membership page is visible. It shows a title for membership or entitlements, current entitlement status, product or tier cards, and there is no crash dialog."
-
-  Invoke-VisualAct -Title "scroll to membership preview section" -Prompt "On the membership page, scroll until the local entitlement preview section is fully visible. The section should show preview options for Free, Pro, and Plus together with the current entitlement status area."
-  Invoke-VisualAssert -Title "assert membership preview section" -Prompt "The membership page shows a local entitlement preview section with options for Free, Pro, and Plus, and a current entitlement status area."
-
-  Invoke-VisualActWithRetry `
-    -Title "switch membership preview tier to pro" `
-    -PrimaryPrompt "On the membership page, in the local entitlement preview section that shows three choices Free, Pro, and Plus, tap the middle Pro option card only. Wait for the current entitlement status area on the same page to update, then stop." `
-    -PrimaryAssertTitle "assert membership preview switched to pro" `
-    -PrimaryAssertPrompt "The membership page remains visible and shows that the current entitlement or preview state is Pro. A short status message confirming the preview switch may also be visible." `
-    -RetryPrompt "If the membership page still does not show Pro as the current entitlement, stay on the same page, find the local entitlement preview section with Free, Pro, and Plus, tap the middle Pro option again, wait for the status area to update, and stop." `
-    -RetryAssertTitle "assert membership preview switched to pro after retry" `
-    -RetryAssertPrompt "The membership page remains visible and shows that the current entitlement or preview state is Pro. A short status message confirming the preview switch may also be visible."
-}
-
 if (-not $env:MIDSCENE_REPLANNING_CYCLE_LIMIT) {
   $env:MIDSCENE_REPLANNING_CYCLE_LIMIT = "90"
 }
@@ -720,8 +681,6 @@ try {
     Run-GoalAdjustmentSmoke
   } elseif ($Target -eq 'plan-detail') {
     Run-PlanDetailSmoke
-  } elseif ($Target -eq 'membership') {
-    Run-MembershipSmoke
   } else {
     Run-BackupCardSmoke
     Open-ExerciseLibraryFromReviewTools

@@ -198,7 +198,6 @@ HarmonyOS 为每个应用按其 bundleName 分配独立沙箱目录，应用私�
 | `fit_tracker_sessions` | 训练记录 | `entry/src/main/ets/common/services/WorkoutSessionService.ets` |
 | `fit_tracker_active_workout` | 进行中的训练草稿 | `entry/src/main/ets/common/services/WorkoutDraftService.ets` |
 | `fit_tracker_favorites` | 收藏的动作 | `entry/src/main/ets/common/services/FavoriteExerciseService.ets` |
-| `fit_tracker_entitlement` | 会员权益状态 | `entry/src/main/ets/shared/services/MonetizationEntitlementService.ets` |
 | `fit_tracker_content_sync` | 内容目录同步状态 | `entry/src/main/ets/shared/services/SyncService.ets` |
 | `fit_tracker_launch_request` | 启动请求（调试种子） | `entry/src/main/ets/app/LaunchRequestStore.ets` |
 

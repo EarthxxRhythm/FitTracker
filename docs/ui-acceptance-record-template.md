@@ -138,7 +138,7 @@ Build: latest internal closeout unsigned HAP
 - flow clarity: pass
 - interaction polish: pass
 - product tone: pass
-- review focus: media card is instructional ; premium content stays secondary
+- review focus: media card is instructional
 - evidence summary: midscene_run/focused/both-20260611-033617-p68784/midscene-entrypoints-smoke-summary.md
 - evidence html: C:\.CodeSpace\.DevEcoStudioProjects\FitTracker\midscene_run\focused\both-20260611-033617-p68784\report\midscene-harmony-127.0.0.1_5555-2026-06-11_03-41-23-rhfpx9z2.html
 - machine evidence status: backed by existing closeout artifacts
@@ -155,28 +155,14 @@ Build: latest internal closeout unsigned HAP
 - evidence summary: midscene_run/focused/plan_detail-20260611-050345-p138852/midscene-entrypoints-smoke-summary.md
 - evidence html: C:\.CodeSpace\.DevEcoStudioProjects\FitTracker\midscene_run\focused\plan_detail-20260611-050345-p138852\report\midscene-harmony-127.0.0.1_5555-2026-06-11_05-03-50-8rfhh72f.html
 - machine evidence status: backed by existing closeout artifacts
-- notes: plan detail preserves the same dense card system. Advanced Pro variants increase copy density, but the main action hierarchy remains understandable.
-- blocking issue:
-
-### MonetizationHubPage
-
-- visual consistency: pass
-- flow clarity: pass
-- interaction polish: pass
-- product tone: pass
-- review focus: reads as capability preview, not checkout theater ; local preview language stays non-production
-- evidence summary: midscene_run/focused/membership-20260611-043047-p113004/midscene-entrypoints-smoke-summary.md
-- evidence html: C:\.CodeSpace\.DevEcoStudioProjects\FitTracker\midscene_run\focused\membership-20260611-043047-p113004\report\midscene-harmony-127.0.0.1_5555-2026-06-11_04-30-52-6x00mtwd.html
-- machine evidence status: backed by existing closeout artifacts
-- notes: entitlement and local preview cards stay inside the same visual system and clearly read as non-production capability preview, not a live checkout wall.
+- notes: plan detail preserves the same dense card system; the main action hierarchy remains understandable.
 - blocking issue:
 
 ## Final Notes
 
 - strongest route: PencilHomePage -> PencilPreviewPage continuity
-- weakest route: PencilPlanPage because premium-variant copy density is the closest point to visual overload, though still below blocking threshold
+- weakest route: PencilPlanPage because copy density is the closest point to visual overload, though still below blocking threshold
 - is the app visually coherent end-to-end: yes across the reviewed route samples and linked smoke artifacts
-- does the monetization surface remain secondary: yes
 - does the app feel ready for closeout: yes for internal closeout; live touch feel and animation smoothness still depend on short real-device observation rather than static artifacts alone
 
 ## Reviewer Instructions

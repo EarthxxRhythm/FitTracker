@@ -178,7 +178,7 @@ python tools\compare-motion-frames.py                                           
 
 - **主线**：`features\pencil\`（登录、首页、计划、训练、复盘、个人页）+ `features\welcome\`、
   `features\onboarding\`、`features\exercise\`、`features\body\`、`features\settings\`、
-  `features\monetization\`、`features\workout\`。
+  `features\workout\`。
 - **不要**重建历史壳、不要复活已归档页面、不要把已归档页面加回主路由。
 - 归档素材在 `docs\archive\` 下，只用于追溯，不作为实现依据。
 - 训练数据的兼容层（`WorkoutSessionPersistenceBridgeService`、`PersistenceFallbackService`）

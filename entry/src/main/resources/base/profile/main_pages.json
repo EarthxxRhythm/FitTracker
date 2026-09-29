@@ -10,7 +10,6 @@
                 "features/pencil/pages/PencilHomePage",
                 "features/exercise/pages/ExerciseLibraryPage",
                 "features/exercise/pages/ExerciseDetailPage",
-                "features/monetization/pages/MonetizationHubPage",
                 "features/pencil/pages/PencilPlanPage",
                 "features/pencil/pages/PencilActivePage",
                 "features/workout/pages/WorkoutCompletePage",

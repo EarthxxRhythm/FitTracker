@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('backup-card', 'media-card', 'current-plan', 'summary-page', 'goal-adjustment', 'plan-detail', 'membership', 'both')]
+  [ValidateSet('backup-card', 'media-card', 'current-plan', 'summary-page', 'goal-adjustment', 'plan-detail', 'both')]
   [string]$Target = 'current-plan',
   [string]$DeviceId = "",
   [string]$BundleName = "com.earthrhythm.fittracker",

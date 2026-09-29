@@ -1,6 +1,6 @@
 # FitTracker 项目约束
 
-> 最后核对：2026-09-11（页面清单与 features 边界已按 `main_pages.json` 实际 20 页校准）。本文只描述当前主线；历史设计、旧路由和已归档计划不作为实现依据。
+> 最后核对：2026-09-29（页面清单与 features 边界已按 `main_pages.json` 最新版校准）。本文只描述当前主线；历史设计、旧路由和已归档计划不作为实现依据。
 
 ## 项目概览
 
@@ -20,7 +20,6 @@ entry/src/main/ets/
 │   ├── exercise/         # 动作库与动作详情
 │   ├── body/             # 身体数据
 │   ├── settings/         # 设置
-│   ├── monetization/     # 会员能力展示
 │   └── workout/          # 训练完成、摘要及训练流兼容服务
 ├── shared/               # 跨功能内容、计划、复盘、备份、同步和内存仓库
 ├── common/               # 稳定的认证、会话、计划/训练持久化和设计令牌
@@ -41,7 +40,6 @@ entry/src/main/ets/
 - `features/pencil/pages/PencilHomePage`
 - `features/exercise/pages/ExerciseLibraryPage`
 - `features/exercise/pages/ExerciseDetailPage`
-- `features/monetization/pages/MonetizationHubPage`
 - `features/pencil/pages/PencilPlanPage`
 - `features/pencil/pages/PencilPreviewPage`
 - `features/pencil/pages/PencilActivePage`
