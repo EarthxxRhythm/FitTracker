@@ -12,6 +12,7 @@ export class FitTrackerStores {
   static readonly PLANS: string = 'fit_tracker_plans'
   static readonly WORKOUTS: string = 'fit_tracker_workouts'
   static readonly RECORDS: string = 'fit_tracker_records'
+  static readonly SYNC: string = 'fit_tracker_sync'
 }
 
 export class StartupDecision {

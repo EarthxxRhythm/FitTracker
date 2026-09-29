@@ -4,6 +4,7 @@ import { StartupDecision } from '../../../app/AppState'
 import AuthService from '../../../common/services/AuthService'
 import CloudEnvironment from '../../../common/services/CloudEnvironment'
 import GoalRepository from '../../../shared/services/GoalRepository'
+import CloudSyncService from '../../../shared/services/CloudSyncService'
 import { Context } from '@kit.AbilityKit'
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 
@@ -159,6 +160,7 @@ struct PencilRegisterPage {
       this.message = result.message
       return
     }
+    await CloudSyncService.onSignIn(context)
     const hasGoal: boolean = await GoalRepository.hasSavedGoal(context)
     this.getUIContext().getRouter().replaceUrl({
       url: StartupDecision.getInitialRoute(true, hasGoal)

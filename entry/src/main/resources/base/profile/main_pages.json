@@ -17,6 +17,7 @@
                 "features/pencil/pages/PencilPlansPage",
                 "features/pencil/pages/PencilPlanGroupDetailPage",
                 "features/body/pages/BodyDataPage",
-                "features/settings/pages/PencilSettingsPage"
+                "features/settings/pages/PencilSettingsPage",
+                "features/account/pages/AccountSyncPage"
             ]
 }

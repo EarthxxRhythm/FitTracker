@@ -1,6 +1,9 @@
 /** SettingsContent —— 设置二级页界面体（对应 settings.html · screen-settings，390 直绘）。 */
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 import { window } from '@kit.ArkUI'
+import { AppRoutes } from '../../../app/AppRoutes'
+import SessionManager from '../../../common/services/SessionManager'
+import CloudSyncService, { SyncState } from '../../../shared/services/CloudSyncService'
 
 interface SwitchRow {
   key: string
@@ -24,6 +27,30 @@ export struct SettingsContent {
 
   aboutToAppear(): void {
     this.resolveTopInset()
+    this.loadSyncState()
+  }
+
+  private contextOrNull(): Context | null {
+    const host = this.getUIContext().getHostContext()
+    return host === undefined || host === null ? null : host as Context
+  }
+
+  private async loadSyncState(): Promise<void> {
+    const context: Context | null = this.contextOrNull()
+    if (context === null) {
+      return
+    }
+    const state: SyncState = await CloudSyncService.getState(context)
+    this.applySyncRow(state.autoEnabled)
+  }
+
+  private applySyncRow(enabled: boolean): void {
+    this.switchRows = this.switchRows.map((row: SwitchRow) => {
+      if (row.key === 'sync') {
+        return createSwitchRow(row.key, row.label, enabled)
+      }
+      return row
+    })
   }
 
   /**
@@ -46,6 +73,7 @@ export struct SettingsContent {
     }
   }
   @State private toastVisible: boolean = false
+  @State private toastMessage: string = '已保存'
   @State private toastTimer: number = -1
   @State private unitIndex: number = 0
   @State private langIndex: number = 0
@@ -64,6 +92,10 @@ export struct SettingsContent {
   }
 
   private toggleSwitch(key: string): void {
+    if (key === 'sync') {
+      this.toggleSyncRow()
+      return
+    }
     this.switchRows = this.switchRows.map((row: SwitchRow) => {
       if (row.key === key) {
         const next: SwitchRow = createSwitchRow(row.key, row.label, !row.on)
@@ -74,7 +106,26 @@ export struct SettingsContent {
     this.showToast('已保存')
   }
 
+  /** 训练数据同步：接线 CloudSyncService（未登录时提示先登录）。 */
+  private async toggleSyncRow(): Promise<void> {
+    const context: Context | null = this.contextOrNull()
+    if (context === null) {
+      this.showToast('当前页面不可用')
+      return
+    }
+    const loggedIn: boolean = await SessionManager.isLoggedIn(context)
+    if (!loggedIn) {
+      this.showToast('请先登录后再开启同步')
+      return
+    }
+    const next: boolean = !this.isSwitchOn('sync')
+    await CloudSyncService.setAutoEnabled(context, next)
+    this.applySyncRow(next)
+    this.showToast(next ? '已开启自动同步' : '已关闭自动同步')
+  }
+
   private showToast(text: string): void {
+    this.toastMessage = text
     this.toastVisible = true
     if (this.toastTimer >= 0) {
       clearTimeout(this.toastTimer)
@@ -166,7 +217,7 @@ export struct SettingsContent {
       .height('100%')
 
       if (this.toastVisible) {
-        Text('已保存')
+        Text(this.toastMessage)
           .fontFamily('Noto Sans SC')
           .fontSize(13)
           .fontColor('#F7FBF8')
@@ -221,6 +272,7 @@ export struct SettingsContent {
     Column() {
       this.sectionTitle('数据与隐私', '')
       this.chevronRow('健康数据授权', '已授权', true)
+      this.accountSyncRow()
       this.switchRow('sync', '训练数据同步', false)
       this.switchRow('anonymous', '匿名使用数据', false)
     }
@@ -229,6 +281,28 @@ export struct SettingsContent {
     .backgroundColor('#08FFFFFF')
     .border({ width: 1, color: '#1AFFFFFF' })
     .borderRadius(22)
+  }
+
+  @Builder
+  private accountSyncRow() {
+    Row() {
+      Text('账号与同步')
+        .fontFamily('Noto Sans SC')
+        .fontSize(14)
+        .fontColor('#F7FBF8')
+      Blank()
+      Image($rawfile('pencil-plan-nav-chevron-right.svg'))
+        .width(18)
+        .height(18)
+        .opacity(0.4)
+        .margin({ left: 6 })
+    }
+    .width('100%')
+    .padding({ top: 15, bottom: 15, left: 2, right: 2 })
+    .border({ width: { top: 1 }, color: '#0FFFFFFF' })
+    .onClick(() => {
+      this.getUIContext().getRouter().pushUrl({ url: AppRoutes.ACCOUNT_SYNC })
+    })
   }
 
   @Builder

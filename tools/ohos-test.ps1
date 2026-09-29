@@ -14,6 +14,7 @@ param(
   [string]$SummaryFileName = "ohos-test-summary.md",
   [string]$LogFileName = "ohos-test-output.log",
   [int]$WaitTimeSec = 180,
+  [int]$CaseTimeoutMs = 60000,
   [int]$BuildTimeoutSec = 600,
   [switch]$SkipBuild,
   [switch]$ForceBuild,
@@ -616,6 +617,12 @@ try {
     'unittest',
     $TestRunner
   )
+
+  if ($CaseTimeoutMs -gt 0) {
+    $testArgs += '-s'
+    $testArgs += 'timeout'
+    $testArgs += $CaseTimeoutMs.ToString()
+  }
 
   $classFilter = Get-RequestedClassFilter
   if ($classFilter.Length -gt 0) {
