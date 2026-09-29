@@ -30,13 +30,6 @@ import persistenceFallbackServiceTest from './PersistenceFallbackService.test'
 import deviceSeedServiceTest from './DeviceSeedService.test'
 import exerciseMediaResolverServiceTest from './ExerciseMediaResolverService.test'
 import exerciseGifCatalogTest from './ExerciseGifCatalog.test'
-import premiumExerciseContentServiceTest from './PremiumExerciseContentService.test'
-import monetizationEntitlementServiceTest from './MonetizationEntitlementService.test'
-import monetizationGateServiceTest from './MonetizationGateService.test'
-import monetizationHubServiceTest from './MonetizationHubService.test'
-import reviewUpgradeEntryServiceTest from './ReviewUpgradeEntryService.test'
-import reviewAdvancedInsightsPanelServiceTest from './ReviewAdvancedInsightsPanelService.test'
-import advancedPlanVariantsServiceTest from './AdvancedPlanVariantsService.test'
 import syncServiceTest from './SyncService.test'
 import startupContentSyncFlowTest from './StartupContentSyncFlow.test'
 import authSessionFlowTest from './AuthSessionFlow.test'
@@ -76,13 +69,6 @@ export default function testsuite(): void {
   deviceSeedServiceTest()
   exerciseMediaResolverServiceTest()
   exerciseGifCatalogTest()
-  premiumExerciseContentServiceTest()
-  monetizationEntitlementServiceTest()
-  monetizationGateServiceTest()
-  monetizationHubServiceTest()
-  reviewUpgradeEntryServiceTest()
-  reviewAdvancedInsightsPanelServiceTest()
-  advancedPlanVariantsServiceTest()
   syncServiceTest()
   startupContentSyncFlowTest()
   authSessionFlowTest()

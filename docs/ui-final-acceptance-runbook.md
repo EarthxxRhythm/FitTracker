@@ -55,7 +55,6 @@ Proceed only if the result is `passed`.
 If Midscene is temporarily unavailable but the device is connected, you can still run a short native probe before or during the manual pass:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File tools/live-device-probe.ps1 -Scenario review-membership
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/live-device-probe.ps1 -Scenario review-workout-loop
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/live-device-probe.ps1 -Scenario review-backup-card
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/live-device-probe.ps1 -Scenario review-exercise-detail
@@ -79,7 +78,6 @@ Review the routes in this exact order so the product reads as one connected expe
 9. `ExerciseLibraryPage`
 10. `ExerciseDetailPage`
 11. `PencilPlanPage`
-12. `MonetizationHubPage`
 
 ## Recommended Session Structure
 
@@ -118,13 +116,11 @@ Routes:
 - exercise library
 - exercise detail
 - training plan detail
-- monetization hub
 
 What to watch:
 
 - whether library/detail feel like knowledge tools, not disconnected content pages
 - whether preset plan detail feels supportive rather than competing with today's plan
-- whether monetization hub stays secondary and clearly non-production
 
 ## Route-by-Route Prompts
 
@@ -178,17 +174,11 @@ Use these prompts while reviewing.
 ### ExerciseDetailPage
 
 - Does the media block feel integrated into instruction?
-- Does premium content read as optional extension instead of interruption?
 
 ### PencilPlanPage
 
 - Can you scan the structure before committing?
 - Is the default enable path still clearer than advanced exploration?
-
-### MonetizationHubPage
-
-- Does this read as capability preview rather than checkout theater?
-- Is local preview language clearly non-production?
 
 ## Evidence You Already Have
 
@@ -228,7 +218,6 @@ Mark a route as blocking only if one of these is true:
 - it visibly breaks the target calm, premium, operational style
 - the primary task path is confusing
 - layout overlap, clipping, or accidental jumping is obvious
-- a secondary monetization or upgrade surface feels louder than the workout product
 
 Do not block for:
 

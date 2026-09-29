@@ -5,7 +5,7 @@
 - 当前页面注册唯一来源：`entry/src/main/resources/base/profile/main_pages.json`
 - 当前代码路由唯一来源：`entry/src/main/ets/app/AppRoutes.ets`
 - 当前工程约束：根目录 `AGENTS.md`
-- 当前 UI 主线：`features/pencil/`、`features/welcome/`、`features/onboarding/`、`features/exercise/`、`features/monetization/`、`features/workout/`
+- 当前 UI 主线：`features/pencil/`、`features/welcome/`、`features/onboarding/`、`features/exercise/`、`features/workout/`
 
 当前训练主线为：
 

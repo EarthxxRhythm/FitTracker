@@ -13,7 +13,6 @@ export class AppRoutes {
   static readonly APP_SHELL: string = 'app/PencilAppShell'
   static readonly EXERCISE_LIBRARY: string = 'features/exercise/pages/ExerciseLibraryPage'
   static readonly EXERCISE_DETAIL: string = 'features/exercise/pages/ExerciseDetailPage'
-  static readonly MONETIZATION_HUB: string = 'features/monetization/pages/MonetizationHubPage'
   static readonly TRAINING_PLAN_DETAIL: string = 'features/pencil/pages/PencilPlanPage'
   // 训练预览已改为 PencilAppShell 的 bindContentCover 全模态，不再是路由页（已从
   // main_pages.json 移除）。此常量保留：HomePlanService.startRoute 与相关测试把它作为

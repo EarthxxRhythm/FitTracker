@@ -12,25 +12,23 @@ FitTracker should read as a focused mobile training tool: calm, dense enough to 
   - a self-directed trainee who wants to open the app, understand today's plan quickly, execute a workout, and review progress without extra ceremony
 - main job on these screens
   - move through the workout loop with low friction: auth -> goal/home -> preview -> active -> summary -> review
-  - use secondary routes only when needed: exercise detail, preset plan detail, backup entry, membership preview
+  - use secondary routes only when needed: exercise detail, preset plan detail, backup entry
 - comparable pattern cues
   - compact training dashboards rather than social fitness feeds
-  - utility-first review surfaces rather than promo-heavy membership walls
+  - utility-first review surfaces rather than promo-heavy walls
 
 ## UX Direction
 
 - hierarchy
   - `PencilHomePage` keeps today's training entry as the dominant action
   - `PencilPreviewPage`, `PencilActivePage`, and `WorkoutSummaryPage` behave like one continuous lane
-  - `PencilReviewPage` groups trends, records, backup, and upgrade entry as secondary surfaces after workout completion
-  - `MonetizationHubPage` remains a side destination and does not interrupt the core workout path
+  - `PencilReviewPage` groups trends, records, and backup as secondary surfaces after workout completion
 - primary action path
   - auth handoff is compact and direct
   - home exposes the current-plan action without forcing plan browsing first
-  - review surfaces advanced capabilities as optional escalation, not required continuation
 - empty/loading/success/error states
   - closeout evidence already proves major routes are reachable and non-blank
-  - backup and membership flows expose explicit status text rather than silent state changes
+  - backup flows expose explicit status text rather than silent state changes
   - remaining manual acceptance should focus on whether those states feel intentional, not whether they exist
 
 ## Visual Direction
@@ -63,7 +61,6 @@ FitTracker should read as a focused mobile training tool: calm, dense enough to 
 
 - implementation guardrails
   - keep the current dark operational style and avoid reopening broad visual refactors during closeout
-  - do not let monetization styling become louder than workout styling
   - preserve component reuse; do not fork page-local button/card languages
 - validation recommendation
   - use `docs/ui-acceptance-checklist.md` for the final human pass
@@ -90,20 +87,14 @@ FitTracker should read as a focused mobile training tool: calm, dense enough to 
 ### Review Home
 
 - status: aligned but dense
-- read: information-rich review surface with optional upgrade and backup tools
+- read: information-rich review surface with optional backup tools
 - remaining manual check: verify the card stack still scans cleanly on phone viewport and does not feel overloaded
 
 ### Exercise Detail
 
 - status: aligned
 - read: instructional knowledge page with integrated media availability
-- remaining manual check: confirm media card and premium content card feel additive rather than stacked promotion
-
-### Monetization Hub
-
-- status: aligned
-- read: preparedness surface, not fake checkout
-- remaining manual check: ensure local preview language is always clearly non-production
+- remaining manual check: confirm the media card feels additive rather than stacked promotion
 
 ### Login / Register / Goal Setup
 

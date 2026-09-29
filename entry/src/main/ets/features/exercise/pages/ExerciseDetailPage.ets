@@ -2,9 +2,7 @@
  * ExerciseDetailPage -- local exercise detail from the self-owned action library.
  * Function #17: exercise detail with steps, notes, alternatives, and media section.
  */
-import { Context } from '@kit.AbilityKit'
 import { ColorTokens, FontTokens, RadiusTokens, SpacingTokens, TouchTokens } from '../../../common/styles/DesignTokens'
-import { AppButton } from '../../../components/AppButton'
 import { AppCard } from '../../../components/AppCard'
 import ContentRepository, { ExerciseDetailViewModel } from '../../../shared/services/ContentRepository'
 import ExerciseMediaResolverService, {
@@ -12,13 +10,6 @@ import ExerciseMediaResolverService, {
   ExerciseMediaMetadata,
   ExerciseMediaPresentation
 } from '../../../shared/services/ExerciseMediaResolverService'
-import MonetizationGateService from '../../../shared/services/MonetizationGateService'
-import PremiumExerciseContentService, {
-  PremiumExerciseContentPresentation,
-  PremiumExerciseContentTile
-} from '../../../shared/services/PremiumExerciseContentService'
-import { AppRoutes } from '../../../app/AppRoutes'
-import { MonetizationCapability } from '../../../shared/models/MonetizationModels'
 
 function createEmptyExerciseMediaMetadata(): ExerciseMediaMetadata {
   const metadata: ExerciseMediaMetadata = {
@@ -53,16 +44,6 @@ export struct ExerciseDetailPage {
   @State videoSourceLabel: string = ''
   @State mediaLicenseText: string = ''
   @State videoPlaceholder: string = ''
-  @State premiumContentPresentation: PremiumExerciseContentPresentation =
-    PremiumExerciseContentService.createDefaultPresentation()
-
-  private getHostContextOrNull(): Context | null {
-    const hostContext = this.getUIContext().getHostContext()
-    if (hostContext === undefined || hostContext === null) {
-      return null
-    }
-    return hostContext as Context
-  }
 
   aboutToAppear(): void {
     this.loadPage()
@@ -81,7 +62,6 @@ export struct ExerciseDetailPage {
       return
     }
     this.applyDetail(detail)
-    await this.loadPremiumContent(detail)
   }
 
   getRouteExerciseId(): string {
@@ -130,24 +110,6 @@ export struct ExerciseDetailPage {
       mediaLicenseText: this.mediaLicenseText
     }
     return metadata
-  }
-
-  async loadPremiumContent(detail: ExerciseDetailViewModel): Promise<void> {
-    try {
-      const context: Context | null = this.getHostContextOrNull()
-      if (context === null) {
-        this.premiumContentPresentation = PremiumExerciseContentService.createPresentation(true, 'free', detail)
-        return
-      }
-      const gateResult = await MonetizationGateService.getGateResult(context, 'premium_content')
-      this.premiumContentPresentation = PremiumExerciseContentService.createPresentation(
-        !gateResult.allowed,
-        gateResult.activeTier,
-        detail
-      )
-    } catch (e) {
-      this.premiumContentPresentation = PremiumExerciseContentService.createPresentation(true, 'free', detail)
-    }
   }
 
   copyStringArray(source: string[]): string[] {
@@ -292,34 +254,6 @@ export struct ExerciseDetailPage {
       return '暂无常见错误'
     }
     return '暂无训练提示'
-  }
-
-  openMonetizationHub(capability: MonetizationCapability, sourceLabel: string): void {
-    try {
-      this.getUIContext().getRouter().pushUrl({
-        url: AppRoutes.MONETIZATION_HUB,
-        params: {
-          focusCapability: capability,
-          focusSourceLabel: sourceLabel
-        }
-      })
-    } catch (e) {
-      // stay on current page
-    }
-  }
-
-  getMediaCapabilityGuideText(): string {
-    if (this.premiumContentPresentation.locked) {
-      return '基础演示和动作要点继续保留在免费主链里；更深训练清单和进阶内容再按需要解锁。'
-    }
-    return '当前权益已经覆盖更深训练清单；基础演示和进阶内容都可以继续直接查看。'
-  }
-
-  getPremiumActionText(): string {
-    if (this.premiumContentPresentation.locked) {
-      return '查看 Plus 权益'
-    }
-    return '查看当前权益边界'
   }
 
   getExecutionFocusText(): string {
@@ -505,8 +439,7 @@ export struct ExerciseDetailPage {
           this.buildDetailLaneHeader('执行与替代', '把动作步骤、关键提醒和替代动作放在同一段，方便训练前快速过一遍。')
           this.buildTechniqueSection()
           this.buildAlternativeSection()
-          this.buildDetailLaneHeader('扩展与资料', '把高级内容预埋和资料元信息收在尾部，不干扰前面的主任务。')
-          this.buildPremiumContentSection()
+          this.buildDetailLaneHeader('扩展与资料', '把训练资料和元信息收在尾部，不干扰前面的主任务。')
           this.buildMetadataSection()
         }
       }
@@ -570,133 +503,11 @@ export struct ExerciseDetailPage {
           .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
           .width('100%')
 
-        Text(this.getMediaCapabilityGuideText())
-          .fontSize(FontTokens.CAPTION_SIZE)
-          .fontColor(ColorTokens.TEXT_TERTIARY)
-          .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
-          .width('100%')
-          .padding(SpacingTokens.MD)
-          .backgroundColor(ColorTokens.BG_ELEVATED)
-          .borderRadius(RadiusTokens.MD)
-          .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
-
         this.buildInfoRow('统一来源', this.mediaPresentation.sourceNote)
         this.buildInfoRow('统一授权', this.mediaPresentation.licenseNote)
 
         this.buildMediaAssetBlock('封面资源', this.mediaPresentation.cover)
         this.buildMediaAssetBlock('视频资源', this.mediaPresentation.video)
-      }
-      .width('100%')
-      .alignItems(HorizontalAlign.Start)
-    }
-  }
-
-  @Builder
-  buildPremiumContentSection() {
-    AppCard({ variant: this.premiumContentPresentation.locked ? 'outlined' : 'panel', cardPadding: 'default' }) {
-      Column({ space: SpacingTokens.MD }) {
-        Row() {
-          Column({ space: SpacingTokens.XS }) {
-            Text(this.premiumContentPresentation.title)
-              .fontSize(FontTokens.TITLE_SIZE)
-              .fontWeight(FontTokens.TITLE_WEIGHT)
-              .fontColor(ColorTokens.TEXT_PRIMARY)
-
-            Text(this.premiumContentPresentation.description)
-              .fontSize(FontTokens.CAPTION_SIZE)
-              .fontColor(ColorTokens.TEXT_SECONDARY)
-              .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
-              .width('100%')
-          }
-          .layoutWeight(1)
-          .alignItems(HorizontalAlign.Start)
-
-          Text(this.premiumContentPresentation.statusLabel)
-            .fontSize(FontTokens.SMALL_SIZE)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-            .padding({
-              top: SpacingTokens.XS,
-              bottom: SpacingTokens.XS,
-              left: SpacingTokens.SM,
-              right: SpacingTokens.SM
-            })
-            .backgroundColor(
-              this.getMediaToneBackgroundColor(this.premiumContentPresentation.locked ? 'accent' : 'primary')
-            )
-            .borderRadius(RadiusTokens.FULL)
-        }
-        .width('100%')
-        .alignItems(VerticalAlign.Top)
-
-        ForEach(this.premiumContentPresentation.tiles, (tile: PremiumExerciseContentTile) => {
-          Column({ space: SpacingTokens.XS }) {
-            Text(tile.label)
-              .fontSize(FontTokens.SMALL_SIZE)
-              .fontColor(ColorTokens.TEXT_TERTIARY)
-
-            Text(tile.value)
-              .fontSize(FontTokens.BODY_SIZE)
-              .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
-              .fontColor(ColorTokens.TEXT_PRIMARY)
-              .width('100%')
-
-            Text(tile.note)
-              .fontSize(FontTokens.CAPTION_SIZE)
-              .fontColor(ColorTokens.TEXT_SECONDARY)
-              .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
-              .width('100%')
-          }
-          .width('100%')
-          .padding(SpacingTokens.MD)
-          .backgroundColor(ColorTokens.BG_ELEVATED)
-          .borderRadius(RadiusTokens.MD)
-          .border({ width: 1, color: ColorTokens.BORDER_SUBTLE })
-          .alignItems(HorizontalAlign.Start)
-        }, (tile: PremiumExerciseContentTile) => tile.tileId)
-
-        Column({ space: SpacingTokens.SM }) {
-          Text('训练清单')
-            .fontSize(FontTokens.BODY_SIZE)
-            .fontWeight(FontTokens.BODY_BOLD_WEIGHT)
-            .fontColor(ColorTokens.TEXT_PRIMARY)
-
-          ForEach(this.premiumContentPresentation.checklist, (item: string, index: number) => {
-            Row({ space: SpacingTokens.SM }) {
-              Text('路')
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(this.premiumContentPresentation.locked ? ColorTokens.ACCENT : ColorTokens.PRIMARY)
-                .margin({ top: SpacingTokens.XS })
-
-              Text(item)
-                .fontSize(FontTokens.BODY_SIZE)
-                .fontColor(ColorTokens.TEXT_PRIMARY)
-                .lineHeight(FontTokens.BODY_LINE_HEIGHT)
-                .layoutWeight(1)
-            }
-            .width('100%')
-            .alignItems(VerticalAlign.Top)
-          }, (item: string, index: number) => 'premium_check_' + index.toString() + '_' + item)
-        }
-        .width('100%')
-        .alignItems(HorizontalAlign.Start)
-
-        Text(this.premiumContentPresentation.supportingText)
-          .fontSize(FontTokens.CAPTION_SIZE)
-          .fontColor(ColorTokens.TEXT_SECONDARY)
-          .lineHeight(FontTokens.CAPTION_LINE_HEIGHT)
-          .width('100%')
-
-        if (this.premiumContentPresentation.locked) {
-          AppButton({
-            text: this.getPremiumActionText(),
-            type: 'primary',
-            buttonSize: 'medium',
-            block: true,
-            onButtonClick: () => {
-              this.openMonetizationHub('premium_content', '动作详情')
-            }
-          })
-        }
       }
       .width('100%')
       .alignItems(HorizontalAlign.Start)

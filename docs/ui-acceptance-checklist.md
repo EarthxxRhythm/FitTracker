@@ -25,7 +25,6 @@ Review these registered user-facing routes:
 - `pages/HomePage`
 - `features/exercise/pages/ExerciseLibraryPage`
 - `features/exercise/pages/ExerciseDetailPage`
-- `features/monetization/pages/MonetizationHubPage`
 - `features/workout/pages/TrainingPlanDetailPage`
 - `features/workout/pages/WorkoutPreviewPage`
 - `features/workout/pages/ActiveWorkoutPage`
@@ -94,13 +93,11 @@ For each route, confirm:
 
 - the app still reads as a focused training tool, not a marketing page
 - visual design feels calm, dense enough, and operational
-- monetization surfaces remain secondary to the workout product
 - advanced capabilities feel integrated rather than bolted on
 
 Fail the route if any of these are true:
 
 - the route feels like a promo surface instead of a tool surface
-- monetization interrupts the core workout path
 - visual treatment becomes flashy at the cost of clarity
 
 ## Route-Specific Focus Points
@@ -138,12 +135,6 @@ Fail the route if any of these are true:
 ### Review Home
 
 - trends, recovery insights, backup entry, and profile tools should coexist without feeling cluttered
-- advanced insights / membership entry should remain clearly secondary to review content
-
-### Monetization Hub
-
-- must read as a prepared capability surface, not a fake purchase flow
-- local preview states must be understandable and clearly non-production
 
 ## Review Output Template
 
