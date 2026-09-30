@@ -91,6 +91,7 @@ class AgcAuthProvider extends AuthProvider {
       return createAuthResult(false, '请输入验证码', null)
     }
     try {
+      await this.ensureNoActiveSession()
       const credential: PhoneCredentialInfo = {
         kind: 'phone',
         countryCode: COUNTRY_CODE,
@@ -138,6 +139,7 @@ class AgcAuthProvider extends AuthProvider {
       return createAuthResult(false, '请输入验证码', null)
     }
     try {
+      await this.ensureNoActiveSession()
       const credential: EmailCredentialInfo = {
         kind: 'email',
         email: trimmedEmail,
@@ -168,6 +170,7 @@ class AgcAuthProvider extends AuthProvider {
       return createAuthResult(false, '请输入正确的邮箱', null)
     }
     try {
+      await this.ensureNoActiveSession()
       const credential: EmailCredentialInfo = { kind: 'email', email: trimmedEmail, password: password }
       const param: SignInParam = { credentialInfo: credential, autoCreateUser: false }
       const result: SignInResult = await auth.signIn(param)
@@ -182,6 +185,7 @@ class AgcAuthProvider extends AuthProvider {
       return createAuthResult(false, '当前版本暂未开通该登录方式，请使用手机号或邮箱登录', null)
     }
     try {
+      await this.ensureNoActiveSession()
       const credential: HwIdCredentialInfo = { kind: 'hwid' }
       const param: SignInParam = { credentialInfo: credential, autoCreateUser: true }
       const result: SignInResult = await auth.signIn(param)
@@ -217,6 +221,26 @@ class AgcAuthProvider extends AuthProvider {
 
   async clearPersisted(context: Context): Promise<void> {
     this.sessionCache = null
+  }
+
+  /**
+   * 登录/注册前清理 SDK 残留会话。
+   * 场景：卸载重装 / 清数据 / 本地快照丢失后重新登录——本地无会话而 AGC SDK 内部
+   * 登录态仍持久化，此时 signIn/createUser 会报
+   * 「first sign in a user, please sign out at first.」（AGCAuthErrorCode.ALREADY_SIGN_IN_USER）。
+   * 登录动作语义上以新会话为准，先登出旧会话保证 signIn 可用。
+   */
+  private async ensureNoActiveSession(): Promise<void> {
+    try {
+      const current: AuthUser | null = await auth.getCurrentUser()
+      if (current !== null) {
+        await auth.signOut()
+      }
+    } catch (error) {
+      // 清理失败不阻断登录尝试（由后续 signIn 自行报错）
+      const err: BusinessError = error as BusinessError
+      hilog.warn(0x0000, 'AgcAuthProvider', 'ensureNoActiveSession failed: code=' + err.code + ' message=' + err.message)
+    }
   }
 
   private toAuthResult(result: SignInResult, providerId: string, displayNameOverride: string): AuthResult {
