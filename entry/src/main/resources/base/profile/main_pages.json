@@ -5,7 +5,6 @@
                 "features/pencil/pages/PencilLoginPage",
                 "features/pencil/pages/PencilRegisterPage",
                 "features/pencil/pages/PencilProfilePage",
-                "features/onboarding/pages/GoalSetupPage",
                 "app/PencilAppShell",
                 "features/pencil/pages/PencilHomePage",
                 "features/exercise/pages/ExerciseLibraryPage",

@@ -76,7 +76,7 @@ export default function targetLoopFlowTest(): void {
       GoalRepository.clearLocal()
       WorkoutRepository.clear()
 
-      expect(StartupDecision.getInitialRoute(true, GoalRepository.hasLocalGoal())).assertEqual(AppRoutes.GOAL_SETUP)
+      expect(StartupDecision.getInitialRoute(true, GoalRepository.hasLocalGoal())).assertEqual(AppRoutes.APP_SHELL)
 
       const now: number = 1000
       const goal: UserGoal = GoalSetupService.createCurrentGoalFromSelection(

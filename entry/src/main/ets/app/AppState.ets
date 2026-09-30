@@ -19,16 +19,15 @@ export class StartupDecision {
   /**
    * 冷启动分流矩阵（强制登录，PRD 3.1 口径）：
    *  - 未登录 → 登录页
-   *  - 已登录且无目标 → 目标设置
-   *  - 已登录且有目标 → 主壳
+   *  - 已登录 → 主壳（无目标不再强制进入目标设置页：GoalSetupPage 已随产品变更
+   *    整体移除，无目标场景由首页空态承接，见 HomeContent.applyEmptyState）
+   *
+   * hasGoal 参数保留以稳定调用方签名（登录/注册/启动三处均传真实值），当前不参与分流决策。
    */
   static getInitialRoute(hasValidSession: boolean, hasGoal: boolean): string {
     if (!hasValidSession) {
       return AppRoutes.LOGIN
     }
-    if (hasGoal) {
-      return AppRoutes.APP_SHELL
-    }
-    return AppRoutes.GOAL_SETUP
+    return AppRoutes.APP_SHELL
   }
 }
