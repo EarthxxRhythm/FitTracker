@@ -4,7 +4,7 @@
  * 载荷为整包 JSON（用户数据聚合信封），每个用户一条快照。
  * 实现：
  *  - LocalSandboxSnapshotStore：本机文件模拟云端存储（AGC 未配置 / 测试环境）
- *  - AgcCloudSnapshotStore（Wave 5）：AGC 云数据库 SyncSnapshot 对象 CRUD
+ *  - AgcCloudSnapshotStore：AGC 云数据库 SyncSnapshot 对象 CRUD（见 AgcCloudSnapshotStore.ets）
  */
 import { Context } from '@kit.AbilityKit'
 import { fileIo } from '@kit.CoreFileKit'

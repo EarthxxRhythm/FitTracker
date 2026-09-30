@@ -37,6 +37,10 @@ Thumbs.db
 *.pem
 *.p7b
 
+# AGC service configuration (contains client keys — never commit).
+# Copy agconnect-services.json into AppScope/resources/rawfile/ locally before Wave 5 build.
+**/agconnect-services.json
+
 # C/C++ tooling
 .cxx
 /.clangd
@@ -86,3 +90,6 @@ Thumbs.db
 /.sisyphus/
 /.claude/
 /.rivet/
+
+# Tianshu runtime local config (tool preset)
+/.rivet-config.json
