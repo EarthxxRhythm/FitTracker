@@ -330,8 +330,8 @@ export default function targetLoopSkeletonTest() {
       expect(StartupDecision.getInitialRoute(true, true)).assertEqual(AppRoutes.APP_SHELL)
     })
 
-    it('routes users without goals to onboarding goal setup on startup', 0, () => {
-      expect(StartupDecision.getInitialRoute(true, false)).assertEqual('features/onboarding/pages/GoalSetupPage')
+    it('routes users without goals to the app shell on startup', 0, () => {
+      expect(StartupDecision.getInitialRoute(true, false)).assertEqual(AppRoutes.APP_SHELL)
     })
 
     it('stores the current goal locally', 0, () => {

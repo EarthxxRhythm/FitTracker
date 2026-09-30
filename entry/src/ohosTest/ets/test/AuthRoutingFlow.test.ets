@@ -48,9 +48,9 @@ export default function authRoutingFlowTest(): void {
       expect(loginResult.success).assertTrue()
       expect(await SessionManager.isLoggedIn(context)).assertTrue()
 
-      // 已登录且无目标 → 目标设置
+      // 已登录且无目标 → 主壳（目标设置引导页已随产品变更移除，由首页空态承接）
       expect(await GoalRepository.hasSavedGoal(context)).assertFalse()
-      expect(StartupDecision.getInitialRoute(await SessionManager.isLoggedIn(context), await GoalRepository.hasSavedGoal(context))).assertEqual(AppRoutes.GOAL_SETUP)
+      expect(StartupDecision.getInitialRoute(await SessionManager.isLoggedIn(context), await GoalRepository.hasSavedGoal(context))).assertEqual(AppRoutes.APP_SHELL)
 
       // 保存目标后 → 主壳
       const goal: UserGoal = GoalSetupService.createCurrentGoalFromSelection(

@@ -8,7 +8,6 @@ export class AppRoutes {
   static readonly LOGIN: string = 'features/pencil/pages/PencilLoginPage'
   static readonly REGISTER: string = 'features/pencil/pages/PencilRegisterPage'
   static readonly PROFILE: string = 'features/pencil/pages/PencilProfilePage'
-  static readonly GOAL_SETUP: string = 'features/onboarding/pages/GoalSetupPage'
   static readonly HOME: string = 'features/pencil/pages/PencilHomePage'
   static readonly APP_SHELL: string = 'app/PencilAppShell'
   static readonly EXERCISE_LIBRARY: string = 'features/exercise/pages/ExerciseLibraryPage'
