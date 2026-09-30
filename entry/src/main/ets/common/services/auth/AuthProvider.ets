@@ -3,7 +3,7 @@
  *
  * 实现：
  *  - SandboxAuthProvider：本地沙盒（AGC 云服务未配置 / 测试环境时降级使用）
- *  - AgcAuthProvider：AGC 认证服务（随 agconnect-services.json 就绪接入）
+ *  - AgcAuthProvider：AGC 认证服务（agconnect-services.json 就绪后接入；Wave 5 已接线）
  *
  * 所有方法返回 Promise 以对齐云端异步语义；沙盒实现内部为同步逻辑。
  */

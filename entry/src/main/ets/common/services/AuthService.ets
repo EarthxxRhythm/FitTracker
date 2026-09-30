@@ -3,11 +3,12 @@
  *
  * 统一入口：探测云环境（cloud / sandbox）并转发到对应 AuthProvider；
  * 登录/注册成功后自动写入 SessionManager 会话快照，供启动分流与 UI 展示。
- * AGC 接入（Wave 5）时替换 resolveProvider 的云端分支，调用面不变。
+ * AGC 配置（agconnect-services.json）就绪时云端分支自动切换为 AgcAuthProvider，调用面不变。
  */
 import { Context } from '@kit.AbilityKit'
 import { preferences } from '@kit.ArkData'
 import { AuthProvider } from './auth/AuthProvider'
+import AgcAuthProvider from './auth/AgcAuthProvider'
 import SandboxAuthProvider from './auth/SandboxAuthProvider'
 import CloudEnvironment from './CloudEnvironment'
 import SessionManager from './SessionManager'
@@ -126,8 +127,11 @@ class AuthService {
     if (this.testingProvider !== null) {
       return this.testingProvider
     }
+    if (CloudEnvironment.isAgcConfigured()) {
+      // Wave 5 接线：AGC 配置就绪时认证走云端（agconnect-services.json 探测通过）
+      return AgcAuthProvider
+    }
     if (this.provider === null) {
-      // Wave 5：CloudEnvironment.isAgcConfigured() 为真时切换为 AgcAuthProvider
       this.provider = SandboxAuthProvider
     }
     return this.provider

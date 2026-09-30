@@ -16,6 +16,7 @@
  * 瞬时通过，等待成本不在链间叠加。
  */
 import { preferences } from '@kit.ArkData'
+import CloudEnvironment from '../../../main/ets/common/services/CloudEnvironment'
 
 const GATE_WAIT_TIMEOUT_MS: number = 4000
 const GATE_POLL_INTERVAL_MS: number = 5
@@ -32,6 +33,20 @@ export interface WarmupOutcome {
 let gateHeld: boolean = false
 let warmupPromise: Promise<WarmupOutcome> | null = null
 let lastProbeError: string = ''
+let sandboxModeForced: boolean = false
+
+/**
+ * 测试环境强制沙盒模式：rawfile 中即使存在 agconnect-services.json（AGC 真配置，
+ * Wave 5 已放入），测试也一律走沙盒认证 / 本地沙盒快照存储，不触真实云网络。
+ * 由 ensureWarmup / acquireAuthSyncGate 自动调用（幂等）。
+ */
+export function ensureSandboxMode(): void {
+  if (sandboxModeForced) {
+    return
+  }
+  CloudEnvironment.setModeForTesting('sandbox')
+  sandboxModeForced = true
+}
 
 function delayTick(ms: number): Promise<void> {
   return new Promise<void>((resolve: () => void) => {
@@ -70,6 +85,7 @@ async function probePreferences(getContext: () => Context): Promise<WarmupOutcom
  * 第一个调用者启动探测（只有它的 getContext 生效）；其余调用者等待同一 Promise。
  */
 export function ensureWarmup(getContext: () => Context): Promise<WarmupOutcome> {
+  ensureSandboxMode()
   if (warmupPromise === null) {
     warmupPromise = probePreferences(getContext)
   }
@@ -87,6 +103,7 @@ export async function warmUpPreferences(context: Context): Promise<void> {
 }
 
 export async function acquireAuthSyncGate(): Promise<void> {
+  ensureSandboxMode()
   let waited: number = 0
   while (gateHeld && waited < GATE_WAIT_TIMEOUT_MS) {
     await delayTick(GATE_POLL_INTERVAL_MS)

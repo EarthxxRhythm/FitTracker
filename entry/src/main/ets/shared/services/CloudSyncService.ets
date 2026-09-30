@@ -13,9 +13,11 @@
 import { Context } from '@kit.AbilityKit'
 import { preferences } from '@kit.ArkData'
 import { FitTrackerStores } from '../../app/AppState'
+import CloudEnvironment from '../../common/services/CloudEnvironment'
 import SessionManager from '../../common/services/SessionManager'
 import UserProfileService, { UserProfile } from '../../common/services/UserProfileService'
 import UserDataBackupService, { UserDataBackupImportResult, UserDataBackupPackage } from './UserDataBackupService'
+import agcCloudSnapshotStore from './AgcCloudSnapshotStore'
 import cloudSnapshotStore, {
   CloudSnapshot,
   CloudSnapshotStore,
@@ -153,14 +155,25 @@ class CloudSyncService {
       }
       const localPayload: string = await this.buildLocalPayload(context)
       const localHash: string = this.hashPayload(localPayload)
-      const store: CloudSnapshotStore = this.resolveStore()
-      const remote: CloudSnapshot | null = await store.pull(context, session.userId)
-      const remoteHash: string = remote === null ? '' : this.hashPayload(remote.payloadJson)
-      const remoteUpdatedAt: number = remote === null ? 0 : remote.updatedAt
       const meta: SyncMeta = await this.readMeta(context)
       const sameAccount: boolean = meta.userId === session.userId
       const baseline: string = sameAccount ? meta.lastSyncedHash : ''
       const baselineAt: number = sameAccount ? meta.lastSyncAt : 0
+      const store: CloudSnapshotStore | null = await this.resolveStore()
+      if (store === null) {
+        await this.writeMeta(context, this.createMeta(
+          session.userId,
+          baseline,
+          baselineAt,
+          meta.autoEnabled,
+          'failed',
+          '云服务未就绪，请稍后重试'
+        ))
+        return this.createResult(false, 'failed', '云服务未就绪，请稍后重试', Date.now())
+      }
+      const remote: CloudSnapshot | null = await store.pull(context, session.userId)
+      const remoteHash: string = remote === null ? '' : this.hashPayload(remote.payloadJson)
+      const remoteUpdatedAt: number = remote === null ? 0 : remote.updatedAt
       const action: SyncAction = this.decideSyncAction(localHash, remoteHash, baseline, remoteUpdatedAt, baselineAt)
       const now: number = Date.now()
 
@@ -305,8 +318,19 @@ class CloudSyncService {
     }
   }
 
-  private resolveStore(): CloudSnapshotStore {
-    return this.testingStore !== null ? this.testingStore : cloudSnapshotStore
+  /**
+   * 解析云存储：测试注入 > AGC 云数据库（需 cloudCommon 就绪；未就绪返回 null 走显式
+   * 失败路径，不跨存储降级以免数据分裂） > 本地沙盒存储。
+   */
+  private async resolveStore(): Promise<CloudSnapshotStore | null> {
+    if (this.testingStore !== null) {
+      return this.testingStore
+    }
+    if (CloudEnvironment.isAgcConfigured()) {
+      const ready: boolean = await CloudEnvironment.ensureCloudDatabaseReady()
+      return ready ? agcCloudSnapshotStore : null
+    }
+    return cloudSnapshotStore
   }
 
   private resolveDeviceTag(): string {
