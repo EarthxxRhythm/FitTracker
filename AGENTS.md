@@ -1,10 +1,10 @@
 # FitTracker 项目约束
 
-> 最后核对：2026-09-29（页面清单与 features 边界已按 `main_pages.json` 最新版校准）。本文只描述当前主线；历史设计、旧路由和已归档计划不作为实现依据。
+> 最后核对：2026-10-01（页面清单与 features 边界已按 `main_pages.json` 最新版校准；登录/注册已云端化（AGC），「训练目标」引导页已移除）。本文只描述当前主线；历史设计、旧路由和已归档计划不作为实现依据。
 
 ## 项目概览
 
-HarmonyOS Stage 模式的 ArkUI 健身训练应用，中文本地化、本地数据优先。应用记录训练组数/次数/重量，计算 Epley 1RM，并保存目标、计划、训练会话、复盘与备份数据。
+HarmonyOS Stage 模式的 ArkUI 健身训练应用，中文本地化、本地数据优先 + 账号云同步（华为 AGC：认证服务 + 云数据库整包快照）。应用记录训练组数/次数/重量，计算 Epley 1RM，并保存目标、计划、训练会话、复盘与备份数据。
 
 技术栈：ArkTS/ArkUI、`@kit.ArkData` preferences、Stage Ability、ohosTest。
 
@@ -14,34 +14,32 @@ HarmonyOS Stage 模式的 ArkUI 健身训练应用，中文本地化、本地数
 entry/src/main/ets/
 ├── app/                  # 启动、路由常量、应用壳
 ├── features/
-│   ├── pencil/           # 当前视觉主线：登录、首页、计划、训练、复盘、个人页
+│   ├── pencil/           # 当前视觉主线：登录、首页、计划、训练（含预览覆盖层）、复盘、个人页
 │   ├── welcome/          # 欢迎页
-│   ├── onboarding/       # 目标设置
+│   ├── account/          # 账号与同步页
 │   ├── exercise/         # 动作库与动作详情
 │   ├── body/             # 身体数据
 │   ├── settings/         # 设置
 │   └── workout/          # 训练完成、摘要及训练流兼容服务
-├── shared/               # 跨功能内容、计划、复盘、备份、同步和内存仓库
-├── common/               # 稳定的认证、会话、计划/训练持久化和设计令牌
+├── shared/               # 跨功能内容、计划、复盘、备份、云同步和内存仓库
+├── common/               # 稳定服务：认证（AGC/沙盒双实现）、会话、云环境探测、计划/训练持久化、设计令牌
 └── components/           # 可复用 ArkUI 组件
 ```
 
 `entry/src/main/resources/base/profile/main_pages.json` 是页面注册的唯一事实来源；`app/AppRoutes.ets` 是代码中的路由常量来源。新页面必须同时满足：文件存在、注册到 `main_pages.json`、由 `AppRoutes` 或明确的父页面引用。
 
-页面统一放在 `features/<feature>/pages/`；Tab 内容等无 `@Entry` 的界面体放 `features/<feature>/components/`。当前注册主线：
+页面统一放在 `features/<feature>/pages/`；Tab 内容等无 `@Entry` 的界面体放 `features/<feature>/components/`。当前注册主线（18 页，与 `main_pages.json` 一致）：
 
 - `features/pencil/pages/PencilSplashPage`
 - `features/welcome/pages/PencilWelcomePage`
 - `features/pencil/pages/PencilLoginPage`
 - `features/pencil/pages/PencilRegisterPage`
 - `features/pencil/pages/PencilProfilePage`
-- `features/onboarding/pages/GoalSetupPage`
 - `app/PencilAppShell`
 - `features/pencil/pages/PencilHomePage`
 - `features/exercise/pages/ExerciseLibraryPage`
 - `features/exercise/pages/ExerciseDetailPage`
 - `features/pencil/pages/PencilPlanPage`
-- `features/pencil/pages/PencilPreviewPage`
 - `features/pencil/pages/PencilActivePage`
 - `features/workout/pages/WorkoutCompletePage`
 - `features/pencil/pages/PencilReviewPage`
@@ -49,15 +47,19 @@ entry/src/main/ets/
 - `features/pencil/pages/PencilPlanGroupDetailPage`
 - `features/body/pages/BodyDataPage`
 - `features/settings/pages/PencilSettingsPage`
+- `features/account/pages/AccountSyncPage`
 
-pencil 的界面体组件：`features/pencil/components/` 下 `HomeContent` / `PlanContent` / `ProfileContent` / `ReviewContent` / `ActiveContent` / `PlansContent` / `PlanGroupDetailContent`，供 `PencilAppShell` 与对应薄壳注册页复用；`features/body/components/BodyDataContent` 与 `features/settings/components/SettingsContent` 同理。
+pencil 的界面体组件：`features/pencil/components/` 下 `HomeContent` / `PlanContent` / `ProfileContent` / `ReviewContent` / `ActiveContent` / `PlansContent` / `PlanGroupDetailContent`，供 `PencilAppShell` 与对应薄壳注册页复用；`features/body/components/BodyDataContent` 与 `features/settings/components/SettingsContent` 同理。训练预览为 `features/pencil/pages/PencilPreviewPage.ets` 中的 `PencilPreviewContent`（无 `@Entry`，由 `PencilAppShell` 的 `bindContentCover` 以全模态承载，不注册路由）。
+
+冷启动分流：未登录 → 登录页；已登录（无论有无目标）→ 主壳。原「训练目标」引导页已移除，无目标场景由首页空态承接。
 
 旧的 `pages/Index`、`pages/ProfilePage`、旧认证页、旧标签栏、旧常量和未注册的旧功能页已经移除。不要重新创建历史壳，也不要把已归档页面加入主路由。
 
 ## 服务归属
 
-- `common/services/`：preferences 持久化、认证、会话 token、用户资料、稳定的计划/训练 API。
-- `shared/services/`：内容目录、计划引擎、首页/复盘派生数据、同步、备份、内存仓库和持久化降级组合。
+- `common/services/`：preferences 持久化、认证（`AuthService` 门面：AGC/沙盒双 Provider，按 `CloudEnvironment` 探测切换）、会话 token、用户资料、稳定的计划/训练 API。
+- `shared/services/`：内容目录、计划引擎、首页/复盘派生数据、云同步（`CloudSyncService` 决策内核 + AGC/沙盒快照存储）、备份、内存仓库和持久化降级组合。
+- 认证与云同步的运行模式：`CloudEnvironment` 探测 rawfile 中的 `agconnect-services.json`（存在 → AGC 真实链路；缺失 → 沙盒降级、UI 明示演示模式）。ohosTest 经 `AuthSyncTestGate` 强制沙盒，测试不触真实网络。
 - `features/workout/services/`：仅放训练功能专属编排，以及新旧训练数据模型之间的兼容桥。
 
 服务均使用模块级 singleton：`export default new ServiceName()`。调用方直接导入默认实例，禁止在页面或服务中再次 `new`。

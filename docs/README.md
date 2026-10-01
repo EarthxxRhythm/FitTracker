@@ -5,17 +5,17 @@
 - 当前页面注册唯一来源：`entry/src/main/resources/base/profile/main_pages.json`
 - 当前代码路由唯一来源：`entry/src/main/ets/app/AppRoutes.ets`
 - 当前工程约束：根目录 `AGENTS.md`
-- 当前 UI 主线：`features/pencil/`、`features/welcome/`、`features/onboarding/`、`features/exercise/`、`features/workout/`
+- 当前 UI 主线：`features/pencil/`、`features/welcome/`、`features/account/`、`features/exercise/`、`features/workout/`
 
-当前训练主线为：
+当前启动主线为（登录后直达主壳；原「训练目标」引导页已移除）：
 
-`PencilSplashPage -> PencilWelcomePage -> PencilLoginPage/PencilRegisterPage -> GoalSetupPage -> PencilAppShell`
+`PencilSplashPage -> PencilLoginPage/PencilRegisterPage -> PencilAppShell`（未登录路径）；`PencilSplashPage -> PencilAppShell`（已登录路径）
 
-应用壳内的主要内容由 `PencilHomePage`、`PencilPlanPage`、`PencilPreviewPage`、`PencilActivePage`、`WorkoutSummaryPage`、`PencilReviewPage` 和 `PencilProfilePage` 承载。
+应用壳内的主要内容由 `PencilHomePage`、`PencilPlanPage`、`PencilActivePage`、`WorkoutCompletePage`、`PencilReviewPage` 和 `PencilProfilePage` 承载；训练预览由 `PencilPreviewContent` 以壳内全模态呈现；账号与同步为 `AccountSyncPage`。
 
 ## 历史归档
 
-`docs/archive/legacy-routes-2026-08/` 保存旧启动页、旧首页原型、旧训练页、旧路由图和已完成的实现计划。归档文件只用于审计和历史追溯，不作为新的代码、路由或目录实现依据。
+`docs/archive/` 下的归档目录（当前为 `legacy-cleanup-2026-09/`）保存早期工作台账、开发日志与已完成的实现计划等历史材料。归档文件只用于审计和历史追溯，不作为新的代码、路由或目录实现依据。
 
 验收证据、构建记录和设备回归材料继续保留在原位置，除非明确要求，不移动或删除。
 
@@ -32,6 +32,7 @@
 
 - `docs/release-build-runbook.md` —— 构建/发布工程面的真实状态、命令、缺口与接入点；第 9 节记录 bundleName 变更对本地数据沙箱的影响与迁移路径
 - `docs/CHANGELOG.md` —— 版本说明与更新日志
-- `docs/legal/privacy-policy.md` —— 隐私政策（本地优先、零权限、零网络）
+- `docs/cloud-setup.md` —— AGC 云服务配置手册（认证服务 / 云数据库 / 证书指纹；配置记录 + 排错速查）
+- `docs/legal/privacy-policy.md` —— 隐私政策（本地优先；登录后可选的云同步数据范围、退出与清除）
 - `docs/legal/user-agreement.md` —— 用户协议
 - `docs/store-listing-screenshot-checklist.md` —— 应用市场上架截图清单（release 包实拍）
