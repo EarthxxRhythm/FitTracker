@@ -28,9 +28,11 @@
 #    需手动保留）；naturalbase_ClassName 为 SDK 约定的对象类名接口。
 # 2) 传给 @hw-agconnect/auth（预编译 HAR）的入参属性名被 SDK 按名读取，
 #    跨模块边界属性保守保留。
-# 遗留：JSON 序列化场景（CloudPayloadEnvelope / SyncMeta / UserDataBackupPackage）
-# 在 release 混淆下需专项审计（见 Wave 5 交付说明）。
+# JSON 序列化场景审计（2026-10 发布收尾）：枚举审计已完成，白名单补充见下文
+# 「JSON 序列化/解析边界」分组；release 包实测记录见 docs/release-build-runbook.md §12。
 -keep-property-name
+
+# -- Wave 5 既有：SyncSnapshot 数据库字段 + AGC auth 入参 --
 naturalbase_ClassName
 userId
 payloadJson
@@ -56,3 +58,103 @@ authProvider
 databaseOptions
 schema
 traceId
+
+# -- JSON 序列化/解析边界（2026-10 发布专项审计，官方《保留选项》场景 4：「JSON数据解析
+#    和对象序列化时，需要保留使用到的字段」；凡 stringify 写入 → parse 读回按名访问的
+#    字段都必须保留，否则 release 包取值为 undefined）--
+# 云同步信封与元数据（CloudPayloadEnvelope / SyncMeta）
+backupJson
+nickname
+avatar
+weightUnit
+lastSyncedHash
+lastSyncAt
+autoEnabled
+lastStatus
+lastError
+
+# 备份与用户数据模型（UserDataBackupPackage / UserGoal / UserPlan / TrainingDay /
+# ExerciseRef / WorkoutSession(shared models) / WorkoutSet / contentMeta）
+exportedAt
+goal
+plans
+currentPlanId
+sessions
+contentMeta
+contentVersion
+goalId
+goalType
+level
+weeklyDays
+sessionMinutes
+equipmentIds
+restrictedMuscleIds
+createdAt
+id
+name
+coverColor
+targetAudience
+weeklyFrequency
+description
+days
+enabledAt
+dayLabel
+dayOfWeek
+exercises
+targetMuscle
+sets
+reps
+sessionId
+planId
+dayId
+startedAt
+endedAt
+durationSeconds
+totalSets
+totalVolume
+fatigueScore
+notes
+setId
+exerciseId
+weight
+rpe
+isWarmup
+
+# 认证与会话（TokenPayload / JwtHeader / AuthSession / SandboxUserRecord）
+iat
+exp
+alg
+typ
+phone
+providerId
+signedInAt
+passwordHash
+
+# 训练记录（服务层）与训练草稿（WorkoutSessionService / WorkoutDraftService）
+startTime
+endTime
+planName
+totalTargetSets
+completedSets
+currentExerciseName
+currentExerciseProgress
+targetSets
+targetReps
+setIndex
+weightText
+repsText
+estimatedOneRepMax
+oneRepMaxText
+isComplete
+
+# 内容同步元数据（ContentSyncMetadata）
+syncSchemaVersion
+localVersion
+lastKnownRemoteVersion
+lastCheckedAt
+lastSyncAttemptAt
+lastAppliedAt
+activeSourceId
+fallbackSourceId
+status
+failureReason
