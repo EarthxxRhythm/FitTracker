@@ -8,9 +8,11 @@ const DOMAIN = 0x0000;
 
 interface EntryLaunchParameters {
   devSeed?: string
+  testMode?: string
 }
 export default class EntryAbility extends UIAbility {
   private launchDebugSeedKey: string = '';
+  private launchTestMode: string = '';
 
   private async configureWindowAndLoadContent(windowStage: window.WindowStage, initialPage: string): Promise<void> {
     try {
@@ -40,6 +42,9 @@ export default class EntryAbility extends UIAbility {
     this.launchDebugSeedKey = launchParameters !== undefined && launchParameters.devSeed !== undefined
       ? launchParameters.devSeed
       : '';
+    this.launchTestMode = launchParameters !== undefined && launchParameters.testMode !== undefined
+      ? launchParameters.testMode
+      : '';
     hilog.info(
       DOMAIN,
       'testTag',
@@ -64,6 +69,7 @@ export default class EntryAbility extends UIAbility {
 
     const initialPage: string = AppRoutes.STARTUP
     LaunchRequestStore.savePendingDebugSeedKey(this.context, this.launchDebugSeedKey)
+      .then(() => LaunchRequestStore.savePendingTestMode(this.context, this.launchTestMode))
       .catch((err: Error) => {
         hilog.error(DOMAIN, 'testTag', 'Failed to persist launch request. Cause: %{public}s', JSON.stringify(err));
       })

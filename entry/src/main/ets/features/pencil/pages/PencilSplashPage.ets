@@ -4,10 +4,11 @@ import { StartupDecision } from '../../../app/AppState'
 import LaunchRequestStore from '../../../app/LaunchRequestStore'
 import SessionManager from '../../../common/services/SessionManager'
 import GoalRepository from '../../../shared/services/GoalRepository'
-import { Context } from '@kit.AbilityKit'
+import { bundleManager, Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
 import { text } from '@kit.ArkGraphics2D'
 import DeviceSeedService from '../../../shared/services/DeviceSeedService'
+import CloudEnvironment from '../../../common/services/CloudEnvironment'
 
 @Entry
 @Component
@@ -28,6 +29,16 @@ struct PencilSplashPage {
   private async useSafeWindowLayout(context: Context): Promise<void> {
     const mainWindow: window.Window = await window.getLastWindow(context)
     await mainWindow.setWindowLayoutFullScreen(false)
+  }
+
+  /** 测试模式门禁：仅 debug 构建（appInfo.debug=true）的包接受测试启动参数；release 包忽略。 */
+  private isDebuggablePackage(): boolean {
+    try {
+      const info = bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION)
+      return info.appInfo.debug
+    } catch (e) {
+      return false
+    }
   }
 
   @Builder
@@ -106,6 +117,11 @@ struct PencilSplashPage {
     this.loadDesignFonts()
     const context = this.contextOrNull()
     if (context !== null) {
+      // 测试模式（`--ps testMode=sandbox`，仅 debug 包）：跳过真实登录验证，整体切沙盒模式
+      const testMode: string = await LaunchRequestStore.consumePendingTestMode(context)
+      if (testMode === 'sandbox' && this.isDebuggablePackage()) {
+        CloudEnvironment.setModeForTesting(testMode)
+      }
       const seedKey: string = await LaunchRequestStore.consumePendingDebugSeedKey(context)
       if (seedKey.length > 0) {
         await DeviceSeedService.applyNamedSeed(context, seedKey)
