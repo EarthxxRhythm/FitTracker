@@ -245,12 +245,19 @@ class AgcAuthProvider extends AuthProvider {
 
   private toAuthResult(result: SignInResult, providerId: string, displayNameOverride: string): AuthResult {
     const user: AuthUser = result.getUser()
-    const displayName: string = displayNameOverride.length > 0 ? displayNameOverride : user.getDisplayName()
+    // AGC SDK 档案字段可能为 undefined（实测：未设置昵称的手机账号 getDisplayName() 为空）：
+    // 统一兜底为空串，保证会话快照 JSON 字段恒为 string（SessionManager.isValidSnapshot 契约），
+    // 否则字段会被 JSON.stringify 省略，重启后会话校验失败被判定未登录。
+    const uid: string = user.getUid() || ''
+    const sdkDisplayName: string = user.getDisplayName() || ''
+    const displayName: string = displayNameOverride.length > 0 ? displayNameOverride : sdkDisplayName
+    const phone: string = user.getPhone() || ''
+    const email: string = user.getEmail() || ''
     const session: AuthSession = createAuthSession(
-      user.getUid(),
+      uid,
       displayName,
-      user.getPhone(),
-      user.getEmail(),
+      phone,
+      email,
       providerId,
       Date.now()
     )
