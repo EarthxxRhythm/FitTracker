@@ -159,7 +159,7 @@ class CloudSyncService {
       const sameAccount: boolean = meta.userId === session.userId
       const baseline: string = sameAccount ? meta.lastSyncedHash : ''
       const baselineAt: number = sameAccount ? meta.lastSyncAt : 0
-      const store: CloudSnapshotStore | null = await this.resolveStore()
+      const store: CloudSnapshotStore | null = await this.resolveStore(context)
       if (store === null) {
         await this.writeMeta(context, this.createMeta(
           session.userId,
@@ -322,10 +322,13 @@ class CloudSyncService {
    * 解析云存储：测试注入 > AGC 云数据库（需 cloudCommon 就绪；未就绪返回 null 走显式
    * 失败路径，不跨存储降级以免数据分裂） > 本地沙盒存储。
    */
-  private async resolveStore(): Promise<CloudSnapshotStore | null> {
+  private async resolveStore(context: Context): Promise<CloudSnapshotStore | null> {
     if (this.testingStore !== null) {
       return this.testingStore
     }
+    // 幂等补齐 AGC 初始化：登录态重启的新进程不经过登录页，若不在此调用，
+    // isAgcConfigured() 恒为 false，同步会被静默降级到本地沙盒（发布走查发现）。
+    await CloudEnvironment.initialize(context)
     if (CloudEnvironment.isAgcConfigured()) {
       const ready: boolean = await CloudEnvironment.ensureCloudDatabaseReady()
       return ready ? agcCloudSnapshotStore : null
