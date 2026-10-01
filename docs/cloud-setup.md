@@ -1,8 +1,9 @@
-# AGC 云服务配置手册（v0.1 预备稿）
+# AGC 云服务配置手册
 
-> 用途：完成本手册后，工程具备执行「登录注册与云同步」计划 Wave 5（AGC 真实接线）的全部外部条件。
-> 状态：v0.2（2026-09-30）——流程基于华为官方文档与工程代码事实编写；标 ⚠ 的条目以控制台实际界面为准。
+> 用途：记录「登录注册与云同步」计划 Wave 5（AGC 真实接线）所需的控制台配置流程；本配置已于 2026-10-01 全部完成并经模拟器实测。
+> 状态：v0.3（2026-10-01）——配置流程 1-5 节执行完毕，手册转为「配置记录 + 排错参考」；标 ⚠ 的条目以控制台实际界面为准。
 > v0.2 修订：修正 `payloadJson` 字段类型（String→Text——官方 String 上限 200 字符装不下聚合包，且字段类型部署后不可改）；补充存储区前置、证书指纹实值（§5）、`schema.json` 入仓路径与排错速查（§7）。配套材料见 `cloud/agc/`。
+> v0.3 修订：§4 修正配置文件的工程路径与探测函数名；§6 回填完成状态；§7 补充实测排错条目。
 > 配套：`.rivet/plans/fittracker-登录注册与云同步-agc-实现计划.md`（配置表 8 项即本手册章节 1-5）。
 
 ## 0. 前置条件
@@ -27,7 +28,7 @@
 
 1. 认证服务 → 手机号码方式配置区 → 找到「**测试验证码**」（或「测试手机号」）设置项 ⚠
 2. 添加 1 个测试手机号，并设置其固定验证码
-3. 完成后把「**测试手机号 + 测试验证码**」两个值告知——Wave 5 模拟器实测将用它们走通真实 AGC 链路（测试号码不发真实短信）
+3. 完成后把「**测试手机号 + 测试验证码**」两个值告知——Wave 5 模拟器实测已用其走通真实 AGC 链路（测试号码不发真实短信；测试期验证码经 Webhook 转发至 `sms-hook` 云函数，从 AGC 控制台「质量 → 云监控 → 日志服务」读取）
 
 ## 3. 开通云数据库并创建 SyncSnapshot 对象类型（配置表项 5）
 
@@ -72,10 +73,9 @@
 ## 4. 下载配置文件 agconnect-services.json（配置表项 6）
 
 1. AGC → 应用「**项目设置**」（⚠ 或该应用「常规」页）→ 下载 `agconnect-services.json`
-2. **先留存，暂不放入工程**（原因见第 6 节「放入时机」）
-3. Wave 5 接线时放入路径：`entry/src/main/resources/rawfile/agconnect-services.json`
-   - 依据：`CloudEnvironment.detectAgcConfig()` 以 rawfile 探测该文件（`entry/src/main/ets/common/services/CloudEnvironment.ets`）
-   - 是否纳入版本控制由你决定（该文件属项目配置产物）
+2. 放入工程路径（Wave 5 实际接线路径）：`AppScope/resources/rawfile/` 目录下的 `agconnect-services.json`
+   - 依据：`CloudEnvironment.detectAndInitAgc()` 以 rawfile 探测该文件并执行 `auth.init`（`entry/src/main/ets/common/services/CloudEnvironment.ets`）
+   - 该文件含密钥，`.gitignore` 已排除入库（`**/agconnect-services.json`）
 
 ## 5. 注册调试证书指纹（配置表项 7）
 
@@ -90,20 +90,21 @@
 
 ## 6. 完成后（联动清单与注意事项）
 
-完成 1-5 后，把以下状态告知编排方：
+完成 1-5 后，把以下状态告知编排方（**5 项已于 2026-10-01 全部完成**；微信 / QQ 未启用，手机号 / 邮箱 / 华为账号已启用）：
 
-- [ ] 认证服务已开通，手机号 / 邮箱 / 华为账号 / 微信 / QQ 已按需启用
-- [ ] 测试手机号 + 测试验证码已配置（提供两个值）
-- [ ] 云数据库已开通，`SyncSnapshot` 对象类型已创建（权限 = 仅数据创建者读写）
-- [ ] `agconnect-services.json` 已下载（告知暂存位置）
-- [ ] 调试证书指纹已注册
+- [x] 认证服务已开通（手机号 / 邮箱 / 华为账号已启用；微信 / QQ 未启用）
+- [x] 测试手机号 + 测试验证码已配置（模拟器实测通过）
+- [x] 云数据库已开通，`SyncSnapshot` 对象类型已创建（权限 = 仅数据创建者读写）
+- [x] `agconnect-services.json` 已下载并放入工程（`AppScope/resources/rawfile/` 下，不入库）
+- [x] 调试证书指纹已注册
 
-**放入时机（重要）**：`agconnect-services.json` 一旦放入 rawfile，`CloudEnvironment.isAgcConfigured()` 即为 true。当前代码下（Wave 5 未接线）登录/注册页的「沙盒提示」会消失，而认证实际仍走沙盒（`AuthService.resolveProvider()` 尚有 `SandboxAuthProvider` 占位）——为避免「显示与行为不一致」，建议 Wave 5 接线时一并放入，放入后我会同步更新提示逻辑并重跑全量测试。
+**放入时机（已执行）**：`agconnect-services.json` 已随 Wave 5 接线放入 rawfile，`CloudEnvironment.isAgcConfigured()` 为 true，认证与云数据库均走真实 AGC；登录/注册页的沙盒提示逻辑已同步更新，全量测试已重跑。
 
-**验证引用**（Wave 5 完成时使用）：
-- 模拟器实测：发送验证码 → 输入测试验证码 → 登录成功（走 AGC）
-- 同步一次后，AGC 控制台云数据库可见该用户一行数据
-- 第三方登录（华为账号/微信/QQ）真机验证（或标「待真机」）
+**验证引用（完成情况，2026-10-01）**：
+- ✅ 模拟器实测：发送验证码 → 输入测试验证码 → 登录成功（走 AGC；验证码经 Webhook 转发到 `sms-hook` 云函数）
+- ✅ 同步一次后，AGC 控制台云数据库可见该用户一行数据（用户确认）
+- ⏳ 第三方登录：华为账号待真机验证；微信 / QQ 未启用（SDK 无对应凭据类型，应用内保持「暂未开通」提示）
+- ⏳ 行级隔离双账号 A/B 实测（§3 注记的「B 读不到 A 的快照」）未单独执行——权限已按 §3 收紧，建议并入后续真机验收
 
 ## 7. 排错速查
 
@@ -116,3 +117,4 @@
 | `number of CloudDBZone exceeds the limit` | 存储区已 4 个 → 复用或删除旧存储区（删区连带删数据） |
 | `existing fields cannot be modified` | 改动已部署对象类型的字段定义 → 删除对象类型重建（其中数据一并清除） |
 | 手机收不到验证码 | 正常——开发期用**测试验证码**（第 2 节） |
+| `first sign in a user, please sign out at first.` | AGC SDK 残留登录态与本地会话快照不一致（卸载重装 / 清数据后常见）：`AgcAuthProvider.ensureNoActiveSession` 已在登录前清理（提交 `ca594ab`）；绕过 AuthService 直调 SDK 的新代码需自行处理 |
