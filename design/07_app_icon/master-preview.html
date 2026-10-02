@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>FitTracker · 图标定稿预览</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#07090B; color:#EDF6F2; font-family:"Noto Sans SC","HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",sans-serif; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:920px; margin:0 auto; padding:48px 32px 64px; }
+  header { padding-bottom:30px; border-bottom:1px solid rgba(255,255,255,.09); }
+  .kicker { font-size:12px; letter-spacing:.14em; color:#50ECA7; text-transform:uppercase; margin-bottom:10px; }
+  h1 { font-size:30px; font-weight:700; color:#F7FBF8; }
+  .sub { margin-top:12px; font-size:14px; line-height:1.75; color:rgba(255,255,255,.62); max-width:780px; }
+  .sub b { color:#8CEBCC; font-weight:600; }
+
+  .hero { display:flex; gap:40px; align-items:center; padding:36px 0; border-bottom:1px solid rgba(255,255,255,.07); }
+  .hero .big { flex-shrink:0; }
+  .hero .spec { flex:1; }
+  .hero .spec h3 { font-size:17px; color:#F7FBF8; margin-bottom:12px; }
+  .spec table { border-collapse:collapse; font-size:13px; width:100%; }
+  .spec td { padding:5px 0; color:rgba(255,255,255,.66); border-bottom:1px solid rgba(255,255,255,.06); }
+  .spec td:first-child { color:rgba(255,255,255,.42); width:42%; }
+  .spec td code { font-family:Consolas,monospace; color:#8CEBCC; font-size:12.5px; }
+
+  .sect { margin-top:40px; }
+  .sect h2 { font-size:21px; color:#F7FBF8; font-weight:700; }
+  .sect p.desc { margin-top:8px; font-size:13.5px; line-height:1.7; color:rgba(255,255,255,.60); max-width:780px; }
+
+  .row { display:flex; gap:22px; align-items:flex-end; padding:18px 0; border-bottom:1px solid rgba(255,255,255,.05); }
+  .row .rl { width:120px; flex-shrink:0; font-size:13px; color:rgba(255,255,255,.55); }
+  .row .rl b { display:block; font-size:15px; color:#F7FBF8; margin-bottom:2px; }
+  .row.hl .rl b { color:#50ECA7; }
+  .tile { border-radius:22%; overflow:hidden; display:grid; place-items:center; box-shadow:0 0 0 1px rgba(255,255,255,.06); flex-shrink:0; }
+  .tile svg { display:block; width:100%; height:100%; }
+  .t224 { width:224px; height:224px; } .t96 { width:96px; height:96px; } .t48 { width:48px; height:48px; }
+  .t144 { width:144px; height:144px; }
+  .tag { font-size:10px; color:rgba(255,255,255,.34); text-align:center; margin-top:6px; font-family:Consolas,monospace; }
+
+  .desk { display:flex; gap:26px; padding:26px 34px; border-radius:22px; background:#101315; align-items:flex-start; }
+  .desk .app { display:flex; flex-direction:column; align-items:center; gap:7px; }
+  .desk .app span { font-size:11px; color:rgba(255,255,255,.66); }
+  .desk .app.dim span { color:rgba(255,255,255,.38); }
+
+  footer { margin-top:44px; font-size:12.5px; line-height:1.8; color:rgba(255,255,255,.48); }
+  footer b { color:rgba(255,255,255,.72); font-weight:600; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+  <radialGradient id="glowP" cx="50%" cy="42%" r="78%">
+    <stop offset="0" stop-color="#0E1613"/><stop offset="1" stop-color="#0B0F13"/>
+  </radialGradient>
+  <g id="ring-sym">
+    <path d="M 32.49 15.51 A 12 12 0 1 1 15.51 15.51" fill="none" stroke="#50ECA7" stroke-width="4.6" stroke-linecap="round"/>
+    <circle cx="24" cy="12" r="2.8" fill="#50ECA7"/>
+  </g>
+</defs>
+</svg>
+
+<div class="wrap">
+  <header>
+    <div class="kicker">FitTracker · Icon Final · Variant A PURE</div>
+    <h1>进度环 · 设计定稿</h1>
+    <p class="sub">
+      你选定的 <b>A · 基线</b>：270° 弧 + 缺口中央点，微光晕底。以下为按 HarmonyOS 分层图标规范生成的成品效果与参数，
+      确认后即写入项目资源并进入构建验证。
+    </p>
+  </header>
+
+  <div class="hero">
+    <div class="big">
+      <div class="tile t224" style="width:256px;height:256px">
+        <svg viewBox="0 0 48 48">
+          <rect width="48" height="48" fill="url(#glowP)"/>
+          <g transform="translate(24,24) scale(0.82474) translate(-24,-24)"><use href="#ring-sym"/></g>
+        </svg>
+      </div>
+      <div class="tag">母版效果 256px 模拟</div>
+    </div>
+    <div class="spec">
+      <h3>定稿参数</h3>
+      <table>
+        <tr><td>画布</td><td><code>1024×1024</code> 分层图标（background + foreground）</td></tr>
+        <tr><td>符号构造</td><td>270° 弧 <code>r=12</code> / 线宽 <code>4.6</code> / 圆头端点 / 缺口朝上 90°</td></tr>
+        <tr><td>里程碑点</td><td><code>r=2.8</code>，悬于缺口中央 12 点位</td></tr>
+        <tr><td>符号占比</td><td>画布 <code>50%</code>（官方新模板实测 44.8%，三档见下）</td></tr>
+        <tr><td>主色</td><td><code>#50ECA7</code> on 微光晕底 <code>#0E1613 → #0B0F13</code></td></tr>
+        <tr><td>对比度</td><td>翡翠 on 墨黑 <code>12.73:1</code>（AAA）</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="sect">
+    <h2>符号占比 · 三档对比</h2>
+    <p class="desc">占画布比例决定图标在桌面的“体量感”。45% 对齐官方模板口径（偏谨慎），55% 更饱满大胆。当前主推 <b style="color:#8CEBCC">50%</b>，最终以模拟器实测为准。</p>
+  </div>
+  <div class="row">
+    <div class="rl"><b>45%</b>保守 · 官方口径</div>
+    <div><div class="tile t224"><svg viewBox="0 0 48 48"><rect width="48" height="48" fill="url(#glowP)"/><g transform="translate(24,24) scale(0.74227) translate(-24,-24)"><use href="#ring-sym"/></g></svg></div><div class="tag">224</div></div>
+    <div><div class="tile t96"><svg viewBox="0 0 48 48"><rect width="48" height="48" fill="url(#glowP)"/><g transform="translate(24,24) scale(0.74227) translate(-24,-24)"><use href="#ring-sym"/></g></svg></div><div class="tag">96</div></div>
+    <div><div class="tile t48"><svg viewBox="0 0 48 48"><rect width="48" height="48" fill="url(#glowP)"/><g transform="translate(24,24) scale(0.74227) translate(-24,-24)"><use href="#ring-sym"/></g></svg></div><div class="tag">48</div></div>
+  </div>
+  <div class="row hl">
+    <div class="rl"><b>50%</b>← 当前主推</div>
+    <div><div class="tile t224"><svg viewBox="0 0 48 48"><rect width="48" height="48" fill="url(#glowP)"/><g transform="translate(24,24) scale(0.82474) translate(-24,-24)"><use href="#ring-sym"/></g></svg></div><div class="tag">224</div></div>
+    <div><div class="tile t96"><svg viewBox="0 0 48 48"><rect width="48" height="48" fill="url(#glowP)"/><g transform="translate(24,24) scale(0.82474) translate(-24,-24)"><use href="#ring-sym"/></g></svg></div><div class="tag">96</div></div>
+    <div><div class="tile t48"><svg viewBox="0 0 48 48"><rect width="48" height="48" fill="url(#glowP)"/><g transform="translate(24,24) scale(0.82474) translate(-24,-24)"><use href="#ring-sym"/></g></svg></div><div class="tag">48</div></div>
+  </div>
+  <div class="row">
+    <div class="rl"><b>55%</b>饱满 · 更有存在感</div>
+    <div><div class="tile t224"><svg viewBox="0 0 48 48"><rect width="48" height="48" fill="url(#glowP)"/><g transform="translate(24,24) scale(0.90722) translate(-24,-24)"><use href="#ring-sym"/></g></svg></div><div class="tag">224</div></div>
+    <div><div class="tile t96"><svg viewBox="0 0 48 48"><rect width="48" height="48" fill="url(#glowP)"/><g transform="translate(24,24) scale(0.90722) translate(-24,-24)"><use href="#ring-sym"/></g></svg></div><div class="tag">96</div></div>
+    <div><div class="tile t48"><svg viewBox="0 0 48 48"><rect width="48" height="48" fill="url(#glowP)"/><g transform="translate(24,24) scale(0.90722) translate(-24,-24)"><use href="#ring-sym"/></g></svg></div><div class="tag">48</div></div>
+  </div>
+
+  <div class="sect">
+    <h2>启动图标 &amp; 桌面观感</h2>
+    <p class="desc">左：启动页图标 startIcon（144×144）效果。右：桌面 48px 实显排布（含邻近 app 的明暗对照）。</p>
+  </div>
+  <div class="row" style="border-bottom:none">
+    <div class="rl"><b>startIcon</b>144×144</div>
+    <div><div class="tile t144"><svg viewBox="0 0 48 48"><rect width="48" height="48" fill="url(#glowP)"/><g transform="translate(24,24) scale(0.82474) translate(-24,-24)"><use href="#ring-sym"/></g></svg></div><div class="tag">144</div></div>
+    <div style="flex:1; margin-left:26px;">
+      <div class="desk">
+        <div class="app"><div class="tile t48"><svg viewBox="0 0 48 48"><rect width="48" height="48" fill="url(#glowP)"/><g transform="translate(24,24) scale(0.82474) translate(-24,-24)"><use href="#ring-sym"/></g></svg></div><span>FitTracker</span></div>
+        <div class="app dim"><div class="tile t48" style="background:#F5F5F7"></div><span>系统应用</span></div>
+        <div class="app dim"><div class="tile t48" style="background:#2A2E33"></div><span>其他</span></div>
+        <div class="app dim"><div class="tile t48" style="background:#F5F5F7"></div><span>系统应用</span></div>
+      </div>
+      <div class="tag" style="text-align:left; margin-top:8px;">桌面 48px 观感模拟（左右为浅色系统图标对照）</div>
+    </div>
+  </div>
+
+  <footer>
+    <b>下一步</b>：生成母版 PNG（1024 background / 1024 foreground / 144 startIcon）→ 写入 <code>AppScope</code> 与 <code>entry</code> 资源 → 构建 HAP → 模拟器实测桌面效果（终审标准）。<br>
+    任何参数想改（占比 / 底的强度 / 缺口大小），说一声即可——生成管线已就绪，单次调整成本约一分钟。
+  </footer>
+</div>
+</body>
+</html>
