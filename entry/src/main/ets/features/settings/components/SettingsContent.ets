@@ -328,7 +328,7 @@ export struct SettingsContent {
           .fontFamily('Noto Sans SC')
           .fontSize(14)
           .fontColor('#F7FBF8')
-        Text('1.0.0')
+        Text('1.1.0')
           .fontFamily('Noto Sans SC')
           .fontSize(12.5)
           .fontColor('#8AFFFFFF')
@@ -337,7 +337,12 @@ export struct SettingsContent {
       .justifyContent(FlexAlign.SpaceBetween)
       .padding({ top: 15, bottom: 15, left: 2, right: 2 })
 
-      this.chevronRow('隐私说明', '', false)
+      this.chevronRow('隐私说明', '', false, () => {
+        this.getUIContext().getRouter().pushUrl({
+          url: AppRoutes.LEGAL_DOC,
+          params: { kind: 'privacy' }
+        })
+      })
     }
     .width('100%')
     .padding({ left: 16, right: 16, top: 16, bottom: 16 })
@@ -437,7 +442,7 @@ export struct SettingsContent {
   }
 
   @Builder
-  private chevronRow(label: string, value: string, first: boolean) {
+  private chevronRow(label: string, value: string, first: boolean, onTap?: () => void) {
     Row() {
       Text(label)
         .fontFamily('Noto Sans SC')
@@ -459,5 +464,10 @@ export struct SettingsContent {
     .width('100%')
     .padding({ top: 15, bottom: 15, left: 2, right: 2 })
     .border({ width: { top: first ? 0 : 1 }, color: '#0FFFFFFF' })
+    .onClick(() => {
+      if (onTap !== undefined) {
+        onTap()
+      }
+    })
   }
 }
