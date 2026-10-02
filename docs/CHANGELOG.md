@@ -10,8 +10,8 @@
 
 | 字段 | 值 | 来源 |
 | --- | --- | --- |
-| versionName | `1.1.0`（待发布时写回） | `AppScope/app.json5`（当前仍为 `1.0.0`） |
-| versionCode | `1001000`（待发布时写回） | `AppScope/app.json5`（当前仍为 `1000000`） |
+| versionName | `1.1.0` ✅（2026-10-02 已写回） | `AppScope/app.json5` |
+| versionCode | `1001000` ✅（2026-10-02 已写回） | `AppScope/app.json5` |
 | bundleName | `com.earthrhythm.fittracker` | `AppScope/app.json5` |
 
 ### 新增
@@ -35,7 +35,7 @@
 - 云同步为整包快照（适用于当前数据规模）；实体级增量同步列入后续扩展。
 - release 混淆下的 JSON 序列化字段专项审计与 AGC 行级隔离双账号实测待补（详见 `.rivet/plans/fittracker-登录注册与云同步-agc-实现计划.md`）。
 
-> 发布前须：将 `AppScope/app.json5` 的 `versionName` / `versionCode` 更新为 `1.1.0` / `1001000`；完成上述专项审计与真机验证；替换法律文档中的开发者主体 / 联系邮箱占位符。
+> 发布前须（2026-10-02 对账核销状态）：版本号写回 ✅ 已完成（`AppScope/app.json5` = `1.1.0` / `1001000`；设置页「关于」同步）；release 混淆 JSON 边界专项审计 ✅ 已完成（提交 `14a68fb`，86 项白名单）；AGC 行级隔离双账号实测与真机验证 ⏳ 待执行（依赖真机；云同步 401 问题攻坚中，见 `test_run/wave2/release-walkthrough.md` §12）；法律文档开发者主体 / 联系邮箱占位符 ⏳ 待开发者提供正式信息后替换（应用内 rawfile 副本需同步重生成）。
 
 ## [1.0.0] — 2026-09-13
 
