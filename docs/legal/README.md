@@ -1,6 +1,6 @@
 # FitTracker 合规材料（legal）
 
-本目录收纳上架所需的用户合规文档。所有内容均依据当前仓库的真实实现撰写（本地优先、零权限、零网络），不声明任何未实现的数据行为。
+本目录收纳上架所需的用户合规文档。所有内容均依据当前仓库的真实实现撰写（本地优先；1.1.0 起接入华为 AGC 认证与云数据库，用于可选的账号云同步），不声明任何未实现的数据行为。
 
 - `docs/legal/privacy-policy.md` —— 隐私政策
 - `docs/legal/user-agreement.md` —— 用户协议
@@ -9,11 +9,15 @@
 
 | 合规结论 | 依据 |
 | --- | --- |
-| 零权限 | `entry/src/main/module.json5` 未声明任何 `ohos.permission`，全仓库无权限申请 |
-| 零网络 | `entry/src/main/ets/` 未使用 HTTP/Socket/WebSocket/WebView 等网络 API；运行时依赖为空 |
+| 最小权限 | `entry/src/main/module.json5` 仅声明 `ohos.permission.INTERNET`（用途：账号登录与云同步） |
+| 联网范围受限 | 联网行为仅指向华为端云一体化服务（AGC 认证 + 云数据库）；不集成广告、第三方统计或社交分享 SDK |
 | 本地存储 | 数据经 Preferences 写入应用私有沙箱 |
 | 媒体本地化 | 动作素材内置于 `entry/src/main/resources/rawfile/`，不联网加载 |
 | 备份能力 | `entry/src/main/resources/base/profile/backup_config.json` 声明 `allowToBackupRestore`，由 `entry/src/main/ets/entrybackupability/EntryBackupAbility.ets` 承接系统备份回调 |
+
+## 应用内展示
+
+登录 / 注册页的协议勾选行与设置页「隐私说明」均经 `features/settings/pages/LegalDocPage`（路由常量 `AppRoutes.LEGAL_DOC`）打开，渲染的是 `entry/src/main/resources/rawfile/legal/privacy-policy.txt` 与 `entry/src/main/resources/rawfile/legal/user-agreement.txt`——本目录两份 md 的逐字转换副本（去除 `#`/`**`/`` ` `` 标记与表格分隔行，正文逐字保留）。修改正文或替换占位符后，必须用 `node tools/convert-legal-docs.mjs` 重生成 rawfile 副本，两者不得漂移。
 
 ## 上线前必须补齐
 

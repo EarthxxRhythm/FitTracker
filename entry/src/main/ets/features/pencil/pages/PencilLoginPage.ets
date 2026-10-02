@@ -424,14 +424,20 @@ struct PencilLoginPage {
           .fontColor('#50ECA7')
           .fontWeight(FontWeight.Medium)
           .onClick(() => {
-            this.hint = '查看协议（原型）'
+            this.getUIContext().getRouter().pushUrl({
+              url: AppRoutes.LEGAL_DOC,
+              params: { kind: 'agreement' }
+            })
           })
         Span('与')
         Span('《隐私政策》')
           .fontColor('#50ECA7')
           .fontWeight(FontWeight.Medium)
           .onClick(() => {
-            this.hint = '查看协议（原型）'
+            this.getUIContext().getRouter().pushUrl({
+              url: AppRoutes.LEGAL_DOC,
+              params: { kind: 'privacy' }
+            })
           })
       }
       .fontFamily('Noto Sans SC')
