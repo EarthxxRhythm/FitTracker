@@ -254,7 +254,7 @@ HarmonyOS 为每个应用按其 bundleName 分配独立沙箱目录，应用私�
 
 ### 注意事项
 
-- `build-profile.json5` 的签名配置含本机绝对路径（`C:\Users\<user>\.ohos\config\...`）与加密密码，**保留在工作区、未提交**。团队与 CI 环境应各自执行 `devecocli signature generate`；门禁在干净环境下判 FAIL 属预期（确无签名材料）。
+- `build-profile.json5` 的签名配置含本机绝对路径（`C:\Users\<user>\.ohos\config\...`）与加密密码。**更正（2026-10-02 核实）**：该内容已随 HEAD 入库（`git show HEAD:build-profile.json5` 实证含完整 `signingConfigs`；工作树该文件与 HEAD 无差异）——与「签名材料不入库」取向存在冲突，处置决策见 §11（已选定方案甲）。团队与 CI 环境应各自执行 `devecocli signature generate`；门禁在干净环境下判 FAIL 属预期（确无签名材料）。
 - 签名材料本体（`.p12` / `.cer` / `.p7b`）位于仓库外，且 `.gitignore` 已排除相关扩展名。
 
 
@@ -282,9 +282,8 @@ HarmonyOS 为每个应用按其 bundleName 分配独立沙箱目录，应用私�
 
 ### 11.1 现状（可复核）
 
-- `build-profile.json5` **受版本控制追踪**：`git ls-files --error-unmatch build-profile.json5` 命中；HEAD 版本的 `app.signingConfigs` 为空数组（`git show HEAD:build-profile.json5` 第 3 行 `"signingConfigs": []`）。
-- 本机执行 `devecocli signature generate --product default` 后，该文件被原地重写：`signingConfigs[0].material` 现含**本机绝对路径**（`C:\Users\19308\.ohos\config\...cer / .p7b / .p12`）与**口令字段**（`storePassword` / `keyPassword`，为华为加密口令密文）。
-- 该改动当前**仅存在于工作区、未提交**：`git status --porcelain build-profile.json5` → ` M build-profile.json5`。
+- `build-profile.json5` **受版本控制追踪**：`git ls-files --error-unmatch build-profile.json5` 命中。
+- **更正（2026-10-02 核实）**：`signingConfigs[0].material`（含本机绝对路径 `C:\Users\19308\.ohos\config\...cer / .p7b / .p12` 与口令密文字段 `storePassword` / `keyPassword`）**已入库**——`git show HEAD:build-profile.json5` 实测含完整签名配置，且工作树该文件与 HEAD 无差异（`git status --porcelain build-profile.json5` 为空）。此前「HEAD 版本为空数组 / 改动仅存在于工作区」的记录已失真；该文件最后一次变更在提交 `d263246`（2026-09-28）。
 - `.gitignore` 已排除 `/signature/`、`*.p12` / `*.cer` / `*.p7b` / `/local.properties`，取向是「本机配置不入库」；但 **`build-profile.json5` 本身不在 `.gitignore` 内**（`grep -n build-profile .gitignore` 无命中），且已被追踪。
 
 > 密文不等于零风险：口令字段为加密口令（非明文），但密文与密钥库文件同时泄露时仍扩大攻击面；本机绝对路径也会暴露开发者账号名与目录结构。
@@ -326,9 +325,15 @@ HarmonyOS 为每个应用按其 bundleName 分配独立沙箱目录，应用私�
 - 无论选哪个方案，都**不得**把 `signingConfigs` 中的本机路径与本机口令提交进仓库；
 - 干净环境门禁判 FAIL 属预期，不是缺陷。
 
-### 11.6 未决
+### 11.6 决策（2026-10-02 回填）
 
-本文件**不替用户拍板**。请在上述规则落定后，于本节回填「已选定：甲 / 乙」及对应操作命令，并同步修正 `.gitignore`（如选乙）。
+**已选定：甲**（仓库保持「无签名 / 可解析」形态，本机配置不入库；1.1.0 上架推进计划采纳）。理由：不破坏根配置的版本追踪与可审查性（乙的已知代价）；当前入库内容为加密口令密文 + 本机路径，材料本体未入库，风险评级低—中，历史不改写。
+
+执行动作（发布收尾期）：
+
+1. 在提交发布材料切换前，先以「无签名 / 可解析」形态提交 `build-profile.json5`（恢复至不含本机敏感字段），本机用 `git update-index --skip-worktree build-profile.json5` 保持带签名配置的构建能力；
+2. 提交纪律：禁止 `git add .` / `git add -A` 带入 `build-profile.json5` 的本机改动；
+3. 干净 clone / CI 环境各自 `devecocli signature generate`（门禁 FAIL 属预期）。
 
 ## 12. 上架材料待办清单（release closeout）
 
@@ -336,41 +341,28 @@ HarmonyOS 为每个应用按其 bundleName 分配独立沙箱目录，应用私�
 
 | # | 材料 | 当前状态 | 缺口 / 阻塞 | 落点 |
 | --- | --- | --- | --- | --- |
-| 1 | 隐私政策 | 正文已具备 | **开发者主体、联系邮箱为占位符，须替换** | `docs/legal/privacy-policy.md` 第十一节（`【上线前须替换为正式开发者主体名称】` / `【上线前须替换为正式联系邮箱】`） |
-| 2 | 用户协议 | 正文已具备 | **同上，须替换占位** | `docs/legal/user-agreement.md` 第十节（同名占位串） |
+| 1 | 隐私政策 | 正文已具备；应用内展示已接线（LegalDocPage + rawfile 副本） | **开发者主体、联系邮箱为占位符，须替换**（md 与 rawfile 副本须同步重生成） | `docs/legal/privacy-policy.md` 第十一节（占位 2026-10-02 核实行号 L103-104） |
+| 2 | 用户协议 | 正文已具备；应用内展示已接线（同上） | **同上，须替换占位** | `docs/legal/user-agreement.md` 第十节（占位 2026-10-02 核实行号 L74-75） |
 | 3 | 应用市场截图 | 规格与清单已定义 | 实拍待 release 签名包 + 目标真机 | `docs/store-listing-screenshot-checklist.md` |
-| 4 | 应用身份（bundleName / vendor） | 已落地：`com.earthrhythm.fittracker` / `EarthRhythm` | AGC 应用条目需在控制台创建（仓库外） | `AppScope/app.json5` |
-| 5 | 已签名 release 包 | 本机已实测产出（见 §10） | 团队 / CI 环境各自 `devecocli signature generate` | `build-profile.json5`（处置见 §11） |
-| 6 | 混淆实测 | 冷启动 / Tab / 子页 / 持久化往返已冒烟（见 §10.1） | 训练流、备份导入导出在 release 包上未覆盖 | `entry/build-profile.json5`、`entry/obfuscation-rules.txt` |
+| 4 | 应用身份（bundleName / vendor） | 已落地：`com.earthrhythm.fittracker` / `EarthRhythm` | AGC 应用条目需在控制台创建（仓库外；调试 profile 已含 app-identifier） | `AppScope/app.json5` |
+| 5 | 已签名 release 包 | 本机已实测产出（见 §10）；1.1.0 版本号已写回（`1.1.0` / `1001000`） | 发布材料切换后重构建；团队 / CI 环境各自 `devecocli signature generate` | `build-profile.json5`（处置见 §11） |
+| 6 | 混淆实测 | 冷启动 / Tab / 子页 / 持久化往返已冒烟（见 §10.1）；1.1.0 JSON 边界白名单已补齐（`14a68fb`，86 项） | 训练流、备份导入导出在 release 包上未覆盖；1.1.0 新增 JSON 链（云同步/会话/草稿）待最终 release 包复测 | `entry/build-profile.json5`、`entry/obfuscation-rules.txt` |
 
 ### 12.1 上线前必须替换的占位（硬性）
 
 > 🔴 **隐私政策与用户协议中的「开发者主体」「联系邮箱」当前均为占位符**，是上架前**必须替换**的真实空位：
 >
-> - `docs/legal/privacy-policy.md` 第十一节：`【上线前须替换为正式开发者主体名称】`、`【上线前须替换为正式联系邮箱】`（撰写时位于 L97、L98）
-> - `docs/legal/user-agreement.md` 第十节：同两处占位串（撰写时位于 L74、L75）
+> - `docs/legal/privacy-policy.md` 第十一节：`【上线前须替换为正式开发者主体名称】`、`【上线前须替换为正式联系邮箱】`（2026-10-02 核实行号：L103、L104）
+> - `docs/legal/user-agreement.md` 第十节：同两处占位串（2026-10-02 核实行号：L74、L75）
+> - 应用内 rawfile 副本（`entry/src/main/resources/rawfile/legal/*.txt`）同样含占位符——替换后须同步重生成。
 >
 > 未替换将无法通过应用市场合规审核。**本文件不填写具体主体名或邮箱**——由开发者按实际登记信息填入。
 
 另见 `docs/legal/README.md` 的「上线前必须补齐」小节（该 README 同样跟踪这两处占位与「最后更新」日期）。
 
-## 13. 遗留决策：welcome / login / register 三屏从启动流不可达
+## 13.（已校准，2026-10-02）welcome / login / register 三屏可达性
 
-### 13.1 事实（含 file:line）
-
-- `entry/src/main/ets/features/pencil/pages/PencilSplashPage.ets` L112-116：当 `context !== null` 时直接 `replaceUrl(AppRoutes.APP_SHELL)` 并 `return`；L117-119 的 `replaceUrl(AppRoutes.WELCOME)` 位于 `context === null` 的兜底分支。真机上 `getUIContext().getHostContext()` 恒非空，故 welcome 兜底分支不执行。
-- 全仓 `grep` 路由常量：welcome 的**唯一入口**是上述兜底分支；`PencilWelcomePage.ets` L194 `pushUrl(AppRoutes.LOGIN)` 进入 login；`PencilLoginPage.ets` L379 `pushUrl(AppRoutes.REGISTER)` 进入 register；`PencilRegisterPage.ets` L85 / L364 回到 login。无其他导航者引用这三屏。
-- 三屏仍注册于 `entry/src/main/resources/base/profile/main_pages.json`（第 2-4 条），`AppRoutes.WELCOME / LOGIN / REGISTER` 常量仍在。
-
-**结论**：自 commit `4d6a144`（「取消启动时的登录门槛，直接进入主界面」）起，welcome / login / register 在正常启动流中**不可达**；仅在 `getHostContext()` 返回空的异常路径才落到 welcome。
-
-### 13.2 两个方向（未决，需决定）
-
-- **A. 补入口**：在 profile / 设置页提供「退出登录 / 切换账号」等入口，重新接上 login / register；welcome 作为介绍页可在首启或关于页链接。
-  - 代价：需重接会话 / 登录态语义（当前启动已不看登录态），并回归认证流；既有登录逻辑须与取消门槛后的路径保持一致。
-- **B. 彻底移除**：删除三屏文件、`main_pages.json` 中对应注册、以及 `AppRoutes.WELCOME / LOGIN / REGISTER` 常量，并清理相关测试引用。
-  - 代价：删除已实现且已过视觉验收的界面；若未来引入账号 / 会员联网能力需重建；须同步清理 `entry/src/ohosTest` 中针对这些路由的断言。
-
-### 13.3 未决
-
-本文件**不替用户拍板**。决定后回填所选方案与对应改动清单（涉及 `.ets` 的改动不在本次纯文档范围内）。
+> 原标题：「遗留决策：welcome / login / register 三屏从启动流不可达」。
+> **校准**：本节原结论已被 1.1.0 推翻——当前 `PencilSplashPage.ets` aboutToAppear 实证：未登录 → 登录 / 注册页（`StartupDecision.getInitialRoute(hasValidSession, hasGoal)`），三屏回到正常启动流（见 `docs/CHANGELOG.md` 1.1.0「启动门槛」）。原「A. 补入口 / B. 彻底移除」两方向决策随之作废。
+>
+> 历史留档（1.0.0 时代事实，供溯源）：自 `4d6a144`（取消启动时登录门槛）起，无登录门槛版本下三屏仅在 `getHostContext()` 返回空的异常路径可达；该状态不适用于 1.1.0+。
