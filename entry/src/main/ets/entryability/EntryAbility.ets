@@ -53,7 +53,9 @@ export default class EntryAbility extends UIAbility {
       want.parameters !== undefined ? JSON.stringify(want.parameters) : ''
     );
     try {
-      this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
+      // 应用为固定深色 UI：声明深色模式，让系统按深色绘制窗口外的系统区域
+      // （底部手势导航区），避免浅色系统主题下底部露白；NOT_SET 跟随系统会在浅色下露白。
+      this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_DARK);
     } catch (err) {
       hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
     }
