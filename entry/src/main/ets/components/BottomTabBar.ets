@@ -107,6 +107,7 @@ export struct BottomTabBar {
         .height(TouchTokens.TAB_BAR_HEIGHT_HOME)
         .padding(0)
         .backgroundColor('rgba(0,0,0,0)')
+        .stateEffect(false) // 禁用 Button 默认按压底色（白/灰块）——按压反馈由自定义 scale 提供
         .onTouch((event: TouchEvent) => {
           if (event.type === TouchType.Down) {
             this.pressedKey = item.key
