@@ -19,6 +19,7 @@ import {
   SNAPSHOT_SCHEMA_VERSION,
   createCloudSnapshot
 } from './CloudSnapshotStore'
+import CloudEnvironment from '../../common/services/CloudEnvironment'
 
 /** AGC 控制台「存储区」名称（与 docs/cloud-setup.md §3 约定一致；实测时以控制台为准）。 */
 const CLOUD_DB_ZONE_NAME: string = 'FitTracker'
@@ -48,6 +49,7 @@ class AgcCloudSnapshotStore extends CloudSnapshotStore {
       if (rows.length === 0) {
         return null
       }
+      hilog.info(0x0000, 'AgcSnapshotStore', 'pull ok: rows=' + rows.length.toString())
       return this.toSnapshot(rows[0])
     } catch (error) {
       // 与 LocalSandboxSnapshotStore.pull 语义一致：读取失败按「无快照」返回，
@@ -67,10 +69,54 @@ class AgcCloudSnapshotStore extends CloudSnapshotStore {
       row.deviceTag = snapshot.deviceTag
       row.schemaVersion = snapshot.schemaVersion
       const affected: number = await zone.upsert(row)
+      hilog.info(0x0000, 'AgcSnapshotStore', 'push ok: affected=' + affected.toString())
       return affected > 0
     } catch (error) {
       this.logError('push', error)
       return false
+    }
+  }
+
+  /** 【临时探针 · Wave 3 双账号行级隔离实测用，验证后删除】
+   * 无过滤全表查询 SyncSnapshot：返回行数与可见 userId 前缀。
+   * 预期（行级隔离成立）：仅含当前登录账号自己的行；含其他账号 → 越界。 */
+  async probeQueryAllUsers(): Promise<string> {
+    try {
+      const ready: boolean = await CloudEnvironment.ensureCloudDatabaseReady()
+      if (!ready) {
+        return 'probe: cloud env not ready'
+      }
+      const zone: cloudDatabase.DatabaseZone = cloudDatabase.zone(CLOUD_DB_ZONE_NAME)
+      const condition: cloudDatabase.DatabaseQuery<SyncSnapshot> = new cloudDatabase.DatabaseQuery(SyncSnapshot)
+      const rows: SyncSnapshot[] = await zone.query(condition)
+      let summary: string = 'rows=' + rows.length.toString()
+      for (let i = 0; i < rows.length; i++) {
+        const row: SyncSnapshot = rows[i]
+        const uid: string = row.userId !== undefined ? row.userId : '?'
+        summary += ' | ' + uid.substring(0, 8)
+      }
+      return summary
+    } catch (error) {
+      const err: BusinessError = error as BusinessError
+      return 'probe rejected: code=' + err.code.toString()
+    }
+  }
+
+  /** 【临时探针】定向查询指定 userId 的行（定点越权读取测试）。 */
+  async probeQueryByUser(targetUserId: string): Promise<string> {
+    try {
+      const ready: boolean = await CloudEnvironment.ensureCloudDatabaseReady()
+      if (!ready) {
+        return 'probe: cloud env not ready'
+      }
+      const zone: cloudDatabase.DatabaseZone = cloudDatabase.zone(CLOUD_DB_ZONE_NAME)
+      const condition: cloudDatabase.DatabaseQuery<SyncSnapshot> = new cloudDatabase.DatabaseQuery(SyncSnapshot)
+      condition.equalTo('userId', targetUserId)
+      const rows: SyncSnapshot[] = await zone.query(condition)
+      return 'target=' + targetUserId.substring(0, 8) + ' rows=' + rows.length.toString()
+    } catch (error) {
+      const err: BusinessError = error as BusinessError
+      return 'probe rejected: code=' + err.code.toString()
     }
   }
 

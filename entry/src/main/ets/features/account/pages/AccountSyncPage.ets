@@ -6,6 +6,11 @@ import { MotionTokens } from '../../../common/styles/DesignTokens'
 import SessionManager, { SessionSnapshot } from '../../../common/services/SessionManager'
 import CloudSyncService, { SyncResult, SyncState } from '../../../shared/services/CloudSyncService'
 import AccountDataLifecycle, { SignOutPreview } from '../../../shared/services/AccountDataLifecycle'
+import AgcCloudSnapshotStore from '../../../shared/services/AgcCloudSnapshotStore'
+import CloudEnvironment from '../../../common/services/CloudEnvironment'
+import { cloudFunction, cloudStorage } from '@kit.CloudFoundationKit'
+import { BusinessError } from '@kit.BasicServicesKit'
+import { hilog } from '@kit.PerformanceAnalysisKit'
 
 @Entry
 @Component
@@ -165,6 +170,58 @@ struct AccountSyncPage {
     await CloudSyncService.setAutoEnabled(context, next)
     this.autoEnabled = next
     this.showToast(next ? '已开启自动同步' : '已关闭自动同步')
+  }
+
+  /** 【临时探针】行级隔离实测：无过滤全表查询 + 对 A 账号（硬编码 userId）的定向查询。
+   *  用法：A 登录态跑一次（预期只见自己）；B 登录态跑一次（不应见 A 的行）。验证后连同按钮删除。 */
+  private async runIsolationProbe(): Promise<void> {
+    const context = this.contextOrNull()
+    if (context === null) {
+      return
+    }
+    await CloudEnvironment.initialize(context)
+    const all: string = await AgcCloudSnapshotStore.probeQueryAllUsers()
+    const byUser: string = await AgcCloudSnapshotStore.probeQueryByUser('2051147575825846656')
+    hilog.info(0x0000, 'IsolationProbe', 'ALL: ' + all)
+    hilog.info(0x0000, 'IsolationProbe', 'BY-USER-A: ' + byUser)
+    this.showToast(all)
+  }
+
+  /** 【临时探针 · 云同步 v2（云函数中转）通道可行性，验证后连同按钮删除】
+   *  通道探针：调云函数 echo-probe——验证端侧 cloudFunction.call 鉴权链是否可用
+   *  （与 CloudDB 数据面 401 属不同鉴权链，是 v2 方案 GO/NO-GO 判据）。 */
+  private async runChannelProbe(): Promise<void> {
+    let text: string = ''
+    try {
+      const res = await cloudFunction.call({
+        name: 'echo-probe',
+        data: '{"hello":"probe"}',
+        version: '$latest',
+        timeout: 20000
+      })
+      text = 'ok: ' + JSON.stringify(res.result).slice(0, 300)
+      hilog.info(0x0000, 'ChannelProbe', text)
+    } catch (error) {
+      const err = error as BusinessError
+      text = 'fail: code=' + err.code + ' msg=' + err.message
+      hilog.error(0x0000, 'ChannelProbe', text)
+    }
+    this.showToast(text)
+  }
+
+  /** 【临时探针】存储探针：列云存储根目录——验证 cloudStorage 通道是否可用（同鉴权链判据）。 */
+  private async runStorageProbe(): Promise<void> {
+    let text: string = ''
+    try {
+      const result = await cloudStorage.bucket().list('/')
+      text = 'ok: files=' + result.files.length.toString() + ' dirs=' + result.directories.length.toString()
+      hilog.info(0x0000, 'StorageProbe', text)
+    } catch (error) {
+      const err = error as BusinessError
+      text = 'fail: code=' + err.code + ' msg=' + err.message
+      hilog.error(0x0000, 'StorageProbe', text)
+    }
+    this.showToast(text)
   }
 
   private async requestSignOut(): Promise<void> {
@@ -402,6 +459,51 @@ struct AccountSyncPage {
         .enabled(!this.syncing)
         .onClick(() => {
           this.syncNow()
+        })
+
+      // 【临时探针 · Wave 3 行级隔离实测，验证后删除】
+      Button('隔离探针（临时）')
+        .width('100%')
+        .height(40)
+        .padding(0)
+        .margin({ top: 8 })
+        .fontFamily('Noto Sans SC')
+        .fontSize(13)
+        .fontColor('#F7FBF8')
+        .backgroundColor('#1FFFFFFF')
+        .borderRadius(12)
+        .onClick(() => {
+          this.runIsolationProbe()
+        })
+
+      // 【临时探针 · 云同步 v2 通道可行性（云函数/云存储），验证后删除】
+      Button('通道探针（临时）')
+        .width('100%')
+        .height(40)
+        .padding(0)
+        .margin({ top: 8 })
+        .fontFamily('Noto Sans SC')
+        .fontSize(13)
+        .fontColor('#F7FBF8')
+        .backgroundColor('#1FFFFFFF')
+        .borderRadius(12)
+        .onClick(() => {
+          this.runChannelProbe()
+        })
+
+      // 【临时探针 · 云同步 v2 通道可行性（云函数/云存储），验证后删除】
+      Button('存储探针（临时）')
+        .width('100%')
+        .height(40)
+        .padding(0)
+        .margin({ top: 8 })
+        .fontFamily('Noto Sans SC')
+        .fontSize(13)
+        .fontColor('#F7FBF8')
+        .backgroundColor('#1FFFFFFF')
+        .borderRadius(12)
+        .onClick(() => {
+          this.runStorageProbe()
         })
     }
     .width('100%')
