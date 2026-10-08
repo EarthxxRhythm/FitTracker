@@ -1,10 +1,11 @@
 # AGC 云服务配置手册
 
 > 用途：记录「登录注册与云同步」计划 Wave 5（AGC 真实接线）所需的控制台配置流程；本配置已于 2026-10-01 全部完成并经模拟器实测。
-> 状态：v0.4（2026-10-04）——配置流程 1-5 节执行完毕，手册转为「配置记录 + 排错参考」；§8 新增真短信启用手册（R2 路线，应用上架后执行）；标 ⚠ 的条目以控制台实际界面为准。
+> 状态：v0.5（2026-10-08）——配置记录 + 排错参考；§8 真短信手册（上架后执行）；§9 模拟器云同步鉴权全链修复记录（2026-10-08 端到端贯通）；标 ⚠ 的条目以控制台实际界面为准。
 > v0.2 修订：修正 `payloadJson` 字段类型（String→Text——官方 String 上限 200 字符装不下聚合包，且字段类型部署后不可改）；补充存储区前置、证书指纹实值（§5）、`schema.json` 入仓路径与排错速查（§7）。配套材料见 `cloud/agc/`。
 > v0.3 修订：§4 修正配置文件的工程路径与探测函数名；§6 回填完成状态；§7 补充实测排错条目。
 > v0.4 修订：新增 §8「真短信启用手册（R2 路线 · 上架后执行）」（真短信计划 2026-10-04 批准）；§7 排错表相应更新。
+> v0.5 修订（2026-10-08）：新增 §9「模拟器云同步鉴权全链修复记录」（签名单类方式 + 模拟器调试凭据两层根因，端到端贯通）；§7 排错表补两条模拟器鉴权条目。
 > 配套：`.rivet/plans/fittracker-登录注册与云同步-agc-实现计划.md`（配置表 8 项即本手册章节 1-5）。
 
 ## 0. 前置条件
@@ -121,6 +122,8 @@
 | `existing fields cannot be modified` | 改动已部署对象类型的字段定义 → 删除对象类型重建（其中数据一并清除） |
 | 手机收不到验证码 | 上架前：正常——开发期用**测试验证码**（第 2 节）；上架后：真短信未启用时属预期（按 §8 手册启用/排查） |
 | `first sign in a user, please sign out at first.` | AGC SDK 残留登录态与本地会话快照不一致（卸载重装 / 清数据后常见）：`AgcAuthProvider.ensureNoActiveSession` 已在登录前清理（提交 `ca594ab`）；绕过 AuthService 直调 SDK 的新代码需自行处理 |
+| 模拟器 401 `205525007 verify signature failed` | **签名方式错误**：应用须使用「关联注册应用进行自动签名」或「手动签名」——DevEco Studio：File → Project Structure → Project → Signing Configs → 勾选 **Associate with registered application**（详见 §9） |
+| 模拟器 `create http task error`（1008210009 / 1008220009） | **模拟器调试凭据未生成或未注册**：触发 CFK 接口后从日志取 `[clouddevelopproxy.debugToken=…]` 注册到 AGC「模拟器调试凭据」（绑定正确应用）；申请可能被网络干扰阻断，需连续重试触发（详见 §9） |
 
 ## 8. 真短信启用手册（R2 路线 · 应用上架后执行）
 
@@ -175,3 +178,31 @@
 - **隐私政策复核**：真短信生效后核对 `docs/legal/privacy-policy.md` 第五节「认证服务」表述。现状已披露「手机号提交至 AGC 认证服务完成身份验证」，短信发送属该服务的组成部分；如审核认为需明示，预备文案：「验证码短信由 AGC 认证服务经国内运营商通道发送至你提交的手机号」。复核结论（已覆盖 / 已改动）回写本节。
 - 应用内法律文档副本：若正文有改动，用 `node tools/convert-legal-docs.mjs` 重生成 rawfile 副本（维护约定见 `docs/legal/README.md`）。
 - 8.4 证据归档 `test_run/real-sms/`；完成后在本节标注执行日期与结果。
+
+## 9. 模拟器云同步鉴权全链修复记录（2026-10-08 · 端到端已贯通）
+
+> **背景**：模拟器上 Cloud Foundation Kit（CloudDB / 云函数 / 云存储）调用长期被拒（`401:205525007 verify signature failed`）——认证服务（登录/发码）正常而数据面全挂。2026-10-08 按官方工单回复逐一排查，全链修复并**首次端到端贯通**（push `affected=1` / pull `rows=1`）。完整取证过程见 `test_run/cloud-sync-v2/probe-results.md`。
+
+### 根因树（复合，全部已修）
+
+1. **签名方式错误（主根因）**：项目使用「**未关联注册应用**」的自动签名（devecocli CLI 只能生成此形态）；CFK 要求「关联注册应用进行自动签名」或「手动签名」（官方《基本准备工作》《打包测试》原文）。
+2. **模拟器调试凭据缺失（两层）**：a) 本地凭据申请依赖在线请求（`oucs applyCredential`），可被网络干扰（2300056）阻断 → 连续重试触发可成功；b) 生成的凭据（日志 `[clouddevelopproxy.debugToken=…]`）**必须注册到 AGC**「证书、APP ID 和 Profile → 模拟器调试凭据」并绑定正确应用。
+3. **网络干扰（2300056）**：历史间歇性噪声，非阻塞（重试可穿窗；关系统代理无显著差异，非代理问题）。
+
+### 修复步骤（可复制）
+
+1. **改签名方式（DevEco Studio GUI）**：File → Project Structure → Project → Signing Configs → 勾选「**Associate with registered application**」→ 登录 + 选 Team → OK（Automatic 按 bundle name 在 AGC 关联应用并生成绑定版签名）。
+   - 验证绑定：拆 `.p7b` 后 `bundle-info.app-identifier` 应与 `AppScope/resources/rawfile/agconnect-services.json` 的 `app_id` **一致**。
+2. **重建 + 卸载重装**（调试验证必须重装，不可覆盖安装）。
+3. **生成调试凭据**：模拟器中触发任意 CFK 接口（失败属预期）→ 抓日志（过滤 `debugToken`）取 `[clouddevelopproxy.debugToken=<值>]`；若日志显示 `ApplyCredential fail 15800002`（申请被网络阻断），连续重试触发直至出现该行。
+4. **注册凭据**：AGC 控制台 →「证书、APP ID 和 Profile」→「模拟器调试凭据」→ 注册 token 值、**绑定正确应用**。生效后 `205525007` 消失（表现为 `404 Trigger not exist` 或成功——取决于目标函数是否存在）。
+5. **验证**：app 真实登录 → 「立即同步」→ UI「已同步」+ hilog `AgcSnapshotStore: push ok: affected=N` / `pull ok: rows=N`。
+
+### 快速自查表
+
+| 现象 | 判定 |
+| --- | --- |
+| `401:205525007 verify signature failed` | 签名方式不对（未关联注册版） |
+| `create http task error` | 调试凭据未生成/未注册 |
+| `404: 160404 Trigger not exist` | **验签已通过**——仅是云函数不存在 |
+| `2300056 Failed to receive data from the peer` | 网络干扰（重试即可，非配置问题） |
