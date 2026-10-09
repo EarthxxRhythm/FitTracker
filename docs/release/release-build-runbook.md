@@ -438,7 +438,10 @@ grep -ao "distribution-certificate" build/outputs/default/FitTracker-default-sig
 AGC 操作走**持久浏览器 profile**，**禁止用一次性 `--user-data-dir` 启动**（Chrome 随 bash 退出被杀 → cookie 未落盘 → 每次都要重新登录）：
 
 - 持久 profile：`%LOCALAPPDATA%\Tianshu\TianshuData\.rivet\browser-debug-profile`
-- cookie 库：`<profile>\Default\Network\Cookies`（首次人工登录后写入，之后 OAuth 续期自动复用）
+- cookie 库：`<profile>\Default\Network\Cookies`（首次人工登录后写入）
+- **实测更正（2026-10-09 晚，重要）**：持久 profile 能保证**同一浏览器会话内**登录态稳定（本轮多次跨操作、跨多轮对话均未要求重新登录）；但**浏览器关闭后重开，AGC 仍会回到未登录状态**——实测证据：重开后进程 `--user-data-dir` 确实指向 `browser-debug-profile`，cookie 库存在且 40 KB（mtime 晚于上次登录），页面却显示「登录」入口。
+  - **推测**（未证实）：华为账号会话 cookie 为会话级，或不随进程关闭持久化。
+  - **因此**：不要把「关掉浏览器再开仍已登录」当作既定事实；需要重新登录时按 `await_login` 走一次人工登录。
 - 打开方式：
 
   ```text
