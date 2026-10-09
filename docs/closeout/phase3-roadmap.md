@@ -98,6 +98,6 @@ Phase 3 结束后，`phase3.5` 建议只放入“低耦合、能直接提升留�
 ## 关联文档
 
 - [phase3.5 候选评估](./phase3.5-candidate-evaluation.md)
-- [内容数据库适配与本地数据库表设计](./content-database-schema.md)
+- [内容数据库适配与本地数据库表设计](../cloud/content-database-schema.md)
 - [动作视频自建数据库方案](./动作视频自建数据库方案.md)
-- [内容导入说明](./内容导入说明.md)
+- [内容导入说明](../cloud/内容导入说明.md)

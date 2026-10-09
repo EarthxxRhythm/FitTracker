@@ -34,7 +34,7 @@ Delivery boundary:
 | Current-plan HTML | summary latest html | Passed | `midscene_run/focused/current_plan-mvp-final-current-plan/report/midscene-harmony-127.0.0.1_5555-2026-06-05_01-43-13-dza3ab4p.html` |
 | Backup/media smoke | `tools/dev-smoke.ps1 -Target both -DeviceId 127.0.0.1:5555 -SkipInstall` | Passed | `midscene_run/focused/both-20260605-011054-p46144/midscene-entrypoints-smoke-summary.md` |
 | Backup/media HTML | summary latest html | Passed | `midscene_run/focused/both-20260605-011054-p46144/report/midscene-harmony-127.0.0.1_5555-2026-06-05_01-10-58-1omwq93d.html` |
-| Closeout evidence audit | `node tools/check-closeout-evidence.mjs` | Passed when auth + current-plan pass and `both` or accepted split evidence exists | `docs/closeout-audit.md` plus local script output |
+| Closeout evidence audit | `node tools/check-closeout-evidence.mjs` | Passed when auth + current-plan pass and `both` or accepted split evidence exists | `docs/closeout/closeout-audit.md` plus local script output |
 
 Acceptance notes:
 

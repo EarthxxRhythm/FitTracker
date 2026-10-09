@@ -19,9 +19,9 @@ function Resolve-RepoPath {
 
 function Get-DefaultTaskFile {
   $candidates = @(
-    'docs/tasks.workout-loop.json',
-    'docs/tasks.content-plan.json',
-    'docs/tasks.regression-flow.json'
+    'docs/process/tasks.workout-loop.json',
+    'docs/process/tasks.content-plan.json',
+    'docs/process/tasks.regression-flow.json'
   )
 
   foreach ($candidate in $candidates) {

@@ -1,6 +1,6 @@
 # FitTracker 迁移提示词项目附录
 
-> 配合 `docs\prototype-to-arkui-prompt-template.md` 使用。
+> 配合 `docs\prototype\prototype-to-arkui-prompt-template.md` 使用。
 > 本文件只写 FitTracker 专属内容：规格源实际路径、屏清单、可执行命令、已踩过的坑。
 
 ## 1. 八项规格源的实际落点
@@ -18,7 +18,7 @@
 | `[按钮 / 卡片 / 输入 / 页头 / 标签规格]` | `design\04_component_specs\buttons.md`、`cards.md`、`inputs.md`、`page_headers.md`、`tags.md` | 三级按钮；卡片分层；输入四态；页头高度纪律；标签 |
 | `[逐页规格文档目录]` | `design\05_page_specs\` | `home.md`、`active_workout.md`、`review_home.md`、`workout_preview.md`、`workout_summary.md`、`exercise_detail.md` |
 | `[视觉验收口径文档]` | `design\06_prototype_redraw\ACCEPTANCE-PLAN.md` | 裁剪区间、文本掩码、≤8% 达标线 |
-| `[UX 验收清单]` | `docs\ui-acceptance-checklist.md` | Section A 视觉一致性 / B 流程清晰度 / C 交互打磨 / D 产品调性 |
+| `[UX 验收清单]` | `docs\ui\ui-acceptance-checklist.md` | Section A 视觉一致性 / B 流程清晰度 / C 交互打磨 / D 产品调性 |
 | `[原型预览壳的 ROUTES 表]` | `design\06_prototype_redraw\src\fittracker-webapp.html` | 15 路由 → 屏文件 + frame 的映射，见下方 §2 |
 
 **本项目暂无**：无（八项齐备）。
@@ -103,7 +103,7 @@ python tools\compare-motion-frames.py                                           
 
 ### 4.1 画布基准与文档冲突——**信源码**
 
-`README.md` 与 `docs\opendesign-1to1-rules.md` 硬规则 2 都写「除 welcome 外其余 14 屏 390×844 直绘」，
+`README.md` 与 `docs\prototype\opendesign-1to1-rules.md` 硬规则 2 都写「除 welcome 外其余 14 屏 390×844 直绘」，
 但实测不一致：
 
 - `design\06_prototype_redraw\src\fittracker-auth.html:62` 定义 `--active-scale: 0.90698`，

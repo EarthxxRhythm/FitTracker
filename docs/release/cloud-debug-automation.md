@@ -2,7 +2,7 @@
 
 > 用途：在**无物理设备**条件下，人工通过华为 AGC「云调试」远程真机完成上传 HAP、安装启动、操作、截图与日志采集。
 > 状态：v0.1（2026-10-09）。云调试网页流程来自外部来源（官方文档 + 实操帖），标【外部来源】；**§5 演示数据一节为本机实测结论**，标【本机实测】。
-> 配套：`.rivet/plans/agent-全自动云调试通道-agc-云真机自动化.md`（全自动路线，APPROVED）、`docs/store-listing-screenshot-checklist.md`（截图内容清单）、`docs/release-build-runbook.md` §12（上架材料待办）。
+> 配套：`.rivet/plans/agent-全自动云调试通道-agc-云真机自动化.md`（全自动路线，APPROVED）、`docs/release/store-listing-screenshot-checklist.md`（截图内容清单）、`docs/release/release-build-runbook.md` §12（上架材料待办）。
 
 ## 0. 证据等级约定
 
@@ -20,7 +20,7 @@
 
 | 项 | 本项目状态 |
 | --- | --- |
-| 华为开发者账号并已登录 AGC | 已有（见 `docs/cloud-setup.md` §0） |
+| 华为开发者账号并已登录 AGC | 已有（见 `docs/cloud/cloud-setup.md` §0） |
 | AGC 项目 + HarmonyOS 应用（包名 `com.earthrhythm.fittracker`） | 已创建 |
 | 已签名 HAP（**release**） | 见 §2 |
 | 配额 | 【外部来源】每天 360 分钟免费云真机时长（HarmonyOS 5.0+）；**同一账号同时最多占用 2 台设备**（官方单机调试流程文档） |
@@ -68,7 +68,7 @@ for n in [b'DeviceSeedService',b'LaunchRequestStore',b'EntryLaunchParameters']:
 
 本次实测对照：debug 归档件 abc = 1,961,820 字节、类名出现 5 次；release 包 abc = 1,163,616 字节、类名出现 0 次。字符串字面量（如 `today_flow`）两种模式都会保留，不能用作判据。
 
-> ⚠ **上架截图必须用 release 包**（`docs/store-listing-screenshot-checklist.md` §二 前置条件 1）。debug 包带调试属性，不能用于市场素材。
+> ⚠ **上架截图必须用 release 包**（`docs/release/store-listing-screenshot-checklist.md` §二 前置条件 1）。debug 包带调试属性，不能用于市场素材。
 
 ---
 
@@ -120,7 +120,7 @@ for n in [b'DeviceSeedService',b'LaunchRequestStore',b'EntryLaunchParameters']:
 - `AppScope/resources/rawfile/agconnect-services.json` 在位 → `CloudEnvironment` 走 AGC 真实链路 → **不切沙盒时 `seedSandboxSession` 不构成有效登录态**（实验 A/B 都停在登录页即为证据）。
 - 合起来：devSeed 要生效必须先切沙盒，而切沙盒只对 debug 包开放 ⇒ release 包拿不到 seed 数据。
 
-> **修正既有记录**：`docs/release-build-runbook.md` §10 曾把该现象记为「`devSeed` 在 debug 包生效、在 release 包失效」。按本次实测，**真正变量不是构建模式而是 `testMode=sandbox`**（B 组证明 debug 包不传 testMode 同样失效）；该文档写于 2026-09-13，早于 AGC 真实接线（`0b2742f`，2026-10-01）与 testMode 门禁（`6a1b3cd`，2026-10-01），当时 devSeed 生效是因为尚无 AGC 链路。
+> **修正既有记录**：`docs/release/release-build-runbook.md` §10 曾把该现象记为「`devSeed` 在 debug 包生效、在 release 包失效」。按本次实测，**真正变量不是构建模式而是 `testMode=sandbox`**（B 组证明 debug 包不传 testMode 同样失效）；该文档写于 2026-09-13，早于 AGC 真实接线（`0b2742f`，2026-10-01）与 testMode 门禁（`6a1b3cd`，2026-10-01），当时 devSeed 生效是因为尚无 AGC 链路。
 
 ### 5.3 因此 release 包的数据来源
 
@@ -158,7 +158,7 @@ test_run/cloud-debug/manual-run/
 └── <任务名>/                     # 每次云真机会话按任务建子目录
 ```
 
-截图成品的命名与归档另见 `docs/store-listing-screenshot-checklist.md` §五（建议 `docs/release-assets/screenshots-<versionName>/`，不入主分支源码目录）。
+截图成品的命名与归档另见 `docs/release/store-listing-screenshot-checklist.md` §五（建议 `docs/release-assets/screenshots-<versionName>/`，不入主分支源码目录）。
 
 ---
 

@@ -127,20 +127,20 @@ flowchart LR
 | --- | --- |
 | `AGENTS.md` | 工程约束：页面注册、服务归属、ArkTS / ArkUI 约定、清理规则、构建命令 |
 | `docs\README.md` | 文档入口与实现依据索引 |
-| `docs\release-build-runbook.md` | 构建 / 发布工程面的状态、命令与接入点 |
-| `docs\cloud-setup.md` | AGC 云服务配置手册（认证服务 / 云数据库 / 证书指纹；配置记录 + 排错速查） |
+| `docs\release\release-build-runbook.md` | 构建 / 发布工程面的状态、命令与接入点 |
+| `docs\cloud\cloud-setup.md` | AGC 云服务配置手册（认证服务 / 云数据库 / 证书指纹；配置记录 + 排错速查） |
 | `docs\CHANGELOG.md` | 版本说明与更新日志 |
-| `docs\mvp-closeout.md` | MVP 功能收官记录 |
+| `docs\closeout\mvp-closeout.md` | MVP 功能收官记录 |
 | `docs\legal\privacy-policy.md`、`docs\legal\user-agreement.md` | 隐私政策与用户协议 |
 | `design\README.md` | 设计基线与阅读顺序（brief → 设计系统 → 组件 → 页面规格） |
 
 ## 现状与限制
 
-- **云同步依赖 AGC 配置**：真实账号与云同步需工程内放入 AGC 配置文件（`AppScope/resources/rawfile/`）并完成 AGC 控制台配置（见 `docs\cloud-setup.md`）；未配置时自动降级为沙盒演示模式（数据仅在本机，云端用本地沙盒模拟）。微信 / QQ 登录未开通（需开放平台资质与 SDK 支持评估），华为账号登录待真机验证。
+- **云同步依赖 AGC 配置**：真实账号与云同步需工程内放入 AGC 配置文件（`AppScope/resources/rawfile/`）并完成 AGC 控制台配置（见 `docs\cloud\cloud-setup.md`）；未配置时自动降级为沙盒演示模式（数据仅在本机，云端用本地沙盒模拟）。微信 / QQ 登录未开通（需开放平台资质与 SDK 支持评估），华为账号登录待真机验证。
 - **「匿名使用数据」「健康数据授权」开关仍仅记录状态**：未接入统计服务或健康数据权限。
 - **界面仅提供简体中文**：设置页的「English」选项目前只记录选择状态；`zh_CN` / `en_US` 资源目录已就绪，界面文案仍为代码内中文。
 - **仅支持 `phone` 设备类型**（`entry\src\main\module.json5`）。
-- **`bundleName` 决定应用私有沙箱路径**：由样板值改为 `com.earthrhythm.fittracker` 后，旧身份包留下的本地数据在新包下不可见，升级前请先导出备份包（迁移路径见 `docs\release-build-runbook.md` 第 9 节）。
+- **`bundleName` 决定应用私有沙箱路径**：由样板值改为 `com.earthrhythm.fittracker` 后，旧身份包留下的本地数据在新包下不可见，升级前请先导出备份包（迁移路径见 `docs\release\release-build-runbook.md` 第 9 节）。
 
 「界面仅提供简体中文」为 `1.0.0` 起的既有限制，版本更新记录见 `docs\CHANGELOG.md`。
 

@@ -63,7 +63,7 @@ FitTracker should read as a focused mobile training tool: calm, dense enough to 
   - keep the current dark operational style and avoid reopening broad visual refactors during closeout
   - preserve component reuse; do not fork page-local button/card languages
 - validation recommendation
-  - use `docs/ui-acceptance-checklist.md` for the final human pass
+  - use `docs/ui/ui-acceptance-checklist.md` for the final human pass
   - keep `node tools/check-closeout-evidence.mjs` as the machine-backed closeout gate for route evidence
   - use short focused smoke runs only when a user-visible regression is suspected
 - known risks
@@ -106,4 +106,4 @@ FitTracker should read as a focused mobile training tool: calm, dense enough to 
 
 Based on the current repository state, token usage, shared component reuse, and route-level acceptance artifacts, there is no concrete code-level evidence of a major UI/UX style split inside the main registered product routes.
 
-The remaining gap is not broad redesign work. It is final human signoff against `docs/ui-acceptance-checklist.md`.
+The remaining gap is not broad redesign work. It is final human signoff against `docs/ui/ui-acceptance-checklist.md`.

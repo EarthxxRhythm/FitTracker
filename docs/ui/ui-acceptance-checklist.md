@@ -10,9 +10,9 @@ It is intended for a short manual acceptance round after engineering closeout.
 
 Use this checklist together with:
 
-- `docs/ui-final-acceptance-runbook.md`
-- `docs/ui-design-review-packet.md`
-- `docs/ui-acceptance-record-template.md`
+- `docs/ui/ui-final-acceptance-runbook.md`
+- `docs/ui/ui-design-review-packet.md`
+- `docs/ui/ui-acceptance-record-template.md`
 - `node tools/generate-ui-acceptance-record.mjs`
 
 ## Review Scope

@@ -12,8 +12,8 @@ tools: read, grep, find, ls, bash, edit, write
 2. `design/06_prototype_redraw/README.md` 与 `MANIFEST.md`（15 路由 → 屏文件/frame → 落点）
 3. `design/06_prototype_redraw/MOTION.md`（你负责的屏对应的动效声明）
 4. `design/06_prototype_redraw/TOKENS.md`（色值/字体/动效令牌映射）
-5. `docs/opendesign-1to1-rules.md`（画布口径：除 welcome 外 390×844 直绘 = vp 1:1）
-6. `docs/motion-restore-workflow.md`（CSS 动效 → ArkUI 映射模式）
+5. `docs/prototype/opendesign-1to1-rules.md`（画布口径：除 welcome 外 390×844 直绘 = vp 1:1）
+6. `docs/prototype/motion-restore-workflow.md`（CSS 动效 → ArkUI 映射模式）
 
 ## 硬纪律
 

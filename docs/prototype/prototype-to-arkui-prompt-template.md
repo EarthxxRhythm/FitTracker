@@ -1,7 +1,7 @@
 # 网页原型 → ArkUI 迁移提示词模板（通用）
 
 > 跨项目复用的迁移提示词骨架。方括号 `[ ]` 处按项目替换；FitTracker 的具体取值见配套附录
-> `docs\prototype-to-arkui-prompt-fittracker.md`。
+> `docs\prototype\prototype-to-arkui-prompt-fittracker.md`。
 
 ## 这份模板解决什么
 
@@ -252,4 +252,4 @@ DOM 树 → ArkUI 组件树的映射；尺寸、颜色、字号、行高、间�
 
 - **本模板**：不含任何具体项目路径，可直接移植。
 - **项目附录**：填入本项目八项规格源的实际路径、屏清单表、可执行命令、已踩过的坑。
-  参见 `docs\prototype-to-arkui-prompt-fittracker.md`。
+  参见 `docs\prototype\prototype-to-arkui-prompt-fittracker.md`。

@@ -9,7 +9,7 @@
 - 发布与构建工程师建议用什么命令复跑
 - 后续把正式签名接进来时，应改哪些接入点
 
-本文件不覆盖业务功能验收，不替代 `docs/mvp-closeout.md` 的 MVP 功能收官记录。
+本文件不覆盖业务功能验收，不替代 `docs/closeout/mvp-closeout.md` 的 MVP 功能收官记录。
 
 ## 2. 当前真实状态
 
@@ -161,7 +161,7 @@ devecocli signature generate --product default  # 生成材料并自动写入 bu
 
 ## 8. 与现有文档的关系
 
-- `docs/mvp-closeout.md`：记录 MVP 内部验收包，不记录正式签名发布完成
+- `docs/closeout/mvp-closeout.md`：记录 MVP 内部验收包，不记录正式签名发布完成
 - 本文档：记录发布与构建工程面的真实状态、命令、缺口与后续接入点
 
 ## 9. bundleName 变更的副作用与数据迁移
@@ -263,7 +263,7 @@ HarmonyOS 为每个应用按其 bundleName 分配独立沙箱目录，应用私�
 >
 > 即：`devSeed` 必须配 `testMode=sandbox` 才生效（AGC 真实接线后 seed 的沙盒登录态才有意义），而 `testMode` 被 `isDebuggablePackage()` 门禁限制在 debug 包（`entry/src/main/ets/features/pencil/pages/PencilSplashPage.ets:122`）⇒ **release 包无论如何都注入不了演示数据**。另注：`--ps` 需**重复书写**（`--ps k1 v1 --ps k2 v2`），写成 `--ps k1 v1 k2 v2` 会被 aa 参数解析器拒绝。
 >
-> 完整实验记录与云真机造数替代路径见 `docs/cloud-debug-automation.md` §5。
+> 完整实验记录与云真机造数替代路径见 `docs/release/cloud-debug-automation.md` §5。
 
 ### 注意事项
 
@@ -356,7 +356,7 @@ HarmonyOS 为每个应用按其 bundleName 分配独立沙箱目录，应用私�
 | --- | --- | --- | --- | --- |
 | 1 | 隐私政策 | 正文已具备；应用内展示已接线（LegalDocPage + rawfile 副本） | **开发者主体、联系邮箱为占位符，须替换**（md 与 rawfile 副本须同步重生成） | `docs/legal/privacy-policy.md` 第十一节（占位 2026-10-02 核实行号 L103-104） |
 | 2 | 用户协议 | 正文已具备；应用内展示已接线（同上） | **同上，须替换占位** | `docs/legal/user-agreement.md` 第十节（占位 2026-10-02 核实行号 L74-75） |
-| 3 | 应用市场截图 | 规格与清单已定义 | 实拍待 release 签名包 + 目标设备（**可用云调试远程真机**，无需物理设备；手动操作手册见 `docs/cloud-debug-automation.md`） | `docs/store-listing-screenshot-checklist.md` |
+| 3 | 应用市场截图 | 规格与清单已定义 | 实拍待 release 签名包 + 目标设备（**可用云调试远程真机**，无需物理设备；手动操作手册见 `docs/release/cloud-debug-automation.md`） | `docs/release/store-listing-screenshot-checklist.md` |
 | 4 | 应用身份（bundleName / vendor） | 已落地：`com.earthrhythm.fittracker` / `EarthRhythm` | AGC 应用条目需在控制台创建（仓库外；调试 profile 已含 app-identifier） | `AppScope/app.json5` |
 | 5 | 已签名 release 包 | 本机已实测产出（见 §10）；1.1.0 版本号已写回（`1.1.0` / `1001000`） | 发布材料切换后重构建；团队 / CI 环境各自 `devecocli signature generate` | `build-profile.json5`（处置见 §11） |
 | 6 | 混淆实测 | 冷启动 / Tab / 子页 / 持久化往返已冒烟（见 §10.1）；1.1.0 JSON 边界白名单已补齐（`14a68fb`，86 项） | 训练流、备份导入导出在 release 包上未覆盖；1.1.0 新增 JSON 链（云同步/会话/草稿）待最终 release 包复测 | `entry/build-profile.json5`、`entry/obfuscation-rules.txt` |

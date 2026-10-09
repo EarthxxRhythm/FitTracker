@@ -23,11 +23,11 @@
 
 当前任务源约定：
 
-- 默认主线：[`docs/tasks.workout-loop.json`](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/docs/tasks.workout-loop.json)
-- 并行内容线：[`docs/tasks.content-plan.json`](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/docs/tasks.content-plan.json)
-- 并行回归线：[`docs/tasks.regression-flow.json`](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/docs/tasks.regression-flow.json)
+- 默认主线：[`docs/process/tasks.workout-loop.json`](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/docs/process/tasks.workout-loop.json)
+- 并行内容线：[`docs/process/tasks.content-plan.json`](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/docs/process/tasks.content-plan.json)
+- 并行回归线：[`docs/process/tasks.regression-flow.json`](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/docs/process/tasks.regression-flow.json)
 - `tasks.phase2.json`、`tasks.next.json`、`tasks.json` 仅作为历史阶段记录，不再作为默认接力入口
-- `docs/tasks.legacy.json` 仅作归档，不作为自动接力任务源
+- `docs/process/tasks.legacy.json` 仅作归档，不作为自动接力任务源
 
 ## 3. 核心原则
 
@@ -74,7 +74,7 @@ powershell -ExecutionPolicy Bypass -File tools/task-relay.ps1 -WritePrompt
 并行线请显式指定：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools/task-relay.ps1 -TaskFile docs/tasks.content-plan.json -WritePrompt
+powershell -ExecutionPolicy Bypass -File tools/task-relay.ps1 -TaskFile docs/process/tasks.content-plan.json -WritePrompt
 ```
 
 ### Step 2. 跑前置检查

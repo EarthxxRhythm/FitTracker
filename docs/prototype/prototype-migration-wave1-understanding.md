@@ -1,6 +1,6 @@
 # Wave 1 六列理解表（15 屏）
 
-> 依据 `docs\prototype-to-arkui-prompt-template.md` 第 0 步产出。
+> 依据 `docs\prototype\prototype-to-arkui-prompt-template.md` 第 0 步产出。
 > 目的：在写任何 ArkTS 之前，把 15 屏的「画布基准 / 滚动边界 / 动效 / 交互状态 / 页面层级 / 唯一主 CTA」逐屏定下来。
 > 证据源：`design\06_prototype_redraw\src\*.html`（唯一规格）、`MOTION.md`、`design\05_page_specs\*`。
 
@@ -91,7 +91,7 @@
 
 ### 发现 1：画布基准实测与项目文档冲突（5 屏缩放 / 10 屏直绘）
 
-`design\06_prototype_redraw\README.md` 与 `docs\opendesign-1to1-rules.md` 硬规则 2 均称
+`design\06_prototype_redraw\README.md` 与 `docs\prototype\opendesign-1to1-rules.md` 硬规则 2 均称
 「除 welcome 外其余 14 屏 390×844 直绘」。逐屏核实后**实际有 5 屏是缩放画布**：
 
 | 屏 | frame 容器 | 设计画布 | 缩放变量 |
@@ -168,6 +168,6 @@ complete 还引入了**第三种画布高度**（930.6 而非 900），两个不
 
 ## 下一步
 
-按 `docs\prototype-to-arkui-prompt-template.md` 第 7 步分片：先核待验证项 1（两个缩放屏的 ArkUI 侧），
+按 `docs\prototype\prototype-to-arkui-prompt-template.md` 第 7 步分片：先核待验证项 1（两个缩放屏的 ArkUI 侧），
 再按 `ROUTES` 表切片实现。共享层（`DesignTokens.ets`、`AppRoutes.ets`、`PencilAppShell.ets`、`components\*`）
 分片前冻结。

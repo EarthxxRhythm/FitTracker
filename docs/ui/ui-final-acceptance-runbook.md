@@ -18,9 +18,9 @@ This runbook turns the remaining UI/UX closeout gap into a short, repeatable man
 
 Use it together with:
 
-- `docs/ui-acceptance-checklist.md`
-- `docs/ui-design-review-packet.md`
-- `docs/ui-acceptance-record-template.md`
+- `docs/ui/ui-acceptance-checklist.md`
+- `docs/ui/ui-design-review-packet.md`
+- `docs/ui/ui-acceptance-record-template.md`
 - `node tools/check-closeout-evidence.mjs`
 - `node tools/prepare-ui-acceptance.mjs`
 - `node tools/generate-ui-acceptance-record.mjs`
@@ -238,6 +238,6 @@ UI/UX can be treated as accepted when:
 
 Record the result in:
 
-- `docs/ui-acceptance-record-template.md`
+- `docs/ui/ui-acceptance-record-template.md`
 
-Once filled, that record becomes the missing human evidence referenced by `docs/closeout-audit.md`.
+Once filled, that record becomes the missing human evidence referenced by `docs/closeout/closeout-audit.md`.

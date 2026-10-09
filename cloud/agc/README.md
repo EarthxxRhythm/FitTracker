@@ -1,7 +1,7 @@
 # cloud/agc — AGC 侧配置材料
 
 本目录存放「AppGallery Connect 控制台侧配置」所需的材料与说明。
-完整操作手册见 [`docs/cloud-setup.md`](../../docs/cloud-setup.md)。
+完整操作手册见 [`docs/cloud/cloud-setup.md`](../../docs/cloud/cloud-setup.md)。
 
 ## 文件
 

@@ -10,7 +10,7 @@ tools: read, grep, find, ls, bash, write
 
 ## 前置
 
-- 读 `docs/模拟器视觉回归说明.md`、`docs/motion-restore-workflow.md` §5-7、
+- 读 `docs/ui/模拟器视觉回归说明.md`、`docs/prototype/motion-restore-workflow.md` §5-7、
   `tools/visual-diff/README.md`。
 - 设备：模拟器 `127.0.0.1:5555`；HAP 已由协调者装好（你不负责 assembleHap）。
 - 参照帧渲染工具：`python tools/render-prototype-phone.py`（MAPPING 15 屏，welcome-home/auth

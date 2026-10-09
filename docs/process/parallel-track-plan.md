@@ -6,7 +6,7 @@
 
 - 分支：`codex/fittracker-build-gates`
 - 工作树：`.worktrees/fittracker-build-gates`
-- 任务源：无独立任务文件时，默认跟随当前主线 `docs/tasks.workout-loop.json`
+- 任务源：无独立任务文件时，默认跟随当前主线 `docs/process/tasks.workout-loop.json`
 - 范围：构建脚本、任务接力脚本、检查护栏、验证入口、工具文档
 
 说明：这条线以工具化和护栏为主，必要时可以在人类指令中明确子任务，不再回退到 `tasks.phase2.json`。
@@ -15,21 +15,21 @@
 
 - 分支：`codex/fittracker-regression-flow`
 - 工作树：`.worktrees/fittracker-regression-flow`
-- 任务文件：`docs/tasks.regression-flow.json`
+- 任务文件：`docs/process/tasks.regression-flow.json`
 - 范围：登录、注册、会话恢复、冷启动分流、认证回归脚本
 
 ## workout-loop
 
 - 分支：`codex/fittracker-workout-loop`
 - 工作树：`.worktrees/fittracker-workout-loop`
-- 任务文件：`docs/tasks.workout-loop.json`
+- 任务文件：`docs/process/tasks.workout-loop.json`
 - 范围：训练计划、今日训练、训练记录、统计聚合、训练保存链路
 
 ## content-plan
 
 - 分支：`codex/fittracker-content-plan`
 - 工作树：`.worktrees/fittracker-content-plan`
-- 任务文件：`docs/tasks.content-plan.json`
+- 任务文件：`docs/process/tasks.content-plan.json`
 - 范围：个人资料、动作库、动作详情、通用 UI 组件、导航补齐
 
 ## 每条线开始前

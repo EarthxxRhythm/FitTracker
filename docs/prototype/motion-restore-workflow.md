@@ -117,7 +117,7 @@ python tools/compare-motion-frames.py   # -> test_run/motion-diff/report.md + <p
 
 ```text
 任务：把 <原型 html> 的动效 1:1 落到 <ArkUI 页面文件>，只改 owner_files。
-1) 读 docs/motion-restore-workflow.md（只读）。
+1) 读 docs/prototype/motion-restore-workflow.md（只读）。
 2) rg 提取原型 @keyframes/transition/:active/cubic-bezier，列出规格表。
 3) 按 §2 映射到 ArkUI；时长/缓动/缩放统一用 MotionTokens。
 4) 构建：devecocli build --product default，要求 BUILD SUCCESSFUL。

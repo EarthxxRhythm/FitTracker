@@ -32,10 +32,10 @@
 8. 图标优先复用 `entry/src/main/resources/rawfile/` 现有 SVG；缺失时用 ArkUI
    `Path/Line/Circle/Polygon` 内联绘制，除非确有必要才新增 rawfile SVG。
 9. 动效（含按压反馈、面板转场、关键帧序列）一律引用 `common/styles/DesignTokens.ets`
-   `MotionTokens`，实现模式见 `docs/motion-restore-workflow.md` §2；时长/曲线/按压缩放
+   `MotionTokens`，实现模式见 `docs/prototype/motion-restore-workflow.md` §2；时长/曲线/按压缩放
    系数核对 `MOTION.md`。禁止页面内散落魔法动效值。
 10. 中文必须与 HTML 逐字一致；HTML 为 UTF-8，读文件用 UTF-8 避免 GBK 乱码。
-11. 每屏还原后按 `docs/模拟器视觉回归说明.md` + `design/06_prototype_redraw/README.md`
+11. 每屏还原后按 `docs/ui/模拟器视觉回归说明.md` + `design/06_prototype_redraw/README.md`
     的像素/动效双轨验收（门槛：**非文本内容区**超阈像素占比 ≤8%，定义见 `ACCEPTANCE-PLAN.md`；
     可捕获动效态同标准；持续脉冲只核 MOTION.md 映射表）。
 

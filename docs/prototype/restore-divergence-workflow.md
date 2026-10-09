@@ -90,8 +90,8 @@ flowchart TD
 日期: YYYY-MM-DD
 ```
 
-**已有的证据库**见 `docs/prototype-migration-wave1-understanding.md` 与
-`docs/research-native-ui-restore-tooling.md`；新增结论请追加，不要另起炉灶。
+**已有的证据库**见 `docs/prototype/prototype-migration-wave1-understanding.md` 与
+`docs/prototype/research-native-ui-restore-tooling.md`；新增结论请追加，不要另起炉灶。
 
 ## 6. 并行编排原则
 

@@ -24,7 +24,7 @@ Use this file to record only the blockers that should change task routing.
 - `cloud-sync.401_signature`
   - status: cleared on 2026-10-08
   - scope: 云同步端到端验证、Wave 3 行级隔离实测
-  - note: 根因 = 签名方式（未关联注册应用的自动签名）+ 模拟器调试凭据未生成/未注册（复合）；修复后模拟器端到端贯通（`push ok: affected=1` / `pull ok: rows=1`）。修复手册见 `docs/cloud-setup.md` §9；完整取证 `test_run/cloud-sync-v2/probe-results.md`。（此前本卡点未登记——补记并直接以 cleared 收尾。）
+  - note: 根因 = 签名方式（未关联注册应用的自动签名）+ 模拟器调试凭据未生成/未注册（复合）；修复后模拟器端到端贯通（`push ok: affected=1` / `pull ok: rows=1`）。修复手册见 `docs/cloud/cloud-setup.md` §9；完整取证 `test_run/cloud-sync-v2/probe-results.md`。（此前本卡点未登记——补记并直接以 cleared 收尾。）
 
 ## How to Use
 
