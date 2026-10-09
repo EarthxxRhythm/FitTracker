@@ -559,9 +559,9 @@ flowchart TD
 
 ### 11.3 文档边界
 
-- `docs/agent-team-fittracker-overlay.md`
+- `docs/process/agent-team-fittracker-overlay.md`
   - 团队路由 overlay
-- `docs/ui-design-review-packet.md`
+- `docs/ui/ui-design-review-packet.md`
   - UI 设计判断基准
 - 本文档
   - handoffkit-ready 消息系统设计

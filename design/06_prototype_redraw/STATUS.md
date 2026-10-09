@@ -34,7 +34,7 @@
   - `src/`：13 屏 HTML + webapp 壳 + `assets/` 快照（唯一视觉规格源）
   - `MANIFEST.md`：15 路由 → 文件/frame → ArkUI 落点
   - `MOTION.md`：逐屏动效声明（@keyframes/transition/animation/:active）
-  - `docs/opendesign-1to1-rules.md` 修订为 390×844 直绘口径
+  - `docs/prototype/opendesign-1to1-rules.md` 修订为 390×844 直绘口径
 - **第 2 步 · Token 审计与校准** ✅（commit d1f1cc6）
   - `TOKENS.md`：跨屏变量一致性 / 色值语义映射 / MotionTokens 覆盖审计
   - `DesignTokens.ets`：新增 `MotionTokens.DURATION_PROGRESS=350`（进度 .35s fill）
@@ -81,7 +81,7 @@ Home 基线分解：超阈集中在 band1(84-168 日期/问候文字带,字体�
 - 双基准验收：① 390vp 非文本内容区超阈 ≤8%（口径见 `ACCEPTANCE-PLAN.md`）；② 自适应层（320–430vp 无溢出/无截断、安全区、
   字号 ≤1.3× 不破版；>600vp 平板/横屏阶段可选）。
 - 结构规则改为流式/弹性优先（Column/Row/Scroll/layoutWeight/百分比），`.position` 仅限装饰层；
-  规则已写入 docs/opendesign-1to1-rules.md §3 与「自适应与安全区」节。
+  规则已写入 docs/prototype/opendesign-1to1-rules.md §3 与「自适应与安全区」节。
 
 ## 黄金组件基线（进行中→基本完成）
 
@@ -127,7 +127,7 @@ Home 基线分解：超阈集中在 band1(84-168 日期/问候文字带,字体�
 
 **关键发现（与既有文档冲突，以源码为准）**：
 
-- `fittracker-auth.html:62` 定义 `--active-scale: 0.90698`，`.auth-frame`（:176-185）为 **430×900 画布 × 0.90698 ≈ 390×816**——login/register 与 welcome 同属「缩放画布」，**不是** 390×844 直绘。`README.md` 与 `docs/opendesign-1to1-rules.md` 硬规则 2 的「除 welcome 外 14 屏均 390 直绘」对 auth **不成立**。
+- `fittracker-auth.html:62` 定义 `--active-scale: 0.90698`，`.auth-frame`（:176-185）为 **430×900 画布 × 0.90698 ≈ 390×816**——login/register 与 welcome 同属「缩放画布」，**不是** 390×844 直绘。`README.md` 与 `docs/prototype/opendesign-1to1-rules.md` 硬规则 2 的「除 welcome 外 14 屏均 390 直绘」对 auth **不成立**。
 - `restore-accept.ps1` 只做 `force-stop + start`，**不导航**，因此无法到达 login/register（冷启动落 Welcome，login 需点「开始使用」再进）。既有 `test_run/emulator/ACCEPTANCE-2026-09-11.md` 中 login/register 的数字口径**存疑**（可能截的是 Welcome 屏）。
 
 **变更（4 文件）**：

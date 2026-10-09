@@ -29,7 +29,7 @@
 # 2) 传给 @hw-agconnect/auth（预编译 HAR）的入参属性名被 SDK 按名读取，
 #    跨模块边界属性保守保留。
 # JSON 序列化场景审计（2026-10 发布收尾）：枚举审计已完成，白名单补充见下文
-# 「JSON 序列化/解析边界」分组；release 包实测记录见 docs/release-build-runbook.md §12。
+# 「JSON 序列化/解析边界」分组；release 包实测记录见 docs/release/release-build-runbook.md §12。
 -keep-property-name
 
 # -- Wave 5 既有：SyncSnapshot 数据库字段 + AGC auth 入参 --

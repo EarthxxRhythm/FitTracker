@@ -8,8 +8,8 @@ This note records a narrow visual spot check on representative exported Midscene
 
 It does not replace the full human acceptance pass in:
 
-- `docs/ui-final-acceptance-runbook.md`
-- `docs/ui-acceptance-record-template.md`
+- `docs/ui/ui-final-acceptance-runbook.md`
+- `docs/ui/ui-acceptance-record-template.md`
 
 It exists to strengthen the evidence between route-level smoke coverage and the final manual signoff.
 

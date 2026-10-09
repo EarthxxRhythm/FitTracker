@@ -68,7 +68,7 @@
 
 - **界面仅提供简体中文**：设置页的"English"选项当前只记录选择状态，尚未驱动界面语言切换；`zh_CN` / `en_US` 资源目录已就绪，但界面文案仍为代码内中文。
 - **数据能力为本地实现**：设置页的"训练数据同步""匿名使用数据""健康数据授权"当前均为界面状态记录，未接入账号服务器、统计服务或健康数据权限（详见 `docs/legal/privacy-policy.md` 第六节）。
-- **应用身份变更会改变本地数据沙箱**：`bundleName` 已由样板值 `com.example.fittracker_opencode` 替换为正式身份 `com.earthrhythm.fittracker`（`vendor` 同步由 `example` 改为 `EarthRhythm`）。**bundleName 决定应用私有沙箱路径，变更后旧身份包留下的本地数据在新包下不可见**，迁移路径详见 `docs/release-build-runbook.md` 第 9 节。
+- **应用身份变更会改变本地数据沙箱**：`bundleName` 已由样板值 `com.example.fittracker_opencode` 替换为正式身份 `com.earthrhythm.fittracker`（`vendor` 同步由 `example` 改为 `EarthRhythm`）。**bundleName 决定应用私有沙箱路径，变更后旧身份包留下的本地数据在新包下不可见**，迁移路径详见 `docs/release/release-build-runbook.md` 第 9 节。
 - **签名链未接入**：当前仅能产出 unsigned HAP，尚不具备正式签名发布能力。
 
 ### 升级提示

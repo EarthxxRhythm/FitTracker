@@ -136,8 +136,8 @@ Authoritative evidence:
   - `ACCENT_METAL = #7E8F96`
   - `ACCENT_GOLD = #B59869`
 - registered main routes are centralized in `entry/src/main/resources/base/profile/main_pages.json`
-- existing route-by-route artifact-backed visual review is recorded in `docs/ui-acceptance-record-template.md`
-- design consistency guidance is recorded in `docs/ui-design-review-packet.md`
+- existing route-by-route artifact-backed visual review is recorded in `docs/ui/ui-acceptance-record-template.md`
+- design consistency guidance is recorded in `docs/ui/ui-design-review-packet.md`
 - current focused smoke and live-device summaries show the main pages are non-blank and navigable
 
 What is still weak or indirect:

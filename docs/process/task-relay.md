@@ -12,10 +12,10 @@
 
 ## 当前约定
 
-- 默认任务源：`docs/tasks.workout-loop.json`
+- 默认任务源：`docs/process/tasks.workout-loop.json`
 - 并行线请显式传入：
-  - `docs/tasks.content-plan.json`
-  - `docs/tasks.regression-flow.json`
+  - `docs/process/tasks.content-plan.json`
+  - `docs/process/tasks.regression-flow.json`
 - `tasks.phase2.json` 仅保留为历史阶段文件，不再作为默认入口
 
 ## 用法
@@ -29,7 +29,7 @@ powershell -ExecutionPolicy Bypass -File tools/task-relay.ps1 -WritePrompt
 针对指定任务线生成提示：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools/task-relay.ps1 -TaskFile docs/tasks.content-plan.json -WritePrompt
+powershell -ExecutionPolicy Bypass -File tools/task-relay.ps1 -TaskFile docs/process/tasks.content-plan.json -WritePrompt
 ```
 
 生成提示并跑前置检查：

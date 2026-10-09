@@ -10,7 +10,7 @@
  *   2) 工具 worker 曾整体卡死（连续多次调用 60s 超时）。
  *
  * 本脚本直连「自管真实 Chrome」的远程调试端口，提供云调试所需的最小操作集。
- * 前置：真实 Chrome 已用 --remote-debugging-port 启动（见 docs/cloud-debug-automation.md）。
+ * 前置：真实 Chrome 已用 --remote-debugging-port 启动（见 docs/release/cloud-debug-automation.md）。
  *
  * 用法：
  *   node tools/cloud-debug/cdp.mjs pages

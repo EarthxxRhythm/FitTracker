@@ -43,8 +43,8 @@ README.md                       # 本文件
      logo / drawing PNG 等 —— 属设计过程记录而非规格屏；需要设计意图时按路径直接查阅上游。
 
    > 遗留：`src/index.html.artifact.json` 是早期复制流程的副产物（对应 html 未纳入），非规格文件。
-3. 还原约束、画布口径、token 映射见 `docs/opendesign-1to1-rules.md`；
-   动效 ArkUI 映射与验收见 `docs/motion-restore-workflow.md`。
+3. 还原约束、画布口径、token 映射见 `docs/prototype/opendesign-1to1-rules.md`；
+   动效 ArkUI 映射与验收见 `docs/prototype/motion-restore-workflow.md`。
 
 ## 画布口径（重要）
 

@@ -176,7 +176,7 @@ def build_motion() -> str:
     lines.append("# FitTracker 界面重建 · 动效规格表（MOTION）")
     lines.append("")
     lines.append("> 从冻结基线各屏 HTML `<style>` 自动提取。还原时按 ")
-    lines.append("> `docs/opendesign-1to1-rules.md` 与 `docs/motion-restore-workflow.md` 映射到 ArkUI；")
+    lines.append("> `docs/prototype/opendesign-1to1-rules.md` 与 `docs/prototype/motion-restore-workflow.md` 映射到 ArkUI；")
     lines.append("> 时长/曲线/按压缩放系数统一落到 `common/styles/DesignTokens.ets` MotionTokens。")
     lines.append("")
     lines.append("口径：`transition/animation/transform` 声明 = 映射对象；`:active transform` = 按压反馈；")

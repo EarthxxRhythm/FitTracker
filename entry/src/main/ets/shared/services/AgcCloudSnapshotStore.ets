@@ -7,7 +7,7 @@
  * 对象类型 SyncSnapshot 与 AGC 控制台对象类型（AppScope/resources/rawfile/schema.json）一一对应：
  *   userId(String, 主键) / payloadJson(Text) / updatedAt(Long) / deviceTag(String) / schemaVersion(Integer)
  * 字段名须与控制台定义一致（两侧不一致将报 1008230002）。
- * 存储区名须与 AGC 控制台「存储区」名称一致（docs/cloud-setup.md §3）。
+ * 存储区名须与 AGC 控制台「存储区」名称一致（docs/cloud/cloud-setup.md §3）。
  */
 import { Context } from '@kit.AbilityKit'
 import { BusinessError } from '@kit.BasicServicesKit'
@@ -21,7 +21,7 @@ import {
 } from './CloudSnapshotStore'
 import CloudEnvironment from '../../common/services/CloudEnvironment'
 
-/** AGC 控制台「存储区」名称（与 docs/cloud-setup.md §3 约定一致；实测时以控制台为准）。 */
+/** AGC 控制台「存储区」名称（与 docs/cloud/cloud-setup.md §3 约定一致；实测时以控制台为准）。 */
 const CLOUD_DB_ZONE_NAME: string = 'FitTracker'
 
 /** SyncSnapshot 对象类：String/Text → string，Long/Integer → number（官方字段类型映射）。 */
