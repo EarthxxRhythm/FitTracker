@@ -76,6 +76,45 @@ function send(wsUrl, method, params = {}) {
   });
 }
 
+function sendSeq(wsUrl, calls) {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(wsUrl);
+    const out = [];
+    let idx = 0;
+    const timer = setTimeout(() => { try { ws.close(); } catch { /* noop */ } reject(new Error('sendSeq 超时（60s）')); }, 60000);
+    const next = () => {
+      if (idx >= calls.length) { clearTimeout(timer); ws.close(); resolve(out); return; }
+      const c = calls[idx];
+      let params;
+      try {
+        params = typeof c.params === 'function' ? c.params(out) : (c.params || {});
+      } catch (e) {
+        clearTimeout(timer);
+        try { ws.close(); } catch { /* noop */ }
+        reject(e);
+        return;
+      }
+      ws.send(JSON.stringify({ id: idx + 1, method: c.method, params }));
+    };
+    ws.onopen = next;
+    ws.onmessage = (ev) => {
+      let m;
+      try { m = JSON.parse(ev.data); } catch { return; }
+      if (m.id !== idx + 1) return;
+      if (m.error) {
+        clearTimeout(timer);
+        try { ws.close(); } catch { /* noop */ }
+        reject(new Error(`${calls[idx].method}: ${m.error.message}`));
+        return;
+      }
+      out.push(m.result);
+      idx += 1;
+      next();
+    };
+    ws.onerror = () => { clearTimeout(timer); reject(new Error('WebSocket 连接失败')); };
+  });
+}
+
 const [, , cmd, ...args] = process.argv;
 
 function print(obj) {
@@ -83,7 +122,7 @@ function print(obj) {
 }
 
 async function main() {
-  const KNOWN = ['pages', 'eval', 'nav', 'screenshot', 'click', 'text', 'key', 'logs', 'inject', 'hold-inject', 'frame-eval'];
+  const KNOWN = ['pages', 'eval', 'nav', 'screenshot', 'click', 'text', 'key', 'logs', 'inject', 'hold-inject', 'frame-eval', 'set-file'];
   if (!KNOWN.includes(cmd)) {
     console.error('usage: cdp.mjs pages|eval|nav|screenshot|click|text|key|logs|inject|hold-inject ...');
     process.exitCode = 2;
@@ -223,6 +262,41 @@ async function main() {
         process.exitCode = 1;
       }
       print(r.result?.value);
+      return;
+    }
+    case 'set-file': {
+      const page = pickPage(pages);
+      const filePath = args[0];
+      const findInputNode = (node) => {
+        if (node.nodeName === 'INPUT') {
+          const attrs = node.attributes || [];
+          for (let i = 0; i < attrs.length; i += 2) {
+            if (attrs[i] === 'type' && attrs[i + 1] === 'file') return node;
+          }
+        }
+        for (const c of node.children || []) {
+          const hit = findInputNode(c);
+          if (hit) return hit;
+        }
+        if (node.contentDocument) {
+          const hit = findInputNode(node.contentDocument);
+          if (hit) return hit;
+        }
+        return null;
+      };
+      await sendSeq(page.webSocketDebuggerUrl, [
+        { method: 'DOM.enable' },
+        { method: 'DOM.getDocument', params: { depth: -1, pierce: true } },
+        {
+          method: 'DOM.setFileInputFiles',
+          params: (prev) => {
+            const input = findInputNode(prev[1].root);
+            if (!input) throw new Error('未找到 input[type=file]（含 iframe 穿透查找）');
+            return { files: [filePath], nodeId: input.nodeId };
+          },
+        },
+      ]);
+      print({ ok: true, file: filePath });
       return;
     }
     case 'logs': {
