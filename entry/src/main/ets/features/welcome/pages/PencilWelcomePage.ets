@@ -2,6 +2,7 @@
 
 import { AppRoutes } from '../../../app/AppRoutes'
 import { MotionTokens } from '../../../common/styles/DesignTokens'
+import { currentCanvasScale } from '../../../common/utils/CanvasScale'
 
 /**
  * 还原说明（2026-09-12 重构 · 第二轮）
@@ -259,7 +260,7 @@ struct PencilWelcomePage {
       }
       .width(430)
       .height(900)
-      .scale({ x: 0.90698, y: 0.90698, centerX: 0, centerY: 0 })
+      .scale({ x: currentCanvasScale(this.getUIContext()), y: currentCanvasScale(this.getUIContext()), centerX: 0, centerY: 0 })
     }
     .width('100%')
     .height('100%')
