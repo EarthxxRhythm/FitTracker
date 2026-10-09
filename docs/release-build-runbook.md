@@ -252,6 +252,19 @@ HarmonyOS 为每个应用按其 bundleName 分配独立沙箱目录，应用私�
 
 影响面：`devSeed` 是调试参数，生产启动不携带，因此**不影响正式发布包的功能**；但会使 release 包下的设备截图验收（依赖 seed 直达 home）失效——如需在 release 包上做视觉验收，改用 `devecocli ui click` 导航。
 
+> **更正（2026-10-09 实测，四组对照实验）**：上述「debug 生效 / release 失效」的二分**机制记录有误**。真正变量不是构建模式，而是 `testMode=sandbox`：
+>
+> | 包 | 启动参数 | 落地页 |
+> | --- | --- | --- |
+> | release | `devSeed` | 登录页 |
+> | debug | `devSeed` | 登录页 |
+> | debug | `testMode sandbox` + `devSeed` | **首页（注入成功）** |
+> | release | `testMode sandbox` + `devSeed` | 登录页 |
+>
+> 即：`devSeed` 必须配 `testMode=sandbox` 才生效（AGC 真实接线后 seed 的沙盒登录态才有意义），而 `testMode` 被 `isDebuggablePackage()` 门禁限制在 debug 包（`entry/src/main/ets/features/pencil/pages/PencilSplashPage.ets:122`）⇒ **release 包无论如何都注入不了演示数据**。另注：`--ps` 需**重复书写**（`--ps k1 v1 --ps k2 v2`），写成 `--ps k1 v1 k2 v2` 会被 aa 参数解析器拒绝。
+>
+> 完整实验记录与云真机造数替代路径见 `docs/cloud-debug-automation.md` §5。
+
 ### 注意事项
 
 - `build-profile.json5` 的签名配置含本机绝对路径（`C:\Users\<user>\.ohos\config\...`）与加密密码。**更正（2026-10-02 核实）**：该内容已随 HEAD 入库（`git show HEAD:build-profile.json5` 实证含完整 `signingConfigs`；工作树该文件与 HEAD 无差异）——与「签名材料不入库」取向存在冲突，处置决策见 §11（已选定方案甲）。团队与 CI 环境应各自执行 `devecocli signature generate`；门禁在干净环境下判 FAIL 属预期（确无签名材料）。
@@ -343,7 +356,7 @@ HarmonyOS 为每个应用按其 bundleName 分配独立沙箱目录，应用私�
 | --- | --- | --- | --- | --- |
 | 1 | 隐私政策 | 正文已具备；应用内展示已接线（LegalDocPage + rawfile 副本） | **开发者主体、联系邮箱为占位符，须替换**（md 与 rawfile 副本须同步重生成） | `docs/legal/privacy-policy.md` 第十一节（占位 2026-10-02 核实行号 L103-104） |
 | 2 | 用户协议 | 正文已具备；应用内展示已接线（同上） | **同上，须替换占位** | `docs/legal/user-agreement.md` 第十节（占位 2026-10-02 核实行号 L74-75） |
-| 3 | 应用市场截图 | 规格与清单已定义 | 实拍待 release 签名包 + 目标设备（**可用云调试远程真机**，无需物理设备） | `docs/store-listing-screenshot-checklist.md` |
+| 3 | 应用市场截图 | 规格与清单已定义 | 实拍待 release 签名包 + 目标设备（**可用云调试远程真机**，无需物理设备；手动操作手册见 `docs/cloud-debug-automation.md`） | `docs/store-listing-screenshot-checklist.md` |
 | 4 | 应用身份（bundleName / vendor） | 已落地：`com.earthrhythm.fittracker` / `EarthRhythm` | AGC 应用条目需在控制台创建（仓库外；调试 profile 已含 app-identifier） | `AppScope/app.json5` |
 | 5 | 已签名 release 包 | 本机已实测产出（见 §10）；1.1.0 版本号已写回（`1.1.0` / `1001000`） | 发布材料切换后重构建；团队 / CI 环境各自 `devecocli signature generate` | `build-profile.json5`（处置见 §11） |
 | 6 | 混淆实测 | 冷启动 / Tab / 子页 / 持久化往返已冒烟（见 §10.1）；1.1.0 JSON 边界白名单已补齐（`14a68fb`，86 项） | 训练流、备份导入导出在 release 包上未覆盖；1.1.0 新增 JSON 链（云同步/会话/草稿）待最终 release 包复测 | `entry/build-profile.json5`、`entry/obfuscation-rules.txt` |
