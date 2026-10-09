@@ -1,6 +1,7 @@
 /** WorkoutCompletePage - FitTracker workout completion page. */
 import { AppRoutes } from '../../../app/AppRoutes'
 import { MotionTokens } from '../../../common/styles/DesignTokens'
+import { currentCanvasScale } from '../../../common/utils/CanvasScale'
 import WorkoutSessionService from '../../../common/services/WorkoutSessionService'
 import WorkoutSessionPersistenceBridgeService from '../../../features/workout/services/WorkoutSessionPersistenceBridgeService'
 import WorkoutSummaryService, { WorkoutSummary } from '../../../shared/services/WorkoutSummaryService'
@@ -258,7 +259,7 @@ export struct WorkoutCompletePage {
       }
       .width(430)
       .height(930.6)
-      .scale({ x: 0.90698, y: 0.90698, centerX: 0, centerY: 0 })
+      .scale({ x: currentCanvasScale(this.getUIContext()), y: currentCanvasScale(this.getUIContext()), centerX: 0, centerY: 0 })
 
       this.confettiLayer()
     }

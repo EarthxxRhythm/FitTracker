@@ -7,6 +7,7 @@ import GoalRepository from '../../../shared/services/GoalRepository'
 import CloudSyncService from '../../../shared/services/CloudSyncService'
 import { Context } from '@kit.AbilityKit'
 import { ColorTokens, MotionTokens } from '../../../common/styles/DesignTokens'
+import { currentCanvasScale } from '../../../common/utils/CanvasScale'
 
 const COUNTDOWN_SECONDS: number = 60
 
@@ -650,7 +651,7 @@ struct PencilLoginPage {
       }
       .width(430)
       .height(900)
-      .scale({ x: 0.90698, y: 0.90698, centerX: 0, centerY: 0 })
+      .scale({ x: currentCanvasScale(this.getUIContext()), y: currentCanvasScale(this.getUIContext()), centerX: 0, centerY: 0 })
     }
     .width('100%')
     .height('100%')
