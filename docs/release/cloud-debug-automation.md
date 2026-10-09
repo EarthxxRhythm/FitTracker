@@ -148,6 +148,7 @@ chrome.exe --remote-debugging-port=9223
 | `logs [秒]` | 采集 console / 异常 / 网络失败（默认 8s） | `cdp.mjs logs 10` |
 | `inject <file>` | 注册新文档注入脚本 | `cdp.mjs inject tools/cloud-debug/inject-net-retry.js` |
 | `hold-inject <file> <分钟>` | 注册注入脚本并**保持长连接** | `cdp.mjs hold-inject tools/cloud-debug/inject-net-retry.js 10` |
+| `frame-eval <url子串> <js>` | 在指定 **iframe/frame** 内执行 JS（`Page.getFrameTree` + `Page.createIsolatedWorld` + contextId；云调试面板在 iframe 内，必用） | `cdp.mjs frame-eval "cloud-debugging/cn/index.html" "document.title"` |
 
 环境变量：`CDP_PORT`（默认 `9223`）、`CDP_TAB`（按 URL 子串选择目标页；不设时取第一个非 `about:blank` 页面）。
 
@@ -173,12 +174,14 @@ chrome.exe --remote-debugging-port=9223
 | 自管真实 Chrome 实例 | ✅ 独立 profile + 9223 端口，与用户浏览器进程隔离 | `probe/chrome-procs.txt` |
 | AGC 登录态 | ✅ 会话有效，业务 API 返回 200，OAuth 续期自动完成 | `probe/network-fails2.txt` 前的 200 记录 |
 | profile 网络状态修复 | ✅ 清理后由 6/6 失败转为 6/6 通过 | 诊断对照数据 |
-| **AGC 项目页渲染** | ❌ 卡在 `.agc-loading-container`（全局 loading 不撤） | `probe/05-project-page.png` |
-| **云调试页 URL** | ⚠ 未取得可靠入口（路由守卫重定向） | §3.1 |
+| **AGC 项目页渲染** | ✅ 已解决（预热 + `hold-inject` 补丁 + 有效登录态 → loading 正常撤除） | `probe/06-project-page-ok.png` |
+| **云调试页 URL** | ✅ 已取得（用户从已登录浏览器复制，直达成功）；云调试功能体在 iframe 内 | `probe/08-cloud-debugging-clean.png` |
 
 **项目页卡死的现状细节**：页面资源与 API 均已能 200，补丁也录得重试成功记录（如 `project-management-service/.../projects`），但 loading 容器不撤——候选原因：页面初始化链路依赖的某个更早失败，或 profile 深层状态。
 
-**下一步（待输入）**：需要一份**从已登录浏览器手点进入云调试页后复制出来的完整 URL**，用于在自动化实例中直达（可能绕开项目页初始化链）。拿到后在 `cdp.mjs nav` 打开并截图确认。
+**已完成（2026-10-09）**：按上述拿到用户提供的完整 URL，`cdp.mjs nav` 直达成功——预热 + `hold-inject` 补丁 + 有效登录态下，AGC 项目页与云调试页均正常渲染（`probe/06-project-page-ok.png`、`probe/08-cloud-debugging-clean.png`）。
+
+**⚠ 结构关键点（2026-10-09 实测）**：云调试**功能体跑在 iframe 内**——`.../agc/cloud-debugging/cn/index.html`（主页面仅为外壳，`body.innerText` 读不到面板内容，`document.querySelectorAll('iframe')` 可定位）。对 iframe 内 UI 的读写需 **frame 级执行**：`cdp.mjs frame-eval "<iframe url 子串>" "<js>"`（实现：`Page.getFrameTree` + `Page.createIsolatedWorld` + 带 contextId 的 `Runtime.evaluate`）。实测已用它完成：读四页签面板、切换「控制参数」并展开「Shell脚本」、注入并执行 `echo hello-from-agent`（输出回显成功）。
 
 ---
 
@@ -282,8 +285,8 @@ for n in [b'DeviceSeedService',b'LaunchRequestStore',b'EntryLaunchParameters']:
 | `ERR_SSL_BAD_RECORD_MAC_ALERT` / `ERR_CONNECTION_RESET` | B | 环境级新连接干扰 → §4.4：预热 / `hold-inject` 补丁 / 清理 profile 网络状态 |
 | 登录流卡死、`SyntaxError: Unexpected end of JSON input`（`aui2-login-developer.js`） | B | 同上——`refreshAccessToken` 撞上 TLS 失败窗口导致续期中断 |
 | 注入脚本不生效 | B | 忘 `Page.enable` 或用短连接注册 → 改用 `hold-inject`（§4.4） |
-| AGC 项目页卡 `.agc-loading-container` | B | 未解决（§4.5）；候选：预热/补丁覆盖初始化链，或改直达云调试页 URL |
-| 导航到 `#/CloudDebugging` 被重定向到 `#/InAppDistribution/...` | B | 路由守卫不接受冷跳 → 用已登录浏览器手点取完整 URL（§3.1） |
+| AGC 项目页卡 `.agc-loading-container` | B | **已解决**：预热 + `hold-inject` 补丁 + 有效登录态（§4.5） |
+| 导航到 `#/CloudDebugging` 被重定向到 `#/InAppDistribution/...` | B | 不要拼路由；用已登录浏览器复制出的项目 URL 直达（§3.1）；面板内容在 iframe 内，读写用 `frame-eval`（§4.5） |
 | 上传后安装失败：包名冲突 | A | 云真机上已有同包名旧版本 → 先卸载再上传 |
 | 安装被拒：签名受限 | A | 换 release 签名包；若仍被拒 → 属**未验证项**，记录现象转官方工单 |
 | 上传报格式错误 | A | 确认 HAP 完整（对比大小与 §6.1 归档件一致） |
@@ -317,12 +320,12 @@ test_run/cloud-debug/
 
 | # | 项 | 状态 |
 | --- | --- | --- |
-| U1 | 云真机会话全流程（申请设备 / 上传自动安装 / 控制面板 / 释放） | **从未建立过会话**，全部【外部来源】 |
-| U2 | 控制面板的 hdc/adb 命令输入（前缀格式） | 【外部来源】，未本机执行 |
+| U1 | 云真机会话全流程（申请设备 / 上传自动安装 / 控制面板 / 释放） | **部分已本机验证**（2026-10-09）：设备已连接（Mate 90 Pro Max）、四页签可达、Shell 命令执行成功；上传/安装/截屏/日志/释放**待测** |
+| U2 | 控制面板的 hdc/adb 命令输入（前缀格式） | **已本机验证**（2026-10-09）：直接写 shell 语法、**无需 `hdc shell` 前缀**（placeholder 原文示例 `input keyevent 3`；实测 `echo hello-from-agent` 输出回显成功） |
 | U3 | 控制面板「复制文本/上传图片到设备」 | 【外部来源】，未本机执行 |
 | U4 | 云真机可安装 release 签名包 | 未验证；本机模拟器安装 release 包已通过，但不等于云真机 |
-| U5 | 云调试页完整 URL | 未取得（§3.1 路由守卫重定向）；**需要人工从已登录浏览器复制** |
-| U6 | AGC 项目页 loading 卡死 | 未解决（§4.5） |
+| U5 | 云调试页完整 URL | **已取得**（2026-10-09，用户提供并直达成功）：主页面 URL 直达可用；云调试功能体在 iframe `.../agc/cloud-debugging/cn/index.html` 内 |
+| U6 | AGC 项目页 loading 卡死 | **已解决**（2026-10-09）：预热 + `hold-inject` 补丁 + 有效登录态 → loading 正常撤除；证据 `probe/06-project-page-ok.png` |
 | U7 | 备份导入（§5.3 路径 B）走云真机 | 未验证，应用内 UI 入口未定位 |
 | U8 | 设备释放 / 配额查询界面 | 【外部来源】 |
 
