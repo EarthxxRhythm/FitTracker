@@ -83,7 +83,7 @@ function print(obj) {
 }
 
 async function main() {
-  const KNOWN = ['pages', 'eval', 'nav', 'screenshot', 'click', 'text', 'key', 'logs', 'inject', 'hold-inject'];
+  const KNOWN = ['pages', 'eval', 'nav', 'screenshot', 'click', 'text', 'key', 'logs', 'inject', 'hold-inject', 'frame-eval'];
   if (!KNOWN.includes(cmd)) {
     console.error('usage: cdp.mjs pages|eval|nav|screenshot|click|text|key|logs|inject|hold-inject ...');
     process.exitCode = 2;
@@ -184,6 +184,39 @@ async function main() {
         ws.onclose = () => console.log('hold-inject: ws closed');
       });
       print('hold-inject: released');
+      return;
+    }
+    case 'frame-eval': {
+      const page = pickPage(pages);
+      const filter = args[0];
+      const expr = args.slice(1).join(' ');
+      const tree = await send(page.webSocketDebuggerUrl, 'Page.getFrameTree');
+      const findFrame = (node) => {
+        if ((node.frame.url || '').includes(filter)) return node.frame;
+        for (const c of node.childFrames || []) {
+          const hit = findFrame(c);
+          if (hit) return hit;
+        }
+        return null;
+      };
+      const frame = findFrame(tree.frameTree);
+      if (!frame) {
+        console.error(`未找到匹配 "${filter}" 的 frame`);
+        process.exitCode = 1;
+        return;
+      }
+      const world = await send(page.webSocketDebuggerUrl, 'Page.createIsolatedWorld', { frameId: frame.id, worldName: 'cdp-frame' });
+      const r = await send(page.webSocketDebuggerUrl, 'Runtime.evaluate', {
+        contextId: world.executionContextId,
+        expression: expr,
+        awaitPromise: true,
+        returnByValue: true,
+      });
+      if (r.exceptionDetails) {
+        console.error('Exception:', r.exceptionDetails.text, r.exceptionDetails.exception?.description ?? '');
+        process.exitCode = 1;
+      }
+      print(r.result?.value);
       return;
     }
     case 'logs': {
