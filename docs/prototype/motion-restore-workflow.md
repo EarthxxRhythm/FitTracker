@@ -88,7 +88,7 @@ hdc shell aa start -a EntryAbility -b com.earthrhythm.fittracker
 ```powershell
 hdc shell uitest dumpLayout -p /data/local/tmp/ui.json
 hdc file recv /data/local/tmp/ui.json work/ui.json
-python work/parse_ui.py work/ui.json
+python tools/parse-ui.py work/ui.json
 ```
 
 截图 + 点击（坐标是设备原生像素）：
