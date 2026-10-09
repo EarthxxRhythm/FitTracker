@@ -42,6 +42,22 @@
 
 **改版方法**：改 `master_fg.html` 的 scale（占比）或路径参数 → 重跑上述管线 → 替换 resources 中的 PNG。
 
+## 应用市场提交素材（可复现）
+
+市场规范：正方形；`216×216` 或 `1024×1024`；PNG ≤ 3 MB / WEBP ≤ 100 KB；须与软件包内应用图标一致。
+
+| 文件 | 尺寸 | 大小 |
+|---|---|---|
+| `market/icon-1024.png` | 1024×1024 | 104,421 B |
+| `market/icon-216.png` | 216×216 | 17,620 B |
+| `market/icon-1024.webp` | 1024×1024 | 11,816 B |
+| `market/icon-216.webp` | 216×216 | 2,400 B |
+
+- **生成**：`python design/07_app_icon/make_market_icon.py` —— 读 `AppScope/resources/base/media/` 的 background + foreground 做 alpha 合成，再缩放导出；脚本内含正方形/尺寸/文件大小断言，任一不达标则非零退出。
+- **口径**：满幅不透明方图（RGB 无 alpha），**不预切圆角**——圆角由平台统一处理；预切圆角会在平台二次裁切后留下透明角。
+- **一致性（与包内图标）**：提交图与 `alpha_composite(bg, fg)` 逐像素相同（`ImageChops.difference(...).getbbox()` 为 `None`），源头就是包内那两份 PNG。
+- **一致性（与设备渲染）**：符号占比实测对齐——设备实拍（`desktop-evidence.png`，图标方块 163×163）量得环 bbox 占比 48.5% / 49.7%，提交图 49.0% / 49.9%，差 ≤ 0.6 pp。
+
 ## 验证记录（2026-10-03）
 
 | 环节 | 结果 |
@@ -54,6 +70,8 @@
 ## 目录内容
 
 - `master/` — 母版 PNG（`master_bg.png` / `master_fg.png` / `master_startIcon.png`），再生成与改版的源
+- `make_market_icon.py` — 应用市场提交素材生成脚本（合成 + 正方形/尺寸/大小断言）
+- `market/` — 应用市场提交素材产出（1024 / 216 的 PNG + WEBP，共 4 个文件）
 - `master_bg.html` / `master_fg.html` — 生成源（底与符号的 SVG 定义，改版从此处调参）
 - `icon-explore-v1.html` — 第一轮 6 方向探索页（环/哑铃/柱/脉冲/F/山）
 - `icon-ring-refine.html` — 第二轮 A/B/C/D 精修对比页（含底处理对比）
