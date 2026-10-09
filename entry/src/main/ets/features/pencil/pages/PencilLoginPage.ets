@@ -180,7 +180,7 @@ struct PencilLoginPage {
   private buildBrandHeader() {
     Column({ space: 12 }) {
       Row() {
-        Image($rawfile('fittracker-logo-pulse.svg'))
+        Image($rawfile('fittracker-logo-ring.svg'))
           .width(26)
           .height(26)
       }
