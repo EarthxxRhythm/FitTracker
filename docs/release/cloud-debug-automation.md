@@ -180,7 +180,7 @@ chrome.exe --remote-debugging-port=9223
 | **Shell 命令通道（P6）** | ✅ 实测：`echo hello-from-agent` 回显；`hilog -x \| tail -8` 读到真实设备日志；**直接写 shell 语法，无需 `hdc shell` 前缀**；支持管道 | §4.6 |
 | **截屏（P8）** | ✅ agent 侧 `screenshot --clip` 截投屏区落盘（334×721 真机画面）；云调试自带「截屏」页签**未生效**（共 0 条，原因未知） | `manual-run/device-screen-01.png` |
 | **应用安装状态（P5）** | ⚠ **「应用」页签列表 = 已上传的包**（FitTracker 1.1.0 在列），**不等于设备已安装**——`aa start`/`bm dump` 均报 not installed | §4.6 |
-| **安装实测（P5，2026-10-09）** | ❌ **安装可触发但未装上**：点 `li.app_card span.icon-install` → 页面提示「应用正在安装中，请稍后在云真机中查看」→ **设备上始终未出现**（`aa start`/`bm dump` 均报未安装；桌面无图标；重复两次结果相同；**无任何错误信息**）。对照实验已排除命令语法问题（`bm dump -n com.huawei.refreshtimer` 正常返回）。怀疑方向：签名受限（§8「安装被拒」）或包/平台问题——**未定论** | `manual-run/device-screen-03-after-install.png` |
+| **安装实测（P5，2026-10-09）** | ⚠→✅ **两次结果不同**：① 首次（release 包、原会话）点安装 → 提示「应用正在安装中」→ **设备上始终未出现**（无错误信息）；② 后续（新会话）**用 `cdp.mjs set-file` 注入 **debug 包**上传 → 点安装 → 提示「**应用安全扫描中...安装成功**」→ **应用在设备上运行**（`manual-run/device-screen-04-after-debug-install.png` = 应用登录页截图）。**差异变量（包 debug/release 或会话状态/时序）尚未定论** | `manual-run/device-screen-04-after-debug-install.png` |
 
 **项目页卡死的现状细节**：页面资源与 API 均已能 200，补丁也录得重试成功记录（如 `project-management-service/.../projects`），但 loading 容器不撤——候选原因：页面初始化链路依赖的某个更早失败，或 profile 深层状态。
 
