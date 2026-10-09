@@ -37,7 +37,7 @@ struct PencilWelcomePage {
   private buildBrandLockup() {
     Row({ space: 10 }) {
       Stack() {
-        Image($rawfile('fittracker-logo-pulse.svg'))
+        Image($rawfile('fittracker-logo-ring.svg'))
           .width(18)
           .height(18)
           .objectFit(ImageFit.Contain)
