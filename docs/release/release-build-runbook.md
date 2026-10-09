@@ -379,3 +379,75 @@ HarmonyOS 为每个应用按其 bundleName 分配独立沙箱目录，应用私�
 > **校准**：本节原结论已被 1.1.0 推翻——当前 `PencilSplashPage.ets` aboutToAppear 实证：未登录 → 登录 / 注册页（`StartupDecision.getInitialRoute(hasValidSession, hasGoal)`），三屏回到正常启动流（见 `docs/CHANGELOG.md` 1.1.0「启动门槛」）。原「A. 补入口 / B. 彻底移除」两方向决策随之作废。
 >
 > 历史留档（1.0.0 时代事实，供溯源）：自 `4d6a144`（取消启动时登录门槛）起，无登录门槛版本下三屏仅在 `getHostContext()` 返回空的异常路径可达；该状态不适用于 1.1.0+。
+
+## 14. 发布签名落地记录（2026-10-09）
+
+### 14.1 发布证书与 Profile（已申请，AGC 控制台可复核）
+
+| 项 | 值 |
+| --- | --- |
+| 发布证书 | `fittracker_release`（生效，失效日期 2029-10-09） |
+| 发布 Profile | `fittracker_release_profile`（生效，`type=release`，bundleName `com.earthrhythm.fittracker`） |
+| CSR | `~/.ohos/release-keys/fittracker-release.csr`（sha256 `180ce5fa4a8bf1ed…`，EC/secp256r1 + SHA256withECDSA） |
+| 签名材料归档 | `~/.ohos/release-keys/`：`fittracker-release.p12` / `fittracker_release.cer`（3 证书链）/ `fittracker_release.p7b` |
+| 机器密钥材料副本 | `~/.ohos/release-keys/material/`（自 `~/.ohos/config/material/` 复制） |
+| 调试配置备份 | `~/.ohos/release-keys/build-profile.debug-backup.json5` |
+
+### 14.2 hvigor 签名口令的格式要求（**踩坑点**）
+
+`build-profile.json5` 的 `storePassword` / `keyPassword` **不是明文口令**，必须写 DevEco 的加密串：
+
+- 明文会被 hvigor 直接拒：`00303116`（长度 < 32）、`00303117`（长度须为偶数）—— 两条均属 `Configuration Error`，来自 `hvigor-ohos-plugin/src/utils/decipher-util.js` 的 `decryptPwd`
+- 密文格式：`hex( [4B 大端 e][N B IV][密文][16B GCM tag] )`，其中 `e = 密文长度 + 16`
+- 密钥派生（`materialDir` = **`dirname(storeFile)`**，即 p12 所在目录）：
+
+  ```text
+  materialDir/material/
+    ├── fd/{0,1,2}/<file>   各含 1 个 16 字节文件
+    ├── ac/<file>           salt（16 字节）
+    └── ce/<file>           work（48 字节，被 rootKey 加密的工作密钥）
+  rootKey = pbkdf2( xor(fd0, fd1, fd2, component).toString(), salt, 10000, 16, 'sha256' )
+  key     = AES-128-GCM(rootKey).decrypt(work)
+  component = [49,243,9,115,214,175,91,184,211,190,177,88,101,131,192,119]
+  ```
+
+- 加密脚本（**不入库**，`.rivet/` 下）：`.rivet/scratch/encrypt-pwd.cjs`
+  用法：`node .rivet/scratch/encrypt-pwd.cjs <materialDir> <明文口令>`（自带 round-trip 自检）
+
+> **推论（重要）**：签名材料必须放在**存在 `material/` 子目录的目录**下，否则 hvigor 找不到密钥材料。本仓库的落地方式是材料与 `material/` 副本同放 `~/.ohos/release-keys/`。
+
+### 14.3 构建与发布签名验证
+
+```powershell
+devecocli build --product default --build-mode release
+```
+
+产物：`build/outputs/default/FitTracker-default-signed.app`、`entry/build/default/outputs/default/entry-default-signed.hap`
+
+发布签名判据（两条都要满足）：
+
+```bash
+grep -ao '"type":"[a-z]*"' build/outputs/default/FitTracker-default-signed.app | head -1
+# 期望： "type":"release"
+grep -ao "distribution-certificate" build/outputs/default/FitTracker-default-signed.app | head -1
+# 期望命中 distribution-certificate（而非 development-certificate）
+```
+
+### 14.4 AGC 控制台登录态复用（**避免每次重新登录**）
+
+AGC 操作走**持久浏览器 profile**，**禁止用一次性 `--user-data-dir` 启动**（Chrome 随 bash 退出被杀 → cookie 未落盘 → 每次都要重新登录）：
+
+- 持久 profile：`%LOCALAPPDATA%\Tianshu\TianshuData\.rivet\browser-debug-profile`
+- cookie 库：`<profile>\Default\Network\Cookies`（首次人工登录后写入，之后 OAuth 续期自动复用）
+- 打开方式：
+
+  ```text
+  browser_debug open { url: "https://developer.huawei.com/consumer/cn/service/josp/agc/index.html", shared_profile: true }
+  ```
+
+- 控制台表单在 `#mainIframeView` iframe 内，需穿透 iframe 取元素：
+  `document.querySelector('#mainIframeView').contentDocument`
+- Element-UI 控件用**完整事件序列**（`pointerdown/mousedown/pointerup/mouseup/click`）点击；纯 `.click()` 对部分控件无效
+- 输入框用 `execCommand('insertText')` 才能触发 Vue 的 v-model（直接赋 `value` 只改 DOM，字数计数不动）
+- **文件上传（CSR 等）无法脚本注入**——该组件会丢弃合成事件（实测：原生 setter 赋值成功、change 事件已触发，但组件不接收；且浏览器为 pipe 模式无 CDP 端口，用不了 `DOM.setFileInputFiles`）→ 需人工点「选取」
+- **下载**的文件不落 Downloads，而是落在 Playwright 临时目录 `%TEMP%\playwright-artifacts-*\<guid>`，需手动归档
