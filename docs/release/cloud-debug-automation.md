@@ -176,6 +176,10 @@ chrome.exe --remote-debugging-port=9223
 | profile 网络状态修复 | ✅ 清理后由 6/6 失败转为 6/6 通过 | 诊断对照数据 |
 | **AGC 项目页渲染** | ✅ 已解决（预热 + `hold-inject` 补丁 + 有效登录态 → loading 正常撤除） | `probe/06-project-page-ok.png` |
 | **云调试页 URL** | ✅ 已取得（用户从已登录浏览器复制，直达成功）；云调试功能体在 iframe 内 | `probe/08-cloud-debugging-clean.png` |
+| **设备连接（P4）** | ✅ 2026-10-09 实测：Mate 90 Pro Max 已连接，投屏画面 + 延迟 30ms，会话计时中 | `probe/09-device-allocating.png`、`probe/10-device-connected.png` |
+| **Shell 命令通道（P6）** | ✅ 实测：`echo hello-from-agent` 回显；`hilog -x \| tail -8` 读到真实设备日志；**直接写 shell 语法，无需 `hdc shell` 前缀**；支持管道 | §4.6 |
+| **截屏（P8）** | ✅ agent 侧 `screenshot --clip` 截投屏区落盘（334×721 真机画面）；云调试自带「截屏」页签**未生效**（共 0 条，原因未知） | `manual-run/device-screen-01.png` |
+| **应用安装状态（P5）** | ⚠ **「应用」页签列表 = 已上传的包**（FitTracker 1.1.0 在列），**不等于设备已安装**——`aa start`/`bm dump` 均报 not installed | §4.6 |
 
 **项目页卡死的现状细节**：页面资源与 API 均已能 200，补丁也录得重试成功记录（如 `project-management-service/.../projects`），但 loading 容器不撤——候选原因：页面初始化链路依赖的某个更早失败，或 profile 深层状态。
 
