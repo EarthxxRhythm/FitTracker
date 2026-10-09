@@ -118,10 +118,16 @@ async function main() {
     }
     case 'screenshot': {
       const page = pickPage(pages);
-      const r = await send(page.webSocketDebuggerUrl, 'Page.captureScreenshot', {
+      const params = {
         format: 'png',
         captureBeyondViewport: args.includes('--full'),
-      });
+      };
+      const clipArg = args.find((a) => a.startsWith('--clip='));
+      if (clipArg) {
+        const [cx, cy, cw, ch] = clipArg.slice('--clip='.length).split(',').map(Number);
+        params.clip = { x: cx, y: cy, width: cw, height: ch, scale: 1 };
+      }
+      const r = await send(page.webSocketDebuggerUrl, 'Page.captureScreenshot', params);
       const buf = Buffer.from(r.data, 'base64');
       writeFileSync(args[0], buf);
       print(`saved ${args[0]} (${buf.length} bytes)`);
