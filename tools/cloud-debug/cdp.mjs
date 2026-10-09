@@ -44,6 +44,12 @@ async function listPages() {
 
 function pickPage(pages) {
   if (!pages.length) throw new Error('没有 page target');
+  const idx = process.env.CDP_TAB_INDEX;
+  if (idx !== undefined && idx !== '') {
+    const p = pages[Number(idx)];
+    if (!p) throw new Error(`CDP_TAB_INDEX=${idx} 越界（共 ${pages.length} 页）`);
+    return p;
+  }
   const filter = process.env.CDP_TAB;
   if (filter) {
     const hit = pages.find((p) => p.url.includes(filter));
