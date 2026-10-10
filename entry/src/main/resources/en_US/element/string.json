@@ -2,15 +2,15 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "菲特 健身训练模块"
+      "value": "FitTracker fitness training module"
     },
     {
       "name": "EntryAbility_desc",
-      "value": "菲特 本地优先健身训练应用"
+      "value": "FitTracker local-first fitness training app"
     },
     {
       "name": "EntryAbility_label",
-      "value": "菲特"
+      "value": "FitTracker"
     }
   ]
 }
