@@ -10,12 +10,12 @@ export const BUNDLED_CONTENT_SYNC_MANIFEST: ContentSyncManifest = createContentS
   "full",
   2,
   "local://content-package",
-  "sha256:2c4de5884a57bbb220534707eac3432759e384ad5eb1b2f9dfa267a01dd75d68",
-  45366,
+  "sha256:0703ac1cf656180c596d0b7bde4cae5d5034015cd99d603c811f8bd19d076447",
+  44946,
   1780704000000,
   50,
   "bundled",
-  "有恒运动 bundled content package"
+  "菲特 bundled content package"
 )
 
 export const BUNDLED_CONTENT_SYNC_MUSCLES: MuscleGroup[] = LOCAL_MUSCLES
