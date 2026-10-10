@@ -354,24 +354,26 @@ HarmonyOS 为每个应用按其 bundleName 分配独立沙箱目录，应用私�
 
 | # | 材料 | 当前状态 | 缺口 / 阻塞 | 落点 |
 | --- | --- | --- | --- | --- |
-| 1 | 隐私政策 | 正文已具备；应用内展示已接线（LegalDocPage + rawfile 副本） | **开发者主体、联系邮箱为占位符，须替换**（md 与 rawfile 副本须同步重生成） | `docs/legal/privacy-policy.md` 第十一节（占位 2026-10-02 核实行号 L103-104） |
-| 2 | 用户协议 | 正文已具备；应用内展示已接线（同上） | **同上，须替换占位** | `docs/legal/user-agreement.md` 第十节（占位 2026-10-02 核实行号 L74-75） |
+| 1 | 隐私政策 | 正文已具备；应用内展示已接线（LegalDocPage + rawfile 副本） | **已闭环**（2026-10-10 核实）：开发者主体 / 联系邮箱已填；品牌名已统一为「菲特（FitTracker）」 | `docs/legal/privacy-policy.md` 第十一节 |
+| 2 | 用户协议 | 正文已具备；应用内展示已接线（同上） | **已闭环**（同 #1） | `docs/legal/user-agreement.md` 第十节 |
 | 3 | 应用市场截图 | 规格与清单已定义 | 实拍待 release 签名包 + 目标设备（**可用云调试远程真机**，无需物理设备；手动操作手册见 `docs/release/cloud-debug-automation.md`） | `docs/release/store-listing-screenshot-checklist.md` |
 | 4 | 应用身份（bundleName / vendor） | 已落地：`com.earthrhythm.fittracker` / `EarthRhythm` | AGC 应用条目需在控制台创建（仓库外；调试 profile 已含 app-identifier） | `AppScope/app.json5` |
 | 5 | 已签名 release 包 | 本机已实测产出（见 §10）；1.1.0 版本号已写回（`1.1.0` / `1001000`） | 发布材料切换后重构建；团队 / CI 环境各自 `devecocli signature generate` | `build-profile.json5`（处置见 §11） |
 | 6 | 混淆实测 | 冷启动 / Tab / 子页 / 持久化往返已冒烟（见 §10.1）；1.1.0 JSON 边界白名单已补齐（`14a68fb`，86 项） | 训练流、备份导入导出在 release 包上未覆盖；1.1.0 新增 JSON 链（云同步/会话/草稿）待最终 release 包复测 | `entry/build-profile.json5`、`entry/obfuscation-rules.txt` |
 
-### 12.1 上线前必须替换的占位（硬性）
+### 12.1 法律文本：主体信息与品牌名（已闭环，2026-10-10）
 
-> 🔴 **隐私政策与用户协议中的「开发者主体」「联系邮箱」当前均为占位符**，是上架前**必须替换**的真实空位：
->
-> - `docs/legal/privacy-policy.md` 第十一节：`【上线前须替换为正式开发者主体名称】`、`【上线前须替换为正式联系邮箱】`（2026-10-02 核实行号：L103、L104）
-> - `docs/legal/user-agreement.md` 第十节：同两处占位串（2026-10-02 核实行号：L74、L75）
-> - 应用内 rawfile 副本（`entry/src/main/resources/rawfile/legal/*.txt`）同样含占位符——替换后须同步重生成。
->
-> 未替换将无法通过应用市场合规审核。**本文件不填写具体主体名或邮箱**——由开发者按实际登记信息填入。
+> **本节原记载已失效并更正**：2026-10-02 记录称「开发者主体、联系邮箱均为占位符」。2026-10-10 读 `docs/legal/` 原文核实——**两处占位早已填入**（`开发者主体：EarthRhythm`、`联系邮箱：1930808767@qq.com`），md 与 rawfile 副本一致，`docs/legal/README.md` 的「上线前必须补齐」小节亦已标 `[x]`。原记载属文档漂移，按事实更正。
 
-另见 `docs/legal/README.md` 的「上线前必须补齐」小节（该 README 同样跟踪这两处占位与「最后更新」日期）。
+品牌名统一（2026-10-10，决策：主名「菲特」，法律文本用「菲特（FitTracker）」）：
+
+| 载体 | 文件 | 改动 |
+| --- | --- | --- |
+| 仓库源文档 | `docs/legal/privacy-policy.md`、`user-agreement.md`、`README.md` | 7 处 `FitTracker` → `菲特（FitTracker）` |
+| 应用内副本 | `entry/src/main/resources/rawfile/legal/*.txt` | 6 处 `菲特` → `菲特（FitTracker）`（改前源文档与副本已不同步） |
+
+- 写法约定：`FitTracker` 仅作为主名的括号注记出现；指代系统「应用管理」中显示的应用名时只用「菲特」。
+- 副本同步按 `docs/legal/README.md` 的约束验证：改 md 后运行 `node tools/convert-legal-docs.mjs`，输出与手工结果 **md5 逐字节相等**（`03ceef69…` / `de343ed1…`），无漂移。
 
 ## 13.（已校准，2026-10-02）welcome / login / register 三屏可达性
 
