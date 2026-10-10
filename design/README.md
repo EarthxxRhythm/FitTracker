@@ -1,4 +1,4 @@
-# FitTracker Design Base
+# 菲特 Design Base
 
 This directory is the design foundation for AI-assisted UI/UX and visual refactoring.
 

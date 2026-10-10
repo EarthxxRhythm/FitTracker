@@ -3,7 +3,7 @@
 ## Role
 Tags, chips, badges, and status labels are small but critical. They carry state, focus, and semantic weight in a compact space.
 
-In FitTracker they should make the interface feel more precise and premium, not busier.
+In 菲特 they should make the interface feel more precise and premium, not busier.
 
 ---
 

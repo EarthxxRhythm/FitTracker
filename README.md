@@ -1,4 +1,4 @@
-# FitTracker
+# 菲特
 
 HarmonyOS 上**本地优先**的健身训练记录应用（ArkTS / ArkUI · Stage 模型）。
 
@@ -82,7 +82,7 @@ hdc install -r entry/build/default/outputs/default/entry-default-signed.hap
 ## 目录结构
 
 ```text
-FitTracker/
+菲特/
 ├── AppScope/                     应用级配置与资源（bundleName / 版本 / 图标 / 名称 / AGC 配置与 schema.json）
 ├── entry/
 │   ├── src/main/ets/

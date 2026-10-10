@@ -1,4 +1,4 @@
-# FitTracker Color System
+# 菲特 Color System
 
 ## Theme Name
 **Cold Emerald Performance / 冷感青翠绿**

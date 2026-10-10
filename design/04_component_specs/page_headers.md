@@ -1,7 +1,7 @@
 # Page Headers Spec
 
 ## Role
-Page headers establish the tone, hierarchy, and first impression of each FitTracker screen. They should frame the page clearly without wasting vertical space or becoming decorative hero sections.
+Page headers establish the tone, hierarchy, and first impression of each 菲特 screen. They should frame the page clearly without wasting vertical space or becoming decorative hero sections.
 
 A strong header makes the page feel productized. A weak header makes the page feel like a stitched-together tool.
 

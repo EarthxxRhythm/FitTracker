@@ -1,7 +1,7 @@
 # Card Spec
 
 ## Role
-Cards are the primary structural surfaces in FitTracker. They should create hierarchy, focus, and containment.
+Cards are the primary structural surfaces in 菲特. They should create hierarchy, focus, and containment.
 
 Cards must not feel like a pile of interchangeable dark rectangles. They should behave like a disciplined layered system.
 

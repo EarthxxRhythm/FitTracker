@@ -1,9 +1,9 @@
 # Charts Spec
 
 ## Role
-Charts in FitTracker are not decorative analytics. They exist to help the user understand training progress quickly and trust the data.
+Charts in 菲特 are not decorative analytics. They exist to help the user understand training progress quickly and trust the data.
 
-A good chart in FitTracker should feel:
+A good chart in 菲特 should feel:
 - calm
 - premium
 - readable

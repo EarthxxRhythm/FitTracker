@@ -1,8 +1,8 @@
-# FitTracker Release / Build Runbook
+# 菲特 Release / Build Runbook
 
 ## 1. 目的
 
-这份 runbook 只覆盖 FitTracker 的构建与发布工程面，用来回答 4 个问题：
+这份 runbook 只覆盖 菲特 的构建与发布工程面，用来回答 4 个问题：
 
 - 当前仓库能稳定产出什么交付物
 - release / signing 现在真实卡在哪里
@@ -201,7 +201,7 @@ HarmonyOS 为每个应用按其 bundleName 分配独立沙箱目录，应用私�
 | `fit_tracker_content_sync` | 内容目录同步状态 | `entry/src/main/ets/shared/services/SyncService.ets` |
 | `fit_tracker_launch_request` | 启动请求（调试种子） | `entry/src/main/ets/app/LaunchRequestStore.ets` |
 
-（`app/AppState.ets` 的 `FitTrackerStores` 中还声明了 `CONTENT` / `PLANS` / `WORKOUTS` / `RECORDS` 常量，但当前代码中未见对它们的引用，不构成数据落点。）
+（`app/AppState.ets` 的 `菲特Stores` 中还声明了 `CONTENT` / `PLANS` / `WORKOUTS` / `RECORDS` 常量，但当前代码中未见对它们的引用，不构成数据落点。）
 
 ### 9.4 迁移路径
 
@@ -422,14 +422,14 @@ HarmonyOS 为每个应用按其 bundleName 分配独立沙箱目录，应用私�
 devecocli build --product default --build-mode release
 ```
 
-产物：`build/outputs/default/FitTracker-default-signed.app`、`entry/build/default/outputs/default/entry-default-signed.hap`
+产物：`build/outputs/default/菲特-default-signed.app`、`entry/build/default/outputs/default/entry-default-signed.hap`
 
 发布签名判据（两条都要满足）：
 
 ```bash
-grep -ao '"type":"[a-z]*"' build/outputs/default/FitTracker-default-signed.app | head -1
+grep -ao '"type":"[a-z]*"' build/outputs/default/菲特-default-signed.app | head -1
 # 期望： "type":"release"
-grep -ao "distribution-certificate" build/outputs/default/FitTracker-default-signed.app | head -1
+grep -ao "distribution-certificate" build/outputs/default/菲特-default-signed.app | head -1
 # 期望命中 distribution-certificate（而非 development-certificate）
 ```
 

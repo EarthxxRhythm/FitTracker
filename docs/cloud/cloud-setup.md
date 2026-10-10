@@ -38,7 +38,7 @@
 
 官方步骤参考：[新增对象类型 - 云数据库 - Cloud Foundation Kit](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/cloudfoundation-database-add-object)、[新增存储区](https://developer.huawei.com/consumer/cn/doc/harmonyos-guides/cloudfoundation-database-add-zone)
 
-> **存储区前置**：对象类型归属某个「存储区」（云数据库下最多 4 个）。先在「存储区」页签按需新增（建议名 `FitTracker`）；创建对象类型时注意其实际归属——Wave 5 端侧以 `cloudDatabase.zone('<存储区名>')` 引用，**名字必须一致**。
+> **存储区前置**：对象类型归属某个「存储区」（云数据库下最多 4 个）。先在「存储区」页签按需新增（建议名 `菲特`）；创建对象类型时注意其实际归属——Wave 5 端侧以 `cloudDatabase.zone('<存储区名>')` 引用，**名字必须一致**。
 
 1. AGC → 左侧导航「**云开发（Serverless）→ 云数据库**」→ 开通（若未开通）
 2. 点击「**新增**」创建对象类型，对象类型名：`SyncSnapshot`
@@ -87,9 +87,9 @@
 2. 调试证书 SHA256 指纹获取途径 ⚠（以 DevEco 实际界面为准）：
    - **已代为提取**（openssl 实测本机自动签名证书 Leaf，可直接使用）：
      `12:3B:CE:0A:30:90:63:C2:58:AD:98:3B:C6:E9:EC:9F:CC:FF:42:DD:19:4E:9D:02:48:2A:A3:AC:6A:8F:CE:61`
-     （来源 `C:\Users\19308\.ohos\config\default_FitTracker_….cer`，CN=`李凡(1794157958125343233)\,Development`；注意是证书链中的 **Leaf 证书**，不是根 CA/中间 CA，后两者指纹不通用）
+     （来源 `C:\Users\19308\.ohos\config\default_菲特_….cer`，CN=`李凡(1794157958125343233)\,Development`；注意是证书链中的 **Leaf 证书**，不是根 CA/中间 CA，后两者指纹不通用）
    - 也可自行查看：DevEco Studio → File → Project Structure → Signing Configs；或
-   - 本机 `C:\Users\19308\.ohos\config\default_FitTracker_*.cer`（自动签名证书）
+   - 本机 `C:\Users\19308\.ohos\config\default_菲特_*.cer`（自动签名证书）
 3. 未注册指纹时：认证服务与云数据库调用可能返回 403
 
 ## 6. 完成后（联动清单与注意事项）
@@ -132,7 +132,7 @@
 
 ### 8.1 前置条件（缺一不可）
 
-- [ ] FitTracker 已上架华为应用市场（应用详情页可公开访问）——上架主线见 `.rivet/plans/fittracker-1-1-0-上架推进-发布工程-云同步真机验证-合规材料.md`
+- [ ] 菲特 已上架华为应用市场（应用详情页可公开访问）——上架主线见 `.rivet/plans/fittracker-1-1-0-上架推进-发布工程-云同步真机验证-合规材料.md`
 - [ ] AGC 控制台可正常登录
 
 ### 8.2 申请国内短信签名

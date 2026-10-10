@@ -1,9 +1,9 @@
 # Typography Spec
 
 ## Role
-Typography is one of the main sources of perceived quality in FitTracker. If typography is weak, the interface will still feel like an engineering product even if colors and cards improve.
+Typography is one of the main sources of perceived quality in 菲特. If typography is weak, the interface will still feel like an engineering product even if colors and cards improve.
 
-Typography in FitTracker must create:
+Typography in 菲特 must create:
 - hierarchy
 - pace
 - trust
@@ -23,7 +23,7 @@ Typography in FitTracker must create:
 ---
 
 ## Typographic Tone
-FitTracker typography should feel:
+菲特 typography should feel:
 - modern
 - controlled
 - readable

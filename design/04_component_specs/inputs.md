@@ -1,7 +1,7 @@
 # Inputs Spec
 
 ## Role
-Inputs in FitTracker are most critical on the Active Workout page, where they directly affect recording speed and trust. They must feel stable, efficient, and intentional.
+Inputs in 菲特 are most critical on the Active Workout page, where they directly affect recording speed and trust. They must feel stable, efficient, and intentional.
 
 An input should never feel like a generic web form field pasted into a dark theme. It should feel like a refined training data-entry control.
 
@@ -84,7 +84,7 @@ Do not turn the whole section bright red or visually panic the interface.
 ---
 
 ## Numeric Entry Guidance
-Many core FitTracker inputs are numeric:
+Many core 菲特 inputs are numeric:
 - weight
 - reps
 - duration-related fields
