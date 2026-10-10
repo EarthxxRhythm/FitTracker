@@ -89,9 +89,9 @@ struct PencilSplashPage {
         .fontColor('#50ECA7')
         .textAlign(TextAlign.Center)
 
-      Text('FitTracker')
+      Text('有恒运动')
         .width(350)
-        .fontFamily('Inter')
+        .fontFamily('Noto Sans SC')
         .fontSize(34)
         .fontWeight(FontWeight.Bold)
         .fontColor('#F5F7FA')
