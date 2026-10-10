@@ -1,7 +1,7 @@
 # Review Home Page Spec
 
 ## Page Role
-The Review page is the **long-term training intelligence panel** of FitTracker.
+The Review page is the **long-term training intelligence panel** of 菲特.
 
 This page proves that the app is not only useful during a session, but also valuable across weeks and months.
 
@@ -74,7 +74,7 @@ The page should look like:
 ---
 
 ## Data Presentation Philosophy
-This page is where FitTracker earns trust.
+This page is where 菲特 earns trust.
 Every major block should help answer one of these:
 - Am I consistent?
 - Am I getting stronger?

@@ -1,7 +1,7 @@
 # Button Spec
 
 ## Role
-Buttons in FitTracker are not decorative. They express action priority, training momentum, and system confidence.
+Buttons in 菲特 are not decorative. They express action priority, training momentum, and system confidence.
 
 A button should never feel like a generic SaaS control. It should feel deliberate, premium, and calm.
 

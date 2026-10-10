@@ -59,7 +59,7 @@ flowchart LR
 
 【外部来源】两个入口，功能一致：
 
-1. **AGC 控制台（推荐）**：登录 AGC →「我的项目」→ 选择 FitTracker 项目 → 左侧导航「**质量**」→「**云调试**」
+1. **AGC 控制台（推荐）**：登录 AGC →「我的项目」→ 选择 菲特 项目 → 左侧导航「**质量**」→「**云调试**」
 2. 华为开发者联盟门户 → DevEco 产品 → 云调试（适合临时快速调试）
 
 云调试页在 AGC 单页应用内的路由形态（【本机实测】，取自 `probe/hold3.log` 的导航事件）：
@@ -83,7 +83,7 @@ https://developer.huawei.com/consumer/cn/service/josp/agc/index.html
 | 2 | 上传 HAP：页面上传入口 → 选 §6.1 的 release 包 | 上传完成并**自动安装**；页面提示安装成功 | 见 §8 |
 | 3 | 启动应用：投屏点图标，或控制面板 shell 面板执行 `aa start -a EntryAbility -b com.earthrhythm.fittracker` | 应用画面出现 | 用 shell 面板 `bm dump -n com.earthrhythm.fittracker` 确认是否装上 |
 | 4 | 交互操作：投屏点击/滑动；控制面板支持上传图片到设备、打开网页、复制文本、获取文本【外部来源】 | 设备画面按预期变化 | 投屏坐标漂移时**优先改用 shell 面板命令**直达目标页，别硬点 |
-| 5 | 取证据：页面截图功能；日志用 shell 面板 `hilog`（可 `hilog \| grep FitTracker` 过滤） | PNG 落盘 + 日志可读 | — |
+| 5 | 取证据：页面截图功能；日志用 shell 面板 `hilog`（可 `hilog \| grep 菲特` 过滤） | PNG 落盘 + 日志可读 | — |
 | 6 | **释放设备** | 页面显示已释放 | 挂着不用也扣配额，用完即还 |
 
 > 「控制面板支持 hdc/adb 命令输入」【外部来源】：官方《使用控制面板调试》文档原文为「Shell 脚本操作：您可以通过输入 adb/hdc 命令来执行」。命令前缀究竟要不要写 `hdc shell`，以面板 placeholder 提示为准——**未本机复现**。
@@ -179,7 +179,7 @@ chrome.exe --remote-debugging-port=9223
 | **设备连接（P4）** | ✅ 2026-10-09 实测：Mate 90 Pro Max 已连接，投屏画面 + 延迟 30ms，会话计时中 | `probe/09-device-allocating.png`、`probe/10-device-connected.png` |
 | **Shell 命令通道（P6）** | ✅ 实测：`echo hello-from-agent` 回显；`hilog -x \| tail -8` 读到真实设备日志；**直接写 shell 语法，无需 `hdc shell` 前缀**；支持管道 | §4.6 |
 | **截屏（P8）** | ✅ agent 侧 `screenshot --clip` 截投屏区落盘（334×721 真机画面）；云调试自带「截屏」页签**未生效**（共 0 条，原因未知） | `manual-run/device-screen-01.png` |
-| **应用安装状态（P5）** | ⚠ **「应用」页签列表 = 已上传的包**（FitTracker 1.1.0 在列），**不等于设备已安装**——`aa start`/`bm dump` 均报 not installed | §4.6 |
+| **应用安装状态（P5）** | ⚠ **「应用」页签列表 = 已上传的包**（菲特 1.1.0 在列），**不等于设备已安装**——`aa start`/`bm dump` 均报 not installed | §4.6 |
 | **安装实测（P5，2026-10-09）** | ⚠→✅ **两次结果不同**：① 首次（release 包、原会话）点安装 → 提示「应用正在安装中」→ **设备上始终未出现**（无错误信息）；② 后续（新会话）**用 `cdp.mjs set-file` 注入 **debug 包**上传 → 点安装 → 提示「**应用安全扫描中...安装成功**」→ **应用在设备上运行**（`manual-run/device-screen-04-after-debug-install.png` = 应用登录页截图）。**差异变量（包 debug/release 或会话状态/时序）尚未定论** | `manual-run/device-screen-04-after-debug-install.png` |
 
 **项目页卡死的现状细节**：页面资源与 API 均已能 200，补丁也录得重试成功记录（如 `project-management-service/.../projects`），但 loading 容器不撤——候选原因：页面初始化链路依赖的某个更早失败，或 profile 深层状态。
@@ -239,10 +239,10 @@ devecocli build --product default --build-mode release
 
 ```bash
 cp entry/build/default/outputs/default/entry-default-signed.hap \
-   test_run/cloud-debug/manual-run/upload/FitTracker-<版本>-release-signed.hap
+   test_run/cloud-debug/manual-run/upload/菲特-<版本>-release-signed.hap
 ```
 
-本次已归档件：`test_run/cloud-debug/manual-run/upload/FitTracker-1.1.0-release-signed.hap`（26.7 MB，2026-10-09 构建，版本 1.1.0 / 1001000）。
+本次已归档件：`test_run/cloud-debug/manual-run/upload/菲特-1.1.0-release-signed.hap`（26.7 MB，2026-10-09 构建，版本 1.1.0 / 1001000）。
 
 ### 6.2 怎么确认手上的 HAP 是 release 还是 debug
 
@@ -276,7 +276,7 @@ for n in [b'DeviceSeedService',b'LaunchRequestStore',b'EntryLaunchParameters']:
 | 强制停止 | `aa force-stop com.earthrhythm.fittracker` |
 | 确认已安装 | `bm dump -n com.earthrhythm.fittracker` |
 | 读日志（全量） | `hilog` |
-| 读日志（过滤） | `hilog \| grep FitTracker` |
+| 读日志（过滤） | `hilog \| grep 菲特` |
 | 错误日志 | `hilog -L E` |
 
 本项目实参（已核实）：包名 `com.earthrhythm.fittracker`（`AppScope/app.json5:3`）、Ability `EntryAbility`（`entry/src/main/module.json5:6,20`）。

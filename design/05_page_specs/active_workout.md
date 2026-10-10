@@ -1,7 +1,7 @@
 # Active Workout Page Spec
 
 ## Page Role
-The Active Workout page is the **recording control console** of FitTracker.
+The Active Workout page is the **recording control console** of 菲特.
 
 It is the moment where the product proves it is not just a planner, but a usable training tool.
 This page must make recording feel fast, clear, and reliable.

@@ -1,7 +1,7 @@
 # Workout Summary Page Spec
 
 ## Page Role
-The Workout Summary page is the **session closure surface** of FitTracker. It turns the just-finished workout into a clear, valuable summary and bridges the user into reflection or next steps.
+The Workout Summary page is the **session closure surface** of 菲特. It turns the just-finished workout into a clear, valuable summary and bridges the user into reflection or next steps.
 
 ---
 

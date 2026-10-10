@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""FitTracker 应用市场图标素材生成（可复现管线）
+"""菲特 应用市场图标素材生成（可复现管线）
 
 来源（与包内图标逐字节相同的两份分层图层）：
   AppScope/resources/base/media/background.png  1024x1024 RGB  满幅微光晕底

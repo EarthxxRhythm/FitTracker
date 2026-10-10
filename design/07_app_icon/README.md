@@ -1,4 +1,4 @@
-# FitTracker · App 图标（07_app_icon）
+# 菲特 · App 图标（07_app_icon）
 
 > 2026-10-03 定稿并落地。方向：**进度环 PURE**（用户从 6 个探索方向中选定 01，再从 4 个精修变体中选定 A）。
 > 决策轨迹：`icon-explore-v1.html`（6 方向探索）→ `icon-ring-refine.html`（A/B/C/D 精修 + 底对比）→ 选定 A + 微光晕底。

@@ -1,7 +1,7 @@
 # Exercise Detail Page Spec
 
 ## Page Role
-The Exercise Detail page is the **professional training knowledge card** of FitTracker.
+The Exercise Detail page is the **professional training knowledge card** of 菲特.
 
 It should help the user understand the movement clearly and trust the content, while staying visually aligned with the premium system feel of the rest of the app.
 
