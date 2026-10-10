@@ -23,6 +23,8 @@ import trainingDayLabelServiceTest from './TrainingDayLabelService.test'
 import reviewDashboardServiceTest from './ReviewDashboardService.test'
 import reviewInsightsServiceTest from './ReviewInsightsService.test'
 import userProfileServiceTest from './UserProfileService.test'
+import settingsServiceTest from './SettingsService.test'
+import weekUtilsTest from './WeekUtils.test'
 import planEngineTest from './PlanEngine.test'
 import statsDashboardServiceTest from './StatsDashboardService.test'
 import personalRecordServiceTest from './PersonalRecordService.test'
@@ -65,6 +67,8 @@ export default function testsuite(): void {
   reviewDashboardServiceTest()
   reviewInsightsServiceTest()
   userProfileServiceTest()
+  settingsServiceTest()
+  weekUtilsTest()
   planEngineTest()
   statsDashboardServiceTest()
   personalRecordServiceTest()
