@@ -89,7 +89,7 @@ struct PencilSplashPage {
         .fontColor('#50ECA7')
         .textAlign(TextAlign.Center)
 
-      Text('有恒运动')
+      Text('菲特')
         .width(350)
         .fontFamily('Noto Sans SC')
         .fontSize(34)
