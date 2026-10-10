@@ -2,15 +2,15 @@
   "string": [
     {
       "name": "module_desc",
-      "value": "FitTracker training module"
+      "value": "有恒运动 健身训练模块"
     },
     {
       "name": "EntryAbility_desc",
-      "value": "FitTracker local-first fitness training app"
+      "value": "有恒运动 本地优先健身训练应用"
     },
     {
       "name": "EntryAbility_label",
-      "value": "FitTracker"
+      "value": "有恒运动"
     }
   ]
 }

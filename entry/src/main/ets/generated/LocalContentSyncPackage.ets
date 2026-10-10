@@ -10,12 +10,12 @@ export const BUNDLED_CONTENT_SYNC_MANIFEST: ContentSyncManifest = createContentS
   "full",
   2,
   "local://content-package",
-  "sha256:f71088d2cb5dfdb32d3ab8baae25cc4243641154a7f814bc563196995fff2b35",
-  45226,
+  "sha256:2c4de5884a57bbb220534707eac3432759e384ad5eb1b2f9dfa267a01dd75d68",
+  45366,
   1780704000000,
   50,
   "bundled",
-  "FitTracker bundled content package"
+  "有恒运动 bundled content package"
 )
 
 export const BUNDLED_CONTENT_SYNC_MUSCLES: MuscleGroup[] = LOCAL_MUSCLES
