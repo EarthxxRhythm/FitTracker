@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -77,6 +78,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val store = remember { JsonStore(context.appDataStore) }
 
     // 数据源（对齐鸿蒙 `HomeContent.loadDynamicContent`）：当前计划 → 空态。
@@ -84,9 +86,9 @@ fun HomeScreen(
     var dateText by remember { mutableStateOf("") }
     var greetingText by remember { mutableStateOf("") }
     var weeklyProgressPercent by remember { mutableStateOf(0) }
-    var todayTitle by remember { mutableStateOf(context.getString(R.string.home_empty_plan_title)) }
-    var todayMuscleText by remember { mutableStateOf(context.getString(R.string.home_empty_plan_subtitle)) }
-    var todayStatusText by remember { mutableStateOf(context.getString(R.string.home_status_pending)) }
+    var todayTitle by remember { mutableStateOf(resources.getString(R.string.home_empty_plan_title)) }
+    var todayMuscleText by remember { mutableStateOf(resources.getString(R.string.home_empty_plan_subtitle)) }
+    var todayStatusText by remember { mutableStateOf(resources.getString(R.string.home_status_pending)) }
     var todayExerciseCount by remember { mutableStateOf(0) }
     var todayDurationMinutes by remember { mutableStateOf(0) }
     var todayMuscleGroupCount by remember { mutableStateOf(0) }
@@ -106,13 +108,13 @@ fun HomeScreen(
             R.string.home_weekday_friday,
             R.string.home_weekday_saturday,
         )
-        dateText = context.getString(
+        dateText = resources.getString(
             R.string.home_date_format,
             now.get(java.util.Calendar.MONTH) + 1,
             now.get(java.util.Calendar.DAY_OF_MONTH),
-            context.getString(weekdayRes[now.get(java.util.Calendar.DAY_OF_WEEK) - 1]),
+            resources.getString(weekdayRes[now.get(java.util.Calendar.DAY_OF_WEEK) - 1]),
         )
-        greetingText = context.getString(
+        greetingText = resources.getString(
             when (now.get(java.util.Calendar.HOUR_OF_DAY)) {
                 in 5..10 -> R.string.home_greeting_morning
                 in 11..17 -> R.string.home_greeting_afternoon
@@ -137,11 +139,11 @@ fun HomeScreen(
             )
             todayTitle = summary.todayTitle
             todayMuscleText = if (todayTraining == null) {
-                context.getString(R.string.home_today_no_training)
+                resources.getString(R.string.home_today_no_training)
             } else {
                 dayFocusMuscles(todayTraining)
             }
-            todayStatusText = context.getString(
+            todayStatusText = resources.getString(
                 if (summary.hasTodayWorkout) R.string.home_status_training_day else R.string.home_status_rest_day,
             )
             todayExerciseCount = summary.todayExerciseCount
@@ -155,9 +157,9 @@ fun HomeScreen(
             }
         } else {
             // 空态（`HomeContent.applyEmptyState`）
-            todayTitle = context.getString(R.string.home_empty_plan_title)
-            todayMuscleText = context.getString(R.string.home_empty_plan_subtitle)
-            todayStatusText = context.getString(R.string.home_status_pending)
+            todayTitle = resources.getString(R.string.home_empty_plan_title)
+            todayMuscleText = resources.getString(R.string.home_empty_plan_subtitle)
+            todayStatusText = resources.getString(R.string.home_status_pending)
             todayExerciseCount = 0
             todayDurationMinutes = 0
             todayMuscleGroupCount = 0

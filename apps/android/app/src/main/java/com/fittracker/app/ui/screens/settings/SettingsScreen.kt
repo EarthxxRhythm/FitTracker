@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -126,6 +127,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val scope = rememberCoroutineScope()
     val store = remember { JsonStore(context.appDataStore) }
 
@@ -170,12 +172,12 @@ fun SettingsScreen(
                 val message = try {
                     val json = UserDataBackupService.exportPackage(store)
                     if (writeBackupFile(context.contentResolver, uri, json)) {
-                        context.getString(R.string.backup_export_success_status)
+                        resources.getString(R.string.backup_export_success_status)
                     } else {
-                        context.getString(R.string.backup_export_failure_status)
+                        resources.getString(R.string.backup_export_failure_status)
                     }
                 } catch (error: Exception) {
-                    context.getString(R.string.backup_export_failure_status)
+                    resources.getString(R.string.backup_export_failure_status)
                 }
                 toast = SettingsToastState.next(toast, message)
             }
@@ -190,7 +192,7 @@ fun SettingsScreen(
             scope.launch {
                 val json = readBackupFile(context.contentResolver, uri)
                 if (json == null) {
-                    toast = SettingsToastState.next(toast, context.getString(R.string.settings_backup_read_failure))
+                    toast = SettingsToastState.next(toast, resources.getString(R.string.settings_backup_read_failure))
                 } else {
                     pendingImportJson = json // 待用户确认后再落库
                 }
@@ -225,9 +227,9 @@ fun SettingsScreen(
         }
         toast = SettingsToastState.next(
             toast,
-            context.getString(
+            resources.getString(
                 FtSettingsModel.TOAST_SEGMENT_RES,
-                context.getString(row.labelRes),
+                resources.getString(row.labelRes),
                 optionLabel,
             ),
         )
@@ -255,7 +257,7 @@ fun SettingsScreen(
                 scope.launch { SettingsService.setAchievementReminder(store, on) }
             }
         }
-        toast = SettingsToastState.next(toast, context.getString(FtSettingsModel.switchToastRes(on), context.getString(row.labelRes)))
+        toast = SettingsToastState.next(toast, resources.getString(FtSettingsModel.switchToastRes(on), resources.getString(row.labelRes)))
     }
 
     // 待授权的提醒行——launcher 回调只带授权结果，需记住是哪一行触发的。
@@ -272,7 +274,7 @@ fun SettingsScreen(
                 // 拒绝：不写库、不登记调度、不改开关（回弹到真源值），只说明原因
                 toast = SettingsToastState.next(
                     toast,
-                    context.getString(R.string.settings_toast_reminder_need_permission),
+                    resources.getString(R.string.settings_toast_reminder_need_permission),
                 )
             }
         }
@@ -286,10 +288,10 @@ fun SettingsScreen(
                 if (FtSettingsModel.canToggleDataSync(enable = on, loggedIn = AuthService.currentSession(store) != null)) {
                     settings = settings.copy(dataSync = on)
                     SettingsService.setDataSync(store, on)
-                    toast = SettingsToastState.next(toast, context.getString(FtSettingsModel.switchToastRes(on), context.getString(row.labelRes)))
+                    toast = SettingsToastState.next(toast, resources.getString(FtSettingsModel.switchToastRes(on), resources.getString(row.labelRes)))
                 } else {
                     // 未登录：不改状态、不写库（开关回弹到真源值）
-                    toast = SettingsToastState.next(toast, context.getString(FtSettingsModel.TOAST_SYNC_NEED_LOGIN_RES))
+                    toast = SettingsToastState.next(toast, resources.getString(FtSettingsModel.TOAST_SYNC_NEED_LOGIN_RES))
                 }
             }
             return
@@ -322,7 +324,7 @@ fun SettingsScreen(
                 scope.launch { SettingsService.setAnonymousData(store, on) }
             }
         }
-        toast = SettingsToastState.next(toast, context.getString(FtSettingsModel.switchToastRes(on), context.getString(row.labelRes)))
+        toast = SettingsToastState.next(toast, resources.getString(FtSettingsModel.switchToastRes(on), resources.getString(row.labelRes)))
     }
 
     // `data-action` 行（原型 L526-541）
@@ -330,7 +332,7 @@ fun SettingsScreen(
         when (row.action) {
             FtSettingsModel.ACTION_HEALTH -> toast = SettingsToastState.next(
                 toast,
-                context.getString(FtSettingsModel.TOAST_HEALTH_RES),
+                resources.getString(FtSettingsModel.TOAST_HEALTH_RES),
             )
             // 隐私说明 → 打开隐私政策页（对齐鸿蒙 pushUrl(LEGAL_DOC)；先例 LoginScreen.kt:229-230）
             FtSettingsModel.ACTION_PRIVACY -> onNavigate("legal?kind=privacy")
@@ -403,7 +405,7 @@ fun SettingsScreen(
                                         UserDataBackupService.importPackage(store, json),
                                     )
                                 } catch (error: Exception) {
-                                    context.getString(R.string.settings_backup_read_failure)
+                                    resources.getString(R.string.settings_backup_read_failure)
                                 }
                                 toast = SettingsToastState.next(toast, message)
                             }

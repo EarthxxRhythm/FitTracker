@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -103,6 +104,7 @@ fun AccountSyncScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val store = remember { JsonStore(context.appDataStore) }
     val scope = rememberCoroutineScope()
     val sandboxDir = remember { SyncOrchestrator.forFilesDir(context.filesDir) }
@@ -178,8 +180,8 @@ fun AccountSyncScreen(
                                 // 源 L170 `showToast(next ? '已开启自动同步' : '已关闭自动同步')`
                                 toast = SyncToastState.next(
                                     toast,
-                                    if (next) context.getString(R.string.account_toast_auto_on)
-                                    else context.getString(R.string.account_toast_auto_off),
+                                    if (next) resources.getString(R.string.account_toast_auto_on)
+                                    else resources.getString(R.string.account_toast_auto_off),
                                 )
                             }
                         },

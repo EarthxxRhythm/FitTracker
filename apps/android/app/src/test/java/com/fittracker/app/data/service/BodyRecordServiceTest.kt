@@ -166,7 +166,7 @@ class BodyRecordServiceTest {
     @Test
     fun `周趋势_恒为七点_单条记录全等且delta为零`() {
         val records = listOf(WeightRecord(day(2026, 8, 21), 72.5))
-        val trend = BodyRecordService.weekTrend(records, day(2026, 8, 21), WeekStart.MONDAY)!!
+        val trend = BodyRecordService.weekTrend(records, day(2026, 8, 21), WeekStart.MONDAY, "zh")!!
 
         assertEquals(7, trend.values.size)
         assertEquals(7, trend.labels.size)
@@ -185,7 +185,7 @@ class BodyRecordServiceTest {
             WeightRecord(monday, 70.0),
             WeightRecord(addDays(monday, 4), 72.5),
         )
-        val trend = BodyRecordService.weekTrend(records, now, WeekStart.MONDAY)!!
+        val trend = BodyRecordService.weekTrend(records, now, WeekStart.MONDAY, "zh")!!
 
         assertEquals(70.0f, trend.values[0], 0f)
         assertEquals(70.0f, trend.values[3], 0f)
@@ -226,7 +226,7 @@ class BodyRecordServiceTest {
         assertEquals(2.5, BodyRecordService.weekDeltaKg(records, now), 1e-9)
 
         assertEquals(0.0, BodyRecordService.weekDeltaKg(emptyList(), now), 0.0)
-        assertNull(BodyRecordService.weekTrend(emptyList(), now, WeekStart.MONDAY))
+        assertNull(BodyRecordService.weekTrend(emptyList(), now, WeekStart.MONDAY, "zh"))
         assertNull(BodyRecordService.monthTrend(emptyList(), now))
         assertNull(BodyRecordService.yearTrend(emptyList(), now))
     }
@@ -239,7 +239,7 @@ class BodyRecordServiceTest {
             WeightRecord(day(2026, 8, 16), 70.0), // 当周周日（周首）
             WeightRecord(day(2026, 8, 21), 72.5), // 周五
         )
-        val trend = BodyRecordService.weekTrend(records, now, WeekStart.SUNDAY)!!
+        val trend = BodyRecordService.weekTrend(records, now, WeekStart.SUNDAY, "zh")!!
 
         assertEquals(listOf("日", "一", "二", "三", "四", "五", "六"), trend.labels)
         assertEquals(70.0f, trend.values[0], 0f)

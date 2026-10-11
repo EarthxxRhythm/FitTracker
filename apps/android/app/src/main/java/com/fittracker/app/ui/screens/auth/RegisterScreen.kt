@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +47,7 @@ fun RegisterScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     var nickname by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -107,7 +109,7 @@ fun RegisterScreen(
             AgreeRow(
                 checked = agreed,
                 onCheckedChange = { agreed = it },
-                onAgreement = { onToast(context.getString(AUTH_AGREEMENT_TOAST)) },
+                onAgreement = { onToast(resources.getString(AUTH_AGREEMENT_TOAST)) },
             )
 
             AuthCta(text = stringResource(R.string.auth_action_register)) {
@@ -124,7 +126,7 @@ fun RegisterScreen(
 
                 val agreedOk = agreed
                 if (!agreedOk) {
-                    onToast(context.getString(AUTH_AGREE_TOAST))
+                    onToast(resources.getString(AUTH_AGREE_TOAST))
                 }
                 if (result.isEmpty() && agreedOk) {
                     onSubmitSuccess(phone, password, nickname)
