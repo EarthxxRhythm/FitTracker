@@ -22,6 +22,22 @@ function createSwitchRow(key: string, label: string, on: boolean): SwitchRow {
   }
 }
 
+interface SegRowDef {
+  key: string
+  label: string
+  options: string[]
+  selected: number
+}
+
+function createSegRow(key: string, label: string, options: string[], selected: number): SegRowDef {
+  return {
+    key: key,
+    label: label,
+    options: options,
+    selected: selected
+  }
+}
+
 @Component
 export struct SettingsContent {
   @State private backPressed: boolean = false
@@ -66,10 +82,10 @@ export struct SettingsContent {
     }
     try {
       const profile: UserProfile = await UserProfileService.loadProfile(context)
-      this.unitIndex = profile.weightUnit === 'lbs' ? 1 : 0
+      this.applySegSelection('weight', profile.weightUnit === 'lbs' ? 1 : 0)
       const settings: AppSettings = await SettingsService.loadSettings(context)
-      this.langIndex = settings.language === 'en-US' ? 1 : 0
-      this.weekStartIndex = settings.weekStart === 'sunday' ? 1 : 0
+      this.applySegSelection('language', settings.language === 'en-US' ? 1 : 0)
+      this.applySegSelection('weekStart', settings.weekStart === 'sunday' ? 1 : 0)
       this.applyToggleRows(settings)
     } catch (e) {
       // 读取失败时保持默认初值，不打断设置页展示
@@ -130,9 +146,11 @@ export struct SettingsContent {
   @State private toastVisible: boolean = false
   @State private toastMessage: string = '已保存'
   @State private toastTimer: number = -1
-  @State private unitIndex: number = 0
-  @State private langIndex: number = 0
-  @State private weekStartIndex: number = 0
+  @State private segRows: SegRowDef[] = [
+    createSegRow('weight', '体重单位', ['千克', '磅'], 0),
+    createSegRow('language', '语言', ['简体中文', 'English'], 0),
+    createSegRow('weekStart', '周开始日', ['周一', '周日'], 0)
+  ]
   @State private versionText: string = '1.1.0'
   @State private switchRows: SwitchRow[] = [
     createSwitchRow('reminder', '训练提醒', true),
@@ -208,19 +226,51 @@ export struct SettingsContent {
     })
   }
 
+  private segSelected(key: string): number {
+    for (let i = 0; i < this.segRows.length; i++) {
+      if (this.segRows[i].key === key) {
+        return this.segRows[i].selected
+      }
+    }
+    return 0
+  }
+
+  /** 更新指定分段行的选中值（重建数组引用，驱动 ForEach 刷新）。 */
+  private applySegSelection(key: string, selected: number): void {
+    this.segRows = this.segRows.map((row: SegRowDef) => {
+      if (row.key === key) {
+        return createSegRow(row.key, row.label, row.options, selected)
+      }
+      return row
+    })
+  }
+
+  /** 分段行点击分派（行 key → 具体保存流程）。 */
+  private handleSegTap(key: string, index: number): void {
+    if (key === 'weight') {
+      this.handleWeightUnitChange(index)
+      return
+    }
+    if (key === 'language') {
+      this.handleLanguageChange(index)
+      return
+    }
+    this.handleWeekStartChange(index)
+  }
+
   /** 体重单位：先乐观更新选中态，再落盘；失败回滚并提示重试。 */
   private async handleWeightUnitChange(index: number): Promise<void> {
-    const previous: number = this.unitIndex
-    this.unitIndex = index
+    const previous: number = this.segSelected('weight')
+    this.applySegSelection('weight', index)
     const context: Context | null = this.contextOrNull()
     if (context === null) {
-      this.unitIndex = previous
+      this.applySegSelection('weight', previous)
       this.showToast('保存失败，请重试')
       return
     }
     await UserProfileService.saveWeightUnit(context, index === 1 ? 'lbs' : 'kg')
     if (UserProfileService.getLastPersistenceError().length > 0) {
-      this.unitIndex = previous
+      this.applySegSelection('weight', previous)
       this.showToast('保存失败，请重试')
       return
     }
@@ -229,17 +279,17 @@ export struct SettingsContent {
 
   /** 语言：先乐观更新选中态，再落盘；失败回滚并提示重试。 */
   private async handleLanguageChange(index: number): Promise<void> {
-    const previous: number = this.langIndex
-    this.langIndex = index
+    const previous: number = this.segSelected('language')
+    this.applySegSelection('language', index)
     const context: Context | null = this.contextOrNull()
     if (context === null) {
-      this.langIndex = previous
+      this.applySegSelection('language', previous)
       this.showToast('保存失败，请重试')
       return
     }
     await SettingsService.saveLanguage(context, index === 1 ? 'en-US' : 'zh-CN')
     if (SettingsService.getLastPersistenceError().length > 0) {
-      this.langIndex = previous
+      this.applySegSelection('language', previous)
       this.showToast('保存失败，请重试')
       return
     }
@@ -248,17 +298,17 @@ export struct SettingsContent {
 
   /** 周开始日：先乐观更新选中态，再落盘；失败回滚并提示重试。 */
   private async handleWeekStartChange(index: number): Promise<void> {
-    const previous: number = this.weekStartIndex
-    this.weekStartIndex = index
+    const previous: number = this.segSelected('weekStart')
+    this.applySegSelection('weekStart', index)
     const context: Context | null = this.contextOrNull()
     if (context === null) {
-      this.weekStartIndex = previous
+      this.applySegSelection('weekStart', previous)
       this.showToast('保存失败，请重试')
       return
     }
     await SettingsService.saveWeekStart(context, index === 1 ? 'sunday' : 'monday')
     if (SettingsService.getLastPersistenceError().length > 0) {
-      this.weekStartIndex = previous
+      this.applySegSelection('weekStart', previous)
       this.showToast('保存失败，请重试')
       return
     }
@@ -402,19 +452,74 @@ export struct SettingsContent {
   private generalCard() {
     Column() {
       this.sectionTitle('通用', '')
-      this.segRow('体重单位', ['千克', '磅'], this.unitIndex, true, (index: number) => {
-        this.handleWeightUnitChange(index)
-      })
-      this.segRow('语言', ['简体中文', 'English'], this.langIndex, false, (index: number) => {
-        this.handleLanguageChange(index)
-      })
-      this.segRow('周开始日', ['周一', '周日'], this.weekStartIndex, false, (index: number) => {
-        this.handleWeekStartChange(index)
-      })
-      this.switchRow('reminder', '训练提醒', false)
-      this.switchRow('achievement', '成就提醒', false)
-      this.switchRow('sound', '声音与震动', false)
-      this.switchRow('keep-on', '训练中屏幕常亮', false)
+      ForEach(this.segRows, (row: SegRowDef, index: number) => {
+        Row() {
+          Text(row.label)
+            .fontFamily('Noto Sans SC')
+            .fontSize(14)
+            .fontColor('#F7FBF8')
+          Blank()
+          Row({ space: 2 }) {
+            ForEach(row.options, (option: string, optionIndex: number) => {
+              Button(option)
+                .height(30)
+                .padding({ left: 16, right: 16 })
+                .fontFamily('Noto Sans SC')
+                .fontSize(12.5)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(optionIndex === row.selected ? '#07100B' : '#9EFFFFFF')
+                .backgroundColor(optionIndex === row.selected ? '#50ECA7' : Color.Transparent)
+                .borderRadius(9)
+                .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: MotionTokens.EASE_MOTION })
+                .onClick(() => {
+                  this.handleSegTap(row.key, optionIndex)
+                })
+            }, (option: string) => option)
+          }
+          .padding(3)
+          .backgroundColor('#0FFFFFFF')
+          .border({ width: 1, color: '#1AFFFFFF' })
+          .borderRadius(12)
+        }
+        .width('100%')
+        .padding({ top: 15, bottom: 15, left: 2, right: 2 })
+        .border({ width: { top: index === 0 ? 0 : 1 }, color: '#0FFFFFFF' })
+      }, (row: SegRowDef) => row.key + ':' + row.selected.toString())
+      ForEach(this.switchRows, (row: SwitchRow, index: number) => {
+        if (index < 4) {
+          Row() {
+            Text(row.label)
+              .fontFamily('Noto Sans SC')
+              .fontSize(14)
+              .fontColor('#F7FBF8')
+            Blank()
+            Row() {
+              Row()
+                .width(22)
+                .height(22)
+                .borderRadius(11)
+                .backgroundColor(row.on ? '#07100B' : '#FFFFFF')
+                .translate({ x: row.on ? 18 : 0 })
+                .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: MotionTokens.EASE_MOTION })
+            }
+            .width(46)
+            .height(28)
+            .borderRadius(14)
+            .backgroundColor(row.on ? '#50ECA7' : '#1FFFFFFF')
+            .border({ width: 1, color: row.on ? '#50ECA7' : '#1AFFFFFF' })
+            .padding({ left: 1, top: 1 })
+            .justifyContent(FlexAlign.Start)
+            .alignItems(VerticalAlign.Top)
+            .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: MotionTokens.EASE_MOTION })
+            .onClick(() => {
+              this.toggleSwitch(row.key)
+            })
+          }
+          .width('100%')
+          .padding({ top: 15, bottom: 15, left: 2, right: 2 })
+          .border({ width: { top: 1 }, color: '#0FFFFFFF' })
+        }
+      }, (row: SwitchRow) => row.key + (row.on ? ':1' : ':0'))
     }
     .width('100%')
     .padding({ left: 16, right: 16, top: 16, bottom: 16 })
@@ -431,8 +536,41 @@ export struct SettingsContent {
         this.showToast('当前版本未接入健康数据，接入后将在此显示授权状态')
       })
       this.accountSyncRow()
-      this.switchRow('sync', '训练数据同步', false)
-      this.switchRow('anonymous', '匿名使用数据', false)
+      ForEach(this.switchRows, (row: SwitchRow, index: number) => {
+        if (index >= 4) {
+          Row() {
+            Text(row.label)
+              .fontFamily('Noto Sans SC')
+              .fontSize(14)
+              .fontColor('#F7FBF8')
+            Blank()
+            Row() {
+              Row()
+                .width(22)
+                .height(22)
+                .borderRadius(11)
+                .backgroundColor(row.on ? '#07100B' : '#FFFFFF')
+                .translate({ x: row.on ? 18 : 0 })
+                .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: MotionTokens.EASE_MOTION })
+            }
+            .width(46)
+            .height(28)
+            .borderRadius(14)
+            .backgroundColor(row.on ? '#50ECA7' : '#1FFFFFFF')
+            .border({ width: 1, color: row.on ? '#50ECA7' : '#1AFFFFFF' })
+            .padding({ left: 1, top: 1 })
+            .justifyContent(FlexAlign.Start)
+            .alignItems(VerticalAlign.Top)
+            .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: MotionTokens.EASE_MOTION })
+            .onClick(() => {
+              this.toggleSwitch(row.key)
+            })
+          }
+          .width('100%')
+          .padding({ top: 15, bottom: 15, left: 2, right: 2 })
+          .border({ width: { top: 1 }, color: '#0FFFFFFF' })
+        }
+      }, (row: SwitchRow) => row.key + (row.on ? ':1' : ':0'))
     }
     .width('100%')
     .padding({ left: 16, right: 16, top: 16, bottom: 16 })
@@ -527,76 +665,6 @@ export struct SettingsContent {
     .width('100%')
     .justifyContent(FlexAlign.SpaceBetween)
     .padding({ bottom: 4 })
-  }
-
-  @Builder
-  private segRow(label: string, options: string[], selected: number, first: boolean, onChange: (index: number) => void) {
-    Row() {
-      Text(label)
-        .fontFamily('Noto Sans SC')
-        .fontSize(14)
-        .fontColor('#F7FBF8')
-      Blank()
-      Row({ space: 2 }) {
-        ForEach(options, (option: string, index: number) => {
-          Button(option)
-            .height(30)
-            .padding({ left: 16, right: 16 })
-            .fontFamily('Noto Sans SC')
-            .fontSize(12.5)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(index === selected ? '#07100B' : '#9EFFFFFF')
-            .backgroundColor(index === selected ? '#50ECA7' : Color.Transparent)
-            .borderRadius(9)
-            .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: MotionTokens.EASE_MOTION })
-            .onClick(() => {
-              onChange(index)
-            })
-        }, (option: string) => option)
-      }
-      .padding(3)
-      .backgroundColor('#0FFFFFFF')
-      .border({ width: 1, color: '#1AFFFFFF' })
-      .borderRadius(12)
-    }
-    .width('100%')
-    .padding({ top: 15, bottom: 15, left: 2, right: 2 })
-    .border({ width: { top: first ? 0 : 1 }, color: '#0FFFFFFF' })
-  }
-
-  @Builder
-  private switchRow(key: string, label: string, first: boolean) {
-    Row() {
-      Text(label)
-        .fontFamily('Noto Sans SC')
-        .fontSize(14)
-        .fontColor('#F7FBF8')
-      Blank()
-      Row() {
-        Row()
-          .width(22)
-          .height(22)
-          .borderRadius(11)
-          .backgroundColor(this.isSwitchOn(key) ? '#07100B' : '#FFFFFF')
-          .translate({ x: this.isSwitchOn(key) ? 18 : 0 })
-          .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: MotionTokens.EASE_MOTION })
-      }
-      .width(46)
-      .height(28)
-      .borderRadius(14)
-      .backgroundColor(this.isSwitchOn(key) ? '#50ECA7' : '#1FFFFFFF')
-      .border({ width: 1, color: this.isSwitchOn(key) ? '#50ECA7' : '#1AFFFFFF' })
-      .padding({ left: 1, top: 1 })
-      .justifyContent(FlexAlign.Start)
-      .alignItems(VerticalAlign.Top)
-      .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: MotionTokens.EASE_MOTION })
-      .onClick(() => {
-        this.toggleSwitch(key)
-      })
-    }
-    .width('100%')
-    .padding({ top: 15, bottom: 15, left: 2, right: 2 })
-    .border({ width: { top: first ? 0 : 1 }, color: '#0FFFFFFF' })
   }
 
   @Builder
