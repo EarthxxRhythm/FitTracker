@@ -1,6 +1,6 @@
 # 菲特 项目约束
 
-> 最后核对：2026-10-01（页面清单与 features 边界已按 `main_pages.json` 最新版校准；登录/注册已云端化（AGC），「训练目标」引导页已移除）。本文只描述当前主线；历史设计、旧路由和已归档计划不作为实现依据。
+> 最后核对：2026-10-12（本次按 monorepo 重组同步路径：鸿蒙工程位于 `apps/harmony/`，安卓位于 `apps/android/`，共享文档在仓库根 `docs/`。页面清单与 features 边界已按 `main_pages.json` 最新版校准；登录/注册已云端化（AGC），「训练目标」引导页已移除）。本文只描述当前主线；历史设计、旧路由和已归档计划不作为实现依据。
 
 ## 项目概览
 
@@ -11,7 +11,7 @@ HarmonyOS Stage 模式的 ArkUI 健身训练应用，中文本地化、本地存
 ## 当前代码边界
 
 ```text
-entry/src/main/ets/
+apps/harmony/entry/src/main/ets/
 ├── app/                  # 启动、路由常量、应用壳
 ├── features/
 │   ├── pencil/           # 当前视觉主线：登录、首页、计划、训练（含预览覆盖层）、复盘、个人页
@@ -26,7 +26,7 @@ entry/src/main/ets/
 └── components/           # 可复用 ArkUI 组件
 ```
 
-`entry/src/main/resources/base/profile/main_pages.json` 是页面注册的唯一事实来源；`app/AppRoutes.ets` 是代码中的路由常量来源。新页面必须同时满足：文件存在、注册到 `main_pages.json`、由 `AppRoutes` 或明确的父页面引用。
+`apps/harmony/entry/src/main/resources/base/profile/main_pages.json` 是页面注册的唯一事实来源；`app/AppRoutes.ets` 是代码中的路由常量来源。新页面必须同时满足：文件存在、注册到 `main_pages.json`、由 `AppRoutes` 或明确的父页面引用。
 
 页面统一放在 `features/<feature>/pages/`；Tab 内容等无 `@Entry` 的界面体放 `features/<feature>/components/`。当前注册主线（18 页，与 `main_pages.json` 一致）：
 
@@ -86,12 +86,13 @@ pencil 的界面体组件：`features/pencil/components/` 下 `HomeContent` / `P
 ## 常用检查
 
 ```powershell
+cd apps/harmony    # 以下命令均须在鸿蒙工程目录下执行（tools/ 随工程下移，仓库根不再有 tools/）
 node tools/check-main-pages.mjs
 node tools/check-gates.mjs
 devecocli build --product default
 ```
 
-设备回归使用 `tools/auth-regression.ps1` 或 `tools/dev-smoke.ps1`；没有设备时至少运行路由检查、静态引用检查和可用的 ArkTS/ohosTest 构建。
+设备回归使用 `apps/harmony/tools/auth-regression.ps1` 或 `apps/harmony/tools/dev-smoke.ps1`；没有设备时至少运行路由检查、静态引用检查和可用的 ArkTS/ohosTest 构建。
 
 ## 多代理消息通道（平台通道故障时的文件信箱协议）
 
@@ -111,7 +112,7 @@ Agent 默认按以下顺序优先使用已装好的提效工具，避免低效�
 - **并行拆块**：2+ 个无共享状态、无顺序依赖的任务并行执行，走本项目的 `cluster/` 文件信箱协议（见上一节）或用 `dispatching-parallel-agents`；复杂多文件特性先由 TaskManager 拆块。
 - **上下文发现走子代理**：内部规范/模式用 `ContextScout`，外部库最新文档用 `ExternalScout` 或 `context7`，不自己逐文件翻。
 - **HarmonyOS 构建/文档走 `devecocli`**：scaffold/build/run/debug/devices/docs 均通过它，不裸跑 `hvigorw`、不凭训练数据猜 SDK API。
-- **构建命令**（两条均实测通过）：default HAP `devecocli build --product default`（`BUILD SUCCESSFUL in 11s`）；ohosTest `devecocli build --modules entry@ohosTest --product default`（`BUILD SUCCESSFUL in 1min`，产物 `entry/build/default/outputs/ohosTest/entry-ohosTest-unsigned.hap`）。模块格式 `--modules <module>@<target>`；`--no-parallel` 由 devecocli 内部管理，不再显式传。对照：裸跑 `hvigorw assembleHap` 的后台任务曾挂起 17min 无产出，终止后 hvigor daemon 残留 `ESRCH` 坏状态，需等其自行恢复才能再次构建。`tools\*.ps1` 与 `tools\check-gates.mjs` 内部的历史 `hvigorw` 调用保持原样（改动有回归风险），但**新增流程一律走 `devecocli`**。
+- **构建命令**（两条均实测通过）：default HAP `devecocli build --product default`（`BUILD SUCCESSFUL in 11s`）；ohosTest `devecocli build --modules entry@ohosTest --product default`（`BUILD SUCCESSFUL in 1min`，产物 `entry/build/default/outputs/ohosTest/entry-ohosTest-unsigned.hap`）。模块格式 `--modules <module>@<target>`；`--no-parallel` 由 devecocli 内部管理，不再显式传。对照：裸跑 `hvigorw assembleHap` 的后台任务曾挂起 17min 无产出，终止后 hvigor daemon 残留 `ESRCH` 坏状态，需等其自行恢复才能再次构建。`apps\harmony\tools\*.ps1` 与 `apps\harmony\tools\check-gates.mjs` 内部的历史 `hvigorw` 调用保持原样（改动有回归风险），但**新增流程一律走 `devecocli`**。
 
 ## 并行优先原则（2026-09-07 起）
 
