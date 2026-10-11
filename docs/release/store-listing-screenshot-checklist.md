@@ -45,7 +45,7 @@
 | 7 | `07-exercise.png` | `features/exercise/pages/ExerciseLibraryPage` | 动作库列表，网格有内容 | 说明"动作库" |
 | 8 | `08-profile.png` | `features/pencil/pages/PencilProfilePage` | 我的页，成就/统计有数据 | 备选收尾图 |
 
-备选补充页（数量允许时可加拍）：`features/body/pages/BodyDataPage`（身体数据）、`features/settings/pages/PencilSettingsPage`（设置，体现"本地优先"文案）。
+备选补充页（数量允许时可加拍）：`features/body/pages/BodyDataPage`（身体数据）、`features/settings/pages/PencilSettingsPage`（设置，体现"数据保存在本机"文案）。
 
 ## 四、素材规范
 

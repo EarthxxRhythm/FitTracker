@@ -408,7 +408,7 @@ export struct SettingsContent {
             this.generalCard()
             this.dataPrivacyCard()
             this.aboutCard()
-            Text('菲特 本地优先，训练数据与身体数据默认仅保存在本机。')
+            Text('训练数据与身体数据保存在本机；登录后可选择云同步。')
               .fontFamily('Noto Sans SC')
               .fontSize(11)
               .fontColor('#8AFFFFFF')

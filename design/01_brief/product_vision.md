@@ -1,7 +1,7 @@
 # FitTracker Product Vision
 
 ## What FitTracker Is
-FitTracker is a **HarmonyOS local-first, goal-driven training assistant**. It is not a generic fitness content feed, not a social product, and not a marketing-heavy lifestyle surface. It should feel like a **trusted personal training system** that helps the user decide what to train, record what happened, and understand whether progress is real.
+FitTracker is a **HarmonyOS goal-driven training assistant**. It is not a generic fitness content feed, not a social product, and not a marketing-heavy lifestyle surface. It should feel like a **trusted personal training system** that helps the user decide what to train, record what happened, and understand whether progress is real.
 
 ## Core User Promise
 A user should be able to open the app and quickly answer three questions:
