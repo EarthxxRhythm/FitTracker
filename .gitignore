@@ -37,6 +37,11 @@ Thumbs.db
 *.pem
 *.p7b
 
+# 本地副本与本地签名配置（真值不入库，见 docs/release/release-build-runbook.md §11）
+# 覆盖两种命名形态：build-profile.local.json5（点分隔）与 build-profile.release-local.json5（连字符）
+*.local.json5
+*-local.json5
+
 # AGC service configuration (contains client keys — never commit).
 # Copy agconnect-services.json into AppScope/resources/rawfile/ locally before Wave 5 build.
 **/agconnect-services.json

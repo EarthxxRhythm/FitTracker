@@ -1,20 +1,8 @@
 {
   app: {
-    signingConfigs: [
-      {
-        name: 'default',
-        type: 'HarmonyOS',
-        material: {
-          certpath: 'C:\\Users\\19308\\.ohos\\config\\default_FitTracker_HFAkKqrq5SN2RpAPENzGiti3Xe5RMFz6uqWifM5Y7I=.cer',
-          keyAlias: 'debugKey',
-          keyPassword: '0000001be12c4a6f68c94c5dbc1d8642fba458e1326f5cbac3779f1d6176760636f4878709cc1708342911',
-          profile: 'C:\\Users\\19308\\.ohos\\config\\default_FitTracker_HFAkKqrq5SN2RpAPENzGiti3Xe5RMFz6uqWifM5Y7I=.p7b',
-          signAlg: 'SHA256withECDSA',
-          storeFile: 'C:\\Users\\19308\\.ohos\\config\\default_FitTracker_HFAkKqrq5SN2RpAPENzGiti3Xe5RMFz6uqWifM5Y7I=.p12',
-          storePassword: '0000001be12c4a6f68c94c5dbc1d8642fba458e1326f5cbac3779f1d6176760636f4878709cc1708342911',
-        },
-      },
-    ],
+    // ⚠ 签名配置本地化：signingConfigs 的真值只填在本机、禁止入库（本仓库为 public）。
+    // 恢复方式与打包说明见 docs/release/release-build-runbook.md
+    signingConfigs: [],
     products: [
       {
         name: 'default',

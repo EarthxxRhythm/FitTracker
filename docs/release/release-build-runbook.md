@@ -299,6 +299,16 @@ HarmonyOS 为每个应用按其 bundleName 分配独立沙箱目录，应用私�
 - **更正（2026-10-02 核实）**：`signingConfigs[0].material`（含本机绝对路径 `C:\Users\19308\.ohos\config\...cer / .p7b / .p12` 与口令密文字段 `storePassword` / `keyPassword`）**已入库**——`git show HEAD:build-profile.json5` 实测含完整签名配置，且工作树该文件与 HEAD 无差异（`git status --porcelain build-profile.json5` 为空）。此前「HEAD 版本为空数组 / 改动仅存在于工作区」的记录已失真；该文件最后一次变更在提交 `d263246`（2026-09-28）。
 - `.gitignore` 已排除 `/signature/`、`*.p12` / `*.cer` / `*.p7b` / `/local.properties`，取向是「本机配置不入库」；但 **`build-profile.json5` 本身不在 `.gitignore` 内**（`grep -n build-profile .gitignore` 无命中），且已被追踪。
 
+### 11.1.1 归置执行记录（2026-10-12）
+
+方案甲已落地，仓库版本不再含任何签名真值：
+
+- 入库的 `build-profile.json5` 现为 `signingConfigs: []`，并在该行上方加入**文件内注释防线**——后续修改者与 agent 打开文件即见「禁止填入真值」，比仅靠文档纪律更早生效；
+- 本机签名真值备份于**仓库外** `%USERPROFILE%\.ohos\release-keys\build-profile.local.json5`，打包前从该文件恢复，或用 DevEco Studio 的签名界面重配；
+- **未采用 `git update-index --skip-worktree`**：它与紧随其后的 monorepo 目录搬迁（`git mv build-profile.json5`）冲突，且会掩盖上游对根配置的真实改动。改用「仓库版本留空 + 文件内注释 + 真值备份在仓库外」的组合——对人与 agent 同样可见，且不干扰 git 操作；
+- **状态澄清**：§11 标题此前标注「决策待定（含两种方案）」，而 §10 正文称「已选定方案甲」，二者矛盾。以本记录为准——**方案甲已执行，方案乙不再考虑**；
+- **历史遗留（未处置）**：`d263246`（2026-09-28）起调试签名配置已随 HEAD 进入**公开**历史；本记录只止住未来增量，历史清理与是否轮换签名材料另议。
+
 > 密文不等于零风险：口令字段为加密口令（非明文），但密文与密钥库文件同时泄露时仍扩大攻击面；本机绝对路径也会暴露开发者账号名与目录结构。
 
 ### 11.2 冲突点
