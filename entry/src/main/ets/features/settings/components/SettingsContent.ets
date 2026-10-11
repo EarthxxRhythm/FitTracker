@@ -1,9 +1,12 @@
 /** SettingsContent —— 设置二级页界面体（对应 settings.html · screen-settings，390 直绘）。 */
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 import { window } from '@kit.ArkUI'
+import { bundleManager } from '@kit.AbilityKit'
 import { AppRoutes } from '../../../app/AppRoutes'
 import SessionManager from '../../../common/services/SessionManager'
 import CloudSyncService, { SyncState } from '../../../shared/services/CloudSyncService'
+import UserProfileService, { UserProfile } from '../../../common/services/UserProfileService'
+import SettingsService, { AppSettings, SettingsToggleKey } from '../../../common/services/SettingsService'
 
 interface SwitchRow {
   key: string
@@ -28,6 +31,8 @@ export struct SettingsContent {
   aboutToAppear(): void {
     this.resolveTopInset()
     this.loadSyncState()
+    this.loadPreferences()
+    this.loadAppVersion()
   }
 
   private contextOrNull(): Context | null {
@@ -51,6 +56,56 @@ export struct SettingsContent {
       }
       return row
     })
+  }
+
+  /** 读取本地偏好与资料：体重单位来自 UserProfileService，其余来自 SettingsService；读失败保持默认初值。 */
+  private async loadPreferences(): Promise<void> {
+    const context: Context | null = this.contextOrNull()
+    if (context === null) {
+      return
+    }
+    try {
+      const profile: UserProfile = await UserProfileService.loadProfile(context)
+      this.unitIndex = profile.weightUnit === 'lbs' ? 1 : 0
+      const settings: AppSettings = await SettingsService.loadSettings(context)
+      this.langIndex = settings.language === 'en-US' ? 1 : 0
+      this.weekStartIndex = settings.weekStart === 'sunday' ? 1 : 0
+      this.applyToggleRows(settings)
+    } catch (e) {
+      // 读取失败时保持默认初值，不打断设置页展示
+    }
+  }
+
+  /** 用已持久化的设置覆盖五个开关行；同步行由 loadSyncState 管理，不在覆盖范围内。 */
+  private applyToggleRows(settings: AppSettings): void {
+    this.switchRows = this.switchRows.map((row: SwitchRow) => {
+      if (row.key === 'reminder') {
+        return createSwitchRow(row.key, row.label, settings.reminder)
+      }
+      if (row.key === 'achievement') {
+        return createSwitchRow(row.key, row.label, settings.achievement)
+      }
+      if (row.key === 'sound') {
+        return createSwitchRow(row.key, row.label, settings.sound)
+      }
+      if (row.key === 'keep-on') {
+        return createSwitchRow(row.key, row.label, settings.keepOn)
+      }
+      if (row.key === 'anonymous') {
+        return createSwitchRow(row.key, row.label, settings.anonymous)
+      }
+      return row
+    })
+  }
+
+  /** 版本号取自应用包信息；取不到时显示占位符，避免该行出现空白。 */
+  private async loadAppVersion(): Promise<void> {
+    try {
+      const info = await bundleManager.getBundleInfoForSelf(bundleManager.BundleFlag.GET_BUNDLE_INFO_DEFAULT)
+      this.versionText = info.versionName
+    } catch (e) {
+      this.versionText = '—'
+    }
   }
 
   /**
@@ -78,6 +133,7 @@ export struct SettingsContent {
   @State private unitIndex: number = 0
   @State private langIndex: number = 0
   @State private weekStartIndex: number = 0
+  @State private versionText: string = '1.1.0'
   @State private switchRows: SwitchRow[] = [
     createSwitchRow('reminder', '训练提醒', true),
     createSwitchRow('achievement', '成就提醒', false),
@@ -96,13 +152,116 @@ export struct SettingsContent {
       this.toggleSyncRow()
       return
     }
+    const previous: boolean = this.isSwitchOn(key)
+    const next: boolean = !previous
     this.switchRows = this.switchRows.map((row: SwitchRow) => {
       if (row.key === key) {
-        const next: SwitchRow = createSwitchRow(row.key, row.label, !row.on)
-        return next
+        const updated: SwitchRow = createSwitchRow(row.key, row.label, next)
+        return updated
       }
       return row
     })
+    this.persistToggle(key, next, previous)
+  }
+
+  /** 开关行落盘：成功提示「已保存」；失败（含取不到 context）回滚内存状态并提示重试。 */
+  private async persistToggle(key: string, next: boolean, previous: boolean): Promise<void> {
+    const context: Context | null = this.contextOrNull()
+    if (context === null) {
+      this.applyToggleRow(key, previous)
+      this.showToast('保存失败，请重试')
+      return
+    }
+    await SettingsService.saveToggle(context, this.toSettingsToggleKey(key), next)
+    if (SettingsService.getLastPersistenceError().length > 0) {
+      this.applyToggleRow(key, previous)
+      this.showToast('保存失败，请重试')
+      return
+    }
+    this.showToast('已保存')
+  }
+
+  /** 把开关行的行 key 映射为 SettingsService 的开关键（'keep-on' ↔ 'keepOn'，其余同名）。 */
+  private toSettingsToggleKey(key: string): SettingsToggleKey {
+    if (key === 'keep-on') {
+      return 'keepOn'
+    }
+    if (key === 'achievement') {
+      return 'achievement'
+    }
+    if (key === 'sound') {
+      return 'sound'
+    }
+    if (key === 'anonymous') {
+      return 'anonymous'
+    }
+    return 'reminder'
+  }
+
+  /** 仅回滚指定开关行的内存状态（持久化失败时用）。 */
+  private applyToggleRow(key: string, on: boolean): void {
+    this.switchRows = this.switchRows.map((row: SwitchRow) => {
+      if (row.key === key) {
+        return createSwitchRow(row.key, row.label, on)
+      }
+      return row
+    })
+  }
+
+  /** 体重单位：先乐观更新选中态，再落盘；失败回滚并提示重试。 */
+  private async handleWeightUnitChange(index: number): Promise<void> {
+    const previous: number = this.unitIndex
+    this.unitIndex = index
+    const context: Context | null = this.contextOrNull()
+    if (context === null) {
+      this.unitIndex = previous
+      this.showToast('保存失败，请重试')
+      return
+    }
+    await UserProfileService.saveWeightUnit(context, index === 1 ? 'lbs' : 'kg')
+    if (UserProfileService.getLastPersistenceError().length > 0) {
+      this.unitIndex = previous
+      this.showToast('保存失败，请重试')
+      return
+    }
+    this.showToast('已保存')
+  }
+
+  /** 语言：先乐观更新选中态，再落盘；失败回滚并提示重试。 */
+  private async handleLanguageChange(index: number): Promise<void> {
+    const previous: number = this.langIndex
+    this.langIndex = index
+    const context: Context | null = this.contextOrNull()
+    if (context === null) {
+      this.langIndex = previous
+      this.showToast('保存失败，请重试')
+      return
+    }
+    await SettingsService.saveLanguage(context, index === 1 ? 'en-US' : 'zh-CN')
+    if (SettingsService.getLastPersistenceError().length > 0) {
+      this.langIndex = previous
+      this.showToast('保存失败，请重试')
+      return
+    }
+    this.showToast('已保存')
+  }
+
+  /** 周开始日：先乐观更新选中态，再落盘；失败回滚并提示重试。 */
+  private async handleWeekStartChange(index: number): Promise<void> {
+    const previous: number = this.weekStartIndex
+    this.weekStartIndex = index
+    const context: Context | null = this.contextOrNull()
+    if (context === null) {
+      this.weekStartIndex = previous
+      this.showToast('保存失败，请重试')
+      return
+    }
+    await SettingsService.saveWeekStart(context, index === 1 ? 'sunday' : 'monday')
+    if (SettingsService.getLastPersistenceError().length > 0) {
+      this.weekStartIndex = previous
+      this.showToast('保存失败，请重试')
+      return
+    }
     this.showToast('已保存')
   }
 
@@ -244,16 +403,13 @@ export struct SettingsContent {
     Column() {
       this.sectionTitle('通用', '')
       this.segRow('体重单位', ['千克', '磅'], this.unitIndex, true, (index: number) => {
-        this.unitIndex = index
-        this.showToast('已保存')
+        this.handleWeightUnitChange(index)
       })
       this.segRow('语言', ['简体中文', 'English'], this.langIndex, false, (index: number) => {
-        this.langIndex = index
-        this.showToast('已保存')
+        this.handleLanguageChange(index)
       })
       this.segRow('周开始日', ['周一', '周日'], this.weekStartIndex, false, (index: number) => {
-        this.weekStartIndex = index
-        this.showToast('已保存')
+        this.handleWeekStartChange(index)
       })
       this.switchRow('reminder', '训练提醒', false)
       this.switchRow('achievement', '成就提醒', false)
@@ -271,7 +427,9 @@ export struct SettingsContent {
   private dataPrivacyCard() {
     Column() {
       this.sectionTitle('数据与隐私', '')
-      this.chevronRow('健康数据授权', '已授权', true)
+      this.chevronRow('健康数据授权', '未接入', true, () => {
+        this.showToast('当前版本未接入健康数据，接入后将在此显示授权状态')
+      })
       this.accountSyncRow()
       this.switchRow('sync', '训练数据同步', false)
       this.switchRow('anonymous', '匿名使用数据', false)
@@ -328,7 +486,7 @@ export struct SettingsContent {
           .fontFamily('Noto Sans SC')
           .fontSize(14)
           .fontColor('#F7FBF8')
-        Text('1.1.0')
+        Text(this.versionText)
           .fontFamily('Noto Sans SC')
           .fontSize(12.5)
           .fontColor('#8AFFFFFF')

@@ -5,6 +5,8 @@ import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
 import UserProfileService, { UserProfile } from '../../../common/services/UserProfileService'
 import WorkoutSessionService, { WeeklyStats } from '../../../common/services/WorkoutSessionService'
+import SettingsService, { AppSettings } from '../../../common/services/SettingsService'
+import { resolveWeekStart, WeekStart } from '../../../common/utils/WeekUtils'
 import GoalRepository from '../../../shared/services/GoalRepository'
 import { UserGoal } from '../../../shared/models/TrainingModels'
 @Component
@@ -44,12 +46,18 @@ export struct ProfileContent {
 
   async aboutToAppear(): Promise<void> {
     await this.resolveTopInset()
-    // Week range is pure date math and does not depend on persisted data.
-    this.weekRangeText = this.computeWeekRangeText()
+    // 周区间由设置页「周开始日」决定，需读取持久化设置；先按默认周一渲染，读到设置后再覆盖。
+    this.weekRangeText = this.computeWeekRangeText('monday')
     const context: Context | null = this.contextOrNull()
     if (context === null) {
       // No host context: keep the placeholder values, never throw.
       return
+    }
+    try {
+      const settings: AppSettings = await SettingsService.loadSettings(context)
+      this.weekRangeText = this.computeWeekRangeText(settings.weekStart)
+    } catch (error) {
+      // Settings read failed: keep the monday-based week range computed above.
     }
     try {
       const profile: UserProfile = await UserProfileService.loadProfile(context)
@@ -85,16 +93,14 @@ export struct ProfileContent {
     }
   }
 
-  private computeWeekRangeText(): string {
+  private computeWeekRangeText(weekStart: WeekStart): string {
     const now: Date = new Date()
-    const dayOfWeek: number = now.getDay()
-    const mondayOffset: number = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-    const monday: Date = new Date(now.getFullYear(), now.getMonth(), now.getDate() - mondayOffset)
-    const sunday: Date = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6)
-    const startText: string = (monday.getMonth() + 1).toString() + ' \u6708 ' + monday.getDate().toString()
-    const endText: string = sunday.getMonth() === monday.getMonth()
-      ? sunday.getDate().toString() + ' \u65e5'
-      : (sunday.getMonth() + 1).toString() + ' \u6708 ' + sunday.getDate().toString() + ' \u65e5'
+    const weekStartDate: Date = resolveWeekStart(now, weekStart)
+    const weekEndDate: Date = new Date(weekStartDate.getFullYear(), weekStartDate.getMonth(), weekStartDate.getDate() + 6)
+    const startText: string = (weekStartDate.getMonth() + 1).toString() + ' \u6708 ' + weekStartDate.getDate().toString()
+    const endText: string = weekEndDate.getMonth() === weekStartDate.getMonth()
+      ? weekEndDate.getDate().toString() + ' \u65e5'
+      : (weekEndDate.getMonth() + 1).toString() + ' \u6708 ' + weekEndDate.getDate().toString() + ' \u65e5'
     return startText + ' \u2013 ' + endText
   }
 

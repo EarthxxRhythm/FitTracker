@@ -5,6 +5,8 @@
  * 功能 #28-#32: 提供周统计、个人纪录、日历热力图数据源
  */
 import { preferences } from '@kit.ArkData'
+import SettingsService, { AppSettings } from './SettingsService'
+import { resolveWeekStart } from '../utils/WeekUtils'
 
 // ============================================================
 // 接口定义
@@ -232,13 +234,13 @@ class WorkoutSessionService {
   async getWeeklyStats(context: Context): Promise<WeeklyStats> {
     const sessions = await this.getSessions(context)
     const now = new Date()
-    const dayOfWeek = now.getDay()
-    // Monday = 1 ... Sunday = 7 (treat Sunday as 7)
-    const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - mondayOffset)
-    const mondayStr = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`
-    const sunday = new Date(monday.getTime() + 6 * 24 * 60 * 60 * 1000)
-    const sundayStr = `${sunday.getFullYear()}-${String(sunday.getMonth() + 1).padStart(2, '0')}-${String(sunday.getDate()).padStart(2, '0')}`
+    // 周起点由设置页「周开始日」驱动（默认周一，读取失败时 SettingsService 自身回落默认值）。
+    const settings: AppSettings = await SettingsService.loadSettings(context)
+    const weekStartDate: Date = resolveWeekStart(now, settings.weekStart)
+    const weekStartStr = `${weekStartDate.getFullYear()}-${String(weekStartDate.getMonth() + 1).padStart(2, '0')}-${String(weekStartDate.getDate()).padStart(2, '0')}`
+    // 周终点 = 周起点 + 6 天
+    const weekEndDate = new Date(weekStartDate.getFullYear(), weekStartDate.getMonth(), weekStartDate.getDate() + 6)
+    const weekEndStr = `${weekEndDate.getFullYear()}-${String(weekEndDate.getMonth() + 1).padStart(2, '0')}-${String(weekEndDate.getDate()).padStart(2, '0')}`
 
     let count = 0
     let duration = 0
@@ -246,7 +248,7 @@ class WorkoutSessionService {
     let volume = 0
 
     for (const session of sessions) {
-      if (session.createdAt >= mondayStr && session.createdAt <= sundayStr) {
+      if (session.createdAt >= weekStartStr && session.createdAt <= weekEndStr) {
         count++
         duration += session.durationSeconds
         sets += this.getCompletedWorkingSetCount(session)

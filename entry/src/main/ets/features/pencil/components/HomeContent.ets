@@ -12,6 +12,7 @@ import GoalRepository from '../../../shared/services/GoalRepository'
 import PlanEngine from '../../../shared/services/PlanEngine'
 import HomePlanService, { HomePlanSummary } from '../../../shared/services/HomePlanService'
 import WorkoutSessionPersistenceBridgeService from '../../workout/services/WorkoutSessionPersistenceBridgeService'
+import SettingsService, { AppSettings } from '../../../common/services/SettingsService'
 
 interface HomeWeekDayItem {
   label: string
@@ -157,10 +158,11 @@ export struct HomeContent {
       return
     }
 
+    const settings: AppSettings = await SettingsService.loadSettings(context)
     const sessions: WorkoutSession[] = await WorkoutSessionPersistenceBridgeService.loadPersistedSessions(context)
     const dashboard: StatsDashboardSummary = sessions.length === 0
-      ? StatsDashboardService.createEmptySummary(now)
-      : StatsDashboardService.createSummary(sessions, now)
+      ? StatsDashboardService.createEmptySummary(now, settings.weekStart)
+      : StatsDashboardService.createSummary(sessions, now, settings.weekStart)
     this.weeklyProgressPercent = this.createProgressPercent(dashboard.weeklyStats.sessionCount, this.weeklyPlannedDays)
   }
 

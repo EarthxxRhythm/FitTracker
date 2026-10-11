@@ -8,6 +8,7 @@ import { ReviewRecentSessionRecord } from './ReviewDashboardService'
 import TrainingDayLabelService from './TrainingDayLabelService'
 import WorkoutSummaryService from './WorkoutSummaryService'
 import { WorkoutSession, WorkoutSet } from '../models/TrainingModels'
+import { resolveWeekStart, WeekStart } from '../../common/utils/WeekUtils'
 
 export class ReviewRecentSessionFilterOption {
   filterId: string = ''
@@ -37,6 +38,7 @@ class ReviewInsightsService {
   private readonly recentRecordLimit: number = 6
   private readonly weeklyTrendLimit: number = 6
   private currentReferenceTime: number = 0
+  private weekStart: WeekStart = 'monday'
 
   createRecentFilters(
     sessions: WorkoutSession[],
@@ -91,8 +93,9 @@ class ReviewInsightsService {
     return filterId
   }
 
-  createWeeklyTrendItems(sessions: WorkoutSession[], now: number): ReviewWeeklyTrendItem[] {
+  createWeeklyTrendItems(sessions: WorkoutSession[], now: number, weekStart: WeekStart): ReviewWeeklyTrendItem[] {
     this.currentReferenceTime = now
+    this.weekStart = weekStart
     const items: ReviewWeeklyTrendItem[] = []
     const currentWeekStart: Date = this.createWeekStart(now)
     for (let offset = 0; offset < this.weeklyTrendLimit; offset++) {
@@ -304,13 +307,7 @@ class ReviewInsightsService {
   }
 
   private createWeekStart(timestamp: number): Date {
-    const value: Date = new Date(timestamp)
-    const dayOfWeek: number = value.getDay()
-    let mondayOffset: number = dayOfWeek - 1
-    if (dayOfWeek === 0) {
-      mondayOffset = 6
-    }
-    return new Date(value.getFullYear(), value.getMonth(), value.getDate() - mondayOffset)
+    return resolveWeekStart(new Date(timestamp), this.weekStart)
   }
 
   private getTotalVolume(session: WorkoutSession): number {
