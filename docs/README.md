@@ -50,6 +50,6 @@
 - `docs/release/release-build-runbook.md` —— 构建/发布工程面的真实状态、命令、缺口与接入点；第 9 节记录 bundleName 变更对本地数据沙箱的影响与迁移路径
 - `docs/CHANGELOG.md` —— 版本说明与更新日志
 - `docs/cloud/cloud-setup.md` —— AGC 云服务配置手册（认证服务 / 云数据库 / 证书指纹；配置记录 + 排错速查）
-- `docs/legal/privacy-policy.md` —— 隐私政策（本地优先；登录后可选的云同步数据范围、退出与清除）
+- `docs/legal/privacy-policy.md` —— 隐私政策（数据默认留在本机；登录后可选的云同步数据范围、退出与清除）
 - `docs/legal/user-agreement.md` —— 用户协议
 - `docs/release/store-listing-screenshot-checklist.md` —— 应用市场上架截图清单（release 包实拍）

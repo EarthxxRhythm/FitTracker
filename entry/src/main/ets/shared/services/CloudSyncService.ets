@@ -7,7 +7,7 @@
  *  3. push（上行）/ pull（下行合并）/ none（已同步）/ conflict_pull（云端优先）
  *  4. 状态持久化到 fit_tracker_sync；meta 绑定 userId，账号切换自动视为全新同步
  *
- * 权威模型（方案 A：本地优先 + 云同步）：
+ * 权威模型（方案 A：本地存储 + 云同步）：
  *  - 离线可写本地，联网后同步；冲突按「服务端接收时间最近写入为准」（云端 updatedAt 较新时下行）。
  */
 import { Context } from '@kit.AbilityKit'
