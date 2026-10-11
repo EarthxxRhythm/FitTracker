@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  计划组列表域（plans 屏）文案。中文值**逐字**取自既有硬编码与原型（原型对齐纪律）：
+  改动此处的中文即偏离原型，须同步原型 `design/06_prototype_redraw/src/fittracker-plan-detail.html`。
+
+  命名：`plans_<元素>`。带参文案用位置参数（`%1$s` / `%2$d`），由 UI 层 `context.getString(...)`
+  或 `stringResource(id, args)` 解析。
+
+  注：屏内计划组清单的**实际数据**来自 `PresetPlans`（数据层，运行期口径），其计划名 / 受众 /
+  频次 / 示例动作名与数据层同源，不在本域资源化；本文件只覆盖 UI 文案与原型静态基线
+  （`plans_baseline_*`，见 `PlansScreen.kt` 的 `FtPlanGroups`）。
+-->
+<resources>
+
+    <!-- 顶栏 / 返回。`plans_title` 同时用作顶栏标题与清单区小节标题（原型两处逐字同为「计划组」） -->
+    <string name="plans_title">计划组</string>
+    <!-- `.pd-back` 的 `aria-label`（原型 L367） -->
+    <string name="plans_a11y_back">返回计划页</string>
+
+    <!-- 当前计划卡（`.pg-current`，L193-217） -->
+    <string name="plans_current_label">当前计划</string>
+    <string name="plans_current_empty_name">尚未启用计划</string>
+    <string name="plans_current_empty_meta">从下方选择一个训练计划开始</string>
+    <!-- 「当前使用」胶囊（无当前计划时不显示） -->
+    <string name="plans_current_badge">当前使用</string>
+    <!-- 计划名为空时的兜底（对齐鸿蒙 `PlansContent`） -->
+    <string name="plans_current_fallback_name">训练计划</string>
+    <!-- 当前计划元信息：`%1$s` 受众 · `%2$d` 天数 · `%3$s` 每周频次（口径同计划 Tab） -->
+    <string name="plans_current_meta">%1$s · %2$d 练分化 · %3$s</string>
+
+    <!-- 计划组卡片（`.pg-card`，L222-270） -->
+    <!-- `%1$d` 训练日数 -->
+    <string name="plans_group_days">%1$d 个训练日</string>
+    <!-- `%1$s` 示例动作名（前 3 个，` · ` 连接） -->
+    <string name="plans_group_examples">示例 %1$s</string>
+
+    <!-- 原型 `GROUPS` 静态基线（L404-409，逐字移植；当前未被引用，见 `FtPlanGroups`） -->
+    <string name="plans_baseline_upper_lower_name">二分化（上下肢）</string>
+    <string name="plans_baseline_ppl_name">三分化（推拉腿）</string>
+    <string name="plans_baseline_split4_name">四分化</string>
+    <string name="plans_baseline_split5_name">五分化</string>
+    <string name="plans_baseline_audience_beginner">初中级健身者</string>
+    <string name="plans_baseline_audience_all_levels">初中高级通用</string>
+    <string name="plans_baseline_audience_advanced">中高级健身者</string>
+    <string name="plans_baseline_freq_4days">4 天 / 周</string>
+    <string name="plans_baseline_freq_3to6days">3-6 天 / 周</string>
+    <string name="plans_baseline_freq_5days">5 天 / 周</string>
+    <string name="plans_baseline_upper_lower_examples">杠铃平板卧推 · 哑铃推举 · 上斜哑铃飞鸟</string>
+    <string name="plans_baseline_ppl_examples">杠铃平板卧推 · 哑铃推举 · 上斜哑铃卧推</string>
+    <string name="plans_baseline_split4_examples">杠铃平板卧推 · 上斜哑铃卧推 · 双杠臂屈伸</string>
+    <string name="plans_baseline_split5_examples">杠铃平板卧推 · 上斜哑铃卧推 · 哑铃飞鸟</string>
+
+</resources>

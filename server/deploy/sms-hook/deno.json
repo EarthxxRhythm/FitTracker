@@ -1,0 +1,9 @@
+{
+  "tasks": {
+    "test": "deno test",
+    "check": "deno check index.ts"
+  },
+  "fmt": {
+    "lineWidth": 100
+  }
+}

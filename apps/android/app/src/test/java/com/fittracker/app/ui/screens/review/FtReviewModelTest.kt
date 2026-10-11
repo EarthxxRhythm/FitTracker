@@ -1,0 +1,446 @@
+package com.fittracker.app.ui.screens.review
+
+import com.fittracker.app.R
+import com.fittracker.app.data.model.WorkoutSession
+import com.fittracker.app.data.model.WorkoutSet
+import com.fittracker.app.data.service.WeekStart
+import java.util.Calendar
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/**
+ * 训练回顾屏纯逻辑层的契约测试。
+ *
+ * 期望值逐条取自原型 `design/06_prototype_redraw/src/fittracker-review.html`：
+ * WEEK/MONTH 数据（L1541-1563）、`renderEffort()`（L1779-1805）、
+ * `saveGoal()`（L1744-1759）、月历格子（L1203-1260）、肌肉地图常量（L1612-1627）。
+ *
+ * **文案断言外移**（Wave 7 i18n）：模型只持资源 ID，逐字真值在
+ * `values/strings_review.xml`——本类断言「哪个资源 ID」与纯逻辑（数值 / 坐标 / 归一化），
+ * 文案**文本**的逐字校验见 [FtReviewStringsTest]（Robolectric + `context.getString`）。
+ */
+class FtReviewModelTest {
+
+    // ── 时间尺度数据（原型 WEEK / MONTH，L1541-1563） ──────────────
+
+    @Test
+    fun `周尺度数据指向原型文案资源且样例值不变`() {
+        val w = FtReviewModel.WEEK
+        assertEquals(R.string.review_head_week_sample, w.weekRes)
+        assertEquals("↑ +18%", w.badge)
+        assertEquals(R.string.review_week_headline, w.headlineRes)
+        assertEquals(R.string.review_week_desc, w.descRes)
+        assertEquals(R.string.review_week_sub, w.subRes)
+        assertEquals(
+            listOf(
+                ReviewStat(R.string.review_stat_workouts, "4", R.string.review_unit_times),
+                ReviewStat(R.string.review_stat_duration, "186", R.string.review_unit_minutes),
+                ReviewStat(R.string.review_stat_weight_change, "-0.8", R.string.review_unit_kg),
+            ),
+            w.stats,
+        )
+    }
+
+    @Test
+    fun `月尺度数据指向原型文案资源且样例值不变`() {
+        val m = FtReviewModel.MONTH
+        assertEquals(R.string.review_head_month_sample, m.weekRes)
+        assertEquals("↑ +12%", m.badge)
+        assertEquals(R.string.review_month_headline, m.headlineRes)
+        assertEquals(R.string.review_month_desc, m.descRes)
+        assertEquals(R.string.review_month_sub, m.subRes)
+        assertEquals(
+            listOf(
+                ReviewStat(R.string.review_stat_workouts, "17", R.string.review_unit_times),
+                ReviewStat(R.string.review_stat_duration, "720", R.string.review_unit_minutes),
+                ReviewStat(R.string.review_stat_weight_change, "-1.6", R.string.review_unit_kg),
+            ),
+            m.stats,
+        )
+    }
+
+    /** 周柱高度是原型写在 inline style 里的字面量（L1195-1201）；日标签取 `WeekWindow.dayLabels`。 */
+    @Test
+    fun `周柱状七天的高度与点亮状态逐条对齐原型`() {
+        val bars = FtReviewModel.WEEK_BARS
+        assertEquals(listOf("一", "二", "三", "四", "五", "六", "日"), bars.map { it.label })
+        assertEquals(listOf(52.6f, 83.4f, 67.1f, 38.1f, 105.2f, 74.4f, 41.7f), bars.map { it.height })
+        assertEquals(listOf(false, true, true, false, true, true, false), bars.map { it.on })
+    }
+
+    // ── 月历（原型 L1203-1260） ────────────────────────────────────
+
+    @Test
+    fun `月历为 6 月共 30 天加 5 个空位且 13 号为今天`() {
+        val cells = FtReviewModel.MONTH_CELLS
+        assertEquals(35, cells.size)
+        // MONTH_HEAD 常量已移除（表头序改由 WeekWindow.dayLabels(weekStart) 驱动）——
+        // 「一…日」表头断言由 WeekWindowTest 的 dayLabels 两态用例继承覆盖。
+
+        val days = cells.filter { it.day > 0 }
+        assertEquals(30, days.size)
+        assertEquals(1, days.first().day)
+        assertEquals(30, days.last().day)
+        assertEquals(13, cells.first { it.today }.day)
+        assertEquals(5, cells.count { it.day == 0 })
+    }
+
+    /** 月历标语与图例（原型 `.month-cal` 的 tip / `.month-legend`）指向资源。 */
+    @Test
+    fun `月历样例文案与图例指向资源`() {
+        assertEquals(R.string.review_month_label_sample, FtReviewModel.MONTH_LABEL_RES)
+        assertEquals(R.string.review_month_meta_sample, FtReviewModel.MONTH_META_RES)
+        assertEquals(R.string.review_month_tip, FtReviewModel.MONTH_TIP_RES)
+        assertEquals(
+            listOf(
+                R.string.review_month_legend_none,
+                R.string.review_month_legend_light,
+                R.string.review_month_legend_medium,
+                R.string.review_month_legend_high,
+                R.string.review_month_legend_max,
+            ),
+            FtReviewModel.MONTH_LEGEND_RES,
+        )
+    }
+
+    /** 每格等级取自原型的 `mcal-cell lN` class（L1210-1249）。 */
+    @Test
+    fun `月历各格等级与原型 class 对齐`() {
+        val byDay = FtReviewModel.MONTH_CELLS.filter { it.day > 0 }.associateBy { it.day }
+        // 抽样几格：1 未练、2 轻(l1)、5 高(l3)、6 大(l4)、13 今天(l4)
+        assertEquals(0, byDay.getValue(1).level)
+        assertEquals(2, byDay.getValue(2).level)
+        assertEquals(3, byDay.getValue(5).level)
+        assertEquals(4, byDay.getValue(6).level)
+        assertTrue(byDay.getValue(13).today)
+        assertEquals(4, byDay.getValue(13).level)
+        // 17 号 l1、20 号 l4
+        assertEquals(1, byDay.getValue(17).level)
+        assertEquals(4, byDay.getValue(20).level)
+    }
+
+    // ── 努力程度（原型 renderEffort，L1779-1805） ─────────────────
+
+    @Test
+    fun `RIR 视图的均值与柱高按原型公式`() {
+        val e = FtReviewModel.effort(EffortMetric.RIR)
+        assertEquals("2.3", e.average) // 18/8 = 2.25 → toFixed(1)
+        assertEquals(EffortMetric.RIR, e.metric)
+        assertEquals(R.string.review_effort_unit, FtReviewModel.EFFORT_UNIT_RES)
+        assertEquals(listOf(50, 75, 25, 50, 100, 25, 75, 50), e.barPercents)
+        assertEquals(listOf("1", "2", "3", "4", "5", "6", "7", "8"), e.barLabels)
+    }
+
+    @Test
+    fun `RPE 视图为 10 减 RIR 且均值不同`() {
+        val e = FtReviewModel.effort(EffortMetric.RPE)
+        assertEquals("7.8", e.average) // 62/8 = 7.75 → toFixed(1)
+        assertEquals(EffortMetric.RPE, e.metric)
+        // (10-RIR − 6)/4 × 100，下限 8%
+        assertEquals(listOf(50, 25, 75, 50, 8, 75, 25, 50), e.barPercents)
+    }
+
+    // ── 体重目标（原型 saveGoal，L1744-1759） ────────────────────
+
+    @Test
+    fun `目标线纵坐标按原型公式并夹在 16 到 116`() {
+        assertEquals(91.0f, FtReviewModel.goalLineY(68.0), 1e-3f) // 16 + (71−68)/4×100
+        assertEquals(16.0f, FtReviewModel.goalLineY(200.0), 1e-3f) // 越界夹到上端
+        assertEquals(116.0f, FtReviewModel.goalLineY(30.0), 1e-3f) // 越界夹到下端
+    }
+
+    /** 弹窗初值来自按钮文案里的数字（原型 `openGoalModal`）；数值文案由 UI 层套模板。 */
+    @Test
+    fun `目标数值文案与初值`() {
+        assertEquals(68.0, FtReviewModel.initialGoal(), 1e-6)
+        assertEquals("68", FtReviewModel.goalValueText(68.0))
+        assertEquals("68.5", FtReviewModel.goalValueText(68.5)) // 非整数保留一位
+        assertEquals(30.0, FtReviewModel.clampGoal(10.0), 1e-6) // 低于下限夹到 30
+        assertEquals(200.0, FtReviewModel.clampGoal(999.0), 1e-6) // 高于上限夹到 200
+        assertEquals(68.0, FtReviewModel.clampGoal(68.0), 1e-6) // 区间内原样
+    }
+
+    /** 原型里目标线的初始 y 是 markup 写死的 90，与公式值 91 不同——按 markup 走。 */
+    @Test
+    fun `目标线初始位置取原型 markup 的 90 而非公式值`() {
+        assertEquals(90f, FtReviewModel.INITIAL_GOAL_LINE_Y, 1e-3f)
+    }
+
+    // ── 体重曲线（原型 `.chart` SVG，L1311-1330） ────────────────
+
+    @Test
+    fun `体重曲线八点坐标与原型 polyline 一致`() {
+        assertEquals(
+            listOf(12f to 42f, 57f to 49f, 102f to 47f, 147f to 58f,
+                192f to 64f, 237f to 60f, 282f to 68f, 330f to 74f),
+            FtReviewModel.WEIGHT_POINTS,
+        )
+        assertEquals(342f, FtReviewModel.WEIGHT_VIEW_W, 1e-3f)
+        assertEquals(132f, FtReviewModel.WEIGHT_VIEW_H, 1e-3f)
+    }
+
+    @Test
+    fun `体重卡页脚样例指向资源且主数值不变`() {
+        assertEquals(R.string.review_weight_foot_current, FtReviewModel.WEIGHT_FOOT_LEFT_RES)
+        assertEquals("69.2 kg", FtReviewModel.WEIGHT_CURRENT)
+        assertEquals(R.string.review_weight_delta_sample, FtReviewModel.WEIGHT_DELTA_RES)
+    }
+
+    // ── 肌肉地图常量（原型 L1612-1627） ─────────────────────────
+
+    @Test
+    fun `肌肉地图三档模式的 meta note 与标签指向原型资源`() {
+        assertEquals(R.string.review_muscle_meta_balance, FtReviewModel.mmMetaRes(MuscleMode.BALANCE))
+        assertEquals(R.string.review_muscle_meta_fatigue, FtReviewModel.mmMetaRes(MuscleMode.FATIGUE))
+        assertEquals(R.string.review_muscle_meta_strength, FtReviewModel.mmMetaRes(MuscleMode.STRENGTH))
+        assertEquals(R.string.review_muscle_note_balance, FtReviewModel.mmNoteRes(MuscleMode.BALANCE))
+        assertEquals(R.string.review_muscle_note_fatigue, FtReviewModel.mmNoteRes(MuscleMode.FATIGUE))
+        assertEquals(R.string.review_muscle_note_strength, FtReviewModel.mmNoteRes(MuscleMode.STRENGTH))
+        assertEquals(R.string.review_muscle_mode_balance, FtReviewModel.mmLabelRes(MuscleMode.BALANCE))
+        assertEquals(R.string.review_muscle_mode_fatigue, FtReviewModel.mmLabelRes(MuscleMode.FATIGUE))
+        assertEquals(R.string.review_muscle_mode_strength, FtReviewModel.mmLabelRes(MuscleMode.STRENGTH))
+        assertEquals(R.string.review_muscle_legend_low, FtReviewModel.LEGEND_LOW_RES)
+        assertEquals(R.string.review_muscle_legend_high, FtReviewModel.LEGEND_HIGH_RES)
+    }
+
+    @Test
+    fun `肌肉等级表按模式取值且范围 0 到 4`() {
+        assertEquals(4, FtReviewModel.muscleLevel(MuscleMode.BALANCE, "chest"))
+        assertEquals(4, FtReviewModel.muscleLevel(MuscleMode.BALANCE, "quadriceps"))
+        assertEquals(1, FtReviewModel.muscleLevel(MuscleMode.BALANCE, "tibialis"))
+        assertEquals(2, FtReviewModel.muscleLevel(MuscleMode.FATIGUE, "chest"))
+        assertEquals(4, FtReviewModel.muscleLevel(MuscleMode.FATIGUE, "gluteal"))
+        // 未列出的肌肉取 0（原型 `LEVELS[mmCurrent][k] || 0`）
+        assertEquals(0, FtReviewModel.muscleLevel(MuscleMode.BALANCE, "not-a-muscle"))
+        for (mode in MuscleMode.entries) {
+            for (k in FtReviewModel.MUSCLE_IDS) {
+                assertTrue("$mode/$k 超界", FtReviewModel.muscleLevel(mode, k) in 0..4)
+            }
+        }
+    }
+
+    @Test
+    fun `肌肉中文名资源与原型 LABELS 一一对应`() {
+        assertEquals(R.string.review_muscle_trapezius, FtReviewModel.muscleLabelRes("trapezius"))
+        assertEquals(R.string.review_muscle_deltoids, FtReviewModel.muscleLabelRes("deltoids"))
+        assertEquals(R.string.review_muscle_chest, FtReviewModel.muscleLabelRes("chest"))
+        assertEquals(R.string.review_muscle_upper_back, FtReviewModel.muscleLabelRes("upper-back"))
+        assertEquals(R.string.review_muscle_serratus, FtReviewModel.muscleLabelRes("serratus"))
+        assertEquals(R.string.review_muscle_biceps, FtReviewModel.muscleLabelRes("biceps"))
+        assertEquals(R.string.review_muscle_triceps, FtReviewModel.muscleLabelRes("triceps"))
+        assertEquals(R.string.review_muscle_forearm, FtReviewModel.muscleLabelRes("forearm"))
+        assertEquals(R.string.review_muscle_abs, FtReviewModel.muscleLabelRes("abs"))
+        assertEquals(R.string.review_muscle_obliques, FtReviewModel.muscleLabelRes("obliques"))
+        assertEquals(R.string.review_muscle_lower_back, FtReviewModel.muscleLabelRes("lower-back"))
+        assertEquals(R.string.review_muscle_gluteal, FtReviewModel.muscleLabelRes("gluteal"))
+        assertEquals(R.string.review_muscle_quadriceps, FtReviewModel.muscleLabelRes("quadriceps"))
+        assertEquals(R.string.review_muscle_hamstring, FtReviewModel.muscleLabelRes("hamstring"))
+        assertEquals(R.string.review_muscle_adductors, FtReviewModel.muscleLabelRes("adductors"))
+        assertEquals(R.string.review_muscle_hip_flexors, FtReviewModel.muscleLabelRes("hip-flexors"))
+        assertEquals(R.string.review_muscle_calves, FtReviewModel.muscleLabelRes("calves"))
+        assertEquals(R.string.review_muscle_tibialis, FtReviewModel.muscleLabelRes("tibialis"))
+        // 未收录的 id 返回 null（UI 层回落显示原始 id，同原型 `LABELS[k] || k`）
+        assertNull(FtReviewModel.muscleLabelRes("not-a-muscle"))
+        assertEquals(18, FtReviewModel.MUSCLE_IDS.size)
+    }
+
+    /** 点选肌肉后详情行的取值（原型 selectMuscle，L1680-1704）。 */
+    @Test
+    fun `点选肌肉的详情资源与参数按模式换算`() {
+        // 平衡模式：组数 = 等级 × 10 + 8
+        assertEquals(MuscleDetail(R.string.review_muscle_detail_sets, 48), FtReviewModel.muscleDetail(MuscleMode.BALANCE, "chest"))
+        assertEquals(MuscleDetail(R.string.review_muscle_detail_sets, 18), FtReviewModel.muscleDetail(MuscleMode.BALANCE, "tibialis"))
+        // 文案数组**按等级直接取下标**（不是从 1 开始）：lvl 2 → 索引 2
+        assertEquals(MuscleDetail(R.string.review_muscle_recovery_2), FtReviewModel.muscleDetail(MuscleMode.FATIGUE, "chest"))
+        assertEquals(MuscleDetail(R.string.review_muscle_recovery_1), FtReviewModel.muscleDetail(MuscleMode.FATIGUE, "calves"))
+        assertEquals(MuscleDetail(R.string.review_muscle_strength_1), FtReviewModel.muscleDetail(MuscleMode.STRENGTH, "tibialis"))
+        // lvl=4 越出四元素文案表，回落 `—`（原型 `[...][lvl] || '—'`）
+        assertEquals(MuscleDetail(R.string.review_muscle_detail_none), FtReviewModel.muscleDetail(MuscleMode.STRENGTH, "chest"))
+        // 索引 0 分支：等级表里没有 lvl=0 的肌肉，只有未知 id 能走到（原型 `|| 0`）
+        assertEquals(MuscleDetail(R.string.review_muscle_recovery_0), FtReviewModel.muscleDetail(MuscleMode.FATIGUE, "unknown"))
+    }
+
+    // ── 估算 1RM（原型 L1352-1375） ──────────────────────────────
+
+    @Test
+    fun `估算 1RM 四行样例指向原型资源`() {
+        assertEquals(
+            listOf(
+                OneRmSample(R.string.review_1rm_sample_bench_press, R.string.review_1rm_sample_bench_press_src, "62.5"),
+                OneRmSample(R.string.review_1rm_sample_squat, R.string.review_1rm_sample_squat_src, "95"),
+                OneRmSample(R.string.review_1rm_sample_deadlift, R.string.review_1rm_sample_deadlift_src, "105"),
+                OneRmSample(R.string.review_1rm_sample_row, R.string.review_1rm_sample_row_src, "58"),
+            ),
+            FtReviewModel.ONE_RM_SAMPLES,
+        )
+    }
+
+    // ── W3-2b 真实数据接线：训练节奏 / 月历 / 体重（纯函数） ──────────
+
+    /** 本地时区日零点（与服务 `startOfDay` / `mondayStart` 同口径）。 */
+    private fun day(year: Int, month1: Int, dayOfMonth: Int): Long {
+        val cal = Calendar.getInstance()
+        cal.clear()
+        cal.set(year, month1 - 1, dayOfMonth)
+        return cal.timeInMillis
+    }
+
+    /** 单会话：给定开始时刻、时长与工作组 `(重量, 次数)` 列表（全部非热身）。 */
+    private fun session(
+        startedAt: Long,
+        durationSeconds: Int = 0,
+        volumeSets: List<Pair<Double, Int>> = emptyList(),
+    ): WorkoutSession = WorkoutSession(
+        sessionId = "s-$startedAt-$durationSeconds",
+        planId = "p",
+        dayId = "d",
+        startedAt = startedAt,
+        endedAt = startedAt + durationSeconds * 1000L,
+        durationSeconds = durationSeconds,
+        totalSets = volumeSets.size,
+        totalVolume = volumeSets.sumOf { (weight, reps) -> weight * reps },
+        fatigueScore = 0.0,
+        notes = "",
+        sets = volumeSets.mapIndexed { index, (weight, reps) ->
+            WorkoutSet(setId = "set-$index", exerciseId = "e", weight = weight, reps = reps, rpe = 8.0, isWarmup = false)
+        },
+    )
+
+    @Test
+    fun `训练节奏按本周逐日训练量分桶`() {
+        val now = day(2026, 6, 10) // 周三
+        val sessions = listOf(
+            session(day(2026, 6, 8), volumeSets = listOf(50.0 to 2)), // 周一 · 100
+            session(day(2026, 6, 10), volumeSets = listOf(100.0 to 2)), // 周三 · 200（本周最大）
+            session(day(2026, 6, 15), volumeSets = listOf(999.0 to 1)), // 下周一 · 出周窗口
+        )
+        val bars = FtReviewModel.weeklyBars(sessions, now, WeekStart.MONDAY)
+        assertEquals(listOf("一", "二", "三", "四", "五", "六", "日"), bars.map { it.label })
+        assertEquals(listOf(true, false, true, false, false, false, false), bars.map { it.on })
+        // 本周最大量（周三）取上限，未训练日取下限
+        assertEquals(FtReviewModel.WEEK_BAR_MAX_H, bars[2].height, 1e-3f)
+        assertEquals(FtReviewModel.WEEK_BAR_MIN_H, bars[1].height, 1e-3f)
+        // 周一 100/200 = 半程 → 下限 + 半程跨度
+        assertEquals(
+            FtReviewModel.WEEK_BAR_MIN_H + (FtReviewModel.WEEK_BAR_MAX_H - FtReviewModel.WEEK_BAR_MIN_H) / 2f,
+            bars[0].height,
+            1e-3f,
+        )
+    }
+
+    @Test
+    fun `训练节奏空会话回落下限高且全灭`() {
+        val bars = FtReviewModel.weeklyBars(emptyList(), day(2026, 6, 10), WeekStart.MONDAY)
+        assertEquals(7, bars.size)
+        assertTrue(bars.all { !it.on })
+        assertTrue(bars.all { it.height == FtReviewModel.WEEK_BAR_MIN_H })
+    }
+
+    @Test
+    fun `月历按会话逐日聚合并映射等级`() {
+        val now = day(2026, 6, 10)
+        val sessions = listOf(
+            session(day(2026, 6, 2), volumeSets = listOf(50.0 to 2)), // 100
+            session(day(2026, 6, 5), volumeSets = listOf(100.0 to 2)), // 200（当月最大）
+            session(day(2026, 7, 1), volumeSets = listOf(999.0 to 1)), // 下月 · 排除
+        )
+        val cells = FtReviewModel.monthGrid(sessions, now, WeekStart.MONDAY)
+        // 2026-06-01 是周一 → 无前置空位；30 天 + 5 个尾部占位 = 35
+        assertEquals(35, cells.size)
+        assertEquals(5, cells.count { it.day == 0 })
+        assertEquals(30, cells.filter { it.day > 0 }.size)
+        assertEquals(1, cells.first().day)
+        assertEquals(2, cells.first { it.day == 2 }.level) // 100/200 → 半程 → 2
+        assertEquals(4, cells.first { it.day == 5 }.level) // 当月最大 → 4
+        assertEquals(0, cells.first { it.day == 1 }.level) // 未训练
+        assertEquals(10, cells.first { it.today }.day)
+    }
+
+    @Test
+    fun `月历前置空位对齐当月首日周几`() {
+        val now = day(2026, 7, 15)
+        val cells = FtReviewModel.monthGrid(emptyList(), now, WeekStart.MONDAY)
+        // 2026-07-01 是周三 → 2 个前置空位；31 天 + 2 = 33，补到 35
+        assertEquals(35, cells.size)
+        assertEquals(2, cells.take(2).count { it.day == 0 })
+        assertEquals(1, cells[2].day)
+        assertEquals(31, cells.count { it.day > 0 })
+        assertEquals(15, cells.first { it.today }.day)
+    }
+
+    @Test
+    fun `月历标题与 meta 按当月聚合`() {
+        val now = day(2026, 6, 10)
+        assertEquals(MonthLabel(2026, 6), FtReviewModel.monthLabel(now))
+        val sessions = listOf(
+            session(day(2026, 6, 2), durationSeconds = 600),
+            session(day(2026, 6, 2), durationSeconds = 300), // 同日第二场
+            session(day(2026, 6, 5), durationSeconds = 1200),
+            session(day(2026, 7, 1), durationSeconds = 999), // 下月 · 排除
+        )
+        // 当月训练 2 天（2 号、5 号）；总时长 2100s → 35 分钟
+        assertEquals(MonthMeta(2, 35), FtReviewModel.monthMeta(sessions, now))
+    }
+
+    @Test
+    fun `体重曲线点集按 min max 归一`() {
+        val points = FtReviewModel.weightPoints(listOf(70f, 72f, 71f))
+        assertEquals(3, points.size)
+        // x 在 12..330 均分
+        assertEquals(12f, points[0].first, 1e-3f)
+        assertEquals(171f, points[1].first, 1e-3f)
+        assertEquals(330f, points[2].first, 1e-3f)
+        // y：min(70)→下沿 100，max(72)→上沿 16，中值 71→58
+        assertEquals(100f, points[0].second, 1e-3f)
+        assertEquals(16f, points[1].second, 1e-3f)
+        assertEquals(58f, points[2].second, 1e-3f)
+    }
+
+    @Test
+    fun `体重曲线全等值取中线且空集为空`() {
+        val points = FtReviewModel.weightPoints(listOf(70f, 70f, 70f))
+        assertTrue(points.all { it.second == 58f })
+        assertTrue(FtReviewModel.weightPoints(emptyList()).isEmpty())
+    }
+
+    @Test
+    fun `体重数值文案格式`() {
+        assertEquals("69.2 kg", FtReviewModel.weightCurrentText(69.2))
+        assertEquals("-0.8", FtReviewModel.weightDeltaValue(-0.8))
+        assertEquals("1.6", FtReviewModel.weightDeltaValue(1.6))
+    }
+
+    // ── 周开始日两态（A5 / Wave 2 · 周首周一 vs 周日） ─────────────
+
+    @Test
+    fun `周柱图周首切周日时标签序与分桶联动`() {
+        val now = day(2026, 6, 10) // 周三（2026-06-01 为周一）
+        val sessions = listOf(
+            session(day(2026, 6, 7), volumeSets = listOf(50.0 to 2)), // 本周日（周首）· 100
+            session(day(2026, 6, 10), volumeSets = listOf(100.0 to 2)), // 周三 · 200（当周最大）
+            session(day(2026, 6, 14), volumeSets = listOf(999.0 to 1)), // 下周日 · 出周窗口
+        )
+        val bars = FtReviewModel.weeklyBars(sessions, now, WeekStart.SUNDAY)
+        assertEquals(listOf("日", "一", "二", "三", "四", "五", "六"), bars.map { it.label })
+        assertEquals(listOf(true, false, false, true, false, false, false), bars.map { it.on })
+        assertEquals(FtReviewModel.WEEK_BAR_MAX_H, bars[3].height, 1e-3f)
+        assertEquals(
+            FtReviewModel.WEEK_BAR_MIN_H + (FtReviewModel.WEEK_BAR_MAX_H - FtReviewModel.WEEK_BAR_MIN_H) / 2f,
+            bars[0].height,
+            1e-3f,
+        )
+    }
+
+    @Test
+    fun `月历前置空位随周首切周日`() {
+        val now = day(2026, 6, 10)
+        val cells = FtReviewModel.monthGrid(emptyList(), now, WeekStart.SUNDAY)
+        // 2026-06-01 是周一 → 周日首模式下前置 1 格；30 天 + 1 = 31，补到 35
+        assertEquals(35, cells.size)
+        assertEquals(1, cells.take(1).count { it.day == 0 })
+        assertEquals(1, cells[1].day)
+        assertEquals(30, cells.count { it.day > 0 })
+    }
+}

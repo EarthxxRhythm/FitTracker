@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for the workout complete screen (+ FtCompleteModel). Keys mirror
+  `values/strings_complete.xml` (the zh values there are the source of truth).
+-->
+<resources>
+
+    <!-- Hero -->
+    <string name="complete_title">Workout complete</string>
+    <string name="complete_subtitle">Today\'s workout is saved. Great job.</string>
+
+    <!-- Streak card -->
+    <string name="complete_streak_title">Training streak</string>
+    <string name="complete_streak_count">%1$d-day streak</string>
+    <string name="complete_a11y_streak">This week\'s training streak: checked in Monday through Saturday, not checked in on Sunday</string>
+
+    <!-- Bottom primary button -->
+    <string name="complete_continue">Continue</string>
+    <string name="complete_a11y_continue">Continue to workout summary</string>
+
+</resources>

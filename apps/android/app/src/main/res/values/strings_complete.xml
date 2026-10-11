@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  训练完成域（complete 屏 + FtCompleteModel）文案。中文值**逐字**取自既有硬编码与原型
+  `design/06_prototype_redraw/src/fittracker-training-complete.html`（原型对齐纪律）：
+  改动此处的中文即偏离原型，须同步原型。
+
+  命名：`complete_<元素>`。带参文案用位置参数（`%1$d`），由 UI 层 `stringResource(id, args)` 解析；
+  模型层只持有资源 ID（见 `FtCompleteModel`）。
+
+  注：连续记录卡的星期标签由 `WeekWindow.dayLabels` 提供（数据层真源），不在此资源化。
+-->
+<resources>
+
+    <!-- hero（`.cf-title` / `.cf-sub`，原型 L412/L413） -->
+    <string name="complete_title">训练完成</string>
+    <string name="complete_subtitle">今天的训练已保存，做得很好。</string>
+
+    <!-- 连续记录卡（`.cf-streak`） -->
+    <string name="complete_streak_title">训练连续记录</string>
+    <!-- `%1$d` 连续天数（原型 `.streak-count`，L420） -->
+    <string name="complete_streak_count">连续 %1$d 天</string>
+    <!-- `.streak-days` 的 `role="img"` aria-label（原型 L417），逐字取自源码 -->
+    <string name="complete_a11y_streak">本周连续训练记录：周一至周六已打卡，周日未打卡</string>
+
+    <!-- 底部主按钮（`.cf-btn-primary`，原型 L436） -->
+    <string name="complete_continue">继续</string>
+    <!-- aria-label（原型 L436），逐字取自源码 -->
+    <string name="complete_a11y_continue">继续查看训练总结</string>
+
+</resources>

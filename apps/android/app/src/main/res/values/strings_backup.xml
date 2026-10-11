@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  备份域（数据导出 / 导入）文案。中文值**逐字**取自既有硬编码常量
+  （`data/service/backup/UserDataBackupService.kt`，其源自鸿蒙
+  `shared/services/UserDataBackupService.ets:12-18` 与 `:301-324`）。
+
+  命名：`backup_<元素>`。带参文案用位置参数（`%1$d` / `%2$d`），由 UI 层
+  `context.getString(...)` 解析——本域服务不持有 `Context`（保持纯 JVM 可单测），
+  只暴露 `@StringRes Int` 引用。
+-->
+<resources>
+
+    <!-- 服务常量（源 :13-18） -->
+    <string name="backup_scope_summary">仅备份目标、计划和训练记录；不包含训练草稿、内容库和媒体缓存。</string>
+    <string name="backup_usage_hint">适用于换机、清理前导出或手工恢复。</string>
+    <string name="backup_restore_rule">目标与计划以导入包为准，训练记录按 sessionId 去重合并。</string>
+    <string name="backup_export_success_status">备份包已生成，可用于换机、清理前导出或手工恢复。</string>
+    <string name="backup_export_failure_status">备份包生成失败，请稍后重试。</string>
+    <string name="backup_import_empty_status">请先粘贴备份 JSON。</string>
+
+    <!-- 导入失败（源 :302-305，按 statusId 二分） -->
+    <string name="backup_import_failure_unsupported">备份包版本暂不受支持，请先升级应用后再试。</string>
+    <string name="backup_import_failure_invalid">备份包格式无效，无法导入。</string>
+
+    <!-- 导入成功（源 :314-316 主句 + :319/:321 回退追加；追加子句前以空格相连） -->
+    <string name="backup_import_success">备份已导入：目标与计划已按导入包恢复，训练记录已按 sessionId 去重合并。共恢复 %1$d 个计划，合并后保留 %2$d 条训练记录。</string>
+    <string name="backup_import_success_fallback_plan">当前计划指针无效，已回退到首个可用计划。</string>
+    <string name="backup_import_success_plan_cleared">导入包没有可用计划，当前计划已清空。</string>
+
+</resources>

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Training preferences (TrainingPreferencesScreen + FtTrainingPreferencesModel).
+  English translation of values/strings_preferences.xml. Chip ids (persisted keys) are not translated.
+-->
+<resources>
+
+    <!-- Top bar / save button / footer -->
+    <string name="preferences_title">Training Preferences</string>
+    <string name="preferences_a11y_back">Back to profile</string>
+    <string name="preferences_save">Save preferences</string>
+    <string name="preferences_foot_note">After saving, this week\'s plan will be regenerated from your latest preferences. Preferences are stored only on this device.</string>
+
+    <!-- Card meta -->
+    <string name="preferences_meta_single">Single</string>
+    <string name="preferences_meta_multi">Multiple</string>
+
+    <!-- Card titles -->
+    <string name="preferences_card_goal_level">Goals &amp; Level</string>
+    <string name="preferences_card_rhythm">Training Rhythm</string>
+    <string name="preferences_card_equipment">Equipment &amp; Limits</string>
+
+    <!-- Group 1: training goal -->
+    <string name="preferences_goal_eyebrow">Goal</string>
+    <string name="preferences_goal_title">Training goal</string>
+    <string name="preferences_goal_note">Your plan builds exercises and intensity around your main goal.</string>
+    <string name="preferences_goal_muscle_gain">Muscle gain</string>
+    <string name="preferences_goal_strength">Strength</string>
+    <string name="preferences_goal_fat_loss">Fat loss</string>
+
+    <!-- Group 2: training experience -->
+    <string name="preferences_level_eyebrow">Complexity</string>
+    <string name="preferences_level_title">Experience</string>
+    <string name="preferences_level_beginner">Beginner</string>
+    <string name="preferences_level_intermediate">Intermediate</string>
+    <string name="preferences_level_advanced">Advanced</string>
+
+    <!-- Group 3: days per week -->
+    <string name="preferences_days_eyebrow">Frequency</string>
+    <string name="preferences_days_title">Days per week</string>
+    <string name="preferences_days_2">2 days</string>
+    <string name="preferences_days_3">3 days</string>
+    <string name="preferences_days_4">4 days</string>
+    <string name="preferences_days_5">5 days</string>
+
+    <!-- Group 4: session length -->
+    <string name="preferences_minutes_eyebrow">Time budget</string>
+    <string name="preferences_minutes_title">Session length</string>
+    <string name="preferences_minutes_30">30 min</string>
+    <string name="preferences_minutes_45">45 min</string>
+    <string name="preferences_minutes_60">60 min</string>
+    <string name="preferences_minutes_75">75 min</string>
+
+    <!-- Group 5: available equipment -->
+    <string name="preferences_equipment_eyebrow">Equipment</string>
+    <string name="preferences_equipment_title">Available equipment</string>
+    <string name="preferences_equipment_note">Select the equipment you actually have; your plan filters exercises accordingly.</string>
+    <string name="preferences_equipment_bodyweight">Bodyweight</string>
+    <string name="preferences_equipment_dumbbell">Dumbbell</string>
+    <string name="preferences_equipment_barbell">Barbell</string>
+    <string name="preferences_equipment_cable">Cable</string>
+
+    <!-- Group 6: restricted muscles -->
+    <string name="preferences_muscles_eyebrow">Recovery limits</string>
+    <string name="preferences_muscles_title">Restricted muscles</string>
+    <string name="preferences_muscles_note">Selected muscles will be avoided in your plan where possible (pain or recovery).</string>
+    <string name="preferences_muscle_chest">Chest</string>
+    <string name="preferences_muscle_back">Back</string>
+    <string name="preferences_muscle_legs">Legs</string>
+    <string name="preferences_muscle_shoulders">Shoulders</string>
+    <string name="preferences_muscle_arms">Arms</string>
+    <string name="preferences_muscle_core">Core</string>
+
+    <!-- Toasts -->
+    <string name="preferences_toast_saved">Preferences saved. This week\'s plan has been regenerated.</string>
+    <string name="preferences_toast_failed">Save failed. Please try again.</string>
+
+</resources>

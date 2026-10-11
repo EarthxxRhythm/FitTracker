@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for the profile screen. Keys mirror `values/strings_profile.xml`
+  (the zh values there are the source of truth, extracted verbatim from the prototype).
+
+  Sample values (name / avatar initial / week range / streak count) are placeholders shown
+  before real data loads; the real values come from the data layer and `WeekWindow`.
+-->
+<resources>
+
+    <!-- Header -->
+    <string name="profile_sample_avatar_initial">L</string>
+    <string name="profile_sample_name">Lin Mo</string>
+    <string name="profile_sample_sub">Bulking · day 42 · keeping the pace</string>
+    <string name="profile_a11y_settings">Settings</string>
+
+    <!-- This week card -->
+    <string name="profile_week_title">Weekly overview</string>
+    <string name="profile_week_meta_sample">Jul 21 – 27</string>
+    <string name="profile_week_unit">min</string>
+    <string name="profile_week_label">Training time this week</string>
+    <string name="profile_week_metric_workouts">Workouts</string>
+    <string name="profile_week_metric_burned">Burned</string>
+    <string name="profile_unit_times">workouts</string>
+    <string name="profile_unit_kcal">kcal</string>
+
+    <!-- Training streak card -->
+    <string name="profile_streak_title">Training streak</string>
+    <string name="profile_streak_count">6-day streak</string>
+    <!-- Single-letter weekday labels (prototype order: Monday first) -->
+    <string name="profile_streak_day_mon">M</string>
+    <string name="profile_streak_day_tue">T</string>
+    <string name="profile_streak_day_wed">W</string>
+    <string name="profile_streak_day_thu">T</string>
+    <string name="profile_streak_day_fri">F</string>
+    <string name="profile_streak_day_sat">S</string>
+    <string name="profile_streak_day_sun">S</string>
+
+    <!-- Recent achievements -->
+    <string name="profile_achievements_title">Recent achievements</string>
+    <string name="profile_achievement_streak_title">Steady output</string>
+    <string name="profile_achievement_streak_note">7-day training streak</string>
+    <string name="profile_achievement_streak_value">86% of this week</string>
+    <string name="profile_achievement_pr_title">Strength PR</string>
+    <string name="profile_achievement_pr_note">Squat hit 80 kg</string>
+    <string name="profile_achievement_pr_value">New personal best</string>
+
+    <!-- Shortcuts -->
+    <string name="profile_shortcut_body">Body data</string>
+    <string name="profile_shortcut_training_preferences">Training preferences</string>
+    <string name="profile_shortcut_library">Exercise library</string>
+
+</resources>

@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for the exercise detail screen. Keys mirror
+  `values/strings_exercise.xml` (the zh values there are the source of truth).
+-->
+<resources>
+
+    <!-- Lane headers -->
+    <string name="exercise_lane_media_title">Media &amp; demo</string>
+    <string name="exercise_lane_media_desc">Check the media assets and demo state first, then decide whether to start training or dig deeper.</string>
+    <string name="exercise_lane_technique_title">Execution &amp; alternatives</string>
+    <string name="exercise_lane_technique_desc">Steps, key cues and alternatives in one place, so you can review them quickly before training.</string>
+    <string name="exercise_lane_meta_title">Details &amp; resources</string>
+    <string name="exercise_lane_meta_desc">Training material and metadata sit at the end so they don\'t get in the way of the main task.</string>
+
+    <!-- Not-found state -->
+    <string name="exercise_not_found_eyebrow">Exercise detail</string>
+    <string name="exercise_not_found_title">Exercise not found</string>
+    <string name="exercise_not_found_desc">This screen wasn\'t opened with a valid exercise. Please re-enter from the training preview or review screen.</string>
+
+    <!-- Knowledge hero card -->
+    <string name="exercise_metric_steps_label">Steps</string>
+    <string name="exercise_metric_steps_note">Execution order</string>
+    <string name="exercise_metric_cues_label">Cues</string>
+    <string name="exercise_metric_cues_note">Key reminders</string>
+    <string name="exercise_metric_alternatives_label">Alternatives</string>
+    <string name="exercise_metric_alternatives_note">Swappable moves</string>
+    <string name="exercise_focus_label">Training focus</string>
+    <string name="exercise_safety_label">Safety notes</string>
+    <string name="exercise_eyebrow_learning">Learn the move</string>
+    <string name="exercise_eyebrow_reference">Exercise reference</string>
+    <string name="exercise_eyebrow_detail">Exercise detail</string>
+    <string name="exercise_hero_summary">%1$s | %2$s | %3$s</string>
+    <string name="exercise_hero_focus_default">Confirm the movement path and force sequence first</string>
+    <string name="exercise_muscle_pending">Target muscles to be added</string>
+    <string name="exercise_equipment_pending">Equipment to be added</string>
+    <string name="exercise_meta_id">Exercise ID %1$s</string>
+    <string name="exercise_execution_focus_default">Confirm the movement path, tempo and force sequence first.</string>
+    <string name="exercise_safety_focus_default">No extra safety notes; still warm up and test the weight before training.</string>
+
+    <!-- Media & demo card -->
+    <string name="exercise_media_title">Exercise demo</string>
+    <string name="exercise_media_cover_label">Cover</string>
+    <string name="exercise_media_cover_note">Static preview</string>
+    <string name="exercise_media_video_label">Video</string>
+    <string name="exercise_media_video_note">Motion demo</string>
+    <string name="exercise_media_source_row">Common source</string>
+    <string name="exercise_media_license_row">Common license</string>
+    <string name="exercise_media_cover_block">Cover asset</string>
+    <string name="exercise_media_video_block">Video asset</string>
+    <string name="exercise_media_preview_overlay">Exercise preview</string>
+    <string name="exercise_a11y_demo">%1$s demo</string>
+    <string name="exercise_asset_ref_row">Asset reference</string>
+    <string name="exercise_asset_source_row">Source</string>
+    <string name="exercise_asset_license_row">License</string>
+
+    <!-- Video placeholder -->
+    <string name="exercise_video_placeholder_ready">Video assets are bundled in the local exercise library</string>
+    <string name="exercise_video_placeholder_soon">The library provides text and images for now; videos will be added later</string>
+
+    <!-- Difficulty -->
+    <string name="exercise_difficulty_beginner">Beginner</string>
+    <string name="exercise_difficulty_intermediate">Intermediate</string>
+    <string name="exercise_difficulty_advanced">Advanced</string>
+
+    <!-- Overall media state -->
+    <string name="exercise_media_badge_playable">Playable</string>
+    <string name="exercise_media_status_playable">A directly displayable media asset was resolved</string>
+    <string name="exercise_media_summary_playable">This version shows resolved assets directly while keeping source and license notes.</string>
+    <string name="exercise_media_detail_playable">A lightweight loop serves movement understanding first; caching, batch delivery and more player features come later.</string>
+    <string name="exercise_media_badge_declared">Configured</string>
+    <string name="exercise_media_status_declared">The media reference is recorded and shown in a controlled fallback</string>
+    <string name="exercise_media_summary_declared">The screen explains the cover, source, license and failure reason instead of forcing playback for unmapped assets.</string>
+    <string name="exercise_media_detail_declared">`local://` acts as a controlled content-library reference; once real assets are mapped you can upgrade to preview or playback here.</string>
+    <string name="exercise_media_badge_placeholder">Text &amp; image</string>
+    <string name="exercise_media_status_placeholder">Text and image for now; video assets will be filled in with content packs</string>
+    <string name="exercise_media_detail_placeholder">The focus for now is making cues, sources and training notes usable; videos can reuse the same page structure later.</string>
+    <string name="exercise_media_badge_missing">Pending</string>
+    <string name="exercise_media_status_missing">No cover or video provided yet</string>
+    <string name="exercise_media_summary_missing">This exercise has no displayable media yet.</string>
+    <string name="exercise_media_detail_missing">Once a controlled cover or video reference is added, this switches to a clearer preview state automatically.</string>
+
+    <!-- Asset state text -->
+    <string name="exercise_asset_cover_ready">Previewable</string>
+    <string name="exercise_asset_cover_declared">Reference recorded</string>
+    <string name="exercise_asset_cover_missing">Not provided</string>
+    <string name="exercise_asset_video_ready">Playable</string>
+    <string name="exercise_asset_video_declared">Awaiting mapping</string>
+    <string name="exercise_asset_video_missing">Not provided</string>
+
+    <!-- Asset primary text -->
+    <string name="exercise_asset_cover_primary_ready">Cover can be previewed directly</string>
+    <string name="exercise_asset_cover_primary_declared">Cover reference recorded</string>
+    <string name="exercise_asset_cover_primary_missing">No cover asset yet</string>
+    <string name="exercise_asset_video_primary_ready">Video can be played directly</string>
+    <string name="exercise_asset_video_primary_declared">Video reference recorded</string>
+    <string name="exercise_asset_video_primary_missing">No demo video yet</string>
+
+    <!-- Asset secondary text -->
+    <string name="exercise_asset_cover_secondary_ready">This asset URL can be rendered by the image component directly.</string>
+    <string name="exercise_asset_video_secondary_ready">This asset URL can be consumed by the player directly.</string>
+    <string name="exercise_asset_cover_secondary_local">This version keeps only the controlled `local://` reference and hasn\'t mapped it to a real in-app cover file yet.</string>
+    <string name="exercise_asset_video_secondary_local">This version doesn\'t ship offline video and won\'t force playback of unmapped `local://` assets.</string>
+    <string name="exercise_asset_secondary_declared">This reference is in the content library but isn\'t yet in the supported range for direct display.</string>
+    <string name="exercise_asset_secondary_tail">Once controlled assets are added, a fuller media experience can be shown here.</string>
+
+    <!-- Source labels -->
+    <string name="exercise_source_missing">Not provided</string>
+    <string name="exercise_source_local">Local exercise library reference</string>
+    <string name="exercise_source_remote">Controlled remote asset</string>
+    <string name="exercise_source_file">In-app file asset</string>
+    <string name="exercise_source_custom">Custom asset reference</string>
+
+    <!-- License labels -->
+    <string name="exercise_license_missing">No license info</string>
+    <string name="exercise_license_local">Only self-made or licensed assets may be bundled</string>
+    <string name="exercise_license_remote">Remote asset licenses must stay traceable</string>
+    <string name="exercise_license_file">Bundled in-app or user-side files</string>
+    <string name="exercise_license_custom">License must be documented before integration</string>
+
+    <!-- Source summary -->
+    <string name="exercise_note_source_both">Cover: %1$s; Video: %2$s</string>
+    <string name="exercise_note_source_video">Video: %1$s</string>
+    <string name="exercise_note_source_cover">Cover: %1$s</string>
+    <string name="exercise_note_source_none">This exercise has no media source attached</string>
+
+    <!-- License summary -->
+    <string name="exercise_note_license_both">Cover: %1$s; Video: %2$s</string>
+    <string name="exercise_note_license_video">Video: %1$s</string>
+    <string name="exercise_note_license_cover">Cover: %1$s</string>
+    <string name="exercise_note_license_none">Document the license when assets are added</string>
+
+    <!-- Media preview labels -->
+    <string name="exercise_preview_cover">Cover preview</string>
+    <string name="exercise_preview_video">Video ready</string>
+    <string name="exercise_preview_reference">Reference recorded</string>
+    <string name="exercise_preview_missing">Media pending</string>
+
+    <!-- Asset availability labels -->
+    <string name="exercise_availability_inline">Inline</string>
+    <string name="exercise_availability_reference">Reference only</string>
+    <string name="exercise_availability_missing">Missing</string>
+
+    <!-- Status panel empty states -->
+    <string name="exercise_status_empty_warning">No safety notes</string>
+    <string name="exercise_status_empty_error">No common mistakes</string>
+    <string name="exercise_status_empty_info">No training tips</string>
+
+    <!-- Technique / alternatives / metadata -->
+    <string name="exercise_technique_title">Execution notes</string>
+    <string name="exercise_steps_title">Steps</string>
+    <string name="exercise_steps_empty">No steps yet</string>
+    <string name="exercise_cues_title">Training tips</string>
+    <string name="exercise_mistakes_title">Common mistakes</string>
+    <string name="exercise_safety_title">Safety notes</string>
+    <string name="exercise_alternative_title">Alternatives</string>
+    <string name="exercise_alternative_desc">If your equipment doesn\'t match or you want a lower threshold, pick a same-goal move here first.</string>
+    <string name="exercise_alternative_empty">No alternatives registered; you can train with the current move first.</string>
+    <string name="exercise_metadata_title">Details</string>
+    <string name="exercise_meta_id_row">Exercise ID</string>
+    <string name="exercise_meta_name_en_row">English name</string>
+    <string name="exercise_meta_muscle_row">Target muscles</string>
+    <string name="exercise_meta_equipment_row">Equipment</string>
+
+</resources>

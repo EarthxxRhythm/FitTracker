@@ -1,0 +1,28 @@
+# FitTracker 后端反代 —— HTTPS 由 Caddy 自动签发/续期 Let's Encrypt 证书
+#
+# 部署步骤（服务器上）：
+#   1. 把本文件放到 /opt/fittracker/caddy/Caddyfile，并把 api.example.com 替换为实际域名
+#   2. 确保 DNS：api.<域名> A 记录已指向本机公网 IP；80/443 已放行
+#   3. docker run -d --name fittracker-caddy --restart unless-stopped \
+#        --network host \
+#        -v /opt/fittracker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro \
+#        -v fittracker_caddy_data:/data -v fittracker_caddy_config:/config \
+#        caddy:2-alpine
+#      ⚠ 必须 --network host：容器内 127.0.0.1 是容器自身回环——bridge 网络下
+#        反代宿主 8000/8787 会全部 502。host 网络下容器内 127.0.0.1 即宿主回环。
+#   4. 验证：curl -sS https://api.<域名>/auth/v1/health
+#
+# 端口暴露：Caddy 以 host 网络直接占宿主 80/443。
+#   127.0.0.1:8000 是 Supabase 栈 API 网关（Envoy，compose 默认 0.0.0.0 绑定——
+#   须按 README「Wave 2」用 override 文件限制为仅回环）；127.0.0.1:8787 是 sms-hook 服务（已绑回环）。
+
+api.example.com {
+	# GoTrue Send SMS Hook 回调用（standardwebhooks 签名由 sms-hook 服务自身验签）
+	# 匹配 /sms-hook 与 /sms-hook/xxx 两种形态（GOTRUE_HOOK_SEND_SMS_URI 配置成前者）
+	route /sms-hook* {
+		reverse_proxy 127.0.0.1:8787
+	}
+
+	# Supabase API 网关：/auth/v1/*、/rest/v1/* 等全部经此转发
+	reverse_proxy 127.0.0.1:8000
+}

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  首页域（home 屏）文案。中文值**逐字**取自既有硬编码（原型对齐纪律）：
+  改动此处的中文即偏离原型，须同步原型 `design/06_prototype_redraw/src/fittracker-welcome-home.html`。
+
+  命名：`home_<元素>`。带参文案用位置参数（`%1$d` / `%2$s`），由 UI 层 `context.getString(...)`
+  或 `stringResource(id, args)` 解析。
+-->
+<resources>
+
+    <!-- 顶栏：日期（`HomeContent.applyDateAndGreeting`）与问候 -->
+    <string name="home_date_format">%1$d月%2$d日 周%3$s</string>
+    <string name="home_weekday_sunday">日</string>
+    <string name="home_weekday_monday">一</string>
+    <string name="home_weekday_tuesday">二</string>
+    <string name="home_weekday_wednesday">三</string>
+    <string name="home_weekday_thursday">四</string>
+    <string name="home_weekday_friday">五</string>
+    <string name="home_weekday_saturday">六</string>
+    <string name="home_greeting_morning">早上好，专注训练</string>
+    <string name="home_greeting_afternoon">下午好，专注训练</string>
+    <string name="home_greeting_evening">晚上好，专注训练</string>
+
+    <!-- 今日卡（`.today`） -->
+    <string name="home_today_label">今日训练</string>
+    <string name="home_recommend">推荐</string>
+    <!-- `.today-ring` 的进度值与说明 -->
+    <string name="home_ring_percent">%1$d%%</string>
+    <string name="home_ring_caption">本周进度</string>
+    <!-- 训练日状态行（`.day`） -->
+    <string name="home_status_training_day">训练日 · 建议完成</string>
+    <string name="home_status_rest_day">休息日 · 恢复优先</string>
+    <string name="home_today_no_training">今日无训练安排</string>
+    <!-- 空态（`HomeContent.applyEmptyState`） -->
+    <string name="home_empty_plan_title">尚未启用计划</string>
+    <string name="home_empty_plan_subtitle">前往计划组选择训练计划</string>
+    <string name="home_status_pending">待安排</string>
+
+    <!-- 指标格（`.today-metrics`） -->
+    <string name="home_metric_exercises">动作数</string>
+    <string name="home_metric_exercises_unit">个动作</string>
+    <string name="home_metric_duration">预计用时</string>
+    <string name="home_metric_duration_unit">分钟</string>
+    <string name="home_metric_muscles">目标肌群</string>
+    <string name="home_metric_muscles_unit">个肌群</string>
+
+    <!-- 卡内按钮（`.today .btn-primary` / `.btn-ghost`） -->
+    <string name="home_action_start">开始训练</string>
+    <string name="home_action_preview">查看预览</string>
+
+    <!-- 周节奏（`.week`） -->
+    <string name="home_week_title">本周节奏</string>
+    <string name="home_week_range">周%1$s—周%2$s</string>
+    <string name="home_week_count">%1$d / %2$d 次</string>
+
+</resources>

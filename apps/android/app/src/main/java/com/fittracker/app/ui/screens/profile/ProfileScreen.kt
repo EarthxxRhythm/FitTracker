@@ -1,0 +1,860 @@
+package com.fittracker.app.ui.screens.profile
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.fittracker.app.data.persist.JsonStore
+import com.fittracker.app.data.persist.appDataStore
+import com.fittracker.app.data.service.SettingsService
+import com.fittracker.app.data.service.UserProfileService
+import com.fittracker.app.data.service.WeekStart
+import com.fittracker.app.data.service.WeekWindow
+import com.fittracker.app.data.service.currentLanguageTag
+import com.fittracker.app.data.service.WorkoutRepository
+import com.fittracker.app.data.service.WorkoutSessionService
+import com.fittracker.app.ui.theme.FtColor
+import com.fittracker.app.ui.theme.FtShape
+import com.fittracker.app.ui.theme.FtType
+import java.util.Calendar
+
+/**
+ * 个人页（「我的」）——原型 `design/06_prototype_redraw/src/fittracker-personal.html`
+ * 的 `screen-personal` 帧内 `pane-profile`（L1366-1455）。
+ *
+ * 画布 390×844 **直绘**（`FtRoutes` 中 profile 条目的 `canvas = FtCanvasKind.Direct`），
+ * 由 `FtCanvas` 施加；本文件内所有 px 值 1:1 映射为 dp，屏内不做任何手写缩放。
+ * 底部 tabbar 由壳层 `FtApp` 提供（`fittracker-personal.html:1458-1474` 的 `.tabbar`），**不属于本屏**。
+ *
+ * 版式来源（原型 CSS 行号）：
+ * `.appshell` L203-207 · `.viewport` L209-215 · `.pane-scroll` L223-224 · `.profile-content` L227-232 ·
+ * `.p-head` L234-238 · `.avatar` L240-253 · `.p-id`/`.p-name`/`.p-sub` L255-257 · `.p-settings` L259-278 ·
+ * `.card` L280-285 · `.card.focus` L286-292 · `.card-head`/`.card-title`/`.card-meta` L294-314 ·
+ * `.focus-*` L315-342 · `.focus-meta*` L343-359 · `.streak-*` L361-389 ·
+ * `.achievement*` L390-421 · `.shortcuts`/`.shortcut`/`.sc-*` L423-446 ·
+ * 末尾覆盖层「Card Surface v1」L1229-1232。
+ *
+ * 两处**以源码末尾规则为准**的取舍：
+ * 1. 样式表末尾「Card Surface v1」（L1229-1232）把 `.card` 与 `.card.focus` 的底色统一改写为
+ *    `rgba(255,255,255,.031)`、描边统一为 `--line-10`——覆盖了 L286-291 里 `.card.focus` 的翡翠
+ *    强调底（`rgba(80,236,167,.06)`）与 `rgba(80,236,167,.22)` 描边。本实现按**末尾**规则。
+ *    （`.card.focus` 的 `box-shadow`（L290）未被覆盖，保留。）
+ * 2. `.profile-content` 的 `gap: 16px`（L231）直接映射为 `verticalArrangement = Arrangement.spacedBy(16.dp)`，
+ *    与 `contentPadding` 的四边内边距（L228）叠加后，与原型「四块之间各 16、四周 53/16/30」完全一致。
+ *
+ * 滚动：原型的滚动容器 `.pane-scroll { overflow-y: auto }`（L223）转为 `LazyColumn`。
+ *
+ * 交互（原型脚本 L1767-1769）：设置钮 → `settings`、身体数据 → `body`、动作库 → `library`。
+ * 三者一律只发导航语义，屏内不驻留子页——子页（`subpage-body` / `subpage-library` /
+ * `subpage-settings`，L1478-1659）在原型里是 `.subpage-layer` 上的独立整屏，属别的路由。
+ */
+@Composable
+fun ProfileScreen(
+    onNavigate: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Wave 4 资料域接线：昵称/头像取自 [UserProfileService]；本周时长/次数与连续记录取自会话仓储。
+    // 空数据时保持样例（既有视觉）。成就卡无对应服务，保持样例。
+    val context = LocalContext.current
+    // 空数据降级样例（原型静态基线）——文案取自 `values/strings_profile.xml`
+    val sampleName = stringResource(FtProfileModel.SAMPLE_NAME_RES)
+    val sampleAvatarInitial = stringResource(FtProfileModel.SAMPLE_AVATAR_INITIAL_RES)
+    val sampleWeekRange = stringResource(FtProfileModel.WEEK_META_SAMPLE_RES)
+    var name by remember { mutableStateOf(sampleName) }
+    var avatarInitial by remember { mutableStateOf(sampleAvatarInitial) }
+    var weekValue by remember { mutableStateOf(FtProfileModel.WEEK_VALUE) }
+    var weekSessions by remember { mutableStateOf(FtProfileModel.WEEK_METRICS[0].value) }
+    var streakActive by remember { mutableStateOf(FtProfileModel.STREAK_DAYS.map { it.active }) }
+    // 连续记录 7 格标签：默认原型序（周一起始），进屏后按「周开始日」设置重排
+    var streakLabels by remember { mutableStateOf(WeekWindow.dayLabels(WeekStart.MONDAY, currentLanguageTag())) }
+    var weekRangeText by remember { mutableStateOf(sampleWeekRange) }
+    LaunchedEffect(Unit) {
+        val store = JsonStore(context.appDataStore)
+        val weekStart = SettingsService.loadSettings(store).weekStart
+        // 周概览 meta：真实周范围（纯日期计算，与数据有无无关）——加载前首帧保持原型样例
+        weekRangeText = WeekWindow.weekRangeText(System.currentTimeMillis(), weekStart, currentLanguageTag())
+        val profile = UserProfileService.loadProfile(store)
+        if (profile.nickname.isNotBlank()) {
+            name = profile.nickname
+            avatarInitial = profile.nickname.trim().first().toString()
+        }
+        val sessions = WorkoutRepository.getSessions(store)
+        if (sessions.isNotEmpty()) {
+            val stats = WorkoutSessionService.weeklyStats(sessions, System.currentTimeMillis(), weekStart)
+            weekValue = (stats.duration / 60).toString()
+            weekSessions = stats.count.toString()
+            streakActive = weekActiveDays(WorkoutSessionService.trainingDates(sessions).toSet(), weekStart)
+            streakLabels = WeekWindow.dayLabels(weekStart, currentLanguageTag())
+        }
+    }
+
+    // 用户要求：个人页不可滑动（内容配合单屏）——LazyColumn 改静态 Column
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(FtColor.ink0) // `.appshell` 底 var(--ink-0) = #0B0F13（L206）
+            // `.profile-content { padding: 53px 16px 30px }`（L228）
+            .padding(start = 16.dp, end = 16.dp, top = 44.dp, bottom = 14.dp), // 压缩进单屏：53/30 → 44/14
+        // `.profile-content { gap: 16px }`（L231）
+        verticalArrangement = Arrangement.spacedBy(10.dp), // 压缩：16 → 10
+    ) {
+        ProfileHead(name = name, avatarInitial = avatarInitial, onNavigate = onNavigate)
+        // 弹性撑满（同计划页 2f:8f 的做法）：头部保持自然高，四张卡按**自然高度比**
+        // （实测 207 : 102 : 150 : 55 ≈ 3.8 : 1.9 : 2.7 : 1）分配剩余高度——真机内容区
+        // 比设计画布高，多出的高度按此比例分给卡片，底部不再留空档。
+        WeekOverviewCard(
+            value = weekValue,
+            sessions = weekSessions,
+            rangeText = weekRangeText,
+            modifier = Modifier.weight(3.8f),
+        )
+        StreakCard(
+            active = streakActive,
+            labels = streakLabels,
+            modifier = Modifier.weight(1.9f),
+        )
+        AchievementsCard(modifier = Modifier.weight(2.7f))
+        Shortcuts(onNavigate = onNavigate, modifier = Modifier.weight(1f))
+    }
+}
+
+// ── 头部 ─────────────────────────────────────────────────────────────────
+
+/**
+ * `.p-head` L234-238：`display:flex; align-items:center; gap:12px`。
+ * 头像（L240-253）+ 身份块（L255-257）+ 设置钮（L259-278）。
+ */
+@Composable
+private fun ProfileHead(name: String, avatarInitial: String, onNavigate: (String) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically, // align-items: center（L236）
+        horizontalArrangement = Arrangement.spacedBy(12.dp), // gap: 12px（L237）
+    ) {
+        // `.avatar` L240-253：52×52、50% 圆、accent-10 底、1px rgba(80,236,167,.30) 描边、22px/700 accent
+        Box(
+            modifier = Modifier
+                .requiredSize(52.dp)
+                .clip(CircleShape)
+                .background(FtColor.accent10)
+                .border(1.dp, AvatarBorder, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = avatarInitial,
+                style = FtType.natural(22f, 700, FtType.num), // 原型 font-num 22px/700（L248-250）
+                color = FtColor.accent,
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f)) { // `.p-id { flex: 1 1 auto }`（L255）
+            Text(
+                text = name,
+                color = FtColor.txtHi,
+                fontSize = 21.sp,
+                lineHeight = 25.2.sp, // line-height: 1.2（L256）
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = stringResource(FtProfileModel.SAMPLE_SUB_RES),
+                modifier = Modifier.padding(top = 4.dp), // `.p-sub { margin-top: 4px }`（L257）
+                style = FtType.natural(12.5f), // 12.5px，原型未声明 line-height
+                color = FtColor.white62,
+            )
+        }
+
+        SettingsButton(onClick = { onNavigate(FtProfileModel.SETTINGS_ROUTE) })
+    }
+}
+
+/**
+ * `.p-settings` L259-278：44×44 圆形（L260-261）、底 `rgba(255,255,255,.047)`（L263）、
+ * 1px `rgba(255,255,255,.08)` 描边（L264）、图标 20×20（L272）、按压 `scale(.96)`（L278）。
+ */
+@Composable
+private fun SettingsButton(onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale = if (pressed) PRESS_SCALE_SETTINGS else 1f // `.p-settings:active { transform: scale(.96) }`（L278）
+    // `.p-settings` 的 `aria-label`——`.semantics` 非 Composable 作用域，先在屏内取用
+    val a11yLabel = stringResource(FtProfileModel.SETTINGS_A11Y_RES)
+
+    Box(
+        modifier = Modifier
+            .requiredSize(44.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(CircleShape)
+            .background(IconButtonFill)
+            .border(1.dp, FtColor.glass8, CircleShape)
+            .semantics { contentDescription = a11yLabel }
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        SettingsIcon(modifier = Modifier.size(20.dp), color = FtColor.white70) // svg 20×20（L272）
+    }
+}
+
+// ── 本周概览 ──────────────────────────────────────────────────────────────
+
+/**
+ * `.card.focus` L286-292 + 末尾覆盖层 L1232：圆角 28（L287）、底 `rgba(255,255,255,.031)`、
+ * 描边 `--line-10`、`padding: 18px`（L291）、`box-shadow: 0 20px 40px rgba(0,0,0,.22)`（L290）。
+ */
+@Composable
+private fun WeekOverviewCard(
+    value: String,
+    sessions: String,
+    rangeText: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            // 原型卡阴影 `0 20px 40px rgba(0,0,0,.22)`（L290）在深色底剖面上不可辨（参照渲染无暗带）；
+            // elevation 阴影会产生可测暗带（home 判例）——按原型剖面移除
+            .clip(FocusShape)
+            .background(CardFill) // 末尾覆盖层 L1229-1232：rgba(255,255,255,.031)
+            .border(1.dp, FtColor.line10, FocusShape)
+            .padding(14.dp), // `.card.focus { padding: 18px }`（L291）——压缩 18 → 14
+        // 弹性撑满：卡片被拉伸时多出的高度摊到内部各组之间，而不是堆在卡片末尾。
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        // `.card-head` L294-300：baseline 对齐（L296）、两端分布（L297）、下间距 14（L299）
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 10.dp), // `margin-bottom: 14px`（L299）——压缩 14 → 10
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = stringResource(FtProfileModel.WEEK_TITLE_RES),
+                modifier = Modifier.alignByBaseline(),
+                color = FtColor.txtHi,
+                fontSize = 17.sp,
+                lineHeight = 20.4.sp, // `.card-title` line-height: 1.2（L306）
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = rangeText,
+                modifier = Modifier.alignByBaseline(),
+                style = FtType.natural(11f), // `.card-meta` 11px，未声明 line-height（L310）
+                color = FtColor.white62,
+            )
+        }
+
+        // `.focus-hero` L315-320：baseline 对齐（L317）、gap 8（L318）、上间距 2（L319）
+        Row(
+            modifier = Modifier.padding(top = 2.dp), // `margin-top: 2px`（L319）
+            horizontalArrangement = Arrangement.spacedBy(8.dp), // gap: 8px（L318）
+        ) {
+            Text(
+                text = value,
+                modifier = Modifier.alignByBaseline(),
+                color = FtColor.accent,
+                fontFamily = FtType.num, // 原型 font-num（L322）
+                fontSize = 48.sp,
+                lineHeight = 48.sp, // line-height: 1（L325）
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.96).sp, // letter-spacing: -.02em × 48px（L326）
+            )
+            Text(
+                text = stringResource(FtProfileModel.WEEK_UNIT_RES),
+                modifier = Modifier.alignByBaseline(),
+                style = FtType.natural(16f), // `.focus-hero-unit` 16px，未声明 line-height（L329-331）
+                color = FtColor.white62,
+            )
+        }
+
+        Text(
+            text = stringResource(FtProfileModel.WEEK_LABEL_RES),
+            modifier = Modifier.padding(top = 8.dp), // `margin-top: 8px`（L334）
+            style = FtType.natural(12f), // `.focus-hero-label` 12px，未声明 line-height（L335）
+            color = FtColor.white54,
+        )
+
+        // `.focus-divider { height:1px; background:var(--hairline); margin:15px 0 13px }`（L338-342）
+        Box(
+            modifier = Modifier
+                .padding(top = 10.dp, bottom = 9.dp) // `margin: 15px 0 13px`（L341）——压缩 15/13 → 10/9
+                .fillMaxWidth()
+                .height(1.dp) // `height: 1px`（L339）
+                .background(FtColor.hairline),
+        )
+
+        // `.focus-meta-row { display:flex; gap:12px }`（L343）
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            val metrics = listOf(
+                FtProfileModel.WEEK_METRICS[0].copy(value = sessions),
+                FtProfileModel.WEEK_METRICS[1],
+            )
+            metrics.forEach { metric ->
+                FocusMetric(metric = metric, modifier = Modifier.weight(1f)) // `.focus-meta { flex:1 1 0 }`（L345）
+            }
+        }
+    }
+}
+
+/** `.focus-meta` L344-350 + `.fm-label`/`.fm-value`/`.fm-unit` L351-359：纵向 gap 4（L349）。 */
+@Composable
+private fun FocusMetric(metric: FtProfileMetric, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp), // gap: 4px（L349）
+    ) {
+        Text(
+            text = stringResource(metric.labelRes),
+            style = FtType.natural(10.5f), // `.fm-label` 10.5px，未声明 line-height（L351）
+            color = FtColor.white62,
+        )
+        Text(
+            text = metric.value,
+            color = FtColor.txtHi,
+            fontFamily = FtType.num, // 原型 font-num（L353）
+            fontSize = 20.sp,
+            lineHeight = 20.sp, // line-height: 1（L356）
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = stringResource(metric.unitRes),
+            style = FtType.natural(10.5f), // `.fm-unit` 10.5px，未声明 line-height（L359）
+            color = FtColor.white62,
+        )
+    }
+}
+
+// ── 训练连续记录 ──────────────────────────────────────────────────────────
+
+/** `.card` L280-285 + 末尾覆盖层 L1229-1231：圆角 22（L281）、底 `rgba(255,255,255,.031)`、描边 `--line-10`、padding 16（L284）。 */
+@Composable
+private fun StreakCard(
+    active: List<Boolean>,
+    labels: List<String>,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(FtShape.panel) // `border-radius: 22px`（L281）
+            .background(CardFill)
+            .border(1.dp, FtColor.line10, FtShape.panel)
+            .padding(12.dp), // `.card { padding: 16px }`（L284）——压缩 16 → 12
+        // 弹性撑满：多出的高度摊到标题行与周视图之间（周视图贴住卡片底缘）。
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 10.dp), // `.card-head { margin-bottom: 14px }`（L299）——压缩 14 → 10
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = stringResource(FtProfileModel.STREAK_TITLE_RES),
+                modifier = Modifier.alignByBaseline(),
+                color = FtColor.txtHi,
+                fontSize = 17.sp,
+                lineHeight = 20.4.sp, // `.card-title` line-height: 1.2（L306）
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = stringResource(FtProfileModel.STREAK_COUNT_RES),
+                modifier = Modifier.alignByBaseline(),
+                style = FtType.natural(12f, 700, FtType.num), // `.streak-count` 12px/700 font-num（L361-367）
+                color = FtColor.accent,
+            )
+        }
+
+        // `.streak-days { display:flex; gap:7px }`（L368）
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            FtProfileModel.STREAK_DAYS.forEachIndexed { index, day ->
+                StreakDayColumn(
+                    // 激活态取本周训练日；标签序随「周开始日」设置重排（[WeekWindow.dayLabels]，
+                    // 模型内保持原型周一起始），无运行期标签时回落模型资源
+                    day = day.copy(active = active.getOrElse(index) { day.active }),
+                    label = labels.getOrNull(index),
+                    modifier = Modifier.weight(1f), // `.streak-day { flex:1 1 0 }`（L370）
+                )
+            }
+        }
+    }
+}
+
+/**
+ * `.streak-day` L369-388：28px 圆点 + 10.5px 星期字，纵向 gap 6（L374），`.active` 走翡翠（L384-388）。
+ *
+ * [label] 为运行期日标签（`WeekWindow.dayLabels`）；为 `null` 时回落 [FtProfileStreakDay.labelRes]。
+ */
+@Composable
+private fun StreakDayColumn(
+    day: FtProfileStreakDay,
+    label: String?,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally, // align-items: center（L373）
+        verticalArrangement = Arrangement.spacedBy(6.dp), // gap: 6px（L374）
+    ) {
+        // `.streak-day .dot` L376-382：底与描边同色（非激活 = --line-14，激活 = --accent）
+        Box(
+            modifier = Modifier
+                .requiredSize(28.dp)
+                .clip(CircleShape)
+                .background(if (day.active) FtColor.accent else FtColor.line14)
+                .border(1.dp, if (day.active) FtColor.accent else FtColor.line14, CircleShape),
+        )
+        Text(
+            text = label ?: stringResource(day.labelRes),
+            style = FtType.natural(10.5f), // `.d-label` 10.5px，未声明 line-height（L383）
+            color = if (day.active) FtColor.accent else FtColor.white62, // L383（非激活）/ L388（激活）
+        )
+    }
+}
+
+// ── 最近成就 ──────────────────────────────────────────────────────────────
+
+/** `.card` L280-285（同 [StreakCard] 的底/描边）+ `.achievements-title`（L390）`.card-title` 字号。 */
+@Composable
+private fun AchievementsCard(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(FtShape.panel)
+            .background(CardFill)
+            .border(1.dp, FtColor.line10, FtShape.panel)
+            .padding(12.dp), // 压缩：16 → 12
+        // 弹性撑满：多出的高度摊到标题与各成就行之间。
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = stringResource(FtProfileModel.ACHIEVEMENTS_TITLE_RES),
+            modifier = Modifier.padding(bottom = 8.dp), // `.achievements-title { margin-bottom: 12px }`（L390）——压缩 12 → 8
+            color = FtColor.txtHi,
+            fontSize = 17.sp,
+            lineHeight = 20.4.sp, // `.card-title` line-height: 1.2（L306）
+            fontWeight = FontWeight.Bold,
+        )
+
+        FtProfileModel.ACHIEVEMENTS.forEachIndexed { index, achievement ->
+            if (index > 0) {
+                // `.achievement + .achievement { border-top:1px solid var(--hairline)(L398); margin-top:2px(L399) }`
+                Box(
+                    modifier = Modifier
+                        .padding(top = 2.dp)
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(FtColor.hairline),
+                )
+            }
+            AchievementRow(
+                achievement = achievement,
+                // `.achievement { padding: 7px 0 }`（L395）；后继项 `padding-top: 11px`（L400）
+                modifier = Modifier.padding(top = if (index == 0) 5.dp else 8.dp, bottom = 5.dp), // 压缩：7/11/7 → 5/8/5
+            )
+        }
+    }
+}
+
+/** `.achievement` L391-421：图标底 40×40 圆角 13 + 标题/注 + 右对齐数值，行距 12（L394）、居中对齐（L393）。 */
+@Composable
+private fun AchievementRow(achievement: FtProfileAchievement, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically, // align-items: center（L393）
+        horizontalArrangement = Arrangement.spacedBy(12.dp), // gap: 12px（L394）
+    ) {
+        // `.ach-ic` L402-412：40×40、圆角 13、accent-10 底 / accent 字；`.gold` 走 gold-12 / gold（L417-421）
+        Box(
+            modifier = Modifier
+                .requiredSize(40.dp)
+                .clip(RoundedCornerShape(13.dp))
+                .background(if (achievement.gold) FtColor.gold12 else FtColor.accent10),
+            contentAlignment = Alignment.Center,
+        ) {
+            ProfileIcon(
+                kind = achievement.icon,
+                modifier = Modifier.size(20.dp), // `.ach-ic svg { 20×20 }`（L412）
+                color = if (achievement.gold) FtColor.gold else FtColor.accent,
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f)) { // `.ach-id { flex: 1 1 auto }`（L413）
+            Text(
+                text = stringResource(achievement.titleRes),
+                style = FtType.natural(14f, 700), // `.ach-title` 14px/700，未声明 line-height（L414）
+                color = FtColor.txtHi,
+            )
+            Text(
+                text = stringResource(achievement.noteRes),
+                modifier = Modifier.padding(top = 3.dp), // `.ach-note { margin-top: 3px }`（L415）
+                style = FtType.natural(12f), // 12px，未声明 line-height（L415）
+                color = FtColor.white62,
+            )
+        }
+
+        Text(
+            text = stringResource(achievement.valueRes),
+            style = FtType.natural(11f), // `.ach-value` 11px，未声明 line-height（L416）
+            color = if (achievement.gold) FtColor.gold else FtColor.accent, // L416 / L421
+            textAlign = TextAlign.End, // `text-align: right`（L416）
+        )
+    }
+}
+
+// ── 快捷入口 ──────────────────────────────────────────────────────────────
+
+/** `.shortcuts { display:flex; gap:8px }`（L423）。 */
+@Composable
+private fun Shortcuts(onNavigate: (String) -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        FtProfileModel.SHORTCUTS.forEach { shortcut ->
+            ShortcutButton(
+                shortcut = shortcut,
+                // 弹性撑满：卡片被拉伸时按钮一起长高（fillMaxHeight），空白不落在卡片内。
+                modifier = Modifier.weight(1f).fillMaxHeight(), // `.shortcut { flex:1 1 0 }`（L425）
+                onClick = { onNavigate(shortcut.route) },
+            )
+        }
+    }
+}
+
+/**
+ * `.shortcut` L424-435：高 46（L427）、圆角 16（L433）、`rgba(255,255,255,.047)` 底（L431）、
+ * 1px `--line-10` 描边（L432）、左右内边距 12（L434）、`color: var(--white-70)`（L435）、
+ * 按压 `scale(.98)`（L443）。图标/文字/箭头尺寸见 L444-446。
+ */
+@Composable
+private fun ShortcutButton(
+    shortcut: FtProfileShortcut,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale = if (pressed) PRESS_SCALE_SHORTCUT else 1f // `.shortcut:active { transform: scale(.98) }`（L443）
+
+    Row(
+        modifier = modifier
+            .height(46.dp) // `height: 46px`（L427）
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(ShortcutShape) // `border-radius: 16px`（L433）
+            .background(ShortcutFill) // `background: rgba(255,255,255,.047)`（L431）
+            .border(1.dp, FtColor.line10, ShortcutShape) // `border: 1px solid var(--line-10)`（L432）
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .padding(horizontal = 12.dp), // `padding: 0 12px`（L434）
+        verticalAlignment = Alignment.CenterVertically, // align-items: center（L429）
+        horizontalArrangement = Arrangement.spacedBy(8.dp), // gap: 8px（L430）
+    ) {
+        ProfileIcon(
+            kind = shortcut.icon,
+            modifier = Modifier.size(18.dp), // `.sc-ic { 18×18 }`（L444）
+            color = FtColor.white70, // 继承 `.shortcut { color: var(--white-70) }`（L435）
+        )
+        Text(
+            text = stringResource(shortcut.labelRes),
+            modifier = Modifier.weight(1f), // `.sc-label { flex: 1 1 auto }`（L445）
+            style = FtType.natural(13f), // 13px，未声明 line-height（L445）
+            color = FtColor.white70,
+            textAlign = TextAlign.Start, // `text-align: left`（L445）
+        )
+        ChevronIcon(modifier = Modifier.size(18.dp), color = FtColor.white62) // `.sc-chev` 18×18 white-62（L446）
+    }
+}
+
+/**
+ * 本设置周（周首由 [weekStart] 决定：周一态 周一→周日 / 周日态 周日→周六）每天是否有训练——
+ * `dates` 为 `YYYY-MM-DD` 集合（口径同 [WorkoutSessionService.trainingDates]）。
+ * 返回长度 7 的布尔表，索引 0 = 周首日。
+ */
+private fun weekActiveDays(dates: Set<String>, weekStart: WeekStart): List<Boolean> {
+    val weekStartDay = Calendar.getInstance().apply {
+        val jsDayOfWeek = get(Calendar.DAY_OF_WEEK) - 1 // 0 = 周日
+        add(Calendar.DAY_OF_MONTH, -WeekWindow.offsetFromWeekStart(jsDayOfWeek, weekStart))
+    }
+    return (0 until 7).map { i ->
+        val day = (weekStartDay.clone() as Calendar).apply { add(Calendar.DAY_OF_MONTH, i) }
+        val text = "${day.get(Calendar.YEAR)}-${pad2(day.get(Calendar.MONTH) + 1)}-" +
+            "${pad2(day.get(Calendar.DAY_OF_MONTH))}"
+        dates.contains(text)
+    }
+}
+
+private fun pad2(value: Int): String = if (value < 10) "0$value" else value.toString()
+
+// ── 图标（均取自本 HTML 的 <symbol>，viewBox 0 0 24 24） ─────────────────────
+
+/** 图标 viewBox 边长；一律按 `size.minDimension / 24` 等比换算（与 `FtIcons.kt` 同口径）。 */
+private const val VIEW = 24f
+
+/** 图标描边默认宽度（原型各 symbol 的 `stroke-width` 多为 1.8，箭头类为 2）。 */
+private const val STROKE_ICON = 1.8f
+
+@Composable
+private fun ProfileIcon(kind: FtProfileIcon, modifier: Modifier, color: Color) {
+    when (kind) {
+        FtProfileIcon.FLAME -> FlameIcon(modifier = modifier, color = color)
+        FtProfileIcon.TROPHY -> TrophyIcon(modifier = modifier, color = color)
+        FtProfileIcon.SCALE -> ScaleIcon(modifier = modifier, color = color)
+        FtProfileIcon.LIBRARY -> LibraryIcon(modifier = modifier, color = color)
+        FtProfileIcon.SLIDERS -> SlidersIcon(modifier = modifier, color = color)
+    }
+}
+
+/** `#i-settings`（L1255-1258）：圆心 r3 + 八根辐条，描边 1.8，圆头。 */
+@Composable
+private fun SettingsIcon(modifier: Modifier, color: Color) {
+    Canvas(modifier = modifier) {
+        val k = size.minDimension / VIEW
+        val w = STROKE_ICON * k
+        drawCircle(color, radius = 3f * k, center = Offset(12f * k, 12f * k), style = Stroke(w))
+        val spokes = Path().apply {
+            moveTo(12f * k, 2.8f * k); lineTo(12f * k, 5.2f * k)
+            moveTo(12f * k, 18.8f * k); lineTo(12f * k, 21.2f * k)
+            moveTo(4.9f * k, 4.9f * k); lineTo(6.6f * k, 6.6f * k)
+            moveTo(17.4f * k, 17.4f * k); lineTo(19.1f * k, 19.1f * k)
+            moveTo(2.8f * k, 12f * k); lineTo(5.2f * k, 12f * k)
+            moveTo(18.8f * k, 12f * k); lineTo(21.2f * k, 12f * k)
+            moveTo(4.9f * k, 19.1f * k); lineTo(6.6f * k, 17.4f * k)
+            moveTo(17.4f * k, 6.6f * k); lineTo(19.1f * k, 4.9f * k)
+        }
+        drawPath(spokes, color, style = Stroke(w, cap = StrokeCap.Round))
+    }
+}
+
+/**
+ * `#i-flame`（L1259-1261）：单段闭合轮廓，描边 1.8、圆头圆角。
+ *
+ * 原路径混用 cubic 与两支 SVG 圆弧。两处圆弧已按椭圆几何**精确换算**为 `arcTo`（非近似）：
+ * - 起始弧 `A2.5 2.5 0 0 0 11 12`：弦 (8.5,14.5)→(11,12) 的中垂解出圆心 (8.5,12)、r=2.5，
+ *   sweep-flag=0 即逆角向，对应 Compose `arcTo` 的负扫角（90° → 0°，-90°）。
+ * - 底部大弧 `a7 7 0 1 1-14 0`：弦长 14 恰为 2r，是半圆，圆心 (12,15)；sweep-flag=1 为正方
+ *   向扫角，0° → 180° 经过正下方（y=22），即火苗的圆底。
+ * - 收尾弧 `a2.5 2.5 0 0 0 2.5 2.5`：圆心 (8.5,12)，180° → 90°（-90°），与首弧同心。
+ */
+@Composable
+private fun FlameIcon(modifier: Modifier, color: Color) {
+    Canvas(modifier = modifier) {
+        val k = size.minDimension / VIEW
+        val w = STROKE_ICON * k
+        val path = Path().apply {
+            moveTo(8.5f * k, 14.5f * k)
+            arcTo(Rect(6f * k, 9.5f * k, 11f * k, 14.5f * k), 90f, -90f, false) // → (11,12)
+            cubicTo(11f * k, 10.62f * k, 10.5f * k, 10f * k, 10f * k, 9f * k)
+            cubicTo(8.928f * k, 6.857f * k, 9.776f * k, 4.946f * k, 12f * k, 3f * k)
+            cubicTo(12.5f * k, 5.5f * k, 14f * k, 7.9f * k, 16f * k, 9.5f * k)
+            cubicTo(18f * k, 11.1f * k, 19f * k, 13f * k, 19f * k, 15f * k)
+            arcTo(Rect(5f * k, 8f * k, 19f * k, 22f * k), 0f, 180f, false) // 半圆底 → (5,15)
+            cubicTo(5f * k, 13.847f * k, 5.433f * k, 12.706f * k, 6f * k, 12f * k)
+            arcTo(Rect(6f * k, 9.5f * k, 11f * k, 14.5f * k), 180f, -90f, false) // → (8.5,14.5)
+            close()
+        }
+        drawPath(path, color, style = Stroke(w, cap = StrokeCap.Round, join = StrokeJoin.Round))
+    }
+}
+
+/**
+ * `#i-trophy`（L1262-1265）：两支子路径——杯体（含底部半圆）与耳/座。
+ *
+ * 圆弧换算：杯体 `a8 8 0 0 1-16 0` 弦长 16 = 2r，是半圆，圆心 (12,9)，0° → 180° 经过正下方；
+ * 双耳 `a2.5 2.5 0 0 1 0-5`（左，90° → 270°，经过左侧 x=2）与 `a2.5 2.5 0 0 0 0-5`（右，90° → -90°，
+ * 经过右侧 x=22）。均按椭圆几何精确换算，非近似。
+ */
+@Composable
+private fun TrophyIcon(modifier: Modifier, color: Color) {
+    Canvas(modifier = modifier) {
+        val k = size.minDimension / VIEW
+        val w = STROKE_ICON * k
+        val style = Stroke(w, cap = StrokeCap.Round, join = StrokeJoin.Round)
+
+        // `M4 5h16v4a8 8 0 0 1-16 0z`：杯体
+        val cup = Path().apply {
+            moveTo(4f * k, 5f * k)
+            lineTo(20f * k, 5f * k)
+            lineTo(20f * k, 9f * k)
+            arcTo(Rect(4f * k, 1f * k, 20f * k, 17f * k), 0f, 180f, false) // → (4,9)
+            close()
+        }
+        drawPath(cup, color, style = style)
+
+        // 耳 / 座：`M6 9H4.5a…M18 9h1.5a…M12 13v9M4 22h16`
+        val frame = Path().apply {
+            moveTo(6f * k, 9f * k)
+            lineTo(4.5f * k, 9f * k)
+            arcTo(Rect(2f * k, 4f * k, 7f * k, 9f * k), 90f, 180f, false) // → (4.5,4)
+            lineTo(6f * k, 4f * k)
+            moveTo(18f * k, 9f * k)
+            lineTo(19.5f * k, 9f * k)
+            arcTo(Rect(17f * k, 4f * k, 22f * k, 9f * k), 90f, -180f, false) // → (19.5,4)
+            lineTo(18f * k, 4f * k)
+            moveTo(12f * k, 13f * k); lineTo(12f * k, 22f * k)
+            moveTo(4f * k, 22f * k); lineTo(20f * k, 22f * k)
+        }
+        drawPath(frame, color, style = style)
+    }
+}
+
+/** `#i-scale`（L1266-1271）：立柱 + 横梁 + 两枚三角托盘，描边 1.8、圆头圆角。 */
+@Composable
+private fun ScaleIcon(modifier: Modifier, color: Color) {
+    Canvas(modifier = modifier) {
+        val k = size.minDimension / VIEW
+        val w = STROKE_ICON * k
+        val path = Path().apply {
+            moveTo(12f * k, 3f * k); lineTo(12f * k, 21f * k)
+            moveTo(8f * k, 21f * k); lineTo(16f * k, 21f * k)
+            moveTo(3f * k, 7f * k); lineTo(21f * k, 7f * k)
+            moveTo(3f * k, 7f * k); lineTo(0.5f * k, 14f * k); lineTo(5.5f * k, 14f * k); close()
+            moveTo(21f * k, 7f * k); lineTo(18.5f * k, 14f * k); lineTo(23.5f * k, 14f * k); close()
+        }
+        drawPath(path, color, style = Stroke(w, cap = StrokeCap.Round, join = StrokeJoin.Round))
+    }
+}
+
+/** `#i-library`（L1302-1305）：四个 7×7、rx2 圆角矩形，描边 1.8。 */
+@Composable
+private fun LibraryIcon(modifier: Modifier, color: Color) {
+    Canvas(modifier = modifier) {
+        val k = size.minDimension / VIEW
+        val w = STROKE_ICON * k
+        val corner = CornerRadius(2f * k, 2f * k)
+        val side = 7f * k
+        listOf(4f to 4f, 13f to 4f, 4f to 13f, 13f to 13f).forEach { (x, y) ->
+            drawRoundRect(
+                color = color,
+                topLeft = Offset(x * k, y * k),
+                size = Size(side, side),
+                cornerRadius = corner,
+                style = Stroke(w),
+            )
+        }
+    }
+}
+
+/**
+ * `FtProfileIcon.SLIDERS` 的绘制（**设计侧新增**，原型 `fittracker-personal.html` 无对应 `<symbol>`，
+ * 出处见 `FtProfileModel` 的 [FtProfileIcon] 尾注）：三条横线 + 三枚实心调节圆点，
+ * 24 viewBox 风格对齐本文件其余图标（描边 1.8、圆头）。
+ */
+@Composable
+private fun SlidersIcon(modifier: Modifier, color: Color) {
+    Canvas(modifier = modifier) {
+        val k = size.minDimension / VIEW
+        val w = STROKE_ICON * k
+        val path = Path().apply {
+            moveTo(4f * k, 6f * k); lineTo(20f * k, 6f * k)
+            moveTo(4f * k, 12f * k); lineTo(20f * k, 12f * k)
+            moveTo(4f * k, 18f * k); lineTo(20f * k, 18f * k)
+        }
+        drawPath(path, color, style = Stroke(w, cap = StrokeCap.Round))
+        listOf(9f to 6f, 15f to 12f, 9f to 18f).forEach { (x, y) ->
+            drawCircle(color, radius = 1.8f * k, center = Offset(x * k, y * k))
+        }
+    }
+}
+
+/** `#i-chevron`（L1283-1285）：`m9 18 6-6-6-6`，描边 2（L1284）、圆头圆角。 */
+@Composable
+private fun ChevronIcon(modifier: Modifier, color: Color) {
+    Canvas(modifier = modifier) {
+        val k = size.minDimension / VIEW
+        val path = Path().apply {
+            moveTo(9f * k, 18f * k)
+            lineTo(15f * k, 12f * k)
+            lineTo(9f * k, 6f * k)
+        }
+        drawPath(
+            path = path,
+            color = color,
+            style = Stroke(2f * k, cap = StrokeCap.Round, join = StrokeJoin.Round), // stroke-width: 2（L1284）
+        )
+    }
+}
+
+// ── 局部常量（原型值无对应全局令牌或需按末尾规则覆盖） ──────────────────────
+
+/**
+ * `.card` / `.card.focus` 的统一底色（末尾覆盖层 L1229-1232）：`rgba(255,255,255,.031)`。
+ * AA = round(.031 × 255) = round(7.905) = 8 = 0x08 → `0x08FFFFFF`。
+ */
+private val CardFill = Color(0x08FFFFFF)
+
+/** `.p-settings` 底 `rgba(255,255,255,.047)`（L263）：AA = round(11.985) = 12 = 0x0C → `0x0CFFFFFF`。 */
+private val IconButtonFill = Color(0x0CFFFFFF)
+
+/** `.shortcut` 底 `rgba(255,255,255,.047)`（L431）：同上 → `0x0CFFFFFF`。 */
+private val ShortcutFill = Color(0x0CFFFFFF)
+
+/** `.avatar` 描边 `rgba(80,236,167,.30)`（L245）：AA = round(76.5) = 77 = 0x4D → `0x4D50ECA7`。 */
+private val AvatarBorder = Color(0x4D50ECA7)
+
+/** `.card.focus` 圆角 28px（L287）；`FtShape` 无 28 档，故局部定义。 */
+private val FocusShape = RoundedCornerShape(28.dp)
+
+/** `.shortcut` 圆角 16px（L433）。 */
+private val ShortcutShape = RoundedCornerShape(16.dp)
+
+/** `.p-settings:active { transform: scale(.96) }`（L278）；`FtMotion` 无同名档位。 */
+private const val PRESS_SCALE_SETTINGS = 0.96f
+
+/** `.shortcut:active { transform: scale(.98) }`（L443）＝ `FtMotion.PRESS_SCALE_CARD`。 */
+private const val PRESS_SCALE_SHORTCUT = 0.98f

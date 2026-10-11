@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  认证域（welcome / login / register 三屏 + Auth 共享组件）文案。
+  中文值**逐字**取自各屏既有硬编码（原型对齐纪律）：
+  welcome 屏 `design/06_prototype_redraw/src/fittracker-welcome-home.html`；
+  login / register 屏 `design/06_prototype_redraw/src/fittracker-auth.html` 与鸿蒙源页
+  `features/pencil/pages/PencilLoginPage.ets`（见各屏注释的行号标注）。
+  改动此处的中文即偏离真源，须同步源。
+
+  命名：`auth_<元素>`；三屏共用元素（品牌字标 / 协议行 / 字段标签 / 占位符）不重复前缀，
+  同一文案复用一个资源（如「请输入手机号」占位符与必填错误共用 `auth_placeholder_phone`）。
+  带参文案用位置参数（`%1$s` / `%1$d`），由 UI 层 `stringResource(id, args)` 或
+  `context.getString(...)` 解析。
+-->
+<resources>
+
+    <!-- 品牌字标（welcome 品牌行 / AuthBrand 共用） -->
+    <string name="auth_brand_wordmark">FITTRACKER</string>
+
+    <!-- 欢迎屏 -->
+    <string name="auth_welcome_eyebrow">TRAIN SMARTER. LIVE STRONGER.</string>
+    <string name="auth_welcome_headline">把训练，变成\n看得见的进步。</string>
+    <string name="auth_welcome_subtitle">记录每一次训练，读懂身体反馈。\n用更聪明的方式，持续变强。</string>
+    <string name="auth_welcome_visual_caption">CONSISTENCY > INTENSITY</string>
+    <string name="auth_welcome_cta">开始使用</string>
+    <string name="auth_welcome_foot">本地记录 · 无需注册 · 随时开始</string>
+
+    <!-- 登录屏抬头（原型 screen-login 帧） -->
+    <string name="auth_login_eyebrow">WELCOME BACK</string>
+    <string name="auth_login_title">欢迎回来</string>
+    <string name="auth_login_subtitle">登录后，同步你的训练进度与身体数据</string>
+    <!-- 沙盒提示条（源 `buildSandboxBanner`） -->
+    <string name="auth_login_sandbox_banner">演示模式：云服务未配置，手机验证码为 000000</string>
+
+    <!-- 注册屏抬头（原型 screen-register 帧） -->
+    <string name="auth_register_eyebrow">CREATE ACCOUNT</string>
+    <string name="auth_register_title">创建账号</string>
+    <string name="auth_register_subtitle">开始记录每一次训练，见证看得见的进步</string>
+
+    <!-- 登录模式切换（源 `buildModeSwitch`） -->
+    <string name="auth_mode_phone">手机验证码</string>
+    <string name="auth_mode_email">邮箱密码</string>
+
+    <!-- 字段标签 -->
+    <string name="auth_field_nickname">昵称</string>
+    <string name="auth_field_phone">手机号</string>
+    <string name="auth_field_code">验证码</string>
+    <string name="auth_field_email">邮箱</string>
+    <string name="auth_field_password">密码</string>
+    <string name="auth_field_confirm_password">确认密码</string>
+
+    <!-- 输入占位符 -->
+    <string name="auth_placeholder_nickname">给自己起个名字</string>
+    <string name="auth_placeholder_phone">请输入手机号</string>
+    <string name="auth_placeholder_code">请输入验证码</string>
+    <string name="auth_placeholder_email">请输入邮箱</string>
+    <string name="auth_placeholder_password">请输入密码</string>
+    <string name="auth_placeholder_register_password">设置 8 位以上密码</string>
+    <string name="auth_placeholder_confirm_password">再次输入密码</string>
+
+    <!-- 验证码按钮（源 `buildCodeField`）；倒计时文案 `{n}s` -->
+    <string name="auth_action_send_code">获取验证码</string>
+    <string name="auth_code_countdown">%1$ds</string>
+
+    <!-- 协议勾选行（登录 / 注册共用） -->
+    <string name="auth_agree_prefix">我已阅读并同意</string>
+    <string name="auth_agree_user_agreement">《用户协议》</string>
+    <string name="auth_agree_conjunction">与</string>
+    <string name="auth_agree_privacy">《隐私政策》</string>
+
+    <!-- 辅助行 / 主操作 / 分隔 / 第三方 / 切屏 -->
+    <string name="auth_aux_remember">记住我</string>
+    <string name="auth_aux_forgot">忘记密码？</string>
+    <string name="auth_action_login">登录</string>
+    <string name="auth_action_register">注册</string>
+    <string name="auth_divider_other_login">其他登录方式</string>
+    <string name="auth_social_wechat">微信</string>
+    <string name="auth_social_apple">Apple</string>
+    <string name="auth_switch_no_account">还没有账号？</string>
+    <string name="auth_switch_register">立即注册</string>
+    <string name="auth_switch_has_account">已有账号？</string>
+    <string name="auth_switch_login">直接登录</string>
+
+    <!-- 无障碍（密码明暗切换，逐字取自原型 `aria-label`） -->
+    <string name="auth_a11y_hide_password">隐藏密码</string>
+    <string name="auth_a11y_show_password">显示密码</string>
+
+    <!-- 校验错误（AuthValidation；逐字取自原型 REQUIRED_MSG 与 validate()） -->
+    <string name="auth_error_required_email">请输入邮箱</string>
+    <string name="auth_error_required_password">请输入密码</string>
+    <string name="auth_error_required_nickname">请输入昵称</string>
+    <string name="auth_error_required_phone">请输入手机号</string>
+    <string name="auth_error_required_confirm">请再次输入密码</string>
+    <string name="auth_error_phone_invalid">请输入正确的手机号</string>
+    <string name="auth_error_password_min_length">密码至少 %1$d 位</string>
+    <string name="auth_error_password_mismatch">两次输入的密码不一致</string>
+
+    <!-- 浮层提示（toast） -->
+    <string name="auth_toast_agree_required">请先阅读并同意用户协议</string>
+    <string name="auth_toast_login_agree_required">请先阅读并同意用户协议与隐私政策</string>
+    <string name="auth_toast_code_sent">验证码已发送</string>
+    <string name="auth_toast_code_sent_demo">验证码已发送（演示码 %1$s）</string>
+    <string name="auth_toast_login_success">登录成功 · 原型演示</string>
+    <string name="auth_toast_register_success">注册成功 · 原型演示</string>
+    <string name="auth_toast_forgot">已发送重置链接（原型）</string>
+    <string name="auth_toast_wechat">微信授权（原型）</string>
+    <string name="auth_toast_apple">Apple 授权（原型）</string>
+    <string name="auth_toast_agreement">查看协议（原型）</string>
+
+</resources>

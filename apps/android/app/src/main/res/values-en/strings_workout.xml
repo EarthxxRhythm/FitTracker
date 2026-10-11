@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for the workout preview screen. Keys mirror `values/strings_workout.xml`
+  (the zh values there are the source of truth, extracted verbatim from the prototype).
+-->
+<resources>
+
+    <!-- Top bar / accessibility -->
+    <string name="workout_a11y_back">Back to home</string>
+    <string name="workout_a11y_more">More options</string>
+
+    <!-- Hero -->
+    <string name="workout_title">Workout preview</string>
+    <string name="workout_fallback_plan_name">Day 1 · Upper Body Strength</string>
+
+    <!-- Exercise group labels -->
+    <string name="workout_group_warmup">Warm-up</string>
+    <string name="workout_group_main">Main lifts</string>
+
+    <!-- Fallback demo exercise names (prototype default list) -->
+    <string name="workout_fallback_ex_band_shoulder">Band shoulder activation</string>
+    <string name="workout_fallback_ex_scapular_pushup">Scapular push-up</string>
+    <string name="workout_fallback_ex_bench_press">Barbell bench press</string>
+    <string name="workout_fallback_ex_incline_db_press">Incline dumbbell press</string>
+    <string name="workout_fallback_ex_seated_shoulder_press">Seated shoulder press</string>
+    <string name="workout_fallback_ex_triceps_pushdown">Triceps pushdown</string>
+
+    <!-- Footer note / primary CTA -->
+    <string name="workout_note">Review the moves and weights, then start</string>
+    <string name="workout_cta_start">Start workout</string>
+
+    <!-- Toast -->
+    <string name="workout_toast_more_options">More options (prototype)</string>
+
+</resources>

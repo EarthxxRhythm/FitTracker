@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  法律文档域（LegalDocScreen）。
+
+  仅提取 UI 框架文案；正文来自 assets/legal/*.txt，不在本域内（其英文版属 Wave 8）。
+  中文值为**逐字**原样（Wave 6 · 6b 分片要求）；英文见 values-en/strings_legal.xml。
+-->
+<resources>
+
+    <!-- 顶栏标题（路由 kind = agreement | privacy） -->
+    <string name="legal_title_agreement">用户协议</string>
+    <string name="legal_title_privacy">隐私政策</string>
+
+    <!-- 空态（文档加载失败） -->
+    <string name="legal_load_failed_title">文档加载失败</string>
+    <string name="legal_load_failed_message">未能读取本地文档，请返回重试。</string>
+
+</resources>

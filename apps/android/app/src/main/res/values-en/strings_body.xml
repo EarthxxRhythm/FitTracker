@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for the body screen. Keys mirror `values/strings_body.xml`
+  (the zh values there are the source of truth, extracted verbatim from the prototype).
+-->
+<resources>
+
+    <!-- Top bar -->
+    <string name="body_a11y_back">Back to profile</string>
+    <string name="body_title">Body Data</string>
+
+    <!-- Weight summary card -->
+    <string name="body_weight_label">Current weight</string>
+    <string name="body_updated">Updated %1$s</string>
+    <string name="body_delta_last_week">vs. last week %1$s</string>
+    <string name="body_delta_saved">Logged today · just now</string>
+    <string name="body_goal_label">Muscle-gain goal %1$s %2$s</string>
+    <string name="body_goal_gap">%1$s %2$s to go</string>
+    <string name="body_goal_reached">Goal reached</string>
+
+    <!-- Body composition card -->
+    <string name="body_composition_title">Body composition</string>
+    <string name="body_composition_meta">Goal · muscle gain</string>
+    <string name="body_fat_label">Body fat · healthy range 10–20%</string>
+    <string name="body_fat_scale_low">Low</string>
+    <string name="body_fat_scale_normal">Healthy</string>
+    <string name="body_fat_scale_high">High</string>
+
+    <!-- Composition metric tiles -->
+    <string name="body_metric_bmi">BMI</string>
+    <string name="body_metric_bmi_note">Normal range</string>
+    <string name="body_metric_muscle">Skeletal muscle</string>
+    <string name="body_metric_muscle_note">Standard</string>
+    <string name="body_metric_bmr">BMR</string>
+    <string name="body_metric_bmr_note">Estimated</string>
+    <string name="body_metric_water">Body water</string>
+    <string name="body_metric_water_note">Normal range</string>
+
+    <!-- Weight trend card -->
+    <string name="body_trend_title">Weight trend</string>
+    <string name="body_a11y_trend_range">Trend time range</string>
+    <string name="body_trend_empty">No records yet · log your weight to see the trend</string>
+    <string name="body_period_week">Week</string>
+    <string name="body_period_month">Month</string>
+    <string name="body_period_year">Year</string>
+    <string name="body_trend_caption_week">Last 7 days · %1$s</string>
+    <string name="body_trend_caption_month">Last 30 days · %1$s</string>
+    <string name="body_trend_caption_year">Last 12 months · %1$s</string>
+    <string name="body_trend_caption_range">%1$s · %2$s</string>
+
+    <!-- Measurements card -->
+    <string name="body_measure_title">Measurements</string>
+    <string name="body_measure_meta">vs. last month</string>
+    <string name="body_measure_chest">Chest</string>
+    <string name="body_measure_waist">Waist</string>
+    <string name="body_measure_hip">Hips</string>
+    <string name="body_measure_arm">Arm</string>
+    <string name="body_measure_thigh">Thigh</string>
+
+    <!-- Primary action and footer -->
+    <string name="body_cta">Log today\'s weight</string>
+    <string name="body_foot_note_kg">Body data stays on this device; you can switch the unit to pounds (lbs) in Settings.</string>
+    <string name="body_foot_note_lbs">Body data stays on this device; you can switch the unit to kilograms (kg) in Settings.</string>
+
+    <!-- Log-weight sheet -->
+    <string name="body_sheet_title">Log today\'s weight</string>
+    <string name="body_sheet_sub">Every entry feeds into your weight trend</string>
+    <string name="body_sheet_cancel">Cancel</string>
+    <string name="body_sheet_save">Save</string>
+    <string name="body_sheet_input_a11y">Today\'s weight</string>
+    <string name="body_invalid_hint">Enter a valid weight between 0 and 500</string>
+
+</resources>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Legal documents (LegalDocScreen). English translation of values/strings_legal.xml.
+  Only the UI chrome is translated; document bodies live in assets/legal/*.txt.
+-->
+<resources>
+
+    <!-- Top bar titles (route kind = agreement | privacy) -->
+    <string name="legal_title_agreement">User Agreement</string>
+    <string name="legal_title_privacy">Privacy Policy</string>
+
+    <!-- Empty state (document failed to load) -->
+    <string name="legal_load_failed_title">Failed to load document</string>
+    <string name="legal_load_failed_message">Couldn\'t read the local document. Please go back and try again.</string>
+
+</resources>

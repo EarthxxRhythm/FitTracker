@@ -1,0 +1,77 @@
+FitTracker User Agreement
+
+Last updated: 2026-10-03 (corresponding to app version 0.1.0)
+
+Please read this agreement carefully before using FitTracker ("the App"). By downloading, installing or using the app, you are deemed to have read, understood and agreed to all of its terms.
+
+1. Scope of this agreement
+
+This agreement is the arrangement between you and the developer of the app regarding your use of the app, and it takes effect together with the FitTracker Privacy Policy. The privacy policy explains how we handle your data; this agreement explains the rights and responsibilities of both parties.
+
+2. Description of the service
+
+The app is a local-first fitness training log tool. The current version provides:
+
+- Training goal setup and personalized plan generation suggestions;
+- Browsing, previewing and executing training plans (set timing and logging);
+- Workout summaries and history review;
+- Exercise library browsing and exercise key-point viewing;
+- Body data logging;
+- Local data backup and restore.
+
+By default, the app's data is stored only on your own device (see the privacy policy for details). The app is not a medical service, is not a medical diagnostic tool, and does not provide medical advice.
+
+3. Health and safety disclaimer
+
+Fitness training carries inherent risks. Before using the app, please note:
+
+1. The plans and suggestions provided by the app are general training references and do not constitute any medical, rehabilitation or professional coaching opinion;
+2. If you have cardiovascular, joint, bone or other health conditions, or if you are pregnant or recovering from surgery, please consult a doctor or a professional before starting any training plan;
+3. Please adjust the training intensity to your own condition and work within your limits, warm up thoroughly before training, and stop immediately if you experience pain, dizziness, chest tightness or other discomfort during training;
+4. You bear any injury or loss resulting from failing to follow the prompts above or from training beyond your physical condition.
+
+You are responsible for your own training safety.
+
+4. Your responsibilities
+
+When using the app, you agree to:
+
+1. Enter your body data and workout records truthfully so that review results are meaningful;
+2. Not use the app for any unlawful purpose;
+3. Comply with the usage rules of your device and operating system;
+4. Take responsibility for keeping and regularly backing up your local data (especially before clearing app data or uninstalling).
+
+5. Intellectual property
+
+The intellectual property rights in the app's interface design, code, copy, icons and bundled assets belong to the developer or the respective rights holders. Without permission, you may not copy, modify, distribute, reverse engineer or use them for commercial purposes.
+
+The workout data and body data you enter in the app belong to you.
+
+6. Disclaimer
+
+1. The app is provided "as is". We will do our best to keep it stable and correct, but we do not warrant that it is absolutely error-free or uninterrupted;
+2. We are not liable for data loss caused by device failure, system upgrades, misoperation, clearing data or uninstalling; please be sure to back up important data yourself;
+3. You bear the consequences of failing to follow the training safety prompts.
+
+7. Limitation of liability
+
+To the maximum extent permitted by law, we are not liable for indirect, incidental or consequential losses arising from the use of, or inability to use, the app.
+
+8. Service changes and termination
+
+We may adjust features as versions are updated; the current version already provides account registration / sign-in and cloud sync (see Section 5 of the Privacy Policy for how data is handled). Any change involving how data is handled will first be reflected in the privacy policy and notified in the app. You may also stop using the app at any time and terminate this agreement by clearing data or uninstalling.
+
+9. Governing law and dispute resolution
+
+The conclusion, validity and interpretation of this agreement are governed by the laws of the People's Republic of China. Disputes arising from this agreement shall be settled through friendly negotiation between the parties; if negotiation fails, they shall be submitted to a people's court with jurisdiction at the developer's location.
+
+10. Contact us
+
+If you have any questions about this agreement, please contact:
+
+- Developer: EarthRhythm
+- Email: 1930808767@qq.com
+
+---
+
+Continued use of the app means you have read and agree to the terms above.

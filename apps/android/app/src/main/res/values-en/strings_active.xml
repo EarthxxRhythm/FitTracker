@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for the active workout screen (+ FtActiveModel). Keys mirror
+  `values/strings_active.xml` (the zh values there are the source of truth).
+-->
+<resources>
+
+    <!-- Progress label -->
+    <string name="active_progress_step">Set %1$d of %2$d</string>
+    <string name="active_progress_done">Workout complete · all %1$d sets</string>
+    <string name="active_elapsed_label">Elapsed</string>
+    <string name="active_a11y_progress">Set progress</string>
+
+    <!-- Submit button -->
+    <string name="active_submit">Submit</string>
+    <string name="active_submit_done">Completed</string>
+
+    <!-- Demo card -->
+    <string name="active_demo_label">Move</string>
+    <string name="active_fallback_exercise">Barbell bench press</string>
+    <string name="active_demo_stage">Set %1$d · Working set</string>
+    <string name="active_a11y_demo_gif">%1$s demo</string>
+    <string name="active_a11y_demo_visual">%1$s demo image</string>
+
+    <!-- Completed set list -->
+    <string name="active_empty_sets">No completed sets yet</string>
+    <string name="active_set_index">Set %1$d</string>
+
+    <!-- Record-set dialog -->
+    <string name="active_modal_eyebrow">RECORD SET</string>
+    <string name="active_modal_title">Record set</string>
+    <string name="active_modal_subtitle">%1$s · Set %2$d</string>
+    <string name="active_a11y_close_modal">Close dialog</string>
+    <string name="active_field_weight">Weight</string>
+    <string name="active_field_reps">Reps</string>
+    <string name="active_field_weight_unit">KG</string>
+    <string name="active_field_reps_unit">8–10</string>
+    <string name="active_a11y_decrease">Decrease %1$s</string>
+    <string name="active_a11y_increase">Increase %1$s</string>
+    <string name="active_action_complete_set">Complete set</string>
+
+    <!-- Set-complete celebration -->
+    <string name="active_celebrate_title">Set complete</string>
+    <string name="active_celebrate_subtitle">Nice work</string>
+
+</resources>

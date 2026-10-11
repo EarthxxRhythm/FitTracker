@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  隐藏密码图标。
+  pathData 逐字取自原型 design/06_prototype_redraw/src/fittracker-auth.html:516-520
+  的 <symbol id="i-eye-off">：斜线（L517）+ 被切开的眼形与瞳孔弧（L518）+ 左上小弧（L519）；
+  描边 1.7、圆头。屏内以 Icon(tint = …) 着色。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M4 4l16 16"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M9.9 5.8A9.7 9.7 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a17 17 0 0 1-2.4 3.3M6.1 6.9A16.5 16.5 0 0 0 2.5 12S6 18.5 12 18.5c1 0 1.9-.2 2.7-.5"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M9.5 9.8a3 3 0 0 0 4.1 4.1"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.7"
+        android:strokeLineCap="round" />
+</vector>

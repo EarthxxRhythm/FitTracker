@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 账号登录与云同步（Supabase）——与隐私政策第四节一致。 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- 训练触觉反馈（「声音与震动」设置生效，Wave 3）——普通权限，声明即得。 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- 训练/成就提醒本地通知（Android 13+ 需运行时请求，Wave 4）。 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.FitTracker">
+
+        <!-- Wave 6：per-app language 自动持久化（AppCompat 官方模板；API<33 镜像到系统存储）。 -->
+        <service
+            android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"
+            android:enabled="false"
+            android:exported="false">
+            <meta-data
+                android:name="autoStoreLocales"
+                android:value="true" />
+        </service>
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.FitTracker">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- 深链接：fittracker://<routeId>，用于外部直达与验收脚本 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="fittracker" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  动作库域（library 屏）文案。中文值**逐字**取自原型
+  `design/06_prototype_redraw/src/fittracker-exercise-library.html` 与既有硬编码（原型对齐纪律）：
+  改动此处的中文即偏离原型，须同步原型。
+
+  命名：`library_<元素>`。带参文案用位置参数（`%1$s`），由 UI 层 `stringResource(id, args)`
+  或 `context.getString(...)` 解析。
+
+  注：**部位 / 肌群 / 器械展示名不是本文件文案**——它们来自内容库
+  （`ContentRepository`，`assets/exercise-content.json` 的 `muscles` / `equipment` 段，
+  按当前语言取 `nameZh` / `nameEn`）。此处只放屏内 chrome（标题 / 提示 / 标签 / 按钮 / 空态 / 难度档）。
+-->
+<resources>
+
+    <!-- 顶栏（`.st-top` L149-173） -->
+    <string name="library_title">动作库</string>
+    <!-- `.st-back` 的 `aria-label`（原型 L564） -->
+    <string name="library_a11y_back">返回个人页</string>
+    <!-- `.lib-fav-filter` 的 `aria-label`（原型 L568） -->
+    <string name="library_a11y_fav_filter">只看收藏</string>
+
+    <!-- 搜索栏（`.lib-search` L208-234） -->
+    <string name="library_search_hint">搜索动作、肌群或器械</string>
+    <!-- 输入框的 `aria-label`（原型 L577） -->
+    <string name="library_a11y_search">搜索动作</string>
+
+    <!-- 筛选条（`.cat-row` L236-258）——只剩两枚哨兵项的展示名，
+         6 个部位 / 肌群名来自内容库（见文件头注释） -->
+    <string name="library_part_all">全部</string>
+    <string name="library_muscle_all">全部肌群</string>
+
+    <!-- 卡片（`.lib-card` L275-291） -->
+    <!-- 卡片 `aria-label`（原型 L702）：`查看 {name} 详情` -->
+    <string name="library_a11y_card">查看 %1$s 详情</string>
+    <!-- `.lib-fav` 的 `aria-label`（原型 L706）：`收藏` / `取消收藏` + 动作名 -->
+    <string name="library_a11y_fav_add">收藏%1$s</string>
+    <string name="library_a11y_fav_remove">取消收藏%1$s</string>
+    <!-- 动作演示媒体的 `aria-label`：`{name} 动作演示` -->
+    <string name="library_a11y_demo_gif">%1$s 动作演示</string>
+
+    <!-- 空态（`.lib-empty` L346-352 / 文案 L747-750） -->
+    <string name="library_empty_fav_title">暂无收藏</string>
+    <string name="library_empty_fav_hint">点右上角心形，收藏常用动作</string>
+    <string name="library_empty_query_title">没有匹配的动作</string>
+    <string name="library_empty_query_hint">换个关键词试试</string>
+    <string name="library_empty_part_title">该部位暂无动作</string>
+    <string name="library_empty_part_hint">换个部位或肌群筛选试试</string>
+
+    <!-- 滚动区页脚说明（`.st-foot-note` L599） -->
+    <string name="library_foot_note">动作数据为演示内容；点击卡片查看动作要点，点右上角心形可收藏。</string>
+
+    <!-- 详情弹层（`.lib-sheet` L354-469） -->
+    <!-- 遮罩 `aria-label`（原型 L607） -->
+    <string name="library_a11y_sheet">动作详情</string>
+    <!-- `.lib-sheet-media-tag`（原型 L610） -->
+    <string name="library_sheet_media_tag">动作演示</string>
+    <string name="library_a11y_close">关闭</string>
+    <!-- 三行键值标签（`.lib-sheet-row .k`，L618-620） -->
+    <string name="library_sheet_row_muscles">目标肌群</string>
+    <string name="library_sheet_row_equipment">器械</string>
+    <string name="library_sheet_row_level">难度</string>
+    <!-- `.lib-sheet-cta`（原型 `data-od-id="add-to-plan"`，L623）与置灰态文案（L885） -->
+    <string name="library_sheet_cta">加入训练计划</string>
+    <string name="library_sheet_cta_done">已加入今日计划</string>
+
+    <!-- 加入计划的浮层文案（原型 L887：`'已把「' + name + '」加入今日计划'`） -->
+    <string name="library_toast_added">已把「%1$s」加入今日计划</string>
+
+    <!-- 难度档展示名（内容库 `difficulty` token → 文案，见 `FtLibraryModel.difficultyLabelRes`） -->
+    <string name="library_level_beginner">入门</string>
+    <string name="library_level_intermediate">进阶</string>
+    <string name="library_level_advanced">熟练</string>
+
+</resources>

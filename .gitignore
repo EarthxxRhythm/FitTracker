@@ -103,3 +103,19 @@ Thumbs.db
 
 # Tianshu runtime local config (tool preset)
 /.rivet-config.json
+
+# --- Android / Gradle / Supabase（2026-10-12 并入 apps/android 与 server 时补）---
+# Gradle 缓存与 Kotlin 编译缓存（工程级，位于 apps/android/ 下）
+**/.gradle/
+**/.kotlin/
+**/captures
+**/.externalNativeBuild
+# JVM 崩溃日志（Gradle 守护进程 OOM 等会落在工程根）
+replay_pid*.log
+# Python 字节码（tools/ 下的脚本被 import 时产生）
+*.pyc
+# 密钥真值文件（覆盖 sms-hook.env / prod.env 等命名；仅模板可入库）
+*.env
+!*.env.template
+# Supabase CLI 预演产生的临时目录
+**/supabase/.temp/

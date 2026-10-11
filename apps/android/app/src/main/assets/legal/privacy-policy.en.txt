@@ -1,0 +1,106 @@
+FitTracker Privacy Policy
+
+Last updated: 2026-10-11 (Android edition; the version number shown in Settings within the app is authoritative)
+
+This policy describes how the current version of FitTracker ("the App") actually handles your data and device capabilities. Every statement in this policy corresponds one-to-one with the current code and configuration:
+
+- Permissions are stated according to the application manifest (AndroidManifest.xml);
+- Network and data behavior is stated according to the app implementation;
+- System backup capability is stated according to the allowBackup declaration (see Section 7).
+
+We declare only behavior that is implemented, and we do not omit behavior that is implemented. If a future version adds any data collection, network access or permission request, this policy will be updated accordingly and you will be notified in the app.
+
+1. Core commitments
+
+1. Local first: training plans, workout records, body data, goal settings and app settings are stored by default only on your device; cloud sync, which you enable after signing in, is optional.
+2. Least privilege: the current version requests three permissions only — "Network access" (android.permission.INTERNET), used for account sign-in and cloud sync; "Vibrate" (android.permission.VIBRATE), used for training haptic feedback; and "Post notifications" (android.permission.POST_NOTIFICATIONS), used for local training and achievement reminders. We do not request location, contacts, SMS, camera, microphone, photo library, calendar or any other sensitive permission.
+3. Single cloud service: network activity points only to Supabase (a cloud data service) — its authentication service and cloud database. No advertising SDK, third-party analytics SDK or social sharing SDK is integrated.
+4. No additional data collection: we do not collect device unique identifiers, location, contacts, crash logs or usage analytics.
+5. Opt out at any time: you can use all local features without signing in; after signing in you can sign out at any time; cloud snapshots can be deleted by contacting us (see Section 8).
+
+2. How we handle your data
+
+| Data category | Examples | Storage location | Leaves the device |
+| Account and session | User ID, sign-in token, nickname (session snapshot) | App-private storage; the account identifier is managed by the Supabase authentication service | On sign-in (Supabase authentication) |
+| Training plans | Plan name, exercises, sets and reps, cycle | App-private storage | After signing in with sync enabled (Supabase cloud database) |
+| Workout records | Sets, reps, weight, duration and completion for each workout | App-private storage | Same as above |
+| Goal settings | Goal type, intensity, cycle | App-private storage | Same as above |
+| User profile | Nickname, avatar identifier, weight unit preference | App-private storage | Same as above |
+| Body data | Body weight, body fat and similar records | App-private storage | No (not part of cloud sync in the current version) |
+| App settings | Units, language, week start day, switch states | App-private storage | No |
+
+All of the local data above is written to app-private storage, which other apps cannot read directly. Cloud data (after signing in and enabling sync) is written to your own Supabase account data space, isolated by user ID; cloud permissions are configured as "readable and writable by the data creator only" (row-level security policies).
+
+3. What we do not collect
+
+The current version does not perform any of the following:
+
+- We do not register or report device unique identifiers;
+- We do not collect crash logs, analytics events or usage statistics;
+- We do not request location, contacts, SMS, camera, microphone, photo library, calendar or any other sensitive permission;
+- We do not integrate advertising SDKs, third-party analytics SDKs or social sharing SDKs (the cloud capability uses only the Supabase authentication service and cloud database);
+- The app contains no embedded browser (WebView) and loads no remote content.
+
+4. System permissions
+
+AndroidManifest.xml currently declares three permissions:
+
+- android.permission.INTERNET (Network access): used for account sign-in (Supabase authentication service) and cloud sync (Supabase cloud database). When you are not signed in, this permission is not used, and all of the app's local features work offline.
+- android.permission.VIBRATE (Vibrate): used for training haptic feedback — a short vibration when a set is recorded during a workout, controlled by the "Sound and vibration" switch on the Settings screen. This is a normal permission: it takes effect once declared and does not prompt you at runtime.
+- android.permission.POST_NOTIFICATIONS (Post notifications): used to post training reminders and achievement reminders as local notifications on your device. On Android 13 and above this permission must be granted at runtime; without it the corresponding switches cannot be turned on, and if you revoke it in system settings the notifications stop.
+
+5. Network access
+
+Sign-in and cloud sync are the only network behaviors in the current version, and they all point to Supabase:
+
+- Authentication service: when you sign in with an SMS verification code or with an email address and password, your credentials (phone number or email address) are submitted to the Supabase authentication service to complete identity verification; the sign-in token is issued and managed by Supabase.
+- Cloud database: after signing in and enabling sync, the app uploads a full snapshot of your training data (goals, plans, workout records, user profile — see Section 2) to the Supabase cloud database for cross-device restore. Uploads occur on successful sign-in, on a cold start while signed in, and on workout completion (when automatic sync is enabled); you can also sync manually on the "Account & Sync" screen.
+- Sandbox fallback: when Supabase credentials are not configured (for example, a local development build), the app automatically enters demo mode, in which all "cloud" reads and writes are completed inside a sandbox on your device and no network request is made.
+
+Exercise demo assets (GIFs and images) are bundled with the installation package and read from local storage at runtime; they are not downloaded over the network. Without signing in, workout logging, exercise library browsing and review are fully available offline.
+
+6. About the switches on the Settings screen (stated accurately)
+
+The Settings screen contains a number of data-related switches. Their current behavior is as follows:
+
+| Setting | Current actual behavior |
+| Training data sync | Genuinely effective: when on and you are signed in, cloud sync is triggered automatically (on successful sign-in, on cold start, on workout completion); when off, no automatic sync is triggered, and you can still sync manually on the "Account & Sync" screen. Turning it on while signed out prompts you to sign in first |
+| Anonymous usage data | Only the switch state is stored; no usage data is collected or reported |
+| Health data access | Display only; no health-related permission is requested and no system health data is read |
+| Training reminder / Achievement reminder | Genuinely effective: when on, the app registers local notifications on your device — a periodic check (WorkManager, every 24 hours, expected around 19:30) reminds you to train when no workout has been recorded that day and that day is a training day in your current plan, and a milestone notification is posted after a workout that reaches a consecutive-training milestone. Notifications are generated and shown on your device only; no data leaves the device for this purpose. On Android 13 and above the notification permission is required, and the switch cannot be turned on without it |
+| Sound and vibration | Genuinely effective: when on, a short haptic feedback (vibration) is given each time a set is recorded during a workout; when off, it stays silent and still. The current version has no sound effect assets, so only vibration is used |
+| Keep screen on during workout | Genuinely effective: while the workout execution screen is open, the screen is kept on when this switch is on; the setting is released when you leave that screen |
+
+These switch states are likewise stored only on your device. If any of these capabilities is extended further in a future version (for example, deeper integration with system notifications or health data), this policy will be updated first and your consent will be requested again.
+
+7. Data backup and migration
+
+- Manual backup / restore: the current version provides in-app export and import on the Settings screen ("Backup & Restore"). Export writes a JSON backup package (goals, plans, workout records, user profile; schemaVersion = 1, interoperable with the HarmonyOS backup package) to a location you choose in the system file picker; import reads a backup package from a file you choose, shows an overwrite confirmation, and then restores the data. Cloud sync remains available for cross-device migration.
+- Cloud sync (after signing in): unlike local storage, cloud sync automatically stores a snapshot of your "goals, plans, workout records, user profile" in your Supabase account data space (isolated by user ID) for cross-device restore. It does not include body data, workout drafts, the content library or media caches.
+- System backup: the app declares allowBackup (system backup allowed). If you enable cloud backup in your system settings, the operating system may include the app's data when it performs a backup and upload it to your own cloud account. That transfer is controlled by the system and your account settings; the app neither initiates nor interferes with it. You can prevent such transfers by turning off cloud backup in system settings.
+
+8. Data deletion
+
+- You can clear the app's data in system "App management" (Settings → Apps → FitTracker), or uninstall the app; this deletes all local data on the device.
+- Signing out clears the local sign-in state (sign-in token and session snapshot); your local business data (goals, plans, workout records, user profile) remains on the device and is not deleted by signing out.
+- Cloud copy: the current version provides no in-app entry point for deleting cloud data; to delete a cloud snapshot, please contact us using the details in Section 11, and we will handle it after verifying your account identity.
+- We recommend signing in and completing a cloud sync before clearing data or uninstalling, so that a restorable copy is retained in the cloud.
+
+9. Minors
+
+The app is a general-purpose fitness training log tool and is not specifically designed for children under 14. If you are a minor, please use it under the guidance of a guardian.
+
+10. Policy updates
+
+This policy may be adjusted as versions are updated. Any change involving data collection, permissions or network behavior will be reflected in this policy first, together with an in-app notice; we will not change how your data is handled without your knowledge.
+
+11. Contact us
+
+If you have questions about this policy, please contact:
+
+- Developer: EarthRhythm
+- Email: 1930808767@qq.com
+
+---
+
+This policy, together with the FitTracker User Agreement, constitutes the terms governing your use of the app.
