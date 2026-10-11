@@ -304,8 +304,11 @@ HarmonyOS 为每个应用按其 bundleName 分配独立沙箱目录，应用私�
 方案甲已落地，仓库版本不再含任何签名真值：
 
 - 入库的 `build-profile.json5` 现为 `signingConfigs: []`，并在该行上方加入**文件内注释防线**——后续修改者与 agent 打开文件即见「禁止填入真值」，比仅靠文档纪律更早生效；
-- 本机签名真值备份于**仓库外** `%USERPROFILE%\.ohos\release-keys\build-profile.local.json5`，打包前从该文件恢复，或用 DevEco Studio 的签名界面重配；
-- **未采用 `git update-index --skip-worktree`**：它与紧随其后的 monorepo 目录搬迁（`git mv build-profile.json5`）冲突，且会掩盖上游对根配置的真实改动。改用「仓库版本留空 + 文件内注释 + 真值备份在仓库外」的组合——对人与 agent 同样可见，且不干扰 git 操作；
+- 本机签名真值备份于**仓库外** `%USERPROFILE%\.ohos\release-keys\build-profile.release-local.json5`（注意文件名含 `release-`，同目录下另有项目既有的 `build-profile.debug-backup.json5`），打包前从该文件恢复；
+- **skip-worktree 采用情况（2026-10-12 更新）**：搬迁期间未用（与 `git mv` 冲突，会干扰重命名）；搬迁完成后已对 `apps/harmony/build-profile.json5` 执行 `git update-index --skip-worktree`。签名真值恢复后 git 不再看到该文件的本地改动，`git add -A` 也不会带上它。代价：本机该文件与索引长期分叉——换机器或重新 clone 后需重设；`git pull` 若上游改过该文件会冲突，需先 `git update-index --no-skip-worktree` 再处理；
+- **恢复 / 回退操作**：
+  - 恢复签名（打包前）：`cp ~/.ohos/release-keys/build-profile.release-local.json5 apps/harmony/build-profile.json5`
+  - 回退为入库的无真值状态：`git update-index --no-skip-worktree apps/harmony/build-profile.json5 && git checkout -- apps/harmony/build-profile.json5`
 - **状态澄清**：§11 标题此前标注「决策待定（含两种方案）」，而 §10 正文称「已选定方案甲」，二者矛盾。以本记录为准——**方案甲已执行，方案乙不再考虑**；
 - **历史遗留（未处置）**：`d263246`（2026-09-28）起调试签名配置已随 HEAD 进入**公开**历史；本记录只止住未来增量，历史清理与是否轮换签名材料另议。
 
