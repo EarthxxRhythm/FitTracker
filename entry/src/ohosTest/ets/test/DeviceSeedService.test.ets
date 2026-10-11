@@ -65,7 +65,7 @@ export default function deviceSeedServiceTest(): void {
         Date.now(),
         true
       )
-      const statsSummary: StatsDashboardSummary = StatsDashboardService.createSummary(sessions, Date.now())
+      const statsSummary: StatsDashboardSummary = StatsDashboardService.createSummary(sessions, Date.now(), 'monday')
       const recordDetails: ExercisePersonalRecordDetail[] = PersonalRecordService.createRecordDetails(sessions)
 
       expect(applied).assertTrue()

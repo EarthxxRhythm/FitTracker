@@ -6,6 +6,8 @@ import ReviewDashboardService, { ReviewDashboardSummary } from '../../../shared/
 import ReviewInsightsService, { ReviewWeeklyTrendItem } from '../../../shared/services/ReviewInsightsService'
 import WorkoutSessionPersistenceBridgeService from '../../workout/services/WorkoutSessionPersistenceBridgeService'
 import { WorkoutSession, WorkoutSet } from '../../../shared/models/TrainingModels'
+import SettingsService, { AppSettings } from '../../../common/services/SettingsService'
+import { resolveWeekStart, WeekStart } from '../../../common/utils/WeekUtils'
 
 interface ReviewBarItem {
   label: string
@@ -25,6 +27,8 @@ interface OneRmRowItem {
 }
 
 const WEEKDAY_LABELS: string[] = ['一', '二', '三', '四', '五', '六', '日']
+/** 周开始日=周日时，周柱/日历表头从周日排起（首列=周日）。 */
+const WEEKDAY_LABELS_SUNDAY_FIRST: string[] = ['日', '一', '二', '三', '四', '五', '六']
 
 const WEIGHT_CHART_POINTS: WeightChartPoint[] = [
   { x: 12, y: 42 },
@@ -879,6 +883,8 @@ export struct ReviewContent {
   @State private calendarLeadDays: number = 0
   @State private goalPressed: boolean = false
 
+  private weekStartKey: WeekStart = 'monday'
+
   private mmFrontSettings: RenderingContextSettings = new RenderingContextSettings(true)
   private mmFrontContext: CanvasRenderingContext2D =
     new CanvasRenderingContext2D(this.mmFrontSettings, LengthMetricsUnit.PX)
@@ -899,14 +905,17 @@ export struct ReviewContent {
       return
     }
     try {
+      const settings: AppSettings = await SettingsService.loadSettings(context)
+      this.weekStartKey = settings.weekStart
+      this.initCalendarShell(now)
       const sessions: WorkoutSession[] = await WorkoutSessionPersistenceBridgeService.loadPersistedSessions(context)
       if (sessions.length === 0) {
         this.summary = ReviewDashboardService.createEmptySummary()
       } else {
         this.summary = ReviewDashboardService.createSummary(sessions)
       }
-      this.trendItems = ReviewInsightsService.createWeeklyTrendItems(sessions, now)
-      this.weekBars = this.buildWeekBars(sessions, now)
+      this.trendItems = ReviewInsightsService.createWeeklyTrendItems(sessions, now, settings.weekStart)
+      this.weekBars = this.buildWeekBars(sessions, now, this.weekStartKey)
       this.initCalendarData(sessions, now)
     } catch (error) {
       this.applyEmptyState()
@@ -929,10 +938,10 @@ export struct ReviewContent {
     const month: number = date.getMonth()
     this.monthLabel = year.toString() + ' 年 ' + (month + 1).toString() + ' 月'
     this.monthBadge = '本月 · ' + (month + 1).toString() + '月'
-    this.weekRangeText = this.formatWeekRange(now)
+    this.weekRangeText = this.formatWeekRange(now, this.weekStartKey)
     this.todayDay = date.getDate()
     const firstWeekday: number = new Date(year, month, 1).getDay()
-    this.calendarLeadDays = (firstWeekday + 6) % 7
+    this.calendarLeadDays = this.weekStartKey === 'sunday' ? firstWeekday : (firstWeekday + 6) % 7
     const daysInMonth: number = new Date(year, month + 1, 0).getDate()
     const days: number[] = []
     for (let day = 1; day <= daysInMonth; day++) {
@@ -1008,27 +1017,33 @@ export struct ReviewContent {
     return false
   }
 
-  private formatWeekRange(now: number): string {
-    const date: Date = new Date(now)
-    const dayOfWeek: number = date.getDay()
-    const mondayOffset: number = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-    const monday: Date = new Date(date.getFullYear(), date.getMonth(), date.getDate() - mondayOffset)
-    const sunday: Date = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6)
-    const mondayText: string = (monday.getMonth() + 1).toString() + '月' + monday.getDate().toString() + '日'
-    const sundayText: string = (sunday.getMonth() + 1).toString() + '月' + sunday.getDate().toString() + '日'
-    return mondayText + '–' + sundayText
+  private formatWeekRange(now: number, weekStart: WeekStart): string {
+    const weekStartDate: Date = resolveWeekStart(new Date(now), weekStart)
+    const weekEndDate: Date = new Date(
+      weekStartDate.getFullYear(), weekStartDate.getMonth(), weekStartDate.getDate() + 6
+    )
+    const startText: string = (weekStartDate.getMonth() + 1).toString() + '月' +
+      weekStartDate.getDate().toString() + '日'
+    const endText: string = (weekEndDate.getMonth() + 1).toString() + '月' + weekEndDate.getDate().toString() + '日'
+    return startText + '–' + endText
   }
 
-  private buildWeekBars(sessions: WorkoutSession[], now: number): ReviewBarItem[] {
-    const date: Date = new Date(now)
-    const dayOfWeek: number = date.getDay()
-    const mondayOffset: number = dayOfWeek === 0 ? 6 : dayOfWeek - 1
-    const monday: Date = new Date(date.getFullYear(), date.getMonth(), date.getDate() - mondayOffset)
+  /** 周柱/日历表头使用的星期标签序列（随「周开始日」设置：周日开始时首列=周日）。 */
+  private resolveWeekdayLabels(): string[] {
+    if (this.weekStartKey === 'sunday') {
+      return WEEKDAY_LABELS_SUNDAY_FIRST
+    }
+    return WEEKDAY_LABELS
+  }
+
+  private buildWeekBars(sessions: WorkoutSession[], now: number, weekStart: WeekStart): ReviewBarItem[] {
+    const weekStartDate: Date = resolveWeekStart(new Date(now), weekStart)
+    const weekdayLabels: string[] = weekStart === 'sunday' ? WEEKDAY_LABELS_SUNDAY_FIRST : WEEKDAY_LABELS
     const setsPerDay: number[] = []
     let maxSets: number = 0
     for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
       const dayStart: number = new Date(
-        monday.getFullYear(), monday.getMonth(), monday.getDate() + dayIndex
+        weekStartDate.getFullYear(), weekStartDate.getMonth(), weekStartDate.getDate() + dayIndex
       ).getTime()
       const dayEnd: number = dayStart + 24 * 60 * 60 * 1000
       let daySets: number = 0
@@ -1050,7 +1065,7 @@ export struct ReviewContent {
         height = 12 + (setsPerDay[index] / maxSets) * 93
       }
       const bar: ReviewBarItem = {
-        label: WEEKDAY_LABELS[index],
+        label: weekdayLabels[index],
         height: height,
         active: setsPerDay[index] > 0
       }
@@ -1724,7 +1739,7 @@ export struct ReviewContent {
         .width('100%')
 
       Row() {
-        ForEach(WEEKDAY_LABELS, (day: string) => {
+        ForEach(this.resolveWeekdayLabels(), (day: string) => {
           Text(day)
             .fontFamily('Noto Sans SC')
             .fontSize(10)

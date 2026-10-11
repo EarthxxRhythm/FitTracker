@@ -1,6 +1,8 @@
 /** BodyDataContent —— 身体数据二级页界面体（对应 body-data.html · screen-body-data，390 直绘）。 */
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 import { window } from '@kit.ArkUI'
+import UserProfileService, { UserProfile, WeightUnit } from '../../../common/services/UserProfileService'
+import { formatWeight, weightUnitLabel, displayToKg } from '../../../common/utils/WeightUtils'
 
 interface BodyMetricTile {
   label: string
@@ -20,7 +22,8 @@ interface MeasureRow {
 interface TrendSeries {
   vals: number[]
   labels: string[]
-  cap: string
+  prefix: string
+  deltaKg: number
 }
 
 function createMetricTile(label: string, value: string, unit: string, note: string, noteMuted: boolean): BodyMetricTile {
@@ -49,16 +52,44 @@ export struct BodyDataContent {
   @State private savePressed: boolean = false
   @State private cancelPressed: boolean = false
   @State private sheetOpen: boolean = false
-  @State private currentWeight: string = '72.5'
+  @State private currentWeightKg: number = 72.5
   @State private weightInput: string = '72.5'
   @State private sheetHint: string = ''
   @State private period: string = 'week'
+  // 展示层体重单位（来自「设置 · 体重单位」）；基准值始终是 kg，仅展示与输入按单位换算。
+  @State private displayUnit: WeightUnit = 'kg'
   @State private trendCap: string = '近 7 天 · −0.3 kg'
   // 系统状态栏高度（vp）。页面区本身落在状态栏之下，原型顶距须扣掉它才不会双计。
   @State private topInsetVp: number = 0
 
   aboutToAppear(): void {
     this.resolveTopInset()
+    this.metrics = this.buildMetrics()
+    this.loadDisplayUnit()
+  }
+
+  private contextOrNull(): Context | null {
+    const host: Context | undefined = this.getUIContext().getHostContext()
+    if (host === undefined) {
+      return null
+    }
+    return host
+  }
+
+  /** 读取「设置 · 体重单位」：只刷新展示层，kg 基准值不变；读失败保持 kg 显示。 */
+  private async loadDisplayUnit(): Promise<void> {
+    const context: Context | null = this.contextOrNull()
+    if (context === null) {
+      return
+    }
+    try {
+      const profile: UserProfile = await UserProfileService.loadProfile(context)
+      this.displayUnit = profile.weightUnit
+      this.metrics = this.buildMetrics()
+      this.trendCap = this.trendCapText(this.getTrendSeries(this.period))
+    } catch (e) {
+      // 读取失败时保持 kg 基准显示，不打断页面展示
+    }
   }
 
   /**
@@ -81,12 +112,16 @@ export struct BodyDataContent {
     }
   }
 
-  private readonly metrics: BodyMetricTile[] = [
-    createMetricTile('BMI', '22.9', '', '正常范围', false),
-    createMetricTile('骨骼肌', '34.2', 'kg', '标准', true),
-    createMetricTile('基础代谢', '1710', 'kcal', '估算值', true),
-    createMetricTile('身体水分', '58.2', '%', '正常范围', false)
-  ]
+  @State private metrics: BodyMetricTile[] = []
+
+  private buildMetrics(): BodyMetricTile[] {
+    return [
+      createMetricTile('BMI', '22.9', '', '正常范围', false),
+      createMetricTile('骨骼肌', formatWeight(34.2, this.displayUnit), weightUnitLabel(this.displayUnit), '标准', true),
+      createMetricTile('基础代谢', '1710', 'kcal', '估算值', true),
+      createMetricTile('身体水分', '58.2', '%', '正常范围', false)
+    ]
+  }
 
   private readonly measures: MeasureRow[] = [
     createMeasure('胸围', '96.0 cm', '+0.5', false),
@@ -101,19 +136,22 @@ export struct BodyDataContent {
   private readonly weekSeries: TrendSeries = {
     vals: [72.8, 72.6, 72.7, 72.4, 72.6, 72.5, 72.5],
     labels: ['一', '二', '三', '四', '五', '六', '日'],
-    cap: '近 7 天 · −0.3 kg'
+    prefix: '近 7 天',
+    deltaKg: -0.3
   }
 
   private readonly monthSeries: TrendSeries = {
     vals: [71.8, 71.9, 72.2, 72.0, 72.3, 72.4, 72.5],
     labels: ['8周前', '', '', '4周前', '', '', '本周'],
-    cap: '近 30 天 · +0.7 kg'
+    prefix: '近 30 天',
+    deltaKg: 0.7
   }
 
   private readonly yearSeries: TrendSeries = {
     vals: [68.2, 68.9, 69.6, 70.4, 71.0, 71.8, 72.5],
     labels: ['去年9月', '', '', '3月', '', '', '现在'],
-    cap: '近 12 个月 · +4.5 kg'
+    prefix: '近 12 个月',
+    deltaKg: 4.5
   }
 
   private trendSettings: RenderingContextSettings = new RenderingContextSettings(true)
@@ -124,7 +162,7 @@ export struct BodyDataContent {
   }
 
   private openSheet(): void {
-    this.weightInput = this.currentWeight
+    this.weightInput = formatWeight(this.currentWeightKg, this.displayUnit)
     this.sheetHint = ''
     this.sheetOpen = true
   }
@@ -136,12 +174,25 @@ export struct BodyDataContent {
 
   private saveWeight(): void {
     const parsed: number = Number(this.weightInput)
-    if (Number.isNaN(parsed) || parsed <= 0 || parsed > 500) {
+    const kg: number = displayToKg(parsed, this.displayUnit)
+    if (Number.isNaN(parsed) || parsed <= 0 || kg > 500) {
       this.sheetHint = '请输入 0–500 之间的有效体重'
       return
     }
-    this.currentWeight = parsed.toFixed(1)
+    this.currentWeightKg = kg
     this.closeSheet()
+  }
+
+  private deltaText(deltaKg: number): string {
+    const magnitude: string = formatWeight(Math.abs(deltaKg), this.displayUnit)
+    if (deltaKg < 0) {
+      return '−' + magnitude + ' ' + weightUnitLabel(this.displayUnit)
+    }
+    return '+' + magnitude + ' ' + weightUnitLabel(this.displayUnit)
+  }
+
+  private trendCapText(series: TrendSeries): string {
+    return series.prefix + ' · ' + this.deltaText(series.deltaKg)
   }
 
   private getTrendSeries(key: string): TrendSeries {
@@ -156,7 +207,7 @@ export struct BodyDataContent {
 
   private selectPeriod(key: string): void {
     this.period = key
-    this.trendCap = this.getTrendSeries(key).cap
+    this.trendCap = this.trendCapText(this.getTrendSeries(key))
     this.drawTrendChart()
   }
 
@@ -411,7 +462,7 @@ export struct BodyDataContent {
                 .onChange((value: string) => {
                   this.weightInput = value
                 })
-              Text('kg')
+              Text(weightUnitLabel(this.displayUnit))
                 .fontFamily('Inter')
                 .fontSize(16)
                 .fontColor('#9EFFFFFF')
@@ -494,14 +545,14 @@ export struct BodyDataContent {
       .justifyContent(FlexAlign.SpaceBetween)
 
       Row({ space: 7 }) {
-        Text(this.currentWeight)
+        Text(formatWeight(this.currentWeightKg, this.displayUnit))
           .fontFamily('Inter')
           .fontSize(56)
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
           .letterSpacing(-1.1)
           .margin({ top: 10 })
-        Text('kg')
+        Text(weightUnitLabel(this.displayUnit))
           .fontFamily('Inter')
           .fontSize(16)
           .fontColor('#9EFFFFFF')
@@ -513,7 +564,7 @@ export struct BodyDataContent {
         Image($rawfile('pencil-body-arrow-down.svg'))
           .width(15)
           .height(15)
-        Text('较上周 −0.3 kg')
+        Text('较上周 ' + this.deltaText(-0.3))
           .fontFamily('Noto Sans SC')
           .fontSize(12)
           .fontWeight(FontWeight.Medium)
@@ -531,11 +582,11 @@ export struct BodyDataContent {
         .margin({ top: 16 })
 
       Row() {
-        Text('增肌目标 74.0 kg')
+        Text('增肌目标 ' + formatWeight(74.0, this.displayUnit) + ' ' + weightUnitLabel(this.displayUnit))
           .fontFamily('Noto Sans SC')
           .fontSize(12)
           .fontColor('#9EFFFFFF')
-        Text('还差 1.5 kg')
+        Text('还差 ' + formatWeight(1.5, this.displayUnit) + ' ' + weightUnitLabel(this.displayUnit))
           .fontFamily('Inter')
           .fontSize(12)
           .fontWeight(FontWeight.Medium)

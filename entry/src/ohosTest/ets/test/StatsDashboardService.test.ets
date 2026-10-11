@@ -51,7 +51,7 @@ export default function statsDashboardServiceTest(): void {
         )
       ]
 
-      const summary: StatsDashboardSummary = StatsDashboardService.createSummary(sessions, 1715817600000)
+      const summary: StatsDashboardSummary = StatsDashboardService.createSummary(sessions, 1715817600000, 'monday')
       const weekly: WeeklyTrainingStats = summary.weeklyStats
       expect(weekly.sessionCount).assertEqual(2)
       expect(weekly.totalDurationSeconds).assertEqual(5400)
@@ -79,6 +79,55 @@ export default function statsDashboardServiceTest(): void {
         expect(wednesday.totalVolume).assertEqual(800)
         expect(wednesday.level).assertEqual(2)
       }
+    })
+
+    it('uses sunday week start when configured', 0, () => {
+      const sessions: WorkoutSession[] = [
+        createWorkoutSession(
+          'session_stats_previous_week',
+          'plan_stats',
+          'day_1',
+          1715472000000,
+          1715473800000,
+          1800,
+          2,
+          600,
+          0,
+          'completed_sets=2;target_sets=3',
+          [createWorkoutSet('set_previous', 'ex_push_up', 30, 10, 7, false)]
+        ),
+        createWorkoutSession(
+          'session_stats_monday',
+          'plan_stats',
+          'day_2',
+          1715558400000,
+          1715562000000,
+          3600,
+          3,
+          900,
+          0,
+          'completed_sets=3;target_sets=3',
+          [createWorkoutSet('set_monday', 'ex_squat', 60, 10, 8, false)]
+        ),
+        createWorkoutSession(
+          'session_stats_wednesday',
+          'plan_stats',
+          'day_3',
+          1715731200000,
+          1715733000000,
+          1800,
+          4,
+          1200,
+          0,
+          'completed_sets=4;target_sets=4',
+          [createWorkoutSet('set_wednesday', 'ex_row', 80, 10, 8, false)]
+        )
+      ]
+
+      const summary: StatsDashboardSummary = StatsDashboardService.createSummary(sessions, 1715817600000, 'sunday')
+      const weekly: WeeklyTrainingStats = summary.weeklyStats
+      expect(weekly.weekStartText).assertEqual('2024-05-12')
+      expect(weekly.weekEndText).assertEqual('2024-05-18')
     })
 
     it('uses inclusive week boundaries and falls back to set volume when session volume is zero', 0, () => {
@@ -137,7 +186,7 @@ export default function statsDashboardServiceTest(): void {
         )
       ]
 
-      const summary: StatsDashboardSummary = StatsDashboardService.createSummary(sessions, Date.UTC(2024, 4, 16, 12, 0, 0))
+      const summary: StatsDashboardSummary = StatsDashboardService.createSummary(sessions, Date.UTC(2024, 4, 16, 12, 0, 0), 'monday')
       const weekly: WeeklyTrainingStats = summary.weeklyStats
 
       expect(weekly.weekStartText).assertEqual('2024-05-13')
@@ -204,7 +253,7 @@ export default function statsDashboardServiceTest(): void {
         )
       ]
 
-      const summary: StatsDashboardSummary = StatsDashboardService.createSummary(sessions, Date.UTC(2024, 4, 16, 12, 0, 0))
+      const summary: StatsDashboardSummary = StatsDashboardService.createSummary(sessions, Date.UTC(2024, 4, 16, 12, 0, 0), 'monday')
       const levelOne: CalendarHeatmapDay | undefined = StatsDashboardService.findHeatmapDay(summary.heatmapDays, '2024-05-13')
       const levelTwo: CalendarHeatmapDay | undefined = StatsDashboardService.findHeatmapDay(summary.heatmapDays, '2024-05-14')
       const levelThree: CalendarHeatmapDay | undefined = StatsDashboardService.findHeatmapDay(summary.heatmapDays, '2024-05-15')

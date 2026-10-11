@@ -137,7 +137,7 @@ export default function reviewInsightsServiceTest(): void {
       sessions[1].sets.push(createWorkoutSet('current_week_light_set_3', 'bench_press', 1, 5, 8, false))
       sessions[2].sets.push(createWorkoutSet('current_week_heavy_set_2', 'bench_press', 40, 2, 8, false))
 
-      const items = ReviewInsightsService.createWeeklyTrendItems(sessions, now)
+      const items = ReviewInsightsService.createWeeklyTrendItems(sessions, now, 'monday')
       const currentWeek = items[0]
       const previousWeek = items[1]
 
@@ -166,7 +166,7 @@ export default function reviewInsightsServiceTest(): void {
       ]
 
       const records = ReviewInsightsService.filterRecentRecords(sessions, 'recent_7_days', now, true)
-      const trendItems = ReviewInsightsService.createWeeklyTrendItems(sessions, now)
+      const trendItems = ReviewInsightsService.createWeeklyTrendItems(sessions, now, 'monday')
 
       expect(records[0].sessionId).assertEqual('generated_day')
       expect(records[0].dayLabel).assertEqual('第 2 天')

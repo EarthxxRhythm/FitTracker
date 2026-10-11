@@ -5,6 +5,7 @@
  */
 import { WorkoutSession, WorkoutSet } from '../models/TrainingModels'
 import WorkoutSummaryService from './WorkoutSummaryService'
+import { resolveWeekStart, WeekStart } from '../../common/utils/WeekUtils'
 
 export interface WeeklyTrainingStats {
   weekStartText: string
@@ -40,10 +41,10 @@ export interface StatsDashboardSummary {
 }
 
 class StatsDashboardService {
-  createSummary(sessions: WorkoutSession[], now: number): StatsDashboardSummary {
-    const heatmapDays: CalendarHeatmapDay[] = this.createHeatmapDays(sessions, now)
+  createSummary(sessions: WorkoutSession[], now: number, weekStart: WeekStart): StatsDashboardSummary {
+    const heatmapDays: CalendarHeatmapDay[] = this.createHeatmapDays(sessions, now, weekStart)
     const summary: StatsDashboardSummary = {
-      weeklyStats: this.createWeeklyStats(sessions, now),
+      weeklyStats: this.createWeeklyStats(sessions, now, weekStart),
       monthTitle: this.formatMonthTitle(now),
       heatmapDays: heatmapDays,
       heatmapRows: this.createHeatmapRows(heatmapDays)
@@ -51,8 +52,8 @@ class StatsDashboardService {
     return summary
   }
 
-  createEmptySummary(now: number): StatsDashboardSummary {
-    return this.createSummary([], now)
+  createEmptySummary(now: number, weekStart: WeekStart): StatsDashboardSummary {
+    return this.createSummary([], now, weekStart)
   }
 
   findHeatmapDay(days: CalendarHeatmapDay[], dateText: string): CalendarHeatmapDay | undefined {
@@ -65,10 +66,10 @@ class StatsDashboardService {
     return undefined
   }
 
-  private createWeeklyStats(sessions: WorkoutSession[], now: number): WeeklyTrainingStats {
-    const weekStart: Date = this.createWeekStart(now)
-    const weekEnd: Date = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6)
-    const weekStartTime: number = weekStart.getTime()
+  private createWeeklyStats(sessions: WorkoutSession[], now: number, weekStart: WeekStart): WeeklyTrainingStats {
+    const weekStartDate: Date = this.createWeekStart(now, weekStart)
+    const weekEnd: Date = new Date(weekStartDate.getFullYear(), weekStartDate.getMonth(), weekStartDate.getDate() + 6)
+    const weekStartTime: number = weekStartDate.getTime()
     const weekEndExclusive: number = new Date(
       weekEnd.getFullYear(),
       weekEnd.getMonth(),
@@ -89,7 +90,7 @@ class StatsDashboardService {
       }
     }
 
-    const weekStartText: string = this.formatDate(weekStart.getTime())
+    const weekStartText: string = this.formatDate(weekStartDate.getTime())
     const weekEndText: string = this.formatDate(weekEnd.getTime())
     const stats: WeeklyTrainingStats = {
       weekStartText: weekStartText,
@@ -104,10 +105,10 @@ class StatsDashboardService {
     return stats
   }
 
-  private createHeatmapDays(sessions: WorkoutSession[], now: number): CalendarHeatmapDay[] {
+  private createHeatmapDays(sessions: WorkoutSession[], now: number, weekStart: WeekStart): CalendarHeatmapDay[] {
     const current: Date = new Date(now)
     const monthStart: Date = new Date(current.getFullYear(), current.getMonth(), 1)
-    const gridStart: Date = this.createWeekStart(monthStart.getTime())
+    const gridStart: Date = this.createWeekStart(monthStart.getTime(), weekStart)
     const days: CalendarHeatmapDay[] = []
 
     for (let offset = 0; offset < 42; offset++) {
@@ -161,14 +162,8 @@ class StatsDashboardService {
     return rows
   }
 
-  private createWeekStart(timestamp: number): Date {
-    const value: Date = new Date(timestamp)
-    const dayOfWeek: number = value.getDay()
-    let mondayOffset: number = dayOfWeek - 1
-    if (dayOfWeek === 0) {
-      mondayOffset = 6
-    }
-    return new Date(value.getFullYear(), value.getMonth(), value.getDate() - mondayOffset)
+  private createWeekStart(timestamp: number, weekStart: WeekStart): Date {
+    return resolveWeekStart(new Date(timestamp), weekStart)
   }
 
   private createHeatmapLevel(totalVolume: number): number {
