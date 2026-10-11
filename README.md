@@ -1,6 +1,6 @@
 # 菲特
 
-HarmonyOS 上**本地优先**的健身训练记录应用（ArkTS / ArkUI · Stage 模型）。
+HarmonyOS 上的健身训练记录应用（ArkTS / ArkUI · Stage 模型）。
 
 记录训练组数、次数与重量，按 Epley 公式估算 1RM，并管理训练目标、计划、训练会话、复盘统计与本地备份数据。数据默认只保存在设备本机；登录后可选择云同步（华为端云一体化 AGC：认证服务 + 云数据库整包快照），跨设备恢复数据。
 
@@ -18,7 +18,7 @@ HarmonyOS 上**本地优先**的健身训练记录应用（ArkTS / ArkUI · Stag
 - **训练复盘**：历史训练、周趋势、动作 PR 下钻、肌肉分布与进阶洞察
 - **动作库**：动作列表、筛选、收藏与动作详情（含要点与内置 GIF 素材）
 - **身体数据**：体重、体脂等记录
-- **账号与云同步**：AGC 认证（手机验证码 / 邮箱 / 华为账号）+ 云数据库整包快照（本地优先：离线可写、联网同步）；未配置 AGC 时自动降级为沙盒演示模式
+- **账号与云同步**：AGC 认证（手机验证码 / 邮箱 / 华为账号）+ 云数据库整包快照（本地存储：离线可写、联网同步）；未配置 AGC 时自动降级为沙盒演示模式
 - **启动分流**：冷启动按登录态分流（未登录 → 登录页；已登录 → 主壳）
 - **数据备份与恢复**：本地 JSON 导出 / 导入，并承接系统备份回调
 - **设置**：单位、语言、周开始日与各项开关状态
@@ -31,7 +31,7 @@ HarmonyOS 上**本地优先**的健身训练记录应用（ArkTS / ArkUI · Stag
 | 语言 / UI | ArkTS、ArkUI 声明式 UI（strict mode，无 `any` / 解构 / 函数表达式） |
 | 应用模型 | HarmonyOS Stage，单 `entry` 模块 |
 | SDK | HarmonyOS `6.0.2(22)`（compatible 与 target 一致） |
-| 数据层 | `@kit.ArkData` preferences + 仓库 / 内存仓库组合（本地优先）；云同步走 `@hw-agconnect/auth` + `@kit.CloudFoundationKit`（AGC） |
+| 数据层 | `@kit.ArkData` preferences + 仓库 / 内存仓库组合（本地存储）；云同步走 `@hw-agconnect/auth` + `@kit.CloudFoundationKit`（AGC） |
 | 测试 | `@ohos/hypium` 1.0.25、`@ohos/hamock` 1.0.0（`entry/src/ohosTest`） |
 | 构建 | DevEco Studio + DevEco CLI（`devecocli`） |
 
