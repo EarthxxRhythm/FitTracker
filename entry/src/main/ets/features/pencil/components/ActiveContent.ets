@@ -1,5 +1,6 @@
 /** ActiveContent - 训练中界面体（供 PencilActivePage 独立渲染）。 */
 import { AppRoutes } from '../../../app/AppRoutes'
+import { window } from '@kit.ArkUI'
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 import { WorkoutSession, WorkoutSet, createWorkoutSession, createWorkoutSet } from '../../../shared/models/TrainingModels'
 import WorkoutRepository from '../../../shared/services/WorkoutRepository'
@@ -10,6 +11,7 @@ import ActiveWorkoutService, {
   ActiveWorkoutState
 } from '../../../shared/services/ActiveWorkoutService'
 import { WorkoutPreviewSummary } from '../../../shared/services/WorkoutPreviewService'
+import SettingsService, { AppSettings } from '../../../common/services/SettingsService'
 
 interface ActiveWorkoutRouteParams {
   preview: WorkoutPreviewSummary
@@ -109,6 +111,8 @@ export struct ActiveContent {
   private pulseTimer: number = -1
   private segPopTimer: number = -1
   private finished: boolean = false
+  private win: window.Window | null = null
+  private keepScreenOnApplied: boolean = false
 
   aboutToAppear(): void {
     this.applyPreviewState()
@@ -118,6 +122,7 @@ export struct ActiveContent {
     this.pulseTimer = setInterval(() => {
       this.livePulseLow = !this.livePulseLow
     }, MotionTokens.DURATION_PULSE / 2)
+    this.applyKeepScreenOnPreference()
   }
 
   aboutToDisappear(): void {
@@ -137,6 +142,36 @@ export struct ActiveContent {
       clearTimeout(this.celebrateTimer)
       this.celebrateTimer = -1
     }
+    this.releaseKeepScreenOn()
+  }
+
+  /** 读取「训练中屏幕常亮」偏好并应用到当前窗口；失败不阻塞训练流。 */
+  private async applyKeepScreenOnPreference(): Promise<void> {
+    const host: Context | undefined = this.getUIContext().getHostContext()
+    if (host === undefined) {
+      return
+    }
+    try {
+      const settings: AppSettings = await SettingsService.loadSettings(host)
+      if (!settings.keepOn) {
+        return
+      }
+      const win: window.Window = await window.getLastWindow(host)
+      this.win = win
+      await win.setWindowKeepScreenOn(true)
+      this.keepScreenOnApplied = true
+    } catch (error) {
+      // 常亮设置失败不阻塞训练流
+    }
+  }
+
+  /** 释放常亮并解除窗口引用。完成页以 pushUrl 压栈、本组件不销毁，finish() 需主动调用。 */
+  private releaseKeepScreenOn(): void {
+    if (this.keepScreenOnApplied && this.win !== null) {
+      this.win.setWindowKeepScreenOn(false)
+      this.keepScreenOnApplied = false
+    }
+    this.win = null
   }
 
   private applyPreviewState(): void {
@@ -234,6 +269,7 @@ export struct ActiveContent {
   }
 
   private finish(): void {
+    this.releaseKeepScreenOn()
     this.getUIContext().getRouter().pushUrl({ url: AppRoutes.WORKOUT_COMPLETE })
   }
 
