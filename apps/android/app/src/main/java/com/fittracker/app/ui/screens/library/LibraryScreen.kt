@@ -48,6 +48,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -115,6 +116,7 @@ fun LibraryScreen(
     // 装载失败时保持原型样例 [FtLibraryModel.EXERCISES]；动作 GIF 经 [FtLibraryModel.gifAssetFor]
     // 反查（命中即播放），未命中素材回落同尺寸占位块（见本文件头取舍 2）。
     val context = LocalContext.current
+    val resources = LocalResources.current
     var allExercises by remember { mutableStateOf(FtLibraryModel.EXERCISES) }
     LaunchedEffect(Unit) {
         runCatching { ContentRepository.load(context) }
@@ -241,7 +243,7 @@ fun LibraryScreen(
                 onClose = { detail = null },
                 onAddToPlan = {
                     addedToPlan = true
-                    toast = context.getString(FtLibraryModel.TOAST_ADDED_RES, exercise.name)
+                    toast = resources.getString(FtLibraryModel.TOAST_ADDED_RES, exercise.name)
                 },
             )
         }

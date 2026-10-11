@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import com.fittracker.app.data.auth.AuthService
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
@@ -58,6 +59,7 @@ fun FtScreen(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val store = remember { JsonStore(context.appDataStore) }
 
     // 轻量反馈浮层。原型里 `.auth-toast` 是 `.phone` 的子元素、位于 `.auth-frame` 之外，
@@ -99,7 +101,7 @@ fun FtScreen(
                             // 真认证（沙盒/云端 Provider）：失败弹源文案；成功走原型 afterAuth 编排
                             val error = AuthService.signIn(store, account, password).exceptionOrNull()?.message
                             if (error == null) {
-                                toast = AuthToastState.next(toast, context.getString(AUTH_LOGIN_SUCCESS_TOAST))
+                                toast = AuthToastState.next(toast, resources.getString(AUTH_LOGIN_SUCCESS_TOAST))
                                 // 登录成功钩子（源 CloudSyncService.onSignIn）：后台首次同步、不阻塞跳转
                                 launch {
                                     SyncOrchestrator.onSignIn(store, SyncOrchestrator.forFilesDir(context.filesDir))
@@ -114,7 +116,7 @@ fun FtScreen(
                     },
                     onPhoneCodeSuccess = { _, _ ->
                         // 手机验证码登录成功（凭据已在 provider 内校验并落会话）——编排同密码成功路径
-                        toast = AuthToastState.next(toast, context.getString(AUTH_LOGIN_SUCCESS_TOAST))
+                        toast = AuthToastState.next(toast, resources.getString(AUTH_LOGIN_SUCCESS_TOAST))
                         scope.launch {
                             launch {
                                 SyncOrchestrator.onSignIn(store, SyncOrchestrator.forFilesDir(context.filesDir))
@@ -134,7 +136,7 @@ fun FtScreen(
                             val error = AuthService.signUp(store, account, password, nickname)
                                 .exceptionOrNull()?.message
                             if (error == null) {
-                                toast = AuthToastState.next(toast, context.getString(AUTH_REGISTER_SUCCESS_TOAST))
+                                toast = AuthToastState.next(toast, resources.getString(AUTH_REGISTER_SUCCESS_TOAST))
                                 // 注册成功即登录（沙盒语义 / Supabase 直通）——同样触发首次同步
                                 launch {
                                     SyncOrchestrator.onSignIn(store, SyncOrchestrator.forFilesDir(context.filesDir))

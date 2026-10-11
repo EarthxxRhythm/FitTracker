@@ -45,6 +45,7 @@ import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -95,14 +96,15 @@ fun PlanScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val store = remember { JsonStore(context.appDataStore) }
 
     // 数据源（对齐鸿蒙 `PlanContent.loadPlanData`）：当前计划（用户启用的预置计划）→ 空态。
     // 鸿蒙的三级（含 GoalRepository + PlanEngine 生成路径）在 Android 暂为两级——GoalSetupPage
     // 已随产品变更移除（`AppState.ets` 注释），生成路径无输入源；随目标设置能力引入再补。
-    var planName by remember { mutableStateOf(context.getString(FtPlanDefaults.NAME_RES)) }
-    var planMeta by remember { mutableStateOf(context.getString(FtPlanDefaults.META_RES)) }
-    var weeklyProgress by remember { mutableStateOf(context.getString(FtPlanDefaults.WEEK_PROGRESS_RES)) }
+    var planName by remember { mutableStateOf(resources.getString(FtPlanDefaults.NAME_RES)) }
+    var planMeta by remember { mutableStateOf(resources.getString(FtPlanDefaults.META_RES)) }
+    var weeklyProgress by remember { mutableStateOf(resources.getString(FtPlanDefaults.WEEK_PROGRESS_RES)) }
     var progressFraction by remember { mutableStateOf(FtPlanDefaults.PROGRESS_FRACTION) }
     var days by remember { mutableStateOf(FtPlanDefaults.days) }
     var activeIndex by remember { mutableIntStateOf(0) }
@@ -115,8 +117,8 @@ fun PlanScreen(
         if (current != null) {
             planId = current.id
             days = ftPlanDaysFromUserPlan(current)
-            planName = current.name.ifEmpty { context.getString(R.string.plan_fallback_name) }
-            planMeta = context.getString(
+            planName = current.name.ifEmpty { resources.getString(R.string.plan_fallback_name) }
+            planMeta = resources.getString(
                 R.string.plan_meta_format,
                 current.targetAudience,
                 current.days.size,
@@ -128,14 +130,14 @@ fun PlanScreen(
                 weekStart,
             )
             val total = current.days.size
-            weeklyProgress = context.getString(R.string.plan_week_progress, stats.count, total)
+            weeklyProgress = resources.getString(R.string.plan_week_progress, stats.count, total)
             progressFraction = if (total > 0) (stats.count.toFloat() / total).coerceIn(0f, 1f) else 0f
         } else {
             // 空态（`PlanContent.applyEmptyState`）
             days = emptyList()
-            planName = context.getString(R.string.plan_fallback_name)
-            planMeta = context.getString(R.string.plan_empty_meta)
-            weeklyProgress = context.getString(R.string.plan_week_progress, 0, 0)
+            planName = resources.getString(R.string.plan_fallback_name)
+            planMeta = resources.getString(R.string.plan_empty_meta)
+            weeklyProgress = resources.getString(R.string.plan_week_progress, 0, 0)
             progressFraction = 0f
         }
         // 恢复上次浏览的卡片位置（原型 plan.html:743-746：localStorage 'fittracker-plan-state'

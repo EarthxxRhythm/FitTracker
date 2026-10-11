@@ -49,6 +49,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -98,6 +99,7 @@ fun TrainingPreferencesScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val store = remember { JsonStore(context.appDataStore) }
     val scope = rememberCoroutineScope()
 
@@ -141,7 +143,7 @@ fun TrainingPreferencesScreen(
             saving = false
             toast = PrefToastState.next(
                 toast,
-                context.getString(
+                resources.getString(
                     if (ok) FtTrainingPreferencesModel.TOAST_SAVED else FtTrainingPreferencesModel.TOAST_FAILED,
                 ),
             )

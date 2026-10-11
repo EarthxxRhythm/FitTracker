@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -118,14 +119,15 @@ fun ReviewScreen(
     // 与体重变化（数值 / 曲线 / 「较上周」脚注）；体态图（肌肉地图）本轮仍为样例——
     // V2：需肌群聚合服务（WorkoutSet.exerciseId × ContentRepository 肌肉映射）。
     val context = LocalContext.current
+    val resources = LocalResources.current
     // 空库降级样例：1RM 四行文案走资源（真实路径由 PersonalRecordService 填充）。
     val sampleOneRmRows = remember(context) {
         FtReviewModel.ONE_RM_SAMPLES.map { sample ->
             OneRmRow(
-                name = context.getString(sample.nameRes),
-                src = context.getString(sample.srcRes),
+                name = resources.getString(sample.nameRes),
+                src = resources.getString(sample.srcRes),
                 value = sample.value,
-                unit = context.getString(R.string.review_unit_kg),
+                unit = resources.getString(R.string.review_unit_kg),
             )
         }
     }
@@ -133,13 +135,13 @@ fun ReviewScreen(
     var weekStats by remember { mutableStateOf<WeeklyStats?>(null) }
     var weekBars by remember { mutableStateOf(FtReviewModel.WEEK_BARS) }
     var monthCells by remember { mutableStateOf(FtReviewModel.MONTH_CELLS) }
-    var monthLabel by remember { mutableStateOf(context.getString(FtReviewModel.MONTH_LABEL_RES)) }
-    var monthMeta by remember { mutableStateOf(context.getString(FtReviewModel.MONTH_META_RES)) }
-    var weekHeadText by remember { mutableStateOf(context.getString(FtReviewModel.WEEK.weekRes)) }
-    var monthHeadText by remember { mutableStateOf(context.getString(FtReviewModel.MONTH.weekRes)) }
+    var monthLabel by remember { mutableStateOf(resources.getString(FtReviewModel.MONTH_LABEL_RES)) }
+    var monthMeta by remember { mutableStateOf(resources.getString(FtReviewModel.MONTH_META_RES)) }
+    var weekHeadText by remember { mutableStateOf(resources.getString(FtReviewModel.WEEK.weekRes)) }
+    var monthHeadText by remember { mutableStateOf(resources.getString(FtReviewModel.MONTH.weekRes)) }
     var monthHead by remember { mutableStateOf(WeekWindow.dayLabels(WeekStart.MONDAY)) }
     var weightCurrent by remember { mutableStateOf(FtReviewModel.WEIGHT_CURRENT) }
-    var weightDelta by remember { mutableStateOf(context.getString(FtReviewModel.WEIGHT_DELTA_RES)) }
+    var weightDelta by remember { mutableStateOf(resources.getString(FtReviewModel.WEIGHT_DELTA_RES)) }
     var weightPoints by remember { mutableStateOf(FtReviewModel.WEIGHT_POINTS) }
     var hasWeightRecords by remember { mutableStateOf(false) }
     var weightDeltaValue by remember { mutableStateOf("") }
@@ -148,9 +150,9 @@ fun ReviewScreen(
         val now = System.currentTimeMillis()
         val weekStart = SettingsService.loadSettings(store).weekStart
         // 周/月尺度抬头与月历表头：纯日期计算（与数据有无无关）
-        weekHeadText = context.getString(R.string.review_head_week, WeekWindow.weekRangeText(now, weekStart, currentLanguageTag()))
+        weekHeadText = resources.getString(R.string.review_head_week, WeekWindow.weekRangeText(now, weekStart, currentLanguageTag()))
         val monthCal = java.util.Calendar.getInstance().apply { timeInMillis = now }
-        monthHeadText = context.getString(R.string.review_head_month, monthCal.get(java.util.Calendar.MONTH) + 1)
+        monthHeadText = resources.getString(R.string.review_head_month, monthCal.get(java.util.Calendar.MONTH) + 1)
         monthHead = WeekWindow.dayLabels(weekStart, currentLanguageTag())
         val sessions = WorkoutRepository.getSessions(store)
         if (sessions.isNotEmpty()) {
@@ -158,9 +160,9 @@ fun ReviewScreen(
             weekBars = FtReviewModel.weeklyBars(sessions, now, weekStart)
             monthCells = FtReviewModel.monthGrid(sessions, now, weekStart)
             val monthLabelArgs = FtReviewModel.monthLabel(now)
-            monthLabel = context.getString(R.string.review_month_label, monthLabelArgs.year, monthLabelArgs.month)
+            monthLabel = resources.getString(R.string.review_month_label, monthLabelArgs.year, monthLabelArgs.month)
             val monthMetaArgs = FtReviewModel.monthMeta(sessions, now)
-            monthMeta = context.getString(R.string.review_month_meta, monthMetaArgs.days, monthMetaArgs.minutes)
+            monthMeta = resources.getString(R.string.review_month_meta, monthMetaArgs.days, monthMetaArgs.minutes)
             val details = PersonalRecordService.createRecordDetails(sessions)
             if (details.isNotEmpty()) {
                 oneRmRows = details.take(4).map { detail ->
@@ -168,7 +170,7 @@ fun ReviewScreen(
                         name = detail.exerciseName,
                         src = detail.bestDateText,
                         value = detail.bestOneRepMax.toString(),
-                        unit = context.getString(R.string.review_unit_kg),
+                        unit = resources.getString(R.string.review_unit_kg),
                     )
                 }
             }
@@ -178,7 +180,7 @@ fun ReviewScreen(
         if (records.isNotEmpty()) {
             val deltaKg = BodyRecordService.weekDeltaKg(records, now)
             weightCurrent = FtReviewModel.weightCurrentText(records.last().kg)
-            weightDelta = context.getString(R.string.review_weight_delta_week, FtReviewModel.weightDeltaValue(deltaKg))
+            weightDelta = resources.getString(R.string.review_weight_delta_week, FtReviewModel.weightDeltaValue(deltaKg))
             weightDeltaValue = FtReviewModel.weightDeltaValue(deltaKg)
             hasWeightRecords = true
             val trend = BodyRecordService.weekTrend(records, now, weekStart, currentLanguageTag())

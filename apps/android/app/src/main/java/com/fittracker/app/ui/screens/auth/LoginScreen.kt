@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -71,6 +72,7 @@ fun LoginScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val store = remember { JsonStore(context.appDataStore) }
     val scope = rememberCoroutineScope()
 
@@ -102,7 +104,7 @@ fun LoginScreen(
     fun sendPhoneCode() {
         scope.launch {
             if (phone.isEmpty()) {
-                onToast(context.getString(R.string.auth_placeholder_phone)) // 源 L70-72
+                onToast(resources.getString(R.string.auth_placeholder_phone)) // 源 L70-72
                 return@launch
             }
             sendingCode = true
@@ -115,9 +117,9 @@ fun LoginScreen(
             countdown = COUNTDOWN_SECONDS
             onToast(
                 if (result.devCodeHint.isNotEmpty()) {
-                    context.getString(R.string.auth_toast_code_sent_demo, result.devCodeHint) // 源 L94
+                    resources.getString(R.string.auth_toast_code_sent_demo, result.devCodeHint) // 源 L94
                 } else {
-                    context.getString(R.string.auth_toast_code_sent) // 源 L96
+                    resources.getString(R.string.auth_toast_code_sent) // 源 L96
                 },
             )
         }
@@ -128,15 +130,15 @@ fun LoginScreen(
         if (loginMode == LoginMode.Phone) {
             scope.launch {
                 if (!agreed) {
-                    onToast(context.getString(R.string.auth_toast_login_agree_required)) // 源 L106-109
+                    onToast(resources.getString(R.string.auth_toast_login_agree_required)) // 源 L106-109
                     return@launch
                 }
                 if (phone.isEmpty()) {
-                    onToast(context.getString(R.string.auth_placeholder_phone)) // 源 L114-116
+                    onToast(resources.getString(R.string.auth_placeholder_phone)) // 源 L114-116
                     return@launch
                 }
                 if (code.isEmpty()) {
-                    onToast(context.getString(R.string.auth_placeholder_code)) // 源 L117-119
+                    onToast(resources.getString(R.string.auth_placeholder_code)) // 源 L117-119
                     return@launch
                 }
                 val error = AuthService.signInWithPhoneCode(store, phone, code).exceptionOrNull()?.message
@@ -244,7 +246,7 @@ fun LoginScreen(
                 AuthAux(
                     remember = remembered,
                     onRememberChange = { remembered = it },
-                    onForgot = { onToast(context.getString(AUTH_FORGOT_TOAST)) },
+                    onForgot = { onToast(resources.getString(AUTH_FORGOT_TOAST)) },
                 )
             }
 
@@ -254,8 +256,8 @@ fun LoginScreen(
             AuthSocial(
                 wechatLabel = stringResource(R.string.auth_social_wechat),
                 appleLabel = stringResource(R.string.auth_social_apple),
-                onWechat = { onToast(context.getString(AUTH_WECHAT_TOAST)) },
-                onApple = { onToast(context.getString(AUTH_APPLE_TOAST)) },
+                onWechat = { onToast(resources.getString(AUTH_WECHAT_TOAST)) },
+                onApple = { onToast(resources.getString(AUTH_APPLE_TOAST)) },
             )
         }
 

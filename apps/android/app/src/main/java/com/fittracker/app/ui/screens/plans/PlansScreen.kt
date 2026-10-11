@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -82,6 +83,7 @@ fun PlansScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val store = remember { JsonStore(context.appDataStore) }
 
     // 当前计划（对齐鸿蒙 `PlansContent`：由宿主页读 getCurrentPlan 后注入；空＝尚未启用）
@@ -94,9 +96,9 @@ fun PlansScreen(
     LaunchedEffect(Unit) {
         val current = TrainingPlanRepository.getCurrentPlan(store)
         if (current != null) {
-            currentName = current.name.ifEmpty { context.getString(R.string.plans_current_fallback_name) }
+            currentName = current.name.ifEmpty { resources.getString(R.string.plans_current_fallback_name) }
             // 元信息口径同计划 Tab（`PlanContent.applyCurrentPlanState`）
-            currentMeta = context.getString(
+            currentMeta = resources.getString(
                 R.string.plans_current_meta,
                 current.targetAudience,
                 current.days.size,

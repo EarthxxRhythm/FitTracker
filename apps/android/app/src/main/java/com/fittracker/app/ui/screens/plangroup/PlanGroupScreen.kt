@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -79,6 +80,7 @@ fun PlanGroupScreen(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     var currentDay by remember { mutableIntStateOf(0) }
     var useDisabled by remember { mutableStateOf(false) }
     var toast by remember { mutableStateOf<String?>(null) }
@@ -145,7 +147,7 @@ fun PlanGroupScreen(
                     DayPanel(
                         day = FtPlanGroupDetail.days[currentDay],
                         onExercise = { name ->
-                            toast = context.getString(R.string.plangroup_toast_exercise, name)
+                            toast = resources.getString(R.string.plangroup_toast_exercise, name)
                         },
                     )
                 }
@@ -155,9 +157,9 @@ fun PlanGroupScreen(
                 disabled = useDisabled,
                 onClick = {
                     useDisabled = true
-                    toast = context.getString(
+                    toast = resources.getString(
                         R.string.plangroup_toast_switched,
-                        context.getString(FtPlanGroupDetail.NAME_RES),
+                        resources.getString(FtPlanGroupDetail.NAME_RES),
                     )
                 },
             )
