@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  训练执行域（active 屏 + FtActiveModel）文案。中文值**逐字**取自既有硬编码与原型
+  `design/06_prototype_redraw/src/fittracker-training.html`（原型对齐纪律）：
+  改动此处的中文即偏离原型，须同步原型。
+
+  命名：`active_<元素>`。带参文案用位置参数（`%1$d` / `%2$s`），由 UI 层
+  `stringResource(id, args)` 解析；模型层只持有资源 ID（见 `FtActiveModel`）。
+
+  注：动作名在真实路径来自活跃训练态数据（`current?.name`），与 UI 文案不同源；
+  `active_fallback_exercise` 仅在无数据时降级使用。
+-->
+<resources>
+
+    <!-- 顶栏进度标签（`FtActiveModel.progressLabel`；原型 updateProgress L769-773） -->
+    <string name="active_progress_step">第 %1$d 组 / 共 %2$d 组</string>
+    <string name="active_progress_done">训练完成 · 全部 %1$d 组</string>
+    <!-- 顶部计时标签（`.top-timer`） -->
+    <string name="active_elapsed_label">总时长</string>
+    <!-- `.duo-bar` 的 `role=progressbar` aria-label -->
+    <string name="active_a11y_progress">训练组数进度</string>
+
+    <!-- 提交按钮（`FtActiveModel.submitLabel`；原型 renderSets L731-733） -->
+    <string name="active_submit">提交</string>
+    <string name="active_submit_done">已完成</string>
+
+    <!-- 动作演示卡（`.demo-card`） -->
+    <string name="active_demo_label">动作</string>
+    <!-- 无动作数据时的降级动作名（原静态「杠铃卧推」） -->
+    <string name="active_fallback_exercise">杠铃卧推</string>
+    <!-- 当前组号（`.demo-caption` 的阶段；原静态「第 2 组 · 正式组」）：`%1$d` 组序号 -->
+    <string name="active_demo_stage">第 %1$d 组 · 正式组</string>
+    <!-- 动作演示的无障碍描述：`%1$s` 动作名 -->
+    <string name="active_a11y_demo_gif">%1$s 动作演示</string>
+    <string name="active_a11y_demo_visual">%1$s 动作演示图</string>
+
+    <!-- 已完成组列表（`.set-list`） -->
+    <string name="active_empty_sets">还没有完成组</string>
+    <!-- `%1$d` 组序号 -->
+    <string name="active_set_index">第 %1$d 组</string>
+
+    <!-- 记录本组弹窗（`.modal`） -->
+    <string name="active_modal_eyebrow">RECORD SET</string>
+    <string name="active_modal_title">记录本组</string>
+    <!-- `%1$s` 动作名 · `%2$d` 组序号 -->
+    <string name="active_modal_subtitle">%1$s · 第 %2$d 组</string>
+    <string name="active_a11y_close_modal">关闭弹窗</string>
+    <string name="active_field_weight">重量</string>
+    <string name="active_field_reps">次数</string>
+    <string name="active_field_weight_unit">KG</string>
+    <string name="active_field_reps_unit">8–10</string>
+    <!-- 步进按钮无障碍：`减少{字段}` / `增加{字段}`（`%1$s` 字段标签） -->
+    <string name="active_a11y_decrease">减少%1$s</string>
+    <string name="active_a11y_increase">增加%1$s</string>
+    <string name="active_action_complete_set">完成本组</string>
+
+    <!-- 完成组庆祝（`.celebrate`） -->
+    <string name="active_celebrate_title">本组完成</string>
+    <string name="active_celebrate_subtitle">做得很好</string>
+
+</resources>

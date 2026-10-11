@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  设置域（settings 屏）文案。中文值**逐字**取自原型
+  `design/06_prototype_redraw/src/fittracker-settings.html` 与既有硬编码（原型对齐纪律）：
+  改动此处的中文即偏离原型，须同步原型。
+
+  命名：`settings_<元素>`。带参文案用位置参数（`%1$s` / `%2$s`），由 UI 层 `context.getString(...)`
+  或 `stringResource(id, args)` 解析。
+-->
+<resources>
+
+    <!-- 顶栏 / 页脚 -->
+    <string name="settings_title">设置</string>
+    <!-- `.st-back` 的 `aria-label`（原型 L374） -->
+    <string name="settings_a11y_back">返回个人页</string>
+    <!-- `.st-foot-note`（原型 L465） -->
+    <string name="settings_foot_note">FitTracker 本地优先，训练数据与身体数据默认仅保存在本机。</string>
+
+    <!-- 分组标题 -->
+    <string name="settings_section_general">通用</string>
+    <string name="settings_section_data_privacy">数据与隐私</string>
+    <string name="settings_section_about">关于</string>
+    <!-- `.sub-sec-meta`（原型 L451）：产品名，各语言一致 -->
+    <string name="settings_section_about_meta">FitTracker</string>
+    <!-- 鸿蒙独有功能块（原型无此项） -->
+    <string name="settings_section_backup">备份与恢复</string>
+
+    <!-- 行标题（`.sr-label`；开关行的 `aria-label` 与行标题逐字相同，复用同一资源） -->
+    <string name="settings_row_weight_unit">体重单位</string>
+    <string name="settings_row_language">语言</string>
+    <string name="settings_row_week_start">周开始日</string>
+    <string name="settings_row_workout_reminder">训练提醒</string>
+    <string name="settings_row_achievement_reminder">成就提醒</string>
+    <string name="settings_row_sound_vibration">声音与震动</string>
+    <string name="settings_row_keep_screen_on">训练中屏幕常亮</string>
+    <string name="settings_row_health_auth">健康数据授权</string>
+    <string name="settings_row_value_authorized">已授权</string>
+    <string name="settings_row_data_sync">训练数据同步</string>
+    <string name="settings_row_anonymous_data">匿名使用数据</string>
+    <string name="settings_row_version">版本</string>
+    <string name="settings_row_privacy">隐私说明</string>
+    <string name="settings_row_account_sync">账号与同步</string>
+
+    <!-- 分段选项（`.seg button`） -->
+    <string name="settings_option_kg">千克</string>
+    <string name="settings_option_lbs">磅</string>
+    <string name="settings_option_zh">简体中文</string>
+    <string name="settings_option_en">English</string>
+    <string name="settings_option_monday">周一</string>
+    <string name="settings_option_sunday">周日</string>
+
+    <!-- 备份与恢复（SAF 导出 / 导入） -->
+    <string name="settings_action_export_backup">导出备份</string>
+    <string name="settings_action_import_backup">导入备份</string>
+    <string name="settings_action_import">导入</string>
+    <string name="settings_action_cancel">取消</string>
+    <string name="settings_backup_read_failure">无法读取备份文件，请重试。</string>
+
+    <!-- toast（浮层提示） -->
+    <!-- 分段点击：`{行标题}已切换为「{选项}」`（原型 L507 主句，已去演示后缀） -->
+    <string name="settings_toast_segment">%1$s已切换为「%2$s」</string>
+    <!-- 开关点击：`{行标题}已开启` / `{行标题}已关闭`（原型 L519 主句） -->
+    <string name="settings_toast_switch_on">%1$s已开启</string>
+    <string name="settings_toast_switch_off">%1$s已关闭</string>
+    <!-- 「健康数据授权」行：Android 无对等数据源，如实说明 -->
+    <string name="settings_toast_health">健康数据授权暂未接入系统平台</string>
+    <!-- 逐字对齐鸿蒙 `SettingsContent.ets` 的 `toggleSyncRow` -->
+    <string name="settings_toast_sync_need_login">请先登录后再开启同步</string>
+    <!-- 训练 / 成就提醒开启被拒时的说明（计划 A6 原文） -->
+    <string name="settings_toast_reminder_need_permission">需要通知权限才能开启提醒</string>
+
+</resources>

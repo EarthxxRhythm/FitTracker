@@ -1,0 +1,4 @@
+# deploy/ 目录面向 Linux 服务器消费——仓库中恒定以 LF 存储/检出：
+# .sh 脚本与 .env 值在 Linux 上对 CRLF 敏感（\r 会致脚本报错 / env 值带隐形字符）。
+# 注意：直接 scp/复制工作区文件（Windows 端 CRLF）时，按 deploy/README.md 的「行尾标准化」步骤在服务器上转换。
+deploy/** text eol=lf

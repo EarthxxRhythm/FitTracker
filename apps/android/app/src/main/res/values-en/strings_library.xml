@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for the exercise library screen. Keys mirror
+  `values/strings_library.xml` (the zh values there are the source of truth, extracted
+  verbatim from the prototype).
+
+  Muscle and equipment display names are NOT translated here: they come from the content
+  library (`ContentRepository` → `assets/exercise-content.json`, `nameEn` field).
+  Exercise names are still Chinese (`nameZh`) — localizing them is out of this wave's scope.
+-->
+<resources>
+
+    <!-- Top bar -->
+    <string name="library_title">Exercise Library</string>
+    <string name="library_a11y_back">Back to profile</string>
+    <string name="library_a11y_fav_filter">Favorites only</string>
+
+    <!-- Search bar -->
+    <string name="library_search_hint">Search exercises, muscles, or equipment</string>
+    <string name="library_a11y_search">Search exercises</string>
+
+    <!-- Filter rows — only the two sentinel chips live here -->
+    <string name="library_part_all">All</string>
+    <string name="library_muscle_all">All muscles</string>
+
+    <!-- Cards -->
+    <string name="library_a11y_card">View %1$s details</string>
+    <string name="library_a11y_fav_add">Add %1$s to favorites</string>
+    <string name="library_a11y_fav_remove">Remove %1$s from favorites</string>
+    <string name="library_a11y_demo_gif">%1$s demo</string>
+
+    <!-- Empty states -->
+    <string name="library_empty_fav_title">No favorites yet</string>
+    <string name="library_empty_fav_hint">Tap the heart in the top-right to save exercises</string>
+    <string name="library_empty_query_title">No matching exercises</string>
+    <string name="library_empty_query_hint">Try a different keyword</string>
+    <string name="library_empty_part_title">No exercises for this muscle group</string>
+    <string name="library_empty_part_hint">Try another muscle group filter</string>
+
+    <!-- Footer note -->
+    <string name="library_foot_note">Exercise data is for demo purposes; tap a card to see key cues, or tap the heart to save it.</string>
+
+    <!-- Detail sheet -->
+    <string name="library_a11y_sheet">Exercise details</string>
+    <string name="library_sheet_media_tag">Demo</string>
+    <string name="library_a11y_close">Close</string>
+    <string name="library_sheet_row_muscles">Target muscles</string>
+    <string name="library_sheet_row_equipment">Equipment</string>
+    <string name="library_sheet_row_level">Level</string>
+    <string name="library_sheet_cta">Add to plan</string>
+    <string name="library_sheet_cta_done">Added to today\'s plan</string>
+
+    <!-- Add-to-plan toast -->
+    <string name="library_toast_added">Added “%1$s” to today\'s plan</string>
+
+    <!-- Difficulty labels (content `difficulty` token → text) -->
+    <string name="library_level_beginner">Beginner</string>
+    <string name="library_level_intermediate">Intermediate</string>
+    <string name="library_level_advanced">Advanced</string>
+
+</resources>

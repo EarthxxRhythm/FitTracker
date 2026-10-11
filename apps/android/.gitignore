@@ -1,0 +1,50 @@
+# 构建产物
+**/build
+/build-*.log
+
+# Gradle
+/.gradle/
+/.kotlin/
+
+# 本机配置（含 SDK 绝对路径，不应入库）
+/local.properties
+
+# 密钥与本地环境真值——只提交模板
+# （deploy/ 下会产生 .env / sms-hook.env，内含阿里云 AK、hook secret、Supabase 密钥；
+#   本机填真值后误提交即泄露，故覆盖 .env / .env.* / *.env 三类命名）
+.env
+.env.*
+!.env.template
+*.env
+!*.env.template
+
+# Release 签名密钥库（材料不进版本库，生成与填写见 docs/release/android-signing-and-store.md）
+*.jks
+*.keystore
+
+# IDE & Editor
+/.idea/
+*.iml
+/captures
+
+# Native
+.externalNativeBuild
+.cxx
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python 缓存（tools/ 下的脚本被 import 时产生，如探针脚本）
+__pycache__/
+*.pyc
+
+# JVM 崩溃日志（Gradle 守护进程 OOM 等会落在仓库根）
+hs_err_pid*.log
+replay_pid*.log
+
+# 本地 agent 运行时状态（与 FitTracker 鸿蒙工程约定一致，不入库）
+/.rivet/
+
+# Supabase CLI 临时目录（npx supabase 预演产生）
+supabase/.temp/

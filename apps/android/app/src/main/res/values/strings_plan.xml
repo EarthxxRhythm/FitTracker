@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  计划域（plan 屏）文案。中文值**逐字**取自既有硬编码与原型（原型对齐纪律）：
+  改动此处的中文即偏离原型，须同步原型 `design/06_prototype_redraw/src/fittracker-plan.html`。
+
+  命名：`plan_<元素>`。带参文案用位置参数（`%1$d` / `%2$s`），由 UI 层 `context.getString(...)`
+  或 `stringResource(id, args)` 解析。
+
+  注：卡片上的日期标题 / 肌群 / 时长 / 动作名与肌群名属**内容数据**——真实路径由
+  `ftPlanDaysFromUserPlan` 从用户计划填充（见 `FtPlanModel.kt`），与 UI 文案不同源，故不在此资源化。
+-->
+<resources>
+
+    <!-- 降级样例（原型 `PLANS.hypertrophy`，无当前计划时首帧展示） -->
+    <string name="plan_default_name">五日增肌计划</string>
+    <string name="plan_default_meta">增肌 · 5 练分化 · 6 周推进</string>
+    <string name="plan_default_week_progress">本周 1 / 5 天</string>
+    <string name="plan_default_progress_caption">第 1 天 · 胸</string>
+
+    <!-- 空态 / 回退（`PlanContent.applyEmptyState`） -->
+    <string name="plan_fallback_name">训练计划</string>
+    <string name="plan_empty_meta">完成目标设置后自动生成训练计划</string>
+
+    <!-- 当前计划摘要卡（`.master-card`）。`%1$s` 目标人群 · `%2$d` 天数 · `%3$s` 每周频次 -->
+    <string name="plan_meta_format">%1$s · %2$d 练分化 · %3$s</string>
+    <string name="plan_week_progress">本周 %1$d / %2$d 天</string>
+    <string name="plan_current_title">当前计划</string>
+    <!-- 进度条右侧文案（`PlanContent.activeDayCaption`）：`%1$d` 天序号 · `%2$s` 肌群标签 -->
+    <string name="plan_caption_active">第 %1$d 天 · %2$s</string>
+    <string name="plan_caption_none">暂无安排</string>
+
+    <!-- 日期卡（`.deck-card`） -->
+    <string name="plan_deck_index">第 %1$d 天 · %2$s</string>
+    <!-- 角标（`.dc-type`；`positionBadge`） -->
+    <string name="plan_badge_today">今日</string>
+    <string name="plan_badge_tomorrow">明日</string>
+    <string name="plan_badge_day_after">后天</string>
+    <string name="plan_badge_day_number">第 %1$d 天</string>
+    <string name="plan_exercise_list">动作清单</string>
+    <!-- 卡片副题（`PlanTabModel.daySubtitle`）：`%1$s` 肌群 · `%2$d` 动作数 · `%3$s` 时长（可空） -->
+    <string name="plan_day_subtitle">%1$s · %2$d 个动作</string>
+    <string name="plan_day_subtitle_with_duration">%1$s · %2$d 个动作 · %3$s</string>
+
+</resources>

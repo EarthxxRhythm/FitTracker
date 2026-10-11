@@ -1,0 +1,28 @@
+# FitTracker 覆盖层（Compose override）——端口收口（全部改为仅宿主回环绑定）
+#
+# 背景（已核验官方 master compose）：
+#   ① api-gw（Envoy 网关）：端口映射为 `${API_GW_HTTP_PORT:-...}:8000/tcp`（无 host IP）→ 0.0.0.0:8000
+#   ② supavisor（连接池）：5432 / 6543 同样无 host IP → 0.0.0.0 绑定（实测 compose ps 确认）
+#   Docker 发布端口经 iptables 直写、绕过 ufw——必须在端口绑定层收口。
+# Caddy 以 --network host 运行（见 deploy/Caddyfile），从宿主回环访问 127.0.0.1:8000 即可达；
+# 迁移/备份脚本经 127.0.0.1:5432 直连 Postgres。
+#
+# 启用（二选一）：
+#   A. cd /opt/supabase/docker && ./run.sh config add fittracker     # 官方管理脚本（若支持按文件名推导）
+#   B. 在 /opt/supabase/docker/.env 中设置：
+#        COMPOSE_FILE=docker-compose.yml:docker-compose.fittracker.yml
+# 生效：cd /opt/supabase/docker && docker compose up -d        # 重建相关容器
+# 验证：ss -ltn | grep -E ':8000|:5432|:6543'   → 三行均应为 127.0.0.1 前缀
+#
+# 兼容性：`!override` 需 Docker Compose ≥ 2.24（2024 起默认版本均满足）。
+# 若你的 compose 过旧不识别该标签：改为直接编辑 docker-compose.yml 对应 ports 行
+#   加 `127.0.0.1:` 前缀（升级时注意合并官方改动）。
+
+services:
+  api-gw:
+    ports: !override
+      - 127.0.0.1:${API_GW_HTTP_PORT:-8000}:8000/tcp
+  supavisor:
+    ports: !override
+      - 127.0.0.1:5432:5432/tcp
+      - 127.0.0.1:6543:6543/tcp

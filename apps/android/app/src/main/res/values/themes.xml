@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 深色基线，与原型 CSS 变量 bg（#07090B）对齐；无 ActionBar，标题栏交由 Compose 绘制 -->
+    <!-- 注意：XML 注释内部不允许出现连续两个短横线 -->
+    <!-- Wave 6：切 AppCompat 族（承载 per-app language 机制）；纯 Compose 渲染，窗口层属性保持 android: 命名空间。 -->
+    <style name="Theme.FitTracker" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">#07090B</item>
+        <item name="android:statusBarColor">#07090B</item>
+        <item name="android:navigationBarColor">#07090B</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

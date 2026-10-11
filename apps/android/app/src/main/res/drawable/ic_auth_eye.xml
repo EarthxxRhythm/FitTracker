@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  显示密码图标。
+  pathData 逐字取自原型 design/06_prototype_redraw/src/fittracker-auth.html:512-515
+  的 <symbol id="i-eye">：眼形四段平滑贝塞尔（L513）+ r3 瞳孔（L514），描边 1.7。
+  描边/填充统一用白色，屏内以 Icon(tint = …) 着色（ColorFilter.tint 保留 alpha）。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.7"
+        android:strokeLineJoin="round" />
+    <!-- <circle cx="12" cy="12" r="3"> 的路径等价写法（两段半圆弧） -->
+    <path
+        android:pathData="M9,12 a3,3 0 1,1 6,0 a3,3 0 1,1 -6,0 Z"
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.7" />
+</vector>

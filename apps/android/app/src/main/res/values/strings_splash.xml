@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  启动域（splash 屏）文案。规格源：鸿蒙 `features/pencil/pages/PencilSplashPage.ets`
+  （无原型 HTML 帧，逐值移植）——**该屏文案本来就是英文**（标语 / 品名 / 副标语 / 页脚彩蛋），
+  故本文件（zh 默认区域）逐字保留既有英文硬编码，即「中文逐字不变」在无中文域上的等价形态。
+
+  命名：`splash_<元素>`。`values-en/` 同键同值。
+-->
+<resources>
+
+    <!-- 文案块 @(40,382)（`buildWelcome`）：标语 Geist Mono 10 / 字距 1.4 -->
+    <string name="splash_tagline">YOUR DAILY TRAINING COMPANION</string>
+    <!-- 品名 Inter 34 Bold；品牌名各语言一致 -->
+    <string name="splash_brand">FitTracker</string>
+    <!-- 副标语 Inter 15 / 行高 1.45（`\n` 分两行） -->
+    <string name="splash_sub">Move better. Feel stronger.\nOne focused session at a time.</string>
+    <!-- 页脚彩蛋 @(40,786)：Geist Mono 10px（本工程回落 Monospace）。`\u0020` 保留 · 两侧双空格
+         （XML 文本节点里的连续空格会被资源编译器折叠，转义形式不受影响） -->
+    <string name="splash_footer">TRAIN WITH INTENTION\u0020\u0020·\u0020\u0020RECOVER WITH PURPOSE</string>
+
+</resources>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for the plan-group list screen. Keys mirror `values/strings_plans.xml`
+  (the zh values there are the source of truth, extracted verbatim from the existing literals).
+-->
+<resources>
+
+    <!-- Top bar / back. `plans_title` is also the list section header (identical in zh). -->
+    <string name="plans_title">Plan groups</string>
+    <string name="plans_a11y_back">Back to plans</string>
+
+    <!-- Current plan card -->
+    <string name="plans_current_label">Current plan</string>
+    <string name="plans_current_empty_name">No plan enabled yet</string>
+    <string name="plans_current_empty_meta">Pick a training plan below to get started</string>
+    <string name="plans_current_badge">In use</string>
+    <string name="plans_current_fallback_name">Training plan</string>
+    <string name="plans_current_meta">%1$s · %2$d-day split · %3$s</string>
+
+    <!-- Plan group cards -->
+    <string name="plans_group_days">%1$d training days</string>
+    <string name="plans_group_examples">e.g. %1$s</string>
+
+    <!-- Prototype `GROUPS` static baseline (verbatim port; not referenced yet) -->
+    <string name="plans_baseline_upper_lower_name">Upper/Lower split (2 days)</string>
+    <string name="plans_baseline_ppl_name">Push/Pull/Legs split (3 days)</string>
+    <string name="plans_baseline_split4_name">4-day split</string>
+    <string name="plans_baseline_split5_name">5-day split</string>
+    <string name="plans_baseline_audience_beginner">Beginner to intermediate</string>
+    <string name="plans_baseline_audience_all_levels">All levels</string>
+    <string name="plans_baseline_audience_advanced">Intermediate to advanced</string>
+    <string name="plans_baseline_freq_4days">4 days / week</string>
+    <string name="plans_baseline_freq_3to6days">3-6 days / week</string>
+    <string name="plans_baseline_freq_5days">5 days / week</string>
+    <string name="plans_baseline_upper_lower_examples">Barbell bench press · Dumbbell shoulder press · Incline dumbbell fly</string>
+    <string name="plans_baseline_ppl_examples">Barbell bench press · Dumbbell shoulder press · Incline dumbbell press</string>
+    <string name="plans_baseline_split4_examples">Barbell bench press · Incline dumbbell press · Parallel bar dip</string>
+    <string name="plans_baseline_split5_examples">Barbell bench press · Incline dumbbell press · Dumbbell fly</string>
+
+</resources>

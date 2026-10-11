@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  动作详情域（exerciseDetail 屏）文案。中文值**逐字**取自既有硬编码
+  （规格源：鸿蒙 `features/exercise/pages/ExerciseDetailPage.ets`，逐值移植）：改动此处的中文即偏离源页。
+
+  命名：`exercise_<元素>`。带参文案用位置参数（`%1$s` / `%2$s`），由 UI 层
+  `stringResource(id, args)` 解析；模型 / 解析层只持有资源 ID（见 `ExerciseDetailScreen.kt` 的 `FtLabel`）。
+
+  注：动作名 / 步骤 / 提示 / 替代动作名 / 媒体来源·授权等**真实文案**来自内容库
+  （`ContentRepository` / `ExerciseContent`），非本域文案；此处资源化的是屏内静态文案与降级文案。
+-->
+<resources>
+
+    <!-- 分段标题 + 说明（`buildDetailLaneHeader`） -->
+    <string name="exercise_lane_media_title">媒体与演示</string>
+    <string name="exercise_lane_media_desc">先确认媒体资源和演示状态，再决定直接训练还是查看更深内容。</string>
+    <string name="exercise_lane_technique_title">执行与替代</string>
+    <string name="exercise_lane_technique_desc">把动作步骤、关键提醒和替代动作放在同一段，方便训练前快速过一遍。</string>
+    <string name="exercise_lane_meta_title">扩展与资料</string>
+    <string name="exercise_lane_meta_desc">把训练资料和元信息收在尾部，不干扰前面的主任务。</string>
+
+    <!-- 首屏空态（`build()` 的 `!hasExercise` 分支） -->
+    <string name="exercise_not_found_eyebrow">动作详情</string>
+    <string name="exercise_not_found_title">未找到动作</string>
+    <string name="exercise_not_found_desc">当前入口没有带上有效的动作信息，请从训练预览页或训练回顾页重新进入。</string>
+
+    <!-- 知识英雄卡（`buildKnowledgeHeroSection`） -->
+    <string name="exercise_metric_steps_label">步骤</string>
+    <string name="exercise_metric_steps_note">执行序列</string>
+    <string name="exercise_metric_cues_label">提示</string>
+    <string name="exercise_metric_cues_note">关键提醒</string>
+    <string name="exercise_metric_alternatives_label">替代</string>
+    <string name="exercise_metric_alternatives_note">可切换动作</string>
+    <string name="exercise_focus_label">训练焦点</string>
+    <string name="exercise_safety_label">安全提示</string>
+    <!-- 英雄卡抬眉（`getHeroEyebrow`） -->
+    <string name="exercise_eyebrow_learning">动作学习</string>
+    <string name="exercise_eyebrow_reference">动作资料</string>
+    <string name="exercise_eyebrow_detail">动作详情</string>
+    <!-- 英雄聚焦句三段拼接（`getHeroSummary`）：`%1$s` 肌群 · `%2$s` 器械 · `%3$s` 提示 -->
+    <string name="exercise_hero_summary">%1$s | %2$s | %3$s</string>
+    <string name="exercise_hero_focus_default">先确认动作路径和发力顺序</string>
+    <!-- 肌群 / 器械摘要空态（`getMuscleSummary` / `getEquipmentSummary`） -->
+    <string name="exercise_muscle_pending">目标肌群待补充</string>
+    <string name="exercise_equipment_pending">器械要求待补充</string>
+    <!-- 资料摘要退路：`%1$s` 动作编号（`getMetaSummary`） -->
+    <string name="exercise_meta_id">动作编号 %1$s</string>
+    <!-- 执行焦点 / 安全焦点退路（`getExecutionFocusText` / `getSafetyFocusText`） -->
+    <string name="exercise_execution_focus_default">先确认动作路径、节奏和发力顺序。</string>
+    <string name="exercise_safety_focus_default">暂无额外安全提示，训练前仍建议先完成热身与重量试探。</string>
+
+    <!-- 媒体与演示卡（`buildMediaSection`） -->
+    <string name="exercise_media_title">动作演示</string>
+    <string name="exercise_media_cover_label">封面</string>
+    <string name="exercise_media_cover_note">静态预览</string>
+    <string name="exercise_media_video_label">视频</string>
+    <string name="exercise_media_video_note">动态演示</string>
+    <string name="exercise_media_source_row">统一来源</string>
+    <string name="exercise_media_license_row">统一授权</string>
+    <string name="exercise_media_cover_block">封面资源</string>
+    <string name="exercise_media_video_block">视频资源</string>
+    <string name="exercise_media_preview_overlay">动作预览</string>
+    <!-- 媒体预览盒的无障碍描述：`%1$s` 动作名 -->
+    <string name="exercise_a11y_demo">%1$s 动作演示</string>
+    <!-- 资源块三行（`buildMediaAssetBlock`） -->
+    <string name="exercise_asset_ref_row">资源引用</string>
+    <string name="exercise_asset_source_row">来源说明</string>
+    <string name="exercise_asset_license_row">授权口径</string>
+
+    <!-- 视频占位（`getVideoPlaceholder`） -->
+    <string name="exercise_video_placeholder_ready">本地动作库已收录视频素材</string>
+    <string name="exercise_video_placeholder_soon">当前动作库先提供图文讲解，视频素材会后续补充</string>
+
+    <!-- 难度文案（`getDifficultyText`） -->
+    <string name="exercise_difficulty_beginner">入门</string>
+    <string name="exercise_difficulty_intermediate">进阶</string>
+    <string name="exercise_difficulty_advanced">高级</string>
+
+    <!-- 媒体总体状态角标 / 说明（`fillPresentationCopy`） -->
+    <string name="exercise_media_badge_playable">可播放</string>
+    <string name="exercise_media_status_playable">已解析到可直接展示的媒体资源</string>
+    <string name="exercise_media_summary_playable">当前版本会直接展示可解析资源，同时保留来源和授权说明。</string>
+    <string name="exercise_media_detail_playable">轻量闭环优先服务动作理解；后续再考虑缓存、批量分发和更多播放器能力。</string>
+    <string name="exercise_media_badge_declared">已配置</string>
+    <string name="exercise_media_status_declared">媒体引用已记录，当前按受控降级展示</string>
+    <string name="exercise_media_summary_declared">页面会优先把封面、来源、授权和失败原因说清楚，不会对未映射资源强行尝试播放。</string>
+    <string name="exercise_media_detail_declared">当前 `local://` 更像内容库里的受控引用；等真实资源映射落地后，可以在这里平滑升级为预览或播放。</string>
+    <string name="exercise_media_badge_placeholder">图文</string>
+    <string name="exercise_media_status_placeholder">当前先提供图文讲解，视频素材会随内容包逐步补齐</string>
+    <string name="exercise_media_detail_placeholder">现阶段优先保证动作要点、来源和训练说明可直接使用；后续补入视频后可沿用同一页面结构。</string>
+    <string name="exercise_media_badge_missing">待补齐</string>
+    <string name="exercise_media_status_missing">暂未提供封面或视频</string>
+    <string name="exercise_media_summary_missing">当前动作还没有可展示的媒体信息。</string>
+    <string name="exercise_media_detail_missing">后续补入受控的封面或视频引用后，这里会自动切换到更明确的预览状态。</string>
+
+    <!-- 单资源状态文案（`getAssetStateText`） -->
+    <string name="exercise_asset_cover_ready">可预览</string>
+    <string name="exercise_asset_cover_declared">已记录引用</string>
+    <string name="exercise_asset_cover_missing">未提供</string>
+    <string name="exercise_asset_video_ready">可播放</string>
+    <string name="exercise_asset_video_declared">待映射播放</string>
+    <string name="exercise_asset_video_missing">未提供</string>
+
+    <!-- 单资源主文案（`getAssetPrimaryText`） -->
+    <string name="exercise_asset_cover_primary_ready">封面可直接预览</string>
+    <string name="exercise_asset_cover_primary_declared">封面引用已记录</string>
+    <string name="exercise_asset_cover_primary_missing">暂无封面素材</string>
+    <string name="exercise_asset_video_primary_ready">视频可直接播放</string>
+    <string name="exercise_asset_video_primary_declared">视频引用已记录</string>
+    <string name="exercise_asset_video_primary_missing">暂无动作演示视频</string>
+
+    <!-- 单资源副文案（`getAssetSecondaryText`） -->
+    <string name="exercise_asset_cover_secondary_ready">当前资源地址可直接交给图片组件渲染。</string>
+    <string name="exercise_asset_video_secondary_ready">当前资源地址可直接交给播放器消费。</string>
+    <string name="exercise_asset_cover_secondary_local">当前版本只保留 `local://` 受控引用，尚未映射到应用内真实封面文件。</string>
+    <string name="exercise_asset_video_secondary_local">当前版本不做整库离线视频，也不会对未映射的 `local://` 资源强行播放。</string>
+    <string name="exercise_asset_secondary_declared">当前引用已进入内容库，但还不在页面内直接展示的受支持范围。</string>
+    <string name="exercise_asset_secondary_tail">后续补入受控资源后即可在这里展示更完整的媒体体验。</string>
+
+    <!-- 来源标签（`getSourceLabel`） -->
+    <string name="exercise_source_missing">未提供</string>
+    <string name="exercise_source_local">本地动作库引用</string>
+    <string name="exercise_source_remote">远程受控资源</string>
+    <string name="exercise_source_file">应用内文件资源</string>
+    <string name="exercise_source_custom">自定义资源引用</string>
+
+    <!-- 授权标签（`getLicenseLabel`） -->
+    <string name="exercise_license_missing">暂无授权信息</string>
+    <string name="exercise_license_local">仅允许自制或已授权素材落地</string>
+    <string name="exercise_license_remote">需保持远程资源授权可追溯</string>
+    <string name="exercise_license_file">应用内已打包或用户侧文件</string>
+    <string name="exercise_license_custom">需在接入前补齐授权说明</string>
+
+    <!-- 来源汇总（`buildSourceNote`）：`%1$s` 封面来源 · `%2$s` 视频来源 -->
+    <string name="exercise_note_source_both">封面：%1$s；视频：%2$s</string>
+    <string name="exercise_note_source_video">视频：%1$s</string>
+    <string name="exercise_note_source_cover">封面：%1$s</string>
+    <string name="exercise_note_source_none">当前动作未附带媒体来源</string>
+
+    <!-- 授权汇总（`buildLicenseNote`）：`%1$s` 封面授权 · `%2$s` 视频授权 -->
+    <string name="exercise_note_license_both">封面：%1$s；视频：%2$s</string>
+    <string name="exercise_note_license_video">视频：%1$s</string>
+    <string name="exercise_note_license_cover">封面：%1$s</string>
+    <string name="exercise_note_license_none">补入资源时需同步登记授权口径</string>
+
+    <!-- 媒体预览标签（`getMediaPreviewLabel`） -->
+    <string name="exercise_preview_cover">封面预览</string>
+    <string name="exercise_preview_video">视频资源已就绪</string>
+    <string name="exercise_preview_reference">资源引用已登记</string>
+    <string name="exercise_preview_missing">媒体待补充</string>
+
+    <!-- 资源可用性标签（`getAssetAvailabilityLabel`） -->
+    <string name="exercise_availability_inline">可内联</string>
+    <string name="exercise_availability_reference">仅引用</string>
+    <string name="exercise_availability_missing">缺失</string>
+
+    <!-- 状态面板空态（`getStatusEmptyText`） -->
+    <string name="exercise_status_empty_warning">暂无安全注意</string>
+    <string name="exercise_status_empty_error">暂无常见错误</string>
+    <string name="exercise_status_empty_info">暂无训练提示</string>
+
+    <!-- 执行要点 / 替代动作 / 资料元信息（`buildTechniqueSection` 等） -->
+    <string name="exercise_technique_title">执行要点</string>
+    <string name="exercise_steps_title">动作步骤</string>
+    <string name="exercise_steps_empty">暂无动作步骤</string>
+    <string name="exercise_cues_title">训练提示</string>
+    <string name="exercise_mistakes_title">常见错误</string>
+    <string name="exercise_safety_title">安全注意</string>
+    <string name="exercise_alternative_title">替代动作</string>
+    <string name="exercise_alternative_desc">如果当前器械条件不匹配，或你想降低动作门槛，可以先从这里选择同目标动作。</string>
+    <string name="exercise_alternative_empty">当前没有登记替代动作，可先按当前动作完成训练。</string>
+    <string name="exercise_metadata_title">资料元信息</string>
+    <string name="exercise_meta_id_row">动作编号</string>
+    <string name="exercise_meta_name_en_row">英文名称</string>
+    <string name="exercise_meta_muscle_row">目标肌群</string>
+    <string name="exercise_meta_equipment_row">器械要求</string>
+
+</resources>

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for the settings screen. Keys mirror `values/strings_settings.xml`
+  (the zh values there are the source of truth, extracted verbatim from the prototype).
+-->
+<resources>
+
+    <!-- Top bar / footer -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_a11y_back">Back to profile</string>
+    <string name="settings_foot_note">FitTracker is local-first: workout and body data stay on this device by default.</string>
+
+    <!-- Section headers -->
+    <string name="settings_section_general">General</string>
+    <string name="settings_section_data_privacy">Data &amp; Privacy</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_section_about_meta">FitTracker</string>
+    <string name="settings_section_backup">Backup &amp; Restore</string>
+
+    <!-- Row labels -->
+    <string name="settings_row_weight_unit">Weight unit</string>
+    <string name="settings_row_language">Language</string>
+    <string name="settings_row_week_start">Week starts on</string>
+    <string name="settings_row_workout_reminder">Workout reminder</string>
+    <string name="settings_row_achievement_reminder">Achievement reminder</string>
+    <string name="settings_row_sound_vibration">Sound &amp; vibration</string>
+    <string name="settings_row_keep_screen_on">Keep screen on during workouts</string>
+    <string name="settings_row_health_auth">Health data access</string>
+    <string name="settings_row_value_authorized">Authorized</string>
+    <string name="settings_row_data_sync">Workout data sync</string>
+    <string name="settings_row_anonymous_data">Anonymous usage data</string>
+    <string name="settings_row_version">Version</string>
+    <string name="settings_row_privacy">Privacy notice</string>
+    <string name="settings_row_account_sync">Account &amp; sync</string>
+
+    <!-- Segment options. Language names stay in their own language (platform convention). -->
+    <string name="settings_option_kg">Kilograms</string>
+    <string name="settings_option_lbs">Pounds</string>
+    <string name="settings_option_zh">简体中文</string>
+    <string name="settings_option_en">English</string>
+    <string name="settings_option_monday">Monday</string>
+    <string name="settings_option_sunday">Sunday</string>
+
+    <!-- Backup & restore -->
+    <string name="settings_action_export_backup">Export backup</string>
+    <string name="settings_action_import_backup">Import backup</string>
+    <string name="settings_action_import">Import</string>
+    <string name="settings_action_cancel">Cancel</string>
+    <string name="settings_backup_read_failure">Couldn\'t read the backup file. Please try again.</string>
+
+    <!-- Toasts -->
+    <string name="settings_toast_segment">%1$s switched to “%2$s”</string>
+    <string name="settings_toast_switch_on">%1$s turned on</string>
+    <string name="settings_toast_switch_off">%1$s turned off</string>
+    <string name="settings_toast_health">Health data access isn\'t available on this platform yet</string>
+    <string name="settings_toast_sync_need_login">Please sign in before enabling sync</string>
+    <string name="settings_toast_reminder_need_permission">Allow notifications to turn on reminders</string>
+
+</resources>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for the backup domain. Keys mirror `values/strings_backup.xml`
+  (the zh values there are the source of truth, extracted verbatim from the
+  HarmonyOS service `UserDataBackupService.ets`).
+-->
+<resources>
+
+    <!-- Service constants (source :13-18) -->
+    <string name="backup_scope_summary">Only goals, plans, and workout records are backed up; training drafts, the content library, and the media cache are not included.</string>
+    <string name="backup_usage_hint">Useful when switching phones, exporting before a cleanup, or restoring by hand.</string>
+    <string name="backup_restore_rule">Goals and plans come from the imported package; workout records are merged and de-duplicated by sessionId.</string>
+    <string name="backup_export_success_status">Backup created. Use it to switch phones, export before a cleanup, or restore by hand.</string>
+    <string name="backup_export_failure_status">Couldn\'t create the backup. Please try again later.</string>
+    <string name="backup_import_empty_status">Paste the backup JSON first.</string>
+
+    <!-- Import failures (source :302-305, split by statusId) -->
+    <string name="backup_import_failure_unsupported">This backup version isn\'t supported yet. Please update the app and try again.</string>
+    <string name="backup_import_failure_invalid">The backup format is invalid and can\'t be imported.</string>
+
+    <!-- Import success (source :314-316 main clause + :319/:321 fallback clauses) -->
+    <string name="backup_import_success">Backup imported: goals and plans were restored from the imported package, and workout records were merged and de-duplicated by sessionId. Restored %1$d plans and kept %2$d workout records after merging.</string>
+    <string name="backup_import_success_fallback_plan">The current plan was invalid, so it fell back to the first available plan.</string>
+    <string name="backup_import_success_plan_cleared">The imported package had no available plans, so the current plan was cleared.</string>
+
+</resources>

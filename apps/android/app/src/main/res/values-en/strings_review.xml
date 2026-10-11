@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for the review screen. Keys mirror `values/strings_review.xml`
+  (the zh values there are the source of truth, extracted verbatim from the prototype).
+
+  Date text (week range) and weekday labels come from `data/service/WeekWindow`
+  (`weekRangeText` / `dayLabels`) and are not localized yet — see the file header note
+  in `values/strings_review.xml`.
+-->
+<resources>
+
+    <!-- Scale toolbar (`.seg`) -->
+    <string name="review_scale_week">Week</string>
+    <string name="review_scale_month">Month</string>
+
+    <!-- Overview head: `This week · <range>` / `This month · <N>` -->
+    <string name="review_head_week">This week · %1$s</string>
+    <string name="review_head_month">This month · %1$d</string>
+    <string name="review_head_week_sample">This week · Jun 7–13</string>
+    <string name="review_head_month_sample">This month · Jun</string>
+
+    <!-- Stat card labels and units -->
+    <string name="review_stat_workouts">Workouts</string>
+    <string name="review_stat_duration">Duration</string>
+    <string name="review_stat_weight_change">Weight change</string>
+    <string name="review_unit_times">workouts</string>
+    <string name="review_unit_minutes">min</string>
+    <string name="review_unit_kg">kg</string>
+
+    <!-- Overview copy (prototype WEEK / MONTH) -->
+    <string name="review_week_headline">Looking good — keep it up.</string>
+    <string name="review_week_desc">You finished 1 more workout than last week, and your average session was 12 minutes longer.</string>
+    <string name="review_week_sub">Last 7 days</string>
+    <string name="review_month_headline">A steadier month.</string>
+    <string name="review_month_desc">17 workouts so far this month, 4 a week on average, 720 minutes in total.</string>
+    <string name="review_month_sub">Daily · darker means more volume</string>
+
+    <!-- Training rhythm card -->
+    <string name="review_activity_title">Training rhythm</string>
+    <!-- `%1$d` year · `%2$d` month -->
+    <string name="review_month_label">%2$d/%1$d</string>
+    <string name="review_month_label_sample">6/2026</string>
+    <!-- `%1$d` training days · `%2$d` total minutes -->
+    <string name="review_month_meta">%1$d training days · %2$d min</string>
+    <string name="review_month_meta_sample">17 training days · 720 min</string>
+    <string name="review_month_tip">One square per day · darker means more volume</string>
+    <!-- `.month-legend` levels -->
+    <string name="review_month_legend_none">None</string>
+    <string name="review_month_legend_light">Light</string>
+    <string name="review_month_legend_medium">Medium</string>
+    <string name="review_month_legend_high">High</string>
+    <string name="review_month_legend_max">Max</string>
+
+    <!-- Muscle map card -->
+    <string name="review_muscle_title">Muscle map</string>
+    <string name="review_muscle_a11y_mode">Muscle map mode</string>
+    <string name="review_muscle_legend_low">Low</string>
+    <string name="review_muscle_legend_high">High</string>
+    <string name="review_muscle_mode_balance">Balance</string>
+    <string name="review_muscle_mode_fatigue">Fatigue</string>
+    <string name="review_muscle_mode_strength">Strength</string>
+    <string name="review_muscle_meta_balance">Last 30 days · volume</string>
+    <string name="review_muscle_meta_fatigue">Current recovery</string>
+    <string name="review_muscle_meta_strength">Strength &amp; best lifts</string>
+    <string name="review_muscle_note_balance">Chest has the most volume, core the least.</string>
+    <string name="review_muscle_note_fatigue">Legs and glutes are the most fatigued — prioritize recovery.</string>
+    <string name="review_muscle_note_strength">Chest and legs are strongest; core lags behind.</string>
+
+    <!-- Muscle labels (18 groups) -->
+    <string name="review_muscle_trapezius">Trapezius</string>
+    <string name="review_muscle_deltoids">Shoulders</string>
+    <string name="review_muscle_chest">Chest</string>
+    <string name="review_muscle_upper_back">Upper back</string>
+    <string name="review_muscle_serratus">Serratus</string>
+    <string name="review_muscle_biceps">Biceps</string>
+    <string name="review_muscle_triceps">Triceps</string>
+    <string name="review_muscle_forearm">Forearms</string>
+    <string name="review_muscle_abs">Abs</string>
+    <string name="review_muscle_obliques">Obliques</string>
+    <string name="review_muscle_lower_back">Lower back</string>
+    <string name="review_muscle_gluteal">Glutes</string>
+    <string name="review_muscle_quadriceps">Quads</string>
+    <string name="review_muscle_hamstring">Hamstrings</string>
+    <string name="review_muscle_adductors">Adductors</string>
+    <string name="review_muscle_hip_flexors">Hip flexors</string>
+    <string name="review_muscle_calves">Calves</string>
+    <string name="review_muscle_tibialis">Tibialis</string>
+
+    <!-- Selected-muscle detail row -->
+    <!-- `%1$d` set count -->
+    <string name="review_muscle_detail_sets">%1$d sets</string>
+    <string name="review_muscle_recovery_0">Recovered</string>
+    <string name="review_muscle_recovery_1">Recovering</string>
+    <string name="review_muscle_recovery_2">Slightly fatigued</string>
+    <string name="review_muscle_recovery_3">Fatigued</string>
+    <string name="review_muscle_strength_0">Weak</string>
+    <string name="review_muscle_strength_1">Average</string>
+    <string name="review_muscle_strength_2">Moderate</string>
+    <string name="review_muscle_strength_3">Strong</string>
+    <string name="review_muscle_detail_none">—</string>
+
+    <!-- Weight &amp; goal card -->
+    <string name="review_weight_title">Weight &amp; goal</string>
+    <string name="review_weight_foot_current">Current</string>
+    <string name="review_weight_delta_sample">-0.8 kg vs. last month</string>
+    <!-- `%1$s` delta value -->
+    <string name="review_weight_delta_week">%1$s kg vs. last week</string>
+    <!-- `%1$s` goal value -->
+    <string name="review_weight_goal_label">Goal %1$s kg</string>
+    <string name="review_weight_goal_a11y_open">Set weight goal</string>
+
+    <!-- Goal dialog -->
+    <string name="review_goal_modal_title">Set weight goal</string>
+    <string name="review_goal_modal_desc">Enter your target weight to update the goal line on the chart.</string>
+    <string name="review_goal_modal_a11y_input">Target weight</string>
+    <string name="review_goal_modal_unit">kg</string>
+    <string name="review_goal_modal_cancel">Cancel</string>
+    <string name="review_goal_modal_save">Save</string>
+
+    <!-- Estimated 1RM card -->
+    <string name="review_1rm_title">Estimated 1RM</string>
+    <string name="review_1rm_meta">From best working sets</string>
+    <string name="review_1rm_sample_bench_press">Barbell bench press</string>
+    <string name="review_1rm_sample_squat">Barbell squat</string>
+    <string name="review_1rm_sample_deadlift">Barbell deadlift</string>
+    <string name="review_1rm_sample_row">Barbell row</string>
+    <string name="review_1rm_sample_bench_press_src">Jun 10 · Set 3</string>
+    <string name="review_1rm_sample_squat_src">Jun 8 · Set 2</string>
+    <string name="review_1rm_sample_deadlift_src">Jun 5 · Set 1</string>
+    <string name="review_1rm_sample_row_src">Jun 3 · Set 2</string>
+
+    <!-- Effort card -->
+    <string name="review_effort_title">Effort</string>
+    <string name="review_effort_meta">Effort · RIR / RPE</string>
+    <string name="review_effort_a11y_scale">Effort scale</string>
+    <string name="review_effort_note">RIR is how many reps you had left; RPE rates effort from 0–10, where RPE ≈ 10 − RIR.</string>
+    <!-- `%1$s` metric name (`RIR` / `RPE`) -->
+    <string name="review_effort_unit">%1$s · 8-session average</string>
+
+</resources>

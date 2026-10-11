@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  训练预览域（workout 屏）文案。中文值**逐字**取自既有硬编码与原型
+  `design/06_prototype_redraw/src/fittracker-training-preview.html`（原型对齐纪律）：
+  改动此处的中文即偏离原型，须同步原型。
+
+  命名：`workout_<元素>`。带参文案用位置参数（`%1$s` / `%1$d`），由 UI 层
+  `stringResource(id, args)` 或 `context.getString(...)` 解析。
+
+  注：动作名在**真实路径**来自计划 / 内容库数据（`workout?.exercises`），与 UI 文案不同源；
+  此处资源化的仅为**无计划时的屏内降级样例**（原型默认清单），键名以 `workout_fallback_` 前缀标注。
+-->
+<resources>
+
+    <!-- 顶栏 / 无障碍（原型 `.pv-icon-btn` 的 aria-label，L437 / L444） -->
+    <string name="workout_a11y_back">返回首页</string>
+    <string name="workout_a11y_more">更多选项</string>
+
+    <!-- hero -->
+    <string name="workout_title">训练预览</string>
+    <!-- 计划名降级样例（无当前计划 / 非训练日时的 `.pv-sub`，原静态） -->
+    <string name="workout_fallback_plan_name">第 1 天 · 上肢力量</string>
+
+    <!-- 动作分组标签（`.pv-group`） -->
+    <string name="workout_group_warmup">热身动作</string>
+    <string name="workout_group_main">主动作</string>
+
+    <!-- 降级样例动作名（原型默认清单；真实路径由计划数据填充，见文件头注） -->
+    <string name="workout_fallback_ex_band_shoulder">弹力带肩袖激活</string>
+    <string name="workout_fallback_ex_scapular_pushup">肩胛俯卧撑</string>
+    <string name="workout_fallback_ex_bench_press">杠铃卧推</string>
+    <string name="workout_fallback_ex_incline_db_press">上斜哑铃卧推</string>
+    <string name="workout_fallback_ex_seated_shoulder_press">坐姿肩推</string>
+    <string name="workout_fallback_ex_triceps_pushdown">绳索下压</string>
+
+    <!-- 页脚提示 / 主 CTA -->
+    <string name="workout_note">确认动作与重量后开始训练</string>
+    <string name="workout_cta_start">开始训练</string>
+
+    <!-- 浮层（`.pv-toast`，原型 `showToast`） -->
+    <string name="workout_toast_more_options">更多选项（原型）</string>
+
+</resources>

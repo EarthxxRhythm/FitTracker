@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  账号与同步域（AccountSyncScreen）。
+
+  中文值为**逐字**原样（Wave 6 · 6b 分片要求），不得改写措辞；英文见 values-en/strings_account.xml。
+  SyncResult.message 来自数据层，本域不提取（屏内按原样展示）。
+-->
+<resources>
+
+    <!-- 顶栏 -->
+    <string name="account_title">账号与同步</string>
+    <string name="account_a11y_back">返回</string>
+
+    <!-- 账号卡 -->
+    <string name="account_default_display_name">训练者</string>
+    <string name="account_local_account">本机账号</string>
+    <string name="account_provider_email_password">邮箱密码</string>
+    <string name="account_provider_local">本地账号</string>
+    <string name="account_avatar_fallback">训</string>
+
+    <!-- 同步卡 -->
+    <string name="account_sync_status_label">同步状态</string>
+    <string name="account_last_sync_label">上次同步</string>
+    <string name="account_auto_sync_label">自动同步</string>
+    <string name="account_sync_now">立即同步</string>
+    <string name="account_status_unauthenticated">未登录</string>
+    <string name="account_status_syncing">同步中…</string>
+    <string name="account_status_synced">已同步</string>
+    <string name="account_status_failed">同步失败</string>
+    <string name="account_status_never_synced">尚未同步</string>
+
+    <!-- 退出登录 -->
+    <string name="account_sign_out">退出登录</string>
+    <string name="account_sign_out_processing">处理中…</string>
+
+    <!-- 浮层提示 -->
+    <string name="account_toast_auto_on">已开启自动同步</string>
+    <string name="account_toast_auto_off">已关闭自动同步</string>
+
+    <!-- 页脚说明 -->
+    <string name="account_sync_scope_note">同步内容：训练目标、计划、训练记录与个人资料。退出登录仅清除本机登录状态，业务数据保留在本机；云端数据在下次登录后可恢复。</string>
+
+</resources>

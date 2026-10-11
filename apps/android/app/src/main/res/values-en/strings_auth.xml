@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for the auth domain (welcome / login / register + shared Auth components).
+  Keys mirror `values/strings_auth.xml` (the zh values there are the source of truth,
+  extracted verbatim from the screens / HTML prototype).
+
+  The agreement row renders as four sibling text runs, so `auth_agree_prefix` and
+  `auth_agree_conjunction` carry the English word spacing (double-quoted to preserve the
+  leading / trailing spaces, which AAPT would otherwise trim).
+-->
+<resources>
+
+    <string name="auth_brand_wordmark">FITTRACKER</string>
+
+    <string name="auth_welcome_eyebrow">TRAIN SMARTER. LIVE STRONGER.</string>
+    <string name="auth_welcome_headline">Turn training into\nvisible progress.</string>
+    <string name="auth_welcome_subtitle">Log every workout and read your body\'s signals.\nGet stronger, the smarter way.</string>
+    <string name="auth_welcome_visual_caption">CONSISTENCY > INTENSITY</string>
+    <string name="auth_welcome_cta">Get started</string>
+    <string name="auth_welcome_foot">Local records · No sign-up · Start anytime</string>
+
+    <string name="auth_login_eyebrow">WELCOME BACK</string>
+    <string name="auth_login_title">Welcome back</string>
+    <string name="auth_login_subtitle">Sign in to sync your workouts and body data</string>
+    <string name="auth_login_sandbox_banner">Demo mode: cloud not configured, phone code is 000000</string>
+
+    <string name="auth_register_eyebrow">CREATE ACCOUNT</string>
+    <string name="auth_register_title">Create account</string>
+    <string name="auth_register_subtitle">Start logging every workout and see visible progress</string>
+
+    <string name="auth_mode_phone">Phone code</string>
+    <string name="auth_mode_email">Email &amp; password</string>
+
+    <string name="auth_field_nickname">Nickname</string>
+    <string name="auth_field_phone">Phone</string>
+    <string name="auth_field_code">Verification code</string>
+    <string name="auth_field_email">Email</string>
+    <string name="auth_field_password">Password</string>
+    <string name="auth_field_confirm_password">Confirm password</string>
+
+    <string name="auth_placeholder_nickname">Pick a name for yourself</string>
+    <string name="auth_placeholder_phone">Enter your phone number</string>
+    <string name="auth_placeholder_code">Enter the verification code</string>
+    <string name="auth_placeholder_email">Enter your email</string>
+    <string name="auth_placeholder_password">Enter your password</string>
+    <string name="auth_placeholder_register_password">Set a password of 8+ characters</string>
+    <string name="auth_placeholder_confirm_password">Enter the password again</string>
+
+    <string name="auth_action_send_code">Get code</string>
+    <string name="auth_code_countdown">%1$ds</string>
+
+    <string name="auth_agree_prefix">"I have read and agree to "</string>
+    <string name="auth_agree_user_agreement">Terms of Service</string>
+    <string name="auth_agree_conjunction">" and "</string>
+    <string name="auth_agree_privacy">Privacy Policy</string>
+
+    <string name="auth_aux_remember">Remember me</string>
+    <string name="auth_aux_forgot">Forgot password?</string>
+    <string name="auth_action_login">Sign in</string>
+    <string name="auth_action_register">Sign up</string>
+    <string name="auth_divider_other_login">Other ways to sign in</string>
+    <string name="auth_social_wechat">WeChat</string>
+    <string name="auth_social_apple">Apple</string>
+    <string name="auth_switch_no_account">No account yet?</string>
+    <string name="auth_switch_register">Sign up now</string>
+    <string name="auth_switch_has_account">Already have an account?</string>
+    <string name="auth_switch_login">Sign in</string>
+
+    <string name="auth_a11y_hide_password">Hide password</string>
+    <string name="auth_a11y_show_password">Show password</string>
+
+    <string name="auth_error_required_email">Enter your email</string>
+    <string name="auth_error_required_password">Enter your password</string>
+    <string name="auth_error_required_nickname">Enter a nickname</string>
+    <string name="auth_error_required_phone">Enter your phone number</string>
+    <string name="auth_error_required_confirm">Enter the password again</string>
+    <string name="auth_error_phone_invalid">Enter a valid phone number</string>
+    <string name="auth_error_password_min_length">Password must be at least %1$d characters</string>
+    <string name="auth_error_password_mismatch">The passwords don\'t match</string>
+
+    <string name="auth_toast_agree_required">Please read and accept the User Agreement first</string>
+    <string name="auth_toast_login_agree_required">Please read and accept the User Agreement and Privacy Policy first</string>
+    <string name="auth_toast_code_sent">Verification code sent</string>
+    <string name="auth_toast_code_sent_demo">Verification code sent (demo code %1$s)</string>
+    <string name="auth_toast_login_success">Signed in · prototype demo</string>
+    <string name="auth_toast_register_success">Signed up · prototype demo</string>
+    <string name="auth_toast_forgot">Reset link sent (prototype)</string>
+    <string name="auth_toast_wechat">WeChat authorization (prototype)</string>
+    <string name="auth_toast_apple">Apple authorization (prototype)</string>
+    <string name="auth_toast_agreement">View agreement (prototype)</string>
+
+</resources>

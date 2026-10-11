@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FitTracker 品牌图标前景层（2026-10-09 按用户提供的设计稿重绘，替代原占位图）：
+     C 形圆环（开口朝上约 90°、圆头端点、环粗≈外径 14%）+ 缺口中央的实心圆点（直径≈外径 20%）。
+     颜色为品牌绿 #50ECA7；比例按设计稿（图形占画布 ≈48%）：外半径 26（直径 52）、
+     中心线半径 22.35、环粗 7.3、点圆心距环心 23.4、点半径 5.2。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 环：从右上端点（-45°）经底部顺时针到左上端点（-135°）的大弧，圆头端点 -->
+    <path
+        android:pathData="M69.8,38.2 A22.35,22.35 0 1 1 38.2,38.2"
+        android:strokeColor="#50ECA7"
+        android:strokeWidth="7.3"
+        android:strokeLineCap="round" />
+    <!-- 点：圆心 (54, 30.6)、半径 5.2 -->
+    <path
+        android:pathData="M54,30.6 m-5.2,0 a5.2,5.2 0 1,1 10.4,0 a5.2,5.2 0 1,1 -10.4,0"
+        android:fillColor="#50ECA7" />
+</vector>

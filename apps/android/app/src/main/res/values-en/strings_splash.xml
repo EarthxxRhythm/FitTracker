@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for the splash screen. Keys mirror `values/strings_splash.xml`.
+  The splash copy is English by design (ported verbatim from the HarmonyOS page),
+  so both locales carry the same values.
+-->
+<resources>
+
+    <string name="splash_tagline">YOUR DAILY TRAINING COMPANION</string>
+    <string name="splash_brand">FitTracker</string>
+    <string name="splash_sub">Move better. Feel stronger.\nOne focused session at a time.</string>
+    <string name="splash_footer">TRAIN WITH INTENTION\u0020\u0020·\u0020\u0020RECOVER WITH PURPOSE</string>
+
+</resources>

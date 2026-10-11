@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for the home screen. Keys mirror `values/strings_home.xml`
+  (the zh values there are the source of truth, extracted verbatim from the existing literals).
+-->
+<resources>
+
+    <!-- Header: date & greeting -->
+    <string name="home_date_format">%3$s · %1$d/%2$d</string>
+    <string name="home_weekday_sunday">Sun</string>
+    <string name="home_weekday_monday">Mon</string>
+    <string name="home_weekday_tuesday">Tue</string>
+    <string name="home_weekday_wednesday">Wed</string>
+    <string name="home_weekday_thursday">Thu</string>
+    <string name="home_weekday_friday">Fri</string>
+    <string name="home_weekday_saturday">Sat</string>
+    <string name="home_greeting_morning">Good morning, ready to train</string>
+    <string name="home_greeting_afternoon">Good afternoon, ready to train</string>
+    <string name="home_greeting_evening">Good evening, ready to train</string>
+
+    <!-- Today card -->
+    <string name="home_today_label">Today\'s workout</string>
+    <string name="home_recommend">Recommended</string>
+    <string name="home_ring_percent">%1$d%%</string>
+    <string name="home_ring_caption">This week</string>
+    <string name="home_status_training_day">Training day · recommended</string>
+    <string name="home_status_rest_day">Rest day · prioritize recovery</string>
+    <string name="home_today_no_training">No workout today</string>
+    <string name="home_empty_plan_title">No plan enabled yet</string>
+    <string name="home_empty_plan_subtitle">Pick a training plan in Plan Group</string>
+    <string name="home_status_pending">Not scheduled</string>
+
+    <!-- Metrics -->
+    <string name="home_metric_exercises">Exercises</string>
+    <string name="home_metric_exercises_unit">exercises</string>
+    <string name="home_metric_duration">Est. time</string>
+    <string name="home_metric_duration_unit">min</string>
+    <string name="home_metric_muscles">Target muscles</string>
+    <string name="home_metric_muscles_unit">muscle groups</string>
+
+    <!-- In-card buttons -->
+    <string name="home_action_start">Start workout</string>
+    <string name="home_action_preview">Preview</string>
+
+    <!-- Weekly rhythm -->
+    <string name="home_week_title">This week\'s rhythm</string>
+    <string name="home_week_range">%1$s–%2$s</string>
+    <string name="home_week_count">%1$d / %2$d sessions</string>
+
+</resources>

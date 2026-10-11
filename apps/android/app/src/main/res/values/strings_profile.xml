@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  个人域（profile 屏）文案。中文值**逐字**取自原型
+  `design/06_prototype_redraw/src/fittracker-personal.html` 与既有硬编码（原型对齐纪律）：
+  改动此处的中文即偏离原型，须同步原型。
+
+  命名：`profile_<元素>`。带参文案用位置参数（`%1$s` / `%1$d`），由 UI 层
+  `stringResource(id, args)` 或 `context.getString(...)` 解析；本域当前无带参文案。
+
+  注：昵称 / 头像字 / 周概览数值 / 训练次数取自数据层（`UserProfileService` /
+  `WorkoutSessionService`），与 UI 文案不同源；此处资源化的仅为**空数据时的屏内降级样例**
+  （原型静态基线），键名以 `_sample` 后缀标注。
+
+  跨域遗留：周范围**日期文本**（`7 月 21 – 27 日` 的日期段）与连续记录**日标签**（`一…日`）
+  由 `data/service/WeekWindow` 产出（`weekRangeText` / `dayLabels`）——其资源化归 WeekWindow 域，
+  本域保持直接取该服务的输出（见 `ProfileScreen` 的 `weekRangeText` / `streakLabels`）；
+  本文件内的 `profile_week_meta_sample` / `profile_streak_day_*` 仅作列表基线用。
+-->
+<resources>
+
+    <!-- 头部（L1369-1378）：空数据（未接 `UserProfileService`）时的降级样例 -->
+    <string name="profile_sample_avatar_initial">林</string>
+    <string name="profile_sample_name">林默</string>
+    <string name="profile_sample_sub">增肌第 42 天 · 保持节奏</string>
+    <!-- `.p-settings` 的 `aria-label="设置"`（L1375），逐字取自源码 -->
+    <string name="profile_a11y_settings">设置</string>
+
+    <!-- 本周概览（L1380-1403） -->
+    <string name="profile_week_title">本周概览</string>
+    <!-- `.card-meta`（L1383）原型样例，注意 en dash「–」；真实值由 `WeekWindow.weekRangeText` 注入 -->
+    <string name="profile_week_meta_sample">7 月 21 – 27 日</string>
+    <string name="profile_week_unit">分钟</string>
+    <string name="profile_week_label">本周训练时长</string>
+    <!-- `.focus-meta-row` 两格（L1392-1401）：数值为数据层注入，故只资源化标签与单位 -->
+    <string name="profile_week_metric_workouts">训练</string>
+    <string name="profile_week_metric_burned">消耗</string>
+    <string name="profile_unit_times">次</string>
+    <string name="profile_unit_kcal">千卡</string>
+
+    <!-- 训练连续记录（L1405-1419） -->
+    <string name="profile_streak_title">训练连续记录</string>
+    <string name="profile_streak_count">连续 6 天</string>
+    <!-- `.streak-day` 七天日标签（L1411-1417，原型序＝周一起始）；真实标签由 `WeekWindow.dayLabels` 产出 -->
+    <string name="profile_streak_day_mon">一</string>
+    <string name="profile_streak_day_tue">二</string>
+    <string name="profile_streak_day_wed">三</string>
+    <string name="profile_streak_day_thu">四</string>
+    <string name="profile_streak_day_fri">五</string>
+    <string name="profile_streak_day_sat">六</string>
+    <string name="profile_streak_day_sun">日</string>
+
+    <!-- 最近成就（L1421-1439） -->
+    <string name="profile_achievements_title">最近成就</string>
+    <!-- 第一条（L1424-1429，`#i-flame`） -->
+    <string name="profile_achievement_streak_title">稳定输出</string>
+    <string name="profile_achievement_streak_note">连续训练 7 天</string>
+    <string name="profile_achievement_streak_value">本周完成度 86%</string>
+    <!-- 第二条（L1431-1437，`.gold` + `#i-trophy`） -->
+    <string name="profile_achievement_pr_title">重量突破</string>
+    <string name="profile_achievement_pr_note">深蹲达到 80 kg</string>
+    <string name="profile_achievement_pr_value">刷新个人最佳</string>
+
+    <!-- 快捷入口（L1441-1452）：路由 id 非文案，仍在 `FtProfileModel.SHORTCUTS` -->
+    <string name="profile_shortcut_body">身体数据</string>
+    <string name="profile_shortcut_training_preferences">训练偏好</string>
+    <string name="profile_shortcut_library">动作库</string>
+
+</resources>

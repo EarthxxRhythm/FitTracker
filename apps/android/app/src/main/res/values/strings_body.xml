@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  身体数据域（body 屏）文案。中文值**逐字**取自既有硬编码与原型
+  `design/06_prototype_redraw/src/fittracker-body-data.html`（原型对齐纪律）：
+  改动此处的中文即偏离原型，须同步原型。
+
+  命名：`body_<元素>`。带参文案用位置参数（`%1$s` / `%2$s`），由 UI 层
+  `stringResource(id, args)` 解析；模型层只持有资源 ID（见 `FtBodyModel`）。
+
+  注：体重单位标签（`kg` / `lbs`）与数组数值（`72.5` 等）为数据 / 数值，不资源化；
+  图表轴标签（`一…日` / `30天前`）由数据层 `BodyRecordService` / `WeekWindow` 产出，非本域文案。
+-->
+<resources>
+
+    <!-- 顶栏：返回键 aria-label（原 `.bd-back` L301）与页标题（`.bd-title` L304） -->
+    <string name="body_a11y_back">返回个人页</string>
+    <string name="body_title">身体数据</string>
+
+    <!-- 体重概览卡（`.card.focus` L133-157） -->
+    <string name="body_weight_label">当前体重</string>
+    <!-- `%1$s` 更新时间（`M-d HH:mm`） -->
+    <string name="body_updated">更新于 %1$s</string>
+    <!-- 「较上周」文案：`%1$s` 带符号差值（如 `−0.3 kg`） -->
+    <string name="body_delta_last_week">较上周 %1$s</string>
+    <!-- 保存后即时反馈（原型 L552） -->
+    <string name="body_delta_saved">今日已记录 · 刚刚</string>
+    <!-- 目标标签：`%1$s` 目标值 · `%2$s` 单位标签 -->
+    <string name="body_goal_label">增肌目标 %1$s %2$s</string>
+    <!-- 目标缺口：`%1$s` 差值 · `%2$s` 单位标签 -->
+    <string name="body_goal_gap">还差 %1$s %2$s</string>
+    <string name="body_goal_reached">已达目标</string>
+
+    <!-- 身体成分卡（`.card` L160-175） -->
+    <string name="body_composition_title">身体成分</string>
+    <string name="body_composition_meta">目标 · 增肌</string>
+    <string name="body_fat_label">体脂率 · 健康区间 10–20%</string>
+    <!-- `.fat-scale` 三档（L346-348） -->
+    <string name="body_fat_scale_low">偏低</string>
+    <string name="body_fat_scale_normal">健康</string>
+    <string name="body_fat_scale_high">偏高</string>
+
+    <!-- 身体成分指标格（`.metric-tile` L350-368） -->
+    <string name="body_metric_bmi">BMI</string>
+    <string name="body_metric_bmi_note">正常范围</string>
+    <string name="body_metric_muscle">骨骼肌</string>
+    <string name="body_metric_muscle_note">标准</string>
+    <string name="body_metric_bmr">基础代谢</string>
+    <string name="body_metric_bmr_note">估算值</string>
+    <string name="body_metric_water">身体水分</string>
+    <string name="body_metric_water_note">正常范围</string>
+
+    <!-- 体重趋势卡（`.card` L178-184） -->
+    <string name="body_trend_title">体重趋势</string>
+    <!-- `.seg` 的 aria-label（原型 L380） -->
+    <string name="body_a11y_trend_range">趋势时间范围</string>
+    <!-- 无记录空态（原为原型样例序列回落的 caption） -->
+    <string name="body_trend_empty">暂无记录 · 记录体重后生成趋势</string>
+    <!-- 时间尺度分段（`data-period` L380-383） -->
+    <string name="body_period_week">周</string>
+    <string name="body_period_month">月</string>
+    <string name="body_period_year">年</string>
+    <!-- 趋势 caption：`%1$s` 带符号差值 -->
+    <string name="body_trend_caption_week">近 7 天 · %1$s</string>
+    <string name="body_trend_caption_month">近 30 天 · %1$s</string>
+    <string name="body_trend_caption_year">近 12 个月 · %1$s</string>
+    <!-- 真实记录路径 caption：`%1$s` 区间前缀 · `%2$s` 带符号差值 -->
+    <string name="body_trend_caption_range">%1$s · %2$s</string>
+
+    <!-- 围度记录卡（`.card` L187-194） -->
+    <string name="body_measure_title">围度记录</string>
+    <string name="body_measure_meta">较上月</string>
+    <string name="body_measure_chest">胸围</string>
+    <string name="body_measure_waist">腰围</string>
+    <string name="body_measure_hip">臀围</string>
+    <string name="body_measure_arm">臂围</string>
+    <string name="body_measure_thigh">大腿围</string>
+
+    <!-- 主操作与脚注（`.bd-cta` / `.foot-note` L197-207） -->
+    <string name="body_cta">记录今日体重</string>
+    <string name="body_foot_note_kg">身体数据仅保存在本机；单位可在「设置」中切换为磅（lbs）。</string>
+    <string name="body_foot_note_lbs">身体数据仅保存在本机；单位可在「设置」中切换为千克（kg）。</string>
+
+    <!-- 记录体重底部面板（`.sheet` L212-239） -->
+    <string name="body_sheet_title">记录今日体重</string>
+    <string name="body_sheet_sub">每次记录都会被纳入体重趋势</string>
+    <string name="body_sheet_cancel">取消</string>
+    <string name="body_sheet_save">保存</string>
+    <!-- `<input ... aria-label="今日体重">`（L435） -->
+    <string name="body_sheet_input_a11y">今日体重</string>
+    <!-- 校验失败提示（L548） -->
+    <string name="body_invalid_hint">请输入 0–500 之间的有效体重</string>
+
+</resources>

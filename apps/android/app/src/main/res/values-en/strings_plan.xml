@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  English strings for the plan screen. Keys mirror `values/strings_plan.xml`
+  (the zh values there are the source of truth, extracted verbatim from the existing literals).
+-->
+<resources>
+
+    <!-- Fallback sample (prototype `PLANS.hypertrophy`) -->
+    <string name="plan_default_name">5-Day Hypertrophy Plan</string>
+    <string name="plan_default_meta">Hypertrophy · 5-day split · 6-week progression</string>
+    <string name="plan_default_week_progress">1 / 5 days this week</string>
+    <string name="plan_default_progress_caption">Day 1 · Chest</string>
+
+    <!-- Empty state / fallback -->
+    <string name="plan_fallback_name">Training plan</string>
+    <string name="plan_empty_meta">Your plan is generated once you set a goal</string>
+
+    <!-- Current plan summary card -->
+    <string name="plan_meta_format">%1$s · %2$d-day split · %3$s</string>
+    <string name="plan_week_progress">%1$d / %2$d days this week</string>
+    <string name="plan_current_title">Current plan</string>
+    <string name="plan_caption_active">Day %1$d · %2$s</string>
+    <string name="plan_caption_none">No plan scheduled</string>
+
+    <!-- Day cards -->
+    <string name="plan_deck_index">Day %1$d · %2$s</string>
+    <string name="plan_badge_today">Today</string>
+    <string name="plan_badge_tomorrow">Tomorrow</string>
+    <string name="plan_badge_day_after">In 2 days</string>
+    <string name="plan_badge_day_number">Day %1$d</string>
+    <string name="plan_exercise_list">Exercises</string>
+    <string name="plan_day_subtitle">%1$s · %2$d exercises</string>
+    <string name="plan_day_subtitle_with_duration">%1$s · %2$d exercises · %3$s</string>
+
+</resources>

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  训练偏好域（TrainingPreferencesScreen + FtTrainingPreferencesModel）。
+
+  中文值为**逐字**取自原型标记（Wave 6 · 6b 分片要求），不得改写措辞；英文见 values-en/strings_preferences.xml。
+  chip 的 `id`（落库标识）不进资源——只有显示文案提取。
+-->
+<resources>
+
+    <!-- 顶栏 / 保存钮 / 页脚 -->
+    <string name="preferences_title">训练偏好</string>
+    <string name="preferences_a11y_back">返回个人页</string>
+    <string name="preferences_save">保存偏好</string>
+    <string name="preferences_foot_note">保存后，将基于最新偏好重新生成本周训练计划。偏好仅保存在本机。</string>
+
+    <!-- 卡片 meta -->
+    <string name="preferences_meta_single">单选</string>
+    <string name="preferences_meta_multi">多选</string>
+
+    <!-- 卡片标题 -->
+    <string name="preferences_card_goal_level">目标与水平</string>
+    <string name="preferences_card_rhythm">训练节奏</string>
+    <string name="preferences_card_equipment">器械与限制</string>
+
+    <!-- 组 1：训练目标 -->
+    <string name="preferences_goal_eyebrow">目标方向</string>
+    <string name="preferences_goal_title">训练目标</string>
+    <string name="preferences_goal_note">计划会围绕你的主目标生成动作与强度。</string>
+    <string name="preferences_goal_muscle_gain">增肌</string>
+    <string name="preferences_goal_strength">力量</string>
+    <string name="preferences_goal_fat_loss">减脂</string>
+
+    <!-- 组 2：训练经验 -->
+    <string name="preferences_level_eyebrow">动作复杂度</string>
+    <string name="preferences_level_title">训练经验</string>
+    <string name="preferences_level_beginner">新手</string>
+    <string name="preferences_level_intermediate">进阶</string>
+    <string name="preferences_level_advanced">熟练</string>
+
+    <!-- 组 3：每周训练天数 -->
+    <string name="preferences_days_eyebrow">训练频率</string>
+    <string name="preferences_days_title">每周训练天数</string>
+    <string name="preferences_days_2">2 天</string>
+    <string name="preferences_days_3">3 天</string>
+    <string name="preferences_days_4">4 天</string>
+    <string name="preferences_days_5">5 天</string>
+
+    <!-- 组 4：单次训练时长 -->
+    <string name="preferences_minutes_eyebrow">单次预算</string>
+    <string name="preferences_minutes_title">单次训练时长</string>
+    <string name="preferences_minutes_30">30 分钟</string>
+    <string name="preferences_minutes_45">45 分钟</string>
+    <string name="preferences_minutes_60">60 分钟</string>
+    <string name="preferences_minutes_75">75 分钟</string>
+
+    <!-- 组 5：可用器械 -->
+    <string name="preferences_equipment_eyebrow">器械范围</string>
+    <string name="preferences_equipment_title">可用器械</string>
+    <string name="preferences_equipment_note">勾选当前真实可用的器械，计划会据此筛动作。</string>
+    <string name="preferences_equipment_bodyweight">自重</string>
+    <string name="preferences_equipment_dumbbell">哑铃</string>
+    <string name="preferences_equipment_barbell">杠铃</string>
+    <string name="preferences_equipment_cable">绳索</string>
+
+    <!-- 组 6：限制肌群 -->
+    <string name="preferences_muscles_eyebrow">恢复约束</string>
+    <string name="preferences_muscles_title">限制肌群</string>
+    <string name="preferences_muscles_note">选中后计划会尽量避开相关肌群（疼痛 / 恢复期）。</string>
+    <string name="preferences_muscle_chest">胸部</string>
+    <string name="preferences_muscle_back">背部</string>
+    <string name="preferences_muscle_legs">腿部</string>
+    <string name="preferences_muscle_shoulders">肩部</string>
+    <string name="preferences_muscle_arms">手臂</string>
+    <string name="preferences_muscle_core">核心</string>
+
+    <!-- 浮层提示 -->
+    <string name="preferences_toast_saved">偏好已保存，本周训练计划已重新生成</string>
+    <string name="preferences_toast_failed">保存失败，请重试</string>
+
+</resources>
