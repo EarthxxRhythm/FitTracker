@@ -4,7 +4,7 @@
 
 ## 项目概览
 
-HarmonyOS Stage 模式的 ArkUI 健身训练应用，中文本地化、本地数据优先 + 账号云同步（华为 AGC：认证服务 + 云数据库整包快照）。应用记录训练组数/次数/重量，计算 Epley 1RM，并保存目标、计划、训练会话、复盘与备份数据。
+HarmonyOS Stage 模式的 ArkUI 健身训练应用，中文本地化、本地存储 + 账号云同步（华为 AGC：认证服务 + 云数据库整包快照）。应用记录训练组数/次数/重量，计算 Epley 1RM，并保存目标、计划、训练会话、复盘与备份数据。
 
 技术栈：ArkTS/ArkUI、`@kit.ArkData` preferences、Stage Ability、ohosTest。
 
