@@ -119,6 +119,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.compose)
+    // Wave 6 修复：ViewTree 的 NavigationEventDispatcherOwner 显式注册（AppCompat 场景链断，真机启动崩溃）
+    implementation(libs.androidx.navigationevent)
     implementation(libs.androidx.datastore.preferences)
     // 应用内语言切换（per-app language，AppCompatDelegate.setApplicationLocales）——设置模块 Wave 6
     implementation(libs.androidx.appcompat)
