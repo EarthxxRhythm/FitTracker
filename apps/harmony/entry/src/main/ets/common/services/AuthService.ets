@@ -10,7 +10,8 @@ import { preferences } from '@kit.ArkData'
 import { AuthProvider } from './auth/AuthProvider'
 import AgcAuthProvider from './auth/AgcAuthProvider'
 import SandboxAuthProvider from './auth/SandboxAuthProvider'
-import CloudEnvironment from './CloudEnvironment'
+import SupabaseAuthProvider from './auth/SupabaseAuthProvider'
+import CloudEnvironment, { CloudBackend } from './CloudEnvironment'
 import SessionManager from './SessionManager'
 import { AuthResult, AuthSession, VerifyCodeResult } from './auth/AuthTypes'
 
@@ -127,7 +128,12 @@ class AuthService {
     if (this.testingProvider !== null) {
       return this.testingProvider
     }
-    if (CloudEnvironment.isAgcConfigured()) {
+    const backend: CloudBackend = CloudEnvironment.getBackend()
+    if (backend === 'supabase') {
+      // 自托管 Supabase 配置就绪（rawfile supabase.json 探测通过）时认证走该后端
+      return SupabaseAuthProvider
+    }
+    if (backend === 'agc') {
       // Wave 5 接线：AGC 配置就绪时认证走云端（agconnect-services.json 探测通过）
       return AgcAuthProvider
     }
