@@ -1,7 +1,9 @@
 package com.fittracker.app.nav
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
@@ -9,6 +11,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import androidx.navigationevent.NavigationEventDispatcherOwner
+import androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner
 import com.fittracker.app.ui.screens.FtScreen
 import com.fittracker.app.ui.screens.exercise.ExerciseDetailScreen
 import com.fittracker.app.ui.screens.legal.LegalDocScreen
@@ -28,6 +32,11 @@ fun FtNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier,
 ) {
+    // 修复（真机启动崩溃 "No NavigationEventDispatcher was provided via LocalNavigationEventDispatcherOwner"）：
+    // AppCompat 宿主下 ViewTree 的 owner 不被 navigation-compose 的桥发现 → 显式把 Activity
+    // （ComponentActivity 实现 NavigationEventDispatcherOwner）provide 给局部变量；幂等（就近覆盖）。
+    val dispatcherOwner = LocalActivity.current as NavigationEventDispatcherOwner
+    CompositionLocalProvider(LocalNavigationEventDispatcherOwner provides dispatcherOwner) {
     NavHost(
         navController = navController,
         startDestination = FtRoutes.START,
@@ -95,6 +104,7 @@ fun FtNavHost(
                 onBack = { navController.ftBack("exerciseDetail") },
             )
         }
+    }
     }
 }
 

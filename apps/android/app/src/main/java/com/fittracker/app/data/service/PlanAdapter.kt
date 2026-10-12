@@ -1,5 +1,6 @@
 package com.fittracker.app.data.service
 
+import android.content.Context
 import com.fittracker.app.data.model.ExerciseContent
 import com.fittracker.app.data.model.ExerciseRef
 import com.fittracker.app.data.model.TrainingDay
@@ -58,7 +59,11 @@ object PlanAdapter {
      *   [TrainingPlanRepository] 内部吞掉持久化异常并只置错误码，故这两步的写失败不会使本函数
      *   返回 `false`——与本仓既有的静默持久化口径一致。
      */
-    suspend fun generateAndEnablePlan(store: JsonStore, preferences: FtTrainingPreferences): Boolean {
+    suspend fun generateAndEnablePlan(
+        context: Context,
+        store: JsonStore,
+        preferences: FtTrainingPreferences,
+    ): Boolean {
         return try {
             TrainingPreferencesService.savePreferences(store, preferences)
             val previous: UserGoal? = GoalRepository.loadGoal(store)
@@ -66,6 +71,9 @@ object PlanAdapter {
             val goal: UserGoal = preferencesToGoal(preferences, previous, now)
             GoalRepository.saveGoal(store, goal)
 
+            // 内容库此前仅由 Library / ExerciseDetail 屏主动 load——不在此保证则生成"空动作计划"
+            // （真机验收 2026-10-12 缺陷：动作 0）。ensureLoaded 幂等。
+            ContentRepository.ensureLoaded(context)
             val exercises: List<ExerciseContent> = ContentRepository.exercises()
             val plan: TrainingPlan = generatePlan(goal, exercises)
             val userPlan: UserPlan = trainingPlanToUserPlan(plan, goal, exercises, now)

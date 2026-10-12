@@ -75,6 +75,16 @@ object ContentRepository {
         isLoaded = true
     }
 
+    /**
+     * 幂等加载守卫：已加载则直接返回，否则走 [load]。
+     * 内容库消费方（计划生成、内容检索等）在依赖内容前调用——此前只有 Library / ExerciseDetail
+     * 屏会主动 load，导致「未打开过动作库就生成计划 → 动作全空」（真机验收 2026-10-12 发现）。
+     */
+    suspend fun ensureLoaded(context: Context) {
+        if (isLoaded) return
+        load(context)
+    }
+
     /** 全部肌群（种子顺序）。 */
     fun muscles(): List<MuscleGroup> = orderedMuscles
 

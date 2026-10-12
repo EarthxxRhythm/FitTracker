@@ -327,13 +327,13 @@ class PlanAdapterTest {
         )
         TrainingPlanRepository.replaceMyPlans(store, listOf(manual), manual.id)
 
-        assertTrue(PlanAdapter.generateAndEnablePlan(store, preferences(daysPerWeek = 3)))
+        assertTrue(PlanAdapter.generateAndEnablePlan(context, store, preferences(daysPerWeek = 3)))
         val afterFirst = TrainingPlanRepository.getMyPlans(store)
         assertEquals(2, afterFirst.size) // 手动计划 + 生成计划
         assertTrue(afterFirst.any { it.id == manual.id })
 
         val generatedId = TrainingPlanRepository.getCurrentPlanId(store)
-        assertTrue(PlanAdapter.generateAndEnablePlan(store, preferences(daysPerWeek = 5)))
+        assertTrue(PlanAdapter.generateAndEnablePlan(context, store, preferences(daysPerWeek = 5)))
         val afterSecond = TrainingPlanRepository.getMyPlans(store)
         assertEquals(2, afterSecond.size) // 同 id 覆盖，不新增
         assertEquals(generatedId, TrainingPlanRepository.getCurrentPlanId(store))
@@ -346,7 +346,11 @@ class PlanAdapterTest {
         val store = createStore()
         val prefs = preferences(goal = PrefGoal.MUSCLE_GAIN, level = PrefLevel.BEGINNER, daysPerWeek = 3)
 
-        assertTrue(PlanAdapter.generateAndEnablePlan(store, prefs))
+        assertTrue(PlanAdapter.generateAndEnablePlan(context, store, prefs))
+
+        // 真机回归（2026-10-12）：内容库未加载时曾生成「空动作计划」——生成前 ensureLoaded 后每天必须有动作
+        val generated = TrainingPlanRepository.getCurrentPlan(store)!!
+        assertTrue("生成计划每天应有动作", generated.days.all { it.exercises.isNotEmpty() })
 
         // 偏好已落库
         assertEquals(prefs, TrainingPreferencesService.loadPreferences(store))

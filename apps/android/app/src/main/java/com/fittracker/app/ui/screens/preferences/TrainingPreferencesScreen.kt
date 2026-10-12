@@ -136,6 +136,7 @@ fun TrainingPreferencesScreen(
             saving = true
             val ok = runCatching {
                 PlanAdapter.generateAndEnablePlan(
+                    context,
                     store,
                     FtTrainingPreferencesModel.toPreferences(selection),
                 )
