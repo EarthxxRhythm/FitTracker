@@ -44,6 +44,7 @@ function parseArgs(argv) {
     name: '菲特健身训练软件',
     version: 'V1.0',
     stripBlank: false,
+    etsRoot: DEFAULT_ETS_ROOT,
     out: path.resolve(HARMONY_ROOT, '..', '..', 'test_run', 'copyright')
   }
   for (let i = 0; i < argv.length; i += 1) {
@@ -57,6 +58,10 @@ function parseArgs(argv) {
       i += 1
     } else if (flag === '--out' && value !== undefined) {
       opts.out = path.resolve(process.cwd(), value)
+      i += 1
+    } else if (flag === '--ets-root' && value !== undefined) {
+      // 供测试注入固定语料；默认取工程真实源码目录
+      opts.etsRoot = path.resolve(process.cwd(), value)
       i += 1
     } else if (flag === '--strip-blank') {
       opts.stripBlank = true
@@ -108,7 +113,7 @@ function renderDocument(pages) {
 
 function main() {
   const opts = parseArgs(process.argv.slice(2))
-  const etsRoot = DEFAULT_ETS_ROOT
+  const etsRoot = opts.etsRoot
 
   const files = collectEtsFiles(etsRoot).sort()
 
