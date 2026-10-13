@@ -54,7 +54,8 @@ interface GoTrueUser {
 }
 
 interface GoTrueUserMetadata {
-  nickname: string
+  /** 昵称；服务端未设置时缺失（admin 建号 / OTP 自动建号），消费端需兜底。 */
+  nickname?: string
 }
 
 /** 请求体形状（ArkTS 需显式类型，不以匿名对象字面量传入）。 */
@@ -335,7 +336,11 @@ class SupabaseAuthProvider extends AuthProvider {
       }
       const rawPhone: string = parsed.user.phone.length > 0 ? phoneFromE164(parsed.user.phone) : fallbackPhone
       const rawEmail: string = rawPhone.length > 0 ? '' : (parsed.user.email.length > 0 ? parsed.user.email : fallbackEmail)
-      const nickname: string = parsed.user.user_metadata.nickname
+      const rawNickname: string | undefined = parsed.user.user_metadata.nickname
+      // user_metadata 可能不含 nickname（admin 建号 / OTP 自动建号等场景）：
+      // 兜底为空串，避免 AuthSession.displayName 为 undefined 使会话快照校验失败
+      // （SessionManager.isValidSnapshot 要求 string）——否则会「登录成功但重启后掉线」。
+      const nickname: string = typeof rawNickname === 'string' && rawNickname.length > 0 ? rawNickname : ''
       const stored: SupabaseSessionData = {
         accessToken: parsed.access_token,
         refreshToken: parsed.refresh_token,
