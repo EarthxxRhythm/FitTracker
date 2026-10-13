@@ -40,6 +40,8 @@ import authRoutingFlowTest from './AuthRoutingFlow.test'
 import authFlowSandboxTest from './AuthFlowSandbox.test'
 import cloudSyncServiceTest from './CloudSyncService.test'
 import accountDataLifecycleTest from './AccountDataLifecycle.test'
+import workoutReminderServiceTest from './WorkoutReminderService.test'
+import achievementNoticeServiceTest from './AchievementNoticeService.test'
 
 export default function testsuite(): void {
   abilityTest()
@@ -84,4 +86,6 @@ export default function testsuite(): void {
   authFlowSandboxTest()
   cloudSyncServiceTest()
   accountDataLifecycleTest()
+  workoutReminderServiceTest()
+  achievementNoticeServiceTest()
 }

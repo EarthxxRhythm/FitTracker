@@ -13,6 +13,13 @@
     "requestPermissions": [
       {
         "name": "ohos.permission.INTERNET"
+      },
+      // 训练页「完成一组」触觉反馈（normal 级权限，声明即得；设置页「声音与震动」开关门控）。
+      // 注：训练提醒的系统级代理提醒需 ohos.permission.PUBLISH_AGENT_REMINDER（受限权限）——
+      // 按本计划决策 2 暂不声明（待 AGC 开放能力申请批准 + profile 更新后与本行一并启用），
+      // 期间提醒走应用内降级通道（见 common/services/WorkoutReminderService.ets 注释）。
+      {
+        "name": "ohos.permission.VIBRATE"
       }
     ],
     "abilities": [
