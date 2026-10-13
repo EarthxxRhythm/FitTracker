@@ -28,6 +28,7 @@ import SupabaseSessionStore, { SupabaseSessionData } from '../SupabaseSessionSto
 /** GoTrue 端点路径（对齐 Android 的常量表）。 */
 const PATH_SIGNUP: string = 'signup'
 const PATH_TOKEN_PASSWORD: string = 'token?grant_type=password'
+const PATH_TOKEN_REFRESH: string = 'token?grant_type=refresh_token'
 const PATH_OTP: string = 'otp'
 const PATH_VERIFY: string = 'verify'
 const PATH_LOGOUT: string = 'logout'
@@ -84,6 +85,11 @@ interface EmailSignUpData {
 interface PasswordTokenRequest {
   email: string
   password: string
+}
+
+/** 刷新请求体形状（POST /token?grant_type=refresh_token，对齐 Android refreshIfNeeded）。 */
+interface RefreshTokenRequest {
+  refresh_token: string
 }
 
 /** 手机号归一：已以 '+' 开头则透传，否则补 +86（对齐 Android normalizePhoneE164）。 */
@@ -254,6 +260,55 @@ class SupabaseAuthProvider extends AuthProvider {
   async clearPersisted(context: Context): Promise<void> {
     await SupabaseSessionStore.clear(context)
     this.cachedSession = null
+  }
+
+  /**
+   * 取新鲜 access token（同步链路入口）——对齐 Android SupabaseAuthProvider.validAccessToken：
+   * 先按需刷新，再做窗口判定。SupabaseSessionStore.validAccessToken() 已内建 60s 刷新窗口判定，
+   * 命中窗口（返回 null）才真正发起刷新；4xx 清会话（refresh token 确已失效）；
+   * 5xx / 网络异常（status=0）保留会话（token 未必失效，下次同步再试）。
+   */
+  async ensureFreshAccessToken(context: Context): Promise<string | null> {
+    const fresh: string | null = await SupabaseSessionStore.validAccessToken(context)
+    if (fresh !== null) {
+      return fresh
+    }
+    const session: SupabaseSessionData | null = await SupabaseSessionStore.load(context)
+    if (session === null) {
+      return null
+    }
+    const request: RefreshTokenRequest = { refresh_token: session.refreshToken }
+    const response: SupabaseHttpResult =
+      await SupabaseHttp.post(SupabaseHttp.authUrl(PATH_TOKEN_REFRESH), JSON.stringify(request), null)
+    if (this.isOk(response)) {
+      try {
+        const parsed: GoTrueSessionResponse = JSON.parse(response.body) as GoTrueSessionResponse
+        if (parsed.access_token.length === 0) {
+          return null
+        }
+        // 刷新响应的 user 字段可能缺失，故身份字段一律保留旧会话值（对齐 Android copy 语义）。
+        const refreshed: SupabaseSessionData = {
+          accessToken: parsed.access_token,
+          refreshToken: parsed.refresh_token,
+          expiresAtEpochSeconds: Math.floor(Date.now() / 1000) + parsed.expires_in,
+          userId: session.userId,
+          phone: session.phone,
+          email: session.email,
+          nickname: session.nickname
+        }
+        await SupabaseSessionStore.save(context, refreshed)
+        return refreshed.accessToken
+      } catch (error) {
+        return null
+      }
+    }
+    if (response.status >= 400 && response.status <= 499) {
+      // 凭证被服务端明确拒绝（refresh token 失效）→ 清会话
+      await SupabaseSessionStore.clear(context)
+      return null
+    }
+    // 5xx / status=0（网络不可达）：保留会话，下次同步再试
+    return null
   }
 
   // --- 私有辅助 -----------------------------------------------------------
