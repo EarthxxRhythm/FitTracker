@@ -167,6 +167,35 @@ const FORM_ANCHOR = /Column\(\{\s*space:\s*14\s*\}\)\s*\{/
 const HEAD_ANCHOR = /Column\(\{\s*space:\s*0\s*\}\)\s*\{/
 const AGREE_ANCHOR = /Row\(\{\s*space:\s*10\s*\}\)\s*\{/
 const CTA_ANCHOR = /Button\(this\.loading \? '[^']*' : '[^']*'\)/
+const AGREEMENT_CHECK_ICON = /pencil-auth-check-agree\.svg/
+const AGREE_ROW_ANCHOR = /Row\(\{\s*space:\s*10\s*\}\)\s*\{/g
+
+/**
+ * 定位「同意条款」那一行。
+ *
+ * 页面里可能有多个 `Row({ space: 10 })`（register 的验证码输入行与同意条款行等）。
+ * 旧实现用 `blockAfterAnchor(source, AGREE_ANCHOR)` 取**第一个**匹配 —— 在 register
+ * 里锚到了验证码行，把验证码错误提示的 `.margin({ top: 7 })` 当成了同意条款间距
+ * （真值 4）。改为以勾选图标 `pencil-auth-check-agree.svg` 定位，再向前取最近的
+ * `Row({ space: 10 }) {`；找不到图标时返回 null，调用方回退到旧锚点。
+ */
+function agreementRowBlock(source) {
+  const icon = source.match(AGREEMENT_CHECK_ICON)
+  if (icon === null) {
+    return null
+  }
+  const before = source.slice(0, icon.index)
+  let last = null
+  for (const match of before.matchAll(AGREE_ROW_ANCHOR)) {
+    last = match
+  }
+  if (last === null) {
+    return null
+  }
+  const openIndex = last.index + last[0].length - 1
+  const text = sliceBalancedBlock(source, openIndex)
+  return { start: openIndex, end: openIndex + text.length, text }
+}
 
 /**
  * 采集一个 auth 屏实现的结构化间距事实。
@@ -175,7 +204,7 @@ const CTA_ANCHOR = /Button\(this\.loading \? '[^']*' : '[^']*'\)/
 export function collectAuthScreenFacts(source) {
   const form = blockAfterAnchor(source, FORM_ANCHOR)
   const head = blockAfterAnchor(source, HEAD_ANCHOR)
-  const agree = blockAfterAnchor(source, AGREE_ANCHOR)
+  const agree = agreementRowBlock(source) ?? blockAfterAnchor(source, AGREE_ANCHOR)
   const cta = source.match(CTA_ANCHOR)
 
   const formText = form ? form.text : ''
