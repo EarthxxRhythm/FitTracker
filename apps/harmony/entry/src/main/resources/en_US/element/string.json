@@ -11,6 +11,142 @@
     {
       "name": "EntryAbility_label",
       "value": "FitTracker"
+    },
+    {
+      "name": "settings_title",
+      "value": "Settings"
+    },
+    {
+      "name": "settings_section_general",
+      "value": "General"
+    },
+    {
+      "name": "settings_section_privacy",
+      "value": "Data & Privacy"
+    },
+    {
+      "name": "settings_section_about",
+      "value": "About"
+    },
+    {
+      "name": "settings_row_weight_unit",
+      "value": "Weight unit"
+    },
+    {
+      "name": "settings_option_kg",
+      "value": "Kilograms"
+    },
+    {
+      "name": "settings_option_lbs",
+      "value": "Pounds"
+    },
+    {
+      "name": "settings_row_language",
+      "value": "Language"
+    },
+    {
+      "name": "settings_option_zh",
+      "value": "简体中文"
+    },
+    {
+      "name": "settings_option_en",
+      "value": "English"
+    },
+    {
+      "name": "settings_row_week_start",
+      "value": "Week starts on"
+    },
+    {
+      "name": "settings_option_monday",
+      "value": "Monday"
+    },
+    {
+      "name": "settings_option_sunday",
+      "value": "Sunday"
+    },
+    {
+      "name": "settings_row_reminder",
+      "value": "Workout reminder"
+    },
+    {
+      "name": "settings_row_achievement",
+      "value": "Achievement reminder"
+    },
+    {
+      "name": "settings_row_sound",
+      "value": "Sound & vibration"
+    },
+    {
+      "name": "settings_row_keep_on",
+      "value": "Keep screen on during workouts"
+    },
+    {
+      "name": "settings_row_sync",
+      "value": "Workout data sync"
+    },
+    {
+      "name": "settings_row_anonymous",
+      "value": "Anonymous usage data"
+    },
+    {
+      "name": "settings_row_health",
+      "value": "Health data access"
+    },
+    {
+      "name": "settings_row_account_sync",
+      "value": "Account & sync"
+    },
+    {
+      "name": "settings_row_version",
+      "value": "Version"
+    },
+    {
+      "name": "settings_row_privacy",
+      "value": "Privacy notice"
+    },
+    {
+      "name": "settings_value_not_connected",
+      "value": "Not connected"
+    },
+    {
+      "name": "settings_brand",
+      "value": "FitTracker"
+    },
+    {
+      "name": "settings_footer",
+      "value": "FitTracker is local-first: workout and body data stay on this device by default."
+    },
+    {
+      "name": "settings_toast_saved",
+      "value": "Saved"
+    },
+    {
+      "name": "settings_toast_save_failed",
+      "value": "Save failed. Please try again."
+    },
+    {
+      "name": "settings_toast_unavailable",
+      "value": "This page isn't available"
+    },
+    {
+      "name": "settings_toast_login_first",
+      "value": "Please sign in before enabling sync"
+    },
+    {
+      "name": "settings_toast_sync_on",
+      "value": "Auto sync enabled"
+    },
+    {
+      "name": "settings_toast_sync_off",
+      "value": "Auto sync disabled"
+    },
+    {
+      "name": "settings_toast_health_placeholder",
+      "value": "Health data access isn't available on this platform yet"
+    },
+    {
+      "name": "settings_toast_reminder_need_permission",
+      "value": "Allow notifications to turn on reminders"
     }
   ]
 }

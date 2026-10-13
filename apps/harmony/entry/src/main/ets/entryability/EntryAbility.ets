@@ -3,6 +3,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { AppRoutes } from '../app/AppRoutes';
 import LaunchRequestStore from '../app/LaunchRequestStore';
+import WorkoutReminderService from '../common/services/WorkoutReminderService';
 
 const DOMAIN = 0x0000;
 
@@ -60,6 +61,10 @@ export default class EntryAbility extends UIAbility {
       hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
     }
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
+    // 训练提醒冷启动校准（幂等 ensure；失败静默——启动路径不受影响）。
+    WorkoutReminderService.calibrateFromLaunch(this.context).catch((err: Error) => {
+      hilog.error(DOMAIN, 'testTag', 'Reminder calibration failed. Cause: %{public}s', JSON.stringify(err))
+    })
   }
 
   onDestroy(): void {

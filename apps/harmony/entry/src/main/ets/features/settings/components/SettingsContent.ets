@@ -2,19 +2,22 @@
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 import { window } from '@kit.ArkUI'
 import { bundleManager } from '@kit.AbilityKit'
+import { i18n } from '@kit.LocalizationKit'
 import { AppRoutes } from '../../../app/AppRoutes'
 import SessionManager from '../../../common/services/SessionManager'
 import CloudSyncService, { SyncState } from '../../../shared/services/CloudSyncService'
 import UserProfileService, { UserProfile } from '../../../common/services/UserProfileService'
 import SettingsService, { AppSettings, SettingsToggleKey } from '../../../common/services/SettingsService'
+import WorkoutReminderService from '../../../common/services/WorkoutReminderService'
+import AppNotificationService from '../../../common/services/AppNotificationService'
 
 interface SwitchRow {
   key: string
-  label: string
+  label: Resource
   on: boolean
 }
 
-function createSwitchRow(key: string, label: string, on: boolean): SwitchRow {
+function createSwitchRow(key: string, label: Resource, on: boolean): SwitchRow {
   return {
     key: key,
     label: label,
@@ -24,12 +27,12 @@ function createSwitchRow(key: string, label: string, on: boolean): SwitchRow {
 
 interface SegRowDef {
   key: string
-  label: string
-  options: string[]
+  label: Resource
+  options: Resource[]
   selected: number
 }
 
-function createSegRow(key: string, label: string, options: string[], selected: number): SegRowDef {
+function createSegRow(key: string, label: Resource, options: Resource[], selected: number): SegRowDef {
   return {
     key: key,
     label: label,
@@ -144,21 +147,24 @@ export struct SettingsContent {
     }
   }
   @State private toastVisible: boolean = false
-  @State private toastMessage: string = '已保存'
+  @State private toastMessage: Resource = $r('app.string.settings_toast_saved')
   @State private toastTimer: number = -1
   @State private segRows: SegRowDef[] = [
-    createSegRow('weight', '体重单位', ['千克', '磅'], 0),
-    createSegRow('language', '语言', ['简体中文', 'English'], 0),
-    createSegRow('weekStart', '周开始日', ['周一', '周日'], 0)
+    createSegRow('weight', $r('app.string.settings_row_weight_unit'),
+      [$r('app.string.settings_option_kg'), $r('app.string.settings_option_lbs')], 0),
+    createSegRow('language', $r('app.string.settings_row_language'),
+      [$r('app.string.settings_option_zh'), $r('app.string.settings_option_en')], 0),
+    createSegRow('weekStart', $r('app.string.settings_row_week_start'),
+      [$r('app.string.settings_option_monday'), $r('app.string.settings_option_sunday')], 0)
   ]
   @State private versionText: string = '1.1.0'
   @State private switchRows: SwitchRow[] = [
-    createSwitchRow('reminder', '训练提醒', true),
-    createSwitchRow('achievement', '成就提醒', false),
-    createSwitchRow('sound', '声音与震动', true),
-    createSwitchRow('keep-on', '训练中屏幕常亮', true),
-    createSwitchRow('sync', '训练数据同步', true),
-    createSwitchRow('anonymous', '匿名使用数据', false)
+    createSwitchRow('reminder', $r('app.string.settings_row_reminder'), true),
+    createSwitchRow('achievement', $r('app.string.settings_row_achievement'), false),
+    createSwitchRow('sound', $r('app.string.settings_row_sound'), true),
+    createSwitchRow('keep-on', $r('app.string.settings_row_keep_on'), true),
+    createSwitchRow('sync', $r('app.string.settings_row_sync'), true),
+    createSwitchRow('anonymous', $r('app.string.settings_row_anonymous'), false)
   ]
 
   private handleBack(): void {
@@ -182,21 +188,36 @@ export struct SettingsContent {
     this.persistToggle(key, next, previous)
   }
 
-  /** 开关行落盘：成功提示「已保存」；失败（含取不到 context）回滚内存状态并提示重试。 */
+  /**
+   * 开关行落盘：成功提示「已保存」；失败（含取不到 context）回滚内存状态并提示重试。
+   * 「训练提醒」额外两条：开启前先请求通知授权（拒绝则回滚、不落库、不调度）；
+   * 落盘成功后同步提醒调度（开/关都走同一幂等入口）。
+   */
   private async persistToggle(key: string, next: boolean, previous: boolean): Promise<void> {
     const context: Context | null = this.contextOrNull()
     if (context === null) {
       this.applyToggleRow(key, previous)
-      this.showToast('保存失败，请重试')
+      this.showToast($r('app.string.settings_toast_save_failed'))
       return
+    }
+    if (key === 'reminder' && next) {
+      const granted: boolean = await AppNotificationService.requestEnable(context)
+      if (!granted) {
+        this.applyToggleRow(key, previous)
+        this.showToast($r('app.string.settings_toast_reminder_need_permission'))
+        return
+      }
     }
     await SettingsService.saveToggle(context, this.toSettingsToggleKey(key), next)
     if (SettingsService.getLastPersistenceError().length > 0) {
       this.applyToggleRow(key, previous)
-      this.showToast('保存失败，请重试')
+      this.showToast($r('app.string.settings_toast_save_failed'))
       return
     }
-    this.showToast('已保存')
+    if (key === 'reminder') {
+      await WorkoutReminderService.syncFromSettings(context)
+    }
+    this.showToast($r('app.string.settings_toast_saved'))
   }
 
   /** 把开关行的行 key 映射为 SettingsService 的开关键（'keep-on' ↔ 'keepOn'，其余同名）。 */
@@ -265,35 +286,44 @@ export struct SettingsContent {
     const context: Context | null = this.contextOrNull()
     if (context === null) {
       this.applySegSelection('weight', previous)
-      this.showToast('保存失败，请重试')
+      this.showToast($r('app.string.settings_toast_save_failed'))
       return
     }
     await UserProfileService.saveWeightUnit(context, index === 1 ? 'lbs' : 'kg')
     if (UserProfileService.getLastPersistenceError().length > 0) {
       this.applySegSelection('weight', previous)
-      this.showToast('保存失败，请重试')
+      this.showToast($r('app.string.settings_toast_save_failed'))
       return
     }
-    this.showToast('已保存')
+    this.showToast($r('app.string.settings_toast_saved'))
   }
 
-  /** 语言：先乐观更新选中态，再落盘；失败回滚并提示重试。 */
+  /**
+   * 语言：先乐观更新选中态，再落盘；失败回滚并提示重试。
+   * 落盘成功后同步应用级语言设置（i18n per-app 偏好；下次启动生效——
+   * 与 Android AppCompatDelegate per-app locale 的「存储双写」语义对齐）。
+   */
   private async handleLanguageChange(index: number): Promise<void> {
     const previous: number = this.segSelected('language')
     this.applySegSelection('language', index)
     const context: Context | null = this.contextOrNull()
     if (context === null) {
       this.applySegSelection('language', previous)
-      this.showToast('保存失败，请重试')
+      this.showToast($r('app.string.settings_toast_save_failed'))
       return
     }
     await SettingsService.saveLanguage(context, index === 1 ? 'en-US' : 'zh-CN')
     if (SettingsService.getLastPersistenceError().length > 0) {
       this.applySegSelection('language', previous)
-      this.showToast('保存失败，请重试')
+      this.showToast($r('app.string.settings_toast_save_failed'))
       return
     }
-    this.showToast('已保存')
+    try {
+      i18n.System.setAppPreferredLanguage(index === 1 ? 'en-US' : 'zh-Hans')
+    } catch (e) {
+      // 应用级语言设置失败不影响存储结果与提示
+    }
+    this.showToast($r('app.string.settings_toast_saved'))
   }
 
   /** 周开始日：先乐观更新选中态，再落盘；失败回滚并提示重试。 */
@@ -303,37 +333,37 @@ export struct SettingsContent {
     const context: Context | null = this.contextOrNull()
     if (context === null) {
       this.applySegSelection('weekStart', previous)
-      this.showToast('保存失败，请重试')
+      this.showToast($r('app.string.settings_toast_save_failed'))
       return
     }
     await SettingsService.saveWeekStart(context, index === 1 ? 'sunday' : 'monday')
     if (SettingsService.getLastPersistenceError().length > 0) {
       this.applySegSelection('weekStart', previous)
-      this.showToast('保存失败，请重试')
+      this.showToast($r('app.string.settings_toast_save_failed'))
       return
     }
-    this.showToast('已保存')
+    this.showToast($r('app.string.settings_toast_saved'))
   }
 
   /** 训练数据同步：接线 CloudSyncService（未登录时提示先登录）。 */
   private async toggleSyncRow(): Promise<void> {
     const context: Context | null = this.contextOrNull()
     if (context === null) {
-      this.showToast('当前页面不可用')
+      this.showToast($r('app.string.settings_toast_unavailable'))
       return
     }
     const loggedIn: boolean = await SessionManager.isLoggedIn(context)
     if (!loggedIn) {
-      this.showToast('请先登录后再开启同步')
+      this.showToast($r('app.string.settings_toast_login_first'))
       return
     }
     const next: boolean = !this.isSwitchOn('sync')
     await CloudSyncService.setAutoEnabled(context, next)
     this.applySyncRow(next)
-    this.showToast(next ? '已开启自动同步' : '已关闭自动同步')
+    this.showToast(next ? $r('app.string.settings_toast_sync_on') : $r('app.string.settings_toast_sync_off'))
   }
 
-  private showToast(text: string): void {
+  private showToast(text: Resource): void {
     this.toastMessage = text
     this.toastVisible = true
     if (this.toastTimer >= 0) {
@@ -387,7 +417,7 @@ export struct SettingsContent {
           .onClick(() => {
             this.handleBack()
           })
-          Text('设置')
+          Text($r('app.string.settings_title'))
             .fontFamily('Noto Sans SC')
             .fontSize(18)
             .fontWeight(FontWeight.Bold)
@@ -408,7 +438,7 @@ export struct SettingsContent {
             this.generalCard()
             this.dataPrivacyCard()
             this.aboutCard()
-            Text('训练数据与身体数据保存在本机；登录后可选择云同步。')
+            Text($r('app.string.settings_footer'))
               .fontFamily('Noto Sans SC')
               .fontSize(11)
               .fontColor('#8AFFFFFF')
@@ -451,7 +481,7 @@ export struct SettingsContent {
   @Builder
   private generalCard() {
     Column() {
-      this.sectionTitle('通用', '')
+      this.sectionTitle($r('app.string.settings_section_general'), '')
       ForEach(this.segRows, (row: SegRowDef, index: number) => {
         Row() {
           Text(row.label)
@@ -460,7 +490,7 @@ export struct SettingsContent {
             .fontColor('#F7FBF8')
           Blank()
           Row({ space: 2 }) {
-            ForEach(row.options, (option: string, optionIndex: number) => {
+            ForEach(row.options, (option: Resource, optionIndex: number) => {
               Button(option)
                 .height(30)
                 .padding({ left: 16, right: 16 })
@@ -474,7 +504,7 @@ export struct SettingsContent {
                 .onClick(() => {
                   this.handleSegTap(row.key, optionIndex)
                 })
-            }, (option: string) => option)
+            }, (option: Resource, optionIndex: number) => row.key + ':' + optionIndex.toString())
           }
           .padding(3)
           .backgroundColor('#0FFFFFFF')
@@ -531,9 +561,9 @@ export struct SettingsContent {
   @Builder
   private dataPrivacyCard() {
     Column() {
-      this.sectionTitle('数据与隐私', '')
-      this.chevronRow('健康数据授权', '未接入', true, () => {
-        this.showToast('当前版本未接入健康数据，接入后将在此显示授权状态')
+      this.sectionTitle($r('app.string.settings_section_privacy'), '')
+      this.chevronRow($r('app.string.settings_row_health'), $r('app.string.settings_value_not_connected'), true, () => {
+        this.showToast($r('app.string.settings_toast_health_placeholder'))
       })
       this.accountSyncRow()
       ForEach(this.switchRows, (row: SwitchRow, index: number) => {
@@ -582,7 +612,7 @@ export struct SettingsContent {
   @Builder
   private accountSyncRow() {
     Row() {
-      Text('账号与同步')
+      Text($r('app.string.settings_row_account_sync'))
         .fontFamily('Noto Sans SC')
         .fontSize(14)
         .fontColor('#F7FBF8')
@@ -605,12 +635,12 @@ export struct SettingsContent {
   private aboutCard() {
     Column() {
       Row() {
-        Text('关于')
+        Text($r('app.string.settings_section_about'))
           .fontFamily('Noto Sans SC')
           .fontSize(15)
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
-        Text('菲特')
+        Text($r('app.string.settings_brand'))
           .fontFamily('Noto Sans SC')
           .fontSize(11)
           .fontColor('#9EFFFFFF')
@@ -620,7 +650,7 @@ export struct SettingsContent {
       .padding({ bottom: 4 })
 
       Row() {
-        Text('版本')
+        Text($r('app.string.settings_row_version'))
           .fontFamily('Noto Sans SC')
           .fontSize(14)
           .fontColor('#F7FBF8')
@@ -633,7 +663,7 @@ export struct SettingsContent {
       .justifyContent(FlexAlign.SpaceBetween)
       .padding({ top: 15, bottom: 15, left: 2, right: 2 })
 
-      this.chevronRow('隐私说明', '', false, () => {
+      this.chevronRow($r('app.string.settings_row_privacy'), null, false, () => {
         this.getUIContext().getRouter().pushUrl({
           url: AppRoutes.LEGAL_DOC,
           params: { kind: 'privacy' }
@@ -648,7 +678,7 @@ export struct SettingsContent {
   }
 
   @Builder
-  private sectionTitle(title: string, meta: string) {
+  private sectionTitle(title: Resource, meta: string) {
     Row() {
       Text(title)
         .fontFamily('Noto Sans SC')
@@ -668,14 +698,14 @@ export struct SettingsContent {
   }
 
   @Builder
-  private chevronRow(label: string, value: string, first: boolean, onTap?: () => void) {
+  private chevronRow(label: Resource, value: Resource | null, first: boolean, onTap?: () => void) {
     Row() {
       Text(label)
         .fontFamily('Noto Sans SC')
         .fontSize(14)
         .fontColor('#F7FBF8')
       Blank()
-      if (value.length > 0) {
+      if (value !== null) {
         Text(value)
           .fontFamily('Noto Sans SC')
           .fontSize(12.5)
