@@ -28,28 +28,9 @@ apps/harmony/entry/src/main/ets/
 
 `apps/harmony/entry/src/main/resources/base/profile/main_pages.json` 是页面注册的唯一事实来源；`app/AppRoutes.ets` 是代码中的路由常量来源。新页面必须同时满足：文件存在、注册到 `main_pages.json`、由 `AppRoutes` 或明确的父页面引用。
 
-页面统一放在 `features/<feature>/pages/`；Tab 内容等无 `@Entry` 的界面体放 `features/<feature>/components/`。当前注册主线（18 页，与 `main_pages.json` 一致）：
+页面统一放在 `features/<feature>/pages/`；Tab 内容等无 `@Entry` 的界面体放 `features/<feature>/components/`。当前注册页面的完整清单以 `main_pages.json` 为准（本文不再复制，避免与事实源漂移）。
 
-- `features/pencil/pages/PencilSplashPage`
-- `features/welcome/pages/PencilWelcomePage`
-- `features/pencil/pages/PencilLoginPage`
-- `features/pencil/pages/PencilRegisterPage`
-- `features/pencil/pages/PencilProfilePage`
-- `app/PencilAppShell`
-- `features/pencil/pages/PencilHomePage`
-- `features/exercise/pages/ExerciseLibraryPage`
-- `features/exercise/pages/ExerciseDetailPage`
-- `features/pencil/pages/PencilPlanPage`
-- `features/pencil/pages/PencilActivePage`
-- `features/workout/pages/WorkoutCompletePage`
-- `features/pencil/pages/PencilReviewPage`
-- `features/pencil/pages/PencilPlansPage`
-- `features/pencil/pages/PencilPlanGroupDetailPage`
-- `features/body/pages/BodyDataPage`
-- `features/settings/pages/PencilSettingsPage`
-- `features/account/pages/AccountSyncPage`
-
-pencil 的界面体组件：`features/pencil/components/` 下 `HomeContent` / `PlanContent` / `ProfileContent` / `ReviewContent` / `ActiveContent` / `PlansContent` / `PlanGroupDetailContent`，供 `PencilAppShell` 与对应薄壳注册页复用；`features/body/components/BodyDataContent` 与 `features/settings/components/SettingsContent` 同理。训练预览为 `features/pencil/pages/PencilPreviewPage.ets` 中的 `PencilPreviewContent`（无 `@Entry`，由 `PencilAppShell` 的 `bindContentCover` 以全模态承载，不注册路由）。
+界面体组件：`features/pencil/components/` 下按 `*Content` 命名的组件，供 `PencilAppShell` 与对应薄壳注册页复用；`features/body/components/`、`features/settings/components/` 同理。训练预览为 `features/pencil/pages/PencilPreviewPage.ets` 中的 `PencilPreviewContent`（无 `@Entry`，由 `PencilAppShell` 的 `bindContentCover` 以全模态承载，不注册路由）。
 
 冷启动分流：未登录 → 登录页；已登录（无论有无目标）→ 主壳。原「训练目标」引导页已移除，无目标场景由首页空态承接。
 
