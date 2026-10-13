@@ -14,18 +14,21 @@
 
 ## 2. 权威信息源
 
+本工作流是 `docs/process/` 下唯一的权威开发流程文档；其余流程文档已归档到 `docs/archive/workflow-consolidation-2026-10/`（只作历史追溯）。
+
+**路径基准**：本文所有 `tools/…`、`entry/…`、`AppScope/…` 命令与路径均**相对鸿蒙工程根 `apps/harmony/`**（仓库根已无 `tools/`）；文中 `docs/…` 路径相对**仓库根**。
+
 每次接力前，优先读取：
 
-1. [AGENTS.md](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/AGENTS.md)
-2. 当前任务源 JSON
-3. [项目开发日志.txt](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/项目开发日志.txt)
-4. 当前要修改的源码文件
+1. 仓库根 `AGENTS.md`（工程约束，唯一权威）
+2. 当前任务源 JSON（`docs/process/tasks.*.json`）
+3. 当前要修改的源码文件
 
 当前任务源约定：
 
-- 默认主线：[`docs/process/tasks.workout-loop.json`](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/docs/process/tasks.workout-loop.json)
-- 并行内容线：[`docs/process/tasks.content-plan.json`](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/docs/process/tasks.content-plan.json)
-- 并行回归线：[`docs/process/tasks.regression-flow.json`](/C:/.CodeSpace/.DevEcoStudioProjects/FitTracker/docs/process/tasks.regression-flow.json)
+- 默认主线：`docs/process/tasks.workout-loop.json`
+- 并行内容线：`docs/process/tasks.content-plan.json`
+- 并行回归线：`docs/process/tasks.regression-flow.json`
 - `tasks.phase2.json`、`tasks.next.json`、`tasks.json` 仅作为历史阶段记录，不再作为默认接力入口
 - `docs/process/tasks.legacy.json` 仅作归档，不作为自动接力任务源
 
@@ -114,8 +117,8 @@ powershell -ExecutionPolicy Bypass -File tools/dev-smoke.ps1
 
 ### Step 5. 记录与交接
 
-1. 更新 `项目开发日志.txt`
-2. 只更新当前任务源里对应任务的 `passes`
+1. 只更新当前任务源里对应任务的 `passes`
+2. 需要过程记录时写入 `docs/`（根级 `项目开发日志.txt` 已不存在；历史台账见 `docs/archive/legacy-cleanup-2026-09/planning/`）
 3. 提交 commit
 
 ## 5. FitTracker 的验证分层
