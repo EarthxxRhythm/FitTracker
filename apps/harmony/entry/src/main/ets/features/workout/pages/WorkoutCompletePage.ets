@@ -3,6 +3,8 @@ import { AppRoutes } from '../../../app/AppRoutes'
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 import { currentCanvasScale } from '../../../common/utils/CanvasScale'
 import WorkoutSessionService from '../../../common/services/WorkoutSessionService'
+import AchievementNoticeService from '../../../common/services/AchievementNoticeService'
+import WorkoutReminderService from '../../../common/services/WorkoutReminderService'
 import WorkoutSessionPersistenceBridgeService from '../../../features/workout/services/WorkoutSessionPersistenceBridgeService'
 import WorkoutSummaryService, { WorkoutSummary } from '../../../shared/services/WorkoutSummaryService'
 import CloudSyncService from '../../../shared/services/CloudSyncService'
@@ -73,10 +75,30 @@ export struct WorkoutCompletePage {
     await CloudSyncService.requestBackgroundSync(host as Context)
   }
 
+  /** 成就提醒检查（静默；连续训练命中里程碑时发通知）。 */
+  private async checkAchievementNotice(): Promise<void> {
+    const host = this.getUIContext().getHostContext()
+    if (host === undefined || host === null) {
+      return
+    }
+    await AchievementNoticeService.checkAndNotify(host as Context)
+  }
+
+  /** 训练已保存 → 训练提醒顺延（今天已训练，下次提醒从明天 19:30 起）。 */
+  private async deferReminderAfterSession(): Promise<void> {
+    const host = this.getUIContext().getHostContext()
+    if (host === undefined || host === null) {
+      return
+    }
+    await WorkoutReminderService.onSessionSaved(host as Context)
+  }
+
   aboutToAppear(): void {
     this.playEntranceAnimations()
     this.loadWorkoutStats()
     this.triggerCloudSync()
+    this.checkAchievementNotice()
+    this.deferReminderAfterSession()
     this.confettiTimer = setTimeout(() => {
       this.confettiVisible = false
       this.confettiTimer = -1

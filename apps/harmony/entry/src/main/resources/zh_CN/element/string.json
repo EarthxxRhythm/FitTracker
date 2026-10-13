@@ -11,6 +11,142 @@
     {
       "name": "EntryAbility_label",
       "value": "菲特"
+    },
+    {
+      "name": "settings_title",
+      "value": "设置"
+    },
+    {
+      "name": "settings_section_general",
+      "value": "通用"
+    },
+    {
+      "name": "settings_section_privacy",
+      "value": "数据与隐私"
+    },
+    {
+      "name": "settings_section_about",
+      "value": "关于"
+    },
+    {
+      "name": "settings_row_weight_unit",
+      "value": "体重单位"
+    },
+    {
+      "name": "settings_option_kg",
+      "value": "千克"
+    },
+    {
+      "name": "settings_option_lbs",
+      "value": "磅"
+    },
+    {
+      "name": "settings_row_language",
+      "value": "语言"
+    },
+    {
+      "name": "settings_option_zh",
+      "value": "简体中文"
+    },
+    {
+      "name": "settings_option_en",
+      "value": "English"
+    },
+    {
+      "name": "settings_row_week_start",
+      "value": "周开始日"
+    },
+    {
+      "name": "settings_option_monday",
+      "value": "周一"
+    },
+    {
+      "name": "settings_option_sunday",
+      "value": "周日"
+    },
+    {
+      "name": "settings_row_reminder",
+      "value": "训练提醒"
+    },
+    {
+      "name": "settings_row_achievement",
+      "value": "成就提醒"
+    },
+    {
+      "name": "settings_row_sound",
+      "value": "声音与震动"
+    },
+    {
+      "name": "settings_row_keep_on",
+      "value": "训练中屏幕常亮"
+    },
+    {
+      "name": "settings_row_sync",
+      "value": "训练数据同步"
+    },
+    {
+      "name": "settings_row_anonymous",
+      "value": "匿名使用数据"
+    },
+    {
+      "name": "settings_row_health",
+      "value": "健康数据授权"
+    },
+    {
+      "name": "settings_row_account_sync",
+      "value": "账号与同步"
+    },
+    {
+      "name": "settings_row_version",
+      "value": "版本"
+    },
+    {
+      "name": "settings_row_privacy",
+      "value": "隐私说明"
+    },
+    {
+      "name": "settings_value_not_connected",
+      "value": "未接入"
+    },
+    {
+      "name": "settings_brand",
+      "value": "菲特"
+    },
+    {
+      "name": "settings_footer",
+      "value": "训练数据与身体数据保存在本机；登录后可选择云同步。"
+    },
+    {
+      "name": "settings_toast_saved",
+      "value": "已保存"
+    },
+    {
+      "name": "settings_toast_save_failed",
+      "value": "保存失败，请重试"
+    },
+    {
+      "name": "settings_toast_unavailable",
+      "value": "当前页面不可用"
+    },
+    {
+      "name": "settings_toast_login_first",
+      "value": "请先登录后再开启同步"
+    },
+    {
+      "name": "settings_toast_sync_on",
+      "value": "已开启自动同步"
+    },
+    {
+      "name": "settings_toast_sync_off",
+      "value": "已关闭自动同步"
+    },
+    {
+      "name": "settings_toast_health_placeholder",
+      "value": "当前版本未接入健康数据，接入后将在此显示授权状态"
+    },
+    {
+      "name": "settings_toast_reminder_need_permission",
+      "value": "需要通知权限才能开启提醒"
     }
   ]
 }

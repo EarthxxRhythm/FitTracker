@@ -12,6 +12,7 @@ import ActiveWorkoutService, {
 } from '../../../shared/services/ActiveWorkoutService'
 import { WorkoutPreviewSummary } from '../../../shared/services/WorkoutPreviewService'
 import SettingsService, { AppSettings } from '../../../common/services/SettingsService'
+import HapticFeedbackService from '../../../common/services/HapticFeedbackService'
 
 interface ActiveWorkoutRouteParams {
   preview: WorkoutPreviewSummary
@@ -113,6 +114,7 @@ export struct ActiveContent {
   private finished: boolean = false
   private win: window.Window | null = null
   private keepScreenOnApplied: boolean = false
+  private soundEnabled: boolean = true
 
   aboutToAppear(): void {
     this.applyPreviewState()
@@ -123,6 +125,7 @@ export struct ActiveContent {
       this.livePulseLow = !this.livePulseLow
     }, MotionTokens.DURATION_PULSE / 2)
     this.applyKeepScreenOnPreference()
+    this.applySoundPreference()
   }
 
   aboutToDisappear(): void {
@@ -162,6 +165,20 @@ export struct ActiveContent {
       this.keepScreenOnApplied = true
     } catch (error) {
       // 常亮设置失败不阻塞训练流
+    }
+  }
+
+  /** 读取「声音与震动」开关（设置页门控）；读取失败保持默认开。 */
+  private async applySoundPreference(): Promise<void> {
+    const host: Context | undefined = this.getUIContext().getHostContext()
+    if (host === undefined) {
+      return
+    }
+    try {
+      const settings: AppSettings = await SettingsService.loadSettings(host)
+      this.soundEnabled = settings.sound
+    } catch (error) {
+      // 读取失败保持默认值
     }
   }
 
@@ -315,6 +332,9 @@ export struct ActiveContent {
       this.segPopTimer = -1
     }, MotionTokens.DURATION_SEG_POP)
     this.showModal = false
+    if (this.soundEnabled) {
+      HapticFeedbackService.confirm()
+    }
     this.celebrating = true
     const isLast: boolean = justDoneIndex + 1 >= PROGRESS_SEGMENTS.length
     if (isLast) {
