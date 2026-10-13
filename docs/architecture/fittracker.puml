@@ -1,0 +1,79 @@
+' 菲特 FitTracker — 极简系统图集（PlantUML）
+' 渲染：java -jar plantuml.jar fittracker.puml   生成 flow/use-case/class/sequence 四张图
+
+@startuml flow
+skinparam defaultFontName "Microsoft YaHei"
+title 流程图 · 启动与训练主流程
+start
+:冷启动;
+if (已登录？) then (否)
+  :登录 / 注册;
+endif
+:主壳 · 首页;
+if (开始训练？) then (是)
+  :训练执行（组次录入）;
+  :完成摘要;
+endif
+stop
+@enduml
+
+@startuml use-case
+skinparam defaultFontName "Microsoft YaHei"
+left to right direction
+title 用例图 · 菲特
+actor "访客" as guest
+actor "用户" as user
+rectangle 菲特 {
+  usecase "登录 / 注册" as uc1
+  usecase "今日训练" as uc2
+  usecase "训练复盘" as uc3
+  usecase "动作库" as uc4
+  usecase "身体数据" as uc5
+  usecase "云同步" as uc6
+  usecase "设置" as uc7
+}
+guest --> uc1
+user --> uc1
+user --> uc2
+user --> uc3
+user --> uc4
+user --> uc5
+user --> uc6
+user --> uc7
+@enduml
+
+@startuml class
+skinparam defaultFontName "Microsoft YaHei"
+hide members
+hide circle
+title 类图 · 领域模型
+class "训练目标" as UserGoal
+class "训练计划" as TrainingPlan
+class "训练日" as PlanDay
+class "计划动作" as PlannedExercise
+class "动作" as ExerciseContent
+class "训练会话" as WorkoutSession
+class "训练组" as WorkoutSet
+UserGoal "1" --> "*" TrainingPlan
+TrainingPlan "1" *-- "*" PlanDay
+PlanDay "1" *-- "*" PlannedExercise
+PlannedExercise --> ExerciseContent
+WorkoutSession "1" *-- "*" WorkoutSet
+WorkoutSet --> ExerciseContent
+@enduml
+
+@startuml sequence
+skinparam defaultFontName "Microsoft YaHei"
+title 序列图 · 训练完成与云同步
+actor 用户 as U
+participant "训练页" as AC
+participant "WorkoutRepository" as WR
+participant "完成页" as CP
+participant "CloudSyncService" as CS
+U -> AC: 完成训练
+AC -> WR: saveSession()
+AC -> CP: 进入完成页
+CP -> CS: 请求后台同步
+CS --> CP: 同步结果
+CP --> U: 展示摘要
+@enduml
