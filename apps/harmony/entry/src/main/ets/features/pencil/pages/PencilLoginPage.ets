@@ -44,7 +44,7 @@ struct PencilLoginPage {
     const context = this.contextOrNull()
     if (context !== null) {
       await CloudEnvironment.initialize(context)
-      this.sandboxMode = !CloudEnvironment.isAgcConfigured()
+      this.sandboxMode = CloudEnvironment.getModeLabel() === 'sandbox'
     }
   }
 
