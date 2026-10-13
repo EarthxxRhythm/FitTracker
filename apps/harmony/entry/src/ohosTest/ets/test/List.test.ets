@@ -42,6 +42,7 @@ import cloudSyncServiceTest from './CloudSyncService.test'
 import accountDataLifecycleTest from './AccountDataLifecycle.test'
 import workoutReminderServiceTest from './WorkoutReminderService.test'
 import achievementNoticeServiceTest from './AchievementNoticeService.test'
+import supabaseCloudSnapshotStoreTest from './SupabaseCloudSnapshotStore.test'
 
 export default function testsuite(): void {
   abilityTest()
@@ -88,4 +89,5 @@ export default function testsuite(): void {
   accountDataLifecycleTest()
   workoutReminderServiceTest()
   achievementNoticeServiceTest()
+  supabaseCloudSnapshotStoreTest()
 }

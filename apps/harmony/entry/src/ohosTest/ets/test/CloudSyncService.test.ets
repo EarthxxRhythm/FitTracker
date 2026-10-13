@@ -20,7 +20,7 @@ import GoalRepository from '../../../main/ets/shared/services/GoalRepository'
 import GoalSetupService from '../../../main/ets/shared/services/GoalSetupService'
 import WorkoutRepository from '../../../main/ets/shared/services/WorkoutRepository'
 import UserDataBackupService, { UserDataBackupPackage } from '../../../main/ets/shared/services/UserDataBackupService'
-import CloudSyncService, { SyncResult, SyncState } from '../../../main/ets/shared/services/CloudSyncService'
+import CloudSyncService, { resolveStoreKind, SyncResult, SyncState } from '../../../main/ets/shared/services/CloudSyncService'
 import { CloudSnapshot, CloudSnapshotStore, createCloudSnapshot } from '../../../main/ets/shared/services/CloudSnapshotStore'
 import {
   UserGoal,
@@ -173,6 +173,24 @@ export default function cloudSyncServiceTest(): void {
 
     it('pushes when the cloud conflict is older than the last sync', 0, () => {
       expect(CloudSyncService.decideSyncAction('local-new', 'remote-new', 'same', 50, 100)).assertEqual('push')
+    })
+  })
+
+  describe('CloudSyncService store resolution', () => {
+    it('resolves testing when a store is injected', 0, () => {
+      expect(resolveStoreKind(true, 'sandbox')).assertEqual('testing')
+    })
+
+    it('resolves supabase when the backend is supabase', 0, () => {
+      expect(resolveStoreKind(false, 'supabase')).assertEqual('supabase')
+    })
+
+    it('resolves agc when the backend is agc', 0, () => {
+      expect(resolveStoreKind(false, 'agc')).assertEqual('agc')
+    })
+
+    it('falls back to sandbox otherwise', 0, () => {
+      expect(resolveStoreKind(false, 'sandbox')).assertEqual('sandbox')
     })
   })
 

@@ -13,11 +13,12 @@
 import { Context } from '@kit.AbilityKit'
 import { preferences } from '@kit.ArkData'
 import { FitTrackerStores } from '../../app/AppState'
-import CloudEnvironment from '../../common/services/CloudEnvironment'
+import CloudEnvironment, { CloudBackend } from '../../common/services/CloudEnvironment'
 import SessionManager from '../../common/services/SessionManager'
 import UserProfileService, { UserProfile } from '../../common/services/UserProfileService'
 import UserDataBackupService, { UserDataBackupImportResult, UserDataBackupPackage } from './UserDataBackupService'
 import agcCloudSnapshotStore from './AgcCloudSnapshotStore'
+import supabaseCloudSnapshotStore from './SupabaseCloudSnapshotStore'
 import cloudSnapshotStore, {
   CloudSnapshot,
   CloudSnapshotStore,
@@ -26,6 +27,22 @@ import cloudSnapshotStore, {
 } from './CloudSnapshotStore'
 
 export type SyncAction = 'push' | 'pull' | 'none' | 'conflict_pull' | 'failed' | 'skipped'
+
+/** 云存储解析判据（独立可测）：测试注入 > Supabase > AGC > 沙盒兜底。 */
+export type SyncStoreKind = 'testing' | 'supabase' | 'agc' | 'sandbox'
+
+export function resolveStoreKind(testingInjected: boolean, backend: CloudBackend): SyncStoreKind {
+  if (testingInjected) {
+    return 'testing'
+  }
+  if (backend === 'supabase') {
+    return 'supabase'
+  }
+  if (backend === 'agc') {
+    return 'agc'
+  }
+  return 'sandbox'
+}
 
 const META_KEY: string = 'meta'
 const ENVELOPE_SCHEMA_VERSION: number = 1
@@ -319,8 +336,9 @@ class CloudSyncService {
   }
 
   /**
-   * 解析云存储：测试注入 > AGC 云数据库（需 cloudCommon 就绪；未就绪返回 null 走显式
-   * 失败路径，不跨存储降级以免数据分裂） > 本地沙盒存储。
+   * 解析云存储：测试注入 > Supabase（就绪判据 = 配置存在，不回退沙盒） > AGC 云数据库
+   * （需 cloudCommon 就绪；未就绪返回 null 走显式失败路径，不跨存储降级以免数据分裂）
+   * > 本地沙盒存储。
    */
   private async resolveStore(context: Context): Promise<CloudSnapshotStore | null> {
     if (this.testingStore !== null) {
@@ -329,7 +347,13 @@ class CloudSyncService {
     // 幂等补齐 AGC 初始化：登录态重启的新进程不经过登录页，若不在此调用，
     // isAgcConfigured() 恒为 false，同步会被静默降级到本地沙盒（发布走查发现）。
     await CloudEnvironment.initialize(context)
-    if (CloudEnvironment.isAgcConfigured()) {
+    const kind: SyncStoreKind = resolveStoreKind(false, CloudEnvironment.getBackend())
+    if (kind === 'supabase') {
+      // Supabase 就绪判据 = 配置存在（不走 cloudCommon，见 CloudEnvironment 注释）；
+      // token 缺失不回退沙盒——由 store 内 isConfigured 与 401 语义表达（对齐 Android）。
+      return supabaseCloudSnapshotStore
+    }
+    if (kind === 'agc') {
       const ready: boolean = await CloudEnvironment.ensureCloudDatabaseReady()
       return ready ? agcCloudSnapshotStore : null
     }
