@@ -13,6 +13,7 @@
 | `docs/process/` | 工程流程与协作：多代理信箱协议、任务队列、开发循环、平台规则 |
 | `docs/closeout/` | 阶段收尾与治理：MVP/备份收尾、收尾审计、路线图、旧页面治理清单 |
 | `docs/legal/` | 隐私政策与用户协议 |
+| `docs/architecture/` | 系统图集：流程图 / 用例图 / 类图 / 序列图 |
 | `docs/archive/` | 历史归档（只读，不作为实现依据） |
 
 根级保留 4 份：本文件、`CHANGELOG.md`、`blockers.md`（活跃卡点登记）、`产品需求文档（PRD）.md`。
