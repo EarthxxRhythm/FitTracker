@@ -8,8 +8,8 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { readFileSync, existsSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import {
@@ -21,10 +21,39 @@ import {
   evaluateRegisterSpacing
 } from './check-auth-spacing.mjs'
 
-const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const scriptDir = dirname(fileURLToPath(import.meta.url))
+
+/** 向上定位仓库根（同时含 AGENTS.md 与 docs/）；monorepo 下与 cwd 无关。 */
+function findRepoRoot(startDir) {
+  let dir = resolve(startDir)
+  for (let depth = 0; depth < 8; depth += 1) {
+    if (existsSync(join(dir, 'AGENTS.md')) && existsSync(join(dir, 'docs'))) {
+      return dir
+    }
+    const parent = dirname(dir)
+    if (parent === dir) {
+      break
+    }
+    dir = parent
+  }
+  return null
+}
+
+// 本仓库是 monorepo：`design/…` 位于仓库根，而 `entry/…` 位于 apps/harmony/ 下。
+// 旧实现以 `resolve(scriptDir, '..')`（= apps/harmony）为仓库根，仓库根的 design/… 永远
+// 解析不到 —— 依赖它的用例全部 ENOENT（实测 pass 1 / fail 7）。此处改为双基准解析。
+const repoRoot = findRepoRoot(scriptDir) ?? resolve(scriptDir, '..')
+const baseDirs = [repoRoot, resolve(repoRoot, 'apps', 'harmony')]
 
 function readRepoFile(relativePath) {
-  return readFileSync(resolve(repoRoot, relativePath), 'utf8')
+  for (const base of baseDirs) {
+    const full = resolve(base, relativePath)
+    if (existsSync(full)) {
+      return readFileSync(full, 'utf8')
+    }
+  }
+  // fail closed：两个基准都找不到时明确报错，而不是静默返回空内容
+  throw new Error(`找不到仓库文件 ${relativePath}（已尝试基准：${baseDirs.join(' | ')}）`)
 }
 
 function registerReport() {

@@ -520,7 +520,7 @@ struct PencilRegisterPage {
                 })
                 .scale({ x: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1 })
                 .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
-                .margin({ top: 14 })
+                .margin({ top: 20 })
             }
             .width('100%')
             .margin({ top: 10, bottom: 10 })

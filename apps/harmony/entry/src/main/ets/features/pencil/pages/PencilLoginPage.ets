@@ -580,7 +580,7 @@ struct PencilLoginPage {
                 .width('100%')
                 .height(52)
                 .padding(0)
-                .margin({ top: 14 })
+                .margin({ top: 20 })
                 .fontFamily('Noto Sans SC')
                 .fontSize(16)
                 .fontWeight(FontWeight.Bold)
