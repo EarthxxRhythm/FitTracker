@@ -28,7 +28,7 @@ import { common, Want } from '@kit.AbilityKit'
 import { Context } from '@kit.AbilityKit'
 import { BusinessError } from '@kit.BasicServicesKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import { IQQOpenApi, QQOpenApiFactory, AuthResult, AuthResultType, AuthReqOptions } from '@tencent/qq-open-sdk'
+import { IQQOpenApi, QQOpenApiFactory, AuthResult, AuthResultType, AuthReqOptions, OpenApiConfig } from '@tencent/qq-open-sdk'
 import { ThirdPartyAuthBridge, ThirdPartyAuthCallbackSink } from '../ThirdPartyAuthBridge'
 import { ThirdPartyAuthCode, ThirdPartyAuthFailure, ThirdPartyAuthFailureKind, ThirdPartyId } from '../AuthTypes'
 import ThirdPartyConfig from '../ThirdPartyConfig'
@@ -178,8 +178,11 @@ class QqAuthBridge extends ThirdPartyAuthBridge {
   /** 幂等创建 QQ api 实例（须与 handleResult 使用同一实例，官方明确要求）。 */
   private ensureApi(appId: string): IQQOpenApi {
     if (this.api === null) {
-      // appId 为数字串，SDK 接口声明为 number
-      this.api = QQOpenApiFactory.createApi(Number(appId))
+      // appId 为数字串，SDK 接口声明为 number。
+      // 第二参数照 QQ 官方 demo（QQOpenApiHolder.ets）：forceEnableWeb=false（优先拉起 QQ App，
+      // 未安装时才回落网页登录）。
+      const openApiOption: OpenApiConfig = { forceEnableWeb: false }
+      this.api = QQOpenApiFactory.createApi(Number(appId), openApiOption)
     }
     return this.api
   }

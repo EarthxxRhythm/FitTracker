@@ -22,6 +22,10 @@ val supabasePublishableKey: String = supabaseLocalProps.getProperty("supabase.pu
 // 字段名与鸿蒙侧 thirdparty.json 的 wechatAppId 语义一致（同一开放平台应用的同一 AppID）。
 val wechatAppId: String = supabaseLocalProps.getProperty("wechat.appId") ?: ""
 
+// QQ 互联 AppID（数字串；同鸿蒙侧 thirdparty.json 的 qqAppId）。
+// 空串时 QQ 登录通道不可用（登录页给出「暂未开通」提示）。
+val qqAppId: String = supabaseLocalProps.getProperty("qq.appId") ?: ""
+
 // Release 签名（同样读 local.properties，材料不进版本库）。
 // 未配置时 hasReleaseSigning = false → release 构建不签名，配置阶段不报错；
 // 生成 keystore 与填写方式见 docs/release/android-signing-and-store.md。
@@ -56,6 +60,8 @@ android {
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"$supabasePublishableKey\"")
         // 微信 AppID——空串时微信登录通道不可用（WXEntryActivity 会直接结束）
         buildConfigField("String", "WECHAT_APP_ID", "\"$wechatAppId\"")
+        // QQ AppID——空串时 QQ 登录通道不可用
+        buildConfigField("String", "QQ_APP_ID", "\"$qqAppId\"")
     }
 
     signingConfigs {
@@ -140,6 +146,11 @@ dependencies {
     // 微信 OpenSDK（第三方登录）。版本锁定见 gradle/libs.versions.toml 的 wechatSdk。
     // 依赖它的前提：WXEntryActivity 位于 {applicationId}.wxapi 包下（微信硬性约定）。
     implementation(libs.wechat.sdk.android)
+
+    // QQ 互联 OpenSDK（第三方登录）。**不在 Maven Central**（实测 search.maven.org 零结果），
+    // 官方只提供 JAR 下载，故以本地文件引入。来源：QQ 互联开放平台 open_sdk_3.5.19_r9483ffc7_lite.jar。
+    // 包结构 com.tencent.{connect,open,tauth}，纯 class 无 Android 资源，可直接 files() 引入。
+    implementation(files("libs/open_sdk_3.5.19_r9483ffc7_lite.jar"))
 
     testImplementation(libs.junit)
     // Compose 布局层测试（Robolectric 在 JVM 上跑组合/测量）——见 FtCanvasLayoutTest
