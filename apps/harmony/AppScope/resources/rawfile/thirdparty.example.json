@@ -1,0 +1,5 @@
+{
+  "wechatAppId": "wx_your_wechat_app_id",
+  "qqAppId": "your_qq_app_id_numeric",
+  "huaweiClientId": "your_huawei_client_id"
+}

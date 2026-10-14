@@ -10,6 +10,17 @@
     "deliveryWithInstall": true,
     "installationFree": false,
     "pages": "$profile:main_pages",
+    // 第三方登录 scheme 声明（微信/QQ 官方要求）：
+    //  - weixin    ：微信，用于 WXApi.isWXAppInstalled() 判断是否安装
+    //  - wxopensdk ：微信，用于跳转微信授权
+    //  - https     ：QQ 官方要求（其 SDK 内部走 https 跳转）
+    //  - qqopenapi ：QQ，用于接收 QQ 授权回调
+    "querySchemes": [
+      "weixin",
+      "wxopensdk",
+      "https",
+      "qqopenapi"
+    ],
     "requestPermissions": [
       {
         "name": "ohos.permission.INTERNET"
@@ -39,6 +50,25 @@
             ],
             "actions": [
               "ohos.want.action.home"
+            ]
+          },
+          // QQ 授权回调：entity.system.browsable + viewData + qqopenapi scheme。
+          // ⚠ host 必须等于应用在 QQ 互联申请到的 AppID（填写错误会导致 QQ 无法回调，
+          //   腾讯官方明确警告）。真值放 rawfile thirdparty.json（不入库），
+          //   此处按 ohos 规范需为字面量——发布前须用真实 AppID 替换 <QQ_APP_ID>。
+          {
+            "entities": [
+              "entity.system.browsable"
+            ],
+            "actions": [
+              "ohos.want.action.viewData"
+            ],
+            "uris": [
+              {
+                "scheme": "qqopenapi",
+                "host": "<QQ_APP_ID>",
+                "pathRegex": "\\b(auth|share)\\b"
+              }
             ]
           }
         ]

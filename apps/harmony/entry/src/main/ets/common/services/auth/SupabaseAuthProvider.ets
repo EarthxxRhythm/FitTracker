@@ -17,6 +17,8 @@ import { AuthProvider } from './AuthProvider'
 import {
   AuthResult,
   AuthSession,
+  ThirdPartyExchangeRequest,
+  ThirdPartyExchangeResponse,
   VerifyCodeResult,
   createAuthSession,
   createAuthResult,
@@ -35,6 +37,15 @@ const PATH_LOGOUT: string = 'logout'
 
 /** 伪邮箱域（手机号 ↔ 邮箱制后端的桥接，对齐 Android INTERNAL_EMAIL_DOMAIN）。 */
 const INTERNAL_EMAIL_DOMAIN: string = 'phone.fittracker.app'
+
+/** 第三方换票 Edge Function 路径（拼接为 {url}/functions/v1/thirdparty-exchange）。 */
+const PATH_THIRDPARTY_EXCHANGE: string = 'thirdparty-exchange'
+
+/** magiclink 校验请求体（用换票拿到的 token_hash 换取正式会话）。 */
+interface MagicLinkVerifyRequest {
+  type: string
+  token_hash: string
+}
 
 const PROVIDER_ID: string = 'supabase'
 
@@ -224,9 +235,67 @@ class SupabaseAuthProvider extends AuthProvider {
     return this.persistSessionFrom(response, '', normalizeAccount(email))
   }
 
-  /** 第三方登录：Supabase 侧未接（与 Android 一致）。 */
+  /**
+   * 第三方登录（两段式第二段）：authCode → 服务端换票 → token_hash → GoTrue 会话。
+   *
+   * 链路：POST {url}/functions/v1/thirdparty-exchange {provider, authCode}
+   *      → 200 {token_hash, type:'magiclink'} → POST /auth/v1/verify {type, token_hash}
+   *      → GoTrue 会话（access_token + refresh_token）→ 复用 persistSessionFrom 落库。
+   *
+   * 与手机验证码链路的关系：最终都走 /auth/v1/verify，故共用会话落库路径
+   * （persistSessionFrom），保证 RLS 与云同步能力直接复用。
+   */
   async loginWithThirdParty(thirdPartyId: string, authCode: string): Promise<AuthResult> {
-    return createAuthResult(false, '当前云端不支持第三方登录', null)
+    if (!this.isAvailable()) {
+      return createAuthResult(false, '云服务未就绪，请稍后重试', null)
+    }
+    if (authCode.length === 0) {
+      return createAuthResult(false, '授权未完成，请重试', null)
+    }
+    const request: ThirdPartyExchangeRequest = {
+      provider: thirdPartyId,
+      authCode: authCode,
+      state: ''
+    }
+    const exchange: SupabaseHttpResult = await SupabaseHttp.post(
+      SupabaseHttp.functionsUrl(PATH_THIRDPARTY_EXCHANGE), JSON.stringify(request), null)
+    if (!this.isOk(exchange)) {
+      return createAuthResult(false, this.describeThirdPartyError(exchange), null)
+    }
+    if (exchange.body.trim().length === 0) {
+      return createAuthResult(false, '换票服务响应异常，请稍后重试', null)
+    }
+    let tokenHash: string = ''
+    let tokenType: string = ''
+    try {
+      const parsed: ThirdPartyExchangeResponse = JSON.parse(exchange.body) as ThirdPartyExchangeResponse
+      tokenHash = parsed.token_hash !== undefined ? parsed.token_hash : ''
+      tokenType = parsed.type !== undefined && parsed.type.length > 0 ? parsed.type : 'magiclink'
+    } catch (error) {
+      return createAuthResult(false, '换票响应解析失败，请稍后重试', null)
+    }
+    if (tokenHash.length === 0) {
+      return createAuthResult(false, '换票未返回有效票据，请重试', null)
+    }
+    // 用 token_hash 走标准 verify 端点换取正式会话（与手机验证码链路同形）
+    const verifyRequest: MagicLinkVerifyRequest = { type: tokenType, token_hash: tokenHash }
+    const verifyResponse: SupabaseHttpResult = await SupabaseHttp.post(
+      SupabaseHttp.authUrl(PATH_VERIFY), JSON.stringify(verifyRequest), null)
+    return this.persistSessionFrom(verifyResponse, '', '')
+  }
+
+  /** 第三方换票失败文案：区分网络 / 第三方授权失败 / 服务端错误。 */
+  private describeThirdPartyError(response: SupabaseHttpResult): string {
+    if (response.status === 0) {
+      return '网络不可达，请检查网络后重试'
+    }
+    if (response.status === 400 || response.status === 401) {
+      return '授权已失效，请重新登录'
+    }
+    if (response.status === 429) {
+      return '请求过于频繁，请稍后再试'
+    }
+    return '登录服务暂时不可用，请稍后重试'
   }
 
   /** 退出登录：先请求 GoTrue 登出（失败忽略），再清本地会话与缓存。 */

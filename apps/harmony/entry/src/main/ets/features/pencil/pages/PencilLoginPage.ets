@@ -3,9 +3,12 @@ import { AppRoutes } from '../../../app/AppRoutes'
 import { StartupDecision } from '../../../app/AppState'
 import AuthService from '../../../common/services/AuthService'
 import CloudEnvironment from '../../../common/services/CloudEnvironment'
+import ThirdPartyBridgeBootstrap from '../../../common/services/auth/ThirdPartyBridgeBootstrap'
+import ThirdPartyBridgeRegistry from '../../../common/services/auth/ThirdPartyBridgeRegistry'
+import PendingAuthStore, { PendingAuthRecord } from '../../../common/services/auth/PendingAuthStore'
 import GoalRepository from '../../../shared/services/GoalRepository'
 import CloudSyncService from '../../../shared/services/CloudSyncService'
-import { Context } from '@kit.AbilityKit'
+import { Context, common } from '@kit.AbilityKit'
 import { ColorTokens, MotionTokens } from '../../../common/styles/DesignTokens'
 import { currentCanvasScale } from '../../../common/utils/CanvasScale'
 
@@ -40,12 +43,63 @@ struct PencilLoginPage {
     return host === undefined || host === null ? null : host as Context
   }
 
+  /**
+   * 取 UIAbilityContext（第三方 SDK 拉起外部 App 必需）。
+   * 登录页宿主即 EntryAbility，其 hostContext 运行时就是 UIAbilityContext；
+   * 此处做一次显式收窄以满足接口签名（ArkTS 静态检查不接受基类传入）。
+   */
+  private uiAbilityContextOrNull(): common.UIAbilityContext | null {
+    const host = this.getUIContext().getHostContext()
+    if (host === undefined || host === null) {
+      return null
+    }
+    return host as common.UIAbilityContext
+  }
+
   async aboutToAppear(): Promise<void> {
     const context = this.contextOrNull()
     if (context !== null) {
       await CloudEnvironment.initialize(context)
       this.sandboxMode = CloudEnvironment.getModeLabel() === 'sandbox'
+      // 注册第三方桥（幂等）：登录页是第三方登录的唯一入口
+      ThirdPartyBridgeBootstrap.initialize(context)
+      // 续跑：微信/QQ 授权后返回本应用，页面重建但上一轮的 await 已随旧页面销毁而中断。
+      // 此处消费遗留的授权结果，把第二段（换票）接上，避免「授权成功却不登录」。
+      await this.resumeThirdPartyIfPending(context)
     }
+  }
+
+  /**
+   * 消费遗留的第三方授权结果并完成换票（页面重建后续跑第二段）。
+   *
+   * 仅在该结果由本页发起（协议已勾选）时续跑；用户主动取消或已过期（consume 返回 null）
+   * 时静默返回，不打扰用户。
+   */
+  private async resumeThirdPartyIfPending(context: Context): Promise<void> {
+    if (!this.agreeChecked) {
+      return
+    }
+    const pending: PendingAuthRecord | null = await PendingAuthStore.consume(context)
+    if (pending === null) {
+      return
+    }
+    if (pending.kind === 'failure') {
+      if (pending.message.length > 0) {
+        this.message = pending.message
+      }
+      return
+    }
+    this.loading = true
+    try {
+      const result = await AuthService.loginWithThirdParty(context, pending.providerId, pending.authCode)
+      if (!result.success) {
+        this.message = result.message
+        return
+      }
+    } finally {
+      this.loading = false
+    }
+    await this.routeAfterLogin(context)
   }
 
   aboutToDisappear(): void {
@@ -146,6 +200,14 @@ struct PencilLoginPage {
     await this.routeAfterLogin(context)
   }
 
+  /**
+   * 第三方登录（两段式编排）。
+   *
+   * 第一段：端侧 SDK 授权（拉起第三方 App）→ 结果经 PendingAuthStore 落盘
+   * 第二段：authCode → 服务端换票 → GoTrue 会话（由 AuthService 转发 Provider）
+   *
+   * 「用户主动取消」不报错：pending.kind === 'cancelled' 时静默返回，与超时/失败区分。
+   */
   private async loginWithThirdParty(thirdPartyId: string): Promise<void> {
     this.message = ''
     this.hint = ''
@@ -158,12 +220,44 @@ struct PencilLoginPage {
       this.message = '当前页面不可用，请重试'
       return
     }
-    this.loading = true
-    const result = await AuthService.loginWithThirdParty(context, thirdPartyId)
-    this.loading = false
-    if (!result.success) {
-      this.message = result.message
+    // 清掉可能残留的上次授权结果，避免误消费陈旧 code
+    await PendingAuthStore.clear(context)
+    const uiContext: common.UIAbilityContext | null = this.uiAbilityContextOrNull()
+    if (uiContext === null) {
+      this.message = '当前页面不可用，请重试'
       return
+    }
+    this.loading = true
+    try {
+      // 第一段：拉起第三方 App 完成授权
+      try {
+        await ThirdPartyBridgeRegistry.sendAuthRequest(uiContext, thirdPartyId)
+      } catch (error) {
+        const err: Error = error as Error
+        this.message = err.message
+        return
+      }
+      // 取授权结果（华为路径在此已可直接消费到；微信/QQ 需返回本应用后才有）
+      const pending: PendingAuthRecord | null = await PendingAuthStore.consume(context)
+      if (pending === null) {
+        // 未拿到结果：可能用户仍在第三方 App（微信/QQ 授权后会重新进入本页并触发新流程），
+        // 也可能是回调未到达。给出中性提示而非错误红字。
+        this.hint = '请完成授权后返回'
+        return
+      }
+      if (pending.kind === 'failure') {
+        // 用户主动取消：静默（不显示错误）
+        this.message = pending.message
+        return
+      }
+      // 第二段：换票 + 建立会话
+      const result = await AuthService.loginWithThirdParty(context, thirdPartyId, pending.authCode)
+      if (!result.success) {
+        this.message = result.message
+        return
+      }
+    } finally {
+      this.loading = false
     }
     await this.routeAfterLogin(context)
   }
