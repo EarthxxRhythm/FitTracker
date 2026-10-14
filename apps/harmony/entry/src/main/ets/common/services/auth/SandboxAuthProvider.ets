@@ -129,7 +129,11 @@ class SandboxAuthProvider extends AuthProvider {
     return this.completeSignIn(user, 'email_password', '', trimmedEmail)
   }
 
-  async loginWithThirdParty(thirdPartyId: string): Promise<AuthResult> {
+  /**
+   * 第三方登录（沙盒语义：直接按通道标识建会话，不校验 authCode）。
+   * authCode 参数为契约对齐（Supabase 后端经服务端换票使用），沙盒忽略。
+   */
+  async loginWithThirdParty(thirdPartyId: string, authCode: string): Promise<AuthResult> {
     const session: AuthSession = createAuthSession(
       'sandbox:' + thirdPartyId,
       this.resolveThirdPartyName(thirdPartyId),

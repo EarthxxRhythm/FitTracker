@@ -100,6 +100,21 @@ interface AuthProvider {
     suspend fun signInWithPhoneCode(phone: String, code: String): Result<AuthSession> =
         Result.failure(AuthException("当前认证方式不支持手机验证码"))
 
+    /**
+     * 第三方登录——源 `AuthProvider.ets:38` `loginWithThirdParty(thirdPartyId, authCode)`。
+     *
+     * 安卓侧携 authCode（端侧 SDK 授权码），由实现类经服务端换票完成
+     * （见 cloud/SupabaseAuthProvider.kt 同类实现）。
+     *
+     * 默认实现返回失败，保持与既有 Provider 的向后兼容——
+     * 未接入第三方链路的实现类无需改动即编译通过。
+     *
+     * @param provider 通道标识：`"wechat"` | `"qq"` | `"huawei"`
+     * @param authCode 端侧 SDK 授权码（一次性）
+     */
+    suspend fun signInWithThirdParty(provider: String, authCode: String): Result<AuthSession> =
+        Result.failure(AuthException("当前认证方式不支持第三方登录"))
+
     /** 退出登录（清理提供方侧会话）——源 `AuthProvider.ets:42` `signOut`。 */
     suspend fun signOut()
 

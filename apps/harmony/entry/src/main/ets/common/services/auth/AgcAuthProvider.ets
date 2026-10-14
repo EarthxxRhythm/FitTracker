@@ -180,7 +180,14 @@ class AgcAuthProvider extends AuthProvider {
     }
   }
 
-  async loginWithThirdParty(thirdPartyId: string): Promise<AuthResult> {
+  /**
+   * 第三方登录。
+   *
+   * 通道支持：仅 'huawei'（hwid 凭据由 SDK 内部完成用户交互，不需要端侧 authCode）。
+   * 微信 / QQ 在 AGC 后端下仍返回降级提示——身份落点为自托管 Supabase
+   * （见 SupabaseAuthProvider.loginWithThirdParty），AGC 侧不补微信 / QQ。
+   */
+  async loginWithThirdParty(thirdPartyId: string, authCode: string): Promise<AuthResult> {
     if (thirdPartyId !== 'huawei') {
       return createAuthResult(false, '当前版本暂未开通该登录方式，请使用手机号或邮箱登录', null)
     }

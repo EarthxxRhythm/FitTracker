@@ -35,8 +35,15 @@ export abstract class AuthProvider {
   /** 邮箱 + 密码登录。 */
   abstract loginWithEmailPassword(email: string, password: string): Promise<AuthResult>
 
-  /** 第三方登录（huawei / wechat / qq）。 */
-  abstract loginWithThirdParty(thirdPartyId: string): Promise<AuthResult>
+  /**
+   * 第三方登录（两段式第二段）。
+   *
+   * @param thirdPartyId 通道标识：'huawei' | 'wechat' | 'qq'
+   * @param authCode 端侧 SDK 授权码。空串表示「由 Provider 自行拉起授权」——
+   *                 仅 AGC 的 hwid 通道适用（其凭据由 SDK 内部完成用户交互）；
+   *                 Supabase 后端要求非空 authCode（走服务端换票）。
+   */
+  abstract loginWithThirdParty(thirdPartyId: string, authCode: string): Promise<AuthResult>
 
   /** 退出登录（清理提供方会话）。 */
   abstract signOut(): Promise<void>
