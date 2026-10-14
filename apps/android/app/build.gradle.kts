@@ -18,6 +18,10 @@ val supabaseLocalProps: Properties = Properties().apply {
 val supabaseUrl: String = supabaseLocalProps.getProperty("supabase.url") ?: ""
 val supabasePublishableKey: String = supabaseLocalProps.getProperty("supabase.publishableKey") ?: ""
 
+// 微信 OpenSDK 的 AppID（同样读 local.properties，不进版本库；缺省为空串 → 微信登录优雅禁用）。
+// 字段名与鸿蒙侧 thirdparty.json 的 wechatAppId 语义一致（同一开放平台应用的同一 AppID）。
+val wechatAppId: String = supabaseLocalProps.getProperty("wechat.appId") ?: ""
+
 // Release 签名（同样读 local.properties，材料不进版本库）。
 // 未配置时 hasReleaseSigning = false → release 构建不签名，配置阶段不报错；
 // 生成 keystore 与填写方式见 docs/release/android-signing-and-store.md。
@@ -50,6 +54,8 @@ android {
         // 部署配置注入（local.properties）——空串表示未配置（云端能力禁用）
         buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
         buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"$supabasePublishableKey\"")
+        // 微信 AppID——空串时微信登录通道不可用（WXEntryActivity 会直接结束）
+        buildConfigField("String", "WECHAT_APP_ID", "\"$wechatAppId\"")
     }
 
     signingConfigs {
@@ -130,6 +136,10 @@ dependencies {
     // W2-2 动作 GIF 素材接入：Coil 负责动画 GIF 解码与内存/生命周期管理
     implementation(libs.coil.compose)
     implementation(libs.coil.gif)
+
+    // 微信 OpenSDK（第三方登录）。版本锁定见 gradle/libs.versions.toml 的 wechatSdk。
+    // 依赖它的前提：WXEntryActivity 位于 {applicationId}.wxapi 包下（微信硬性约定）。
+    implementation(libs.wechat.sdk.android)
 
     testImplementation(libs.junit)
     // Compose 布局层测试（Robolectric 在 JVM 上跑组合/测量）——见 FtCanvasLayoutTest

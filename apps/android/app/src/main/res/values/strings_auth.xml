@@ -75,6 +75,7 @@
     <string name="auth_action_register">注册</string>
     <string name="auth_divider_other_login">其他登录方式</string>
     <string name="auth_social_wechat">微信</string>
+    <string name="auth_social_qq">QQ</string>
     <string name="auth_social_apple">Apple</string>
     <string name="auth_switch_no_account">还没有账号？</string>
     <string name="auth_switch_register">立即注册</string>
@@ -104,6 +105,7 @@
     <string name="auth_toast_register_success">注册成功 · 原型演示</string>
     <string name="auth_toast_forgot">已发送重置链接（原型）</string>
     <string name="auth_toast_wechat">微信授权（原型）</string>
+    <string name="auth_toast_qq">QQ 授权（暂未开通）</string>
     <string name="auth_toast_apple">Apple 授权（原型）</string>
     <string name="auth_toast_agreement">查看协议（原型）</string>
 

@@ -164,6 +164,8 @@ val AUTH_FORGOT_TOAST: Int = R.string.auth_toast_forgot
 @StringRes
 val AUTH_WECHAT_TOAST: Int = R.string.auth_toast_wechat
 @StringRes
+val AUTH_QQ_TOAST: Int = R.string.auth_toast_qq
+@StringRes
 val AUTH_APPLE_TOAST: Int = R.string.auth_toast_apple
 @StringRes
 val AUTH_AGREEMENT_TOAST: Int = R.string.auth_toast_agreement

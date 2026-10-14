@@ -63,6 +63,7 @@ import com.fittracker.app.ui.components.FtAppleIcon
 import com.fittracker.app.ui.components.FtButton
 import com.fittracker.app.ui.components.FtButtonVariant
 import com.fittracker.app.ui.components.FtEyeIcon
+import com.fittracker.app.ui.components.FtQqIcon
 import com.fittracker.app.ui.components.FtEyeOffIcon
 import com.fittracker.app.ui.components.FtWechatIcon
 import com.fittracker.app.ui.components.clickableNoRipple
@@ -529,9 +530,9 @@ fun AuthDivider(text: String) {
 @Composable
 fun AuthSocial(
     wechatLabel: String,
-    appleLabel: String,
+    qqLabel: String,
     onWechat: () -> Unit,
-    onApple: () -> Unit,
+    onQq: () -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -543,10 +544,10 @@ fun AuthSocial(
             modifier = Modifier.weight(1f),
         ) { FtWechatIcon(modifier = Modifier.size(20.dp), color = FtColor.white70) }
         SocialButton(
-            label = appleLabel,
-            onClick = onApple,
+            label = qqLabel,
+            onClick = onQq,
             modifier = Modifier.weight(1f),
-        ) { FtAppleIcon(modifier = Modifier.size(20.dp), color = FtColor.white70) }
+        ) { FtQqIcon(modifier = Modifier.size(20.dp), color = FtColor.white70) }
     }
 }
 

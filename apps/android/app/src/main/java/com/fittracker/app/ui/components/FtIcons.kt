@@ -256,6 +256,20 @@ fun FtWechatIcon(
     )
 }
 
+/** QQ（新增：原型的社交区无 QQ 图标，按产品要求对齐鸿蒙端 QQ 通道）。 */
+@Composable
+fun FtQqIcon(
+    modifier: Modifier = Modifier,
+    color: Color = FtColor.white70,
+) {
+    Icon(
+        painter = painterResource(R.drawable.ic_auth_qq),
+        contentDescription = null,
+        modifier = modifier,
+        tint = color,
+    )
+}
+
 /** Apple（原型 `#i-apple`，`fittracker-auth.html:527-529`）。 */
 @Composable
 fun FtAppleIcon(
