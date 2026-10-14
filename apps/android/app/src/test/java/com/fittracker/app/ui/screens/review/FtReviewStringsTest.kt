@@ -98,7 +98,7 @@ class FtReviewStringsTest {
             R.string.review_weight_title to "体重与目标",
             R.string.review_weight_foot_current to "当前",
             R.string.review_weight_delta_sample to "较上月 -0.8 kg",
-            R.string.review_weight_delta_week to "较上周 %1\$s kg",
+            R.string.review_weight_delta_month to "较上月 %1\$s",
             R.string.review_weight_goal_label to "目标 %1\$s kg",
             R.string.review_weight_goal_a11y_open to "设置体重目标",
             R.string.review_goal_modal_title to "设置体重目标",
@@ -137,7 +137,7 @@ class FtReviewStringsTest {
         assertEquals("本月 · 6月", context.getString(R.string.review_head_month, 6))
         assertEquals("2026 年 6 月", context.getString(R.string.review_month_label, 2026, 6))
         assertEquals("训练 2 天 · 35 分钟", context.getString(R.string.review_month_meta, 2, 35))
-        assertEquals("较上周 -0.8 kg", context.getString(R.string.review_weight_delta_week, "-0.8"))
+        assertEquals("较上月 -0.8 kg", context.getString(R.string.review_weight_delta_month, "-0.8 kg"))
         assertEquals("目标 68 kg", context.getString(R.string.review_weight_goal_label, "68"))
         assertEquals("48 组", context.getString(R.string.review_muscle_detail_sets, 48))
         assertEquals("RIR · 近 8 次平均", context.getString(R.string.review_effort_unit, "RIR"))

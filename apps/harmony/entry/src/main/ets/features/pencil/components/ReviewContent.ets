@@ -865,6 +865,9 @@ function hitTestMuscleView(regions: MuscleHitRegion[], modelX: number, modelY: n
 
 @Component
 export struct ReviewContent {
+  // Tab 常驻（visibility 切换，aboutToAppear 只跑一次）：壳在切到本 Tab 时 bump，
+  // 触发重读，避免身体数据/训练会话更新后本页残留旧数据（模式同 PlanContent.reloadToken）。
+  @Prop @Watch('onReloadTokenChanged') reloadToken: number = 0
   @State private timeScale: string = 'week'
   @State private segKey: string = ''
   @State private summary: ReviewDashboardSummary = ReviewDashboardService.createEmptySummary()
@@ -910,6 +913,15 @@ export struct ReviewContent {
   private backHitRegions: MuscleHitRegion[] = []
 
   async aboutToAppear(): Promise<void> {
+    await this.loadReviewData()
+  }
+
+  /** reloadToken 变化（壳切到本 Tab 时 bump）→ 重读。 */
+  onReloadTokenChanged(): void {
+    this.loadReviewData()
+  }
+
+  private async loadReviewData(): Promise<void> {
     const now: number = Date.now()
     this.initCalendarShell(now)
     const context = this.getUIContext().getHostContext()
