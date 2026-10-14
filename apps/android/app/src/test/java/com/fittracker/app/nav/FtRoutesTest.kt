@@ -175,12 +175,24 @@ class FtRoutesTest {
         assertEquals(emptyList<String>(), mismatches)
     }
 
-    /** 单元测试的 CWD 是模块目录（app/），故规格副本相对路径为 ../design/… */
+    /**
+     * 冻结规格副本的定位——**向上搜索仓库根**，不依赖 CWD 到仓库根的固定层数。
+     *
+     * 单测 CWD 是模块目录（`apps/android/app`）。monorepo 归一（`8f256af` 起安卓并入
+     * `apps/android/`）把工程下沉一级后，原候选 `../design` 落在 `apps/android/design`
+     * （不存在）、`design` 落在 `apps/android/app/design`（不存在）——两候选全空，
+     * 三例断言连同 `底栏 Tab 文案…` 一并红（后者以 FileNotFoundException 暴露）。
+     * 改为逐级上溯取首个真实存在的副本：目录再调整、或从其它工作目录跑测试都不会失效。
+     */
     private fun specFile(name: String): File {
-        val candidates = listOf(
-            File("../design/06_prototype_redraw/src/$name"),
-            File("design/06_prototype_redraw/src/$name"),
-        )
-        return candidates.firstOrNull { it.isFile } ?: candidates.first()
+        val relative = "design/06_prototype_redraw/src/$name"
+        var dir: File? = File("").absoluteFile // CWD
+        while (dir != null) {
+            val candidate = File(dir, relative)
+            if (candidate.isFile) return candidate
+            dir = dir.parentFile
+        }
+        // 未找到仓库根：回落 CWD 相对路径，缺失信息由调用方断言暴露（不抛异常）
+        return File(relative)
     }
 }
