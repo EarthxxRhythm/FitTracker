@@ -225,7 +225,7 @@ class SupabaseAuthProvider extends AuthProvider {
   }
 
   /** 第三方登录：Supabase 侧未接（与 Android 一致）。 */
-  async loginWithThirdParty(thirdPartyId: string): Promise<AuthResult> {
+  async loginWithThirdParty(thirdPartyId: string, authCode: string): Promise<AuthResult> {
     return createAuthResult(false, '当前云端不支持第三方登录', null)
   }
 

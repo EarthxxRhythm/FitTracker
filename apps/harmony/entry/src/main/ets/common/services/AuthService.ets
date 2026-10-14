@@ -75,9 +75,18 @@ class AuthService {
     return result
   }
 
-  async loginWithThirdParty(context: Context, thirdPartyId: string): Promise<AuthResult> {
+  /**
+   * 第三方登录（两段式）。
+   *
+   * @param thirdPartyId 通道标识：'huawei' | 'wechat' | 'qq'
+   * @param authCode 端侧 SDK 授权码；空串 = 由 Provider 自行拉起授权（仅 AGC hwid 适用）。
+   *                 默认值保留，使既有单参调用（测试与 AGC 路径）不受影响。
+   *
+   * 登录成功后自动写入 SessionManager 会话快照，与手机 / 邮箱链路同构。
+   */
+  async loginWithThirdParty(context: Context, thirdPartyId: string, authCode: string = ''): Promise<AuthResult> {
     const provider: AuthProvider = await this.prepare(context)
-    const result: AuthResult = await provider.loginWithThirdParty(thirdPartyId)
+    const result: AuthResult = await provider.loginWithThirdParty(thirdPartyId, authCode)
     await this.persistSessionIfNeeded(context, result)
     return result
   }
