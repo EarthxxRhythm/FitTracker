@@ -19,7 +19,6 @@ import com.fittracker.app.data.persist.appDataStore
 import com.fittracker.app.data.sync.SyncOrchestrator
 import com.fittracker.app.nav.FtRoute
 import com.fittracker.app.ui.components.FtCanvas
-import com.fittracker.app.ui.screens.account.AccountSyncScreen
 import com.fittracker.app.ui.screens.active.ActiveScreen
 import com.fittracker.app.ui.screens.auth.AUTH_LOGIN_SUCCESS_TOAST
 import com.fittracker.app.ui.screens.auth.AUTH_REGISTER_SUCCESS_TOAST
@@ -150,13 +149,6 @@ fun FtScreen(
                     },
                     onNavigate = onNavigate,
                     onToast = { toast = AuthToastState.next(toast, it) },
-                )
-
-                "accountSync" -> AccountSyncScreen(
-                    onNavigate = onNavigate,
-                    // 返回优先出栈（与系统返回键一致）；直达无栈可退时按 PARENT 表回退 settings
-                    // （入口在设置页，源 SettingsContent.ets:304）
-                    onBack = onBack,
                 )
             }
         }

@@ -188,8 +188,8 @@ object FtRoutes {
     val tabs: List<FtRoute> = all.filter { it.isTab }
 
     /**
-     * [all]（原型 15 条）之外的可导航屏，共 5 条，两类来源：
-     * - **鸿蒙独有 4 页**（`splash` / `exerciseDetail` / `accountSync` / `legal`）：无原型 HTML 帧，
+     * [all]（原型 15 条）之外的可导航屏，共 4 条，两类来源：
+     * - **鸿蒙独有 3 页**（`splash` / `exerciseDetail` / `legal`）：无原型 HTML 帧，
      *   规格源为鸿蒙工程 ets（`srcFile` 字段记源文件名，非冻结副本文件）；
      * - **`trainingPreferences`**：设计侧新增页——训练偏好原型 footer（`fittracker-training-preferences.html:448`）
      *   明示「真实路由应由个人页『训练偏好』快捷入口跳转至本页」；该页不在原型 webapp 的 `ROUTE_ORDER` 内，
@@ -199,13 +199,12 @@ object FtRoutes {
     val extra: List<FtRoute> = listOf(
         FtRoute("splash", "启动", "PencilSplashPage.ets", "screen-splash", FtCanvasKind.Direct),
         FtRoute("exerciseDetail", "动作详情", "ExerciseDetailPage.ets", "screen-exercise-detail", FtCanvasKind.Direct),
-        FtRoute("accountSync", "账号与同步", "AccountSyncPage.ets", "screen-account-sync", FtCanvasKind.Direct),
         FtRoute("legal", "法律文档", "LegalDocPage.ets", "screen-legal", FtCanvasKind.Direct),
         FtRoute("trainingPreferences", "训练偏好", "fittracker-training-preferences.html",
             "screen-training-preferences", FtCanvasKind.Direct),
     )
 
-    /** 全部可导航路由：原型 15 条 + [extra] 5 条（NavHost 注册来源）。 */
+    /** 全部可导航路由：原型 15 条 + [extra] 4 条（NavHost 注册来源）。 */
     val navigable: List<FtRoute> = all + extra
 
     fun byId(id: String): FtRoute? = navigable.firstOrNull { it.id == id }

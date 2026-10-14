@@ -13,7 +13,7 @@
  *  - 触发器：HTTP 触发器；认证类型按“端侧调用”要求配置（以控制台实际界面为准，
  *    社区经验值 apigw-client；若控制台默认值即可用则保持默认）
  *
- * 端侧调用（AccountSyncPage「通道探针（临时）」按钮）：
+ * 端侧调用（原 AccountSyncPage 的「通道探针（临时）」按钮，该页已随同步设置移除）：
  *  cloudFunction.call({ name: 'echo-probe', data: '{"hello":"probe"}', version: '$latest', timeout: 20000 })
  */
 module.exports.myHandler = function (event, context, callback, logger) {

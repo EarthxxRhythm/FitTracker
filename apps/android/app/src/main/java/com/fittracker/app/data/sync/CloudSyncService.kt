@@ -16,7 +16,6 @@ import kotlinx.serialization.Serializable
  * - 决策纯函数：[CloudSyncService.decideSyncAction]（源 `:80`，三值 hash 决策，逐分支对齐）、
  *   [CloudSyncService.hasPendingChanges]（源 `:133`）、[CloudSyncService.isAccountChanged]（源
  *   `:159`）、[CloudSyncService.baselineFor]（源 `:159-160`）、[CloudSyncService.isValidMeta]（源 `:390`）。
- *
  * 「本地整包构建 + 变更检测 hash」落在 [LocalSnapshotStore]（源 `buildLocalPayload` `:249` /
  * `hashPayload` `:288`）。源架构中的 `syncNow`（编排）/ `resolveStore`（AGC ↔ 本地沙盒选择）/
  * 元数据落盘属后续 Wave——本文件仅暴露其可独立验证的决策面。
@@ -110,7 +109,6 @@ data class SyncState(
     val status: String,
     val lastSyncAt: Long,
     val lastError: String,
-    val autoEnabled: Boolean,
 )
 
 /** 同步结果（源 `:40`）。 */
@@ -130,7 +128,6 @@ data class SyncMeta(
     val userId: String,
     val lastSyncedHash: String,
     val lastSyncAt: Long,
-    val autoEnabled: Boolean,
     val lastStatus: String,
     val lastError: String,
 )
@@ -232,12 +229,11 @@ object CloudSyncService {
         return localHash != lastSyncedHash // 源 :143
     }
 
-    /** 缺省元数据（源 `:344` `readMeta` 的 fallback：`createMeta('', '', 0, true, 'never', '')`）。 */
+    /** 缺省元数据（源 `:344` `readMeta` 的 fallback：`createMeta('', '', 0, 'never', '')`）。 */
     fun defaultMeta(): SyncMeta = SyncMeta(
         userId = "",
         lastSyncedHash = "",
         lastSyncAt = 0L,
-        autoEnabled = true,
         lastStatus = "never",
         lastError = "",
     )

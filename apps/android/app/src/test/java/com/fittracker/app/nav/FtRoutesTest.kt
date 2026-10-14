@@ -33,21 +33,21 @@ class FtRoutesTest {
         assertEquals(ids.size, ids.toSet().size)
     }
 
-    /** 原型 15 条之外的 5 条与 [FtRoutes.all] 分开维护；导航注册用 navigable（合并 20 条）。 */
+    /** 原型 15 条之外的 4 条与 [FtRoutes.all] 分开维护；导航注册用 navigable（合并 19 条）。 */
     @Test
-    fun `原型外 5 条路由挂在 extra 且并入 navigable`() {
+    fun `原型外 4 条路由挂在 extra 且并入 navigable`() {
         assertEquals(
-            listOf("splash", "exerciseDetail", "accountSync", "legal", "trainingPreferences"),
+            listOf("splash", "exerciseDetail", "legal", "trainingPreferences"),
             FtRoutes.extra.map { it.id },
         )
-        assertEquals(20, FtRoutes.navigable.size)
+        assertEquals(19, FtRoutes.navigable.size)
         assertEquals(FtRoutes.all, FtRoutes.navigable.take(15))
     }
 
     @Test
-    fun `navigable 共 20 条 id 唯一且两侧均可 byId`() {
+    fun `navigable 共 19 条 id 唯一且两侧均可 byId`() {
         val ids = FtRoutes.navigable.map { it.id }
-        assertEquals(20, ids.size)
+        assertEquals(19, ids.size)
         assertEquals(ids.size, ids.toSet().size)
         assertTrue(FtRoutes.byId("splash") != null)
         assertTrue(FtRoutes.byId("home") != null)

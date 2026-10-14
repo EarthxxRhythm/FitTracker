@@ -195,7 +195,7 @@ class SyncOrchestratorTest {
         store.writeString(
             StoreNames.SYNC,
             JsonCodec.json.encodeToString(
-                SyncMeta(userId = "u-1", lastSyncedHash = hash, lastSyncAt = 1_000, autoEnabled = true, lastStatus = "synced", lastError = ""),
+                SyncMeta(userId = "u-1", lastSyncedHash = hash, lastSyncAt = 1_000, lastStatus = "synced", lastError = ""),
             ),
         )
         val fake = FakeCloudStore(remote = createCloudSnapshot("u-1", payload, updatedAt = 1_000, deviceTag = "d", schemaVersion = 1))
@@ -217,7 +217,7 @@ class SyncOrchestratorTest {
         store.writeString(
             StoreNames.SYNC,
             JsonCodec.json.encodeToString(
-                SyncMeta(userId = "u-1", lastSyncedHash = hash, lastSyncAt = 1_000, autoEnabled = true, lastStatus = "synced", lastError = ""),
+                SyncMeta(userId = "u-1", lastSyncedHash = hash, lastSyncAt = 1_000, lastStatus = "synced", lastError = ""),
             ),
         )
         // 远端：不同内容（hash 不同）→ pull
@@ -243,7 +243,7 @@ class SyncOrchestratorTest {
             StoreNames.SYNC,
             JsonCodec.json.encodeToString(
                 // 基线 hash 与当前本地 hash 不同（本地已变）；lastSyncAt=1000
-                SyncMeta(userId = "u-1", lastSyncedHash = "stale-hash", lastSyncAt = 1_000, autoEnabled = true, lastStatus = "synced", lastError = ""),
+                SyncMeta(userId = "u-1", lastSyncedHash = "stale-hash", lastSyncAt = 1_000, lastStatus = "synced", lastError = ""),
             ),
         )
         val fake = FakeCloudStore(
@@ -265,7 +265,7 @@ class SyncOrchestratorTest {
         store.writeString(
             StoreNames.SYNC,
             JsonCodec.json.encodeToString(
-                SyncMeta(userId = "u-1", lastSyncedHash = "stale-hash", lastSyncAt = 5_000, autoEnabled = true, lastStatus = "synced", lastError = ""),
+                SyncMeta(userId = "u-1", lastSyncedHash = "stale-hash", lastSyncAt = 5_000, lastStatus = "synced", lastError = ""),
             ),
         )
         // 远端 updatedAt=2000 <= lastSyncAt=5000 → push
@@ -311,7 +311,7 @@ class SyncOrchestratorTest {
         assertEquals("同步失败，请稍后重试", result.message)
     }
 
-    // --- hasPendingChanges / getState / setAutoEnabled / resetMeta ------------
+    // --- hasPendingChanges / getState / resetMeta ----------------------------
 
     @Test
     fun `待上行判定_未登录false_切账号true_已同步false`() = runBlocking {
@@ -330,7 +330,7 @@ class SyncOrchestratorTest {
         store.writeString(
             StoreNames.SYNC,
             JsonCodec.json.encodeToString(
-                SyncMeta(userId = "u-1", lastSyncedHash = hash, lastSyncAt = 1_000, autoEnabled = true, lastStatus = "synced", lastError = ""),
+                SyncMeta(userId = "u-1", lastSyncedHash = hash, lastSyncAt = 1_000, lastStatus = "synced", lastError = ""),
             ),
         )
         assertFalse(SyncOrchestrator.hasPendingChanges(store))
@@ -346,24 +346,15 @@ class SyncOrchestratorTest {
         loginSession(store)
         val state = SyncOrchestrator.getState(store)
         assertEquals("never", state.status)
-        assertTrue(state.autoEnabled)
     }
 
     @Test
-    fun `自动同步开关_落盘往返`() = runBlocking {
-        val store = createStore()
-        SyncOrchestrator.setAutoEnabled(store, false)
-        assertFalse(readMeta(store)!!.autoEnabled)
-        assertFalse(SyncOrchestrator.getState(store).autoEnabled)
-    }
-
-    @Test
-    fun `登出重置_清账号与基线_保留开关`() = runBlocking {
+    fun `登出重置_清账号与基线`() = runBlocking {
         val store = createStore()
         store.writeString(
             StoreNames.SYNC,
             JsonCodec.json.encodeToString(
-                SyncMeta(userId = "u-1", lastSyncedHash = "h", lastSyncAt = 9_999, autoEnabled = false, lastStatus = "synced", lastError = ""),
+                SyncMeta(userId = "u-1", lastSyncedHash = "h", lastSyncAt = 9_999, lastStatus = "synced", lastError = ""),
             ),
         )
         SyncOrchestrator.resetMeta(store)
@@ -372,20 +363,18 @@ class SyncOrchestratorTest {
         assertEquals("", meta.lastSyncedHash)
         assertEquals(0L, meta.lastSyncAt)
         assertEquals("never", meta.lastStatus)
-        assertFalse(meta.autoEnabled) // 开关保留（源 :249）
     }
 
     @Test
-    fun `后台静默同步_开关关闭时不触达云`() = runBlocking {
+    fun `后台静默同步_恒定执行并触达云`() = runBlocking {
         val store = createStore()
         loginSession(store)
-        SyncOrchestrator.setAutoEnabled(store, false)
         val fake = FakeCloudStore()
         SyncOrchestrator.setStoreForTesting(fake)
 
         SyncOrchestrator.requestBackgroundSync(store)
 
-        assertEquals(0, fake.pullCalls)
+        assertEquals(1, fake.pullCalls)
     }
 
     @Test

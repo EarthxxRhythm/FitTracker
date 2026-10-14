@@ -29,7 +29,7 @@
 
 `PencilSplashPage -> PencilLoginPage/PencilRegisterPage -> PencilAppShell`（未登录路径）；`PencilSplashPage -> PencilAppShell`（已登录路径）
 
-应用壳内的主要内容由 `PencilHomePage`、`PencilPlanPage`、`PencilActivePage`、`WorkoutCompletePage`、`PencilReviewPage` 和 `PencilProfilePage` 承载；训练预览由 `PencilPreviewContent` 以壳内全模态呈现；账号与同步为 `AccountSyncPage`。
+应用壳内的主要内容由 `PencilHomePage`、`PencilPlanPage`、`PencilActivePage`、`WorkoutCompletePage`、`PencilReviewPage` 和 `PencilProfilePage` 承载；训练预览由 `PencilPreviewContent` 以壳内全模态呈现。云同步为恒定自动（无同步设置页）；退出登录入口位于设置页底部。
 
 ## 历史归档
 

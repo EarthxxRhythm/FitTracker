@@ -18,7 +18,7 @@ import com.fittracker.app.ui.screens.exercise.ExerciseDetailScreen
 import com.fittracker.app.ui.screens.legal.LegalDocScreen
 
 /**
- * 导航宿主：原型 15 路由 + 鸿蒙独有 4 条（splash / exerciseDetail / accountSync / legal）。
+ * 导航宿主：原型 15 路由 + 鸿蒙独有 3 条（splash / exerciseDetail / legal）。
  *
  * 注册来源是 [FtRoutes.navigable]；`legal` 因带 `kind` 查询参数单独注册（对齐鸿蒙
  * `LegalDocParams` 的缺失回退语义）。其余路由与原型 `fittracker-webapp.html` 的

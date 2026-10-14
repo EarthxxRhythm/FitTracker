@@ -3,7 +3,6 @@ package com.fittracker.app.data.service
 import com.fittracker.app.data.persist.JsonCodec
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.StoreNames
-import com.fittracker.app.data.sync.SyncOrchestrator
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.SerialName
@@ -46,11 +45,9 @@ enum class WeekStart(val id: String) {
  * 设置屏偏好模型——原型 `settings.html` 的 3 分段（L389-406）+ 6 开关（L409-443）。
  *
  * 缺省值即原型**静止态初值**（`.active` / `class="on"`）：语言 `简体中文`、周开始日 `周一`、
- * 训练提醒 / 声音与震动 / 训练中屏幕常亮 / 训练数据同步 为开，成就提醒 / 匿名使用数据 为关。
+ * 训练提醒 / 声音与震动 / 训练中屏幕常亮 为开，成就提醒 / 匿名使用数据 为关。
  *
- * [dataSync] **不落盘在本模型**（见 [FtSettingsWire]）：它等价于 [SyncOrchestrator] 的
- * `autoEnabled`（`fit_tracker_sync` 库），由 [SettingsService.loadSettings] /
- * [SettingsService.setDataSync] 读写——单一真源，避免与账户同步屏「自动同步」开关背离。
+ * 云同步为恒定自动（无开关项），不在本模型也不落盘。
  */
 data class FtSettings(
     val language: SettingsLanguage = SettingsLanguage.ZH,
@@ -59,7 +56,6 @@ data class FtSettings(
     val achievementReminder: Boolean = false,
     val soundVibration: Boolean = true,
     val keepScreenOn: Boolean = true,
-    val dataSync: Boolean = true,
     val anonymousData: Boolean = false,
 )
 
@@ -71,9 +67,8 @@ data class FtSettings(
  * （只改目标字段、其余保留）。落盘线格式见 [FtSettingsWire]——语言 / 周开始日以**原始字符串**
  * 承载并经 [normalizeLanguage] / [normalizeWeekStart] 归一，未知值不连带丢其余字段（宽容解析）。
  *
- * 与系统的联动：[dataSync][FtSettings.dataSync] 委托 [SyncOrchestrator]（`autoEnabled`）。
- * 其余开关（提醒 / 常亮 / 匿名数据）本轮只做存储与回显，**通知 / 屏幕常亮等系统行为为 V2**——
- * 值照常持久化，接入系统 API 时读同一模型即可。
+ * 与系统的联动：其余开关（提醒 / 常亮 / 匿名数据）本轮只做存储与回显，
+ * **通知 / 屏幕常亮等系统行为为 V2**——值照常持久化，接入系统 API 时读同一模型即可。
  */
 object SettingsService {
 
@@ -100,8 +95,7 @@ object SettingsService {
     // --- 读 / 写 -------------------------------------------------------------
 
     /**
-     * 读回偏好。缺键 / 空串 / 解析失败一律回落 [getDefaultSettings]；
-     * [FtSettings.dataSync] 取自 [SyncOrchestrator] 的 `autoEnabled`（单一真源）。
+     * 读回偏好。缺键 / 空串 / 解析失败一律回落 [getDefaultSettings]。
      */
     suspend fun loadSettings(store: JsonStore): FtSettings {
         lastPersistenceError = ""
@@ -112,13 +106,12 @@ object SettingsService {
             return getDefaultSettings()
         }
         val wire: FtSettingsWire = if (raw.isNullOrEmpty()) getDefaultWire() else decodeWire(raw)
-        return wire.toSettings(dataSync = SyncOrchestrator.getState(store).autoEnabled)
+        return wire.toSettings()
     }
 
-    /** 整份写入（`dataSync` 走 [setDataSync] 委托同步编排）。 */
+    /** 整份写入。 */
     suspend fun saveSettings(store: JsonStore, settings: FtSettings) {
         lastPersistenceError = ""
-        setDataSync(store, settings.dataSync)
         try {
             writeMutex.withLock { writeWire(store, settings.toWire()) }
         } catch (error: Exception) {
@@ -196,19 +189,6 @@ object SettingsService {
         }
     }
 
-    /**
-     * 「训练数据同步」开关——委托 [SyncOrchestrator.setAutoEnabled]（`fit_tracker_sync` 的
-     * `autoEnabled`），与账户同步屏「自动同步」共享同一真源。
-     */
-    suspend fun setDataSync(store: JsonStore, on: Boolean) {
-        lastPersistenceError = ""
-        try {
-            SyncOrchestrator.setAutoEnabled(store, on)
-        } catch (error: Exception) {
-            lastPersistenceError = "save_settings_failed"
-        }
-    }
-
     /** 缺省偏好（原型静止态初值）。 */
     fun getDefaultSettings(): FtSettings = FtSettings()
 
@@ -265,7 +245,7 @@ object SettingsService {
 /**
  * 落盘线格式：语言 / 周开始日以**原始字符串**承载，使未知值能经
  * [SettingsService.normalizeLanguage] / [SettingsService.normalizeWeekStart] 归一而不连带
- * 丢弃其余字段（宽容解析）。**不含 `dataSync`**——该项由 [SyncOrchestrator] 承载。
+ * 丢弃其余字段（宽容解析）。**不含云同步开关**——同步恒定自动。
  * 只在读写边界使用，不外泄。
  */
 @Serializable
@@ -279,14 +259,13 @@ private data class FtSettingsWire(
     val anonymousData: Boolean = false,
 )
 
-private fun FtSettingsWire.toSettings(dataSync: Boolean): FtSettings = FtSettings(
+private fun FtSettingsWire.toSettings(): FtSettings = FtSettings(
     language = SettingsService.normalizeLanguage(language),
     weekStart = SettingsService.normalizeWeekStart(weekStart),
     workoutReminder = workoutReminder,
     achievementReminder = achievementReminder,
     soundVibration = soundVibration,
     keepScreenOn = keepScreenOn,
-    dataSync = dataSync,
     anonymousData = anonymousData,
 )
 

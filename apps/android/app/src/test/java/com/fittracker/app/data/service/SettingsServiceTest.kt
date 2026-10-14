@@ -36,11 +36,10 @@ import org.robolectric.annotation.Config
  *
  * 覆盖：
  * ① 空 store 回落原型静止态缺省；
- * ② 存取往返（含与 [SyncOrchestrator] 共享真源的 `dataSync`）；
+ * ② 存取往返；
  * ③ 单字段读-改-写不丢其余字段；
  * ④ 宽容解析——未知语言 / 周开始日归一为缺省且不连带丢开关；
- * ⑤ 「训练数据同步」委托 `SyncOrchestrator.autoEnabled`（与账户同步屏单一真源）；
- * ⑥ [SettingsService.clearSettings] 回落缺省。
+ * ⑤ [SettingsService.clearSettings] 回落缺省。
  *
  * 另含设置分段映射（[FtSettingsModel.sections]）与**文案资源**（Wave 6 i18n）的断言——
  * 分段 / 开关的「回显」与「点击反馈」是 W1-7/8/9 的核心可测面，文案断言保持**逐字**
@@ -92,19 +91,18 @@ class SettingsServiceTest {
         val settings = SettingsService.loadSettings(store)
 
         assertEquals(FtSettings(), settings)
-        // 原型静止态：语言简体中文 / 周一开始 / 训练提醒·声音震动·屏幕常亮·数据同步为开，成就提醒·匿名数据为关
+        // 原型静止态：语言简体中文 / 周一开始 / 训练提醒·声音震动·屏幕常亮为开，成就提醒·匿名数据为关
         assertEquals(SettingsLanguage.ZH, settings.language)
         assertEquals(WeekStart.MONDAY, settings.weekStart)
         assertTrue(settings.workoutReminder)
         assertFalse(settings.achievementReminder)
         assertTrue(settings.soundVibration)
         assertTrue(settings.keepScreenOn)
-        assertTrue(settings.dataSync)
         assertFalse(settings.anonymousData)
     }
 
     @Test
-    fun `整份存取往返全等（含 dataSync 委托）`() = runBlocking {
+    fun `整份存取往返全等`() = runBlocking {
         val store = createStore()
         val settings = FtSettings(
             language = SettingsLanguage.EN,
@@ -113,7 +111,6 @@ class SettingsServiceTest {
             achievementReminder = true,
             soundVibration = false,
             keepScreenOn = false,
-            dataSync = false,
             anonymousData = true,
         )
         SettingsService.saveSettings(store, settings)
@@ -124,7 +121,7 @@ class SettingsServiceTest {
     @Test
     fun `单字段写不丢其它字段`() = runBlocking {
         val store = createStore()
-        SettingsService.saveSettings(store, FtSettings(dataSync = true))
+        SettingsService.saveSettings(store, FtSettings())
 
         SettingsService.setLanguage(store, SettingsLanguage.EN)
         SettingsService.setWeekStart(store, WeekStart.SUNDAY)
@@ -197,21 +194,6 @@ class SettingsServiceTest {
         assertEquals(WeekStart.MONDAY, SettingsService.normalizeWeekStart("friday"))
     }
 
-    // --- 训练数据同步联动（W1-8） -------------------------------------------
-
-    @Test
-    fun `训练数据同步委托 SyncOrchestrator 且双向一致`() = runBlocking {
-        val store = createStore()
-
-        SettingsService.setDataSync(store, false)
-        assertFalse(SettingsService.loadSettings(store).dataSync)
-        assertFalse(SyncOrchestrator.getState(store).autoEnabled)
-
-        // 反向：账户同步屏改 autoEnabled，设置屏读回同一真源（无背离）
-        SyncOrchestrator.setAutoEnabled(store, true)
-        assertTrue(SettingsService.loadSettings(store).dataSync)
-    }
-
     // --- 设置分段映射（W1-7/8 回显） ----------------------------------------
 
     private fun row(sections: List<FtSettingsSection>, key: String): FtSettingRow =
@@ -240,7 +222,6 @@ class SettingsServiceTest {
             settings = FtSettings(
                 workoutReminder = false,
                 achievementReminder = true,
-                dataSync = false,
                 anonymousData = true,
             ),
             versionName = "0.0.0-test",
@@ -250,7 +231,6 @@ class SettingsServiceTest {
 
         assertFalse(on(FtSettingsModel.KEY_WORKOUT_REMINDER))
         assertTrue(on(FtSettingsModel.KEY_ACHIEVEMENT_REMINDER))
-        assertFalse(on(FtSettingsModel.KEY_DATA_SYNC))
         assertTrue(on(FtSettingsModel.KEY_ANONYMOUS_DATA))
     }
 
@@ -290,11 +270,9 @@ class SettingsServiceTest {
             R.string.settings_row_keep_screen_on to "训练中屏幕常亮",
             R.string.settings_row_health_auth to "健康数据授权",
             R.string.settings_row_value_authorized to "已授权",
-            R.string.settings_row_data_sync to "训练数据同步",
             R.string.settings_row_anonymous_data to "匿名使用数据",
             R.string.settings_row_version to "版本",
             R.string.settings_row_privacy to "隐私说明",
-            R.string.settings_row_account_sync to "账号与同步",
             R.string.settings_option_kg to "千克",
             R.string.settings_option_lbs to "磅",
             R.string.settings_option_zh to "简体中文",
@@ -307,8 +285,9 @@ class SettingsServiceTest {
             R.string.settings_action_cancel to "取消",
             R.string.settings_backup_read_failure to "无法读取备份文件，请重试。",
             R.string.settings_toast_health to "健康数据授权暂未接入系统平台",
-            R.string.settings_toast_sync_need_login to "请先登录后再开启同步",
             R.string.settings_toast_reminder_need_permission to "需要通知权限才能开启提醒",
+            R.string.settings_sign_out to "退出登录",
+            R.string.settings_sign_out_processing to "处理中…",
         )
 
         expectations.forEach { (id, expected) ->
@@ -392,13 +371,6 @@ class SettingsServiceTest {
             R.string.settings_row_value_authorized,
             (healthRow.trailing as FtSettingTrailing.ValueLink).textRes,
         )
-    }
-
-    @Test
-    fun `数据同步开关可切换性 未登录不可开启 关闭不受限`() {
-        assertFalse(FtSettingsModel.canToggleDataSync(enable = true, loggedIn = false))
-        assertTrue(FtSettingsModel.canToggleDataSync(enable = true, loggedIn = true))
-        assertTrue(FtSettingsModel.canToggleDataSync(enable = false, loggedIn = false))
     }
 
     @Test

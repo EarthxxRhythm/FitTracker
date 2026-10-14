@@ -4,9 +4,8 @@ import { window } from '@kit.ArkUI'
 import { bundleManager } from '@kit.AbilityKit'
 import { i18n } from '@kit.LocalizationKit'
 import { AppRoutes } from '../../../app/AppRoutes'
-import SessionManager from '../../../common/services/SessionManager'
-import CloudSyncService, { SyncState } from '../../../shared/services/CloudSyncService'
 import UserProfileService, { UserProfile } from '../../../common/services/UserProfileService'
+import AccountDataLifecycle, { SignOutPreview } from '../../../shared/services/AccountDataLifecycle'
 import SettingsService, { AppSettings, SettingsToggleKey } from '../../../common/services/SettingsService'
 import WorkoutReminderService from '../../../common/services/WorkoutReminderService'
 import AppNotificationService from '../../../common/services/AppNotificationService'
@@ -49,7 +48,6 @@ export struct SettingsContent {
 
   aboutToAppear(): void {
     this.resolveTopInset()
-    this.loadSyncState()
     this.loadPreferences()
     this.loadAppVersion()
   }
@@ -57,24 +55,6 @@ export struct SettingsContent {
   private contextOrNull(): Context | null {
     const host = this.getUIContext().getHostContext()
     return host === undefined || host === null ? null : host as Context
-  }
-
-  private async loadSyncState(): Promise<void> {
-    const context: Context | null = this.contextOrNull()
-    if (context === null) {
-      return
-    }
-    const state: SyncState = await CloudSyncService.getState(context)
-    this.applySyncRow(state.autoEnabled)
-  }
-
-  private applySyncRow(enabled: boolean): void {
-    this.switchRows = this.switchRows.map((row: SwitchRow) => {
-      if (row.key === 'sync') {
-        return createSwitchRow(row.key, row.label, enabled)
-      }
-      return row
-    })
   }
 
   /** 读取本地偏好与资料：体重单位来自 UserProfileService，其余来自 SettingsService；读失败保持默认初值。 */
@@ -95,7 +75,7 @@ export struct SettingsContent {
     }
   }
 
-  /** 用已持久化的设置覆盖五个开关行；同步行由 loadSyncState 管理，不在覆盖范围内。 */
+  /** 用已持久化的设置覆盖五个开关行。 */
   private applyToggleRows(settings: AppSettings): void {
     this.switchRows = this.switchRows.map((row: SwitchRow) => {
       if (row.key === 'reminder') {
@@ -149,6 +129,7 @@ export struct SettingsContent {
   @State private toastVisible: boolean = false
   @State private toastMessage: Resource = $r('app.string.settings_toast_saved')
   @State private toastTimer: number = -1
+  @State private signingOut: boolean = false
   @State private segRows: SegRowDef[] = [
     createSegRow('weight', $r('app.string.settings_row_weight_unit'),
       [$r('app.string.settings_option_kg'), $r('app.string.settings_option_lbs')], 0),
@@ -163,7 +144,6 @@ export struct SettingsContent {
     createSwitchRow('achievement', $r('app.string.settings_row_achievement'), false),
     createSwitchRow('sound', $r('app.string.settings_row_sound'), true),
     createSwitchRow('keep-on', $r('app.string.settings_row_keep_on'), true),
-    createSwitchRow('sync', $r('app.string.settings_row_sync'), true),
     createSwitchRow('anonymous', $r('app.string.settings_row_anonymous'), false)
   ]
 
@@ -172,10 +152,6 @@ export struct SettingsContent {
   }
 
   private toggleSwitch(key: string): void {
-    if (key === 'sync') {
-      this.toggleSyncRow()
-      return
-    }
     const previous: boolean = this.isSwitchOn(key)
     const next: boolean = !previous
     this.switchRows = this.switchRows.map((row: SwitchRow) => {
@@ -345,22 +321,58 @@ export struct SettingsContent {
     this.showToast($r('app.string.settings_toast_saved'))
   }
 
-  /** 训练数据同步：接线 CloudSyncService（未登录时提示先登录）。 */
-  private async toggleSyncRow(): Promise<void> {
+  /**
+   * 退出登录：先预检（best-effort 同步一次，检查是否仍有未上传变更）。
+   * 有未同步数据时弹确认框（退出将丢失未同步数据），否则直接执行。
+   */
+  private async requestSignOut(): Promise<void> {
     const context: Context | null = this.contextOrNull()
     if (context === null) {
       this.showToast($r('app.string.settings_toast_unavailable'))
       return
     }
-    const loggedIn: boolean = await SessionManager.isLoggedIn(context)
-    if (!loggedIn) {
-      this.showToast($r('app.string.settings_toast_login_first'))
+    if (this.signingOut) {
       return
     }
-    const next: boolean = !this.isSwitchOn('sync')
-    await CloudSyncService.setAutoEnabled(context, next)
-    this.applySyncRow(next)
-    this.showToast(next ? $r('app.string.settings_toast_sync_on') : $r('app.string.settings_toast_sync_off'))
+    this.signingOut = true
+    const preview: SignOutPreview = await AccountDataLifecycle.prepareSignOut(context)
+    if (preview.pendingChanges) {
+      this.getUIContext().showAlertDialog({
+        title: $r('app.string.settings_sign_out'),
+        message: $r('app.string.settings_sign_out_pending'),
+        autoCancel: true,
+        primaryButton: {
+          value: $r('app.string.settings_action_cancel'),
+          action: () => {
+            this.signingOut = false
+          }
+        },
+        secondaryButton: {
+          value: $r('app.string.settings_sign_out_confirm'),
+          fontColor: '#D77C78',
+          action: () => {
+            this.performSignOut()
+          }
+        }
+      })
+      return
+    }
+    this.signingOut = false
+    await this.performSignOut()
+  }
+
+  /** 完成退出：清认证会话 + 清本机业务数据 + 重置同步元数据，随后清路由栈回登录页。 */
+  private async performSignOut(): Promise<void> {
+    const context: Context | null = this.contextOrNull()
+    if (context === null) {
+      this.signingOut = false
+      return
+    }
+    await AccountDataLifecycle.completeSignOut(context)
+    // 清空路由栈后进入登录页：避免返回键回到已登出的设置页/主壳
+    const router = this.getUIContext().getRouter()
+    router.clear()
+    router.pushUrl({ url: AppRoutes.LOGIN })
   }
 
   private showToast(text: Resource): void {
@@ -438,6 +450,7 @@ export struct SettingsContent {
             this.generalCard()
             this.dataPrivacyCard()
             this.aboutCard()
+            this.signOutButton()
             Text($r('app.string.settings_footer'))
               .fontFamily('Noto Sans SC')
               .fontSize(11)
@@ -565,7 +578,6 @@ export struct SettingsContent {
       this.chevronRow($r('app.string.settings_row_health'), $r('app.string.settings_value_not_connected'), true, () => {
         this.showToast($r('app.string.settings_toast_health_placeholder'))
       })
-      this.accountSyncRow()
       ForEach(this.switchRows, (row: SwitchRow, index: number) => {
         if (index >= 4) {
           Row() {
@@ -609,26 +621,24 @@ export struct SettingsContent {
     .borderRadius(22)
   }
 
+  /** 退出登录：账号与同步页移除后，退出入口迁至设置页底部（保留原有确认与清理语义）。 */
   @Builder
-  private accountSyncRow() {
-    Row() {
-      Text($r('app.string.settings_row_account_sync'))
-        .fontFamily('Noto Sans SC')
-        .fontSize(14)
-        .fontColor('#F7FBF8')
-      Blank()
-      Image($rawfile('pencil-plan-nav-chevron-right.svg'))
-        .width(18)
-        .height(18)
-        .opacity(0.4)
-        .margin({ left: 6 })
-    }
-    .width('100%')
-    .padding({ top: 15, bottom: 15, left: 2, right: 2 })
-    .border({ width: { top: 1 }, color: '#0FFFFFFF' })
-    .onClick(() => {
-      this.getUIContext().getRouter().pushUrl({ url: AppRoutes.ACCOUNT_SYNC })
-    })
+  private signOutButton() {
+    Button(this.signingOut ? $r('app.string.settings_sign_out_processing') : $r('app.string.settings_sign_out'))
+      .width('100%')
+      .height(50)
+      .padding(0)
+      .fontFamily('Noto Sans SC')
+      .fontSize(15)
+      .fontWeight(FontWeight.Bold)
+      .fontColor('#D77C78')
+      .backgroundColor('#14D77C78')
+      .border({ width: 1, color: '#4DD77C78' })
+      .borderRadius(16)
+      .enabled(!this.signingOut)
+      .onClick(() => {
+        this.requestSignOut()
+      })
   }
 
   @Builder

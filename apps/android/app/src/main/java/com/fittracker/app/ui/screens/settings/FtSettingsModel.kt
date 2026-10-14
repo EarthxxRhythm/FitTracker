@@ -123,9 +123,6 @@ object FtSettingsModel {
     /** 开关 `aria-label="训练中屏幕常亮"`（L422）。 */
     const val KEY_KEEP_SCREEN_ON = "keep-screen-on"
 
-    /** 开关 `aria-label="训练数据同步"`（L439）——联动 `SyncOrchestrator.autoEnabled`。 */
-    const val KEY_DATA_SYNC = "data-sync"
-
     /** 开关 `aria-label="匿名使用数据"`（L443）。 */
     const val KEY_ANONYMOUS_DATA = "anonymous-data"
 
@@ -157,19 +154,6 @@ object FtSettingsModel {
     /** 「健康数据授权」行点击——Android 无对等数据源，如实说明（见计划非目标）。 */
     @StringRes
     val TOAST_HEALTH_RES = R.string.settings_toast_health
-
-    /**
-     * 未登录时开启「训练数据同步」的提示——中文值逐字对齐鸿蒙
-     * `SettingsContent.ets` `toggleSyncRow`（「请先登录后再开启同步」）。
-     */
-    @StringRes
-    val TOAST_SYNC_NEED_LOGIN_RES = R.string.settings_toast_sync_need_login
-
-    /**
-     * 「训练数据同步」开关的可切换性：**开启需已登录**；关闭不受限。
-     * 决策逻辑纯函数化（UI 接线见 SettingsScreen.onToggle），对齐鸿蒙 UI 层校验位置。
-     */
-    fun canToggleDataSync(enable: Boolean, loggedIn: Boolean): Boolean = !enable || loggedIn
 
     /** 三段 `.sub-card`（L384-463）——**原型静止态**（未接线时的 1:1 基线）。 */
     val SECTIONS: List<FtSettingsSection> = listOf(
@@ -239,11 +223,6 @@ object FtSettingsModel {
                     labelRes = R.string.settings_row_health_auth,
                     trailing = FtSettingTrailing.ValueLink(R.string.settings_row_value_authorized),
                     action = ACTION_HEALTH,
-                ),
-                FtSettingRow( // L438-439
-                    R.string.settings_row_data_sync,
-                    FtSettingTrailing.Switch(on = true),
-                    key = KEY_DATA_SYNC,
                 ),
                 FtSettingRow( // L442-443
                     R.string.settings_row_anonymous_data,
@@ -326,7 +305,6 @@ object FtSettingsModel {
             KEY_ACHIEVEMENT_REMINDER -> settings.achievementReminder
             KEY_SOUND_VIBRATION -> settings.soundVibration
             KEY_KEEP_SCREEN_ON -> settings.keepScreenOn
-            KEY_DATA_SYNC -> settings.dataSync
             KEY_ANONYMOUS_DATA -> settings.anonymousData
             else -> null
         }

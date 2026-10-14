@@ -51,7 +51,6 @@ export interface SyncState {
   status: string
   lastSyncAt: number
   lastError: string
-  autoEnabled: boolean
 }
 
 export interface SyncResult {
@@ -65,7 +64,6 @@ interface SyncMeta {
   userId: string
   lastSyncedHash: string
   lastSyncAt: number
-  autoEnabled: boolean
   lastStatus: string
   lastError: string
 }
@@ -127,23 +125,9 @@ class CloudSyncService {
     const state: SyncState = {
       status: status,
       lastSyncAt: meta.lastSyncAt,
-      lastError: meta.lastError,
-      autoEnabled: meta.autoEnabled
+      lastError: meta.lastError
     }
     return state
-  }
-
-  async setAutoEnabled(context: Context, enabled: boolean): Promise<void> {
-    const meta: SyncMeta = await this.readMeta(context)
-    const next: SyncMeta = this.createMeta(
-      meta.userId,
-      meta.lastSyncedHash,
-      meta.lastSyncAt,
-      enabled,
-      meta.lastStatus,
-      meta.lastError
-    )
-    await this.writeMeta(context, next)
   }
 
   /** 是否存在未同步到云端的本地变更（供退出确认使用）。 */
@@ -182,7 +166,6 @@ class CloudSyncService {
           session.userId,
           baseline,
           baselineAt,
-          meta.autoEnabled,
           'failed',
           '云服务未就绪，请稍后重试'
         ))
@@ -200,32 +183,32 @@ class CloudSyncService {
           createCloudSnapshot(session.userId, localPayload, now, this.resolveDeviceTag(), SNAPSHOT_SCHEMA_VERSION)
         )
         if (!pushed) {
-          await this.writeMeta(context, this.createMeta(session.userId, baseline, baselineAt, meta.autoEnabled, 'failed', '同步上传失败'))
+          await this.writeMeta(context, this.createMeta(session.userId, baseline, baselineAt, 'failed', '同步上传失败'))
           return this.createResult(false, 'push', '同步上传失败，请稍后重试', now)
         }
-        await this.writeMeta(context, this.createMeta(session.userId, localHash, now, meta.autoEnabled, 'synced', ''))
+        await this.writeMeta(context, this.createMeta(session.userId, localHash, now, 'synced', ''))
         return this.createResult(true, 'push', '已同步到云端', now)
       }
 
       if (action === 'pull' || action === 'conflict_pull') {
         if (remote === null) {
-          await this.writeMeta(context, this.createMeta(session.userId, baseline, baselineAt, meta.autoEnabled, 'failed', '云端快照缺失'))
+          await this.writeMeta(context, this.createMeta(session.userId, baseline, baselineAt, 'failed', '云端快照缺失'))
           return this.createResult(false, action, '云端快照缺失，请稍后重试', now)
         }
         const applied: boolean = await this.applyRemotePayload(context, remote.payloadJson)
         if (!applied) {
-          await this.writeMeta(context, this.createMeta(session.userId, baseline, baselineAt, meta.autoEnabled, 'failed', '云端数据恢复失败'))
+          await this.writeMeta(context, this.createMeta(session.userId, baseline, baselineAt, 'failed', '云端数据恢复失败'))
           return this.createResult(false, action, '云端数据恢复失败，请稍后重试', now)
         }
         // 基线记录为「云端快照 hash」而非导入后的本地并集：
         // 若本地保留有云端没有的实体（sessions 并集合并语义），下次同步会判「仅本地变化 → push」，
         // 把并集回写云端后收敛为 none；hasPendingChanges 也据此正确报告未上行数据（守住退出确认）。
-        await this.writeMeta(context, this.createMeta(session.userId, remoteHash, now, meta.autoEnabled, 'synced', ''))
+        await this.writeMeta(context, this.createMeta(session.userId, remoteHash, now, 'synced', ''))
         const message: string = action === 'conflict_pull' ? '云端数据较新，已采用云端版本' : '已从云端恢复'
         return this.createResult(true, action, message, now)
       }
 
-      await this.writeMeta(context, this.createMeta(session.userId, localHash, now, meta.autoEnabled, 'synced', ''))
+      await this.writeMeta(context, this.createMeta(session.userId, localHash, now, 'synced', ''))
       return this.createResult(true, 'none', '已是最新', now)
     } catch (error) {
       return this.createResult(false, 'failed', '同步失败，请稍后重试', Date.now())
@@ -243,13 +226,9 @@ class CloudSyncService {
     }
   }
 
-  /** 后台静默同步（启动后 / 训练完成后）：仅当自动同步开启；失败记录状态不抛出。 */
+  /** 后台静默同步（启动后 / 训练完成后）：同步恒定自动执行；失败记录状态不抛出。 */
   async requestBackgroundSync(context: Context): Promise<void> {
     try {
-      const meta: SyncMeta = await this.readMeta(context)
-      if (!meta.autoEnabled) {
-        return
-      }
       await this.syncNow(context)
     } catch (error) {
       // 静默路径：状态由 syncNow 内部记录
@@ -258,8 +237,7 @@ class CloudSyncService {
 
   /** 重置同步元数据（登出时调用，防账号切换串账）。 */
   async resetMeta(context: Context): Promise<void> {
-    const meta: SyncMeta = await this.readMeta(context)
-    const next: SyncMeta = this.createMeta('', '', 0, meta.autoEnabled, 'never', '')
+    const next: SyncMeta = this.createMeta('', '', 0, 'never', '')
     await this.writeMeta(context, next)
   }
 
@@ -365,7 +343,7 @@ class CloudSyncService {
   }
 
   private async readMeta(context: Context): Promise<SyncMeta> {
-    const fallback: SyncMeta = this.createMeta('', '', 0, true, 'never', '')
+    const fallback: SyncMeta = this.createMeta('', '', 0, 'never', '')
     try {
       const prefs = await preferences.getPreferences(context, FitTrackerStores.SYNC)
       const json = await prefs.get(META_KEY, '') as string
@@ -396,7 +374,6 @@ class CloudSyncService {
     userId: string,
     lastSyncedHash: string,
     lastSyncAt: number,
-    autoEnabled: boolean,
     lastStatus: string,
     lastError: string
   ): SyncMeta {
@@ -404,7 +381,6 @@ class CloudSyncService {
       userId: userId,
       lastSyncedHash: lastSyncedHash,
       lastSyncAt: lastSyncAt,
-      autoEnabled: autoEnabled,
       lastStatus: lastStatus,
       lastError: lastError
     }
@@ -419,9 +395,6 @@ class CloudSyncService {
       return false
     }
     if (typeof meta.lastSyncAt !== 'number' || !Number.isFinite(meta.lastSyncAt)) {
-      return false
-    }
-    if (typeof meta.autoEnabled !== 'boolean') {
       return false
     }
     if (typeof meta.lastStatus !== 'string' || typeof meta.lastError !== 'string') {

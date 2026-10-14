@@ -27,4 +27,4 @@
 
 - 控制台：删除函数 `echo-probe`
 - 仓库：删除本目录
-- 端侧：删除 AccountSyncPage 的「通道探针（临时）」按钮与 `runChannelProbe`
+- 端侧：账号与同步页（`AccountSyncPage`）已随同步设置一同移除，探针按钮不复存在，无需清理。
