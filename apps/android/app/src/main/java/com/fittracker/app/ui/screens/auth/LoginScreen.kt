@@ -36,11 +36,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fittracker.app.R
 import com.fittracker.app.data.auth.AuthService
+import com.fittracker.app.data.auth.WxAuthStore
+import com.fittracker.app.data.cloud.SupabaseAuthProvider
 import com.fittracker.app.data.cloud.SupabaseConfig
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
 import com.fittracker.app.ui.components.clickableNoRipple
 import com.fittracker.app.ui.theme.FtColor
+import com.tencent.mm.opensdk.modelmsg.SendAuth
+import com.tencent.mm.opensdk.openapi.IWXAPI
+import com.tencent.mm.opensdk.openapi.WXAPIFactory
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -255,9 +260,9 @@ fun LoginScreen(
             AuthDivider(text = stringResource(R.string.auth_divider_other_login))
             AuthSocial(
                 wechatLabel = stringResource(R.string.auth_social_wechat),
-                appleLabel = stringResource(R.string.auth_social_apple),
-                onWechat = { onToast(resources.getString(AUTH_WECHAT_TOAST)) },
-                onApple = { onToast(resources.getString(AUTH_APPLE_TOAST)) },
+                qqLabel = stringResource(R.string.auth_social_qq),
+                onWechat = { startWeChatAuth(context, onToast) },
+                onQq = { onToast(resources.getString(AUTH_QQ_TOAST)) },
             )
         }
 
@@ -403,6 +408,44 @@ private fun SandboxBanner() {
 }
 
 // ── 屏内色值（源页字面值） ──────────────────────────────────────────────
+
+/**
+ * 拉起微信授权。
+ *
+ * 流程：createWXAPI → SendAuth.Req(scope, state) → api.sendReq(activity)
+ * → 微信 App 内授权 → 回到 WXEntryActivity → WxAuthStore 落盘 → 由壳层消费换票。
+ *
+ * 前置校验与提示（不静默失败）：
+ *  - 未配置 AppID（BuildConfig.WECHAT_APP_ID 空）→ 提示「暂未开通」
+ *  - 未安装微信 → 提示「未安装微信」
+ *  - sendReq 返回 false（跳转失败）→ 提示通用失败
+ */
+private fun startWeChatAuth(context: android.content.Context, onToast: (String) -> Unit) {
+    val appId: String = com.fittracker.app.BuildConfig.WECHAT_APP_ID
+    if (appId.isEmpty()) {
+        onToast("微信登录暂未开通")
+        return
+    }
+    val activity: android.app.Activity? = context as? android.app.Activity
+    if (activity == null) {
+        onToast("当前页面不可用，请重试")
+        return
+    }
+    // 每次授权前清理陈旧结果，避免误消费上一次的 code
+    WxAuthStore.clear(context)
+    val api: IWXAPI = WXAPIFactory.createWXAPI(context, appId, false)
+    if (!api.isWXAppInstalled) {
+        onToast("未安装微信，无法使用微信登录")
+        return
+    }
+    val req = SendAuth.Req()
+    req.scope = "snsapi_userinfo"
+    // state 用于防 CSRF（由 WXEntryActivity 回填到 WxAuthStore）
+    req.state = System.currentTimeMillis().toString()
+    if (!api.sendReq(req)) {
+        onToast("微信授权跳转失败，请重试")
+    }
+}
 
 /** 模式切换条底 `#0FFFFFFF`（源 L251）。 */
 private val ModeSwitchFill = Color(0x0FFFFFFF)
