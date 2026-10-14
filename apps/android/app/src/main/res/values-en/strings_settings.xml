@@ -15,7 +15,6 @@
     <string name="settings_section_data_privacy">Data &amp; Privacy</string>
     <string name="settings_section_about">About</string>
     <string name="settings_section_about_meta">FitTracker</string>
-    <string name="settings_section_backup">Backup &amp; Restore</string>
 
     <!-- Row labels -->
     <string name="settings_row_weight_unit">Weight unit</string>
@@ -38,13 +37,6 @@
     <string name="settings_option_en">English</string>
     <string name="settings_option_monday">Monday</string>
     <string name="settings_option_sunday">Sunday</string>
-
-    <!-- Backup & restore -->
-    <string name="settings_action_export_backup">Export backup</string>
-    <string name="settings_action_import_backup">Import backup</string>
-    <string name="settings_action_import">Import</string>
-    <string name="settings_action_cancel">Cancel</string>
-    <string name="settings_backup_read_failure">Couldn\'t read the backup file. Please try again.</string>
 
     <!-- Toasts -->
     <string name="settings_toast_segment">%1$s switched to “%2$s”</string>

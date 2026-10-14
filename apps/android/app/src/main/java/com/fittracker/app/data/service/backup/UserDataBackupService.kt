@@ -327,7 +327,7 @@ object UserDataBackupService {
      * 源 `:301` `getImportFailureStatusText`——不含线（源按 statusId 二分）。
      *
      * Wave 8 i18n：返回资源 id（`values/strings_backup.xml`），由 UI 层解析；
-     * 成功路径的计数插值与计划回退追加同理由 UI 层渲染（见 `backupImportStatusText`）。
+     * 成功路径的计数插值与计划回退追加同理由 UI 层渲染。
      */
     @StringRes
     fun importFailureStatusRes(statusId: String): Int =

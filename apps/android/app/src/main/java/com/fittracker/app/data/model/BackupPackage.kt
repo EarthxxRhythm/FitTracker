@@ -36,8 +36,8 @@ data class UserDataBackupPackage(
  * `statusId` 取值（源实现）：`backup_invalid_json` / `backup_schema_unsupported` / `import_success`。
  *
  * Wave 8 i18n：不再携带用户可见的 `statusText`——文案真源在 `values/strings_backup.xml`，
- * 由 UI 层依本结构（`success` / `statusId` / 计数 / `usedPlanFallback`）渲染（见
- * `backupImportStatusText`）。数据层保持无 `Context`、无文案，纯 JVM 可单测。
+ * 由 UI 层依本结构（`success` / `statusId` / 计数 / `usedPlanFallback`）渲染。
+ * 数据层保持无 `Context`、无文案，纯 JVM 可单测。
  */
 @Serializable
 data class UserDataBackupImportResult(
