@@ -1,7 +1,6 @@
 package com.fittracker.app.data.auth
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
-import com.fittracker.app.data.cloud.SupabaseConfig
 import com.fittracker.app.data.persist.JsonStore
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
@@ -9,8 +8,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertTrue
-import org.junit.Assume.assumeTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -43,16 +43,23 @@ class AuthServicePhoneCodeTest {
         return JsonStore(dataStore)
     }
 
+    /**
+     * 显式注入**沙盒** provider——本用例专测沙盒链路（见类注释），且求环境无关：
+     * 否则 Supabase 已配置（本机有 local.properties）时 `AuthService.provider` 走云端分支，
+     * 其 `requestPhoneCode` 会发出真实 HTTP（`SupabaseAuthProvider.kt:125-139`）。
+     */
+    @Before
+    fun injectSandboxProvider() {
+        AuthService.setProviderFactoryForTesting { SandboxAuthProvider(it) }
+    }
+
+    @After
+    fun clearProviderFactory() {
+        AuthService.setProviderFactoryForTesting(null)
+    }
+
     @Test
     fun `发码后立即用演示码登录_应成功`() = runBlocking {
-        // 本用例专测**沙盒**链路（见类注释）。
-        // Supabase 已配置（local.properties 存在）时 `AuthService.provider` 全局切云端分支，
-        // 其 `requestPhoneCode` 会发出真实 HTTP（SupabaseAuthProvider.kt:125-139）——
-        // 沙盒链路此时不可达，故跳过而非假红/假绿（惯例同 HapticsTest.kt:55）。
-        assumeTrue(
-            "Supabase 已配置时本用例不适用（provider 走云端分支，沙盒链路不可达）",
-            !SupabaseConfig.isConfigured,
-        )
         val store = createStore()
         val phone = "13900000001"
 

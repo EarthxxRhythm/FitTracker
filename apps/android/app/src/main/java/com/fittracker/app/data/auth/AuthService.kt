@@ -33,9 +33,33 @@ object AuthService {
     private val providers: java.util.concurrent.ConcurrentHashMap<JsonStore, AuthProvider> =
         java.util.concurrent.ConcurrentHashMap()
 
+    /**
+     * 测试注入的 provider 工厂（对齐 `SyncOrchestrator.setStoreForTesting` 惯例；
+     * `null` 恢复默认解析）。
+     *
+     * 存在的理由：provider 解析的正负由 `SupabaseConfig.isConfigured`（编译期读 `BuildConfig`、
+     * 值来自未入库的 `local.properties`）单向决定，测试无法在不改磁盘配置的前提下声明
+     * 「本用例走哪套 provider」——导致依赖云端会话的测试（`SyncOrchestratorTest`）在无凭据
+     * 环境（CI / 换机）必然红。注入工厂后测试可显式选择分支，生产路径零变化。
+     */
+    @Volatile
+    private var testingProviderFactory: ((JsonStore) -> AuthProvider)? = null
+
+    /**
+     * 设置 / 清除（传 `null`）测试用 provider 工厂。
+     *
+     * 切换同时清空 [providers] 缓存——否则旧分支的实例会被 `computeIfAbsent` 复用、
+     * 注入不生效。
+     */
+    fun setProviderFactoryForTesting(factory: ((JsonStore) -> AuthProvider)?) {
+        testingProviderFactory = factory
+        providers.clear()
+    }
+
     /** provider 解析（单一切换点——调用方对两套实现无感）。 */
     fun provider(store: JsonStore): AuthProvider = providers.computeIfAbsent(store) {
-        if (SupabaseConfig.isConfigured) SupabaseAuthProvider(store) else SandboxAuthProvider(store)
+        testingProviderFactory?.invoke(store)
+            ?: if (SupabaseConfig.isConfigured) SupabaseAuthProvider(store) else SandboxAuthProvider(store)
     }
 
     /** 沙盒会话存储门面。 */
