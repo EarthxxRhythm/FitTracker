@@ -1,8 +1,10 @@
 package com.fittracker.app.data.sync
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import com.fittracker.app.data.auth.AuthService
 import com.fittracker.app.data.auth.AuthSession
 import com.fittracker.app.data.cloud.CloudSession
+import com.fittracker.app.data.cloud.SupabaseAuthProvider
 import com.fittracker.app.data.cloud.SupabaseSessionStore
 import com.fittracker.app.data.persist.JsonCodec
 import com.fittracker.app.data.persist.JsonStore
@@ -34,11 +36,12 @@ import org.robolectric.annotation.Config
  * [SyncOrchestrator] 契约测试——fake 云存储（[CloudSnapshotStore] 注入）驱动的全分支矩阵。
  *
  * 语义基线：鸿蒙 `CloudSyncService.ets:146` `syncNow` + `:133` `hasPendingChanges` + `:99` `getState`。
- * 会话构造：走云端会话存储（`StoreNames.CLOUD_SESSION`）——测试环境的 `BuildConfig.SUPABASE_URL`
- * 非空，`AuthService.provider` 恒为 Supabase 分支，`currentSession` 由持久化快照回落命中
- * （见 `AuthService.currentSession`）。**真实网络不经手**：测试注入 fake 存储 +
- * `AuthService.currentSession` 只读本地（`provider.validAccessToken` 不被本测试路径触发——
- * `currentSession` 优先内存、回落存储，不做刷新）。
+ * 会话构造：走云端会话存储（`StoreNames.CLOUD_SESSION`）——本测试经
+ * `AuthService.setProviderFactoryForTesting` **显式注入 Supabase provider**，
+ * `currentSession` 由持久化快照回落命中（见 `AuthService.currentSession`），
+ * 不依赖 `BuildConfig.SUPABASE_URL`（CI / 无 local.properties 环境下行为一致）。
+ * **真实网络不经手**：测试注入 fake 存储 + `AuthService.currentSession` 只读本地
+ * （`provider.validAccessToken` 不被本测试路径触发——只读存储回落，不做刷新）。
  *
  * `@Config(sdk = [34])`：同 `SessionAndPlanTest`（Robolectric 支持范围内）。
  */
@@ -83,10 +86,14 @@ class SyncOrchestratorTest {
     @Before
     fun resetOrchestrator() {
         SyncOrchestrator.setStoreForTesting(null)
+        // 本测试的会话构造走 CLOUD_SESSION（loginSession），需 Supabase 分支的
+        // currentSession 回落读它——显式注入以免依赖本机 local.properties（CI 无此文件）。
+        AuthService.setProviderFactoryForTesting { SupabaseAuthProvider(it) }
     }
 
     @After
     fun clearOrchestrator() {
+        AuthService.setProviderFactoryForTesting(null)
         SyncOrchestrator.setStoreForTesting(null)
     }
 
