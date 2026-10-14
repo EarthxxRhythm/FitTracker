@@ -201,3 +201,5 @@ sg docker -c 'docker compose pull && docker compose up -d'
 | ⑤ | GOTRUE_HOOK_SEND_SMS_* 在 compose 中为被注释字面量（写 `.env` 无效） | 文档改为「编辑 docker-compose.yml」 |
 | ⑥ | Caddy 容器 bridge 网络下反代宿主服务全 502 | 统一 `--network host` |
 | ⑦ | swap：平台预置 ~2G 已足够（未按计划再加 4G） | 保留平台配置，稳态观测内存充裕 |
+| ⑧ | GoTrue 短信 OTP 默认有效期仅 **60 秒**，与阿里云模板文案「5分钟内有效」不符（真人/自动化都极易超时） | compose 第 197 行改字面量 `GOTRUE_SMS_OTP_EXP: "300"` 并 `docker compose up -d auth`；实测 OTP 生成后 **120 秒**提交仍返回 200（旧值下 62 秒即 `otp_expired`/403） |
+| ⑨ | 取 OTP 明文做免真机验证：宿主 `lo` 抓不到 sms-hook 流量（Docker 端口映射不经该接口）；`nohup`/`setsid`/`systemd-run` 三种方式的后台 tcpdump 都活不过 ssh 会话结束 | 用 `sudo nsenter -t $(docker inspect -f '{{.State.Pid}}' fittracker-sms-hook) -n tcpdump -i any -s 0 'tcp port 8787' -w /tmp/otp.pcap`，且**抓包与触发必须在同一 ssh 会话内**；必须 `-w` 写盘（stdout 走管道会全缓冲，读不到内容） |
