@@ -215,7 +215,7 @@ object FtReviewModel {
     /** 空库降级样例（原型静态主数值）；真实路径数值见 [weightCurrentText]。 */
     const val WEIGHT_CURRENT = "69.2 kg"
 
-    /** 空库降级样例（原型静态脚注）；真实路径文案见 `review_weight_delta_week`。 */
+    /** 空库降级样例（原型静态脚注）；真实路径文案见 `review_weight_delta_month`。 */
     @StringRes
     val WEIGHT_DELTA_RES = R.string.review_weight_delta_sample
 
@@ -541,8 +541,8 @@ object FtReviewModel {
     /**
      * 统计卡「体重变化」数值：`%.1f`（无单位，单位由卡片 `unit` 给出）。
      *
-     * 「较上周」脚注的文案模板是 `review_weight_delta_week`（`较上周 %1$s kg`），插值参数即本函数
-     * 的返回值——由 UI 层解析（模型层不持有 `Context`）；正负号沿用原型样例的 ASCII 连字符风格。
+     * 「较上月」脚注的文案模板是 `review_weight_delta_month`（`较上月 %1$s`），本函数返回值 +
+     * 当前单位标签由 UI 层拼装后插值（模型层不持有 `Context`）；正负号沿用原型样例的 ASCII 连字符风格。
      */
     fun weightDeltaValue(deltaKg: Double, unit: WeightUnit): String =
         String.format(Locale.US, "%.1f", WeightUtils.kgToDisplay(deltaKg, unit))

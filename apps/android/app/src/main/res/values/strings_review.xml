@@ -122,8 +122,8 @@
     <string name="review_weight_foot_current">当前</string>
     <!-- 空库降级样例（原型静态「较上月」脚注） -->
     <string name="review_weight_delta_sample">较上月 -0.8 kg</string>
-    <!-- 真实路径脚注：`%1$s` 差值（`-0.8` / `1.6`，见 `weightDeltaValue`） -->
-    <string name="review_weight_delta_week">较上周 %1$s kg</string>
+    <!-- 真实路径脚注：`%1$s` 差值（`-0.8` / `1.6`，见 `weightDeltaValue`）；单位由调用方按「体重单位」拼装 -->
+    <string name="review_weight_delta_month">较上月 %1$s</string>
     <!-- 目标按钮文案：`%1$s` 目标值（整数不带小数，见 `goalValueText`） -->
     <string name="review_weight_goal_label">目标 %1$s kg</string>
     <!-- `.goal-btn` 的 `aria-haspopup="dialog"` 语义 -->

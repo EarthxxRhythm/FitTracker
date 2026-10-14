@@ -103,8 +103,8 @@
     <string name="review_weight_title">Weight &amp; goal</string>
     <string name="review_weight_foot_current">Current</string>
     <string name="review_weight_delta_sample">-0.8 kg vs. last month</string>
-    <!-- `%1$s` delta value -->
-    <string name="review_weight_delta_week">%1$s kg vs. last week</string>
+    <!-- `%1$s` delta value; unit suffix appended by caller per weight-unit setting -->
+    <string name="review_weight_delta_month">%1$s vs. last month</string>
     <!-- `%1$s` goal value -->
     <string name="review_weight_goal_label">Goal %1$s kg</string>
     <string name="review_weight_goal_a11y_open">Set weight goal</string>

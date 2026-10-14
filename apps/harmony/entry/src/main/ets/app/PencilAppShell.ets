@@ -24,6 +24,8 @@ export struct PencilAppShell {
   // 常驻 Tab 的「计划」页刷新令牌：切到该 Tab 或从被压栈的页面返回时递增，
   // 触发 PlanContent 重读当前计划（可能在「计划组」里刚被改过）。
   @State private planReloadToken: number = 0
+  /** 切到「回顾」Tab 时 bump——体重/会话更新后复盘页需重读（Tab 常驻同因）。 */
+  @State private reviewReloadToken: number = 0
   // 训练预览的全模态开关。
   @State private showPreview: boolean = false
 
@@ -65,6 +67,9 @@ export struct PencilAppShell {
   private handleTabChanged(): void {
     if (this.currentTab === PencilTabKey.PLAN) {
       this.planReloadToken += 1
+    }
+    if (this.currentTab === PencilTabKey.REVIEW) {
+      this.reviewReloadToken += 1
     }
   }
 
@@ -118,7 +123,7 @@ export struct PencilAppShell {
       .zIndex(this.layer(PencilTabKey.PLAN))
 
       Column() {
-        ReviewContent()
+        ReviewContent({ reloadToken: this.reviewReloadToken })
       }
       .width('100%')
       .height('100%')

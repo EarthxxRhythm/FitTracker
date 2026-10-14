@@ -181,13 +181,15 @@ fun ReviewScreen(
             }
         }
         // W3-1 体重记录服务：有记录用真实值，无记录回落原型样例（与 BodyScreen 的 hasRecords/回落同口径）。
+        // 「较上月」脚注口径：近 30 天首尾之差（对齐原型 fittracker-review.html:1321 与鸿蒙侧）。
         val records = BodyRecordService.loadRecords(store)
         if (records.isNotEmpty()) {
-            val deltaKg = BodyRecordService.weekDeltaKg(records, now)
+            val monthTrend = BodyRecordService.monthTrend(records, now)
+            val deltaKg = monthTrend?.deltaKg ?: BodyRecordService.weekDeltaKg(records, now)
             weightCurrent = FtReviewModel.weightCurrentText(records.last().kg, weightUnit)
             weightDelta = resources.getString(
-                R.string.review_weight_delta_week,
-                FtReviewModel.weightDeltaValue(deltaKg, weightUnit),
+                R.string.review_weight_delta_month,
+                FtReviewModel.weightDeltaValue(deltaKg, weightUnit) + " " + WeightUtils.unitLabel(weightUnit),
             )
             weightDeltaValue = FtReviewModel.weightDeltaValue(deltaKg, weightUnit)
             hasWeightRecords = true
