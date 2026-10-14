@@ -12,6 +12,8 @@ import ActiveWorkoutService, {
 } from '../../../shared/services/ActiveWorkoutService'
 import { WorkoutPreviewSummary } from '../../../shared/services/WorkoutPreviewService'
 import SettingsService, { AppSettings } from '../../../common/services/SettingsService'
+import UserProfileService, { UserProfile, WeightUnit } from '../../../common/services/UserProfileService'
+import { kgToDisplay, displayToKg, weightUnitLabel } from '../../../common/utils/WeightUtils'
 import HapticFeedbackService from '../../../common/services/HapticFeedbackService'
 
 interface ActiveWorkoutRouteParams {
@@ -39,6 +41,10 @@ function createSetRecord(index: number, weight: number, reps: number): SetRecord
 }
 
 const PROGRESS_SEGMENTS: number[] = [0, 1, 2, 3, 4, 5]
+
+// 重量步进区间（kg 基准，来自原型 `data-min/max`）；显示时按当前单位换算。
+const WEIGHT_MIN_KG: number = 20
+const WEIGHT_MAX_KG: number = 200
 
 // 分段进度条胶囊高度。原型 .duo-seg 为 12px；此处有意加高——12vp 时 3vp 的圆点环
 // 要占掉一半高度、绿芯只剩 6vp，显得偏细；加高后环占比接近圆点自身（3/18），
@@ -115,8 +121,11 @@ export struct ActiveContent {
   private win: window.Window | null = null
   private keepScreenOnApplied: boolean = false
   private soundEnabled: boolean = true
+  /** 展示单位（来自「设置 · 体重单位」）；重量基准值始终为 kg，仅输入与展示按单位换算。 */
+  @State private displayUnit: WeightUnit = 'kg'
 
-  aboutToAppear(): void {
+  async aboutToAppear(): Promise<void> {
+    await this.applyDisplayUnitPreference()
     this.applyPreviewState()
     this.clockTimer = setInterval(() => {
       this.elapsedSeconds += 1
@@ -146,6 +155,30 @@ export struct ActiveContent {
       this.celebrateTimer = -1
     }
     this.releaseKeepScreenOn()
+  }
+
+  /** 当前输入重量的展示值（显示单位下的整数）。 */
+  private displayWeightValue(): number {
+    return Math.round(kgToDisplay(this.weight, this.displayUnit))
+  }
+
+  /** 已记录组的重量展示文本（显示单位下的整数，基准值仍为 kg）。 */
+  private displayWeightText(weightKg: number): string {
+    return Math.round(kgToDisplay(weightKg, this.displayUnit)).toString()
+  }
+
+  /** 读取「设置 · 体重单位」；读取失败保持 kg。 */
+  private async applyDisplayUnitPreference(): Promise<void> {
+    const host: Context | undefined = this.getUIContext().getHostContext()
+    if (host === undefined) {
+      return
+    }
+    try {
+      const profile: UserProfile = await UserProfileService.loadProfile(host)
+      this.displayUnit = profile.weightUnit
+    } catch (error) {
+      // 读取失败保持 kg 基准显示
+    }
   }
 
   /** 读取「训练中屏幕常亮」偏好并应用到当前窗口；失败不阻塞训练流。 */
@@ -303,7 +336,12 @@ export struct ActiveContent {
   }
 
   private changeWeight(delta: number): void {
-    this.weight = Math.max(20, Math.min(200, this.weight + delta))
+    // 步进在「显示单位」下进行（lbs 时每次 ±1 lbs），再换算回 kg 单一真源。
+    const displayValue: number = kgToDisplay(this.weight, this.displayUnit)
+    const minDisplay: number = Math.round(kgToDisplay(WEIGHT_MIN_KG, this.displayUnit))
+    const maxDisplay: number = Math.round(kgToDisplay(WEIGHT_MAX_KG, this.displayUnit))
+    const nextDisplay: number = Math.max(minDisplay, Math.min(maxDisplay, Math.round(displayValue) + delta))
+    this.weight = displayToKg(nextDisplay, this.displayUnit)
   }
 
   private changeReps(delta: number): void {
@@ -617,7 +655,7 @@ export struct ActiveContent {
               .fontFamily('Noto Sans SC')
               .fontSize(13)
               .fontColor('#B3FFFFFF')
-            Text(record.weight.toString() + ' kg × ' + record.reps.toString())
+            Text(this.displayWeightText(record.weight) + ' ' + weightUnitLabel(this.displayUnit) + ' × ' + record.reps.toString())
               .fontFamily('Geist Mono')
               .fontSize(14)
               .fontWeight(FontWeight.Bold)
@@ -736,7 +774,7 @@ export struct ActiveContent {
         .alignItems(VerticalAlign.Top)
 
         Row({ space: 12 }) {
-          this.inputBox('重量', 'KG', this.weight, true)
+          this.inputBox('重量', weightUnitLabel(this.displayUnit).toUpperCase(), this.displayWeightValue(), true)
           this.inputBox('次数', '8–10', this.reps, false)
         }
         .width('100%')

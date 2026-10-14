@@ -61,7 +61,10 @@ import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
 import com.fittracker.app.data.service.BodyRecordService
 import com.fittracker.app.data.service.SettingsService
+import com.fittracker.app.data.service.UserProfileService
 import com.fittracker.app.data.service.WeeklyStats
+import com.fittracker.app.data.service.WeightUnit
+import com.fittracker.app.data.service.WeightUtils
 import com.fittracker.app.data.service.WeekStart
 import com.fittracker.app.data.service.WeekWindow
 import com.fittracker.app.data.service.currentLanguageTag
@@ -143,12 +146,14 @@ fun ReviewScreen(
     var weightCurrent by remember { mutableStateOf(FtReviewModel.WEIGHT_CURRENT) }
     var weightDelta by remember { mutableStateOf(resources.getString(FtReviewModel.WEIGHT_DELTA_RES)) }
     var weightPoints by remember { mutableStateOf(FtReviewModel.WEIGHT_POINTS) }
+    var weightUnit by remember { mutableStateOf(WeightUnit.KG) }
     var hasWeightRecords by remember { mutableStateOf(false) }
     var weightDeltaValue by remember { mutableStateOf("") }
     LaunchedEffect(Unit) {
         val store = JsonStore(context.appDataStore)
         val now = System.currentTimeMillis()
         val weekStart = SettingsService.loadSettings(store).weekStart
+        weightUnit = UserProfileService.loadProfile(store).weightUnit
         // 周/月尺度抬头与月历表头：纯日期计算（与数据有无无关）
         weekHeadText = resources.getString(R.string.review_head_week, WeekWindow.weekRangeText(now, weekStart, currentLanguageTag()))
         val monthCal = java.util.Calendar.getInstance().apply { timeInMillis = now }
@@ -169,8 +174,8 @@ fun ReviewScreen(
                     OneRmRow(
                         name = detail.exerciseName,
                         src = detail.bestDateText,
-                        value = detail.bestOneRepMax.toString(),
-                        unit = resources.getString(R.string.review_unit_kg),
+                        value = FtReviewModel.oneRmValueText(detail.bestOneRepMax.toDouble(), weightUnit),
+                        unit = WeightUtils.unitLabel(weightUnit),
                     )
                 }
             }
@@ -179,9 +184,12 @@ fun ReviewScreen(
         val records = BodyRecordService.loadRecords(store)
         if (records.isNotEmpty()) {
             val deltaKg = BodyRecordService.weekDeltaKg(records, now)
-            weightCurrent = FtReviewModel.weightCurrentText(records.last().kg)
-            weightDelta = resources.getString(R.string.review_weight_delta_week, FtReviewModel.weightDeltaValue(deltaKg))
-            weightDeltaValue = FtReviewModel.weightDeltaValue(deltaKg)
+            weightCurrent = FtReviewModel.weightCurrentText(records.last().kg, weightUnit)
+            weightDelta = resources.getString(
+                R.string.review_weight_delta_week,
+                FtReviewModel.weightDeltaValue(deltaKg, weightUnit),
+            )
+            weightDeltaValue = FtReviewModel.weightDeltaValue(deltaKg, weightUnit)
             hasWeightRecords = true
             val trend = BodyRecordService.weekTrend(records, now, weekStart, currentLanguageTag())
             if (trend != null) weightPoints = FtReviewModel.weightPoints(trend.values)
@@ -197,7 +205,12 @@ fun ReviewScreen(
             stats[1] = ReviewStat(R.string.review_stat_duration, (weekData.duration / 60).toString(), R.string.review_unit_minutes)
         }
         if (hasWeightRecords) {
-            stats[2] = ReviewStat(R.string.review_stat_weight_change, weightDeltaValue, R.string.review_unit_kg)
+            stats[2] = ReviewStat(
+                R.string.review_stat_weight_change,
+                weightDeltaValue,
+                R.string.review_unit_kg,
+                unitText = WeightUtils.unitLabel(weightUnit),
+            )
         }
         baseData.copy(stats = stats)
     }
@@ -426,7 +439,7 @@ private fun StatsRow(stats: List<ReviewStat>) {
                         color = FtColor.txtHi,
                     )
                     Text(
-                        text = stringResource(stat.unitRes),
+                        text = stat.unitText ?: stringResource(stat.unitRes),
                         style = FtType.natural(10.9f).copy(lineHeight = 12.5.sp), // 1.15 × 10.9px
                         color = FtColor.accent,
                     )

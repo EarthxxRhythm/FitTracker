@@ -54,6 +54,8 @@ import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
 import com.fittracker.app.data.service.SettingsService
 import com.fittracker.app.data.service.UserProfileService
+import com.fittracker.app.data.service.WeightUnit
+import com.fittracker.app.data.service.WeightUtils
 import com.fittracker.app.data.service.WeekStart
 import com.fittracker.app.data.service.WeekWindow
 import com.fittracker.app.data.service.currentLanguageTag
@@ -114,12 +116,15 @@ fun ProfileScreen(
     // 连续记录 7 格标签：默认原型序（周一起始），进屏后按「周开始日」设置重排
     var streakLabels by remember { mutableStateOf(WeekWindow.dayLabels(WeekStart.MONDAY, currentLanguageTag())) }
     var weekRangeText by remember { mutableStateOf(sampleWeekRange) }
+    // 「体重单位」（设置页）：成就卡里的样例重量按此换算展示（基准值仍为 kg）。
+    var weightUnit by remember { mutableStateOf(WeightUnit.KG) }
     LaunchedEffect(Unit) {
         val store = JsonStore(context.appDataStore)
         val weekStart = SettingsService.loadSettings(store).weekStart
         // 周概览 meta：真实周范围（纯日期计算，与数据有无无关）——加载前首帧保持原型样例
         weekRangeText = WeekWindow.weekRangeText(System.currentTimeMillis(), weekStart, currentLanguageTag())
         val profile = UserProfileService.loadProfile(store)
+        weightUnit = profile.weightUnit
         if (profile.nickname.isNotBlank()) {
             name = profile.nickname
             avatarInitial = profile.nickname.trim().first().toString()
@@ -159,7 +164,7 @@ fun ProfileScreen(
             labels = streakLabels,
             modifier = Modifier.weight(1.9f),
         )
-        AchievementsCard(modifier = Modifier.weight(2.7f))
+        AchievementsCard(weightUnit = weightUnit, modifier = Modifier.weight(2.7f))
         Shortcuts(onNavigate = onNavigate, modifier = Modifier.weight(1f))
     }
 }
@@ -469,7 +474,7 @@ private fun StreakDayColumn(
 
 /** `.card` L280-285（同 [StreakCard] 的底/描边）+ `.achievements-title`（L390）`.card-title` 字号。 */
 @Composable
-private fun AchievementsCard(modifier: Modifier = Modifier) {
+private fun AchievementsCard(weightUnit: WeightUnit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -502,6 +507,7 @@ private fun AchievementsCard(modifier: Modifier = Modifier) {
             }
             AchievementRow(
                 achievement = achievement,
+                weightUnit = weightUnit,
                 // `.achievement { padding: 7px 0 }`（L395）；后继项 `padding-top: 11px`（L400）
                 modifier = Modifier.padding(top = if (index == 0) 5.dp else 8.dp, bottom = 5.dp), // 压缩：7/11/7 → 5/8/5
             )
@@ -511,7 +517,11 @@ private fun AchievementsCard(modifier: Modifier = Modifier) {
 
 /** `.achievement` L391-421：图标底 40×40 圆角 13 + 标题/注 + 右对齐数值，行距 12（L394）、居中对齐（L393）。 */
 @Composable
-private fun AchievementRow(achievement: FtProfileAchievement, modifier: Modifier = Modifier) {
+private fun AchievementRow(
+    achievement: FtProfileAchievement,
+    weightUnit: WeightUnit,
+    modifier: Modifier = Modifier,
+) {
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically, // align-items: center（L393）
@@ -539,7 +549,12 @@ private fun AchievementRow(achievement: FtProfileAchievement, modifier: Modifier
                 color = FtColor.txtHi,
             )
             Text(
-                text = stringResource(achievement.noteRes),
+                text = achievement.weightKgParam?.let { kg ->
+                    stringResource(
+                        achievement.noteRes,
+                        WeightUtils.formatWeight(kg.toDouble(), weightUnit) + " " + WeightUtils.unitLabel(weightUnit),
+                    )
+                } ?: stringResource(achievement.noteRes),
                 modifier = Modifier.padding(top = 3.dp), // `.ach-note { margin-top: 3px }`（L415）
                 style = FtType.natural(12f), // 12px，未声明 line-height（L415）
                 color = FtColor.white62,

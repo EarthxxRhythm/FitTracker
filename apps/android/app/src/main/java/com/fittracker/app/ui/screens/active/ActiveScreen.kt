@@ -83,6 +83,9 @@ import com.fittracker.app.data.persist.appDataStore
 import com.fittracker.app.data.service.ActiveWorkoutService
 import com.fittracker.app.data.service.ActiveWorkoutState
 import com.fittracker.app.data.service.SettingsService
+import com.fittracker.app.data.service.UserProfileService
+import com.fittracker.app.data.service.WeightUnit
+import com.fittracker.app.data.service.WeightUtils
 import com.fittracker.app.data.service.WorkoutDraftService
 import com.fittracker.app.data.service.WorkoutDraftSnapshot
 import com.fittracker.app.data.service.WorkoutRepository
@@ -159,6 +162,8 @@ fun ActiveScreen(
     // 「声音与震动」共用这一次 loadSettings。
     var keepScreenOn by remember { mutableStateOf(true) }
     var soundVibrationOn by remember { mutableStateOf(true) }
+    // 「体重单位」（设置页）：重量基准值始终为 kg，仅输入与展示按单位换算。
+    var weightUnit by remember { mutableStateOf(WeightUnit.KG) }
 
     val completed = records.size
     val progressLabel = FtActiveModel.progressLabel(completed, target)
@@ -168,6 +173,10 @@ fun ActiveScreen(
         val settings = SettingsService.loadSettings(store)
         keepScreenOn = settings.keepScreenOn
         soundVibrationOn = settings.soundVibration
+        val unit = UserProfileService.loadProfile(store).weightUnit
+        weightUnit = unit
+        // 初值以 kg 基准存放（[FtActiveModel.WEIGHT_INIT]），按当前单位换算为显示整数。
+        weight = Math.round(WeightUtils.kgToDisplay(FtActiveModel.WEIGHT_INIT.toDouble(), unit)).toInt()
     }
 
     // 屏幕常亮：View 级 `keepScreenOn`（等价 `FLAG_KEEP_SCREEN_ON` 的视图版，亮屏由窗口管理器
@@ -218,7 +227,9 @@ fun ActiveScreen(
 
     fun completeSet() {
         if (!FtActiveModel.submitEnabled(completed, target)) return
-        val next = records + FtSetRecord(weight, reps)
+        // 输入框 `weight` 是显示单位下的整数；记录与草稿一律存 kg 基准。
+        val weightKg = Math.round(WeightUtils.displayIntToKg(weight, weightUnit)).toInt()
+        val next = records + FtSetRecord(weightKg, reps)
         records = next
         // 设置项「声音与震动」（计划 A4）：记录推进成功即给一次短促触觉反馈。
         // 音效素材缺失，本期仅震动（计划非目标表）；开关关 → 不响不动。
@@ -244,7 +255,7 @@ fun ActiveScreen(
                         exercises = state.exercises,
                         plannedExerciseId = nextPlannedExerciseId(state),
                         setIndex = nextSetIndex(state),
-                        weightText = weight.toString(),
+                        weightText = weightKg.toString(),
                         repsText = reps.toString(),
                     ),
                 )
@@ -300,7 +311,7 @@ fun ActiveScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     DemoCard(workout = workout)
-                    SetList(records = records)
+                    SetList(records = records, weightUnit = weightUnit)
                 }
             }
 
@@ -317,7 +328,13 @@ fun ActiveScreen(
                 exerciseName = workout?.let { nextExercise(it)?.name } ?: stringResource(R.string.active_fallback_exercise), // 当前动作名（原静态「杠铃卧推」）
                 weight = weight,
                 reps = reps,
-                onWeight = { weight = FtActiveModel.stepValue(weight, it, min = FtActiveModel.WEIGHT_MIN, max = FtActiveModel.WEIGHT_MAX) },
+                weightUnit = weightUnit,
+                onWeight = {
+                    // 步进在显示单位下进行（kg 时 ±1 kg、lbs 时 ±1 lbs）。
+                    val minDisplay = Math.round(WeightUtils.kgToDisplay(FtActiveModel.WEIGHT_MIN.toDouble(), weightUnit)).toInt()
+                    val maxDisplay = Math.round(WeightUtils.kgToDisplay(FtActiveModel.WEIGHT_MAX.toDouble(), weightUnit)).toInt()
+                    weight = FtActiveModel.stepValue(weight, it, min = minDisplay, max = maxDisplay)
+                },
                 onReps = { reps = FtActiveModel.stepValue(reps, it, min = FtActiveModel.REPS_MIN, max = FtActiveModel.REPS_MAX) },
                 onClose = { modalOpen = false },
                 onComplete = ::completeSet,
@@ -734,7 +751,7 @@ private fun BenchPressVisual(modifier: Modifier = Modifier) {
  * 无记录时回退到 `.set-empty`（本屏首屏即 2 条，该分支不可达，保留以对齐原型结构）。
  */
 @Composable
-private fun SetList(records: List<FtSetRecord>) {
+private fun SetList(records: List<FtSetRecord>, weightUnit: WeightUnit) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp), // `.set-list { gap: 10px }`
@@ -755,7 +772,7 @@ private fun SetList(records: List<FtSetRecord>) {
             }
         } else {
             records.forEachIndexed { i, record ->
-                SetRecordRow(index = i, record = record)
+                SetRecordRow(index = i, record = record, weightUnit = weightUnit)
             }
         }
     }
@@ -763,7 +780,7 @@ private fun SetList(records: List<FtSetRecord>) {
 
 /** `.set-record` L312-322：`recordIn .18s` 入场（透明上移 6px → 不透明归位）。 */
 @Composable
-private fun SetRecordRow(index: Int, record: FtSetRecord) {
+private fun SetRecordRow(index: Int, record: FtSetRecord, weightUnit: WeightUnit) {
     var appeared by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { appeared = true }
     val progress by animateFloatAsState(
@@ -793,7 +810,7 @@ private fun SetRecordRow(index: Int, record: FtSetRecord) {
             color = FtColor.white70,
         )
         Text(
-            text = "${record.weight} kg × ${record.reps}",
+            text = "${Math.round(WeightUtils.kgToDisplay(record.weight.toDouble(), weightUnit))} ${WeightUtils.unitLabel(weightUnit)} × ${record.reps}",
             style = FtType.natural(14f, 700, FtType.mono),
             color = FtColor.txtHi,
         )
@@ -886,6 +903,7 @@ private fun RecordModal(
     exerciseName: String,
     weight: Int,
     reps: Int,
+    weightUnit: WeightUnit,
     onWeight: (Int) -> Unit,
     onReps: (Int) -> Unit,
     onClose: () -> Unit,
@@ -927,6 +945,7 @@ private fun RecordModal(
                 exerciseName = exerciseName,
                 weight = weight,
                 reps = reps,
+                weightUnit = weightUnit,
                 onWeight = onWeight,
                 onReps = onReps,
                 onClose = onClose,
@@ -943,6 +962,7 @@ private fun ModalCard(
     exerciseName: String,
     weight: Int,
     reps: Int,
+    weightUnit: WeightUnit,
     onWeight: (Int) -> Unit,
     onReps: (Int) -> Unit,
     onClose: () -> Unit,
@@ -1021,7 +1041,7 @@ private fun ModalCard(
             ) {
                 StepperBox(
                     label = stringResource(R.string.active_field_weight),
-                    unit = stringResource(R.string.active_field_weight_unit),
+                    unit = WeightUtils.unitLabel(weightUnit).uppercase(),
                     value = weight,
                     onDelta = onWeight,
                     modifier = Modifier.weight(1f),

@@ -3,6 +3,8 @@ package com.fittracker.app.ui.screens.review
 import androidx.annotation.StringRes
 import com.fittracker.app.R
 import com.fittracker.app.data.model.WorkoutSession
+import com.fittracker.app.data.service.WeightUnit
+import com.fittracker.app.data.service.WeightUtils
 import com.fittracker.app.data.service.WeekStart
 import com.fittracker.app.data.service.WeekWindow
 import com.fittracker.app.data.service.currentLanguageTag
@@ -16,7 +18,18 @@ import kotlin.math.ceil
  * [labelRes] / [unitRes] 为字符串资源 ID（`values/strings_review.xml`）；[value] 是运行期数值文本
  * （空库时取原型样例）。文案不落模型层，由 UI 层 `stringResource` / `getString` 解析。
  */
-data class ReviewStat(@StringRes val labelRes: Int, val value: String, @StringRes val unitRes: Int)
+/**
+ * 一张统计卡的文案（原型 `.stat-card`）。
+ *
+ * [unitRes] 为资源 id 形式的单位（`次`/`分钟`/`kg`）；[unitText] 供**按设置动态换算**的单位
+ * （如体重卡的 `kg`/`lbs`）——非空时优先于 [unitRes]。
+ */
+data class ReviewStat(
+    @StringRes val labelRes: Int,
+    val value: String,
+    @StringRes val unitRes: Int,
+    val unitText: String? = null,
+)
 
 /** 一套时间尺度的全部文案（原型 `WEEK` / `MONTH`）；[badge] 是语言无关的样例数据（`↑ +18%`）。 */
 data class ReviewScaleData(
@@ -521,8 +534,9 @@ object FtReviewModel {
         }
     }
 
-    /** 体重卡主数值：`%.1f kg`（千克基准，同原型 `69.2 kg`）。 */
-    fun weightCurrentText(kg: Double): String = String.format(Locale.US, "%.1f kg", kg)
+    /** 体重卡主数值：`%.1f kg`（千克基准，按当前单位换算后展示）。 */
+    fun weightCurrentText(kg: Double, unit: WeightUnit): String =
+        String.format(Locale.US, "%.1f %s", WeightUtils.kgToDisplay(kg, unit), WeightUtils.unitLabel(unit))
 
     /**
      * 统计卡「体重变化」数值：`%.1f`（无单位，单位由卡片 `unit` 给出）。
@@ -530,7 +544,15 @@ object FtReviewModel {
      * 「较上周」脚注的文案模板是 `review_weight_delta_week`（`较上周 %1$s kg`），插值参数即本函数
      * 的返回值——由 UI 层解析（模型层不持有 `Context`）；正负号沿用原型样例的 ASCII 连字符风格。
      */
-    fun weightDeltaValue(deltaKg: Double): String = String.format(Locale.US, "%.1f", deltaKg)
+    fun weightDeltaValue(deltaKg: Double, unit: WeightUnit): String =
+        String.format(Locale.US, "%.1f", WeightUtils.kgToDisplay(deltaKg, unit))
+
+    /** 1RM 行数值：kg 基准 → 当前单位下的展示文本（整数或 1 位小数）。 */
+    fun oneRmValueText(kg: Double, unit: WeightUnit): String {
+        val value: Double = WeightUtils.kgToDisplay(kg, unit)
+        return if (Math.round(value * 10) % 10 == 0L) Math.round(value).toString()
+        else String.format(Locale.US, "%.1f", value)
+    }
 
     // --- 内部：日期与训练量（本地时区，同 WorkoutSessionService / BodyRecordService） ---
 

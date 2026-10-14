@@ -3,7 +3,8 @@ import { MotionTokens } from '../../../common/styles/DesignTokens'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
-import UserProfileService, { UserProfile } from '../../../common/services/UserProfileService'
+import UserProfileService, { UserProfile, WeightUnit } from '../../../common/services/UserProfileService'
+import { kgToDisplay, weightUnitLabel } from '../../../common/utils/WeightUtils'
 import WorkoutSessionService, { WeeklyStats } from '../../../common/services/WorkoutSessionService'
 import SettingsService, { AppSettings } from '../../../common/services/SettingsService'
 import { resolveWeekStart, WeekStart } from '../../../common/utils/WeekUtils'
@@ -14,6 +15,8 @@ export struct ProfileContent {
   @State private settingsPressed: boolean = false
   @State private shortcutKey: string = ''
   @State private topInsetVp: number = 0
+  /** 展示单位（来自「设置 · 体重单位」）；成就卡样例重量的基准值仍为 kg。 */
+  @State private displayUnit: WeightUnit = 'kg'
   @State private avatarLetter: string = '\u6797'
   @State private nickname: string = '\u8c31\u5c3c'
   @State private goalSubtitle: string = '\u589e\u808c\u7b2c 42 \u5929 \u00b7 \u4fdd\u6301\u8282\u594f'
@@ -61,8 +64,8 @@ export struct ProfileContent {
     }
     try {
       const profile: UserProfile = await UserProfileService.loadProfile(context)
-      // profile.weightUnit is loaded but not rendered on this page yet;
-      // it is available for the future body-data entry.
+      // 成就卡里的样例重量按「设置 · 体重单位」换算展示（基准值仍是 kg）。
+      this.displayUnit = profile.weightUnit
       this.avatarLetter = profile.avatar.trim().length > 0
         ? profile.avatar.trim().charAt(0)
         : '\u6797'
@@ -352,9 +355,15 @@ export struct ProfileContent {
     .alignItems(HorizontalAlign.Center)
   }
 
+  /** 成就卡样例重量（kg 基准）→ 当前单位下的展示文本（如 `80 kg` / `176.4 lbs`）。 */
+  private achievementWeightText(kg: number): string {
+    const value: number = kgToDisplay(kg, this.displayUnit)
+    const text: string = Math.round(value * 10) % 10 === 0 ? Math.round(value).toString() : value.toFixed(1)
+    return text + ' ' + weightUnitLabel(this.displayUnit)
+  }
+
   @Builder
-  private buildAchievements() {
-    Column({ space: 0 }) {
+  private buildAchievements() {    Column({ space: 0 }) {
       Text('\u6700\u8fd1\u6210\u5c31')
         .fontFamily('Inter')
         .fontSize(17)
@@ -362,7 +371,7 @@ export struct ProfileContent {
         .fontColor('#F7FBF8')
         .margin({ bottom: 12 })
       this.buildAchievement('\u7a33\u5b9a\u8f93\u51fa', '\u8fde\u7eed\u8bad\u7ec3 7 \u5929', '\u672c\u5468\u5b8c\u6210\u5ea6 86%', 'flame')
-      this.buildAchievement('\u91cd\u91cf\u7a81\u7834', '\u6df1\u8e72\u8fbe\u5230 80 kg', '\u5237\u65b0\u4e2a\u4eba\u6700\u4f73', 'trophy')
+      this.buildAchievement('\u91cd\u91cf\u7a81\u7834', '\u6df1\u8e72\u8fbe\u5230 ' + this.achievementWeightText(80), '\u5237\u65b0\u4e2a\u4eba\u6700\u4f73', 'trophy')
     }
     .width('100%')
     .padding(16)
