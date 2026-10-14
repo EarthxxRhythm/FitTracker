@@ -17,7 +17,7 @@ import kotlinx.serialization.encodeToString
 /**
  * 云同步编排——移植自鸿蒙 `shared/services/CloudSyncService.ets` 的**有副效应流程**
  * （纯函数切片 [CloudSyncService] 与本地存储 [LocalSnapshotStore] / [LocalSandboxSnapshotStore]
- * 已先期落地）：`getState` / `setAutoEnabled` / `hasPendingChanges` / `syncNow` / `onSignIn` /
+ * 已先期落地）：`getState` / `hasPendingChanges` / `syncNow` / `onSignIn` /
  * `requestBackgroundSync` / `resetMeta` + 私有 `buildLocalPayload` / `applyRemotePayload` /
  * `resolveStore` / `readMeta` / `writeMeta`。
  *
@@ -64,13 +64,7 @@ object SyncOrchestrator {
             status = status,
             lastSyncAt = meta.lastSyncAt,
             lastError = meta.lastError,
-            autoEnabled = meta.autoEnabled,
         )
-    }
-
-    /** 源 `:119` `setAutoEnabled`。 */
-    suspend fun setAutoEnabled(store: JsonStore, enabled: Boolean) {
-        writeMeta(store, readMeta(store).copy(autoEnabled = enabled))
     }
 
     /**
@@ -93,7 +87,7 @@ object SyncOrchestrator {
 
     /**
      * 源 `:146` `syncNow`——决策（[CloudSyncService.decideSyncAction]）+ 执行 + 状态落盘。
-     * 语义逐分支对齐源（含 `meta.autoEnabled` 透传与各失败文案）。
+     * 语义逐分支对齐源（各失败文案）。
      *
      * @param sandboxDir 本地沙盒目录（Supabase 未配置时的回落存储；`null` 且未配置 →
      *   走「云服务未就绪」显式失败路径，不静默）。
@@ -246,22 +240,18 @@ object SyncOrchestrator {
         }
     }
 
-    /** 源 `:233` `requestBackgroundSync`——启动后 / 训练完成后静默同步：仅 autoEnabled；失败不抛出。 */
+    /** 源 `:233` `requestBackgroundSync`——启动后 / 训练完成后静默同步；同步恒定自动执行，失败不抛出。 */
     suspend fun requestBackgroundSync(store: JsonStore, sandboxDir: File? = null) {
         try {
-            if (!readMeta(store).autoEnabled) { // 源 :234-236
-                return
-            }
             syncNow(store, sandboxDir)
         } catch (error: Exception) {
             // 静默路径：状态由 syncNow 内部记录（源 :238-240）
         }
     }
 
-    /** 源 `:246` `resetMeta`——登出时调用，防账号切换串账；`autoEnabled` 保留（源 :249）。 */
+    /** 源 `:246` `resetMeta`——登出时调用，防账号切换串账。 */
     suspend fun resetMeta(store: JsonStore) {
-        val meta: SyncMeta = readMeta(store)
-        writeMeta(store, CloudSyncService.defaultMeta().copy(autoEnabled = meta.autoEnabled))
+        writeMeta(store, CloudSyncService.defaultMeta())
     }
 
     // --- 私有辅助 ------------------------------------------------------------

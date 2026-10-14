@@ -81,20 +81,12 @@
       "value": "训练中屏幕常亮"
     },
     {
-      "name": "settings_row_sync",
-      "value": "训练数据同步"
-    },
-    {
       "name": "settings_row_anonymous",
       "value": "匿名使用数据"
     },
     {
       "name": "settings_row_health",
       "value": "健康数据授权"
-    },
-    {
-      "name": "settings_row_account_sync",
-      "value": "账号与同步"
     },
     {
       "name": "settings_row_version",
@@ -114,7 +106,7 @@
     },
     {
       "name": "settings_footer",
-      "value": "训练数据与身体数据保存在本机；登录后可选择云同步。"
+      "value": "训练数据与身体数据保存在本机；登录后自动同步。"
     },
     {
       "name": "settings_toast_saved",
@@ -129,24 +121,32 @@
       "value": "当前页面不可用"
     },
     {
-      "name": "settings_toast_login_first",
-      "value": "请先登录后再开启同步"
-    },
-    {
-      "name": "settings_toast_sync_on",
-      "value": "已开启自动同步"
-    },
-    {
-      "name": "settings_toast_sync_off",
-      "value": "已关闭自动同步"
-    },
-    {
       "name": "settings_toast_health_placeholder",
       "value": "当前版本未接入健康数据，接入后将在此显示授权状态"
     },
     {
       "name": "settings_toast_reminder_need_permission",
       "value": "需要通知权限才能开启提醒"
+    },
+    {
+      "name": "settings_sign_out",
+      "value": "退出登录"
+    },
+    {
+      "name": "settings_sign_out_processing",
+      "value": "处理中…"
+    },
+    {
+      "name": "settings_sign_out_pending",
+      "value": "有数据尚未同步到云端，退出后将丢失。确认退出？"
+    },
+    {
+      "name": "settings_sign_out_confirm",
+      "value": "仍要退出"
+    },
+    {
+      "name": "settings_action_cancel",
+      "value": "取消"
     }
   ]
 }

@@ -5,7 +5,7 @@
  * 存储：fit_tracker_settings（Preferences），模块级单例，调用方直接导入默认实例。
  * 归属边界：
  *  - 体重单位不在此 store —— 复用 UserProfileService.weightUnit（单一数据源，随云同步 envelope 流转）；
- *  - 训练数据同步开关不在此 store —— 复用 CloudSyncService 元数据（autoEnabled）。
+ *  - 云同步为恒定自动（无开关项），不在本 store。
  * 默认值与设置页原型（fittracker-settings.html）及现有 UI 初值一致。
  */
 import { preferences } from '@kit.ArkData'

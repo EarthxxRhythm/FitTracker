@@ -54,9 +54,7 @@ object FtNavTransitions {
     /**
      * 层级表（`PARENT[child] = parent`）。
      *
-     * 前 10 条逐字取自原型 `fittracker-webapp.html:571-575`；后 2 条为原型外补充：
-     * - `accountSync`：鸿蒙独有页（原型无此屏），入口在设置页（`settings`），故补为 `settings` 的子屏——
-     *   其返回回退与屏内既有语义（源 `SettingsContent.ets:304`）一致；
+     * 前 10 条逐字取自原型 `fittracker-webapp.html:571-575`；后 1 条为原型外补充：
      * - `trainingPreferences`：设计侧新增页，入口在个人页快捷（`fittracker-training-preferences.html:448`），
      *   故父屏为 `profile`。
      */
@@ -71,7 +69,6 @@ object FtNavTransitions {
         "library" to "profile",
         "body" to "profile",
         "settings" to "profile",
-        "accountSync" to "settings",
         "trainingPreferences" to "profile",
     )
 

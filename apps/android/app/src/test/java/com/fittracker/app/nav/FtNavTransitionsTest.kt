@@ -34,24 +34,23 @@ class FtNavTransitionsTest {
     // ── 12 组父子关系：父 → 子 = 前进 ────────────────────────────
 
     @Test
-    fun `层级表含原型 10 条 + 补 2 条共 12 条`() {
-        assertEquals(12, FtNavTransitions.PARENT.size)
+    fun `层级表含原型 10 条 + 补 1 条共 11 条`() {
+        assertEquals(11, FtNavTransitions.PARENT.size)
         prototypeParent.forEach { (child, parent) ->
             assertEquals("$child 的父屏", parent, FtNavTransitions.PARENT[child])
         }
-        assertEquals("settings", FtNavTransitions.PARENT["accountSync"])
         assertEquals("profile", FtNavTransitions.PARENT["trainingPreferences"])
     }
 
     @Test
-    fun `12 组父子关系——父到子判为前进`() {
+    fun `11 组父子关系——父到子判为前进`() {
         val wrong = FtNavTransitions.PARENT
             .filterNot { (child, parent) -> FtNavTransitions.navDir(parent, child) == FORWARD }
         assertEquals(emptyList<String>(), wrong.keys.toList())
     }
 
     @Test
-    fun `12 组父子关系——子到父判为返回`() {
+    fun `11 组父子关系——子到父判为返回`() {
         val wrong = FtNavTransitions.PARENT
             .filterNot { (child, parent) -> FtNavTransitions.navDir(child, parent) == BACK }
         assertEquals(emptyList<String>(), wrong.keys.toList())
@@ -64,7 +63,6 @@ class FtNavTransitionsTest {
         assertEquals(FORWARD, FtNavTransitions.navDir("plan", "planGroup"))
         assertEquals(FORWARD, FtNavTransitions.navDir("plan", "plans"))
         assertEquals(FORWARD, FtNavTransitions.navDir("workout", "complete"))
-        assertEquals(FORWARD, FtNavTransitions.navDir("profile", "accountSync"))
         assertEquals(FORWARD, FtNavTransitions.navDir("profile", "trainingPreferences"))
     }
 
@@ -72,7 +70,6 @@ class FtNavTransitionsTest {
     fun `跨一级的退出仍是返回`() {
         assertEquals(BACK, FtNavTransitions.navDir("planGroup", "plan"))
         assertEquals(BACK, FtNavTransitions.navDir("complete", "workout"))
-        assertEquals(BACK, FtNavTransitions.navDir("accountSync", "profile"))
     }
 
     // ── 无关跳转 = 瞬时（含 Tab 间） ─────────────────────────────
@@ -126,7 +123,6 @@ class FtNavTransitionsTest {
         assertEquals("profile", FtNavTransitions.backTarget("body"))
         assertEquals("profile", FtNavTransitions.backTarget("library"))
         assertEquals("profile", FtNavTransitions.backTarget("trainingPreferences"))
-        assertEquals("settings", FtNavTransitions.backTarget("accountSync"))
         assertEquals("workout", FtNavTransitions.backTarget("active"))
         assertEquals("active", FtNavTransitions.backTarget("complete"))
     }

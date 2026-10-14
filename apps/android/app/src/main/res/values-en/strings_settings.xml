@@ -27,11 +27,9 @@
     <string name="settings_row_keep_screen_on">Keep screen on during workouts</string>
     <string name="settings_row_health_auth">Health data access</string>
     <string name="settings_row_value_authorized">Authorized</string>
-    <string name="settings_row_data_sync">Workout data sync</string>
     <string name="settings_row_anonymous_data">Anonymous usage data</string>
     <string name="settings_row_version">Version</string>
     <string name="settings_row_privacy">Privacy notice</string>
-    <string name="settings_row_account_sync">Account &amp; sync</string>
 
     <!-- Segment options. Language names stay in their own language (platform convention). -->
     <string name="settings_option_kg">Kilograms</string>
@@ -53,7 +51,10 @@
     <string name="settings_toast_switch_on">%1$s turned on</string>
     <string name="settings_toast_switch_off">%1$s turned off</string>
     <string name="settings_toast_health">Health data access isn\'t available on this platform yet</string>
-    <string name="settings_toast_sync_need_login">Please sign in before enabling sync</string>
     <string name="settings_toast_reminder_need_permission">Allow notifications to turn on reminders</string>
+
+    <!-- Sign out (moved into the settings screen after the account screen removal) -->
+    <string name="settings_sign_out">Sign out</string>
+    <string name="settings_sign_out_processing">Working…</string>
 
 </resources>

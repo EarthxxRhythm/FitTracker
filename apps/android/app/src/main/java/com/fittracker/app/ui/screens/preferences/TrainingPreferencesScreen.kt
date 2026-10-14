@@ -126,7 +126,7 @@ fun TrainingPreferencesScreen(
         )
     }
 
-    // 系统返回与顶栏返回一致（同 `AccountSyncScreen` 先例）
+    // 系统返回与顶栏返回一致（同 `SettingsScreen` 先例）
     BackHandler(enabled = true, onBack = onBack)
 
     // 保存：偏好落库 + 重新生成并启用本周计划（计划 B4 的编排入口）
@@ -211,7 +211,7 @@ private fun PrefTopBar(onBack: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            // 直绘画布自屏幕顶起算，故顶距取满 50（同 `SettingsScreen` / `AccountSyncScreen` 口径）
+            // 直绘画布自屏幕顶起算，故顶距取满 50（同 `SettingsScreen` 口径）
             .padding(start = 16.dp, end = 16.dp, top = 50.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),

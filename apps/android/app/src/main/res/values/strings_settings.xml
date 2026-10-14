@@ -35,11 +35,9 @@
     <string name="settings_row_keep_screen_on">训练中屏幕常亮</string>
     <string name="settings_row_health_auth">健康数据授权</string>
     <string name="settings_row_value_authorized">已授权</string>
-    <string name="settings_row_data_sync">训练数据同步</string>
     <string name="settings_row_anonymous_data">匿名使用数据</string>
     <string name="settings_row_version">版本</string>
     <string name="settings_row_privacy">隐私说明</string>
-    <string name="settings_row_account_sync">账号与同步</string>
 
     <!-- 分段选项（`.seg button`） -->
     <string name="settings_option_kg">千克</string>
@@ -64,9 +62,11 @@
     <string name="settings_toast_switch_off">%1$s已关闭</string>
     <!-- 「健康数据授权」行：Android 无对等数据源，如实说明 -->
     <string name="settings_toast_health">健康数据授权暂未接入系统平台</string>
-    <!-- 逐字对齐鸿蒙 `SettingsContent.ets` 的 `toggleSyncRow` -->
-    <string name="settings_toast_sync_need_login">请先登录后再开启同步</string>
     <!-- 训练 / 成就提醒开启被拒时的说明（计划 A6 原文） -->
     <string name="settings_toast_reminder_need_permission">需要通知权限才能开启提醒</string>
+
+    <!-- 退出登录（账号与同步页移除后迁入设置页底部） -->
+    <string name="settings_sign_out">退出登录</string>
+    <string name="settings_sign_out_processing">处理中…</string>
 
 </resources>

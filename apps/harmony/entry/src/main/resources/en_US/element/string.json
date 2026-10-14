@@ -81,20 +81,12 @@
       "value": "Keep screen on during workouts"
     },
     {
-      "name": "settings_row_sync",
-      "value": "Workout data sync"
-    },
-    {
       "name": "settings_row_anonymous",
       "value": "Anonymous usage data"
     },
     {
       "name": "settings_row_health",
       "value": "Health data access"
-    },
-    {
-      "name": "settings_row_account_sync",
-      "value": "Account & sync"
     },
     {
       "name": "settings_row_version",
@@ -114,7 +106,7 @@
     },
     {
       "name": "settings_footer",
-      "value": "FitTracker is local-first: workout and body data stay on this device by default."
+      "value": "FitTracker is local-first: workout and body data stay on this device by default; sync runs automatically after sign-in."
     },
     {
       "name": "settings_toast_saved",
@@ -129,24 +121,32 @@
       "value": "This page isn't available"
     },
     {
-      "name": "settings_toast_login_first",
-      "value": "Please sign in before enabling sync"
-    },
-    {
-      "name": "settings_toast_sync_on",
-      "value": "Auto sync enabled"
-    },
-    {
-      "name": "settings_toast_sync_off",
-      "value": "Auto sync disabled"
-    },
-    {
       "name": "settings_toast_health_placeholder",
       "value": "Health data access isn't available on this platform yet"
     },
     {
       "name": "settings_toast_reminder_need_permission",
       "value": "Allow notifications to turn on reminders"
+    },
+    {
+      "name": "settings_sign_out",
+      "value": "Sign out"
+    },
+    {
+      "name": "settings_sign_out_processing",
+      "value": "Working…"
+    },
+    {
+      "name": "settings_sign_out_pending",
+      "value": "Some data hasn't synced to the cloud and will be lost after signing out. Sign out anyway?"
+    },
+    {
+      "name": "settings_sign_out_confirm",
+      "value": "Sign out anyway"
+    },
+    {
+      "name": "settings_action_cancel",
+      "value": "Cancel"
     }
   ]
 }

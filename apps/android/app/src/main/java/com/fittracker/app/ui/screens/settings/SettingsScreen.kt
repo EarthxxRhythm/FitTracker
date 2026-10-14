@@ -71,6 +71,7 @@ import com.fittracker.app.data.service.UserProfileService
 import com.fittracker.app.data.service.WeekStart
 import com.fittracker.app.data.service.WeightUnit
 import com.fittracker.app.data.service.backup.UserDataBackupService
+import com.fittracker.app.data.sync.SyncOrchestrator
 import com.fittracker.app.notifications.ReminderScheduler
 import com.fittracker.app.ui.components.clickableNoRipple
 import com.fittracker.app.ui.theme.FtColor
@@ -110,13 +111,13 @@ import java.util.Locale
  * 1. 分段（体重单位 / 语言 / 周开始日）：点击切换 active → 持久化 → 回显；toast
  *    `{行标题}已切换为「{选项}」`（原型 L507 主句，已去演示后缀）。体重单位落 `UserProfileService`（资料域），
  *    语言 / 周开始日落 [SettingsService]。
- * 2. 开关（6 个）：点击 toggle → 持久化 → 回显；toast `{行标题}已开启/已关闭`（原型 L519 主句）。
- *    「训练数据同步」联动 `SyncOrchestrator.setAutoEnabled`（`autoEnabled` 单一真源），
- *    **开启前校验登录态**（未登录 toast「请先登录后再开启同步」，对齐鸿蒙 `toggleSyncRow`）。
+ * 2. 开关（5 个）：点击 toggle → 持久化 → 回显；toast `{行标题}已开启/已关闭`（原型 L519 主句）。
+ *    云同步已改为恒定自动，屏内不再有同步开关。
  * 3. `data-action` 行：健康数据授权 toast 如实说明（Android 无对等数据源）；
  *    **隐私说明改为导航** `legal?kind=privacy`（对齐鸿蒙 pushUrl(LEGAL_DOC)）。
  * 4. 返回——`FT_APP.routes` 的 `['[data-action="back"]','profile']`（L560），发
  *    `onNavigate("profile")`（原型返回亦 toast「返回个人页（原型）」，但本侧随即离屏，省略）。
+ * 5. 退出登录——底部按钮（账号与同步页移除后迁入）：重置同步元数据 + 清会话 → 回登录页。
  *
  * V2（值照常持久化与回显；行为落地进度见《设置模块功能实现》计划）：语言的应用级切换
  * （字符串资源重载，Wave 6）、通知与屏幕常亮系统行为（Wave 3/4）、匿名数据上报（维持本地存储）。
@@ -134,9 +135,11 @@ fun SettingsScreen(
     var settings by remember { mutableStateOf(SettingsService.getDefaultSettings()) }
     var weightUnit by remember { mutableStateOf(WeightUnit.KG) }
     var toast by remember { mutableStateOf<SettingsToastState?>(null) }
+    // 退出登录进行中（按钮文案切「处理中…」并禁用重复点击）
+    var signingOut by remember { mutableStateOf(false) }
 
     // 首帧读回真实偏好：体重单位取自 [UserProfileService]（资料域），
-    // 其余分段 / 开关取自 [SettingsService]（「训练数据同步」由其委托 SyncOrchestrator）。
+    // 其余分段 / 开关取自 [SettingsService]。
     LaunchedEffect(Unit) {
         weightUnit = UserProfileService.loadProfile(store).weightUnit
         settings = SettingsService.loadSettings(store)
@@ -282,21 +285,7 @@ fun SettingsScreen(
 
     // 开关点击：toggle + 持久化 + 回显（原型 L514-523）
     fun onToggle(row: FtSettingRow, on: Boolean) {
-        // 「训练数据同步」需登录态校验（对齐鸿蒙 SettingsContent.ets toggleSyncRow）——自管状态与 toast
-        if (row.key == FtSettingsModel.KEY_DATA_SYNC) {
-            scope.launch {
-                if (FtSettingsModel.canToggleDataSync(enable = on, loggedIn = AuthService.currentSession(store) != null)) {
-                    settings = settings.copy(dataSync = on)
-                    SettingsService.setDataSync(store, on)
-                    toast = SettingsToastState.next(toast, resources.getString(FtSettingsModel.switchToastRes(on), resources.getString(row.labelRes)))
-                } else {
-                    // 未登录：不改状态、不写库（开关回弹到真源值）
-                    toast = SettingsToastState.next(toast, resources.getString(FtSettingsModel.TOAST_SYNC_NEED_LOGIN_RES))
-                }
-            }
-            return
-        }
-        // 「训练提醒 / 成就提醒」开启需通知权限（Android 13+）——自管状态与 toast（同 KEY_DATA_SYNC 先例）
+        // 「训练提醒 / 成就提醒」开启需通知权限（Android 13+）——自管状态与 toast
         if (row.key == FtSettingsModel.KEY_WORKOUT_REMINDER ||
             row.key == FtSettingsModel.KEY_ACHIEVEMENT_REMINDER
         ) {
@@ -366,9 +355,22 @@ fun SettingsScreen(
                         onAction = ::onAction,
                     )
                 }
-                // 鸿蒙独有功能块（原型无此项）：账号与同步入口——对齐
-                // `SettingsContent.ets` 的 `accountSyncRow`（L285-307）
-                item { AccountSyncEntryCard(onOpen = { onNavigate("accountSync") }) }
+                // 退出登录（账号与同步页移除后迁入设置页底部；语义对齐鸿蒙 SettingsContent 的 signOutButton）
+                item {
+                    SignOutButton(
+                        signingOut = signingOut,
+                        onClick = {
+                            scope.launch {
+                                signingOut = true
+                                // 对齐鸿蒙 performSignOut：清会话 + 重置同步元数据 → 回登录页
+                                SyncOrchestrator.resetMeta(store)
+                                AuthService.signOut(store)
+                                signingOut = false
+                                onNavigate("login")
+                            }
+                        },
+                    )
+                }
                 // W3-3：备份与恢复区块（导出 / 导入 → UserDataBackupService）
                 item {
                     BackupRestoreCard(
@@ -524,28 +526,28 @@ private fun SettingsSectionCard(
 }
 
 /**
- * 鸿蒙独有入口卡：账号与同步（对齐 `SettingsContent.ets:285-307` 的 `accountSyncRow`；
- * 原型 `fittracker-settings.html` 无此功能块）。形态贴近 `.set-row`：14px 标签 + 右箭头。
+ * 退出登录按钮（账号与同步页移除后迁入设置页底部）。形态与语义对齐源 `buildSignOutButton()`
+ * （原 `AccountSyncScreen.kt` L447-464 / 鸿蒙 `AccountSyncPage.ets` L518-530，两者均已移除）：
+ * 满宽、50 高、15px/700、`#D77C78` 字、`#14D77C78` 底、`#4DD77C78` 描边、圆角 16。
  */
 @Composable
-private fun AccountSyncEntryCard(onOpen: () -> Unit) {
-    Row(
+private fun SignOutButton(signingOut: Boolean, onClick: () -> Unit) {
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(FtShape.panel) // `.sub-card` 圆角 22
-            .background(CardFill)
-            .border(1.dp, FtColor.line10, FtShape.panel)
-            .clickableNoRipple(onClick = onOpen)
-            .padding(horizontal = 18.dp, vertical = 15.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .height(50.dp)
+            .clip(FtShape.xl)
+            .background(DangerSoftFill)
+            .border(1.dp, DangerBorder, FtShape.xl)
+            .clickableNoRipple(onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = stringResource(R.string.settings_row_account_sync),
-            style = FtType.natural(14f),
-            color = FtColor.txtHi,
+            text = if (signingOut) stringResource(R.string.settings_sign_out_processing)
+            else stringResource(R.string.settings_sign_out),
+            style = FtType.natural(15f, 700),
+            color = DangerColor,
         )
-        ChevronIcon(modifier = Modifier.size(18.dp), color = FtColor.white40)
     }
 }
 
@@ -743,6 +745,15 @@ private val BackBtnFill = Color(0x0CFFFFFF)
  * `AA = round(.12 × 255) = round(30.6) = 31 = 0x1F` → `0x1FFFFFFF`。
  */
 private val SwitchOffFill = Color(0x1FFFFFFF)
+
+/** 退出登录：字色 `#D77C78`（账号与同步页同值）。 */
+private val DangerColor = Color(0xFFD77C78)
+
+/** 退出登录：底 `#14D77C78`（账号与同步页同值）。 */
+private val DangerSoftFill = Color(0x14D77C78)
+
+/** 退出登录：描边 `#4DD77C78`（账号与同步页同值）。 */
+private val DangerBorder = Color(0x4DD77C78)
 
 // ── 浮层提示 ──────────────────────────────────────────────────────────────
 

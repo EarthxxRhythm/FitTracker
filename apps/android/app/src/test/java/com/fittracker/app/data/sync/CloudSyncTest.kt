@@ -141,7 +141,7 @@ class CloudSyncTest {
 
     @Test
     fun `baseline follows account`() {
-        val meta = SyncMeta("user-a", "hash-x", 42L, true, "synced", "")
+        val meta = SyncMeta("user-a", "hash-x", 42L, "synced", "")
         val same = CloudSyncService.baselineFor(meta, "user-a")
         assertEquals("hash-x", same.hash)
         assertEquals(42L, same.at)
@@ -172,7 +172,6 @@ class CloudSyncTest {
         assertEquals("", meta.userId)
         assertEquals("", meta.lastSyncedHash)
         assertEquals(0L, meta.lastSyncAt)
-        assertTrue(meta.autoEnabled)
         assertEquals("never", meta.lastStatus)
         assertEquals("", meta.lastError)
         assertTrue(CloudSyncService.isValidMeta(meta))

@@ -332,14 +332,6 @@ export default function cloudSyncServiceTest(): void {
       state = await CloudSyncService.getState(context)
       expect(state.status).assertEqual('unauthenticated')
 
-      // 7) 自动同步开关持久化
-      await CloudSyncService.setAutoEnabled(context, false)
-      let offState: SyncState = await CloudSyncService.getState(context)
-      expect(offState.autoEnabled).assertFalse()
-      await CloudSyncService.setAutoEnabled(context, true)
-      const onState: SyncState = await CloudSyncService.getState(context)
-      expect(onState.autoEnabled).assertTrue()
-
       await resetAll(fakeStore)
       } finally {
         releaseAuthSyncGate()
