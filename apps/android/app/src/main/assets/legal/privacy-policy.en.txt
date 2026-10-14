@@ -14,7 +14,7 @@ We declare only behavior that is implemented, and we do not omit behavior that i
 
 1. Local first: training plans, workout records, body data, goal settings and app settings are stored by default only on your device; cloud sync, which you enable after signing in, is optional.
 2. Least privilege: the current version requests three permissions only — "Network access" (android.permission.INTERNET), used for account sign-in and cloud sync; "Vibrate" (android.permission.VIBRATE), used for training haptic feedback; and "Post notifications" (android.permission.POST_NOTIFICATIONS), used for local training and achievement reminders. We do not request location, contacts, SMS, camera, microphone, photo library, calendar or any other sensitive permission.
-3. Single cloud service: network activity points only to Supabase (a cloud data service) — its authentication service and cloud database. No advertising SDK, third-party analytics SDK or social sharing SDK is integrated.
+3. Cloud service scope: network activity points to our self-hosted identity and data service (based on self-hosted Supabase) — its authentication service and data storage. When you sign in with WeChat or QQ, the respective official SDK is invoked to complete authorization (see Section 5); only the account identifier and nickname are obtained. We do not collect your contacts, friend list or any social content. No advertising SDK, third-party analytics SDK, third-party sharing SDK or payment SDK is integrated.
 4. No additional data collection: we do not collect device unique identifiers, location, contacts, crash logs or usage analytics.
 5. Opt out at any time: you can use all local features without signing in; after signing in you can sign out at any time; cloud snapshots can be deleted by contacting us (see Section 8).
 
@@ -38,7 +38,7 @@ The current version does not perform any of the following:
 - We do not register or report device unique identifiers;
 - We do not collect crash logs, analytics events or usage statistics;
 - We do not request location, contacts, SMS, camera, microphone, photo library, calendar or any other sensitive permission;
-- We do not integrate advertising SDKs, third-party analytics SDKs or social sharing SDKs (the cloud capability uses only the Supabase authentication service and cloud database);
+- We do not integrate advertising SDKs, third-party analytics SDKs, third-party sharing SDKs or payment SDKs (the cloud capability uses only self-hosted Supabase; signing in with WeChat or QQ invokes their official SDKs — see Section 5 for purpose and data scope);
 - The app contains no embedded browser (WebView) and loads no remote content.
 
 4. System permissions

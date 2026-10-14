@@ -10,7 +10,7 @@
 | 合规结论 | 依据 |
 | --- | --- |
 | 最小权限 | `entry/src/main/module.json5` 仅声明 `ohos.permission.INTERNET`（用途：账号登录与云同步） |
-| 联网范围受限 | 联网行为仅指向华为端云一体化服务（AGC 认证 + 云数据库）；不集成广告、第三方统计或社交分享 SDK |
+| 联网范围受限 | 联网行为指向自建身份与数据服务（自托管 Supabase 认证 + 数据存储）；登录时调用微信 / QQ / 华为账号官方 SDK；不集成广告、第三方统计、第三方分享或支付 SDK |
 | 本地存储 | 数据经 Preferences 写入应用私有沙箱 |
 | 媒体本地化 | 动作素材内置于 `entry/src/main/resources/rawfile/`，不联网加载 |
 | 备份能力 | `entry/src/main/resources/base/profile/backup_config.json` 声明 `allowToBackupRestore`，由 `entry/src/main/ets/entrybackupability/EntryBackupAbility.ets` 承接系统备份回调 |
