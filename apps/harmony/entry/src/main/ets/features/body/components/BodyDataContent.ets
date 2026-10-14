@@ -2,7 +2,11 @@
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 import { window } from '@kit.ArkUI'
 import UserProfileService, { UserProfile, WeightUnit } from '../../../common/services/UserProfileService'
+import SettingsService, { AppSettings } from '../../../common/services/SettingsService'
 import { formatWeight, weightUnitLabel, displayToKg } from '../../../common/utils/WeightUtils'
+import BodyRecordService from '../../../shared/services/BodyRecordService'
+import { WeightRecord, BodyTrend } from '../../../shared/models/BodyModels'
+import { WeekStart } from '../../../common/utils/WeekUtils'
 
 interface BodyMetricTile {
   label: string
@@ -65,7 +69,55 @@ export struct BodyDataContent {
   aboutToAppear(): void {
     this.resolveTopInset()
     this.metrics = this.buildMetrics()
-    this.loadDisplayUnit()
+    this.bootstrap()
+  }
+
+  /** 先读展示单位（决定文案口径），再读真实体重记录覆盖样例态。 */
+  private async bootstrap(): Promise<void> {
+    await this.loadDisplayUnit()
+    await this.loadBodyRecords()
+  }
+
+  /** 读回真实体重记录；无记录时保持原型样例态（不空屏）。 */
+  private async loadBodyRecords(): Promise<void> {
+    const context: Context | null = this.contextOrNull()
+    if (context === null) {
+      return
+    }
+    try {
+      const records: WeightRecord[] = await BodyRecordService.loadRecords(context)
+      if (records.length === 0) {
+        return
+      }
+      const latest: number | undefined = BodyRecordService.latestKg(records)
+      if (latest !== undefined) {
+        this.currentWeightKg = latest
+        this.weightInput = formatWeight(latest, this.displayUnit)
+      }
+      const settings: AppSettings = await SettingsService.loadSettings(context)
+      this.applyTrends(records, settings.weekStart)
+    } catch (error) {
+      // 读取失败保持样例态，不打断页面展示
+    }
+  }
+
+  /** 用真实记录重算周/月/年三段趋势，并刷新区间文案与折线。 */
+  private applyTrends(records: WeightRecord[], weekStart: WeekStart): void {
+    const now: number = Date.now()
+    const week: BodyTrend | undefined = BodyRecordService.weekTrend(records, now, weekStart)
+    if (week !== undefined) {
+      this.weekSeries = { vals: week.values, labels: week.labels, prefix: week.rangeText, deltaKg: week.deltaKg }
+    }
+    const month: BodyTrend | undefined = BodyRecordService.monthTrend(records, now)
+    if (month !== undefined) {
+      this.monthSeries = { vals: month.values, labels: month.labels, prefix: month.rangeText, deltaKg: month.deltaKg }
+    }
+    const year: BodyTrend | undefined = BodyRecordService.yearTrend(records, now)
+    if (year !== undefined) {
+      this.yearSeries = { vals: year.values, labels: year.labels, prefix: year.rangeText, deltaKg: year.deltaKg }
+    }
+    this.trendCap = this.trendCapText(this.getTrendSeries(this.period))
+    this.drawTrendChart()
   }
 
   private contextOrNull(): Context | null {
@@ -133,21 +185,22 @@ export struct BodyDataContent {
 
   private readonly trendX: number[] = [20, 68, 115, 163, 210, 258, 305]
 
-  private readonly weekSeries: TrendSeries = {
+  // 趋势序列：有真实体重记录时由 [loadBodyRecords] 覆盖；无记录时保持原型样例态。
+  @State private weekSeries: TrendSeries = {
     vals: [72.8, 72.6, 72.7, 72.4, 72.6, 72.5, 72.5],
     labels: ['一', '二', '三', '四', '五', '六', '日'],
     prefix: '近 7 天',
     deltaKg: -0.3
   }
 
-  private readonly monthSeries: TrendSeries = {
+  @State private monthSeries: TrendSeries = {
     vals: [71.8, 71.9, 72.2, 72.0, 72.3, 72.4, 72.5],
     labels: ['8周前', '', '', '4周前', '', '', '本周'],
     prefix: '近 30 天',
     deltaKg: 0.7
   }
 
-  private readonly yearSeries: TrendSeries = {
+  @State private yearSeries: TrendSeries = {
     vals: [68.2, 68.9, 69.6, 70.4, 71.0, 71.8, 72.5],
     labels: ['去年9月', '', '', '3月', '', '', '现在'],
     prefix: '近 12 个月',
@@ -172,7 +225,7 @@ export struct BodyDataContent {
     this.sheetHint = ''
   }
 
-  private saveWeight(): void {
+  private async saveWeight(): Promise<void> {
     const parsed: number = Number(this.weightInput)
     const kg: number = displayToKg(parsed, this.displayUnit)
     if (Number.isNaN(parsed) || parsed <= 0 || kg > 500) {
@@ -181,6 +234,13 @@ export struct BodyDataContent {
     }
     this.currentWeightKg = kg
     this.closeSheet()
+    // 落盘（同一自然日覆盖）后重算趋势。
+    const context: Context | null = this.contextOrNull()
+    if (context === null) {
+      return
+    }
+    await BodyRecordService.addRecord(context, { dateMillis: Date.now(), kg: kg })
+    await this.loadBodyRecords()
   }
 
   private deltaText(deltaKg: number): string {

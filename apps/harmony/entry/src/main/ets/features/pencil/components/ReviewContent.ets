@@ -9,6 +9,9 @@ import { WorkoutSession, WorkoutSet } from '../../../shared/models/TrainingModel
 import SettingsService, { AppSettings } from '../../../common/services/SettingsService'
 import UserProfileService, { UserProfile, WeightUnit } from '../../../common/services/UserProfileService'
 import { kgToDisplay, displayToKg, weightUnitLabel } from '../../../common/utils/WeightUtils'
+import BodyRecordService from '../../../shared/services/BodyRecordService'
+import PersonalRecordService, { ExercisePersonalRecordDetail } from '../../../shared/services/PersonalRecordService'
+import { WeightRecord, BodyTrend } from '../../../shared/models/BodyModels'
 import { resolveWeekStart, WeekStart } from '../../../common/utils/WeekUtils'
 
 interface ReviewBarItem {
@@ -882,6 +885,12 @@ export struct ReviewContent {
   @State private goalInputText: string = '68'
   /** 展示单位（来自「设置 · 体重单位」）；体重基准值始终为 kg，仅输入与展示按单位换算。 */
   @State private displayUnit: WeightUnit = 'kg'
+  /** 真实当前体重（kg）；undefined 表示尚无记录，回落原型样例。 */
+  @State private bodyWeightKg: number | undefined = undefined
+  /** 真实「较上月」差值（kg，近 30 天首尾之差）。 */
+  @State private bodyWeightDeltaKg: number = -0.8
+  /** 1RM 行：有训练会话时由 [loadPersonalRecords] 覆盖；无会话时保持原型样例态。 */
+  @State private oneRmRows: OneRmRowItem[] = ONE_RM_ROWS
   @State private selectedMuscleKey: string = ''
   @State private monthDayLevels: number[] = []
   @State private calendarLeadDays: number = 0
@@ -927,9 +936,50 @@ export struct ReviewContent {
       this.trendItems = ReviewInsightsService.createWeeklyTrendItems(sessions, now, settings.weekStart)
       this.weekBars = this.buildWeekBars(sessions, now, this.weekStartKey)
       this.initCalendarData(sessions, now)
+      // 真实数据接线：体重卡与 1RM 表（无记录/无会话时保持原型样例态）。
+      await this.loadBodyWeight(context, now)
+      this.loadPersonalRecords(sessions)
     } catch (error) {
       this.applyEmptyState()
     }
+  }
+
+  /** 读回体重记录：填充当前体重与「较上月」差值；无记录时保持样例态。 */
+  private async loadBodyWeight(context: Context, now: number): Promise<void> {
+    const records: WeightRecord[] = await BodyRecordService.loadRecords(context)
+    if (records.length === 0) {
+      return
+    }
+    const latest: number | undefined = BodyRecordService.latestKg(records)
+    if (latest !== undefined) {
+      this.bodyWeightKg = latest
+    }
+    const month: BodyTrend | undefined = BodyRecordService.monthTrend(records, now)
+    if (month !== undefined) {
+      this.bodyWeightDeltaKg = month.deltaKg
+    }
+  }
+
+  /** 由训练会话派生 1RM 行（取前 4 项）；无会话时保持样例态。 */
+  private loadPersonalRecords(sessions: WorkoutSession[]): void {
+    if (sessions.length === 0) {
+      return
+    }
+    const details: ExercisePersonalRecordDetail[] = PersonalRecordService.createRecordDetails(sessions)
+    if (details.length === 0) {
+      return
+    }
+    const rows: OneRmRowItem[] = []
+    const limit: number = details.length < 4 ? details.length : 4
+    for (let i = 0; i < limit; i++) {
+      const detail: ExercisePersonalRecordDetail = details[i]
+      rows.push({
+        name: detail.exerciseName,
+        source: detail.bestDateText,
+        value: this.oneRmDisplayText(detail.bestOneRepMax.toString())
+      })
+    }
+    this.oneRmRows = rows
   }
 
   private applyEmptyState(): void {
@@ -1318,6 +1368,18 @@ export struct ReviewContent {
     }
     const value: number = kgToDisplay(kg, this.displayUnit)
     return Math.round(value * 10) % 10 === 0 ? Math.round(value).toString() : value.toFixed(1)
+  }
+
+  /** 体重卡主数值：有真实记录用真实值，否则回落原型样例 69.2 kg。 */
+  private weightCardCurrentText(): string {
+    const kg: number = this.bodyWeightKg === undefined ? 69.2 : this.bodyWeightKg
+    return this.weightSampleText(kg)
+  }
+
+  /** 体重卡「较上月」脚注：有真实记录用近 30 天差值，否则回落样例 −0.8 kg。 */
+  private weightCardDeltaText(): string {
+    const delta: number = this.bodyWeightKg === undefined ? -0.8 : this.bodyWeightDeltaKg
+    return '较上月 ' + this.signedWeightSampleText(delta)
   }
 
   /** 原型样例体重（kg 基准）→ 当前单位下的展示文本。 */
@@ -2119,14 +2181,14 @@ export struct ReviewContent {
             .fontFamily('Noto Sans SC')
             .fontSize(12)
             .fontColor('#66FFFFFF')
-          Text(this.weightSampleText(69.2))
+          Text(this.weightCardCurrentText())
             .fontFamily('Noto Sans SC')
             .fontSize(17)
             .fontWeight(FontWeight.Medium)
             .fontColor('#F7FBF8')
             .margin({ left: 4 })
         }
-        Text('较上月 ' + this.signedWeightSampleText(-0.8))
+        Text(this.weightCardDeltaText())
           .fontFamily('Inter')
           .fontSize(12)
           .fontColor('#66FFFFFF')
@@ -2247,7 +2309,7 @@ export struct ReviewContent {
       .alignItems(VerticalAlign.Bottom)
       .margin({ bottom: 14 })
 
-      ForEach(ONE_RM_ROWS, (item: OneRmRowItem, index: number) => {
+      ForEach(this.oneRmRows, (item: OneRmRowItem, index: number) => {
         Row({ space: 10 }) {
           Text(item.name)
             .fontFamily('Noto Sans SC')
@@ -2277,7 +2339,7 @@ export struct ReviewContent {
         .width('100%')
         .alignItems(VerticalAlign.Center)
         .padding({ top: 10, bottom: 10 })
-        .border({ width: { bottom: index === ONE_RM_ROWS.length - 1 ? 0 : 1 }, color: '#0FFFFFFF' })
+        .border({ width: { bottom: index === this.oneRmRows.length - 1 ? 0 : 1 }, color: '#0FFFFFFF' })
       }, (item: OneRmRowItem) => item.name)
     }
     .width('100%')
