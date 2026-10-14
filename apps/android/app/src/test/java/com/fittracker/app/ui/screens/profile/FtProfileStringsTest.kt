@@ -58,7 +58,8 @@ class FtProfileStringsTest {
             R.string.profile_achievement_streak_note to "连续训练 7 天",
             R.string.profile_achievement_streak_value to "本周完成度 86%",
             R.string.profile_achievement_pr_title to "重量突破",
-            R.string.profile_achievement_pr_note to "深蹲达到 80 kg",
+            // 重量为 `%1$s` 占位符——实际文案按「设置 · 体重单位」换算后注入（原「深蹲达到 80 kg」）。
+            R.string.profile_achievement_pr_note to "深蹲达到 %1\$s",
             R.string.profile_achievement_pr_value to "刷新个人最佳",
             // 快捷入口（L1441-1452）
             R.string.profile_shortcut_body to "身体数据",

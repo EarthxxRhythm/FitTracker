@@ -3,6 +3,7 @@ package com.fittracker.app.ui.screens.review
 import com.fittracker.app.R
 import com.fittracker.app.data.model.WorkoutSession
 import com.fittracker.app.data.model.WorkoutSet
+import com.fittracker.app.data.service.WeightUnit
 import com.fittracker.app.data.service.WeekStart
 import java.util.Calendar
 import org.junit.Assert.assertEquals
@@ -407,9 +408,11 @@ class FtReviewModelTest {
 
     @Test
     fun `体重数值文案格式`() {
-        assertEquals("69.2 kg", FtReviewModel.weightCurrentText(69.2))
-        assertEquals("-0.8", FtReviewModel.weightDeltaValue(-0.8))
-        assertEquals("1.6", FtReviewModel.weightDeltaValue(1.6))
+        assertEquals("69.2 kg", FtReviewModel.weightCurrentText(69.2, WeightUnit.KG))
+        assertEquals("152.6 lbs", FtReviewModel.weightCurrentText(69.2, WeightUnit.LBS))
+        assertEquals("-0.8", FtReviewModel.weightDeltaValue(-0.8, WeightUnit.KG))
+        assertEquals("1.6", FtReviewModel.weightDeltaValue(1.6, WeightUnit.KG))
+        assertEquals("1.8", FtReviewModel.weightDeltaValue(0.8, WeightUnit.LBS))
     }
 
     // ── 周开始日两态（A5 / Wave 2 · 周首周一 vs 周日） ─────────────

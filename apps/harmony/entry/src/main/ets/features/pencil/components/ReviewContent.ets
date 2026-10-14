@@ -7,6 +7,8 @@ import ReviewInsightsService, { ReviewWeeklyTrendItem } from '../../../shared/se
 import WorkoutSessionPersistenceBridgeService from '../../workout/services/WorkoutSessionPersistenceBridgeService'
 import { WorkoutSession, WorkoutSet } from '../../../shared/models/TrainingModels'
 import SettingsService, { AppSettings } from '../../../common/services/SettingsService'
+import UserProfileService, { UserProfile, WeightUnit } from '../../../common/services/UserProfileService'
+import { kgToDisplay, displayToKg, weightUnitLabel } from '../../../common/utils/WeightUtils'
 import { resolveWeekStart, WeekStart } from '../../../common/utils/WeekUtils'
 
 interface ReviewBarItem {
@@ -878,6 +880,8 @@ export struct ReviewContent {
   @State private showGoalModal: boolean = false
   @State private goalWeight: number = 68
   @State private goalInputText: string = '68'
+  /** 展示单位（来自「设置 · 体重单位」）；体重基准值始终为 kg，仅输入与展示按单位换算。 */
+  @State private displayUnit: WeightUnit = 'kg'
   @State private selectedMuscleKey: string = ''
   @State private monthDayLevels: number[] = []
   @State private calendarLeadDays: number = 0
@@ -907,6 +911,12 @@ export struct ReviewContent {
     try {
       const settings: AppSettings = await SettingsService.loadSettings(context)
       this.weekStartKey = settings.weekStart
+      try {
+        const profile: UserProfile = await UserProfileService.loadProfile(context)
+        this.displayUnit = profile.weightUnit
+      } catch (error) {
+        // 读取失败保持 kg 基准显示
+      }
       this.initCalendarShell(now)
       const sessions: WorkoutSession[] = await WorkoutSessionPersistenceBridgeService.loadPersistedSessions(context)
       if (sessions.length === 0) {
@@ -1300,11 +1310,35 @@ export struct ReviewContent {
     return percent * EFFORT_BAR_TRACK_HEIGHT / 100
   }
 
-  private goalWeightText(): string {
-    if (this.goalWeight % 1 === 0) {
-      return this.goalWeight.toString()
+  /** 原型样例 1RM（kg 基准字符串）→ 当前单位下的展示文本。 */
+  private oneRmDisplayText(kgText: string): string {
+    const kg: number = Number(kgText)
+    if (Number.isNaN(kg)) {
+      return kgText
     }
-    return this.goalWeight.toFixed(1)
+    const value: number = kgToDisplay(kg, this.displayUnit)
+    return Math.round(value * 10) % 10 === 0 ? Math.round(value).toString() : value.toFixed(1)
+  }
+
+  /** 原型样例体重（kg 基准）→ 当前单位下的展示文本。 */
+  private weightSampleText(kg: number): string {
+    return Math.round(kgToDisplay(kg, this.displayUnit) * 10) / 10 + ' ' + weightUnitLabel(this.displayUnit)
+  }
+
+  /** 原型样例体重差分（kg 基准）→ 当前单位下带符号的展示文本。 */
+  private signedWeightSampleText(deltaKg: number): string {
+    const value: number = kgToDisplay(deltaKg, this.displayUnit)
+    const sign: string = value >= 0 ? '+' : '−'
+    return sign + (Math.round(Math.abs(value) * 10) / 10).toString() + ' ' + weightUnitLabel(this.displayUnit)
+  }
+
+  private goalWeightText(): string {
+    // 目标体重以 kg 存储，展示时按当前单位换算。
+    const displayValue: number = kgToDisplay(this.goalWeight, this.displayUnit)
+    if (Math.round(displayValue * 10) % 10 === 0) {
+      return Math.round(displayValue).toString()
+    }
+    return displayValue.toFixed(1)
   }
 
   private goalLineY(): number {
@@ -1330,15 +1364,18 @@ export struct ReviewContent {
   private saveGoal(): void {
     let value: number = Number(this.goalInputText)
     if (Number.isNaN(value)) {
-      value = 68
+      value = kgToDisplay(68, this.displayUnit)
     }
-    if (value < 30) {
-      value = 30
+    // 输入框为显示单位下的值，边界同按单位换算（30–200 kg）。
+    const minDisplay: number = kgToDisplay(30, this.displayUnit)
+    const maxDisplay: number = kgToDisplay(200, this.displayUnit)
+    if (value < minDisplay) {
+      value = minDisplay
     }
-    if (value > 200) {
-      value = 200
+    if (value > maxDisplay) {
+      value = maxDisplay
     }
-    this.goalWeight = value
+    this.goalWeight = displayToKg(value, this.displayUnit)
     this.showGoalModal = false
     this.drawWeightChart()
   }
@@ -1628,7 +1665,7 @@ export struct ReviewContent {
     Row({ space: 9.1 }) {
       this.statCard('训练', '次', 0)
       this.statCard('时长', '分钟', 1)
-      this.statCard('体重变化', 'kg', 2)
+      this.statCard('体重变化', weightUnitLabel(this.displayUnit), 2)
     }
     .width('100%')
     .height(73.5)
@@ -2037,7 +2074,7 @@ export struct ReviewContent {
           .fontSize(14.5)
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
-        Text('目标 ' + this.goalWeightText() + ' kg')
+        Text('目标 ' + this.goalWeightText() + ' ' + weightUnitLabel(this.displayUnit))
           .fontFamily('Inter')
           .fontSize(13)
           .fontWeight(FontWeight.Medium)
@@ -2082,14 +2119,14 @@ export struct ReviewContent {
             .fontFamily('Noto Sans SC')
             .fontSize(12)
             .fontColor('#66FFFFFF')
-          Text('69.2 kg')
+          Text(this.weightSampleText(69.2))
             .fontFamily('Noto Sans SC')
             .fontSize(17)
             .fontWeight(FontWeight.Medium)
             .fontColor('#F7FBF8')
             .margin({ left: 4 })
         }
-        Text('较上月 -0.8 kg')
+        Text('较上月 ' + this.signedWeightSampleText(-0.8))
           .fontFamily('Inter')
           .fontSize(12)
           .fontColor('#66FFFFFF')
@@ -2224,12 +2261,12 @@ export struct ReviewContent {
             .fontSize(11)
             .fontColor('#66FFFFFF')
           Row() {
-            Text(item.value)
+            Text(this.oneRmDisplayText(item.value))
               .fontFamily('Inter')
               .fontSize(17)
               .fontWeight(FontWeight.Bold)
               .fontColor('#F7FBF8')
-            Text('kg')
+            Text(weightUnitLabel(this.displayUnit))
               .fontFamily('Noto Sans SC')
               .fontSize(11)
               .fontWeight(FontWeight.Medium)
@@ -2288,7 +2325,7 @@ export struct ReviewContent {
             .onChange((value: string) => {
               this.goalInputText = value
             })
-          Text('kg')
+          Text(weightUnitLabel(this.displayUnit))
             .fontFamily('Noto Sans SC')
             .fontSize(13)
             .fontColor('#8AFFFFFF')

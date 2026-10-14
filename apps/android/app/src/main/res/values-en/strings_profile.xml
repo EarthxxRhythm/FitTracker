@@ -42,7 +42,7 @@
     <string name="profile_achievement_streak_note">7-day training streak</string>
     <string name="profile_achievement_streak_value">86% of this week</string>
     <string name="profile_achievement_pr_title">Strength PR</string>
-    <string name="profile_achievement_pr_note">Squat hit 80 kg</string>
+    <string name="profile_achievement_pr_note">Squat hit %1$s</string>
     <string name="profile_achievement_pr_value">New personal best</string>
 
     <!-- Shortcuts -->

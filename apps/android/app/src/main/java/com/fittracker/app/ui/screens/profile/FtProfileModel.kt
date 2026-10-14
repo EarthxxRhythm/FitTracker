@@ -31,7 +31,12 @@ data class FtProfileStreakDay(@StringRes val labelRes: Int, val active: Boolean)
  */
 data class FtProfileMetric(@StringRes val labelRes: Int, val value: String, @StringRes val unitRes: Int)
 
-/** 一条最近成就（原型 `.achievement` / `.achievement.gold`，L1423-1438）；文案均为静态资源。 */
+/**
+ * 一条最近成就（原型 `.achievement` / `.achievement.gold`，L1423-1438）；文案为静态资源。
+ *
+ * [weightKgParam] 非空时，`noteRes` 以该值（kg 基准）按「设置 · 体重单位」换算后作 `%1$s` 注入
+ * （「重量突破」条）；为空时 `noteRes` 为无参文案。
+ */
 data class FtProfileAchievement(
     val icon: FtProfileIcon,
     @StringRes val titleRes: Int,
@@ -39,6 +44,8 @@ data class FtProfileAchievement(
     @StringRes val valueRes: Int,
     /** 金色变体：`.achievement.gold`（L1431）走 `--gold-12` 底 / `--gold` 字（L417-421）。 */
     val gold: Boolean,
+    /** 卡片文案里的样例重量（kg 基准），需按单位换算注入 `noteRes` 的 `%1$s`。 */
+    val weightKgParam: Int? = null,
 )
 
 /** 一个快捷入口（原型 `.shortcut`，L1442-1451）。 */
@@ -169,6 +176,7 @@ object FtProfileModel {
             noteRes = R.string.profile_achievement_pr_note,   // L1435
             valueRes = R.string.profile_achievement_pr_value, // L1437
             gold = true,
+            weightKgParam = 80, // 原型样例「深蹲达到 80 kg」——按单位换算后注入
         ),
     )
 

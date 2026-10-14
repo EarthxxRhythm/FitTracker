@@ -57,7 +57,7 @@
     <string name="profile_achievement_streak_value">本周完成度 86%</string>
     <!-- 第二条（L1431-1437，`.gold` + `#i-trophy`） -->
     <string name="profile_achievement_pr_title">重量突破</string>
-    <string name="profile_achievement_pr_note">深蹲达到 80 kg</string>
+    <string name="profile_achievement_pr_note">深蹲达到 %1$s</string>
     <string name="profile_achievement_pr_value">刷新个人最佳</string>
 
     <!-- 快捷入口（L1441-1452）：路由 id 非文案，仍在 `FtProfileModel.SHORTCUTS` -->
