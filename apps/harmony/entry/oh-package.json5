@@ -7,7 +7,8 @@
   "license": "",
   "dependencies": {
     "@hw-agconnect/auth": "^1.1.0",
-    "@tencent/wechat_open_sdk": "^1.0.23"
+    "@tencent/wechat_open_sdk": "^1.0.23",
+    "@tencent/qq-open-sdk": "^1.0.4"
   },
   "devDependencies": {},
   "dynamicDependencies": {}

@@ -83,6 +83,9 @@ object SupabaseEndpoints {
 
     fun rest(path: String): String = "${SupabaseConfig.url}/rest/v1/$path"
 
+    /** Edge Functions 端点：`{url}/functions/v1/{path}`（第三方换票等）。 */
+    fun functions(path: String): String = "${SupabaseConfig.url}/functions/v1/$path"
+
     fun headers(accessToken: String? = null): Map<String, String> = buildMap {
         put("apikey", SupabaseConfig.publishableKey)
         put("Authorization", "Bearer ${accessToken ?: SupabaseConfig.publishableKey}")

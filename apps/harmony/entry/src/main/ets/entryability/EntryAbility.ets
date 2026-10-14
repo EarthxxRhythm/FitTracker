@@ -4,6 +4,8 @@ import { window } from '@kit.ArkUI';
 import { AppRoutes } from '../app/AppRoutes';
 import LaunchRequestStore from '../app/LaunchRequestStore';
 import WorkoutReminderService from '../common/services/WorkoutReminderService';
+import ThirdPartyBridgeBootstrap from '../common/services/auth/ThirdPartyBridgeBootstrap';
+import ThirdPartyBridgeRegistry from '../common/services/auth/ThirdPartyBridgeRegistry';
 
 const DOMAIN = 0x0000;
 
@@ -64,6 +66,37 @@ export default class EntryAbility extends UIAbility {
     // 训练提醒冷启动校准（幂等 ensure；失败静默——启动路径不受影响）。
     WorkoutReminderService.calibrateFromLaunch(this.context).catch((err: Error) => {
       hilog.error(DOMAIN, 'testTag', 'Reminder calibration failed. Cause: %{public}s', JSON.stringify(err))
+    })
+    // 第三方桥注册（幂等）：冷启动即由第三方回调拉起时，需 bridge 已在册才能分派。
+    // 放在既有逻辑之后，不插入既有 Promise 链。
+    try {
+      ThirdPartyBridgeBootstrap.initialize(this.context)
+    } catch (err) {
+      hilog.error(DOMAIN, 'testTag', 'ThirdParty bootstrap failed. Cause: %{public}s', JSON.stringify(err))
+    }
+    // 本次启动若即由第三方回调拉起（冷启动路径），分派该 want。
+    this.dispatchThirdPartyCallback(want)
+  }
+
+  /**
+   * 热启动回调入口：第三方授权后回到本应用（不销毁 Ability 的情形）。
+   * 与 onCreate 的对应逻辑同构，保证冷/热两条路径都能收到授权结果。
+   */
+  onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+    hilog.info(DOMAIN, 'testTag', 'Ability onNewWant uri=%{public}s', want.uri !== undefined ? want.uri : '')
+    this.dispatchThirdPartyCallback(want)
+  }
+
+  /**
+   * 第三方 SDK 回调分派（失败静默，绝不阻断启动路径）。
+   *
+   * 安全性：ThirdPartyBridgeRegistry.dispatch 内部对每个 bridge 独立 try/catch——
+   * 任一 SDK 的 handleWant 抛错不影响其余 bridge，也不影响应用启动。
+   * 与 WorkoutReminderService.calibrateFromLaunch 的「失败静默」纪律一致。
+   */
+  private dispatchThirdPartyCallback(want: Want): void {
+    ThirdPartyBridgeRegistry.dispatch(this.context, want).catch((err: Error) => {
+      hilog.error(DOMAIN, 'testTag', 'ThirdParty callback dispatch failed. Cause: %{public}s', JSON.stringify(err))
     })
   }
 

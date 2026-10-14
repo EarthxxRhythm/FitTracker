@@ -164,6 +164,76 @@ class SupabaseAuthProvider(
         return Result.success(session.snapshot)
     }
 
+    /**
+     * 第三方登录（两段式第二段）：authCode → 服务端换票 → token_hash → GoTrue 会话。
+     *
+     * 链路与鸿蒙端同构（见 apps/harmony/.../SupabaseAuthProvider.ets 的同类实现）：
+     *   POST {url}/functions/v1/thirdparty-exchange {provider, authCode}
+     *   → 200 {token_hash, type:'magiclink'} → POST /auth/v1/verify {type, token_hash}
+     *   → GoTrue 会话 → 复用 applySession 落库。
+     *
+     * 第一段（拉起微信 App 取 authCode）由 WXEntryActivity 承担，本方法只消费其产物。
+     */
+    override suspend fun signInWithThirdParty(provider: String, authCode: String): Result<AuthSession> {
+        if (!isAvailable()) {
+            return failure(AuthException("云服务未就绪，请稍后重试"))
+        }
+        if (authCode.isEmpty()) {
+            return failure(AuthException("授权未完成，请重试"))
+        }
+        val exchangeBody: String = buildJsonObject {
+            put("provider", provider)
+            put("authCode", authCode)
+            put("state", "")
+        }.toString()
+        val exchangeResponse: CloudHttpResponse = transport.request(
+            method = METHOD_POST,
+            url = SupabaseEndpoints.functions(PATH_THIRDPARTY_EXCHANGE),
+            headers = SupabaseEndpoints.headers(),
+            body = exchangeBody,
+        )
+        if (exchangeResponse.status !in HTTP_SUCCESS_RANGE) {
+            return failure(mapThirdPartyError(exchangeResponse))
+        }
+        val root: JsonObject = parseObject(exchangeResponse.body)
+            ?: return failure(AuthException("换票响应解析失败，请稍后重试"))
+        val tokenHash: String = (root[FIELD_TOKEN_HASH] as? JsonPrimitive)?.content.orEmpty()
+        val tokenType: String = (root[FIELD_TYPE] as? JsonPrimitive)?.content.orEmpty()
+        if (tokenHash.isEmpty()) {
+            return failure(AuthException("换票未返回有效票据，请重试"))
+        }
+        // 用 token_hash 走标准 verify 端点换取正式会话（与手机验证码链路同形）
+        val verifyBody: String = buildJsonObject {
+            put("type", tokenType.ifEmpty { "magiclink" })
+            put("token_hash", tokenHash)
+        }.toString()
+        val verifyResponse: CloudHttpResponse = transport.request(
+            method = METHOD_POST,
+            url = SupabaseEndpoints.auth(PATH_VERIFY),
+            headers = SupabaseEndpoints.headers(),
+            body = verifyBody,
+        )
+        if (verifyResponse.status !in HTTP_SUCCESS_RANGE) {
+            return failure(mapError(verifyResponse))
+        }
+        val token: GoTrueTokenResponse = parseTokenResponse(verifyResponse.body)
+            ?: return failure(AuthException(requestFailedMessage(verifyResponse.status)))
+        val session: CloudSession = token.toCloudSession()
+        applySession(session)
+        return Result.success(session.snapshot)
+    }
+
+    /** 第三方换票失败文案：区分网络 / 授权失效 / 服务端故障。 */
+    private fun mapThirdPartyError(response: CloudHttpResponse): AuthException {
+        val message: String = when (response.status) {
+            0 -> "网络不可达，请检查网络后重试"
+            400, 401 -> "授权已失效，请重新登录"
+            429 -> "请求过于频繁，请稍后再试"
+            else -> "登录服务暂时不可用，请稍后重试"
+        }
+        return AuthException(message)
+    }
+
     // --- 登出 --------------------------------------------------------------
 
     /**
@@ -425,7 +495,12 @@ class SupabaseAuthProvider(
         private const val PATH_OTP: String = "otp"
         private const val PATH_VERIFY: String = "verify"
         private const val PATH_LOGOUT: String = "logout"
+        /** 第三方换票 Edge Function 路径（SupabaseEndpoints.functions 的入参）。 */
+        private const val PATH_THIRDPARTY_EXCHANGE: String = "thirdparty-exchange"
         private const val FIELD_ACCESS_TOKEN: String = "access_token"
+        /** 换票响应字段（token_hash 交由 /auth/v1/verify 换取正式会话）。 */
+        private const val FIELD_TOKEN_HASH: String = "token_hash"
+        private const val FIELD_TYPE: String = "type"
 
         private val HTTP_SUCCESS_RANGE: IntRange = 200..299
     }

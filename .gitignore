@@ -56,6 +56,11 @@ Thumbs.db
 # 字段形状见同目录 supabase.example.json（模板入库）
 **/supabase.json
 
+# 第三方登录运行时配置（含微信/QQ AppID 等；真值不入库，模板入库）
+# 本地放置：apps/harmony/AppScope/resources/rawfile/thirdparty.json
+# 注意：QQ AppID 还需同步填入 entry/src/main/module.json5 的 skills.uris[].host
+**/thirdparty.json
+
 # C/C++ tooling
 .cxx
 **/.clangd

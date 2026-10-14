@@ -46,6 +46,18 @@
                 <data android:scheme="fittracker" />
             </intent-filter>
         </activity>
+
+        <!--
+          微信回调入口。路径 {applicationId}.wxapi.WXEntryActivity 是微信 Android SDK 的
+          硬性约定（applicationId = com.earthrhythm.fittracker），声明错误会导致授权后
+          无法回到应用。exported=true 必需（微信为外部调用方）。
+          launchMode=singleTask 避免回调重复创建实例。
+        -->
+        <activity
+            android:name=".wxapi.WXEntryActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.FitTracker" />
     </application>
 
 </manifest>

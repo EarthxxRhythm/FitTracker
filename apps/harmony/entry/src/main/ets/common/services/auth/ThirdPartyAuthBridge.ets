@@ -31,10 +31,18 @@ export abstract class ThirdPartyAuthBridge {
   /**
    * 发起授权：拉起第三方 App。
    *
-   * resolve 时表示「已成功发出请求」；真正的授权结果经 Ability 回调落到 PendingAuthStore
-   * （见 EntryAbility.onNewWant）。未安装 / 拉起失败时 reject。
+   * @param context 宿主 UIAbilityContext（拉起外部 App 必需）
+   * @param state 防 CSRF 的随机串（由 Registry 生成并回校）
+   * @param sink 授权结果出口。**必须在本方法发起前注入**——因为三个 SDK 的返回时机不同：
+   *             微信/QQ 异步（回调在 handleWant），华为同步（executeRequest 即返回）。
+   *             统一在发起时传入，使三种时序对上层表现一致。
+   *
+   * resolve 时表示「授权流程已完成并已把结果交给 sink」（华为：同步返回即完成；
+   * 微信/QQ：已成功拉起第三方 App，结果稍后经 handleWant 交给 sink）。
+   * 未安装 / 拉起失败时 reject。
    */
-  abstract sendAuthRequest(context: common.UIAbilityContext, state: string): Promise<void>
+  abstract sendAuthRequest(context: common.UIAbilityContext, state: string,
+                           sink: ThirdPartyAuthCallbackSink): Promise<void>
 
   /**
    * 处理 Ability 回调 want。
