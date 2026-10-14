@@ -18,6 +18,10 @@ import org.robolectric.annotation.Config
  * `shared/services/UserDataBackupService.ets`），此处以 `context.getString` 解析校验；
  * 改动中文即红。
  *
+ * 设置页的「备份与恢复」UI 已移除，但 [UserDataBackupService] 仍是云同步的数据管道
+ * （`exportPackage` → 整包快照 JSON），其 `@StringRes` 常量与导入失败状态映射继续有效，
+ * 故本文件保留服务层断言。
+ *
  * `qualifiers = "zh-rCN"`：不钉区域限定符时 Robolectric 默认走 en 资源。
  * 注意：Kotlin 字符串里的模板占位须转义为 `%1\$d`（资源 XML 里照写 `%1$d`）。
  */
@@ -26,23 +30,6 @@ import org.robolectric.annotation.Config
 class BackupStatusTextTest {
 
     private val context: Context get() = ApplicationProvider.getApplicationContext()
-
-    private fun importResult(
-        success: Boolean = true,
-        statusId: String = "import_success",
-        importedPlanCount: Int = 0,
-        mergedSessionCount: Int = 0,
-        effectiveCurrentPlanId: String = "",
-        usedPlanFallback: Boolean = false,
-    ) = UserDataBackupImportResult(
-        success = success,
-        statusId = statusId,
-        importedPlanCount = importedPlanCount,
-        importedSessionCount = 0,
-        mergedSessionCount = mergedSessionCount,
-        effectiveCurrentPlanId = effectiveCurrentPlanId,
-        usedPlanFallback = usedPlanFallback,
-    )
 
     @Test
     fun `备份域文案中文逐字对齐`() {
@@ -92,66 +79,6 @@ class BackupStatusTextTest {
         assertEquals(
             R.string.backup_import_failure_invalid,
             UserDataBackupService.importFailureStatusRes(UserDataBackupService.STATUS_BACKUP_INVALID_JSON),
-        )
-    }
-
-    /** 成功主句插值逐字（计数替换 + 回退子句以空格相连）。 */
-    @Test
-    fun `导入成功文案含计数与回退追加`() {
-        assertEquals(
-            "备份已导入：目标与计划已按导入包恢复，训练记录已按 sessionId 去重合并。共恢复 2 个计划，合并后保留 3 条训练记录。",
-            backupImportStatusText(context, importResult(importedPlanCount = 2, mergedSessionCount = 3)),
-        )
-
-        assertEquals(
-            "备份已导入：目标与计划已按导入包恢复，训练记录已按 sessionId 去重合并。共恢复 1 个计划，合并后保留 1 条训练记录。 当前计划指针无效，已回退到首个可用计划。",
-            backupImportStatusText(
-                context,
-                importResult(
-                    importedPlanCount = 1,
-                    mergedSessionCount = 1,
-                    effectiveCurrentPlanId = "p1",
-                    usedPlanFallback = true,
-                ),
-            ),
-        )
-
-        assertEquals(
-            "备份已导入：目标与计划已按导入包恢复，训练记录已按 sessionId 去重合并。共恢复 0 个计划，合并后保留 1 条训练记录。 导入包没有可用计划，当前计划已清空。",
-            backupImportStatusText(
-                context,
-                importResult(
-                    importedPlanCount = 0,
-                    mergedSessionCount = 1,
-                    effectiveCurrentPlanId = "",
-                    usedPlanFallback = true,
-                ),
-            ),
-        )
-    }
-
-    @Test
-    fun `导入失败时渲染失败文案`() {
-        assertEquals(
-            "备份包版本暂不受支持，请先升级应用后再试。",
-            backupImportStatusText(
-                context,
-                importResult(success = false, statusId = UserDataBackupService.STATUS_BACKUP_SCHEMA_UNSUPPORTED),
-            ),
-        )
-    }
-
-    /** English 资源生效（`values-en/strings_backup.xml`）——方法级区域限定符覆盖类级 `zh-rCN`。 */
-    @Test
-    @Config(sdk = [34], qualifiers = "en-rUS")
-    fun `英文资源在 en 区域生效`() {
-        assertEquals(
-            "Backup created. Use it to switch phones, export before a cleanup, or restore by hand.",
-            context.getString(R.string.backup_export_success_status),
-        )
-        assertEquals(
-            "Backup imported: goals and plans were restored from the imported package, and workout records were merged and de-duplicated by sessionId. Restored 2 plans and kept 3 workout records after merging.",
-            backupImportStatusText(context, importResult(importedPlanCount = 2, mergedSessionCount = 3)),
         )
     }
 }

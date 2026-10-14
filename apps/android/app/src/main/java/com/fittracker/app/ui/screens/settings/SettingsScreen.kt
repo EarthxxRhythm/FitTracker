@@ -1,14 +1,11 @@
 package com.fittracker.app.ui.screens.settings
 
 import android.Manifest
-import android.content.ContentResolver
 import android.content.Context
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.compose.foundation.Canvas
@@ -30,9 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -61,7 +56,6 @@ import androidx.core.content.ContextCompat
 import com.fittracker.app.BuildConfig
 import com.fittracker.app.R
 import com.fittracker.app.data.auth.AuthService
-import com.fittracker.app.data.model.UserDataBackupImportResult
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
 import com.fittracker.app.data.service.FtSettings
@@ -70,7 +64,6 @@ import com.fittracker.app.data.service.SettingsService
 import com.fittracker.app.data.service.UserProfileService
 import com.fittracker.app.data.service.WeekStart
 import com.fittracker.app.data.service.WeightUnit
-import com.fittracker.app.data.service.backup.UserDataBackupService
 import com.fittracker.app.data.sync.SyncOrchestrator
 import com.fittracker.app.notifications.ReminderScheduler
 import com.fittracker.app.ui.components.clickableNoRipple
@@ -79,9 +72,6 @@ import com.fittracker.app.ui.theme.FtShape
 import com.fittracker.app.ui.theme.FtType
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 /**
  * 设置屏（原型 `design/06_prototype_redraw/src/fittracker-settings.html` 的
@@ -158,48 +148,6 @@ fun SettingsScreen(
         if (toast != null) {
             delay(1900)
             toast = null
-        }
-    }
-
-    // ── W3-3 备份导出 / 导入 —— SAF 文件读写 ─────────────────────────────
-    // 备份「包」即 [UserDataBackupService] 产出/消费的 JSON 字符串（schemaVersion=1，与鸿蒙
-    // 备份包互通），故落地为 `.json` 文件（非 ZIP）。用户取消选择（uri=null）静默返回、不弹 toast。
-    var pendingImportJson by remember { mutableStateOf<String?>(null) }
-
-    // 导出：CreateDocument 建议文件名 → 用户选路径 → 写 UTF-8 JSON → 成功/失败 toast
-    val exportLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument(BACKUP_MIME_TYPE),
-    ) { uri: Uri? ->
-        if (uri != null) {
-            scope.launch {
-                val message = try {
-                    val json = UserDataBackupService.exportPackage(store)
-                    if (writeBackupFile(context.contentResolver, uri, json)) {
-                        resources.getString(R.string.backup_export_success_status)
-                    } else {
-                        resources.getString(R.string.backup_export_failure_status)
-                    }
-                } catch (error: Exception) {
-                    resources.getString(R.string.backup_export_failure_status)
-                }
-                toast = SettingsToastState.next(toast, message)
-            }
-        }
-    }
-
-    // 导入：OpenDocument 选文件 → 读 JSON → 覆盖确认 → 交服务导入 → 结果 toast
-    val importLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument(),
-    ) { uri: Uri? ->
-        if (uri != null) {
-            scope.launch {
-                val json = readBackupFile(context.contentResolver, uri)
-                if (json == null) {
-                    toast = SettingsToastState.next(toast, resources.getString(R.string.settings_backup_read_failure))
-                } else {
-                    pendingImportJson = json // 待用户确认后再落库
-                }
-            }
         }
     }
 
@@ -371,13 +319,6 @@ fun SettingsScreen(
                         },
                     )
                 }
-                // W3-3：备份与恢复区块（导出 / 导入 → UserDataBackupService）
-                item {
-                    BackupRestoreCard(
-                        onExport = { exportLauncher.launch(backupExportFileName(Date())) },
-                        onImport = { importLauncher.launch(arrayOf("*/*")) },
-                    )
-                }
                 item { FootNote() }
             }
         }
@@ -389,36 +330,6 @@ fun SettingsScreen(
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 30.dp),
         )
-
-        // 导入覆盖确认（服务既定语义见 `backup_restore_rule`）
-        pendingImportJson?.let { json ->
-            AlertDialog(
-                onDismissRequest = { pendingImportJson = null },
-                title = { Text(stringResource(R.string.settings_action_import_backup)) },
-                text = { Text(stringResource(R.string.backup_restore_rule)) },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            pendingImportJson = null
-                            scope.launch {
-                                val message = try {
-                                    backupImportStatusText(
-                                        context,
-                                        UserDataBackupService.importPackage(store, json),
-                                    )
-                                } catch (error: Exception) {
-                                    resources.getString(R.string.settings_backup_read_failure)
-                                }
-                                toast = SettingsToastState.next(toast, message)
-                            }
-                        },
-                    ) { Text(stringResource(R.string.settings_action_import)) }
-                },
-                dismissButton = {
-                    TextButton(onClick = { pendingImportJson = null }) { Text(stringResource(R.string.settings_action_cancel)) }
-                },
-            )
-        }
     }
 }
 
@@ -818,104 +729,4 @@ private data class SettingsToastState(val seq: Int, val text: String) {
     }
 }
 
-// ── W3-3 备份与恢复 ──────────────────────────────────────────────────────
-
-/**
- * 备份与恢复区块——形态对齐 `.sub-card`（标题 15px/700）+ `.set-row`（两行 14px + 右箭头）。
- * 两行均为动作行：导出 / 导入经 SAF 文件选择器，实际读写与业务由 [UserDataBackupService] 承担。
- */
-@Composable
-private fun BackupRestoreCard(onExport: () -> Unit, onImport: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(FtShape.panel) // `.sub-card` 圆角 22
-            .background(CardFill) // rgba(255,255,255,.031)
-            .border(1.dp, FtColor.line10, FtShape.panel)
-            .padding(16.dp),
-    ) {
-        Text(
-            text = stringResource(R.string.settings_section_backup),
-            modifier = Modifier.padding(bottom = 4.dp), // `.sub-sec-head { margin-bottom: 4px }`
-            style = FtType.natural(15f, 700), // `.sub-sec-title` 15px/700
-            color = FtColor.txtHi,
-        )
-        BackupActionRow(labelRes = R.string.settings_action_export_backup, onClick = onExport)
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(FtColor.hairline), // `.set-row + .set-row` 分隔线
-        )
-        BackupActionRow(labelRes = R.string.settings_action_import_backup, onClick = onImport)
-    }
-}
-
-/** 备份区块的一行动作（对齐 `.set-row`：`padding: 15px 2px`、14px 标签 + 18px 右箭头）。 */
-@Composable
-private fun BackupActionRow(@StringRes labelRes: Int, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickableNoRipple(onClick = onClick)
-            .padding(vertical = 15.dp, horizontal = 2.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(
-            text = stringResource(labelRes),
-            style = FtType.natural(14f), // `.sr-label` 14px
-            color = FtColor.txtHi,
-        )
-        ChevronIcon(modifier = Modifier.size(18.dp), color = FtColor.white40)
-    }
-}
-
-/** 建议文件名：`fittracker-backup-YYYYMMDD.json`（备份「包」为 JSON，见 [UserDataBackupService]）。 */
-private fun backupExportFileName(date: Date): String =
-    "fittracker-backup-" + SimpleDateFormat("yyyyMMdd", Locale.US).format(date) + ".json"
-
-/** 把备份 JSON 写入 SAF 目标 uri；任一步失败返回 `false`（含 `openOutputStream` 为 null）。 */
-private fun writeBackupFile(resolver: ContentResolver, uri: Uri, content: String): Boolean = try {
-    resolver.openOutputStream(uri)?.use { it.write(content.toByteArray(Charsets.UTF_8)) } != null
-} catch (error: Exception) {
-    false
-}
-
-/** 从 SAF 源 uri 读取备份 JSON；读取失败返回 `null`。 */
-private fun readBackupFile(resolver: ContentResolver, uri: Uri): String? = try {
-    resolver.openInputStream(uri)?.use { it.readBytes().toString(Charsets.UTF_8) }
-} catch (error: Exception) {
-    null
-}
-
-/** W3-3 常量（备份「包」为 JSON，故 MIME 取 `application/json`、扩展名 `.json`）；文案见 `values/strings_settings.xml`。 */
-private const val BACKUP_MIME_TYPE = "application/json"
-
-/**
- * 把导入结果渲染为用户可见文案（Wave 8 i18n：文案真源在 `values/strings_backup.xml`，
- * data 层 [UserDataBackupService] 不再持有 `Context` 与文案）。
- *
- * 失败：按 `statusId` 二分（[UserDataBackupService.importFailureStatusRes]）；
- * 成功：主句（含计数）+ 计划回退分支追加——源 `:314-321` 逐字对齐（子句间以空格相连）。
- */
-internal fun backupImportStatusText(context: Context, result: UserDataBackupImportResult): String {
-    if (!result.success) {
-        return context.getString(UserDataBackupService.importFailureStatusRes(result.statusId))
-    }
-    val baseText: String = context.getString(
-        R.string.backup_import_success,
-        result.importedPlanCount,
-        result.mergedSessionCount,
-    )
-    if (!result.usedPlanFallback) {
-        return baseText
-    }
-    val fallbackRes: Int = if (result.effectiveCurrentPlanId.isNotEmpty()) {
-        R.string.backup_import_success_fallback_plan
-    } else {
-        R.string.backup_import_success_plan_cleared
-    }
-    return "$baseText ${context.getString(fallbackRes)}"
-}
 

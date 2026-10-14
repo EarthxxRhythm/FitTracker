@@ -22,8 +22,6 @@
     <string name="settings_section_about">关于</string>
     <!-- `.sub-sec-meta`（原型 L451）：产品名，各语言一致 -->
     <string name="settings_section_about_meta">FitTracker</string>
-    <!-- 鸿蒙独有功能块（原型无此项） -->
-    <string name="settings_section_backup">备份与恢复</string>
 
     <!-- 行标题（`.sr-label`；开关行的 `aria-label` 与行标题逐字相同，复用同一资源） -->
     <string name="settings_row_weight_unit">体重单位</string>
@@ -46,13 +44,6 @@
     <string name="settings_option_en">English</string>
     <string name="settings_option_monday">周一</string>
     <string name="settings_option_sunday">周日</string>
-
-    <!-- 备份与恢复（SAF 导出 / 导入） -->
-    <string name="settings_action_export_backup">导出备份</string>
-    <string name="settings_action_import_backup">导入备份</string>
-    <string name="settings_action_import">导入</string>
-    <string name="settings_action_cancel">取消</string>
-    <string name="settings_backup_read_failure">无法读取备份文件，请重试。</string>
 
     <!-- toast（浮层提示） -->
     <!-- 分段点击：`{行标题}已切换为「{选项}」`（原型 L507 主句，已去演示后缀） -->

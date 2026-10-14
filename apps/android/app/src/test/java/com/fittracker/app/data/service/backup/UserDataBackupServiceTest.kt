@@ -370,7 +370,7 @@ class UserDataBackupServiceTest {
         assertEquals(pkg.sessions, parsed.sessions)
     }
 
-    // --- 导入结果结构（文案渲染移至 UI 层 BackupStatusTextTest） -----------------
+    // --- 导入结果结构（文案真源见 BackupStatusTextTest） -------------------------
 
     @Test
     fun `导入成功_结果含状态标识与计数`() = runBlocking {
@@ -408,7 +408,7 @@ class UserDataBackupServiceTest {
         assertEquals("", result.effectiveCurrentPlanId)
     }
 
-    // --- 文案资源映射（逐字渲染见 UI 层 BackupStatusTextTest） -----------------
+    // --- 文案资源映射（逐字真源见 BackupStatusTextTest） -----------------------
 
     @Test
     fun `文案常量_映射到备份域资源`() {
