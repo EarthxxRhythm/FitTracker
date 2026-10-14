@@ -10,6 +10,15 @@ import SettingsService, { AppSettings } from '../../../common/services/SettingsS
 import { resolveWeekStart, WeekStart } from '../../../common/utils/WeekUtils'
 import GoalRepository from '../../../shared/services/GoalRepository'
 import { UserGoal } from '../../../shared/models/TrainingModels'
+
+/** 一条最近成就的展示数据（`note` 已按当前单位换算）。 */
+interface AchievementRow {
+  title: string
+  note: string
+  value: string
+  icon: string
+}
+
 @Component
 export struct ProfileContent {
   @State private settingsPressed: boolean = false
@@ -17,6 +26,26 @@ export struct ProfileContent {
   @State private topInsetVp: number = 0
   /** 展示单位（来自「设置 · 体重单位」）；成就卡样例重量的基准值仍为 kg。 */
   @State private displayUnit: WeightUnit = 'kg'
+  /**
+   * 最近成就行——以 `@State` 数组驱动 `ForEach` 渲染。
+   *
+   * 不能把算好的 note 直接按值传给 `@Builder`：ArkUI 中 `@Builder` 接收基本类型参数时，
+   * 参数值变化不会触发其内部 UI 刷新（体重单位切换后会停留在首帧的 kg）。
+   */
+  @State private achievementRows: AchievementRow[] = [
+    {
+      title: '\u7a33\u5b9a\u8f93\u51fa',
+      note: '\u8fde\u7eed\u8bad\u7ec3 7 \u5929',
+      value: '\u672c\u5468\u5b8c\u6210\u5ea6 86%',
+      icon: 'flame'
+    },
+    {
+      title: '\u91cd\u91cf\u7a81\u7834',
+      note: '\u6df1\u8e72\u8fbe\u5230 80 kg',
+      value: '\u5237\u65b0\u4e2a\u4eba\u6700\u4f73',
+      icon: 'trophy'
+    }
+  ]
   @State private avatarLetter: string = '\u6797'
   @State private nickname: string = '\u8c31\u5c3c'
   @State private goalSubtitle: string = '\u589e\u808c\u7b2c 42 \u5929 \u00b7 \u4fdd\u6301\u8282\u594f'
@@ -66,6 +95,7 @@ export struct ProfileContent {
       const profile: UserProfile = await UserProfileService.loadProfile(context)
       // 成就卡里的样例重量按「设置 · 体重单位」换算展示（基准值仍是 kg）。
       this.displayUnit = profile.weightUnit
+      this.achievementRows = this.createAchievementRows()
       this.avatarLetter = profile.avatar.trim().length > 0
         ? profile.avatar.trim().charAt(0)
         : '\u6797'
@@ -362,6 +392,25 @@ export struct ProfileContent {
     return text + ' ' + weightUnitLabel(this.displayUnit)
   }
 
+  /** 构建成就行数据（重量文案按当前单位换算）。 */
+  private createAchievementRows(): AchievementRow[] {
+    const rows: AchievementRow[] = [
+      {
+        title: '\u7a33\u5b9a\u8f93\u51fa',
+        note: '\u8fde\u7eed\u8bad\u7ec3 7 \u5929',
+        value: '\u672c\u5468\u5b8c\u6210\u5ea6 86%',
+        icon: 'flame'
+      },
+      {
+        title: '\u91cd\u91cf\u7a81\u7834',
+        note: '\u6df1\u8e72\u8fbe\u5230 ' + this.achievementWeightText(80),
+        value: '\u5237\u65b0\u4e2a\u4eba\u6700\u4f73',
+        icon: 'trophy'
+      }
+    ]
+    return rows
+  }
+
   @Builder
   private buildAchievements() {    Column({ space: 0 }) {
       Text('\u6700\u8fd1\u6210\u5c31')
@@ -370,8 +419,9 @@ export struct ProfileContent {
         .fontWeight(FontWeight.Bold)
         .fontColor('#F7FBF8')
         .margin({ bottom: 12 })
-      this.buildAchievement('\u7a33\u5b9a\u8f93\u51fa', '\u8fde\u7eed\u8bad\u7ec3 7 \u5929', '\u672c\u5468\u5b8c\u6210\u5ea6 86%', 'flame')
-      this.buildAchievement('\u91cd\u91cf\u7a81\u7834', '\u6df1\u8e72\u8fbe\u5230 ' + this.achievementWeightText(80), '\u5237\u65b0\u4e2a\u4eba\u6700\u4f73', 'trophy')
+      ForEach(this.achievementRows, (row: AchievementRow) => {
+        this.buildAchievement(row.title, row.note, row.value, row.icon)
+      }, (row: AchievementRow) => row.title + '|' + row.note)
     }
     .width('100%')
     .padding(16)
