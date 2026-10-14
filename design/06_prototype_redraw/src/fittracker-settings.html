@@ -293,6 +293,13 @@
   .switch.on::after { transform: translateX(18px); background: var(--on-accent); }
 
   .st-foot-note { font-size: 11px; color: var(--white-54); line-height: 1.6; padding: 2px 6px 0; }
+  /* 退出登录（对齐代码侧 signOutButton 形态） */
+  .sign-out {
+    display: block; width: 100%; height: 50px; margin-top: 14px;
+    border: 1px solid rgba(215, 124, 120, 0.30); border-radius: 16px;
+    background: rgba(215, 124, 120, 0.08); color: #D77C78;
+    font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+  }
 
   /* 轻量反馈 */
   .st-toast {
@@ -433,10 +440,6 @@
                       </span>
                     </button>
                     <div class="set-row">
-                      <span class="sr-label">训练数据同步</span>
-                      <button class="switch on" type="button" role="switch" aria-checked="true" aria-label="训练数据同步" data-switch></button>
-                    </div>
-                    <div class="set-row">
                       <span class="sr-label">匿名使用数据</span>
                       <button class="switch" type="button" role="switch" aria-checked="false" aria-label="匿名使用数据" data-switch></button>
                     </div>
@@ -460,7 +463,9 @@
                   </div>
                 </section>
 
-                <p class="st-foot-note">训练数据与身体数据保存在本机；登录后可选择云同步。</p>
+                <button class="sign-out" type="button">退出登录</button>
+
+                <p class="st-foot-note">训练数据与身体数据保存在本机；登录后自动同步。</p>
               </div>
             </div>
 
