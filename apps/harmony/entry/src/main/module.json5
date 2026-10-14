@@ -52,15 +52,21 @@
               "ohos.want.action.home"
             ]
           },
-          // QQ 授权回调：entity.system.browsable + viewData + qqopenapi scheme。
-          // ⚠ host 必须等于应用在 QQ 互联申请到的 AppID（填写错误会导致 QQ 无法回调，
+          // QQ 授权回调：配置照抄 QQ 官方 demo（qqOpenSdkDemo 1.0.4）的 module.json5。
+          // ⚠ 注意 demo 与腾讯 WIKI 文档有出入，此处以 demo 为准（demo 更新）：
+          //   · entities 用 entity.system.browser（文档写 entity.system.browsable）
+          //   · actions 含 action.system.home 与 ohos.want.action.viewData
+          //   · 追加 domainVerify: true
+          // ⚠ host 必须等于应用在 QQ 互联申请到的 AppID（填错会导致 QQ 无法回调，
           //   腾讯官方明确警告）。真值放 rawfile thirdparty.json（不入库），
-          //   此处按 ohos 规范需为字面量——发布前须用真实 AppID 替换 <QQ_APP_ID>。
+          //   此处用发布前须替换的占位串。
           {
             "entities": [
-              "entity.system.browsable"
+              "entity.system.home",
+              "entity.system.browser"
             ],
             "actions": [
+              "action.system.home",
               "ohos.want.action.viewData"
             ],
             "uris": [
@@ -69,7 +75,8 @@
                 "host": "<QQ_APP_ID>",
                 "pathRegex": "\\b(auth|share)\\b"
               }
-            ]
+            ],
+            "domainVerify": true
           }
         ]
       }

@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fittracker.app.R
 import com.fittracker.app.data.auth.AuthService
+import com.fittracker.app.data.auth.QqAuthStore
 import com.fittracker.app.data.auth.WxAuthStore
 import com.fittracker.app.data.cloud.SupabaseAuthProvider
 import com.fittracker.app.data.cloud.SupabaseConfig
@@ -262,7 +263,7 @@ fun LoginScreen(
                 wechatLabel = stringResource(R.string.auth_social_wechat),
                 qqLabel = stringResource(R.string.auth_social_qq),
                 onWechat = { startWeChatAuth(context, onToast) },
-                onQq = { onToast(resources.getString(AUTH_QQ_TOAST)) },
+                onQq = { startQqAuth(context, onToast) },
             )
         }
 
@@ -444,6 +445,73 @@ private fun startWeChatAuth(context: android.content.Context, onToast: (String) 
     req.state = System.currentTimeMillis().toString()
     if (!api.sendReq(req)) {
         onToast("微信授权跳转失败，请重试")
+    }
+}
+
+/**
+ * 拉起 QQ 授权（QQ 互联 OpenSDK，本地 JAR 引入）。
+ *
+ * 与微信路径的差异：
+ *  - QQ 用 `Tencent.createInstance(appId, context, authority)` 获取实例，不需独立回调 Activity
+ *  - 结果经 IUiListener 的 onComplete/onError/onCancel 在**同进程内**回调，直接落 QqAuthStore
+ *  - onComplete 返回的 JSON 含 `access_token`（作为 authCode 交给服务端换票）与 `openid`
+ *
+ * 前置校验同微信（未配置 / 未安装 / 实例化失败各自明确提示）。
+ */
+private fun startQqAuth(context: android.content.Context, onToast: (String) -> Unit) {
+    val appId: String = com.fittracker.app.BuildConfig.QQ_APP_ID
+    if (appId.isEmpty()) {
+        onToast("QQ 登录暂未开通")
+        return
+    }
+    // 每次授权前清理陈旧结果，避免误消费上一次的凭据
+    QqAuthStore.clear(context)
+    try {
+        val tencent: com.tencent.tauth.Tencent =
+            com.tencent.tauth.Tencent.createInstance(appId, context.applicationContext)
+        val listener = object : com.tencent.tauth.IUiListener {
+            override fun onComplete(response: Any?) {
+                val json: org.json.JSONObject? = response as? org.json.JSONObject
+                if (json == null) {
+                    QqAuthStore.saveFailure(context, QqAuthStore.KIND_ERROR, "QQ 授权响应异常")
+                    return
+                }
+                val accessToken: String = json.optString("access_token", "")
+                val openId: String = json.optString("openid", "")
+                if (accessToken.isEmpty()) {
+                    QqAuthStore.saveFailure(context, QqAuthStore.KIND_ERROR, "未获取到授权凭据，请重试")
+                    return
+                }
+                QqAuthStore.saveCode(context, accessToken, openId)
+            }
+
+            override fun onError(error: com.tencent.tauth.UiError?) {
+                val message: String = error?.errorMessage.orEmpty()
+                QqAuthStore.saveFailure(
+                    context,
+                    QqAuthStore.KIND_ERROR,
+                    message.ifEmpty { "QQ 授权失败" },
+                )
+            }
+
+            override fun onCancel() {
+                // 用户主动取消：静默（不显示错误红字）
+                QqAuthStore.saveFailure(context, QqAuthStore.KIND_CANCELLED, "")
+            }
+
+            override fun onWarning(code: Int) {
+                // QQ SDK 的警告回调（非致命，如参数边界）。javap 反编译确证 IUiListener 有 4 个
+                // 抽象方法，onWarning 必需实现；此处与错误区分——只记录，不覆盖已落盘的成功结果。
+            }
+        }
+        tencent.login(
+            context as? android.app.Activity,
+            "all",
+            listener,
+        )
+    } catch (error: Exception) {
+        // JAR 缺失 / 初始化失败等：给出明确文案而非静默
+        onToast("QQ 登录初始化失败，请重试")
     }
 }
 
