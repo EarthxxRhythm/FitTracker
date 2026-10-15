@@ -12,9 +12,13 @@
   icon-216.png    216x216    不透明  PNG  <= 3 MB
   icon-1024.webp  1024x1024  不透明  WEBP <= 100 KB
   icon-216.webp   216x216    不透明  WEBP <= 100 KB
+  icon-100.png    100x100    不透明  PNG  开放平台表单「上传移动应用图标 100X100(px)」用
 
 市场规范：正方形；216x216 或 1024x1024；PNG(<=3MB) / WEBP(<=100KB)；
 须与软件包内应用图标一致。提交满幅方图（不预切圆角），圆角由平台统一处理。
+
+⚠ 100×100 的来历：QQ 互联 / 应用宝的「创建移动应用」表单明确要求
+  「请上传 100*100（px）的应用图标」，与市场素材的 216/1024 口径不同，故单独产出。
 
 用法：python design/07_app_icon/make_market_icon.py
 """
@@ -28,10 +32,13 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 ROOT = Path(__file__).resolve().parents[2]
-SRC = ROOT / "AppScope" / "resources" / "base" / "media"
+# ⚠ 2026-10-12 monorepo 重组后鸿蒙工程下移至 apps/harmony/，
+# 图标源在 apps/harmony/AppScope/resources/base/media/（原仓库根 AppScope 已不存在）
+SRC = ROOT / "apps" / "harmony" / "AppScope" / "resources" / "base" / "media"
 OUT = Path(__file__).resolve().parent / "market"
 
-SIZES = (1024, 216)
+# 1024/216 = 应用市场素材；100 = 开放平台注册表单要求的 100×100
+SIZES = (1024, 216, 100)
 PNG_LIMIT = 3 * 1024 * 1024
 WEBP_LIMIT = 100 * 1024
 
