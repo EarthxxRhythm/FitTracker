@@ -14,6 +14,16 @@ import { currentCanvasScale } from '../../../common/utils/CanvasScale'
 
 const COUNTDOWN_SECONDS: number = 60
 
+/**
+ * 字段错误态配色（Pencil 主线集中声明，避免在组件内散落魔法值）。
+ *
+ * 原型 `fittracker-auth.html` 的错误呈现为「输入框下方独立 `.auth-error` 行 + 描边转 `--warn-border`」；
+ * 本实现按需求改为「字段名位置直接显示错误提示 + 输入框描边转红」，故取更高饱和的红色。
+ */
+const FIELD_ERROR_BORDER: string = '#FFFF5A52'
+const FIELD_ERROR_FILL: string = '#14FF5A52'
+const FIELD_ERROR_TEXT: string = '#FFFF7A72'
+
 @Entry
 @Component
 struct PencilLoginPage {
@@ -23,6 +33,10 @@ struct PencilLoginPage {
   @State code: string = ''
   @State email: string = ''
   @State password: string = ''
+  @State phoneError: string = ''
+  @State codeError: string = ''
+  @State emailError: string = ''
+  @State passwordError: string = ''
   @State message: string = ''
   @State hint: string = ''
   @State loading: boolean = false
@@ -128,8 +142,9 @@ struct PencilLoginPage {
   private async sendPhoneCode(): Promise<void> {
     this.message = ''
     this.hint = ''
+    this.phoneError = ''
     if (this.phone.length === 0) {
-      this.message = '请输入手机号'
+      this.phoneError = '请输入手机号'
       return
     }
     const context = this.contextOrNull()
@@ -155,6 +170,10 @@ struct PencilLoginPage {
   private async login(): Promise<void> {
     this.message = ''
     this.hint = ''
+    this.phoneError = ''
+    this.codeError = ''
+    this.emailError = ''
+    this.passwordError = ''
     if (!this.agreeChecked) {
       this.message = '请先阅读并同意用户协议与隐私政策'
       return
@@ -166,11 +185,11 @@ struct PencilLoginPage {
     }
     if (this.loginMode === 'phone') {
       if (this.phone.length === 0) {
-        this.message = '请输入手机号'
+        this.phoneError = '请输入手机号'
         return
       }
       if (this.code.length === 0) {
-        this.message = '请输入验证码'
+        this.codeError = '请输入验证码'
         return
       }
       this.loading = true
@@ -182,11 +201,11 @@ struct PencilLoginPage {
       }
     } else {
       if (this.email.length === 0) {
-        this.message = '请输入邮箱'
+        this.emailError = '请输入邮箱'
         return
       }
       if (this.password.length === 0) {
-        this.message = '请输入密码'
+        this.passwordError = '请输入密码'
         return
       }
       this.loading = true
@@ -367,18 +386,42 @@ struct PencilLoginPage {
           this.loginMode = modeKey
           this.message = ''
           this.hint = ''
+          this.phoneError = ''
+          this.codeError = ''
+          this.emailError = ''
+          this.passwordError = ''
         }
       })
+  }
+
+  /**
+   * 按字段键取当前错误文案。
+   *
+   * 为什么用方法而不是参数：ArkUI 的 `@Builder` 按值传参时，状态变量变化不会引起
+   * 其内部 UI 刷新（官方语义）。错误文案必须在 `@Builder` 函数体内经 `this` 读取，
+   * 才会建立依赖并在 `@State` 变化时重绘——故错误文本走本方法取，不走参数传。
+   */
+  private fieldError(fieldKey: string): string {
+    if (fieldKey === 'phone') {
+      return this.phoneError
+    }
+    if (fieldKey === 'email') {
+      return this.emailError
+    }
+    if (fieldKey === 'password') {
+      return this.passwordError
+    }
+    return ''
   }
 
   @Builder
   private buildField(label: string, placeholder: string, isPassword: boolean, currentValue: string, fieldKey: string, onChange: (value: string) => void) {
     Column({ space: 8 }) {
-      Text(label)
+      Text(this.fieldError(fieldKey).length > 0 ? this.fieldError(fieldKey) : label)
         .fontFamily('Noto Sans SC')
         .fontSize(13)
         .fontWeight(FontWeight.Medium)
-        .fontColor('#9EFFFFFF')
+        .fontColor(this.fieldError(fieldKey).length > 0 ? FIELD_ERROR_TEXT : '#9EFFFFFF')
         .width('100%')
       Row({ space: 12 }) {
         TextInput({ text: currentValue, placeholder: placeholder })
@@ -428,9 +471,9 @@ struct PencilLoginPage {
       .width('100%')
       .height(52)
       .padding({ left: 16, right: 16 })
-      .backgroundColor(this.focusedField === fieldKey ? '#0D50ECA7' : '#08FFFFFF')
+      .backgroundColor(this.fieldError(fieldKey).length > 0 ? FIELD_ERROR_FILL : (this.focusedField === fieldKey ? '#0D50ECA7' : '#08FFFFFF'))
       .borderRadius(18)
-      .border({ width: 1, color: this.focusedField === fieldKey ? '#7350ECA7' : '#14FFFFFF' })
+      .border({ width: 1, color: this.fieldError(fieldKey).length > 0 ? FIELD_ERROR_BORDER : (this.focusedField === fieldKey ? '#7350ECA7' : '#14FFFFFF') })
       .alignItems(VerticalAlign.Center)
       .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
     }
@@ -440,11 +483,11 @@ struct PencilLoginPage {
   @Builder
   private buildCodeField() {
     Column({ space: 8 }) {
-      Text('验证码')
+      Text(this.codeError.length > 0 ? this.codeError : '验证码')
         .fontFamily('Noto Sans SC')
         .fontSize(13)
         .fontWeight(FontWeight.Medium)
-        .fontColor('#9EFFFFFF')
+        .fontColor(this.codeError.length > 0 ? FIELD_ERROR_TEXT : '#9EFFFFFF')
         .width('100%')
       Row({ space: 10 }) {
         TextInput({ text: this.code, placeholder: '请输入验证码' })
@@ -466,6 +509,7 @@ struct PencilLoginPage {
           })
           .onChange((value: string) => {
             this.code = value
+            if (this.codeError.length > 0) { this.codeError = '' }
           })
         Button(this.countdown > 0 ? this.countdown.toString() + 's' : '获取验证码')
           .height(36)
@@ -484,9 +528,9 @@ struct PencilLoginPage {
       .width('100%')
       .height(52)
       .padding({ left: 16, right: 10 })
-      .backgroundColor(this.focusedField === 'code' ? '#0D50ECA7' : '#08FFFFFF')
+      .backgroundColor(this.codeError.length > 0 ? FIELD_ERROR_FILL : (this.focusedField === 'code' ? '#0D50ECA7' : '#08FFFFFF'))
       .borderRadius(18)
-      .border({ width: 1, color: this.focusedField === 'code' ? '#7350ECA7' : '#14FFFFFF' })
+      .border({ width: 1, color: this.codeError.length > 0 ? FIELD_ERROR_BORDER : (this.focusedField === 'code' ? '#7350ECA7' : '#14FFFFFF') })
       .alignItems(VerticalAlign.Center)
       .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
     }
@@ -640,14 +684,17 @@ struct PencilLoginPage {
               if (this.loginMode === 'phone') {
                 this.buildField('手机号', '请输入手机号', false, this.phone, 'phone', (value: string) => {
                   this.phone = value
+                  if (this.phoneError.length > 0) { this.phoneError = '' }
                 })
                 this.buildCodeField()
               } else {
                 this.buildField('邮箱', '请输入邮箱', false, this.email, 'email', (value: string) => {
                   this.email = value
+                  if (this.emailError.length > 0) { this.emailError = '' }
                 })
                 this.buildField('密码', '请输入密码', true, this.password, 'password', (value: string) => {
                   this.password = value
+                  if (this.passwordError.length > 0) { this.passwordError = '' }
                 })
               }
 
