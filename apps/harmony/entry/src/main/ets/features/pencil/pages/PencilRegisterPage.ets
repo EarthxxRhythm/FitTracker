@@ -278,6 +278,9 @@ struct PencilRegisterPage {
           .fontSize(16)
           .fontColor('#F7FBF8')
           .placeholderColor('#66FFFFFF')
+          // TextInput 自身默认带不透明底色，且其 bounds 比外层容器小（内缩），
+          // 不透明时会渲染成容器内的一个内缩色块。置透明以消除内层色层。
+          .backgroundColor(Color.Transparent)
           .padding(0)
           .onFocus(() => {
             this.focusedKey = label
@@ -338,6 +341,8 @@ struct PencilRegisterPage {
           .fontSize(16)
           .fontColor('#F7FBF8')
           .placeholderColor('#66FFFFFF')
+          // 同 buildField：TextInput 默认底色会在容器内形成内缩色块，置透明。
+          .backgroundColor(Color.Transparent)
           .padding(0)
           .onFocus(() => {
             this.focusedKey = 'code'
