@@ -1,9 +1,10 @@
 /** BodyDataContent —— 身体数据二级页界面体（对应 body-data.html · screen-body-data，390 直绘）。 */
-import { MotionTokens } from '../../../common/styles/DesignTokens'
+import { ColorTokens, MotionTokens } from '../../../common/styles/DesignTokens'
 import { window } from '@kit.ArkUI'
 import UserProfileService, { UserProfile, WeightUnit } from '../../../common/services/UserProfileService'
 import SettingsService, { AppSettings } from '../../../common/services/SettingsService'
 import { formatWeight, weightUnitLabel, displayToKg } from '../../../common/utils/WeightUtils'
+import { shakeField } from '../../../common/utils/FieldShake'
 import BodyRecordService from '../../../shared/services/BodyRecordService'
 import { WeightRecord, BodyTrend } from '../../../shared/models/BodyModels'
 import { WeekStart } from '../../../common/utils/WeekUtils'
@@ -59,6 +60,8 @@ export struct BodyDataContent {
   @State private currentWeightKg: number = 72.5
   @State private weightInput: string = '72.5'
   @State private sheetHint: string = ''
+  /** 体重输入校验失败时的横向抖动偏移（错误消失后无效果）。 */
+  @State private shakeOffset: number = 0
   @State private period: string = 'week'
   // 展示层体重单位（来自「设置 · 体重单位」）；基准值始终是 kg，仅展示与输入按单位换算。
   @State private displayUnit: WeightUnit = 'kg'
@@ -230,6 +233,9 @@ export struct BodyDataContent {
     const kg: number = displayToKg(parsed, this.displayUnit)
     if (Number.isNaN(parsed) || parsed <= 0 || kg > 500) {
       this.sheetHint = '请输入 0–500 之间的有效体重'
+      shakeField(this.getUIContext(), (value: number) => {
+        this.shakeOffset = value
+      })
       return
     }
     this.currentWeightKg = kg
@@ -513,14 +519,18 @@ export struct BodyDataContent {
                 .fontWeight(FontWeight.Bold)
                 .fontColor('#F7FBF8')
                 .placeholderColor('#52FFFFFF')
-                .backgroundColor('#0FFFFFFF')
-                .border({ width: 1, color: '#14FFFFFF' })
+                .backgroundColor(this.sheetHint.length > 0 ? ColorTokens.FIELD_ERROR_FILL : '#0FFFFFFF')
+                .border({ width: 1, color: this.sheetHint.length > 0 ? ColorTokens.FIELD_ERROR_BORDER : '#14FFFFFF' })
                 .borderRadius(18)
                 .width(140)
                 .padding({ left: 14, right: 14, top: 8, bottom: 8 })
                 .textAlign(TextAlign.Center)
+                .translate({ x: this.shakeOffset })
                 .onChange((value: string) => {
                   this.weightInput = value
+                  if (this.sheetHint.length > 0) {
+                    this.sheetHint = ''
+                  }
                 })
               Text(weightUnitLabel(this.displayUnit))
                 .fontFamily('Inter')
@@ -533,7 +543,7 @@ export struct BodyDataContent {
             Text(this.sheetHint)
               .fontFamily('Noto Sans SC')
               .fontSize(11.5)
-              .fontColor('#50ECA7')
+              .fontColor(this.sheetHint.length > 0 ? ColorTokens.FIELD_ERROR_TEXT : '#50ECA7')
               .textAlign(TextAlign.Center)
               .width('100%')
               .height(16)

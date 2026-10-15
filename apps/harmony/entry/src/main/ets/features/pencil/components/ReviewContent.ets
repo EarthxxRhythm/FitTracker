@@ -1,7 +1,7 @@
 /** ReviewContent - 复盘 Tab 界面体（供 PencilAppShell 与独立注册页复用）。 */
 
 import { LengthMetricsUnit } from '@kit.ArkUI'
-import { MotionTokens } from '../../../common/styles/DesignTokens'
+import { MotionTokens, ColorTokens } from '../../../common/styles/DesignTokens'
 import ReviewDashboardService, { ReviewDashboardSummary } from '../../../shared/services/ReviewDashboardService'
 import ReviewInsightsService, { ReviewWeeklyTrendItem } from '../../../shared/services/ReviewInsightsService'
 import WorkoutSessionPersistenceBridgeService from '../../workout/services/WorkoutSessionPersistenceBridgeService'
@@ -13,6 +13,7 @@ import BodyRecordService from '../../../shared/services/BodyRecordService'
 import PersonalRecordService, { ExercisePersonalRecordDetail } from '../../../shared/services/PersonalRecordService'
 import { WeightRecord, BodyTrend } from '../../../shared/models/BodyModels'
 import { resolveWeekStart, WeekStart } from '../../../common/utils/WeekUtils'
+import { shakeField } from '../../../common/utils/FieldShake'
 
 interface ReviewBarItem {
   label: string
@@ -886,6 +887,10 @@ export struct ReviewContent {
   @State private showGoalModal: boolean = false
   @State private goalWeight: number = 68
   @State private goalInputText: string = '68'
+  /** 目标体重越界时的错误提示（空 = 无错误）。 */
+  @State private goalError: string = ''
+  /** 目标输入越界时的横向抖动偏移。 */
+  @State private shakeOffset: number = 0
   /** 展示单位（来自「设置 · 体重单位」）；体重基准值始终为 kg，仅输入与展示按单位换算。 */
   @State private displayUnit: WeightUnit = 'kg'
   /** 真实当前体重（kg）；undefined 表示尚无记录，回落原型样例。 */
@@ -1428,10 +1433,15 @@ export struct ReviewContent {
 
   private openGoalModal(): void {
     this.goalInputText = this.goalWeightText()
+    // 每次打开回到干净态：上一次的错误提示不应遗留到下一次
+    this.goalError = ''
+    this.shakeOffset = 0
     this.showGoalModal = true
   }
 
   private closeGoalModal(): void {
+    this.goalError = ''
+    this.shakeOffset = 0
     this.showGoalModal = false
   }
 
@@ -1441,17 +1451,26 @@ export struct ReviewContent {
       value = kgToDisplay(68, this.displayUnit)
     }
     // 输入框为显示单位下的值，边界同按单位换算（30–200 kg）。
+    // 越界不再静默收敛到边界——那是无声改写用户输入；改为报错 + 红框 + 抖动，让用户自己改。
     const minDisplay: number = kgToDisplay(30, this.displayUnit)
     const maxDisplay: number = kgToDisplay(200, this.displayUnit)
-    if (value < minDisplay) {
-      value = minDisplay
-    }
-    if (value > maxDisplay) {
-      value = maxDisplay
+    if (value < minDisplay || value > maxDisplay) {
+      this.goalError = this.goalRangeHint()
+      shakeField(this.getUIContext(), (offset: number) => {
+        this.shakeOffset = offset
+      })
+      return
     }
     this.goalWeight = displayToKg(value, this.displayUnit)
     this.showGoalModal = false
     this.drawWeightChart()
+  }
+
+  /** 目标体重越界时的提示文案（按当前显示单位取整，避免出现 66.1386 这类值）。 */
+  private goalRangeHint(): string {
+    const minLabel: number = Math.round(kgToDisplay(30, this.displayUnit))
+    const maxLabel: number = Math.round(kgToDisplay(200, this.displayUnit))
+    return '请输入 ' + minLabel.toString() + '–' + maxLabel.toString() + ' ' + weightUnitLabel(this.displayUnit)
   }
 
   private drawWeightChart(): void {
@@ -2398,6 +2417,9 @@ export struct ReviewContent {
             .height(40)
             .onChange((value: string) => {
               this.goalInputText = value
+              if (this.goalError.length > 0) {
+                this.goalError = ''
+              }
             })
           Text(weightUnitLabel(this.displayUnit))
             .fontFamily('Noto Sans SC')
@@ -2406,9 +2428,18 @@ export struct ReviewContent {
         }
         .margin({ top: 16 })
         .padding({ left: 14, right: 14 })
-        .backgroundColor('#171D24')
+        .backgroundColor(this.goalError.length > 0 ? ColorTokens.FIELD_ERROR_FILL : '#171D24')
         .borderRadius(14)
-        .border({ width: 1, color: '#1AFFFFFF' })
+        .border({ width: 1, color: this.goalError.length > 0 ? ColorTokens.FIELD_ERROR_BORDER : '#1AFFFFFF' })
+        .translate({ x: this.shakeOffset })
+        if (this.goalError.length > 0) {
+          Text(this.goalError)
+            .fontFamily('Noto Sans SC')
+            .fontSize(12)
+            .fontColor(ColorTokens.FIELD_ERROR_TEXT)
+            .width('100%')
+            .margin({ top: 8 })
+        }
         Row({ space: 10 }) {
           Text('取消')
             .fontFamily('Noto Sans SC')
