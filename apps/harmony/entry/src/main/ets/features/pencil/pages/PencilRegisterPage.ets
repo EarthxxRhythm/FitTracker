@@ -11,6 +11,16 @@ import { currentCanvasScale } from '../../../common/utils/CanvasScale'
 
 const COUNTDOWN_SECONDS: number = 60
 
+/**
+ * 字段错误态配色（Pencil 主线集中声明，避免在组件内散落魔法值）。
+ *
+ * 原型 `fittracker-auth.html` 的错误呈现为「输入框下方独立 `.auth-error` 行 + 描边转 `--warn-border`」；
+ * 本实现按需求改为「字段名位置直接显示错误提示 + 输入框描边转红」，故取更高饱和的红色。
+ */
+const FIELD_ERROR_BORDER: string = '#FFFF5A52'
+const FIELD_ERROR_FILL: string = '#14FF5A52'
+const FIELD_ERROR_TEXT: string = '#FFFF7A72'
+
 @Entry
 @Component
 struct PencilRegisterPage {
@@ -227,13 +237,36 @@ struct PencilRegisterPage {
     }
   }
 
+  /**
+   * 按字段名取当前错误文案。
+   *
+   * 为什么用方法而不是参数：ArkUI 的 `@Builder` 按值传参时，状态变量变化不会引起
+   * 其内部 UI 刷新（官方语义）。错误文案必须在 `@Builder` 函数体内经 `this` 读取，
+   * 才会建立依赖并在 `@State` 变化时重绘——故错误文本走本方法取，不走参数传。
+   */
+  private fieldError(label: string): string {
+    if (label === '昵称') {
+      return this.nicknameError
+    }
+    if (label === '邮箱') {
+      return this.emailError
+    }
+    if (label === '密码') {
+      return this.passwordError
+    }
+    if (label === '确认密码') {
+      return this.confirmError
+    }
+    return ''
+  }
+
   @Builder
-  private buildField(label: string, placeholder: string, isPassword: boolean, currentValue: string, errorMessage: string, onChange: (value: string) => void) {
+  private buildField(label: string, placeholder: string, isPassword: boolean, currentValue: string, onChange: (value: string) => void) {
     Column() {
-      Text(label)
+      Text(this.fieldError(label).length > 0 ? this.fieldError(label) : label)
         .fontFamily('Noto Sans SC')
         .fontSize(13)
-        .fontColor('#9EFFFFFF')
+        .fontColor(this.fieldError(label).length > 0 ? FIELD_ERROR_TEXT : '#9EFFFFFF')
         .width('100%')
         .margin({ bottom: 8 })
       Row({ space: 12 }) {
@@ -277,19 +310,11 @@ struct PencilRegisterPage {
       .width('100%')
       .height(52)
       .padding({ left: 16, right: 16 })
-      .backgroundColor(errorMessage.length > 0 ? '#0AFFB096' : (this.focusedKey === label ? '#0D50ECA7' : '#08FFFFFF'))
+      .backgroundColor(this.fieldError(label).length > 0 ? FIELD_ERROR_FILL : (this.focusedKey === label ? '#0D50ECA7' : '#08FFFFFF'))
       .borderRadius(18)
-      .border({ width: 1, color: errorMessage.length > 0 ? '#8CFFB096' : (this.focusedKey === label ? '#7350ECA7' : '#14FFFFFF') })
+      .border({ width: 1, color: this.fieldError(label).length > 0 ? FIELD_ERROR_BORDER : (this.focusedKey === label ? '#7350ECA7' : '#14FFFFFF') })
       .alignItems(VerticalAlign.Center)
       .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
-      if (errorMessage.length > 0) {
-        Text(errorMessage)
-          .fontFamily('Noto Sans SC')
-          .fontSize(12)
-          .fontColor('#FFD7C5')
-          .width('100%')
-          .margin({ top: 7 })
-      }
     }
     .width('100%')
   }
@@ -297,10 +322,10 @@ struct PencilRegisterPage {
   @Builder
   private buildCodeField() {
     Column() {
-      Text('邮箱验证码')
+      Text(this.codeError.length > 0 ? this.codeError : '邮箱验证码')
         .fontFamily('Noto Sans SC')
         .fontSize(13)
-        .fontColor('#9EFFFFFF')
+        .fontColor(this.codeError.length > 0 ? FIELD_ERROR_TEXT : '#9EFFFFFF')
         .width('100%')
         .margin({ bottom: 8 })
       Row({ space: 10 }) {
@@ -340,19 +365,11 @@ struct PencilRegisterPage {
       .width('100%')
       .height(52)
       .padding({ left: 16, right: 10 })
-      .backgroundColor(this.codeError.length > 0 ? '#0AFFB096' : (this.focusedKey === 'code' ? '#0D50ECA7' : '#08FFFFFF'))
+      .backgroundColor(this.codeError.length > 0 ? FIELD_ERROR_FILL : (this.focusedKey === 'code' ? '#0D50ECA7' : '#08FFFFFF'))
       .borderRadius(18)
-      .border({ width: 1, color: this.codeError.length > 0 ? '#8CFFB096' : (this.focusedKey === 'code' ? '#7350ECA7' : '#14FFFFFF') })
+      .border({ width: 1, color: this.codeError.length > 0 ? FIELD_ERROR_BORDER : (this.focusedKey === 'code' ? '#7350ECA7' : '#14FFFFFF') })
       .alignItems(VerticalAlign.Center)
       .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
-      if (this.codeError.length > 0) {
-        Text(this.codeError)
-          .fontFamily('Noto Sans SC')
-          .fontSize(12)
-          .fontColor('#FFD7C5')
-          .width('100%')
-          .margin({ top: 7 })
-      }
     }
     .width('100%')
   }
@@ -405,20 +422,20 @@ struct PencilRegisterPage {
 
             Column({ space: 14 }) {
               this.buildSandboxBanner()
-              this.buildField('昵称', '给自己起个名字', false, this.nickname, this.nicknameError, (value: string) => {
+              this.buildField('昵称', '给自己起个名字', false, this.nickname, (value: string) => {
                 this.nickname = value
                 if (this.nicknameError.length > 0) { this.nicknameError = '' }
               })
-              this.buildField('邮箱', '请输入邮箱', false, this.email, this.emailError, (value: string) => {
+              this.buildField('邮箱', '请输入邮箱', false, this.email, (value: string) => {
                 this.email = value
                 if (this.emailError.length > 0) { this.emailError = '' }
               })
               this.buildCodeField()
-              this.buildField('密码', '设置 8 位以上密码', true, this.password, this.passwordError, (value: string) => {
+              this.buildField('密码', '设置 8 位以上密码', true, this.password, (value: string) => {
                 this.password = value
                 if (this.passwordError.length > 0) { this.passwordError = '' }
               })
-              this.buildField('确认密码', '再次输入密码', true, this.confirmPassword, this.confirmError, (value: string) => {
+              this.buildField('确认密码', '再次输入密码', true, this.confirmPassword, (value: string) => {
                 this.confirmPassword = value
                 if (this.confirmError.length > 0) { this.confirmError = '' }
               })
