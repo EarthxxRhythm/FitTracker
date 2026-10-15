@@ -109,6 +109,17 @@ export class ColorTokens {
   static readonly STATE_SUCCESS_BORDER: string = 'rgba(69,201,161,0.22)'
   static readonly STATE_WARN_BORDER: string = 'rgba(181,152,105,0.22)'
   static readonly STATE_ERROR_BORDER: string = 'rgba(215,124,120,0.22)'
+
+  /**
+   * 表单字段错误态三色（输入框描边 / 填充 / 提示文字）。
+   *
+   * 用于「字段校验失败时输入框转红 + 字段名位置显示红色错误提示」这一统一交互，
+   * 登录页、注册页、身体数据体重输入、复盘目标输入共用，避免各组件各自声明魔法值。
+   */
+  static readonly FIELD_ERROR_BORDER: string = '#FFFF5A52'
+  static readonly FIELD_ERROR_FILL: string = '#14FF5A52'
+  static readonly FIELD_ERROR_TEXT: string = '#FFFF7A72'
+
   static readonly PROGRESS_TRACK: string = 'rgba(255,255,255,0.08)'
   static readonly PROGRESS_FILL: string = '#45C9A1'
   static readonly PROGRESS_FILL_SOFT: string = '#8CEBCC'
@@ -392,7 +403,11 @@ export class MotionTokens {
   static readonly PRESS_TAB_PILL: number = 0.96
   static readonly PRESS_BACK: number = 0.94
 
-  // Legacy string easings (kept for compatibility; not used by ArkUI animation APIs)
+  // 字段错误「左右抖动」——输入框在 X 轴上来回位移，用于校验失败的即时反馈。
+  // X 位移振幅（vp）；总时长约 4 个 keyframe × DURATION_SHAKE_STEP。
+  static readonly SHAKE_AMPLITUDE: number = 6
+  static readonly DURATION_SHAKE_STEP: number = 52
+
   static readonly EASE_IN_OUT: string = 'cubic-bezier(0.4, 0.0, 0.2, 1.0)'
   static readonly EASE_OUT: string = 'cubic-bezier(0.0, 0.0, 0.2, 1.0)'
   static readonly EASE_STANDARD: string = 'cubic-bezier(0.28, 0, 0.22, 1)'

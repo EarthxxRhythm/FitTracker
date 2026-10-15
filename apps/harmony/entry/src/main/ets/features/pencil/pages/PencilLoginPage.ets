@@ -11,18 +11,14 @@ import CloudSyncService from '../../../shared/services/CloudSyncService'
 import { Context, common } from '@kit.AbilityKit'
 import { ColorTokens, MotionTokens } from '../../../common/styles/DesignTokens'
 import { currentCanvasScale } from '../../../common/utils/CanvasScale'
+import { shakeField } from '../../../common/utils/FieldShake'
 
 const COUNTDOWN_SECONDS: number = 60
 
-/**
- * 字段错误态配色（Pencil 主线集中声明，避免在组件内散落魔法值）。
- *
- * 原型 `fittracker-auth.html` 的错误呈现为「输入框下方独立 `.auth-error` 行 + 描边转 `--warn-border`」；
- * 本实现按需求改为「字段名位置直接显示错误提示 + 输入框描边转红」，故取更高饱和的红色。
- */
-const FIELD_ERROR_BORDER: string = '#FFFF5A52'
-const FIELD_ERROR_FILL: string = '#14FF5A52'
-const FIELD_ERROR_TEXT: string = '#FFFF7A72'
+/** 字段错误态配色——统一取自 DesignTokens，与注册/体重/目标输入共用同一套。 */
+const FIELD_ERROR_BORDER: string = ColorTokens.FIELD_ERROR_BORDER
+const FIELD_ERROR_FILL: string = ColorTokens.FIELD_ERROR_FILL
+const FIELD_ERROR_TEXT: string = ColorTokens.FIELD_ERROR_TEXT
 
 @Entry
 @Component
@@ -50,6 +46,9 @@ struct PencilLoginPage {
   @State revealPassword: boolean = false
   @State focusedField: string = ''
   @State sandboxMode: boolean = false
+  /** 正在抖动的字段键 + 该字段的横向偏移——只有出错字段会动。 */
+  @State shakeFieldKey: string = ''
+  @State shakeOffset: number = 0
   private codeTimer: number = -1
 
   private contextOrNull(): Context | null {
@@ -145,6 +144,7 @@ struct PencilLoginPage {
     this.phoneError = ''
     if (this.phone.length === 0) {
       this.phoneError = '请输入手机号'
+      this.shake('phone')
       return
     }
     const context = this.contextOrNull()
@@ -186,10 +186,12 @@ struct PencilLoginPage {
     if (this.loginMode === 'phone') {
       if (this.phone.length === 0) {
         this.phoneError = '请输入手机号'
+        this.shake('phone')
         return
       }
       if (this.code.length === 0) {
         this.codeError = '请输入验证码'
+        this.shake('code')
         return
       }
       this.loading = true
@@ -202,10 +204,12 @@ struct PencilLoginPage {
     } else {
       if (this.email.length === 0) {
         this.emailError = '请输入邮箱'
+        this.shake('email')
         return
       }
       if (this.password.length === 0) {
         this.passwordError = '请输入密码'
+        this.shake('password')
         return
       }
       this.loading = true
@@ -394,6 +398,14 @@ struct PencilLoginPage {
       })
   }
 
+  /** 触发某字段的左右抖动（校验失败时调用）。 */
+  private shake(fieldKey: string): void {
+    this.shakeFieldKey = fieldKey
+    shakeField(this.getUIContext(), (value: number) => {
+      this.shakeOffset = value
+    })
+  }
+
   /**
    * 按字段键取当前错误文案。
    *
@@ -476,6 +488,7 @@ struct PencilLoginPage {
       .border({ width: 1, color: this.fieldError(fieldKey).length > 0 ? FIELD_ERROR_BORDER : (this.focusedField === fieldKey ? '#7350ECA7' : '#14FFFFFF') })
       .alignItems(VerticalAlign.Center)
       .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
+      .translate({ x: this.shakeFieldKey === fieldKey ? this.shakeOffset : 0 })
     }
     .width('100%')
   }
@@ -533,6 +546,7 @@ struct PencilLoginPage {
       .border({ width: 1, color: this.codeError.length > 0 ? FIELD_ERROR_BORDER : (this.focusedField === 'code' ? '#7350ECA7' : '#14FFFFFF') })
       .alignItems(VerticalAlign.Center)
       .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
+      .translate({ x: this.shakeFieldKey === 'code' ? this.shakeOffset : 0 })
     }
     .width('100%')
   }
