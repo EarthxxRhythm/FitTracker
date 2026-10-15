@@ -404,9 +404,13 @@ export class MotionTokens {
   static readonly PRESS_BACK: number = 0.94
 
   // 字段错误「左右抖动」——输入框在 X 轴上来回位移，用于校验失败的即时反馈。
-  // X 位移振幅（vp）；总时长约 4 个 keyframe × DURATION_SHAKE_STEP。
-  static readonly SHAKE_AMPLITUDE: number = 6
-  static readonly DURATION_SHAKE_STEP: number = 52
+  // 规格逐字对应设计给出的 CSS `@keyframes shake`：峰值 10px、10 段 × 50ms（总 500ms）。
+  // 设计基准 390vp 屏下 1px = 1vp（原型画布 390×844，见 CanvasScale.ets 注释）。
+  static readonly SHAKE_AMPLITUDE: number = 10
+  static readonly DURATION_SHAKE_STEP: number = 50
+  // 抖动曲线：CSS `ease-in-out` 的等价贝塞尔 (0.42, 0, 0.58, 1)。
+  // 不复用 EASE_MOTION——那是按压语汇（更快收束），抖动需在每段关键帧间隔内缓入缓出。
+  static readonly EASE_SHAKE: ICurve = curves.cubicBezierCurve(0.42, 0, 0.58, 1)
 
   static readonly EASE_IN_OUT: string = 'cubic-bezier(0.4, 0.0, 0.2, 1.0)'
   static readonly EASE_OUT: string = 'cubic-bezier(0.0, 0.0, 0.2, 1.0)'
