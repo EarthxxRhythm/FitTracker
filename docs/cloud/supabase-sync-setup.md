@@ -48,9 +48,12 @@ Supabase 与 AGC 配置同时存在时，以 Supabase 为准（显式配置优�
 ## 4. 验证步骤
 
 1. **构建**：`cd apps/harmony && devecocli build --product default`
-2. **契约测试**（设备/模拟器在线时）：
-   `powershell -NoProfile -ExecutionPolicy Bypass -File apps/harmony/tools/ohos-test.ps1 -ClassNames SupabaseCloudSnapshotStore,CloudSyncService -DeviceId <target>`
+2. **契约测试**（设备/模拟器在线时，全量执行）：
+   `powershell -NoProfile -ExecutionPolicy Bypass -File apps/harmony/tools/ohos-test.ps1 -Preset full -DeviceId <target>`
    覆盖：ISO8601 codec（互逆 / 微秒截断 / 偏移归一 / 畸形拒绝）、pull/push 请求构造与响应分支、token 透传。
+   > ⚠ 不要用 `-ClassNames SupabaseCloudSnapshotStore,CloudSyncService`：Hypium 的 `-s class` 按 describe **全名精确匹配**，
+   > 这两个套件的 describe 名带后缀（`SupabaseCloudSnapshotStore codec` / `CloudSyncService decision matrix` 等），
+   > 传短名会匹配到 0 个用例且 **result code 仍为 0**（假绿）。2026-10-15 实测：短名 0 用例，全量 287/287。
 3. **端到端**（真机/模拟器）：
    - 登录（Supabase 认证）→ 账号与同步页「立即同步」→ UI 显示「已同步」；
    - 服务端核对：Dashboard → Table Editor → `snapshots` 出现本人一行；
@@ -91,7 +94,7 @@ Supabase 与 AGC 配置同时存在时，以 Supabase 为准（显式配置优�
 
 ### 6.2 端侧配置
 
-**鸿蒙**：把 `apps/harmony/AppScope/resources/rawfile/thirdparty.json` 落盘（不入库，模板见同目录 `thirdparty.example.json`）：
+**鸿蒙**：把 `thirdparty.json` 落盘到 `AppScope/resources/rawfile/`（不入库，模板见 `AppScope/resources/rawfile/thirdparty.example.json`）：
 
 ```json
 {
