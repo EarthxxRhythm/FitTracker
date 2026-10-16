@@ -1,6 +1,9 @@
 package com.fittracker.app.ui.screens.body
 
 import com.fittracker.app.R
+import com.fittracker.app.data.model.BodyMeasurement
+import com.fittracker.app.data.service.Gender
+import com.fittracker.app.data.service.UserProfileService
 import com.fittracker.app.data.service.WeightUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -39,7 +42,7 @@ class FtBodyModelTest {
 
     @Test
     fun `KG_主数值格式与目标标签`() {
-        assertEquals("72.5", FtBodyModel.formatDisplay(FtBodyModel.INITIAL_WEIGHT, WeightUnit.KG))
+        assertEquals("72.5", FtBodyModel.formatDisplay(72.5, WeightUnit.KG))
         val goal = FtBodyModel.goalLabel(WeightUnit.KG)
         assertEquals(R.string.body_goal_label, goal.res)
         assertEquals(listOf("74.0", "kg"), goal.args)
@@ -47,7 +50,8 @@ class FtBodyModelTest {
 
     @Test
     fun `delta文案锁定资源与U+2212减号`() {
-        val delta = FtBodyModel.deltaInitial(WeightUnit.KG)
+        // 原型样例 delta 已移除（假数据清理）；改为断言带参文案的资源与符号口径。
+        val delta = FtBodyModel.deltaText(-0.3, WeightUnit.KG)
         assertEquals(R.string.body_delta_last_week, delta.res)
         assertEquals(listOf("−0.3 kg"), delta.args)
         val arg = delta.args[0] as String
@@ -56,27 +60,24 @@ class FtBodyModelTest {
     }
 
     @Test
-    fun `趋势标题资源随尺度切换`() {
-        assertEquals(R.string.body_trend_caption_week, FtBodyModel.trendCaption(TrendPeriod.WEEK, WeightUnit.KG).res)
-        assertEquals(R.string.body_trend_caption_month, FtBodyModel.trendCaption(TrendPeriod.MONTH, WeightUnit.KG).res)
-        assertEquals(R.string.body_trend_caption_year, FtBodyModel.trendCaption(TrendPeriod.YEAR, WeightUnit.KG).res)
-        assertEquals(listOf("−0.3 kg"), FtBodyModel.trendCaption(TrendPeriod.WEEK, WeightUnit.KG).args)
-        assertEquals(listOf("+0.7 kg"), FtBodyModel.trendCaption(TrendPeriod.MONTH, WeightUnit.KG).args)
-        assertEquals(listOf("+4.5 kg"), FtBodyModel.trendCaption(TrendPeriod.YEAR, WeightUnit.KG).args)
+    fun `无趋势时兜底为空态而非样例差值`() {
+        // 原型样例 delta（−0.3 / +0.7 / +4.5）已随假数据清理移除；无 trend 的兜底一律空态。
+        assertEquals(R.string.body_trend_empty, FtBodyModel.trendCaption(TrendPeriod.WEEK, WeightUnit.KG).res)
+        assertEquals(R.string.body_trend_empty, FtBodyModel.trendCaption(TrendPeriod.MONTH, WeightUnit.KG).res)
+        assertEquals(R.string.body_trend_empty, FtBodyModel.trendCaption(TrendPeriod.YEAR, WeightUnit.KG).res)
     }
 
     @Test
     fun `带符号差值锁定U+00B7中点用于caption`() {
-        // trendCaption(TrendPeriod.WEEK, LBS) 的差值参数为 `−0.7 lbs`（0.3 kg → 0.7 lbs）。
-        val lbs = FtBodyModel.trendCaption(TrendPeriod.WEEK, WeightUnit.LBS)
-        assertEquals(listOf("−0.7 lbs"), lbs.args)
-        // 单位标签与符号随单位换算。
+        // signedWeight 的符号与换算口径（U+2212 减号）。
         assertEquals("+9.9 lbs", FtBodyModel.signedWeight(4.5, WeightUnit.LBS))
+        assertEquals("−0.3 kg", FtBodyModel.signedWeight(-0.3, WeightUnit.KG))
+        assertTrue("应含 U+2212 减号", '\u2212' in FtBodyModel.signedWeight(-0.3, WeightUnit.KG))
     }
 
     @Test
     fun `目标缺口资源与达标分支`() {
-        val gap = FtBodyModel.goalGap(FtBodyModel.INITIAL_WEIGHT, WeightUnit.KG)
+        val gap = FtBodyModel.goalGap(72.5, WeightUnit.KG)
         assertEquals(R.string.body_goal_gap, gap.res)
         assertEquals(listOf("1.5", "kg"), gap.args)
 
@@ -94,23 +95,50 @@ class FtBodyModelTest {
     }
 
     @Test
-    fun `身体成分仅换算质量格`() {
-        assertEquals(FtBodyModel.METRICS, FtBodyModel.metrics(WeightUnit.KG))
+    fun `身体成分为真实派生且未录时占位`() {
+        // 无测量记录、档案未填、无体重 → 四格全占位（不再展示原型样例 22.9/34.2/1710/58.2）。
+        val blank = FtBodyModel.metrics(
+            WeightUnit.KG,
+            latest = null,
+            profile = UserProfileService.getDefaultProfile(),
+            weightKg = null,
+            now = 0L,
+        )
+        assertEquals(4, blank.size)
+        blank.forEach { assertEquals(FtBodyModel.PLACEHOLDER, it.value) }
 
-        val metrics = FtBodyModel.metrics(WeightUnit.LBS)
-        assertEquals(4, metrics.size)
+        // 有档案与体重 → BMI 按公式真算；有测量记录 → 骨骼肌随单位换算。
+        val profile = UserProfileService.getDefaultProfile().copy(
+            heightCm = 178,
+            gender = Gender.MALE,
+            birthYear = 1996,
+        )
+        val measurement = BodyMeasurement(dateMillis = 0L, skeletalMuscleKg = 34.2, bodyWaterPercent = 58.2)
+        val kg = FtBodyModel.metrics(
+            WeightUnit.KG,
+            latest = measurement,
+            profile = profile,
+            weightKg = 72.5,
+            now = 0L,
+        )
+        // BMI = 72.5 / 1.78² = 22.882… → 22.9
+        assertEquals("22.9", kg[0].value)
+        assertEquals("34.2", kg[1].value)
+        assertEquals("kg", kg[1].unit)
+        assertEquals("58.2", kg[3].value)
 
+        val lbs = FtBodyModel.metrics(
+            WeightUnit.LBS,
+            latest = measurement,
+            profile = profile,
+            weightKg = 72.5,
+            now = 0L,
+        )
         // 骨骼肌 34.2 kg → 75.4 lbs，单位标签改写为 lbs。
-        val muscle = metrics.first { it.labelRes == R.string.body_metric_muscle }
-        assertEquals("75.4", muscle.value)
-        assertEquals("lbs", muscle.unit)
-
-        // 非质量格（BMI / 基础代谢 kcal / 身体水分 %）保持原值。
-        assertEquals(FtBodyModel.METRICS[0], metrics[0]) // BMI（无单位）
-        assertEquals("1710", metrics[2].value)
-        assertEquals("kcal", metrics[2].unit)
-        assertEquals("58.2", metrics[3].value)
-        assertEquals("%", metrics[3].unit)
+        assertEquals("75.4", lbs[1].value)
+        assertEquals("lbs", lbs[1].unit)
+        // BMI 非质量格，不随单位换算。
+        assertEquals("22.9", lbs[0].value)
     }
 
     // ── LBS：换算值 ─────────────────────────────────────────────────
@@ -123,7 +151,7 @@ class FtBodyModelTest {
 
     @Test
     fun `LBS_主数值与目标标签`() {
-        assertEquals("159.8", FtBodyModel.formatDisplay(FtBodyModel.INITIAL_WEIGHT, WeightUnit.LBS))
+        assertEquals("159.8", FtBodyModel.formatDisplay(72.5, WeightUnit.LBS))
         assertEquals(listOf("163.1", "lbs"), FtBodyModel.goalLabel(WeightUnit.LBS).args)
     }
 
@@ -148,8 +176,8 @@ class FtBodyModelTest {
 
     @Test
     fun `goalPercent为四舍五入且封顶100`() {
-        assertEquals(98, FtBodyModel.goalPercent(FtBodyModel.INITIAL_WEIGHT))
-        assertEquals(FtBodyModel.INITIAL_GOAL_PERCENT, FtBodyModel.goalPercent(FtBodyModel.INITIAL_WEIGHT))
+        assertEquals(98, FtBodyModel.goalPercent(72.5))
+        assertEquals(98, FtBodyModel.goalPercent(72.5))
         assertEquals(100, FtBodyModel.goalPercent(74.0))
         assertEquals(100, FtBodyModel.goalPercent(80.0))
         assertEquals(50, FtBodyModel.goalPercent(37.0))

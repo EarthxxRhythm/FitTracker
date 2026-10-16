@@ -90,4 +90,28 @@
     <!-- 校验失败提示（L548） -->
     <string name="body_invalid_hint">请输入 0–500 之间的有效体重</string>
 
+    <!-- 新增录入渠道（围度与体成分 / 身体档案）——App 此前无这些项的数据源 -->
+    <string name="body_record_measurements">记录围度与体成分</string>
+    <string name="body_record_profile">填写身体档案</string>
+    <string name="body_measure_sheet_title">围度与体成分</string>
+    <string name="body_measure_sheet_sub">体脂率/骨骼肌/水分为体脂秤读数，请按实测填写；留空表示未录</string>
+    <string name="body_field_chest">胸围 (cm)</string>
+    <string name="body_field_waist">腰围 (cm)</string>
+    <string name="body_field_hip">臀围 (cm)</string>
+    <string name="body_field_arm">臂围 (cm)</string>
+    <string name="body_field_thigh">大腿围 (cm)</string>
+    <string name="body_field_fat">体脂率 (%)</string>
+    <string name="body_field_muscle">骨骼肌 (kg)</string>
+    <string name="body_field_water">身体水分 (%)</string>
+    <string name="body_measure_invalid_empty">请至少填写一项</string>
+    <string name="body_profile_sheet_title">身体档案</string>
+    <string name="body_profile_sheet_sub">用于计算 BMI 与基础代谢；不填写则不展示这些指标</string>
+    <string name="body_profile_height">身高 (cm)</string>
+    <string name="body_profile_gender">性别</string>
+    <string name="body_profile_gender_male">男</string>
+    <string name="body_profile_gender_female">女</string>
+    <string name="body_profile_birth_year">出生年份</string>
+    <string name="body_profile_invalid_height">请输入 0–300 之间的有效身高</string>
+    <string name="body_profile_invalid_birth_year">请输入有效的出生年份</string>
+
 </resources>
