@@ -70,6 +70,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fittracker.app.R
 import com.fittracker.app.data.model.BodyMeasurement
 import com.fittracker.app.data.model.MEASUREMENT_UNSET
 import com.fittracker.app.data.model.WeightRecord
@@ -122,6 +123,14 @@ import kotlin.math.min
  * 「今日已记录 · 刚刚」并刷新目标进度（L551-554）；取消/遮罩/Escape 关闭（L538-540、L557-560）。
  * 原型 `FT_APP.routes`（L564）把返回键指向 `profile`。
  */
+/**
+ * 记录面板档位——三档共用同一 `.sheet-layer` 外壳。
+ *
+ * [WEIGHT] 沿用原型内的体重面板；[MEASUREMENT] / [PROFILE] 为新增录入渠道
+ * （此前 App 无围度/体成分/身高性别年龄的数据源，故对应卡只能显示占位）。
+ */
+private enum class BodySheetMode { WEIGHT, MEASUREMENT, PROFILE }
+
 @Composable
 fun BodyScreen(
     onNavigate: (String) -> Unit,
@@ -130,7 +139,8 @@ fun BodyScreen(
 ) {
     var period by remember { mutableStateOf(TrendPeriod.WEEK) }
     var saved by remember { mutableStateOf(false) }
-    var sheetOpen by remember { mutableStateOf(false) }
+    // 录入面板档位：null = 关闭。体重档沿用既有 WeightSheet；测量档 / 档案档为本次新增。
+    var sheetMode by remember { mutableStateOf<BodySheetMode?>(null) }
 
     // 设置项「体重单位」的消费：与设置屏同一持久化口径（[UserProfileService]）。
     val context = LocalContext.current
@@ -236,7 +246,11 @@ fun BodyScreen(
                     CompositionCard(unit = weightUnit, latest = latestMeasurement, profile = profile, weightKg = weight, now = now)
                     TrendCard(period = period, onPeriod = { period = it }, series = trendSeries, caption = trendCaptionLabel.text())
                     MeasurementsCard(latest = latestMeasurement, previous = previousMeasurement)
-                    RecordButton(onClick = { sheetOpen = true }) // `#btn-record-weight`（L421）
+                    RecordButton(onClick = { sheetMode = BodySheetMode.WEIGHT }) // `#btn-record-weight`（L421）
+                    SecondaryRecordRow(
+                        onMeasurement = { sheetMode = BodySheetMode.MEASUREMENT },
+                        onProfile = { sheetMode = BodySheetMode.PROFILE },
+                    )
                     Text(
                         text = stringResource(FtBodyModel.footNote(weightUnit)), // 承诺随当前单位改写（L422）
                         modifier = Modifier.padding(horizontal = 4.dp), // `.foot-note { padding: 0 4px }`（L207）
@@ -247,9 +261,9 @@ fun BodyScreen(
             }
         }
 
-        // ── 记录体重底部面板（`.sheet-layer`，L210-239）────────────────
+        // ── 记录面板（`.sheet-layer`，L210-239）三档共用同一外壳 ──────────
         AnimatedVisibility(
-            visible = sheetOpen,
+            visible = sheetMode != null,
             enter = fadeIn(tween(FtMotion.DURATION_OVERLAY)),
             exit = fadeOut(tween(FtMotion.DURATION_OVERLAY)),
         ) {
@@ -257,33 +271,61 @@ fun BodyScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Scrim) // `.sheet-backdrop { background: rgba(0,0,0,.5) }`（L211）
-                    .clickableNoRipple { sheetOpen = false }, // data-close-sheet（L429）
+                    .clickableNoRipple { sheetMode = null }, // data-close-sheet（L429）
             )
         }
         AnimatedVisibility(
-            visible = sheetOpen,
+            visible = sheetMode != null,
             modifier = Modifier.align(Alignment.BottomCenter),
             // `.sheet { transform: translateY(102%) }` + `cubic-bezier(.32,.72,.3,1) .3s`（L214-215）
             enter = slideInVertically(tween(FtMotion.DURATION_PANEL, easing = FtMotion.EASE_PANEL)) { it },
             exit = slideOutVertically(tween(FtMotion.DURATION_PANEL, easing = FtMotion.EASE_PANEL)) { it },
         ) {
-            WeightSheet(
-                initial = weight, // 输入框预填为最近一次真实体重；无记录则留空（不再回落原型样例 72.5）
-                unit = weightUnit,
-                onDismiss = { sheetOpen = false },
-                onSave = { value ->
-                    sheetOpen = false
-                    // 落盘实际记录（kg 基准）后即时重读 → 主数值 / 趋势 / 「较上周」刷新。
-                    scope.launch {
-                        BodyRecordService.addRecord(
-                            store,
-                            WeightRecord(dateMillis = System.currentTimeMillis(), kg = value),
-                        )
-                        records = BodyRecordService.loadRecords(store)
-                        saved = true
-                    }
-                },
-            )
+            when (sheetMode) {
+                BodySheetMode.WEIGHT -> WeightSheet(
+                    initial = weight, // 输入框预填为最近一次真实体重；无记录则留空（不再回落原型样例 72.5）
+                    unit = weightUnit,
+                    onDismiss = { sheetMode = null },
+                    onSave = { value ->
+                        sheetMode = null
+                        // 落盘实际记录（kg 基准）后即时重读 → 主数值 / 趋势 / 「较上周」刷新。
+                        scope.launch {
+                            BodyRecordService.addRecord(
+                                store,
+                                WeightRecord(dateMillis = System.currentTimeMillis(), kg = value),
+                            )
+                            records = BodyRecordService.loadRecords(store)
+                            saved = true
+                        }
+                    },
+                )
+                BodySheetMode.MEASUREMENT -> MeasurementSheet(
+                    latest = latestMeasurement,
+                    onDismiss = { sheetMode = null },
+                    onSave = { draft ->
+                        sheetMode = null
+                        scope.launch {
+                            BodyMeasurementService.addMeasurement(
+                                store,
+                                draft.copy(dateMillis = System.currentTimeMillis()),
+                            )
+                            measurementReload += 1
+                        }
+                    },
+                )
+                BodySheetMode.PROFILE -> BodyProfileSheet(
+                    profile = profile,
+                    onDismiss = { sheetMode = null },
+                    onSave = { heightCm, gender, birthYear ->
+                        sheetMode = null
+                        scope.launch {
+                            UserProfileService.saveBodyProfile(store, heightCm, gender, birthYear)
+                            measurementReload += 1
+                        }
+                    },
+                )
+                null -> Unit
+            }
         }
     }
 }
@@ -1225,3 +1267,362 @@ private val AreaBottom = FtColor.accent.copy(alpha = 0f)
 
 /** 趋势轴标签 `rgba(255,255,255,.5)` → round(127.5) = 128 = 0x80（L494） */
 private val ChartLabel = Color(0x80FFFFFF)
+
+// ── 新增录入渠道（围度与体成分 / 身体档案） ──────────────────────
+//
+// 此前 App 无这些项的数据源，对应卡只能占位（见 CompositionCard / MeasurementsCard 注释）。
+// 两个面板复用 `.sheet-layer` 的视觉语言（圆角 28 顶、顶描边、grip、取消/保存按钮），
+// 仅把「单字段大号输入」改为「多字段小号输入」。
+
+/**
+ * 次要录入入口行：`.bd-cta` 下方的两个文本按钮。
+ *
+ * 主 CTA（记录今日体重）保持原型位置与样式不变，本行是新增能力的入口。
+ */
+@Composable
+private fun SecondaryRecordRow(
+    onMeasurement: () -> Unit,
+    onProfile: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        SecondaryRecordButton(
+            label = stringResource(R.string.body_record_measurements),
+            onClick = onMeasurement,
+            modifier = Modifier.weight(1f),
+        )
+        SecondaryRecordButton(
+            label = stringResource(R.string.body_record_profile),
+            onClick = onProfile,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun SecondaryRecordButton(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(16.dp)
+    Box(
+        modifier = modifier
+            .height(44.dp)
+            .clip(shape)
+            .background(FtColor.glass6)
+            .border(1.dp, FtColor.line14, shape)
+            .clickableNoRipple(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            style = FtType.natural(13f, 600),
+            color = FtColor.txtHi,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+/** 面板外壳（与 WeightSheet 同版式：grip + 标题 + 副题 + 内容 + 取消/保存）。 */
+@Composable
+private fun SheetScaffold(
+    title: String,
+    subtitle: String,
+    onDismiss: () -> Unit,
+    onSave: () -> Unit,
+    hint: String,
+    content: @Composable () -> Unit,
+) {
+    val shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(24.dp, shape)
+            .clip(shape)
+            .background(FtColor.ink1)
+            .drawBehind {
+                drawLine(
+                    color = FtColor.line10,
+                    start = Offset.Zero,
+                    end = Offset(size.width, 0f),
+                    strokeWidth = 1.dp.toPx(),
+                )
+            }
+            .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 30.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(
+            modifier = Modifier
+                .padding(bottom = 18.dp)
+                .width(40.dp)
+                .height(4.dp)
+                .clip(FtShape.pill)
+                .background(FtColor.white32),
+        )
+        Text(
+            text = title,
+            modifier = Modifier.fillMaxWidth(),
+            style = FtType.natural(17f, 700),
+            color = FtColor.txtHi,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = subtitle,
+            modifier = Modifier.fillMaxWidth().padding(top = 5.dp),
+            style = FtType.natural(12f),
+            color = FtColor.white54,
+            textAlign = TextAlign.Center,
+        )
+        content()
+        Text(
+            text = hint,
+            modifier = Modifier.fillMaxWidth().padding(top = 14.dp).heightIn(min = 16.dp),
+            style = FtType.natural(11.5f),
+            color = FtColor.accent,
+            textAlign = TextAlign.Center,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            SheetButton(
+                label = stringResource(FtBodyModel.SHEET_CANCEL_RES),
+                primary = false,
+                onClick = onDismiss,
+                modifier = Modifier.weight(1f),
+            )
+            SheetButton(
+                label = stringResource(FtBodyModel.SHEET_SAVE_RES),
+                primary = true,
+                onClick = onSave,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+/** 一行「标签 + 小号数值输入」——多字段面板的原子单元。 */
+@Composable
+private fun MeasureField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.weight(1f),
+            style = FtType.natural(13f),
+            color = FtColor.white62,
+        )
+        Box(
+            modifier = Modifier
+                .width(110.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(FtColor.glass6)
+                .border(1.dp, FtColor.line14, RoundedCornerShape(12.dp))
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                textStyle = TextStyle(
+                    fontFamily = FtType.num,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = FtColor.txtHi,
+                    textAlign = TextAlign.Center,
+                ),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            )
+        }
+    }
+}
+
+/**
+ * 围度与体成分录入面板。
+ *
+ * 空串 = 未录（落库为 [MEASUREMENT_UNSET]），故用户可只填关心的项。
+ */
+@Composable
+private fun MeasurementSheet(
+    latest: BodyMeasurement?,
+    onDismiss: () -> Unit,
+    onSave: (BodyMeasurement) -> Unit,
+) {
+    // 预填最近一次读数（便于「只改一项」），无记录或该项未录则留空。
+    var chest by remember { mutableStateOf(initialFieldText(latest, { it.chestCm })) }
+    var waist by remember { mutableStateOf(initialFieldText(latest, { it.waistCm })) }
+    var hip by remember { mutableStateOf(initialFieldText(latest, { it.hipCm })) }
+    var arm by remember { mutableStateOf(initialFieldText(latest, { it.armCm })) }
+    var thigh by remember { mutableStateOf(initialFieldText(latest, { it.thighCm })) }
+    var fat by remember { mutableStateOf(initialFieldText(latest, { it.bodyFatPercent })) }
+    var muscle by remember { mutableStateOf(initialFieldText(latest, { it.skeletalMuscleKg })) }
+    var water by remember { mutableStateOf(initialFieldText(latest, { it.bodyWaterPercent })) }
+    var hint by remember { mutableStateOf("") }
+    val emptyHint = stringResource(R.string.body_measure_invalid_empty)
+
+    SheetScaffold(
+        title = stringResource(R.string.body_measure_sheet_title),
+        subtitle = stringResource(R.string.body_measure_sheet_sub),
+        onDismiss = onDismiss,
+        hint = hint,
+        onSave = {
+            val draft = BodyMeasurement(
+                dateMillis = 0L, // 由调用方补当前时间
+                chestCm = parseField(chest),
+                waistCm = parseField(waist),
+                hipCm = parseField(hip),
+                armCm = parseField(arm),
+                thighCm = parseField(thigh),
+                bodyFatPercent = parseField(fat),
+                skeletalMuscleKg = parseField(muscle),
+                bodyWaterPercent = parseField(water),
+            )
+            val hasAny = draft.chestCm != UNSET_VALUE ||
+                draft.waistCm != UNSET_VALUE ||
+                draft.hipCm != UNSET_VALUE ||
+                draft.armCm != UNSET_VALUE ||
+                draft.thighCm != UNSET_VALUE ||
+                draft.bodyFatPercent != UNSET_VALUE ||
+                draft.skeletalMuscleKg != UNSET_VALUE ||
+                draft.bodyWaterPercent != UNSET_VALUE
+            if (!hasAny) {
+                hint = emptyHint
+                return@SheetScaffold
+            }
+            onSave(draft)
+        },
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+            MeasureField(stringResource(R.string.body_field_chest), chest) { chest = it }
+            MeasureField(stringResource(R.string.body_field_waist), waist) { waist = it }
+            MeasureField(stringResource(R.string.body_field_hip), hip) { hip = it }
+            MeasureField(stringResource(R.string.body_field_arm), arm) { arm = it }
+            MeasureField(stringResource(R.string.body_field_thigh), thigh) { thigh = it }
+            MeasureField(stringResource(R.string.body_field_fat), fat) { fat = it }
+            MeasureField(stringResource(R.string.body_field_muscle), muscle) { muscle = it }
+            MeasureField(stringResource(R.string.body_field_water), water) { water = it }
+        }
+    }
+}
+
+/** 未录值（与 [MEASUREMENT_UNSET] 同值，Double 形态）。 */
+private val UNSET_VALUE: Double = MEASUREMENT_UNSET.toDouble()
+
+/** 预填文本：记录存在且该项已录 → 数值文本；否则空串（= 未录）。 */
+private fun initialFieldText(latest: BodyMeasurement?, pick: (BodyMeasurement) -> Double): String {
+    if (latest == null) {
+        return ""
+    }
+    val value = pick(latest)
+    if (value == UNSET_VALUE) {
+        return ""
+    }
+    return FtBodyModel.formatWeight(value)
+}
+
+/** 输入文本 → 数值；空串 / 非法 / 负数一律视为未录（[MEASUREMENT_UNSET]）。 */
+private fun parseField(text: String): Double {
+    val parsed = text.trim().toDoubleOrNull()
+    if (parsed == null || !parsed.isFinite() || parsed < 0.0) {
+        return UNSET_VALUE
+    }
+    return parsed
+}
+
+/** 身体档案录入面板（身高/性别/出生年）——BMI 与基础代谢的输入。 */
+@Composable
+private fun BodyProfileSheet(
+    profile: UserProfile,
+    onDismiss: () -> Unit,
+    onSave: (Int, Gender, Int) -> Unit,
+) {
+    var height by remember { mutableStateOf(if (profile.heightCm > 0) profile.heightCm.toString() else "") }
+    var birthYear by remember { mutableStateOf(if (profile.birthYear > 0) profile.birthYear.toString() else "") }
+    var gender by remember { mutableStateOf(profile.gender) }
+    var hint by remember { mutableStateOf("") }
+    val invalidHeight = stringResource(R.string.body_profile_invalid_height)
+    val invalidYear = stringResource(R.string.body_profile_invalid_birth_year)
+
+    SheetScaffold(
+        title = stringResource(R.string.body_profile_sheet_title),
+        subtitle = stringResource(R.string.body_profile_sheet_sub),
+        onDismiss = onDismiss,
+        hint = hint,
+        onSave = {
+            val heightValue = height.trim().toIntOrNull()
+            val yearValue = birthYear.trim().toIntOrNull()
+            // 空串 = 未填（0）；填了但越界 → 报错。
+            if (height.isNotBlank() && (heightValue == null || heightValue < 0 || heightValue > 300)) {
+                hint = invalidHeight
+                return@SheetScaffold
+            }
+            val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+            if (birthYear.isNotBlank() && (yearValue == null || yearValue < 1900 || yearValue > currentYear)) {
+                hint = invalidYear
+                return@SheetScaffold
+            }
+            onSave(
+                UserProfileService.normalizeHeightCm(heightValue ?: 0),
+                gender,
+                UserProfileService.normalizeBirthYear(yearValue ?: 0),
+            )
+        },
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+            MeasureField(stringResource(R.string.body_profile_height), height) { height = it }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.body_profile_gender),
+                    modifier = Modifier.weight(1f),
+                    style = FtType.natural(13f),
+                    color = FtColor.white62,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    GenderChip(
+                        label = stringResource(R.string.body_profile_gender_male),
+                        selected = gender == Gender.MALE,
+                        onClick = { gender = Gender.MALE },
+                    )
+                    GenderChip(
+                        label = stringResource(R.string.body_profile_gender_female),
+                        selected = gender == Gender.FEMALE,
+                        onClick = { gender = Gender.FEMALE },
+                    )
+                }
+            }
+            MeasureField(stringResource(R.string.body_profile_birth_year), birthYear) { birthYear = it }
+        }
+    }
+}
+
+/** 性别选择胶囊。 */
+@Composable
+private fun GenderChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    val shape = FtShape.pill
+    Box(
+        modifier = Modifier
+            .height(34.dp)
+            .clip(shape)
+            .background(if (selected) FtColor.accent else FtColor.glass6)
+            .then(if (selected) Modifier else Modifier.border(1.dp, FtColor.line14, shape))
+            .clickableNoRipple(onClick = onClick)
+            .padding(horizontal = 16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            style = FtType.natural(13f, 600),
+            color = if (selected) FtColor.onAccent else FtColor.white62,
+        )
+    }
+}
