@@ -30,6 +30,7 @@ import statsDashboardServiceTest from './StatsDashboardService.test'
 import personalRecordServiceTest from './PersonalRecordService.test'
 import bodyRecordServiceTest from './BodyRecordService.test'
 import bodyMeasurementServiceTest from './BodyMeasurementService.test'
+import bodyMetricsTest from './BodyMetrics.test'
 import persistenceFallbackServiceTest from './PersistenceFallbackService.test'
 import deviceSeedServiceTest from './DeviceSeedService.test'
 import exerciseMediaResolverServiceTest from './ExerciseMediaResolverService.test'
@@ -79,6 +80,7 @@ export default function testsuite(): void {
   personalRecordServiceTest()
   bodyRecordServiceTest()
   bodyMeasurementServiceTest()
+  bodyMetricsTest()
   persistenceFallbackServiceTest()
   deviceSeedServiceTest()
   exerciseMediaResolverServiceTest()
