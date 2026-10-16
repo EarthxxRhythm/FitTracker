@@ -267,12 +267,19 @@ object SyncOrchestrator {
         } else {
             val importResult = UserDataBackupService.importPackage(store, envelope.backupJson) // 源 :268
             if (envelope.nickname.isNotEmpty()) { // 源 :269
+                val local = UserProfileService.loadProfile(store)
                 UserProfileService.saveProfile(
                     store,
-                    UserProfileService.loadProfile(store).copy(
+                    local.copy(
                         nickname = envelope.nickname,
                         avatar = envelope.avatar,
                         weightUnit = if (envelope.weightUnit == "lbs") WeightUnit.LBS else WeightUnit.KG,
+                        // 身体档案：旧信封无这些字段（null）时保留本地已填值，不用 0 覆盖。
+                        heightCm = envelope.heightCm ?: local.heightCm,
+                        gender = envelope.gender
+                            ?.let { UserProfileService.normalizeGender(it) }
+                            ?: local.gender,
+                        birthYear = envelope.birthYear ?: local.birthYear,
                     ),
                 )
             }

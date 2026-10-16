@@ -95,6 +95,12 @@ export interface WorkoutSession {
   totalSets: number
   totalVolume: number
   fatigueScore: number
+  /**
+   * 本次训练整体努力程度（RPE 1–10）；0 表示未评价（旧数据/未采集）。
+   *
+   * 可选：既有对象字面量（测试/兼容层）无需补齐；工厂 [createWorkoutSession] 会归一为 0。
+   */
+  sessionRpe?: number
   notes: string
   sets: WorkoutSet[]
 }
@@ -316,7 +322,8 @@ export function createWorkoutSession(
   totalVolume: number,
   fatigueScore: number,
   notes: string,
-  sets: WorkoutSet[]
+  sets: WorkoutSet[],
+  sessionRpe: number = 0
 ): WorkoutSession {
   const item: WorkoutSession = {
     sessionId: sessionId,
@@ -328,6 +335,7 @@ export function createWorkoutSession(
     totalSets: totalSets,
     totalVolume: totalVolume,
     fatigueScore: fatigueScore,
+    sessionRpe: sessionRpe,
     notes: notes,
     sets: sets
   }

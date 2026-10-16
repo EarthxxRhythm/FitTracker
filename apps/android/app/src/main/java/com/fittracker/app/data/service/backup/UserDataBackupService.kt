@@ -2,6 +2,7 @@ package com.fittracker.app.data.service.backup
 
 import androidx.annotation.StringRes
 import com.fittracker.app.R
+import com.fittracker.app.data.model.BodyMeasurement
 import com.fittracker.app.data.model.BACKUP_SCHEMA_VERSION
 import com.fittracker.app.data.model.ExerciseRef
 import com.fittracker.app.data.model.TrainingDay
@@ -10,10 +11,13 @@ import com.fittracker.app.data.model.UserDataBackupImportResult
 import com.fittracker.app.data.model.UserDataBackupPackage
 import com.fittracker.app.data.model.UserGoal
 import com.fittracker.app.data.model.UserPlan
+import com.fittracker.app.data.model.WeightRecord
 import com.fittracker.app.data.model.WorkoutSession
 import com.fittracker.app.data.model.WorkoutSet
 import com.fittracker.app.data.persist.JsonCodec
 import com.fittracker.app.data.persist.JsonStore
+import com.fittracker.app.data.service.BodyMeasurementService
+import com.fittracker.app.data.service.BodyRecordService
 import com.fittracker.app.data.service.ContentRepository
 import com.fittracker.app.data.service.GoalRepository
 import com.fittracker.app.data.service.TrainingPlanRepository
@@ -99,12 +103,16 @@ object UserDataBackupService {
         val plans: List<UserPlan> = TrainingPlanRepository.getMyPlans(store) // :79
         val currentPlanId: String = TrainingPlanRepository.getCurrentPlanId(store) // :80
         val sessions: List<WorkoutSession> = WorkoutRepository.getSessions(store) // :81-83
+        val bodyRecords: List<WeightRecord> = BodyRecordService.loadRecords(store)
+        val bodyMeasurements: List<BodyMeasurement> = BodyMeasurementService.loadMeasurements(store)
         val backupPackage: UserDataBackupPackage = createPackage(
             goal = goal,
             plans = plans,
             currentPlanId = currentPlanId,
             sessions = sessions,
             exportedAt = System.currentTimeMillis(), // :88
+            bodyRecords = bodyRecords,
+            bodyMeasurements = bodyMeasurements,
         )
         return JsonCodec.prettyJson.encodeToString(UserDataBackupPackage.serializer(), backupPackage) // :89
     }
@@ -147,6 +155,10 @@ object UserDataBackupService {
         val mergedSessions: List<WorkoutSession> = mergeSessions(existingSessions, backupPackage.sessions) // :114
         replacePersistedSessions(store, mergedSessions) // :115（源 replacePersistedSessions）+ :116 sync
 
+        // 身体数据：仅当导入包含该域时才落库（旧包无该字段 = null → 保留本地既有记录）。
+        backupPackage.bodyRecords?.let { BodyRecordService.saveRecords(store, it) }
+        backupPackage.bodyMeasurements?.let { BodyMeasurementService.saveMeasurements(store, it) }
+
         return createImportResult( // :118-129
             success = true,
             statusId = STATUS_IMPORT_SUCCESS, // :120
@@ -170,6 +182,8 @@ object UserDataBackupService {
         currentPlanId: String,
         sessions: List<WorkoutSession>,
         exportedAt: Long,
+        bodyRecords: List<WeightRecord>? = null,
+        bodyMeasurements: List<BodyMeasurement>? = null,
     ): UserDataBackupPackage = UserDataBackupPackage( // :142
         schemaVersion = BACKUP_SCHEMA_VERSION, // :143
         exportedAt = exportedAt, // :144
@@ -180,6 +194,9 @@ object UserDataBackupService {
         contentMeta = UserDataBackupContentMeta( // :149-151
             contentVersion = localContentVersion(),
         ),
+        // 仅在提供时写入（null = 包内无该字段，承载「该域是否随包导出」的语义）。
+        bodyRecords = bodyRecords?.map { it.copy() },
+        bodyMeasurements = bodyMeasurements?.map { it.copy() },
     )
 
     // --- 源 L158-L162：解析（仅取包） ---------------------------------------
@@ -313,6 +330,10 @@ object UserDataBackupService {
                 decoded.currentPlanId,
                 decoded.sessions,
                 decoded.exportedAt,
+                // 旧包无 bodyRecords/bodyMeasurements → 传 null，使导入侧「按字段是否存在」判定时
+                // 保留本地既有记录。
+                decoded.bodyRecords,
+                decoded.bodyMeasurements,
             ),
         )
     }

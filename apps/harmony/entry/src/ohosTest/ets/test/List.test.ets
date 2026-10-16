@@ -29,6 +29,7 @@ import planEngineTest from './PlanEngine.test'
 import statsDashboardServiceTest from './StatsDashboardService.test'
 import personalRecordServiceTest from './PersonalRecordService.test'
 import bodyRecordServiceTest from './BodyRecordService.test'
+import bodyMeasurementServiceTest from './BodyMeasurementService.test'
 import persistenceFallbackServiceTest from './PersistenceFallbackService.test'
 import deviceSeedServiceTest from './DeviceSeedService.test'
 import exerciseMediaResolverServiceTest from './ExerciseMediaResolverService.test'
@@ -77,6 +78,7 @@ export default function testsuite(): void {
   statsDashboardServiceTest()
   personalRecordServiceTest()
   bodyRecordServiceTest()
+  bodyMeasurementServiceTest()
   persistenceFallbackServiceTest()
   deviceSeedServiceTest()
   exerciseMediaResolverServiceTest()

@@ -9,6 +9,9 @@ import GoalRepository from './GoalRepository'
 import WorkoutRepository from './WorkoutRepository'
 import WorkoutSessionPersistenceBridgeService from '../../features/workout/services/WorkoutSessionPersistenceBridgeService'
 import ContentRepository from './ContentRepository'
+import BodyRecordService from './BodyRecordService'
+import BodyMeasurementService from './BodyMeasurementService'
+import { WeightRecord, BodyMeasurement } from '../models/BodyModels'
 import { UserGoal, WorkoutSession, WorkoutSet, createUserGoal, createWorkoutSession, createWorkoutSet } from '../models/TrainingModels'
 
 const BACKUP_SCHEMA_VERSION = 1
@@ -31,6 +34,13 @@ export interface UserDataBackupPackage {
   currentPlanId: string
   sessions: WorkoutSession[]
   contentMeta: UserDataBackupContentMeta
+  /**
+   * 体重记录。**可选**：本版本导出的包恒包含（可能是空数组，表示「导出时确无记录」）；
+   * 旧版本备份包无此字段 → 导入时保留本地既有记录，不被清空。
+   */
+  bodyRecords?: WeightRecord[]
+  /** 身体测量记录（围度 + 体成分）。语义同 [bodyRecords]。 */
+  bodyMeasurements?: BodyMeasurement[]
 }
 
 export interface UserDataBackupImportResult {
@@ -86,12 +96,16 @@ class UserDataBackupService {
     const currentPlanId: string = await TrainingPlanService.getCurrentPlanId(context)
     const persistedSessions: WorkoutSession[] = await WorkoutSessionPersistenceBridgeService.loadPersistedSessions(context)
     const mergedSessions: WorkoutSession[] = this.mergeSessions(persistedSessions, WorkoutRepository.getSessions())
+    const bodyRecords: WeightRecord[] = await BodyRecordService.loadRecords(context)
+    const bodyMeasurements: BodyMeasurement[] = await BodyMeasurementService.loadMeasurements(context)
     const backupPackage: UserDataBackupPackage = this.createPackage(
       goal === undefined ? null : goal,
       plans,
       currentPlanId,
       mergedSessions,
-      Date.now()
+      Date.now(),
+      bodyRecords,
+      bodyMeasurements
     )
     return JSON.stringify(backupPackage, null, 2)
   }
@@ -123,6 +137,14 @@ class UserDataBackupService {
     await WorkoutSessionPersistenceBridgeService.replacePersistedSessions(context, mergedSessions)
     await WorkoutSessionPersistenceBridgeService.syncRepositoryFromPersistence(context)
 
+    // 身体数据：仅当导入包含时才落库（旧备份包无该字段 → 保留本地既有记录，不被清空）。
+    if (backupPackage.bodyRecords !== undefined) {
+      await BodyRecordService.saveRecords(context, backupPackage.bodyRecords)
+    }
+    if (backupPackage.bodyMeasurements !== undefined) {
+      await BodyMeasurementService.saveMeasurements(context, backupPackage.bodyMeasurements)
+    }
+
     return this.createImportResult(
       true,
       'import_success',
@@ -144,7 +166,9 @@ class UserDataBackupService {
     plans: UserPlan[],
     currentPlanId: string,
     sessions: WorkoutSession[],
-    exportedAt: number
+    exportedAt: number,
+    bodyRecords: WeightRecord[] | undefined = undefined,
+    bodyMeasurements: BodyMeasurement[] | undefined = undefined
   ): UserDataBackupPackage {
     const backupPackage: UserDataBackupPackage = {
       schemaVersion: BACKUP_SCHEMA_VERSION,
@@ -156,6 +180,13 @@ class UserDataBackupService {
       contentMeta: {
         contentVersion: ContentRepository.getLocalContentVersion()
       }
+    }
+    // 仅在提供时写入——由「字段是否存在」承载「该域是否随包导出」的语义。
+    if (bodyRecords !== undefined) {
+      backupPackage.bodyRecords = this.copyWeightRecords(bodyRecords)
+    }
+    if (bodyMeasurements !== undefined) {
+      backupPackage.bodyMeasurements = this.copyBodyMeasurements(bodyMeasurements)
     }
     return backupPackage
   }
@@ -255,7 +286,11 @@ class UserDataBackupService {
         parsedValue.plans,
         parsedValue.currentPlanId,
         parsedValue.sessions,
-        parsedValue.exportedAt
+        parsedValue.exportedAt,
+        // 旧包无 bodyRecords/bodyMeasurements → 传 undefined，使 createPackage 不写入该字段，
+        // 从而导入侧「按字段是否存在」判定时保留本地既有记录。
+        Array.isArray(parsedValue.bodyRecords) ? parsedValue.bodyRecords : undefined,
+        Array.isArray(parsedValue.bodyMeasurements) ? parsedValue.bodyMeasurements : undefined
       )
     )
   }
@@ -318,7 +353,42 @@ class UserDataBackupService {
         return false
       }
     }
+    // 身体数据域为可选：存在即必须是合法数组。
+    if (source.bodyRecords !== undefined) {
+      if (!Array.isArray(source.bodyRecords)) {
+        return false
+      }
+      for (let recordIndex = 0; recordIndex < source.bodyRecords.length; recordIndex++) {
+        if (!this.isValidWeightRecord(source.bodyRecords[recordIndex])) {
+          return false
+        }
+      }
+    }
+    if (source.bodyMeasurements !== undefined) {
+      if (!Array.isArray(source.bodyMeasurements)) {
+        return false
+      }
+      for (let measureIndex = 0; measureIndex < source.bodyMeasurements.length; measureIndex++) {
+        if (!this.isValidBodyMeasurement(source.bodyMeasurements[measureIndex])) {
+          return false
+        }
+      }
+    }
     return true
+  }
+
+  private isValidWeightRecord(source: WeightRecord): boolean {
+    return this.isFiniteNumberValue(source.dateMillis) && this.isFiniteNumberValue(source.kg)
+  }
+
+  private isValidBodyMeasurement(source: BodyMeasurement): boolean {
+    if (!this.isFiniteNumberValue(source.dateMillis)) {
+      return false
+    }
+    return this.isFiniteNumberValue(source.chestCm) && this.isFiniteNumberValue(source.waistCm) &&
+      this.isFiniteNumberValue(source.hipCm) && this.isFiniteNumberValue(source.armCm) &&
+      this.isFiniteNumberValue(source.thighCm) && this.isFiniteNumberValue(source.bodyFatPercent) &&
+      this.isFiniteNumberValue(source.skeletalMuscleKg) && this.isFiniteNumberValue(source.bodyWaterPercent)
   }
 
   private isValidContentMeta(source: UserDataBackupContentMeta): boolean {
@@ -390,6 +460,10 @@ class UserDataBackupService {
       !this.isFiniteNumberValue(source.durationSeconds) || !this.isFiniteNumberValue(source.totalSets) ||
       !this.isFiniteNumberValue(source.totalVolume) || !this.isFiniteNumberValue(source.fatigueScore) ||
       !this.isStringValue(source.notes) || !Array.isArray(source.sets)) {
+      return false
+    }
+    // sessionRpe 为新增字段：旧备份包缺失时按 0 处理（兼容），存在即须为有限数。
+    if (source.sessionRpe !== undefined && !this.isFiniteNumberValue(source.sessionRpe)) {
       return false
     }
     for (let setIndex = 0; setIndex < source.sets.length; setIndex++) {
@@ -548,7 +622,8 @@ class UserDataBackupService {
       source.totalVolume,
       source.fatigueScore,
       source.notes,
-      sets
+      sets,
+      source.sessionRpe === undefined ? 0 : source.sessionRpe
     )
   }
 
@@ -561,6 +636,38 @@ class UserDataBackupService {
       source.rpe,
       source.isWarmup
     )
+  }
+
+  private copyWeightRecords(source: WeightRecord[]): WeightRecord[] {
+    const records: WeightRecord[] = []
+    for (let index = 0; index < source.length; index++) {
+      const item: WeightRecord = {
+        dateMillis: source[index].dateMillis,
+        kg: source[index].kg
+      }
+      records.push(item)
+    }
+    return records
+  }
+
+  private copyBodyMeasurements(source: BodyMeasurement[]): BodyMeasurement[] {
+    const records: BodyMeasurement[] = []
+    for (let index = 0; index < source.length; index++) {
+      const item: BodyMeasurement = source[index]
+      const copy: BodyMeasurement = {
+        dateMillis: item.dateMillis,
+        chestCm: item.chestCm,
+        waistCm: item.waistCm,
+        hipCm: item.hipCm,
+        armCm: item.armCm,
+        thighCm: item.thighCm,
+        bodyFatPercent: item.bodyFatPercent,
+        skeletalMuscleKg: item.skeletalMuscleKg,
+        bodyWaterPercent: item.bodyWaterPercent
+      }
+      records.push(copy)
+    }
+    return records
   }
 
   private copyStringArray(source: string[]): string[] {

@@ -19,7 +19,8 @@ class WorkoutRepository {
     totalVolume: number,
     fatigueScore: number,
     notes: string,
-    sets: WorkoutSet[]
+    sets: WorkoutSet[],
+    sessionRpe: number = 0
   ): WorkoutSession {
     return createWorkoutSession(
       sessionId,
@@ -32,7 +33,8 @@ class WorkoutRepository {
       totalVolume,
       fatigueScore,
       notes,
-      this.copyWorkoutSets(sets)
+      this.copyWorkoutSets(sets),
+      sessionRpe
     )
   }
 

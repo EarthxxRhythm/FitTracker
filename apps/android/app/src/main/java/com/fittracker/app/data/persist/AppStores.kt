@@ -58,6 +58,9 @@ object StoreNames {
     /** 体重记录（存 `List<WeightRecord>` JSON；原型完整实现 Wave 3 · W3-1）。 */
     const val BODY_RECORDS = "fit_tracker_body_records"
 
+    /** 身体测量记录（围度 + 体成分，存 `List<BodyMeasurement>` JSON；对齐鸿蒙 `BODY_MEASUREMENTS`）。 */
+    const val BODY_MEASUREMENTS = "fit_tracker_body_measurements"
+
     /**
      * 训练偏好（目标 / 经验 / 每周天数 / 单次时长 / 器械 / 限制肌群，整块 JSON）。
      *
@@ -69,7 +72,7 @@ object StoreNames {
     val ALL: List<String> = listOf(
         GOAL, PLANS, CURRENT_PLAN_ID, SESSIONS, ACTIVE_WORKOUT,
         PROFILE, SYNC, SANDBOX_AUTH, CONTENT, SESSION, CLOUD_SESSION,
-        PLAN_STATE, SETTINGS, BODY_RECORDS, TRAINING_PREFERENCES,
+        PLAN_STATE, SETTINGS, BODY_RECORDS, TRAINING_PREFERENCES, BODY_MEASUREMENTS,
     )
 }
 

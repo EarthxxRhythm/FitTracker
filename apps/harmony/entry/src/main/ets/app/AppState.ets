@@ -14,6 +14,8 @@ export class FitTrackerStores {
   static readonly RECORDS: string = 'fit_tracker_records'
   /** 体重记录库（镜像安卓 `StoreNames.BODY_RECORDS`）。 */
   static readonly BODY_RECORDS: string = 'fit_tracker_body_records'
+  /** 身体测量记录库（围度 + 体成分；镜像安卓 `StoreNames.BODY_MEASUREMENTS`）。 */
+  static readonly BODY_MEASUREMENTS: string = 'fit_tracker_body_measurements'
   static readonly SYNC: string = 'fit_tracker_sync'
 }
 

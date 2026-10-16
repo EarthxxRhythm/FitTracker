@@ -25,12 +25,35 @@ enum class WeightUnit(val id: String) {
     LBS("lbs"),
 }
 
+/**
+ * 生理性别——仅用于基础代谢公式（Mifflin-St Jeor）的性别常数。
+ * 对应源 `UserProfileService.ets` 的 `export type Gender = '' | 'male' | 'female'`；
+ * [id] 即落盘字符串，空串表示未填写。
+ */
+@Serializable
+enum class Gender(val id: String) {
+    @SerialName("")
+    UNSPECIFIED(""),
+
+    @SerialName("male")
+    MALE("male"),
+
+    @SerialName("female")
+    FEMALE("female"),
+}
+
 /** 用户资料——对应源 `UserProfileService.ets:16` 的 `interface UserProfile`。 */
 @Serializable
 data class UserProfile(
     val nickname: String = "",
     val avatar: String = "",
     val weightUnit: WeightUnit = WeightUnit.KG,
+    /** 身高（厘米）；0 表示未填写。 */
+    val heightCm: Int = 0,
+    /** 性别；[Gender.UNSPECIFIED] 表示未填写。 */
+    val gender: Gender = Gender.UNSPECIFIED,
+    /** 出生年份；0 表示未填写。 */
+    val birthYear: Int = 0,
 )
 
 /**
@@ -135,12 +158,35 @@ object UserProfileService {
         }
     }
 
-    /** 源 `UserProfileService.ets:99` `getDefaultProfile`——`{ nickname:'', avatar:'', weightUnit:'kg' }`。 */
+    /** 源 `UserProfileService.ets:99` `getDefaultProfile`——`{ nickname:'', avatar:'', weightUnit:'kg', … }`。 */
     fun getDefaultProfile(): UserProfile = UserProfile(
         nickname = "",
         avatar = "",
         weightUnit = WeightUnit.KG,
+        heightCm = 0,
+        gender = Gender.UNSPECIFIED,
+        birthYear = 0,
     )
+
+    /**
+     * 只改身体档案（身高/性别/出生年），其余字段保留（读-改-写）。
+     * 对应源 `UserProfileService.ets` 的 `saveBodyProfile`。
+     */
+    suspend fun saveBodyProfile(store: JsonStore, heightCm: Int, gender: Gender, birthYear: Int) {
+        lastPersistenceError = ""
+        try {
+            writeProfile(
+                store,
+                readProfileQuiet(store).copy(
+                    heightCm = normalizeHeightCm(heightCm),
+                    gender = gender,
+                    birthYear = normalizeBirthYear(birthYear),
+                ),
+            )
+        } catch (error: Exception) {
+            lastPersistenceError = "save_body_profile_failed"
+        }
+    }
 
     /** 源 `UserProfileService.ets:107` `clearProfile`——清掉资料（删库键）。 */
     suspend fun clearProfile(store: JsonStore) {
@@ -157,6 +203,22 @@ object UserProfileService {
      */
     fun normalizeWeightUnit(value: String): WeightUnit =
         if (value == WeightUnit.LBS.id) WeightUnit.LBS else WeightUnit.KG
+
+    /** 身高归一：超出 [0, 300] cm 一律按 0（未填写）。 */
+    fun normalizeHeightCm(value: Int): Int = if (value < 0 || value > 300) 0 else value
+
+    /** 性别归一：仅 [Gender.MALE] / [Gender.FEMALE] 有效，其余为 [Gender.UNSPECIFIED]。 */
+    fun normalizeGender(value: String): Gender = when (value) {
+        Gender.MALE.id -> Gender.MALE
+        Gender.FEMALE.id -> Gender.FEMALE
+        else -> Gender.UNSPECIFIED
+    }
+
+    /** 出生年归一：不在 [1900, 当前年] 一律按 0（未填写）。 */
+    fun normalizeBirthYear(value: Int): Int {
+        val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+        return if (value < 1900 || value > currentYear) 0 else value
+    }
 
     // --- 内部：整块 JSON 读写 ------------------------------------------------
 
@@ -175,6 +237,9 @@ object UserProfileService {
             nickname = wire.nickname,
             avatar = wire.avatar,
             weightUnit = normalizeWeightUnit(wire.weightUnit),
+            heightCm = normalizeHeightCm(wire.heightCm),
+            gender = normalizeGender(wire.gender),
+            birthYear = normalizeBirthYear(wire.birthYear),
         )
     } catch (error: Exception) {
         getDefaultProfile()
@@ -195,4 +260,7 @@ private data class UserProfileWire(
     val nickname: String = "",
     val avatar: String = "",
     val weightUnit: String = DEFAULT_WEIGHT_UNIT_ID,
+    val heightCm: Int = 0,
+    val gender: String = "",
+    val birthYear: Int = 0,
 )
