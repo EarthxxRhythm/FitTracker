@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -955,36 +956,56 @@ private fun EffortCard(metric: EffortMetric, onMetric: (EffortMetric) -> Unit) {
                 color = FtReviewColors.label3,
             )
         }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 14.dp)
-                .height(96.dp),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            view.barPercents.forEachIndexed { index, percent ->
-                Column(
+        EffortBars(percents = view.barPercents, labels = view.barLabels)
+    }
+}
+
+/**
+ * 「努力程度」柱区（原型 `.effort-bars` / `.effort-bar`）。
+ *
+ * 一列总高 96（[FtReviewModel.EFFORT_BAR_COLUMN_HEIGHT]）要同时容纳柱子、6px 间距与序号行。
+ */
+@Composable
+internal fun EffortBars(
+    percents: List<Int>,
+    labels: List<String>,
+    tagPrefix: String = "effort-bar",
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 14.dp)
+            .height(FtReviewModel.EFFORT_BAR_COLUMN_HEIGHT.dp),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        percents.forEachIndexed { index, percent ->
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                verticalArrangement = Arrangement.Bottom,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight(),
-                    verticalArrangement = Arrangement.Bottom,
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight(percent / 100f) // `.bar { height: N% }`
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(FtReviewColors.acc),
-                    )
-                    Text(
-                        text = view.barLabels[index],
-                        modifier = Modifier.padding(top = 6.dp), // `.effort-bar { gap: 6px }`
-                        style = FtType.natural(9f).copy(lineHeight = 9.sp),
-                        color = FtReviewColors.label3,
-                    )
-                }
+                        .fillMaxWidth()
+                        // 柱高按**轨道**（列高 96 − 间距 − 序号 = 78）换算，不能用列高百分比：
+                        // 百分比会让满量程柱(96) 连同间距与序号撑破 96 的列，flex 收缩挤压第 5 根。
+                        .height(FtReviewModel.effortBarHeight(percent).dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(FtReviewColors.acc)
+                        .testTag("$tagPrefix-bar-$index"),
+                )
+                Text(
+                    text = labels[index],
+                    modifier = Modifier
+                        .padding(top = FtReviewModel.EFFORT_BAR_GAP.dp) // `.effort-bar { gap: 6px }`
+                        .height(FtReviewModel.EFFORT_BAR_LABEL_HEIGHT.dp)
+                        .testTag("$tagPrefix-label-$index"),
+                    style = FtType.natural(9f).copy(lineHeight = 9.sp),
+                    color = FtReviewColors.label3,
+                )
             }
         }
     }

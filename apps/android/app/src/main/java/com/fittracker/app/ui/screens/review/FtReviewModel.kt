@@ -262,6 +262,29 @@ object FtReviewModel {
     /** 每根柱的下限高度百分比（原型 `Math.max(8, h)`）。 */
     const val EFFORT_MIN_BAR_PERCENT = 8
 
+    /** 努力程度柱区一列的总高（原型 `.effort-bars { height: 96px }`）——柱子、间距、序号共用这 96。 */
+    const val EFFORT_BAR_COLUMN_HEIGHT = 96
+
+    /** 柱与序号之间的间距（原型 `.effort-bar { gap: 6px }`）。 */
+    const val EFFORT_BAR_GAP = 6
+
+    /**
+     * 序号行占位（原型 `.lbl { line-height: 1 }` @9px 的实测行高）。
+     * 取 12 与鸿蒙端 `EFFORT_BAR_LABEL_HEIGHT` 同口径，保证两端柱高逐像素一致。
+     */
+    const val EFFORT_BAR_LABEL_HEIGHT = 12
+
+    /**
+     * 柱子实际可用的轨道高 = 列高 − 间距 − 序号 = 78。
+     *
+     * 柱高必须按**轨道**换算，不能按列高的百分比——否则满量程柱(96) 加上间距(6) 与序号(12)
+     * 会把 96 的列撑成 114，flex 收缩反过来挤压柱子与序号，第 5 根（唯一满量程）首当其冲。
+     */
+    const val EFFORT_BAR_TRACK_HEIGHT = EFFORT_BAR_COLUMN_HEIGHT - EFFORT_BAR_GAP - EFFORT_BAR_LABEL_HEIGHT
+
+    /** 单根柱的高度：把轨道百分比 [percent] 落到固定值，使柱与间距、序号互不挤压。 */
+    fun effortBarHeight(percent: Int): Float = percent * EFFORT_BAR_TRACK_HEIGHT / 100f
+
     /** 单位文案模板：`%1$s` 记法名（`RIR` / `RPE`）——UI 层 `stringResource(id, metric.display)` 插值。 */
     @StringRes
     val EFFORT_UNIT_RES = R.string.review_effort_unit
