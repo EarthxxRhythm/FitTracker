@@ -134,6 +134,171 @@ class ReviewInsightsService {
     return item
   }
 
+  // ── 肌群热力与努力程度派生（真实数据） ──────────────────────────
+  //
+  // 内容库用 6 个粗肌群 id（muscle_chest/back/shoulders/arms/legs/core），
+  // 而热力图用 18 个身体图部位 key（MM_MUSCLE_KEYS 顺序）。此表是两者之间的映射——
+  // 一个粗肌群可落到多个细部位（如 shoulders → deltoids/trapezius）。
+
+  /** 粗肌群 id → 身体图部位 key（下标与 ReviewContent.MM_MUSCLE_KEYS 对齐）。 */
+  private mapMuscleIdToBodyParts(muscleId: string): string[] {
+    if (muscleId === 'muscle_chest') {
+      return ['chest', 'serratus']
+    }
+    if (muscleId === 'muscle_back') {
+      return ['upper-back', 'lower-back', 'trapezius']
+    }
+    if (muscleId === 'muscle_shoulders') {
+      return ['deltoids', 'trapezius']
+    }
+    if (muscleId === 'muscle_arms') {
+      return ['biceps', 'triceps', 'forearm']
+    }
+    if (muscleId === 'muscle_legs') {
+      return ['quadriceps', 'hamstring', 'gluteal', 'adductors', 'calves']
+    }
+    if (muscleId === 'muscle_core') {
+      return ['abs', 'obliques', 'hip-flexors']
+    }
+    return []
+  }
+
+  /** 身体图 18 部位 key（顺序须与 ReviewContent.MM_MUSCLE_KEYS 一致）。 */
+  private readonly bodyPartKeys: string[] = [
+    'trapezius', 'deltoids', 'chest', 'upper-back', 'serratus', 'biceps', 'triceps', 'forearm',
+    'abs', 'obliques', 'lower-back', 'gluteal', 'quadriceps', 'hamstring', 'adductors', 'hip-flexors',
+    'calves', 'tibialis'
+  ]
+
+  /**
+   * 肌群训练量（近 [limit] 次训练）：按组数聚合到 18 个身体部位。
+   *
+   * 需要「动作 → 主肌群」的解析器（由调用方注入，避免本服务依赖 ContentRepository 造成环依赖）。
+   * 返回 18 元组，与 [bodyPartKeys] 同序；无数据时为全 0。
+   */
+  createMuscleVolume(
+    sessions: WorkoutSession[],
+    resolvePrimaryMuscles: (exerciseId: string) => string[],
+    limit: number
+  ): number[] {
+    const volume: number[] = []
+    for (let index = 0; index < this.bodyPartKeys.length; index++) {
+      volume.push(0)
+    }
+    if (sessions.length === 0) {
+      return volume
+    }
+    const recent: WorkoutSession[] = this.takeRecent(sessions, limit)
+    for (let sessionIndex = 0; sessionIndex < recent.length; sessionIndex++) {
+      const sets: WorkoutSet[] = recent[sessionIndex].sets
+      for (let setIndex = 0; setIndex < sets.length; setIndex++) {
+        const muscleIds: string[] = resolvePrimaryMuscles(sets[setIndex].exerciseId)
+        for (let muscleIndex = 0; muscleIndex < muscleIds.length; muscleIndex++) {
+          const parts: string[] = this.mapMuscleIdToBodyParts(muscleIds[muscleIndex])
+          for (let partIndex = 0; partIndex < parts.length; partIndex++) {
+            const keyIndex: number = this.bodyPartKeys.indexOf(parts[partIndex])
+            if (keyIndex >= 0) {
+              volume[keyIndex] = volume[keyIndex] + 1
+            }
+          }
+        }
+      }
+    }
+    return volume
+  }
+
+  /**
+   * 把肌群训练量归一为 4 级（1–4）——用于热力图着色。
+   *
+   * 有训练量但全部相同的部位取中位级别（2），避免「只有一两个肌群练过」时全图都是最高级。
+   * 无任何训练量时返回全 0（调用方据此渲染空态）。
+   */
+  createMuscleLevels(volume: number[]): number[] {
+    const levels: number[] = []
+    let max: number = 0
+    for (let index = 0; index < volume.length; index++) {
+      if (volume[index] > max) {
+        max = volume[index]
+      }
+    }
+    if (max <= 0) {
+      for (let index = 0; index < volume.length; index++) {
+        levels.push(0)
+      }
+      return levels
+    }
+    for (let index = 0; index < volume.length; index++) {
+      if (volume[index] <= 0) {
+        levels.push(0)
+      } else {
+        const ratio: number = volume[index] / max
+        if (ratio <= 0.25) {
+          levels.push(1)
+        } else if (ratio <= 0.5) {
+          levels.push(2)
+        } else if (ratio <= 0.75) {
+          levels.push(3)
+        } else {
+          levels.push(4)
+        }
+      }
+    }
+    return levels
+  }
+
+  /** 努力程度序列（近 [count] 次训练的整体 RPE 1–10）；未评价（0）的场次跳过。 */
+  createEffortLevels(sessions: WorkoutSession[], count: number): number[] {
+    const recent: WorkoutSession[] = this.takeRecent(sessions, count)
+    const levels: number[] = []
+    for (let index = 0; index < recent.length; index++) {
+      const raw: number | undefined = recent[index].sessionRpe
+      const rpe: number = raw === undefined ? 0 : raw
+      if (rpe > 0) {
+        levels.push(rpe)
+      }
+    }
+    return levels
+  }
+
+  /**
+   * 肌群结论文案（按真实最高/最低训练量部位拼装）；无数据返回空态文案。
+   *
+   * `labels` 为 18 部位的显示名（与 volume 同序），由调用方注入以免本服务持有 UI 文案。
+   */
+  createMuscleSummary(volume: number[], labels: string[]): string {
+    let maxIndex: number = -1
+    let minIndex: number = -1
+    let maxValue: number = 0
+    let minValue: number = -1
+    for (let index = 0; index < volume.length; index++) {
+      if (volume[index] > maxValue) {
+        maxValue = volume[index]
+        maxIndex = index
+      }
+      if (volume[index] > 0 && (minValue < 0 || volume[index] < minValue)) {
+        minValue = volume[index]
+        minIndex = index
+      }
+    }
+    if (maxIndex < 0) {
+      return '完成训练后，这里会显示肌群训练分布。'
+    }
+    const maxLabel: string = maxIndex < labels.length ? labels[maxIndex] : ''
+    if (minIndex < 0 || minIndex === maxIndex) {
+      return maxLabel + '训练量最高。'
+    }
+    const minLabel: string = minIndex < labels.length ? labels[minIndex] : ''
+    return maxLabel + '训练量最高，' + minLabel + '最少。'
+  }
+
+  /** 取最近 [count] 次训练（按 startedAt 升序后的末尾若干条）。 */
+  private takeRecent(sessions: WorkoutSession[], count: number): WorkoutSession[] {
+    const sorted: WorkoutSession[] = sessions.slice()
+    sorted.sort((a: WorkoutSession, b: WorkoutSession) => a.startedAt - b.startedAt)
+    const start: number = sorted.length > count ? sorted.length - count : 0
+    return sorted.slice(start)
+  }
+
   private createFilterOption(
     filterId: string,
     label: string,
