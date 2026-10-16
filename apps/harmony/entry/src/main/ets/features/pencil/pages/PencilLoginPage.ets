@@ -428,13 +428,14 @@ struct PencilLoginPage {
 
   @Builder
   private buildField(label: string, placeholder: string, isPassword: boolean, currentValue: string, fieldKey: string, onChange: (value: string) => void) {
-    Column({ space: 8 }) {
-      Text(this.fieldError(fieldKey).length > 0 ? this.fieldError(fieldKey) : label)
+    Column() {
+      Text(label)
         .fontFamily('Noto Sans SC')
         .fontSize(13)
         .fontWeight(FontWeight.Medium)
-        .fontColor(this.fieldError(fieldKey).length > 0 ? FIELD_ERROR_TEXT : '#9EFFFFFF')
+        .fontColor('#9EFFFFFF')
         .width('100%')
+        .margin({ bottom: 8 })
       Row({ space: 12 }) {
         TextInput({ text: currentValue, placeholder: placeholder })
           .type(isPassword && !this.revealPassword ? InputType.Password : InputType.Normal)
@@ -489,19 +490,34 @@ struct PencilLoginPage {
       .alignItems(VerticalAlign.Center)
       .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
       .translate({ x: this.shakeFieldKey === fieldKey ? this.shakeOffset : 0 })
+      if (this.fieldError(fieldKey).length > 0) {
+        Text(this.fieldError(fieldKey))
+          .fontFamily('Noto Sans SC')
+          .fontSize(12)
+          .lineHeight(16.8)
+          .fontColor(FIELD_ERROR_TEXT)
+          .width('100%')
+          .margin({ top: 7 })
+          .transition(
+            TransitionEffect.OPACITY
+              .combine(TransitionEffect.translate({ y: 6 }))
+              .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: MotionTokens.EASE_MOTION })
+          )
+      }
     }
     .width('100%')
   }
 
   @Builder
   private buildCodeField() {
-    Column({ space: 8 }) {
-      Text(this.codeError.length > 0 ? this.codeError : '验证码')
+    Column() {
+      Text('验证码')
         .fontFamily('Noto Sans SC')
         .fontSize(13)
         .fontWeight(FontWeight.Medium)
-        .fontColor(this.codeError.length > 0 ? FIELD_ERROR_TEXT : '#9EFFFFFF')
+        .fontColor('#9EFFFFFF')
         .width('100%')
+        .margin({ bottom: 8 })
       Row({ space: 10 }) {
         TextInput({ text: this.code, placeholder: '请输入验证码' })
           .type(InputType.Number)
@@ -547,6 +563,20 @@ struct PencilLoginPage {
       .alignItems(VerticalAlign.Center)
       .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
       .translate({ x: this.shakeFieldKey === 'code' ? this.shakeOffset : 0 })
+      if (this.codeError.length > 0) {
+        Text(this.codeError)
+          .fontFamily('Noto Sans SC')
+          .fontSize(12)
+          .lineHeight(16.8)
+          .fontColor(FIELD_ERROR_TEXT)
+          .width('100%')
+          .margin({ top: 7 })
+          .transition(
+            TransitionEffect.OPACITY
+              .combine(TransitionEffect.translate({ y: 6 }))
+              .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: MotionTokens.EASE_MOTION })
+          )
+      }
     }
     .width('100%')
   }

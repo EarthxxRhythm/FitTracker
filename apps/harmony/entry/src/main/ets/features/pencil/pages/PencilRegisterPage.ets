@@ -278,10 +278,10 @@ struct PencilRegisterPage {
   @Builder
   private buildField(label: string, placeholder: string, isPassword: boolean, currentValue: string, onChange: (value: string) => void) {
     Column() {
-      Text(this.fieldError(label).length > 0 ? this.fieldError(label) : label)
+      Text(label)
         .fontFamily('Noto Sans SC')
         .fontSize(13)
-        .fontColor(this.fieldError(label).length > 0 ? FIELD_ERROR_TEXT : '#9EFFFFFF')
+        .fontColor('#9EFFFFFF')
         .width('100%')
         .margin({ bottom: 8 })
       Row({ space: 12 }) {
@@ -334,6 +334,20 @@ struct PencilRegisterPage {
       .alignItems(VerticalAlign.Center)
       .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
       .translate({ x: this.shakeFieldKey === label ? this.shakeOffset : 0 })
+      if (this.fieldError(label).length > 0) {
+        Text(this.fieldError(label))
+          .fontFamily('Noto Sans SC')
+          .fontSize(12)
+          .lineHeight(16.8)
+          .fontColor(FIELD_ERROR_TEXT)
+          .width('100%')
+          .margin({ top: 7 })
+          .transition(
+            TransitionEffect.OPACITY
+              .combine(TransitionEffect.translate({ y: 6 }))
+              .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: MotionTokens.EASE_MOTION })
+          )
+      }
     }
     .width('100%')
   }
@@ -341,10 +355,10 @@ struct PencilRegisterPage {
   @Builder
   private buildCodeField() {
     Column() {
-      Text(this.codeError.length > 0 ? this.codeError : '邮箱验证码')
+      Text('邮箱验证码')
         .fontFamily('Noto Sans SC')
         .fontSize(13)
-        .fontColor(this.codeError.length > 0 ? FIELD_ERROR_TEXT : '#9EFFFFFF')
+        .fontColor('#9EFFFFFF')
         .width('100%')
         .margin({ bottom: 8 })
       Row({ space: 10 }) {
@@ -368,6 +382,7 @@ struct PencilRegisterPage {
           })
           .onChange((value: string) => {
             this.code = value
+            if (this.codeError.length > 0) { this.codeError = '' }
           })
         Button(this.countdown > 0 ? this.countdown.toString() + 's' : '获取验证码')
           .height(36)
@@ -392,6 +407,20 @@ struct PencilRegisterPage {
       .alignItems(VerticalAlign.Center)
       .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
       .translate({ x: this.shakeFieldKey === 'code' ? this.shakeOffset : 0 })
+      if (this.codeError.length > 0) {
+        Text(this.codeError)
+          .fontFamily('Noto Sans SC')
+          .fontSize(12)
+          .lineHeight(16.8)
+          .fontColor(FIELD_ERROR_TEXT)
+          .width('100%')
+          .margin({ top: 7 })
+          .transition(
+            TransitionEffect.OPACITY
+              .combine(TransitionEffect.translate({ y: 6 }))
+              .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: MotionTokens.EASE_MOTION })
+          )
+      }
     }
     .width('100%')
   }
