@@ -72,7 +72,7 @@
             "uris": [
               {
                 "scheme": "qqopenapi",
-                "host": "<QQ_APP_ID>",
+                "host": "1905801130",
                 "pathRegex": "\\b(auth|share)\\b"
               }
             ],
