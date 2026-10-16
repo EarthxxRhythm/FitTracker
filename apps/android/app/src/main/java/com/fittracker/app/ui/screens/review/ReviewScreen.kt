@@ -335,7 +335,7 @@ private fun ScaleToolbar(scale: ReviewScale, onScale: (ReviewScale) -> Unit, tag
             selectedIndex = if (scale == ReviewScale.WEEK) 0 else 1,
             onSelect = { onScale(if (it == 0) ReviewScale.WEEK else ReviewScale.MONTH) },
             modifier = Modifier.testTag("$tagPrefix-scale-pill"),
-            showContainer = false, // 无底板：胶囊浮于页面（产品要求）
+            container = SegContainer.StrokeOnly, // 保留外描边、去灰填充（产品要求）
         )
     }
 }
@@ -346,10 +346,21 @@ private fun ScaleToolbar(scale: ReviewScale, onScale: (ReviewScale) -> Unit, tag
  * 两个变体：工具栏里是 `inline-flex`（按内容宽、按钮 44 高 20 内边距），
  * openstats 里是 `width:100%` + 按钮 `flex:1`（36 高 12 内边距）。
  *
- * [showContainer]=false 时去掉 `.seg` 的填充与描边（[SegFill] + `line10`），
- * 只留分段按钮本身——供周/月工具条「浮于页面」用（产品要求；`RIR/RPE`、
- * 肌肉地图模式两处仍按原型保留底板）。
+ * [container] 控制 `.seg` 容器外观（[SegContainer]）：周/月工具条用 [SegContainer.StrokeOnly]
+ * ——保留 1px 外描边、去掉灰填充，让工具条浮于页面（产品要求）；
+ * `RIR/RPE`、肌肉地图模式两处仍用默认 [SegContainer.Full]（原型底板）。
  */
+internal enum class SegContainer {
+    /** 原型底板：`.seg` 填充（[SegFill]）+ 1px 描边（`line10`）。 */
+    Full,
+
+    /** 只留 1px 外描边，去掉填充——胶囊浮于页面但仍有轮廓。 */
+    StrokeOnly,
+
+    /** 描边与填充全去掉。 */
+    None,
+}
+
 @Composable
 private fun SegmentedPill(
     labels: List<String>,
@@ -361,7 +372,7 @@ private fun SegmentedPill(
     buttonPadH: Dp = 20.dp,
     inactiveColor: Color = FtColor.white62,
     contentDescription: String? = null,
-    showContainer: Boolean = true,
+    container: SegContainer = SegContainer.Full,
 ) {
     Row(
         modifier = modifier
@@ -374,13 +385,17 @@ private fun SegmentedPill(
                 },
             )
             .then(
-                if (showContainer) {
-                    Modifier
+                when (container) {
+                    SegContainer.Full -> Modifier
                         .clip(FtShape.pill) // radius 999 + padding 3
                         .background(SegFill)
                         .border(1.dp, FtColor.line10, FtShape.pill)
-                } else {
-                    Modifier // 无底板：直接浮于页面
+
+                    SegContainer.StrokeOnly -> Modifier
+                        .clip(FtShape.pill)
+                        .border(1.dp, FtColor.line10, FtShape.pill)
+
+                    SegContainer.None -> Modifier
                 },
             )
             .padding(3.dp),
