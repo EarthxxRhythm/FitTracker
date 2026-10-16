@@ -2,6 +2,7 @@ package com.fittracker.app.ui.screens.auth
 
 import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -29,6 +31,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,9 +57,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 import com.fittracker.app.R
 import com.fittracker.app.ui.components.FtBrandMark
 import com.fittracker.app.ui.components.FtAppleIcon
@@ -210,6 +215,14 @@ fun AuthHead(
  * 错误行只在 [error] 非空时占位显示——原型用 `.field-error { display: none }`
  * 与 `.has-error .field-error { display: block }` 切换（L309-320），
  * 故无错时**不占高度**，Compose 侧对应「条件插入」而非「预留空位」。
+ *
+ * 校验失败的即时反馈（与鸿蒙 `PencilLoginPage.buildField` 行为对齐）：
+ * ① 控件水平轻晃；② 边框/底色转警示色（[AuthControl] 的 `hasError`）；
+ * ③ 错误行从下方滑入（`fadeIn + slideInVertically`），修正后自动反向收起。
+ *
+ * 抖动由 [error] 的 `null → 非空` 跃迁触发，故同一字段重复报错不会重播——
+ * 与鸿蒙侧「每次校验失败都抖」略有差异：那边由显式 `shake()` 调用驱动。
+ * 这里保持声明式（无副作用调用），代价是连续两次相同错误只抖一次。
  */
 @Composable
 fun AuthField(
@@ -226,6 +239,22 @@ fun AuthField(
     maxLength: Int = Int.MAX_VALUE,
     trailing: (@Composable () -> Unit)? = null,
 ) {
+    // 抖动：以 error 的 null→非空跃迁为触发源，播完一轮关键帧序列（10 段 × 50ms）
+    val shakeOffset = remember { Animatable(0f) }
+    var wasErrored by remember { mutableStateOf(false) }
+    val isErrored = error != null
+    LaunchedEffect(isErrored) {
+        if (isErrored && !wasErrored) {
+            for (step in FtMotion.SHAKE_STEPS) {
+                shakeOffset.animateTo(
+                    targetValue = step * FtMotion.SHAKE_AMPLITUDE,
+                    animationSpec = tween(FtMotion.DURATION_SHAKE_STEP, easing = FtMotion.EASE_SHAKE),
+                )
+            }
+        }
+        wasErrored = isErrored
+    }
+
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = label,
@@ -237,17 +266,26 @@ fun AuthField(
             value = value,
             onValueChange = onValueChange,
             placeholder = placeholder,
-            hasError = error != null,
+            hasError = isErrored,
             isPassword = isPassword,
             revealed = revealed,
             onToggleReveal = onToggleReveal,
             keyboardType = keyboardType,
             maxLength = maxLength,
             trailing = trailing,
+            modifier = Modifier.offset { IntOffset(shakeOffset.value.roundToInt(), 0) },
         )
-        if (error != null) {
+        // 错误行：原型 `.field-error`（L309-320），margin-top 7 / 12px / line-height 1.4。
+        // 出入场为「淡入 + 自下而上 6dp」，时长与红框变色同拍（180ms, --ease）。
+        AnimatedVisibility(
+            visible = isErrored,
+            enter = fadeIn(tween(FtMotion.DURATION_COLOR_BASE, easing = FtMotion.EASE_MOTION)) +
+                slideInVertically(tween(FtMotion.DURATION_COLOR_BASE, easing = FtMotion.EASE_MOTION)) { it / 2 },
+            exit = fadeOut(tween(FtMotion.DURATION_COLOR_BASE, easing = FtMotion.EASE_MOTION)) +
+                slideOutVertically(tween(FtMotion.DURATION_COLOR_BASE, easing = FtMotion.EASE_MOTION)) { it / 2 },
+        ) {
             Text(
-                text = error,
+                text = error.orEmpty(),
                 modifier = Modifier.padding(top = 7.dp),
                 color = FtColor.warn,
                 fontSize = 12.sp,
@@ -276,6 +314,7 @@ private fun AuthControl(
     keyboardType: KeyboardType,
     maxLength: Int,
     trailing: (@Composable () -> Unit)?,
+    modifier: Modifier = Modifier,
 ) {
     var focused by remember { mutableStateOf(false) }
 
