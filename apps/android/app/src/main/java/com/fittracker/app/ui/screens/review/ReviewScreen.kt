@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -78,7 +79,7 @@ import com.fittracker.app.ui.theme.FtShape
 import com.fittracker.app.ui.theme.FtType
 
 /** 时间尺度（原型 `data-scale`）。 */
-private enum class ReviewScale { WEEK, MONTH }
+internal enum class ReviewScale { WEEK, MONTH }
 
 /**
  * 训练回顾屏（原型 `fittracker-review.html` 的 `screen-review` 帧，L1162-1467）。
@@ -218,53 +219,46 @@ fun ReviewScreen(
         baseData.copy(stats = stats)
     }
 
+    val scrollState = rememberScrollState()
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(FtColor.ink0), // `.review-shell` 底 var(--ink-0)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState()), // `.pane-scroll`
+        ReviewScaffold(
+            scale = scale,
+            onScale = { scale = it },
+            scrollState = scrollState,
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.3.dp, end = 16.3.dp, top = 52.6.dp, bottom = 36.3.dp),
-                verticalArrangement = Arrangement.spacedBy(16.3.dp), // `.review-stats` / `.openstats` gap
-            ) {
-                ScaleToolbar(scale = scale, onScale = { scale = it })
-                OverviewCard(data = data, headText = if (scale == ReviewScale.WEEK) weekHeadText else monthHeadText)
-                StatsRow(stats = data.stats)
-                ActivityCard(
-                    scale = scale,
-                    data = data,
-                    weekBars = weekBars,
-                    monthCells = monthCells,
-                    monthLabel = monthLabel,
-                    monthMeta = monthMeta,
-                    monthHead = monthHead,
-                )
+            OverviewCard(data = data, headText = if (scale == ReviewScale.WEEK) weekHeadText else monthHeadText)
+            StatsRow(stats = data.stats)
+            ActivityCard(
+                scale = scale,
+                data = data,
+                weekBars = weekBars,
+                monthCells = monthCells,
+                monthLabel = monthLabel,
+                monthMeta = monthMeta,
+                monthHead = monthHead,
+            )
 
-                // .openstats 作用域的四张卡（外层 gap 与 .review-stats 同为 16.3，故并列即可）
-                MuscleMapCard(
-                    mode = muscleMode,
-                    selected = selectedMuscle,
-                    onMode = { muscleMode = it; selectedMuscle = null },
-                    onSelect = { selectedMuscle = it },
-                )
-                WeightGoalCard(
-                    goal = goal,
-                    goalLineY = goalLineY,
-                    points = weightPoints,
-                    currentText = weightCurrent,
-                    deltaText = weightDelta,
-                    onOpenGoal = { goalModalOpen = true },
-                )
-                EffortCard(metric = effortMetric, onMetric = { effortMetric = it })
-                OneRmCard(rows = oneRmRows)
-            }
+            // .openstats 作用域的四张卡（外层 gap 与 .review-stats 同为 16.3，故并列即可）
+            MuscleMapCard(
+                mode = muscleMode,
+                selected = selectedMuscle,
+                onMode = { muscleMode = it; selectedMuscle = null },
+                onSelect = { selectedMuscle = it },
+            )
+            WeightGoalCard(
+                goal = goal,
+                goalLineY = goalLineY,
+                points = weightPoints,
+                currentText = weightCurrent,
+                deltaText = weightDelta,
+                onOpenGoal = { goalModalOpen = true },
+            )
+            EffortCard(metric = effortMetric, onMetric = { effortMetric = it })
+            OneRmCard(rows = oneRmRows)
         }
 
         if (goalModalOpen) {
@@ -283,17 +277,63 @@ fun ReviewScreen(
 
 // ── 时间尺度工具条 ───────────────────────────────────────────────
 
-/** `.review-toolbar` + `.seg`（L249-282）：胶囊分段控件，工具栏里靠左、按内容宽。 */
+/**
+ * 回顾页骨架：时间尺度工具条 + 可滚动卡片区。
+ *
+ * 工具条**固定**在顶端不随卡片滚动，并水平居中——产品要求的有意偏离：
+ * 原型 `.review-toolbar` 在 `.pane-scroll` 内、且 `space-between` 靠左。
+ */
 @Composable
-private fun ScaleToolbar(scale: ReviewScale, onScale: (ReviewScale) -> Unit) {
+internal fun ReviewScaffold(
+    scale: ReviewScale,
+    onScale: (ReviewScale) -> Unit,
+    scrollState: ScrollState,
+    tagPrefix: String = "review",
+    content: @Composable () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        // 固定头：工具条留在滚动区外，卡片滚动时它不动（产品要求；原型本在滚动区内）。
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                // `.review-content` 的顶距 52.6 与左右留白 16.3（底部留白归滚动区）
+                .padding(start = 16.3.dp, end = 16.3.dp, top = 52.6.dp)
+                .testTag("$tagPrefix-toolbar"),
+        ) {
+            ScaleToolbar(scale = scale, onScale = onScale, tagPrefix = tagPrefix)
+        }
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(scrollState), // `.pane-scroll`
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.3.dp, end = 16.3.dp, bottom = 36.3.dp),
+                verticalArrangement = Arrangement.spacedBy(16.3.dp), // `.review-stats` / `.openstats` gap
+            ) {
+                content()
+            }
+        }
+    }
+}
+
+/** `.review-toolbar` + `.seg`（L249-282）：胶囊分段控件，按内容宽、水平居中（产品要求；原型靠左）。 */
+@Composable
+private fun ScaleToolbar(scale: ReviewScale, onScale: (ReviewScale) -> Unit, tagPrefix: String = "review") {
     Row(
-        modifier = Modifier.fillMaxWidth(), // `.review-toolbar`,space-between（仅一个子元素 → 靠左）
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center, // 居中（原型 `.review-toolbar` 为 space-between → 靠左）
         verticalAlignment = Alignment.CenterVertically,
     ) {
         SegmentedPill(
             labels = listOf(stringResource(R.string.review_scale_week), stringResource(R.string.review_scale_month)),
             selectedIndex = if (scale == ReviewScale.WEEK) 0 else 1,
             onSelect = { onScale(if (it == 0) ReviewScale.WEEK else ReviewScale.MONTH) },
+            modifier = Modifier.testTag("$tagPrefix-scale-pill"),
         )
     }
 }
