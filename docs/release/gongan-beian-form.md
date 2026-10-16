@@ -47,46 +47,70 @@
 - 格式 png/jpeg/jpg，单个文件不超过 5MB，最多 6 个文件。
 - 现有 `test_run\` 下真机截图均为竖屏 1320×2856、0.13–0.25MB，**格式与体积全部满足**。
 
-### ⚠️ 关键：现有截图已过时，不能直接提交
+### ✅ 两端运行截图已实拍（2026-10-16）
 
-`test_run\` 根目录下的真机截图拍摄于 **2026-09-07 ~ 09-14**，而其后代码有多次影响界面的改动（`git log` 实测）：
+两平台运行截图已在本机实拍完成，落在 `test_run\beian-screenshots\`（gitignore 目录，素材不入库）。
 
-| 提交 | 改动 | 影响的截图 |
+| 平台 | 设备 | 系统 | 分辨率 | 目录 |
+| --- | --- | --- | --- | --- |
+| **鸿蒙** | Pura 90（模拟器） | HarmonyOS 6.1.1(24) | 1320×2856 | `test_run\beian-screenshots\harmony\` |
+| **安卓** | PKB110（真机 USB） | Android 16 | 1256×2760 | `test_run\beian-screenshots\android\` |
+
+**鸿蒙端清单**（6 张，均含真实数据）：
+
+| 文件 | 页面 | 内容（UI 树实测） |
 | --- | --- | --- |
-| `1f61e0c` | 移除同步设置——同步改恒定自动，账号与同步页下线 | `settings.jpeg`（截图里的「训练数据同步」开关**当前已不存在**） |
-| `882b18f` | 第三方 SDK 接入，登录页两段式编排 | `login.jpeg`（截图显示「微信 / Apple」，**当前代码为「华为 / 微信 / QQ」**，见 `PencilLoginPage.ets:762-764`） |
-| `e2022b0` / `f0a85cf` / `c889038` | 设置页接线、登录/注册错误呈现改造 | 登录/注册/设置页 |
+| `01-home.jpeg` | 首页 | 下肢B / 5 动作 / 45 分钟 / 本周 2/4 天 |
+| `02-plan.jpeg` | 计划页 | 二分化（上下肢）/ 上肢A / 动作清单 5 项（4×8-12 等） |
+| `03-review.jpeg` | 回顾页 | 本周 2 次 / 75 分钟 / 体重 -0.8kg / 训练节奏柱图 / 肌肉地图 |
+| `04-profile.jpeg` | 我的页 | 谱尼 / 本周 75 分钟 / 4 次 / 消耗 1240 千卡 / 连续 6 天 |
+| `05-exercise.jpeg` | 动作库 | 杠铃/哑铃/器械分组，动作图示完整 |
+| `00-launch.jpeg` | 登录页 | 手机验证码 / 邮箱密码 + 华为/微信/QQ 三入口（**当前真实界面**） |
 
-**结论**：这批截图反映的是改造前的界面，与当前代码不一致。公安备案虽对截图要求宽于应用市场，但让审核看到**已不存在的功能**仍是失实。**建议重拍**。
+**安卓端清单**（4 张，均含真实数据）：
 
-### 重拍方案
-
-| 方案 | 做法 | 成本 |
+| 文件 | 页面 | 内容 |
 | --- | --- | --- |
-| A（推荐） | 用当前 release 签名包在真机/云真机重拍，同时服务应用市场上架截图（一套两用） | 需设备 + 造数 |
-| B（应急） | 仅选**未受改动影响**的页面截图：我的页、动作库、计划页、身体数据（这几页在 9 月后无结构性改动） | 零成本，但需人工目视复核 |
+| `01-home.png` | 首页 | 下肢 / 33% 进度 / 3 动作 / 本周 1/3 次 |
+| `02-plan.png` | 计划页 | 增肌基础计划 / 胸部日 / 动作清单 |
+| `03-review.png` | 回顾页 | 本周 +18% / 1 次 / 体重 -0.8kg / 训练节奏 / 肌肉地图 |
+| `04-profile.png` | 我的页 | 林默 / 训练 4 次 / 1240 千卡 / 成就两条 |
 
-- 造数与云真机步骤：`cloud-debug-automation.md` §5；拍摄规范：`store-listing-screenshot-checklist.md` §二、§三。
-- ⚠️ release 包在云真机上**无法注入演示数据**（同文档 §5 实测），需手动造数。
+### 复现方式（可重跑）
 
-### 已核验可用的存量截图（方案 B 候选）
+```bash
+# 鸿蒙（模拟器；release 包注入不了 seed，须用 debug 包）
+cd apps/harmony
+devecocli emulator start "Pura 90"
+# 切 debug 签名后构建（release 包下 isDebuggablePackage()=false，seed 被门禁挡）
+cp ~/.ohos/release-keys/build-profile.debug-backup.json5 build-profile.json5
+devecocli build --product default --build-mode debug
+hdc install -r entry/build/default/outputs/default/entry-default-signed.hap
+hdc shell aa start -a EntryAbility -b com.earthrhythm.fittracker --ps devSeed review_metrics --ps testMode sandbox
+hdc shell uitest dumpLayout -p /data/local/tmp/l.json && hdc file recv /data/local/tmp/l.json .   # 取真实坐标
+hdc shell uinput -T -c <x> <y>                                                                  # 点击导航
+hdc shell snapshot_display -f /data/local/tmp/s.jpeg && hdc file recv /data/local/tmp/s.jpeg out.jpeg
+# 拍完务必恢复 release 配置
+cp ~/.ohos/release-keys/build-profile.release-local.json5 build-profile.json5
 
-| 文件 | 页面 | 核验结果 |
-| --- | --- | --- |
-| `test_run\profile.jpeg` | 我的页 | ✅ 有数据（本周 102 分钟 / 4 次 / 连续 6 天 / 成就「稳定输出」「重量突破」） |
-| `test_run\library.jpeg` | 动作库 | ✅ 动作网格有内容（杠铃/哑铃/器械分组，图示完整） |
-| `test_run\plan.jpeg` | 计划页 | ✅ 有数据（增肌基础计划 / 胸部日 / 动作清单 3×8-12） |
+# 安卓（真机）
+adb shell monkey -p com.earthrhythm.fittracker -c android.intent.category.LAUNCHER 1
+adb exec-out screencap -p > out.png
+```
 
-### 明确不可用（空态）
+### 两个关键实测事实（复现时必知）
 
-| 文件 | 问题 |
-| --- | --- |
-| `test_run\seedhome.jpeg` | 首页「0% 本周进度 / 0 个动作 / 0 分钟 / 0 个肌群」——空态 |
-| `test_run\q_review.jpeg` | 回顾页「训练 0 次 / 0 分钟 / 待积累」——空态 |
+1. **鸿蒙 release 包注入不了演示数据**：`PencilSplashPage.ets:122` 的判据是 `testMode === 'sandbox' && this.isDebuggablePackage()`，而 `isDebuggablePackage()` 读 `bundleInfo.appInfo.debug`（`:35-42`）——release 包恒为 false。**必须构建 debug 包**才能让 `devSeed` 生效。
+2. **`devSeed` 取值决定数据形态**：`DeviceSeedService.ets:40/44/48` 三个分支——
+   - `review_metrics`：带训练记录与复盘指标（**推荐**，回顾页/我的页才有数据）
+   - `today_flow`：只有今日训练卡（首页有数据，**回顾页仍为空态**）
+   - `demo_data`：内容目录演示数据
 
-### 待你确认的一点（平台勾选）
+> ⚠️ 注：本次为了拍鸿蒙功能页，临时把 `build-profile.json5` 切成 debug 签名并构建，完成后**已恢复 release 配置并复跑 release 构建验证通过**（`BUILD SUCCESSFUL`）。该文件处于 `git update-index --skip-worktree` 状态，git 视角无差异。
 
-表单「运行平台」已勾选 **Android + 鸿蒙**，但当前**只有鸿蒙端有运行截图**（安卓端 `apps\android` 为 0.1.0，`build\` 下仅有 launcher 图标，未见运行截图）。若审核追问「两个平台都要截图」，需补安卓端截图，或斟酌是否只勾鸿蒙。
+### 存量 9 月截图（已确认不可用，勿混用）
+
+`test_run\` 根目录下的真机截图拍摄于 **2026-09-07 ~ 09-14**，其后代码有多次影响界面的改动（`1f61e0c` 移除同步设置、`882b18f` 换第三方登录入口、`e2022b0`/`f0a85cf` 改错误呈现）——`login.jpeg` 显示「微信 / Apple」（当前为华为/微信/QQ）、`settings.jpeg` 含已移除的「训练数据同步」开关。**本文件 §2 上方的新拍截图已取代它们。**
 
 ## 3. 功能描述（可直接复制）
 
