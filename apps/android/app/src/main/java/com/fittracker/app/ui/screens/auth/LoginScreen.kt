@@ -61,9 +61,11 @@ import kotlinx.coroutines.launch
  * 与源的已知偏差（记录）：
  * 1. 源的协议勾选为**两模式共用**（`login()` L106-109 先判协议再分支）；安卓侧邮箱模式保持
  *    原型形态（无协议行），协议行仅在手机验证码模式呈现（提交时同样前置校验，文案逐字）。
- * 2. 源把发码成功提示 `hint` 与错误 `message` 渲染为表单内的内联文本行；安卓侧统一改走壳层
- *    **浮层** `onToast`（提示不参与表单布局——内联行出现/消失会顶动「登录」按钮）。
+ * 2. 源把发码成功提示 `hint` 渲染为表单内的内联文本行；安卓侧该**非字段级**提示改走壳层
+ *    浮层 `onToast`（提示不参与表单布局——内联行出现/消失会顶动「登录」按钮）。
  *    文案仍逐字取自源，仅呈现通道不同。
+ *    字段级校验错误（`phoneError` / `codeError`）**与源一致走字段下方的内联错误行**，
+ *    不再走浮层——与鸿蒙 `PencilLoginPage` 及安卓注册页统一。
  * 3. 提交中的 `loading` 禁用态未移植（连续点击风险小，标注待后续）。
  *
  * @param onSubmitSuccess 邮箱模式的校验通过回调（壳层负责认证调用与跳转编排）
@@ -89,6 +91,10 @@ fun LoginScreen(
     var countdown by remember { mutableIntStateOf(0) }
     var sendingCode by remember { mutableStateOf(false) }
     var agreed by remember { mutableStateOf(false) }
+    // 手机验证码模式的字段错误（源 `PencilLoginPage` 的 `@State phoneError / codeError`，L37-38）。
+    // 与邮箱模式的 `errors` 映射分开：两种模式的字段集不同（源同为两套独立 @State）。
+    var phoneError by remember { mutableStateOf("") }
+    var codeError by remember { mutableStateOf("") }
     val sandboxMode: Boolean = !SupabaseConfig.isConfigured // 源 `sandboxMode`（L44）
 
     // 邮箱密码模式状态（原型形态，保持）
@@ -110,7 +116,9 @@ fun LoginScreen(
     fun sendPhoneCode() {
         scope.launch {
             if (phone.isEmpty()) {
-                onToast(resources.getString(R.string.auth_placeholder_phone)) // 源 L70-72
+                // 源 L70-72：置 `phoneError` 并由 `buildField` 渲染到字段下方的错误行
+                // （`PencilLoginPage.ets` 的 `this.phoneError = '请输入手机号'; this.shake('phone')`）
+                phoneError = resources.getString(R.string.auth_placeholder_phone)
                 return@launch
             }
             sendingCode = true
@@ -139,12 +147,13 @@ fun LoginScreen(
                     onToast(resources.getString(R.string.auth_toast_login_agree_required)) // 源 L106-109
                     return@launch
                 }
+                // 字段错误逐条置入内联错误行（源 L113-119：`phoneError` / `codeError` + `shake(字段)`）
                 if (phone.isEmpty()) {
-                    onToast(resources.getString(R.string.auth_placeholder_phone)) // 源 L114-116
+                    phoneError = resources.getString(R.string.auth_placeholder_phone)
                     return@launch
                 }
                 if (code.isEmpty()) {
-                    onToast(resources.getString(R.string.auth_placeholder_code)) // 源 L117-119
+                    codeError = resources.getString(R.string.auth_placeholder_code)
                     return@launch
                 }
                 val error = AuthService.signInWithPhoneCode(store, phone, code).exceptionOrNull()?.message
@@ -183,6 +192,11 @@ fun LoginScreen(
             onModeChange = { next ->
                 if (next != loginMode) {
                     loginMode = next
+                    // 源 `buildModeButton` 的切换分支会清空全部错误态（L267-272）：
+                    // `message / hint / phoneError / codeError / emailError / passwordError` 全置空
+                    phoneError = ""
+                    codeError = ""
+                    errors = emptyMap()
                 }
             },
         )
@@ -195,12 +209,17 @@ fun LoginScreen(
         ) {
             if (loginMode == LoginMode.Phone) {
                 // 手机号（源 `buildField('手机号', …)`，样式经共享 [AuthField] 承接）
+                // 错误行内联于字段下方——与源页一致（源 L113-116 置 `phoneError`，
+                // `buildField` 在控件下方渲染红色提示行）。
                 AuthField(
                     label = stringResource(R.string.auth_field_phone),
                     value = phone,
-                    onValueChange = { phone = it },
+                    onValueChange = {
+                        phone = it
+                        if (phoneError.isNotEmpty()) phoneError = ""
+                    },
                     placeholder = stringResource(R.string.auth_placeholder_phone),
-                    error = null,
+                    error = if (phoneError.isEmpty()) null else phoneError,
                     keyboardType = KeyboardType.Phone,
                     maxLength = AUTH_PHONE_MAX_LENGTH,
                 )
@@ -208,9 +227,12 @@ fun LoginScreen(
                 AuthField(
                     label = stringResource(R.string.auth_field_code),
                     value = code,
-                    onValueChange = { code = it },
+                    onValueChange = {
+                        code = it
+                        if (codeError.isNotEmpty()) codeError = ""
+                    },
                     placeholder = stringResource(R.string.auth_placeholder_code),
-                    error = null,
+                    error = if (codeError.isEmpty()) null else codeError,
                     keyboardType = KeyboardType.Number,
                     maxLength = 6,
                     trailing = {
@@ -221,8 +243,8 @@ fun LoginScreen(
                         )
                     },
                 )
-                // 发码 / 提交的提示统一走壳层浮层 `onToast`——不在表单里插内联提示行：
-                // 内联行出现/消失会顶动表单（把「登录」按钮上下推移），浮层则不参与布局。
+                // 发码成功 / 服务端失败等**非字段级**提示仍走壳层浮层 `onToast`：
+                // 这类提示不属于任何字段，语义上是全局反馈；字段级校验则走内联错误行（源同此分工）。
                 // 协议行（源 `buildAgreementRow`；链接真实跳转 legal——源 L378-397 的 pushUrl）
                 LoginAgreeRow(
                     checked = agreed,

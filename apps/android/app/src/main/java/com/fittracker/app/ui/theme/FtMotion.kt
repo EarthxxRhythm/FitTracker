@@ -30,6 +30,23 @@ object FtMotion {
     const val DURATION_CONFETTI_FALL = 2600 // cf-fall 2.6s
     const val DURATION_PULSE = 1600         // livePulse 1.6s
 
+    // ── 字段校验失败的「左右抖动」（原型 CSS `@keyframes shake` 的等价物） ──
+    //
+    // 数值与 Harmony 侧 `common/utils/FieldShake.ets` + `MotionTokens.SHAKE_*` 逐值一致，
+    // 保证双端观感相同：峰值 10、10 段 × 50ms（总 500ms）。
+    // 设计基准 430 空间下 1px = 1dp——画布缩放由 FtCanvas 统一施加。
+    const val SHAKE_AMPLITUDE = 10f
+    const val DURATION_SHAKE_STEP = 50
+
+    /**
+     * 抖动位移序列（[SHAKE_AMPLITUDE] 的倍数），逐段对应 CSS `@keyframes shake`：
+     * 10%→-1 20%→+1 30%→-0.8 40%→+0.6 50%→-1
+     * 60%→+1 70%→-0.8 80%→+0.6 90%→-0.4 100%→0。
+     *
+     * 50% 处回到满幅 -1——CSS 是「两轮满幅 + 尾部收敛」，不是单向衰减；末项为 0 保证回到原位。
+     */
+    val SHAKE_STEPS: List<Float> = listOf(-1f, 1f, -0.8f, 0.6f, -1f, 1f, -0.8f, 0.6f, -0.4f, 0f)
+
     // ── 曲线 ──────────────────────────────────────────────────
     /** 原型全局 `--ease`：cubic-bezier(.2, .7, .2, 1) */
     val EASE_MOTION: Easing = CubicBezierEasing(0.2f, 0.7f, 0.2f, 1f)
@@ -42,6 +59,14 @@ object FtMotion {
 
     /** 彩带下落：cubic-bezier(.2, .55, .35, 1) */
     val EASE_FALL: Easing = CubicBezierEasing(0.2f, 0.55f, 0.35f, 1f)
+
+    /**
+     * 抖动曲线：CSS `ease-in-out` 的等价贝塞尔 (0.42, 0, 0.58, 1)。
+     *
+     * 不复用 [EASE_MOTION]——那是按压语汇（更快收束）；抖动需在每段关键帧间隔内缓入缓出。
+     * 与 Harmony 侧 `MotionTokens.EASE_SHAKE` 同值。
+     */
+    val EASE_SHAKE: Easing = CubicBezierEasing(0.42f, 0f, 0.58f, 1f)
 
     // ── 按压缩放系数（原型多处 `.985` / `.96` / `.98` / `.94`） ──
     const val PRESS_SCALE_CTA = 0.985f
