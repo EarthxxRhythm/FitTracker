@@ -10,6 +10,19 @@
     <!-- 训练/成就提醒本地通知（Android 13+ 需运行时请求，Wave 4）。 -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!--
+      Android 11+（API 30）包可见性：未声明 <queries> 时，isQQInstalled() /
+      isWXAppInstalled() 会返回 false（getPackageInfo 抛 NameNotFoundException），
+      第三方登录直接失效。真机实测（PKB110 / Android 16）：
+        openSDK_LOG.SystemUtils: isQQInstalled false
+        openSDK_LOG.Util: getPackageInfo has exception: com.tencent.mobileqq
+      而 QQ 实际已安装。故必须显式声明要探测的两个包。
+    -->
+    <queries>
+        <package android:name="com.tencent.mobileqq" />
+        <package android:name="com.tencent.mm" />
+    </queries>
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
