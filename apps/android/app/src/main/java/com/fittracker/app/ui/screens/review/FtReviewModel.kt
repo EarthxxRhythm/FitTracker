@@ -48,6 +48,20 @@ data class WeekBar(val label: String, val height: Float, val on: Boolean)
 data class MonthCell(val day: Int, val level: Int, val today: Boolean = false)
 
 /**
+ * 某一天的训练摘要（供月历热力格点击弹层）。
+ *
+ * [hasSession] 为 false 表示当天无训练记录（其余字段均为 0）。
+ */
+data class DaySummary(
+    val day: Int,
+    val durationMinutes: Int,
+    val exerciseCount: Int,
+    val setCount: Int,
+    val volumeKg: Double,
+    val hasSession: Boolean,
+)
+
+/**
  * 估算 1RM 的一行。
  *
  * 真实路径的 [name] / [src] 来自数据层（`PersonalRecordService` 的动作名与最佳日期文本）、
@@ -621,6 +635,49 @@ object FtReviewModel {
             seconds += session.durationSeconds
         }
         return MonthMeta(days.size, seconds / 60)
+    }
+
+    /**
+     * 某一天的训练摘要（与鸿蒙 `ReviewContent.initCalendarData` 同口径）：
+     * 训练量 = Σ 非热身 `weight×reps`；组数同样排除热身；动作数按 `exerciseId` 去重。
+     * 当天无训练返回 `hasSession=false`、其余字段为 0。
+     */
+    fun daySummary(
+        sessions: List<WorkoutSession>,
+        day: Int,
+        nowMillis: Long = System.currentTimeMillis(),
+        weekStart: WeekStart,
+    ): DaySummary {
+        val cal = calendarOf(nowMillis)
+        val year = cal.get(Calendar.YEAR)
+        val month0 = cal.get(Calendar.MONTH)
+        val exerciseIds = LinkedHashSet<String>()
+        var seconds = 0
+        var setCount = 0
+        var volume = 0.0
+        var hasSession = false
+        for (session in sessions) {
+            val s = calendarOf(session.startedAt)
+            if (s.get(Calendar.YEAR) != year || s.get(Calendar.MONTH) != month0) continue
+            if (s.get(Calendar.DAY_OF_MONTH) != day) continue
+            hasSession = true
+            seconds += session.durationSeconds
+            for (set in session.sets) {
+                exerciseIds.add(set.exerciseId)
+                if (!set.isWarmup) {
+                    setCount++
+                    volume += set.weight * set.reps
+                }
+            }
+        }
+        return DaySummary(
+            day = day,
+            durationMinutes = seconds / 60,
+            exerciseCount = exerciseIds.size,
+            setCount = setCount,
+            volumeKg = volume,
+            hasSession = hasSession,
+        )
     }
 
     /** 体重曲线绘图区（与 `WEIGHT_POINTS` 同一 342×132 viewBox 内的落点范围）。 */

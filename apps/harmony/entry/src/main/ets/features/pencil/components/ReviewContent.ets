@@ -104,6 +104,16 @@ const MM_STRENGTH_WORDS: string[] = ['弱', '一般', '中', '强']
 
 const SELECTED_MUSCLE_STROKE: string = '#F7FBF8'
 
+/** 某一天的训练摘要（供月历热力格点击弹层使用）。 */
+interface DaySummaryItem {
+  day: number
+  durationMinutes: number
+  exerciseCount: number
+  setCount: number
+  volumeKg: number
+  hasSession: boolean
+}
+
 interface HitPoint {
   x: number
   y: number
@@ -902,6 +912,15 @@ export struct ReviewContent {
   @State private selectedMuscleKey: string = ''
   @State private monthDayLevels: number[] = []
   @State private calendarLeadDays: number = 0
+  /** 按天训练摘要（index = 日），供点击弹层读取。 */
+  @State private daySummaries: DaySummaryItem[] = []
+  /** 当天详情弹层可见性。 */
+  @State private showDayDetail: boolean = false
+  /** 当前选中的日期（1..31；-1 = 无）。 */
+  @State private selectedDay: number = -1
+  /** 当前月历的年 / 月（0 基），供详情标题使用。 */
+  @State private calendarYear: number = 0
+  @State private calendarMonth0: number = 0
   @State private goalPressed: boolean = false
 
   private weekStartKey: WeekStart = 'monday'
@@ -1005,6 +1024,7 @@ export struct ReviewContent {
     this.weekBars = []
     this.trainDays = []
     this.monthDayLevels = []
+    this.daySummaries = []
     this.monthSessionCount = 0
     this.monthDurationMinutes = 0
   }
@@ -1015,6 +1035,8 @@ export struct ReviewContent {
     const month: number = date.getMonth()
     this.monthLabel = year.toString() + ' 年 ' + (month + 1).toString() + ' 月'
     this.monthBadge = '本月 · ' + (month + 1).toString() + '月'
+    this.calendarYear = year
+    this.calendarMonth0 = month
     this.weekRangeText = this.formatWeekRange(now, this.weekStartKey)
     this.todayDay = date.getDate()
     const firstWeekday: number = new Date(year, month, 1).getDay()
@@ -1036,21 +1058,43 @@ export struct ReviewContent {
     let durationSeconds: number = 0
     const daysInMonth: number = this.calendarDays.length
     const dayVolumes: number[] = []
+    const dayDurations: number[] = []
+    const daySetCounts: number[] = []
+    const dayExerciseIds: string[][] = []
+    const dayHasSession: boolean[] = []
+    const summaries: DaySummaryItem[] = []
     for (let day = 0; day <= daysInMonth; day++) {
       dayVolumes.push(0)
+      dayDurations.push(0)
+      daySetCounts.push(0)
+      dayExerciseIds.push([])
+      dayHasSession.push(false)
+      summaries.push({ day: day, durationMinutes: 0, exerciseCount: 0, setCount: 0, volumeKg: 0, hasSession: false })
     }
     for (let index = 0; index < sessions.length; index++) {
-      const sessionDate: Date = new Date(sessions[index].startedAt)
+      const session: WorkoutSession = sessions[index]
+      const sessionDate: Date = new Date(session.startedAt)
       if (sessionDate.getFullYear() !== year || sessionDate.getMonth() !== month) {
         continue
       }
       sessionCount++
-      durationSeconds += sessions[index].durationSeconds
+      durationSeconds += session.durationSeconds
       const day: number = sessionDate.getDate()
       if (!this.containsDay(trainDays, day)) {
         trainDays.push(day)
       }
-      dayVolumes[day] += this.countWorkingSets(sessions[index])
+      // 训练量口径与 Android `FtReviewModel.sessionVolume` 对齐：Σ 非热身 weight×reps
+      dayVolumes[day] += this.sessionVolume(session)
+      dayDurations[day] += session.durationSeconds
+      daySetCounts[day] += this.countWorkingSets(session)
+      dayHasSession[day] = true
+      const ids: string[] = dayExerciseIds[day]
+      for (let setIndex = 0; setIndex < session.sets.length; setIndex++) {
+        const exerciseId: string = session.sets[setIndex].exerciseId
+        if (!this.containsText(ids, exerciseId)) {
+          ids.push(exerciseId)
+        }
+      }
     }
     let maxVolume: number = 0
     for (let day = 1; day <= daysInMonth; day++) {
@@ -1064,25 +1108,55 @@ export struct ReviewContent {
     }
     for (let day = 1; day <= daysInMonth; day++) {
       const volume: number = dayVolumes[day]
-      if (volume <= 0 || maxVolume <= 0) {
-        levels[day] = 0
-        continue
+      let level: number = 0
+      if (volume > 0 && maxVolume > 0) {
+        const ratio: number = volume / maxVolume
+        if (ratio > 0.75) {
+          level = 4
+        } else if (ratio > 0.5) {
+          level = 3
+        } else if (ratio > 0.25) {
+          level = 2
+        } else {
+          level = 1
+        }
       }
-      const ratio: number = volume / maxVolume
-      if (ratio > 0.75) {
-        levels[day] = 4
-      } else if (ratio > 0.5) {
-        levels[day] = 3
-      } else if (ratio > 0.25) {
-        levels[day] = 2
-      } else {
-        levels[day] = 1
+      levels[day] = level
+      summaries[day] = {
+        day: day,
+        durationMinutes: Math.round(dayDurations[day] / 60),
+        exerciseCount: dayExerciseIds[day].length,
+        setCount: daySetCounts[day],
+        volumeKg: Math.round(dayVolumes[day]),
+        hasSession: dayHasSession[day]
       }
     }
     this.trainDays = trainDays
     this.monthSessionCount = sessionCount
     this.monthDurationMinutes = Math.round(durationSeconds / 60)
     this.monthDayLevels = levels
+    this.daySummaries = summaries
+  }
+
+  /** 单次会话训练量：非热身组的 weight×reps 之和（口径同 Android `FtReviewModel.sessionVolume`）。 */
+  private sessionVolume(session: WorkoutSession): number {
+    let volume: number = 0
+    for (let index = 0; index < session.sets.length; index++) {
+      const set: WorkoutSet = session.sets[index]
+      if (!set.isWarmup) {
+        volume += set.weight * set.reps
+      }
+    }
+    return volume
+  }
+
+  private containsText(values: string[], target: string): boolean {
+    for (let index = 0; index < values.length; index++) {
+      if (values[index] === target) {
+        return true
+      }
+    }
+    return false
   }
 
   private containsDay(days: number[], target: number): boolean {
@@ -1661,6 +1735,9 @@ export struct ReviewContent {
       if (this.showGoalModal) {
         this.goalModal()
       }
+      if (this.showDayDetail) {
+        this.dayDetailModal()
+      }
     }
     .width('100%')
     .height('100%')
@@ -1927,6 +2004,10 @@ export struct ReviewContent {
     .backgroundColor(this.calendarCellBackground(day))
     .borderRadius(9)
     .border({ width: day === this.todayDay ? 1.5 : 1, color: this.calendarCellBorderColor(day) })
+    .onClick(() => {
+      this.selectedDay = day
+      this.showDayDetail = true
+    })
   }
 
   @Builder
@@ -2004,6 +2085,112 @@ export struct ReviewContent {
       return '#00000000'
     }
     return '#0FFFFFFF'
+  }
+
+  // ── 当天详情弹层辅助 ──────────────────────────────────────────
+
+  private selectedDaySummary(): DaySummaryItem {
+    if (this.selectedDay > 0 && this.selectedDay < this.daySummaries.length) {
+      return this.daySummaries[this.selectedDay]
+    }
+    return { day: this.selectedDay, durationMinutes: 0, exerciseCount: 0, setCount: 0, volumeKg: 0, hasSession: false }
+  }
+
+  private dayDetailTitle(): string {
+    const weekdayTexts: string[] = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+    const date: Date = new Date(this.calendarYear, this.calendarMonth0, this.selectedDay)
+    return (this.calendarMonth0 + 1).toString() + '月' + this.selectedDay.toString() + '日 · ' +
+      weekdayTexts[date.getDay()]
+  }
+
+  private volumeText(volumeKg: number): string {
+    let text: string = volumeKg.toString()
+    let result: string = ''
+    let count: number = 0
+    for (let index = text.length - 1; index >= 0; index--) {
+      result = text.charAt(index) + result
+      count++
+      if (count % 3 === 0 && index > 0) {
+        result = ',' + result
+      }
+    }
+    return result + ' kg'
+  }
+
+  @Builder
+  private dayDetailModal() {
+    Stack({ alignContent: Alignment.Center }) {
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor('#9E040608')
+        .onClick(() => {
+          this.showDayDetail = false
+        })
+      Column() {
+        Text(this.dayDetailTitle())
+          .fontFamily('Noto Sans SC')
+          .fontSize(16)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#F7FBF8')
+          .width('100%')
+        if (this.selectedDaySummary().hasSession) {
+          this.dayDetailRow('训练时长', this.selectedDaySummary().durationMinutes.toString() + ' 分钟')
+          this.dayDetailRow('动作数', this.selectedDaySummary().exerciseCount.toString() + ' 个')
+          this.dayDetailRow('总组数', this.selectedDaySummary().setCount.toString() + ' 组')
+          this.dayDetailRow('总容量', this.volumeText(this.selectedDaySummary().volumeKg))
+        } else {
+          Text('这天没有训练记录')
+            .fontFamily('Noto Sans SC')
+            .fontSize(13)
+            .fontColor('#8AFFFFFF')
+            .margin({ top: 18 })
+            .width('100%')
+        }
+        Row() {
+          Text('关闭')
+            .fontFamily('Noto Sans SC')
+            .fontSize(13)
+            .fontWeight(FontWeight.Medium)
+            .fontColor('#07100B')
+            .height(40)
+            .padding({ left: 16, right: 16 })
+            .backgroundColor('#50ECA7')
+            .borderRadius(999)
+            .onClick(() => {
+              this.showDayDetail = false
+            })
+        }
+        .width('100%')
+        .justifyContent(FlexAlign.End)
+        .margin({ top: 18 })
+      }
+      .width(300)
+      .padding(20)
+      .backgroundColor('#10171B')
+      .borderRadius(22)
+      .border({ width: 1, color: '#1AFFFFFF' })
+    }
+    .width('100%')
+    .height('100%')
+  }
+
+  @Builder
+  private dayDetailRow(label: string, value: string) {
+    Row() {
+      Text(label)
+        .fontFamily('Noto Sans SC')
+        .fontSize(13)
+        .fontColor('#8AFFFFFF')
+      Text(value)
+        .fontFamily('Noto Sans SC')
+        .fontSize(13)
+        .fontWeight(FontWeight.Medium)
+        .fontColor('#F7FBF8')
+    }
+    .width('100%')
+    .justifyContent(FlexAlign.SpaceBetween)
+    .margin({ top: 14 })
   }
 
   @Builder

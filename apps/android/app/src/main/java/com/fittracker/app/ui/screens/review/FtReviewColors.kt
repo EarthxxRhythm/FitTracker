@@ -138,11 +138,20 @@ internal object FtReviewColors {
     )
 
     /**
-     * 月历图例方块。
+     * 月历图例方块（`level` 0..4 对应 未练/轻/中/高/大）。
      *
-     * ⚠ 原型里这五个方块**都是同一个浅白色**：`.month-cal .month-legend .ml .hm-c`
+     * ⚠ 原型里五个方块**都是同一个浅白色**：`.month-cal .month-legend .ml .hm-c`
      * （4 个类，特异性 0,4,0）压过了 `.month-cal .hm-c.lN`（3 个类）的 `background`，
-     * 于是等级色根本没生效。这是层叠结果、不是笔误——如实还原，并在此标注。
+     * 于是等级色根本没生效、图例不可辨五档。这里**不复刻该层叠 bug**，改用与主格
+     * [mcalLevels] 同源的 5 色，让图例真正体现深浅。
      */
-    val monthLegendSwatch = Color(0x0DFFFFFF)
+    fun monthLegendSwatch(level: Int): Color = monthLegendLevels[level.coerceIn(0, 4)]
+
+    private val monthLegendLevels = listOf(
+        Color(0x0DFFFFFF), // 未练
+        Color(0x4D68EFB3), // 轻 = mcalLevels[1]
+        Color(0x8759EDAC), // 中 = mcalLevels[2]
+        Color(0xC053ECA9), // 高 = mcalLevels[3]
+        acc,               // 大 = mcalLevels[4]
+    )
 }
