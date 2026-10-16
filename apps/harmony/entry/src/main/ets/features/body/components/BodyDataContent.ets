@@ -1,12 +1,23 @@
 /** BodyDataContent —— 身体数据二级页界面体（对应 body-data.html · screen-body-data，390 直绘）。 */
 import { ColorTokens, MotionTokens } from '../../../common/styles/DesignTokens'
 import { window } from '@kit.ArkUI'
-import UserProfileService, { UserProfile, WeightUnit } from '../../../common/services/UserProfileService'
+import UserProfileService, { UserProfile, WeightUnit, Gender } from '../../../common/services/UserProfileService'
 import SettingsService, { AppSettings } from '../../../common/services/SettingsService'
 import { formatWeight, weightUnitLabel, displayToKg } from '../../../common/utils/WeightUtils'
+import {
+  computeBmi,
+  bmiCategory,
+  bmiCategoryLabel,
+  basalMetabolicRate,
+  ageFromBirthYear,
+  bodyFatHealthyRange,
+  BodyFatRange,
+  measurementDelta
+} from '../../../common/utils/BodyMetrics'
 import { shakeField } from '../../../common/utils/FieldShake'
 import BodyRecordService from '../../../shared/services/BodyRecordService'
-import { WeightRecord, BodyTrend } from '../../../shared/models/BodyModels'
+import BodyMeasurementService from '../../../shared/services/BodyMeasurementService'
+import { WeightRecord, BodyTrend, BodyMeasurement, MEASUREMENT_UNSET } from '../../../shared/models/BodyModels'
 import { WeekStart } from '../../../common/utils/WeekUtils'
 
 interface BodyMetricTile {
@@ -50,6 +61,27 @@ function createMeasure(label: string, value: string, delta: string, deltaDown: b
   }
 }
 
+/** 体成分卡初始空态（未读数据前先渲染诚实占位，避免空白）。 */
+function emptyMetricTiles(): BodyMetricTile[] {
+  return [
+    createMetricTile('BMI', '--', '', '', false),
+    createMetricTile('骨骼肌', '--', '', '', true),
+    createMetricTile('基础代谢', '--', '', '', true),
+    createMetricTile('身体水分', '--', '', '', false)
+  ]
+}
+
+/** 围度卡初始空态（五项全未录）。 */
+function emptyMeasureRows(): MeasureRow[] {
+  return [
+    createMeasure('胸围', '--', '', false),
+    createMeasure('腰围', '--', '', false),
+    createMeasure('臀围', '--', '', false),
+    createMeasure('臂围', '--', '', false),
+    createMeasure('大腿围', '--', '', false)
+  ]
+}
+
 @Component
 export struct BodyDataContent {
   @State private backPressed: boolean = false
@@ -57,31 +89,68 @@ export struct BodyDataContent {
   @State private savePressed: boolean = false
   @State private cancelPressed: boolean = false
   @State private sheetOpen: boolean = false
-  @State private currentWeightKg: number = 72.5
-  @State private weightInput: string = '72.5'
+  /** 记录面板当前档：'weight' | 'measure' | 'profile'。 */
+  @State private sheetTab: string = 'weight'
+  /** 最新体重（kg）；无记录时为 0（展示层按 [hasWeight] 走空态）。 */
+  @State private currentWeightKg: number = 0
+  @State private hasWeight: boolean = false
+  @State private weightInput: string = ''
   @State private sheetHint: string = ''
+  /** 测量录入输入（围度 cm / 体脂% / 骨骼肌 kg / 水分%）；空串 = 本次未录，保存时落 MEASUREMENT_UNSET。 */
+  @State private chestInput: string = ''
+  @State private waistInput: string = ''
+  @State private hipInput: string = ''
+  @State private armInput: string = ''
+  @State private thighInput: string = ''
+  @State private fatInput: string = ''
+  @State private muscleInput: string = ''
+  @State private waterInput: string = ''
+  /** 身体档案录入输入（身高 cm / 出生年 / 性别）。 */
+  @State private heightInput: string = ''
+  @State private birthYearInput: string = ''
+  @State private genderSelect: Gender = ''
+  /** 真实身体档案（BMI / 基础代谢派生用）。 */
+  @State private profileHeightCm: number = 0
+  @State private profileGender: Gender = ''
+  @State private profileBirthYear: number = 0
+  /** 最新一条测量记录；无记录为 undefined（体脂/骨骼肌/水分/围度空态）。 */
+  @State private latestMeasurement: BodyMeasurement | undefined = undefined
+  /** 顶栏真实日期。 */
+  @State private headerDay: string = ''
+  @State private headerMonth: string = ''
+  /** 体脂率展示值与旁注（旁注按性别生成健康区间）。 */
+  @State private bodyFatValue: string = '--'
+  @State private bodyFatNote: string = '体脂率'
   /** 体重输入校验失败时的横向抖动偏移（错误消失后无效果）。 */
   @State private shakeOffset: number = 0
   @State private period: string = 'week'
   // 展示层体重单位（来自「设置 · 体重单位」）；基准值始终是 kg，仅展示与输入按单位换算。
   @State private displayUnit: WeightUnit = 'kg'
-  @State private trendCap: string = '近 7 天 · −0.3 kg'
+  @State private trendCap: string = ''
   // 系统状态栏高度（vp）。页面区本身落在状态栏之下，原型顶距须扣掉它才不会双计。
   @State private topInsetVp: number = 0
 
   aboutToAppear(): void {
     this.resolveTopInset()
-    this.metrics = this.buildMetrics()
+    this.syncHeaderDate()
     this.bootstrap()
   }
 
-  /** 先读展示单位（决定文案口径），再读真实体重记录覆盖样例态。 */
+  /** 顶栏日期取当前系统日期（对齐 Android BodyScreen 的真日期实现）。 */
+  private syncHeaderDate(): void {
+    const now: Date = new Date()
+    this.headerDay = String(now.getDate())
+    this.headerMonth = (now.getMonth() + 1) + '月'
+  }
+
+  /** 先读展示单位与身体档案（决定文案口径），再读真实体重/测量记录覆盖样例态。 */
   private async bootstrap(): Promise<void> {
     await this.loadDisplayUnit()
     await this.loadBodyRecords()
+    await this.loadMeasurementRecords()
   }
 
-  /** 读回真实体重记录；无记录时保持原型样例态（不空屏）。 */
+  /** 读回真实体重记录；无记录时走诚实空态（不回落样例值）。 */
   private async loadBodyRecords(): Promise<void> {
     const context: Context | null = this.contextOrNull()
     if (context === null) {
@@ -90,17 +159,43 @@ export struct BodyDataContent {
     try {
       const records: WeightRecord[] = await BodyRecordService.loadRecords(context)
       if (records.length === 0) {
+        this.hasWeight = false
+        this.syncComposition()
         return
       }
       const latest: number | undefined = BodyRecordService.latestKg(records)
       if (latest !== undefined) {
         this.currentWeightKg = latest
-        this.weightInput = formatWeight(latest, this.displayUnit)
+        this.hasWeight = true
       }
       const settings: AppSettings = await SettingsService.loadSettings(context)
       this.applyTrends(records, settings.weekStart)
+      this.syncComposition()
     } catch (error) {
-      // 读取失败保持样例态，不打断页面展示
+      // 读取失败保持空态，不打断页面展示
+      this.hasWeight = false
+      this.syncComposition()
+    }
+  }
+
+  /** 读回真实测量记录（围度 / 体脂 / 骨骼肌 / 水分），刷新围度卡与体成分卡。 */
+  private async loadMeasurementRecords(): Promise<void> {
+    const context: Context | null = this.contextOrNull()
+    if (context === null) {
+      return
+    }
+    try {
+      const records: BodyMeasurement[] = await BodyMeasurementService.loadMeasurements(context)
+      this.latestMeasurement = BodyMeasurementService.latest(records)
+      this.previousMeasurement = BodyMeasurementService.previous(records)
+      this.measures = this.buildMeasures()
+      this.syncComposition()
+    } catch (error) {
+      // 读取失败保持空态
+      this.latestMeasurement = undefined
+      this.previousMeasurement = undefined
+      this.measures = this.emptyMeasures()
+      this.syncComposition()
     }
   }
 
@@ -131,7 +226,7 @@ export struct BodyDataContent {
     return host
   }
 
-  /** 读取「设置 · 体重单位」：只刷新展示层，kg 基准值不变；读失败保持 kg 显示。 */
+  /** 读取「设置 · 体重单位」与身体档案（身高/性别/出生年）：只刷新展示层，kg 基准值不变。 */
   private async loadDisplayUnit(): Promise<void> {
     const context: Context | null = this.contextOrNull()
     if (context === null) {
@@ -140,7 +235,13 @@ export struct BodyDataContent {
     try {
       const profile: UserProfile = await UserProfileService.loadProfile(context)
       this.displayUnit = profile.weightUnit
-      this.metrics = this.buildMetrics()
+      this.profileHeightCm = profile.heightCm
+      this.profileGender = profile.gender
+      this.profileBirthYear = profile.birthYear
+      this.heightInput = profile.heightCm > 0 ? String(profile.heightCm) : ''
+      this.birthYearInput = profile.birthYear > 0 ? String(profile.birthYear) : ''
+      this.genderSelect = profile.gender
+      this.syncComposition()
       this.trendCap = this.trendCapText(this.getTrendSeries(this.period))
     } catch (e) {
       // 读取失败时保持 kg 基准显示，不打断页面展示
@@ -167,47 +268,131 @@ export struct BodyDataContent {
     }
   }
 
-  @State private metrics: BodyMetricTile[] = []
+  @State private metrics: BodyMetricTile[] = emptyMetricTiles()
+  /** 上一档测量记录（围度 delta 用）；无记录为 undefined。 */
+  private previousMeasurement: BodyMeasurement | undefined = undefined
+
+  /** 派生体成分四项：BMI/基础代谢由公式，骨骼肌/身体水分取最新录入读数；不可得时 value='--' 且注解留空。 */
+  private syncComposition(): void {
+    this.metrics = this.buildMetrics()
+    this.syncBodyFat()
+  }
 
   private buildMetrics(): BodyMetricTile[] {
+    const latest: BodyMeasurement | undefined = this.latestMeasurement
+    const bmi: number | undefined = computeBmi(this.currentWeightKg, this.profileHeightCm)
+    let bmiValue: string = '--'
+    let bmiNote: string = ''
+    if (bmi !== undefined) {
+      bmiValue = String(bmi)
+      bmiNote = bmiCategoryLabel(bmiCategory(bmi))
+    }
+    const age: number = ageFromBirthYear(this.profileBirthYear, Date.now())
+    const bmr: number | undefined =
+      basalMetabolicRate(this.currentWeightKg, this.profileHeightCm, age, this.profileGender)
+    const bmrValue: string = bmr !== undefined ? String(bmr) : '--'
+    let muscleValue: string = '--'
+    let muscleUnit: string = ''
+    if (latest !== undefined && latest.skeletalMuscleKg !== MEASUREMENT_UNSET) {
+      muscleValue = formatWeight(latest.skeletalMuscleKg, this.displayUnit)
+      muscleUnit = weightUnitLabel(this.displayUnit)
+    }
+    let waterValue: string = '--'
+    if (latest !== undefined && latest.bodyWaterPercent !== MEASUREMENT_UNSET) {
+      waterValue = this.trimNumber(latest.bodyWaterPercent)
+    }
     return [
-      createMetricTile('BMI', '22.9', '', '正常范围', false),
-      createMetricTile('骨骼肌', formatWeight(34.2, this.displayUnit), weightUnitLabel(this.displayUnit), '标准', true),
-      createMetricTile('基础代谢', '1710', 'kcal', '估算值', true),
-      createMetricTile('身体水分', '58.2', '%', '正常范围', false)
+      createMetricTile('BMI', bmiValue, '', bmiNote, false),
+      createMetricTile('骨骼肌', muscleValue, muscleUnit, '', true),
+      createMetricTile('基础代谢', bmrValue, bmr !== undefined ? 'kcal' : '', bmr !== undefined ? '估算值' : '', true),
+      createMetricTile('身体水分', waterValue, waterValue !== '--' ? '%' : '', '', false)
     ]
   }
 
-  private readonly measures: MeasureRow[] = [
-    createMeasure('胸围', '96.0 cm', '+0.5', false),
-    createMeasure('腰围', '78.0 cm', '−1.0', true),
-    createMeasure('臀围', '92.0 cm', '+0.3', false),
-    createMeasure('臂围', '34.5 cm', '+0.2', false),
-    createMeasure('大腿围', '54.0 cm', '+0.4', false)
-  ]
+  /** 体脂率展示值与旁注：按性别生成健康区间；未录读数显 '--'，未填性别旁注只留「体脂率」。 */
+  private syncBodyFat(): void {
+    const latest: BodyMeasurement | undefined = this.latestMeasurement
+    if (latest !== undefined && latest.bodyFatPercent !== MEASUREMENT_UNSET) {
+      this.bodyFatValue = this.trimNumber(latest.bodyFatPercent)
+    } else {
+      this.bodyFatValue = '--'
+    }
+    const range: BodyFatRange | undefined = bodyFatHealthyRange(this.profileGender)
+    if (range === undefined) {
+      this.bodyFatNote = '体脂率'
+    } else {
+      this.bodyFatNote = '体脂率 · 健康区间 ' + range.low + '–' + range.high + '%'
+    }
+  }
+
+  /** 围度五行：由最新/上一档记录填充，delta 用 measurementDelta；未录项 value='--' 且不显示 delta。 */
+  private buildMeasures(): MeasureRow[] {
+    const latest: BodyMeasurement | undefined = this.latestMeasurement
+    const prev: BodyMeasurement | undefined = this.previousMeasurement
+    return [
+      this.measureRow('胸围', latest !== undefined ? latest.chestCm : MEASUREMENT_UNSET,
+        prev !== undefined ? prev.chestCm : MEASUREMENT_UNSET),
+      this.measureRow('腰围', latest !== undefined ? latest.waistCm : MEASUREMENT_UNSET,
+        prev !== undefined ? prev.waistCm : MEASUREMENT_UNSET),
+      this.measureRow('臀围', latest !== undefined ? latest.hipCm : MEASUREMENT_UNSET,
+        prev !== undefined ? prev.hipCm : MEASUREMENT_UNSET),
+      this.measureRow('臂围', latest !== undefined ? latest.armCm : MEASUREMENT_UNSET,
+        prev !== undefined ? prev.armCm : MEASUREMENT_UNSET),
+      this.measureRow('大腿围', latest !== undefined ? latest.thighCm : MEASUREMENT_UNSET,
+        prev !== undefined ? prev.thighCm : MEASUREMENT_UNSET)
+    ]
+  }
+
+  private measureRow(label: string, current: number, previous: number): MeasureRow {
+    if (current === MEASUREMENT_UNSET) {
+      return createMeasure(label, '--', '', false)
+    }
+    const value: string = this.trimNumber(current) + ' cm'
+    const diff: number | undefined = measurementDelta(current, previous, MEASUREMENT_UNSET)
+    if (diff === undefined) {
+      return createMeasure(label, value, '', false)
+    }
+    const text: string = (diff < 0 ? '−' : '+') + this.trimNumber(Math.abs(diff))
+    return createMeasure(label, value, text, diff < 0)
+  }
+
+  /** 围度卡空态：五项全未录。 */
+  private emptyMeasures(): MeasureRow[] {
+    return emptyMeasureRows()
+  }
+
+  /** 数值展示：整数不带小数点，小数最多一位。 */
+  private trimNumber(value: number): string {
+    if (Number.isInteger(value)) {
+      return String(value)
+    }
+    return String(Math.round(value * 10) / 10)
+  }
+
+  @State private measures: MeasureRow[] = emptyMeasureRows()
 
   private readonly trendX: number[] = [20, 68, 115, 163, 210, 258, 305]
 
-  // 趋势序列：有真实体重记录时由 [loadBodyRecords] 覆盖；无记录时保持原型样例态。
+  // 趋势序列：有真实体重记录时由 [applyTrends] 覆盖；无记录时保持空态（全零平线，不回落样例值）。
   @State private weekSeries: TrendSeries = {
-    vals: [72.8, 72.6, 72.7, 72.4, 72.6, 72.5, 72.5],
-    labels: ['一', '二', '三', '四', '五', '六', '日'],
-    prefix: '近 7 天',
-    deltaKg: -0.3
+    vals: [0, 0, 0, 0, 0, 0, 0],
+    labels: ['', '', '', '', '', '', ''],
+    prefix: '',
+    deltaKg: 0
   }
 
   @State private monthSeries: TrendSeries = {
-    vals: [71.8, 71.9, 72.2, 72.0, 72.3, 72.4, 72.5],
-    labels: ['8周前', '', '', '4周前', '', '', '本周'],
-    prefix: '近 30 天',
-    deltaKg: 0.7
+    vals: [0, 0, 0, 0, 0, 0, 0],
+    labels: ['', '', '', '', '', '', ''],
+    prefix: '',
+    deltaKg: 0
   }
 
   @State private yearSeries: TrendSeries = {
-    vals: [68.2, 68.9, 69.6, 70.4, 71.0, 71.8, 72.5],
-    labels: ['去年9月', '', '', '3月', '', '', '现在'],
-    prefix: '近 12 个月',
-    deltaKg: 4.5
+    vals: [0, 0, 0, 0, 0, 0, 0],
+    labels: ['', '', '', '', '', '', ''],
+    prefix: '',
+    deltaKg: 0
   }
 
   private trendSettings: RenderingContextSettings = new RenderingContextSettings(true)
@@ -218,7 +403,8 @@ export struct BodyDataContent {
   }
 
   private openSheet(): void {
-    this.weightInput = formatWeight(this.currentWeightKg, this.displayUnit)
+    this.sheetTab = 'weight'
+    this.weightInput = this.hasWeight ? formatWeight(this.currentWeightKg, this.displayUnit) : ''
     this.sheetHint = ''
     this.sheetOpen = true
   }
@@ -228,10 +414,16 @@ export struct BodyDataContent {
     this.sheetHint = ''
   }
 
+  /** 切换记录面板档位（体重 / 围度与体成分 / 身体档案），清空上一档的校验提示。 */
+  private switchSheetTab(tab: string): void {
+    this.sheetTab = tab
+    this.sheetHint = ''
+  }
+
   private async saveWeight(): Promise<void> {
     const parsed: number = Number(this.weightInput)
     const kg: number = displayToKg(parsed, this.displayUnit)
-    if (Number.isNaN(parsed) || parsed <= 0 || kg > 500) {
+    if (this.weightInput.length === 0 || Number.isNaN(parsed) || parsed <= 0 || kg > 500) {
       this.sheetHint = '请输入 0–500 之间的有效体重'
       shakeField(this.getUIContext(), (value: number) => {
         this.shakeOffset = value
@@ -239,6 +431,7 @@ export struct BodyDataContent {
       return
     }
     this.currentWeightKg = kg
+    this.hasWeight = true
     this.closeSheet()
     // 落盘（同一自然日覆盖）后重算趋势。
     const context: Context | null = this.contextOrNull()
@@ -247,6 +440,68 @@ export struct BodyDataContent {
     }
     await BodyRecordService.addRecord(context, { dateMillis: Date.now(), kg: kg })
     await this.loadBodyRecords()
+  }
+
+  /** 解析围度/体成分输入：空串或非法 → MEASUREMENT_UNSET（本次不录），否则为数值。 */
+  private parseMeasureInput(text: string): number {
+    if (text.length === 0) {
+      return MEASUREMENT_UNSET
+    }
+    const value: number = Number(text)
+    if (Number.isNaN(value) || value < 0) {
+      return MEASUREMENT_UNSET
+    }
+    return value
+  }
+
+  /** 保存围度与体成分录入（同日逐项合并），随后重读刷新围度卡与体成分卡。 */
+  private async saveMeasurement(): Promise<void> {
+    const context: Context | null = this.contextOrNull()
+    if (context === null) {
+      return
+    }
+    const record: BodyMeasurement = {
+      dateMillis: Date.now(),
+      chestCm: this.parseMeasureInput(this.chestInput),
+      waistCm: this.parseMeasureInput(this.waistInput),
+      hipCm: this.parseMeasureInput(this.hipInput),
+      armCm: this.parseMeasureInput(this.armInput),
+      thighCm: this.parseMeasureInput(this.thighInput),
+      bodyFatPercent: this.parseMeasureInput(this.fatInput),
+      skeletalMuscleKg: this.parseMeasureInput(this.muscleInput),
+      bodyWaterPercent: this.parseMeasureInput(this.waterInput)
+    }
+    await BodyMeasurementService.addMeasurement(context, record)
+    this.chestInput = ''
+    this.waistInput = ''
+    this.hipInput = ''
+    this.armInput = ''
+    this.thighInput = ''
+    this.fatInput = ''
+    this.muscleInput = ''
+    this.waterInput = ''
+    this.closeSheet()
+    await this.loadMeasurementRecords()
+  }
+
+  /** 保存身体档案（身高/性别/出生年），随后重派生 BMI 与基础代谢。 */
+  private async saveBodyProfile(): Promise<void> {
+    const context: Context | null = this.contextOrNull()
+    if (context === null) {
+      return
+    }
+    const heightCm: number = this.heightInput.length > 0 ? Number(this.heightInput) : 0
+    const birthYear: number = this.birthYearInput.length > 0 ? Number(this.birthYearInput) : 0
+    if (!Number.isFinite(heightCm) || !Number.isFinite(birthYear)) {
+      this.sheetHint = '请输入有效的身高与出生年份'
+      return
+    }
+    this.profileHeightCm = heightCm
+    this.profileGender = this.genderSelect
+    this.profileBirthYear = birthYear
+    this.closeSheet()
+    await UserProfileService.saveBodyProfile(context, heightCm, this.genderSelect, birthYear)
+    this.syncComposition()
   }
 
   private deltaText(deltaKg: number): string {
@@ -258,6 +513,9 @@ export struct BodyDataContent {
   }
 
   private trendCapText(series: TrendSeries): string {
+    if (series.prefix.length === 0) {
+      return ''
+    }
     return series.prefix + ' · ' + this.deltaText(series.deltaKg)
   }
 
@@ -369,6 +627,97 @@ export struct BodyDataContent {
     ctx.restore()
   }
 
+  private sheetTitle(): string {
+    if (this.sheetTab === 'measure') {
+      return '记录围度与体成分'
+    }
+    if (this.sheetTab === 'profile') {
+      return '身体档案'
+    }
+    return '记录今日体重'
+  }
+
+  private sheetSubtitle(): string {
+    if (this.sheetTab === 'measure') {
+      return '留空的项本次不记录，已录的读数会保留'
+    }
+    if (this.sheetTab === 'profile') {
+      return '用于派生 BMI 与基础代谢'
+    }
+    return '每次记录都会被纳入体重趋势'
+  }
+
+  @Builder
+  private sheetTabButton(label: string, key: string) {
+    Button(label)
+      .height(30)
+      .padding({ left: 12, right: 12 })
+      .fontFamily('Noto Sans SC')
+      .fontSize(12)
+      .fontWeight(FontWeight.Bold)
+      .fontColor(this.sheetTab === key ? '#07100B' : '#9EFFFFFF')
+      .backgroundColor(this.sheetTab === key ? '#50ECA7' : Color.Transparent)
+      .borderRadius(9)
+      .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: MotionTokens.EASE_MOTION })
+      .onClick(() => {
+        this.switchSheetTab(key)
+      })
+  }
+
+  @Builder
+  private measureField(label: string, value: string, unit: string, onChange: (value: string) => void) {
+    Row() {
+      Text(label)
+        .fontFamily('Noto Sans SC')
+        .fontSize(13)
+        .fontColor('#B3FFFFFF')
+      Blank()
+      TextInput({ text: value, placeholder: '—' })
+        .type(InputType.NUMBER_DECIMAL)
+        .fontFamily('Inter')
+        .fontSize(15)
+        .fontColor('#F7FBF8')
+        .placeholderColor('#52FFFFFF')
+        .backgroundColor(Color.Transparent)
+        .borderRadius(0)
+        .width(96)
+        .padding(0)
+        .textAlign(TextAlign.End)
+        .onChange((next: string) => {
+          onChange(next)
+        })
+      Text(unit)
+        .fontFamily('Inter')
+        .fontSize(12)
+        .fontColor('#9EFFFFFF')
+        .width(24)
+        .textAlign(TextAlign.End)
+    }
+    .width('100%')
+    .height(48)
+    .padding({ left: 14, right: 14 })
+    .backgroundColor('#0FFFFFFF')
+    .border({ width: 1, color: '#14FFFFFF' })
+    .borderRadius(14)
+  }
+
+  @Builder
+  private genderButton(label: string, value: Gender) {
+    Button(label)
+      .height(30)
+      .padding({ left: 16, right: 16 })
+      .fontFamily('Noto Sans SC')
+      .fontSize(13)
+      .fontWeight(FontWeight.Medium)
+      .fontColor(this.genderSelect === value ? '#07100B' : '#B3FFFFFF')
+      .backgroundColor(this.genderSelect === value ? '#50ECA7' : '#0FFFFFFF')
+      .border({ width: 1, color: this.genderSelect === value ? '#50ECA7' : '#14FFFFFF' })
+      .borderRadius(10)
+      .onClick(() => {
+        this.genderSelect = value
+      })
+  }
+
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
       Column()
@@ -411,13 +760,13 @@ export struct BodyDataContent {
             .layoutWeight(1)
             .textAlign(TextAlign.Center)
           Column() {
-            Text('21')
+            Text(this.headerDay)
               .fontFamily('Inter')
               .fontSize(13)
               .fontWeight(FontWeight.Medium)
               .fontColor('#B3FFFFFF')
               .lineHeight(13)
-            Text('8月')
+            Text(this.headerMonth)
               .fontFamily('Noto Sans SC')
               .fontSize(11)
               .fontColor('#8AFFFFFF')
@@ -496,7 +845,7 @@ export struct BodyDataContent {
               .height(4)
               .borderRadius(999)
               .backgroundColor('#52FFFFFF')
-            Text('记录今日体重')
+            Text(this.sheetTitle())
               .fontFamily('Noto Sans SC')
               .fontSize(17)
               .fontWeight(FontWeight.Bold)
@@ -504,7 +853,7 @@ export struct BodyDataContent {
               .textAlign(TextAlign.Center)
               .width('100%')
               .margin({ top: 18 })
-            Text('每次记录都会被纳入体重趋势')
+            Text(this.sheetSubtitle())
               .fontFamily('Noto Sans SC')
               .fontSize(12)
               .fontColor('#8AFFFFFF')
@@ -512,34 +861,133 @@ export struct BodyDataContent {
               .width('100%')
               .margin({ top: 5 })
             Row({ space: 8 }) {
-              TextInput({ text: this.weightInput, placeholder: '72.5' })
-                .type(InputType.NUMBER_DECIMAL)
-                .fontFamily('Inter')
-                .fontSize(40)
-                .fontWeight(FontWeight.Bold)
-                .fontColor('#F7FBF8')
-                .placeholderColor('#52FFFFFF')
-                .backgroundColor(this.sheetHint.length > 0 ? ColorTokens.FIELD_ERROR_FILL : '#0FFFFFFF')
-                .border({ width: 1, color: this.sheetHint.length > 0 ? ColorTokens.FIELD_ERROR_BORDER : '#14FFFFFF' })
-                .borderRadius(18)
-                .width(140)
-                .padding({ left: 14, right: 14, top: 8, bottom: 8 })
-                .textAlign(TextAlign.Center)
-                .translate({ x: this.shakeOffset })
-                .onChange((value: string) => {
-                  this.weightInput = value
+              this.sheetTabButton('体重', 'weight')
+              this.sheetTabButton('围度与体成分', 'measure')
+              this.sheetTabButton('身体档案', 'profile')
+            }
+            .width('100%')
+            .justifyContent(FlexAlign.Center)
+            .margin({ top: 16 })
+
+            if (this.sheetTab === 'weight') {
+              Row({ space: 8 }) {
+                TextInput({ text: this.weightInput, placeholder: '—' })
+                  .type(InputType.NUMBER_DECIMAL)
+                  .fontFamily('Inter')
+                  .fontSize(40)
+                  .fontWeight(FontWeight.Bold)
+                  .fontColor('#F7FBF8')
+                  .placeholderColor('#52FFFFFF')
+                  .backgroundColor(this.sheetHint.length > 0 ? ColorTokens.FIELD_ERROR_FILL : '#0FFFFFFF')
+                  .border({ width: 1, color: this.sheetHint.length > 0 ? ColorTokens.FIELD_ERROR_BORDER : '#14FFFFFF' })
+                  .borderRadius(18)
+                  .width(140)
+                  .padding({ left: 14, right: 14, top: 8, bottom: 8 })
+                  .textAlign(TextAlign.Center)
+                  .translate({ x: this.shakeOffset })
+                  .onChange((value: string) => {
+                    this.weightInput = value
+                    if (this.sheetHint.length > 0) {
+                      this.sheetHint = ''
+                    }
+                  })
+                Text(weightUnitLabel(this.displayUnit))
+                  .fontFamily('Inter')
+                  .fontSize(16)
+                  .fontColor('#9EFFFFFF')
+              }
+              .width('100%')
+              .justifyContent(FlexAlign.Center)
+              .margin({ top: 20 })
+            } else if (this.sheetTab === 'measure') {
+              Column({ space: 10 }) {
+                this.measureField('胸围', this.chestInput, 'cm', (value: string) => {
+                  this.chestInput = value
                   if (this.sheetHint.length > 0) {
                     this.sheetHint = ''
                   }
                 })
-              Text(weightUnitLabel(this.displayUnit))
-                .fontFamily('Inter')
-                .fontSize(16)
-                .fontColor('#9EFFFFFF')
+                this.measureField('腰围', this.waistInput, 'cm', (value: string) => {
+                  this.waistInput = value
+                  if (this.sheetHint.length > 0) {
+                    this.sheetHint = ''
+                  }
+                })
+                this.measureField('臀围', this.hipInput, 'cm', (value: string) => {
+                  this.hipInput = value
+                  if (this.sheetHint.length > 0) {
+                    this.sheetHint = ''
+                  }
+                })
+                this.measureField('臂围', this.armInput, 'cm', (value: string) => {
+                  this.armInput = value
+                  if (this.sheetHint.length > 0) {
+                    this.sheetHint = ''
+                  }
+                })
+                this.measureField('大腿围', this.thighInput, 'cm', (value: string) => {
+                  this.thighInput = value
+                  if (this.sheetHint.length > 0) {
+                    this.sheetHint = ''
+                  }
+                })
+                this.measureField('体脂率', this.fatInput, '%', (value: string) => {
+                  this.fatInput = value
+                  if (this.sheetHint.length > 0) {
+                    this.sheetHint = ''
+                  }
+                })
+                this.measureField('骨骼肌', this.muscleInput, 'kg', (value: string) => {
+                  this.muscleInput = value
+                  if (this.sheetHint.length > 0) {
+                    this.sheetHint = ''
+                  }
+                })
+                this.measureField('身体水分', this.waterInput, '%', (value: string) => {
+                  this.waterInput = value
+                  if (this.sheetHint.length > 0) {
+                    this.sheetHint = ''
+                  }
+                })
+              }
+              .width('100%')
+              .margin({ top: 18 })
+            } else {
+              Column({ space: 10 }) {
+                this.measureField('身高', this.heightInput, 'cm', (value: string) => {
+                  this.heightInput = value
+                  if (this.sheetHint.length > 0) {
+                    this.sheetHint = ''
+                  }
+                })
+                this.measureField('出生年份', this.birthYearInput, '', (value: string) => {
+                  this.birthYearInput = value
+                  if (this.sheetHint.length > 0) {
+                    this.sheetHint = ''
+                  }
+                })
+                Row() {
+                  Text('性别')
+                    .fontFamily('Noto Sans SC')
+                    .fontSize(13)
+                    .fontColor('#B3FFFFFF')
+                  Blank()
+                  Row({ space: 8 }) {
+                    this.genderButton('男', 'male')
+                    this.genderButton('女', 'female')
+                  }
+                }
+                .width('100%')
+                .height(48)
+                .padding({ left: 14, right: 14 })
+                .backgroundColor('#0FFFFFFF')
+                .border({ width: 1, color: '#14FFFFFF' })
+                .borderRadius(14)
+              }
+              .width('100%')
+              .margin({ top: 18 })
             }
-            .width('100%')
-            .justifyContent(FlexAlign.Center)
-            .margin({ top: 20 })
+
             Text(this.sheetHint)
               .fontFamily('Noto Sans SC')
               .fontSize(11.5)
@@ -574,7 +1022,13 @@ export struct BodyDataContent {
                 .backgroundColor('#50ECA7')
                 .borderRadius(16)
                 .onClick(() => {
-                  this.saveWeight()
+                  if (this.sheetTab === 'weight') {
+                    this.saveWeight()
+                  } else if (this.sheetTab === 'measure') {
+                    this.saveMeasurement()
+                  } else {
+                    this.saveBodyProfile()
+                  }
                 })
             }
             .width('100%')
@@ -615,35 +1069,39 @@ export struct BodyDataContent {
       .justifyContent(FlexAlign.SpaceBetween)
 
       Row({ space: 7 }) {
-        Text(formatWeight(this.currentWeightKg, this.displayUnit))
+        Text(this.hasWeight ? formatWeight(this.currentWeightKg, this.displayUnit) : '--')
           .fontFamily('Inter')
           .fontSize(56)
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
           .letterSpacing(-1.1)
           .margin({ top: 10 })
-        Text(weightUnitLabel(this.displayUnit))
-          .fontFamily('Inter')
-          .fontSize(16)
-          .fontColor('#9EFFFFFF')
-          .margin({ top: 10 })
+        if (this.hasWeight) {
+          Text(weightUnitLabel(this.displayUnit))
+            .fontFamily('Inter')
+            .fontSize(16)
+            .fontColor('#9EFFFFFF')
+            .margin({ top: 10 })
+        }
       }
       .width('100%')
 
-      Row({ space: 5 }) {
-        Image($rawfile('pencil-body-arrow-down.svg'))
-          .width(15)
-          .height(15)
-        Text('较上周 ' + this.deltaText(-0.3))
-          .fontFamily('Noto Sans SC')
-          .fontSize(12)
-          .fontWeight(FontWeight.Medium)
-          .fontColor('#50ECA7')
+      if (this.hasWeight && this.weekSeries.prefix.length > 0) {
+        Row({ space: 5 }) {
+          Image($rawfile('pencil-body-arrow-down.svg'))
+            .width(15)
+            .height(15)
+          Text('较上周 ' + this.deltaText(this.weekSeries.deltaKg))
+            .fontFamily('Noto Sans SC')
+            .fontSize(12)
+            .fontWeight(FontWeight.Medium)
+            .fontColor('#50ECA7')
+        }
+        .padding({ left: 11, right: 11, top: 5, bottom: 5 })
+        .backgroundColor('#1A50ECA7')
+        .borderRadius(999)
+        .margin({ top: 12 })
       }
-      .padding({ left: 11, right: 11, top: 5, bottom: 5 })
-      .backgroundColor('#1A50ECA7')
-      .borderRadius(999)
-      .margin({ top: 12 })
 
       Row()
         .width('100%')
@@ -710,20 +1168,22 @@ export struct BodyDataContent {
 
       Row() {
         Row({ space: 0 }) {
-          Text('16.2')
+          Text(this.bodyFatValue)
             .fontFamily('Inter')
             .fontSize(24)
             .fontWeight(FontWeight.Bold)
             .fontColor('#50ECA7')
-          Text('%')
-            .fontFamily('Inter')
-            .fontSize(13)
-            .fontWeight(FontWeight.Medium)
-            .fontColor('#9EFFFFFF')
+          if (this.bodyFatValue !== '--') {
+            Text('%')
+              .fontFamily('Inter')
+              .fontSize(13)
+              .fontWeight(FontWeight.Medium)
+              .fontColor('#9EFFFFFF')
+          }
         }
         .alignItems(VerticalAlign.Bottom)
         Blank()
-        Text('体脂率 · 健康区间 10–20%')
+        Text(this.bodyFatNote)
           .fontFamily('Noto Sans SC')
           .fontSize(11)
           .fontColor('#9EFFFFFF')
