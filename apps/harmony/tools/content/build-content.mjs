@@ -11,7 +11,9 @@ const manifestSourceFileName = 'content-sync.manifest.json'
 const sourceFileKey = '__sourceFile'
 const sourceLineKey = '__sourceLine'
 const minimumExerciseCount = 30
-const recommendedExerciseCount = 50
+// 2026-10-16：动作库从 50 条扩充到 102 条（接入 free-exercise-db 公共领域数据）。
+// 该常量只出现在覆盖率报告的 target 文案里，不参与拦截；同步上调以免报告误导。
+const recommendedExerciseCount = 110
 const allowedDifficulties = ['beginner', 'intermediate', 'advanced']
 const allowedGoalTags = ['hypertrophy', 'strength', 'fat_loss', 'posture', 'stability']
 const minimumCoveragePerGoal = 3

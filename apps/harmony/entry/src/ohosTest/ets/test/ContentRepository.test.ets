@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@ohos/hypium'
-import { ExerciseContent, UserGoal, createUserGoal } from '../../../main/ets/shared/models/TrainingModels'
+import { EquipmentItem, ExerciseContent, UserGoal, createUserGoal } from '../../../main/ets/shared/models/TrainingModels'
 import ContentRepository, {
   ContentSourceInfo,
   ExerciseDetailViewModel,
@@ -115,6 +115,73 @@ export default function contentRepositoryTest(): void {
       expect(bandCount).assertLarger(1)
       expect(stabilityCount).assertLarger(2)
       expect(localVideoCount).assertLarger(0)
+    })
+
+    it('includes externally sourced exercises with complete local content', 0, () => {
+      // 2026-10-16：从 free-exercise-db（Unlicense 公共领域）扩充 52 条动作，
+      // 动作总数从 50 增至 102。以下断言锁定扩充后的关键不变量。
+      const exercises: ExerciseContent[] = ContentRepository.getExercises()
+      const allowedGoalTags: string[] = ['hypertrophy', 'strength', 'fat_loss', 'posture', 'stability']
+      let missingChineseSteps: number = 0
+      let remoteMedia: number = 0
+      let invalidGoalTag: number = 0
+
+      for (let index = 0; index < exercises.length; index++) {
+        const exercise: ExerciseContent = exercises[index]
+        // 每条动作都必须有中文步骤（新增条目由人工翻译补全）
+        if (exercise.steps.length === 0) {
+          missingChineseSteps++
+        }
+        // 校验器禁止远程媒体 URL；此处二次确认运行时数据也干净
+        if (exercise.videoUrl.indexOf('http') === 0 || exercise.coverUrl.indexOf('http') === 0) {
+          remoteMedia++
+        }
+        for (let tagIndex = 0; tagIndex < exercise.goalTags.length; tagIndex++) {
+          if (!hasValue(allowedGoalTags, exercise.goalTags[tagIndex])) {
+            invalidGoalTag++
+          }
+        }
+      }
+
+      expect(exercises.length).assertLarger(99)
+      expect(missingChineseSteps).assertEqual(0)
+      expect(remoteMedia).assertEqual(0)
+      expect(invalidGoalTag).assertEqual(0)
+    })
+
+    it('resolves externally sourced exercises by id with Chinese name and steps', 0, () => {
+      const exercise: ExerciseContent | undefined = ContentRepository.getExerciseById('ex_barbell_incline_bench_press')
+      expect(exercise !== undefined).assertTrue()
+      if (exercise !== undefined) {
+        expect(exercise.nameZh).assertEqual('上斜杠铃卧推')
+        expect(exercise.nameEn).assertEqual('Barbell Incline Bench Press')
+        expect(exercise.steps.length).assertLarger(2)
+        expect(exercise.equipmentIds[0]).assertEqual('eq_barbell')
+        expect(exercise.primaryMuscleIds[0]).assertEqual('muscle_chest')
+        expect(exercise.contentVersion).assertEqual(3)
+      }
+    })
+
+    it('exposes kettlebell as a resolvable equipment dimension', 0, () => {
+      // 新增器械 eq_kettlebell 必须同时满足：在器械表中可解析、且有动作引用它
+      const exercises: ExerciseContent[] = ContentRepository.getExercises()
+      const equipment: EquipmentItem[] = ContentRepository.getEquipment()
+      let kettlebellCount: number = 0
+      let kettlebellName: string = ''
+
+      for (let index = 0; index < exercises.length; index++) {
+        if (hasValue(exercises[index].equipmentIds, 'eq_kettlebell')) {
+          kettlebellCount++
+        }
+      }
+      for (let index = 0; index < equipment.length; index++) {
+        if (equipment[index].equipmentId === 'eq_kettlebell') {
+          kettlebellName = equipment[index].nameZh
+        }
+      }
+
+      expect(kettlebellCount).assertLarger(1)
+      expect(kettlebellName).assertEqual('壶铃')
     })
 
     it('filters local exercise library rows by goal equipment muscle and difficulty', 0, () => {
