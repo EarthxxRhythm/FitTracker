@@ -446,4 +446,84 @@ class FtReviewModelTest {
         assertEquals(1, cells[1].day)
         assertEquals(30, cells.count { it.day > 0 })
     }
+
+    // ── 真实派生（Wave 2）：肌群训练量与努力程度 ─────────────────────
+
+    @Test
+    fun `肌群训练量_无数据全零`() {
+        val volume = FtReviewModel.muscleVolume(emptyList(), { emptyList() }, 8)
+        assertEquals(18, volume.size)
+        assertEquals(0, volume.sum())
+    }
+
+    @Test
+    fun `肌群训练量_按组数聚合到身体部位`() {
+        // 2 条 set 且主肌群为胸 → chest / serratus 各 +2（每条 set 计 1）。
+        val session = sessionWith(1000L, listOf("ex_a", "ex_b"))
+        val volume = FtReviewModel.muscleVolume(listOf(session), { listOf("muscle_chest") }, 8)
+        assertEquals(2, volume[FtReviewModel.MUSCLE_IDS.indexOf("chest")])
+        assertEquals(2, volume[FtReviewModel.MUSCLE_IDS.indexOf("serratus")])
+    }
+
+    @Test
+    fun `肌群级别_归一四级且无数据全零`() {
+        assertEquals(List(18) { 0 }, FtReviewModel.muscleLevels(List(18) { 0 }))
+
+        val volume = MutableList(18) { 0 }
+        volume[0] = 100
+        volume[1] = 10
+        val levels = FtReviewModel.muscleLevels(volume)
+        assertEquals(4, levels[0]) // 最大值 → 4
+        assertEquals(1, levels[1]) // ≤25% → 1
+        assertEquals(0, levels[2]) // 无训练量 → 0
+    }
+
+    @Test
+    fun `努力程度_取已评价场次并跳过未评价`() {
+        val unreviewed = sessionWith(1000L, listOf("ex_a"), rpe = 0)
+        val reviewed = sessionWith(2000L, listOf("ex_a"), rpe = 8)
+        assertEquals(listOf(8), FtReviewModel.effortLevels(listOf(unreviewed, reviewed), 8))
+        assertEquals(emptyList<Int>(), FtReviewModel.effortLevels(listOf(unreviewed), 8))
+    }
+
+    @Test
+    fun `肌群结论_按最高最低部位成文`() {
+        val labels = List(18) { "部位$it" }
+        val volume = MutableList(18) { 0 }
+        volume[2] = 50
+        volume[5] = 5
+        assertEquals("部位2训练量最高，部位5最少。", FtReviewModel.muscleSummary(volume, labels))
+        assertEquals(
+            "完成训练后，这里会显示肌群训练分布。",
+            FtReviewModel.muscleSummary(List(18) { 0 }, labels),
+        )
+    }
+
+    /** 构造含若干 set 的会话（每个 exerciseId 一条 set）。 */
+    private fun sessionWith(startedAt: Long, exerciseIds: List<String>, rpe: Int = 8): WorkoutSession {
+        val sets = exerciseIds.mapIndexed { index, exerciseId ->
+            WorkoutSet(
+                setId = "set_$index",
+                exerciseId = exerciseId,
+                weight = 80.0,
+                reps = 8,
+                rpe = rpe.toDouble(),
+                isWarmup = false,
+            )
+        }
+        return WorkoutSession(
+            sessionId = "session_$startedAt",
+            planId = "plan_1",
+            dayId = "day_1",
+            startedAt = startedAt,
+            endedAt = startedAt + 1800000L,
+            durationSeconds = 1800,
+            totalSets = sets.size,
+            totalVolume = 640.0,
+            fatigueScore = 3.0,
+            sessionRpe = rpe,
+            notes = "completed_sets=${sets.size};target_sets=${sets.size}",
+            sets = sets,
+        )
+    }
 }

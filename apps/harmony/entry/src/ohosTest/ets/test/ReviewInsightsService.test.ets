@@ -174,5 +174,94 @@ export default function reviewInsightsServiceTest(): void {
       expect(trendItems[0].dominantDayId).assertEqual('day_2')
       expect(trendItems[0].dominantDayLabel).assertEqual('第 2 天')
     })
+
+    // ── 肌群热力与努力程度派生（Wave 2） ──────────────────────────
+
+    it('muscle_volume_无训练时全零', 0, () => {
+      const volume = ReviewInsightsService.createMuscleVolume([], () => ['muscle_chest'], 8)
+      expect(volume.length).assertEqual(18)
+      let sum: number = 0
+      for (let i = 0; i < volume.length; i++) {
+        sum += volume[i]
+      }
+      expect(sum).assertEqual(0)
+    })
+
+    it('muscle_volume_按组数聚合到身体部位', 0, () => {
+      // 一次训练含 2 组胸部动作（每条 set 计 1）→ chest + serratus 各 +2。
+      const sessions = [createSession('s1', Date.now())]
+      const volume = ReviewInsightsService.createMuscleVolume(sessions, () => ['muscle_chest'], 8)
+      // chest 是 bodyPartKeys 第 3 项（index 2），serratus 第 5 项（index 4）。
+      expect(volume[2]).assertEqual(2)
+      expect(volume[4]).assertEqual(2)
+    })
+
+    it('muscle_levels_归一为四级且无数据全零', 0, () => {
+      const empty: number[] = []
+      for (let i = 0; i < 18; i++) {
+        empty.push(0)
+      }
+      const blank = ReviewInsightsService.createMuscleLevels(empty)
+      for (let i = 0; i < blank.length; i++) {
+        expect(blank[i]).assertEqual(0)
+      }
+
+      // 最大值 → 4 级；最大值的 25% 以下 → 1 级。
+      const volume: number[] = []
+      for (let i = 0; i < 18; i++) {
+        volume.push(0)
+      }
+      volume[0] = 100
+      volume[1] = 10
+      const levels = ReviewInsightsService.createMuscleLevels(volume)
+      expect(levels[0]).assertEqual(4)
+      expect(levels[1]).assertEqual(1)
+      expect(levels[2]).assertEqual(0)
+    })
+
+    it('effort_levels_取已评价场次的整体 RPE', 0, () => {
+      const base: WorkoutSession[] = [
+        createSession('e1', 1000),
+        createSession('e2', 2000)
+      ]
+      // 只有第二场评价过（sessionRpe=8）。
+      base[1].sessionRpe = 8
+      const levels = ReviewInsightsService.createEffortLevels(base, 8)
+      expect(levels.length).assertEqual(1)
+      expect(levels[0]).assertEqual(8)
+    })
+
+    it('effort_levels_无评价时为空数组', 0, () => {
+      const sessions = [createSession('n1', 1000)]
+      expect(ReviewInsightsService.createEffortLevels(sessions, 8).length).assertEqual(0)
+    })
+
+    it('muscle_summary_按最高最低部位成文', 0, () => {
+      const labels: string[] = []
+      for (let i = 0; i < 18; i++) {
+        labels.push('部位' + i.toString())
+      }
+      const volume: number[] = []
+      for (let i = 0; i < 18; i++) {
+        volume.push(0)
+      }
+      volume[2] = 50
+      volume[5] = 5
+      const summary = ReviewInsightsService.createMuscleSummary(volume, labels)
+      expect(summary).assertEqual('部位2训练量最高，部位5最少。')
+    })
+
+    it('muscle_summary_无数据给空态文案', 0, () => {
+      const labels: string[] = []
+      for (let i = 0; i < 18; i++) {
+        labels.push('部位' + i.toString())
+      }
+      const volume: number[] = []
+      for (let i = 0; i < 18; i++) {
+        volume.push(0)
+      }
+      expect(ReviewInsightsService.createMuscleSummary(volume, labels))
+        .assertEqual('完成训练后，这里会显示肌群训练分布。')
+    })
   })
 }

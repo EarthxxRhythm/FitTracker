@@ -354,6 +354,100 @@ object FtReviewModel {
     /** 原型 `LEVELS[mode][k] || 0`——未列出的肌肉取 0。 */
     fun muscleLevel(mode: MuscleMode, id: String): Int = LEVELS[mode]?.get(id) ?: 0
 
+    // ── 真实派生（Wave 2）：肌群训练量与努力程度 ─────────────────────
+    //
+    // 内容库用 6 个粗肌群 id（muscle_chest/back/shoulders/arms/legs/core），而热力图用
+    // [MUSCLE_IDS] 的 18 个身体图部位——下表是两者的映射。口径与鸿蒙
+    // `ReviewInsightsService.createMuscleVolume/createMuscleLevels` 一致。
+
+    /** 粗肌群 id → 身体图部位（与 [MUSCLE_IDS] 同名）。 */
+    fun bodyPartsForMuscle(muscleId: String): List<String> = when (muscleId) {
+        "muscle_chest" -> listOf("chest", "serratus")
+        "muscle_back" -> listOf("upper-back", "lower-back", "trapezius")
+        "muscle_shoulders" -> listOf("deltoids", "trapezius")
+        "muscle_arms" -> listOf("biceps", "triceps", "forearm")
+        "muscle_legs" -> listOf("quadriceps", "hamstring", "gluteal", "adductors", "calves")
+        "muscle_core" -> listOf("abs", "obliques", "hip-flexors")
+        else -> emptyList()
+    }
+
+    /**
+     * 肌群训练量（近 [limit] 次训练）：按组数聚合到 18 个部位（与 [MUSCLE_IDS] 同序）。
+     *
+     * [resolvePrimaryMuscles] 由调用方注入（避免 data → ui 反向依赖 ContentRepository）。
+     * 无数据时全 0（调用方据此渲染空态）。
+     */
+    fun muscleVolume(
+        sessions: List<WorkoutSession>,
+        resolvePrimaryMuscles: (String) -> List<String>,
+        limit: Int,
+    ): List<Int> {
+        val volume = MutableList(MUSCLE_IDS.size) { 0 }
+        if (sessions.isEmpty()) return volume
+        val recent = sessions.sortedBy { it.startedAt }.takeLast(limit)
+        for (session in recent) {
+            for (set in session.sets) {
+                for (muscleId in resolvePrimaryMuscles(set.exerciseId)) {
+                    for (part in bodyPartsForMuscle(muscleId)) {
+                        val index = MUSCLE_IDS.indexOf(part)
+                        if (index >= 0) volume[index] = volume[index] + 1
+                    }
+                }
+            }
+        }
+        return volume
+    }
+
+    /**
+     * 训练量归一为 4 级（1–4）——用于热力图着色。无任何训练量时全 0（空态）。
+     * 比值分档：≤25% → 1、≤50% → 2、≤75% → 3、否则 4。
+     */
+    fun muscleLevels(volume: List<Int>): List<Int> {
+        val max = volume.maxOrNull() ?: 0
+        if (max <= 0) return volume.map { 0 }
+        return volume.map { value ->
+            when {
+                value <= 0 -> 0
+                value.toDouble() / max <= 0.25 -> 1
+                value.toDouble() / max <= 0.5 -> 2
+                value.toDouble() / max <= 0.75 -> 3
+                else -> 4
+            }
+        }
+    }
+
+    /** 努力程度序列（近 [count] 次训练的整体 RPE 1–10）；未评价（0）的场次跳过。 */
+    fun effortLevels(sessions: List<WorkoutSession>, count: Int): List<Int> =
+        sessions.sortedBy { it.startedAt }.takeLast(count)
+            .map { it.sessionRpe }
+            .filter { it > 0 }
+
+    /**
+     * 肌群结论文案（按真实最高/最低训练量部位拼装）；无数据返回空态文案。
+     * 口径与鸿蒙 `ReviewInsightsService.createMuscleSummary` 一致。
+     */
+    fun muscleSummary(volume: List<Int>, labels: List<String>): String {
+        var maxIndex = -1
+        var minIndex = -1
+        var maxValue = 0
+        var minValue = -1
+        for (index in volume.indices) {
+            if (volume[index] > maxValue) {
+                maxValue = volume[index]
+                maxIndex = index
+            }
+            if (volume[index] > 0 && (minValue < 0 || volume[index] < minValue)) {
+                minValue = volume[index]
+                minIndex = index
+            }
+        }
+        if (maxIndex < 0) return "完成训练后，这里会显示肌群训练分布。"
+        val maxLabel = labels.getOrElse(maxIndex) { "" }
+        if (minIndex < 0 || minIndex == maxIndex) return "${maxLabel}训练量最高。"
+        val minLabel = labels.getOrElse(minIndex) { "" }
+        return "${maxLabel}训练量最高，${minLabel}最少。"
+    }
+
     private val MM_META_RES = mapOf(
         MuscleMode.BALANCE to R.string.review_muscle_meta_balance,
         MuscleMode.FATIGUE to R.string.review_muscle_meta_fatigue,
