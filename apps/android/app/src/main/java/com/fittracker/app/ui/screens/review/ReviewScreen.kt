@@ -296,8 +296,9 @@ internal fun ReviewScaffold(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                // `.review-content` 的顶距 52.6 与左右留白 16.3（底部留白归滚动区）
-                .padding(start = 16.3.dp, end = 16.3.dp, top = 52.6.dp)
+                // `.review-content` 的顶距 52.6 与左右留白 16.3；底部 16.3 还原原 `.review-stats`
+                // 的 gap（工具条与首卡片原是同列相邻项，拆开后这一档间距要显式补回）
+                .padding(start = 16.3.dp, end = 16.3.dp, top = 52.6.dp, bottom = 16.3.dp)
                 .testTag("$tagPrefix-toolbar"),
         ) {
             ScaleToolbar(scale = scale, onScale = onScale, tagPrefix = tagPrefix)
@@ -334,6 +335,7 @@ private fun ScaleToolbar(scale: ReviewScale, onScale: (ReviewScale) -> Unit, tag
             selectedIndex = if (scale == ReviewScale.WEEK) 0 else 1,
             onSelect = { onScale(if (it == 0) ReviewScale.WEEK else ReviewScale.MONTH) },
             modifier = Modifier.testTag("$tagPrefix-scale-pill"),
+            showContainer = false, // 无底板：胶囊浮于页面（产品要求）
         )
     }
 }
@@ -343,6 +345,10 @@ private fun ScaleToolbar(scale: ReviewScale, onScale: (ReviewScale) -> Unit, tag
  *
  * 两个变体：工具栏里是 `inline-flex`（按内容宽、按钮 44 高 20 内边距），
  * openstats 里是 `width:100%` + 按钮 `flex:1`（36 高 12 内边距）。
+ *
+ * [showContainer]=false 时去掉 `.seg` 的填充与描边（[SegFill] + `line10`），
+ * 只留分段按钮本身——供周/月工具条「浮于页面」用（产品要求；`RIR/RPE`、
+ * 肌肉地图模式两处仍按原型保留底板）。
  */
 @Composable
 private fun SegmentedPill(
@@ -355,6 +361,7 @@ private fun SegmentedPill(
     buttonPadH: Dp = 20.dp,
     inactiveColor: Color = FtColor.white62,
     contentDescription: String? = null,
+    showContainer: Boolean = true,
 ) {
     Row(
         modifier = modifier
@@ -366,9 +373,16 @@ private fun SegmentedPill(
                     Modifier
                 },
             )
-            .clip(FtShape.pill) // radius 999 + padding 3
-            .background(SegFill)
-            .border(1.dp, FtColor.line10, FtShape.pill)
+            .then(
+                if (showContainer) {
+                    Modifier
+                        .clip(FtShape.pill) // radius 999 + padding 3
+                        .background(SegFill)
+                        .border(1.dp, FtColor.line10, FtShape.pill)
+                } else {
+                    Modifier // 无底板：直接浮于页面
+                },
+            )
             .padding(3.dp),
     ) {
         labels.forEachIndexed { index, label ->

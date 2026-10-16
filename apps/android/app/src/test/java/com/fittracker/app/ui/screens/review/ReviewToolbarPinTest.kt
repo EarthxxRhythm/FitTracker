@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
@@ -46,7 +47,7 @@ class ReviewToolbarPinTest {
                 onScale = {},
                 scrollState = scrollState,
             ) {
-                Box(modifier = Modifier.fillMaxWidth().height(2000.dp))
+                Box(modifier = Modifier.fillMaxWidth().height(2000.dp).testTag("first-card"))
             }
         }
     }
@@ -81,5 +82,17 @@ class ReviewToolbarPinTest {
         val right = viewportW - (left + node.size.width)
 
         assertEquals("工具条应水平居中：left=$left right=$right", left, right, 1.0f)
+    }
+
+    /** 工具条与首卡片之间保留原 `.review-stats` 的 16.3dp 间距（拆列后须显式补回）。 */
+    @Test
+    fun `工具条与首卡片间距为 16_3dp`() {
+        rule.setContent { Scaffold(ScrollState(0)) }
+
+        val toolbar = rule.onNodeWithTag("review-toolbar").fetchSemanticsNode()
+        val card = rule.onNodeWithTag("first-card").fetchSemanticsNode()
+        val gap = card.positionInRoot.y - (toolbar.positionInRoot.y + toolbar.size.height)
+
+        assertEquals("工具条与首卡片间距应为 16.3dp，实测 $gap", 16.3f, gap, 1.0f)
     }
 }
