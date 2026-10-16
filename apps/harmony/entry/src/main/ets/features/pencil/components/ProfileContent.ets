@@ -8,6 +8,7 @@ import { kgToDisplay, weightUnitLabel } from '../../../common/utils/WeightUtils'
 import WorkoutSessionService, { WeeklyStats } from '../../../common/services/WorkoutSessionService'
 import SettingsService, { AppSettings } from '../../../common/services/SettingsService'
 import { resolveWeekStart, WeekStart } from '../../../common/utils/WeekUtils'
+import { computeStreakCount, computeWeekActiveFlagsFrom } from '../../../common/utils/StreakUtils'
 import GoalRepository from '../../../shared/services/GoalRepository'
 import { UserGoal } from '../../../shared/models/TrainingModels'
 
@@ -53,6 +54,14 @@ export struct ProfileContent {
   @State private weekDurationText: string = '186'
   @State private weekCountText: string = '4'
   @State private weekCaloriesText: string = '1,240'
+  /** 连续训练天数（真实派生）；0 = 尚未开始。 */
+  @State private streakCount: number = 0
+  /** 本周打卡标记（跟随「设置 · 周开始日」）。 */
+  @State private weekActiveFlags: boolean[] = [false, false, false, false, false, false, false]
+  /** 打卡格的星期标签序（随周开始日重排）。 */
+  @State private weekDayLabels: string[] = ['一', '二', '三', '四', '五', '六', '日']
+  /** 「设置 · 周开始日」（打卡格与连续记录的周口径）。 */
+  private weekStartKey: WeekStart = 'monday'
 
   private contextOrNull(): Context | null {
     const host = this.getUIContext().getHostContext()
@@ -87,6 +96,7 @@ export struct ProfileContent {
     }
     try {
       const settings: AppSettings = await SettingsService.loadSettings(context)
+      this.weekStartKey = settings.weekStart
       this.weekRangeText = this.computeWeekRangeText(settings.weekStart)
     } catch (error) {
       // Settings read failed: keep the monday-based week range computed above.
@@ -124,6 +134,34 @@ export struct ProfileContent {
     } catch (error) {
       // Weekly stats read failed: keep the placeholder numbers.
     }
+    // 连续记录与本周打卡：由真实训练日期派生（与完成页同一实现）。
+    try {
+      const trainingDates: string[] = await WorkoutSessionService.getTrainingDates(context)
+      this.streakCount = computeStreakCount(trainingDates)
+      this.applyWeekFlags(trainingDates, this.weekStartKey)
+    } catch (error) {
+      this.streakCount = 0
+      this.weekActiveFlags = [false, false, false, false, false, false, false]
+    }
+  }
+
+  /** 按周开始日重排打卡格：周日首时标签序与标记都随之旋转。 */
+  private applyWeekFlags(trainingDates: string[], weekStart: WeekStart): void {
+    const flags: boolean[] = computeWeekActiveFlagsFrom(weekStart, trainingDates)
+    if (weekStart === 'sunday') {
+      this.weekDayLabels = ['日', '一', '二', '三', '四', '五', '六']
+    } else {
+      this.weekDayLabels = ['一', '二', '三', '四', '五', '六', '日']
+    }
+    this.weekActiveFlags = flags
+  }
+
+  /** 连续记录标题右侧文案：有训练显示「连续 N 天」，无则「尚未开始」。 */
+  private streakLabel(): string {
+    if (this.streakCount <= 0) {
+      return '\u5c1a\u672a\u5f00\u59cb'
+    }
+    return '\u8fde\u7eed ' + this.streakCount.toString() + ' \u5929'
   }
 
   private computeWeekRangeText(weekStart: WeekStart): string {
@@ -338,7 +376,7 @@ export struct ProfileContent {
           .fontSize(17)
           .fontWeight(FontWeight.Bold)
           .fontColor('#F7FBF8')
-        Text('\u8fde\u7eed 6 \u5929')
+        Text(this.streakLabel())
           .fontFamily('Inter')
           .fontSize(12)
           .fontWeight(FontWeight.Bold)
@@ -349,13 +387,9 @@ export struct ProfileContent {
       .alignItems(VerticalAlign.Bottom)
       .margin({ bottom: 14 })
       Row({ space: 7 }) {
-        this.buildStreakDay('\u4e00', true)
-        this.buildStreakDay('\u4e8c', true)
-        this.buildStreakDay('\u4e09', true)
-        this.buildStreakDay('\u56db', true)
-        this.buildStreakDay('\u4e94', true)
-        this.buildStreakDay('\u516d', true)
-        this.buildStreakDay('\u65e5', false)
+        ForEach(this.weekDayLabels, (label: string, index: number) => {
+          this.buildStreakDay(label, this.weekActiveFlags[index] === true)
+        }, (label: string, index: number) => index.toString() + label)
       }
       .width('100%')
     }
