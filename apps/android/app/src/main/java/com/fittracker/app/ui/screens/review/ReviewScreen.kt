@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import com.fittracker.app.R
+import com.fittracker.app.data.model.WorkoutSession
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
 import com.fittracker.app.data.service.BodyRecordService
@@ -151,6 +152,11 @@ fun ReviewScreen(
     var weightUnit by remember { mutableStateOf(WeightUnit.KG) }
     var hasWeightRecords by remember { mutableStateOf(false) }
     var weightDeltaValue by remember { mutableStateOf("") }
+    // 月历热力格点击：保留聚合所需的原始会话与口径参数（供弹层取当天摘要）。
+    var reviewSessions by remember { mutableStateOf<List<WorkoutSession>>(emptyList()) }
+    var reviewWeekStart by remember { mutableStateOf(WeekStart.MONDAY) }
+    var reviewNow by remember { mutableStateOf(0L) }
+    var selectedDay by remember { mutableStateOf<Int?>(null) }
     LaunchedEffect(Unit) {
         val store = JsonStore(context.appDataStore)
         val now = System.currentTimeMillis()
@@ -162,6 +168,9 @@ fun ReviewScreen(
         monthHeadText = resources.getString(R.string.review_head_month, monthCal.get(java.util.Calendar.MONTH) + 1)
         monthHead = WeekWindow.dayLabels(weekStart, currentLanguageTag())
         val sessions = WorkoutRepository.getSessions(store)
+        reviewSessions = sessions
+        reviewWeekStart = weekStart
+        reviewNow = now
         if (sessions.isNotEmpty()) {
             weekStats = WorkoutSessionService.weeklyStats(sessions, now, weekStart)
             weekBars = FtReviewModel.weeklyBars(sessions, now, weekStart)
@@ -240,6 +249,7 @@ fun ReviewScreen(
                 monthLabel = monthLabel,
                 monthMeta = monthMeta,
                 monthHead = monthHead,
+                onSelectDay = { selectedDay = it },
             )
 
             // .openstats 作用域的四张卡（外层 gap 与 .review-stats 同为 16.3，故并列即可）
@@ -272,7 +282,26 @@ fun ReviewScreen(
                 },
             )
         }
+
+        selectedDay?.let { day ->
+            val summary = FtReviewModel.daySummary(reviewSessions, day, reviewNow, reviewWeekStart)
+            DayDetailModal(
+                summary = summary,
+                weekdayLabel = weekdayLabelOf(day, reviewNow),
+                onDismiss = { selectedDay = null },
+            )
+        }
     }
+}
+
+/** 某天对应的中文星期（如 `周六`），与鸿蒙侧详情标题一致。 */
+private fun weekdayLabelOf(day: Int, nowMillis: Long): String {
+    val now = java.util.Calendar.getInstance().apply { timeInMillis = nowMillis }
+    val cal = java.util.Calendar.getInstance().apply {
+        set(now.get(java.util.Calendar.YEAR), now.get(java.util.Calendar.MONTH), day)
+    }
+    val labels = listOf("周日", "周一", "周二", "周三", "周四", "周五", "周六")
+    return labels[cal.get(java.util.Calendar.DAY_OF_WEEK) - 1]
 }
 
 // ── 时间尺度工具条 ───────────────────────────────────────────────
@@ -533,6 +562,7 @@ private fun ActivityCard(
     monthLabel: String,
     monthMeta: String,
     monthHead: List<String>,
+    onSelectDay: (Int) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -564,7 +594,7 @@ private fun ActivityCard(
         if (scale == ReviewScale.WEEK) {
             WeekBars(bars = weekBars)
         } else {
-            MonthCalendar(cells = monthCells, label = monthLabel, meta = monthMeta, head = monthHead)
+            MonthCalendar(cells = monthCells, label = monthLabel, meta = monthMeta, head = monthHead, onSelectDay = onSelectDay)
         }
     }
 }
@@ -607,7 +637,7 @@ private fun WeekBars(bars: List<WeekBar>) {
 
 /** `.month-cal`（L335-433）：训练日历，7 列网格。 */
 @Composable
-private fun MonthCalendar(cells: List<MonthCell>, label: String, meta: String, head: List<String>) {
+private fun MonthCalendar(cells: List<MonthCell>, label: String, meta: String, head: List<String>, onSelectDay: (Int) -> Unit) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp), // `.month-cal { gap: 10px }`
@@ -654,7 +684,7 @@ private fun MonthCalendar(cells: List<MonthCell>, label: String, meta: String, h
                     horizontalArrangement = Arrangement.spacedBy(5.dp),
                 ) {
                     week.forEach { cell ->
-                        MonthCellView(cell = cell, modifier = Modifier.weight(1f))
+                        MonthCellView(cell = cell, onSelectDay = onSelectDay, modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -665,7 +695,7 @@ private fun MonthCalendar(cells: List<MonthCell>, label: String, meta: String, h
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            FtReviewModel.MONTH_LEGEND_RES.forEach { labelRes ->
+            FtReviewModel.MONTH_LEGEND_RES.forEachIndexed { index, labelRes ->
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(5.dp),
@@ -674,7 +704,7 @@ private fun MonthCalendar(cells: List<MonthCell>, label: String, meta: String, h
                         modifier = Modifier
                             .requiredSize(14.dp)
                             .clip(RoundedCornerShape(4.dp))
-                            .background(FtReviewColors.monthLegendSwatch),
+                            .background(FtReviewColors.monthLegendSwatch(index)),
                     )
                     Text(
                         text = stringResource(labelRes),
@@ -689,7 +719,7 @@ private fun MonthCalendar(cells: List<MonthCell>, label: String, meta: String, h
 
 /** `.mcal-cell`（L372-407）：高 34、圆角 9 的日期格。 */
 @Composable
-private fun MonthCellView(cell: MonthCell, modifier: Modifier = Modifier) {
+private fun MonthCellView(cell: MonthCell, onSelectDay: (Int) -> Unit, modifier: Modifier = Modifier) {
     if (cell.day == 0) {
         // `.mcal-space { background: transparent; border: 0 }`
         Box(modifier = modifier.height(34.dp))
@@ -704,7 +734,8 @@ private fun MonthCellView(cell: MonthCell, modifier: Modifier = Modifier) {
                 width = 1.dp,
                 color = if (cell.level == 0) FtReviewColors.mcalBorder else Color.Transparent,
                 shape = RoundedCornerShape(9.dp),
-            ),
+            )
+            .clickableNoRipple { onSelectDay(cell.day) },
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -1225,6 +1256,103 @@ private fun GoalModal(initial: Double, onDismiss: () -> Unit, onSave: (Double) -
             }
         }
     }
+}
+
+/**
+ * 月历热力格「当天详情」弹层：遮罩 + 居中面板，字段与鸿蒙侧 `ReviewContent.dayDetailModal` 同构。
+ */
+@Composable
+private fun DayDetailModal(summary: DaySummary, weekdayLabel: String, onDismiss: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(ModalBackdrop)
+            .clickableNoRipple(onClick = onDismiss),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            modifier = Modifier
+                .widthIn(max = 300.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .clickableNoRipple(onClick = {})
+                .clip(RoundedCornerShape(22.dp))
+                .background(FtColor.surface) // #10171B
+                .border(1.dp, FtColor.line10, RoundedCornerShape(22.dp))
+                .padding(20.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.review_day_detail_title, summary.day, weekdayLabel),
+                style = FtType.natural(16f, 700),
+                color = FtColor.txtHi,
+            )
+            if (summary.hasSession) {
+                DayDetailRow(
+                    label = stringResource(R.string.review_day_detail_duration),
+                    value = stringResource(R.string.review_day_detail_duration_value, summary.durationMinutes),
+                )
+                DayDetailRow(
+                    label = stringResource(R.string.review_day_detail_exercises),
+                    value = stringResource(R.string.review_day_detail_exercises_value, summary.exerciseCount),
+                )
+                DayDetailRow(
+                    label = stringResource(R.string.review_day_detail_sets),
+                    value = stringResource(R.string.review_day_detail_sets_value, summary.setCount),
+                )
+                DayDetailRow(
+                    label = stringResource(R.string.review_day_detail_volume),
+                    value = stringResource(R.string.review_day_detail_volume_value, volumeText(summary.volumeKg)),
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.review_day_detail_empty),
+                    modifier = Modifier.padding(top = 18.dp),
+                    style = FtType.natural(13f),
+                    color = FtColor.white54,
+                )
+            }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 18.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+            ) {
+                ModalButton(
+                    label = stringResource(R.string.review_day_detail_close),
+                    primary = true,
+                    onClick = onDismiss,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DayDetailRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(text = label, style = FtType.natural(13f), color = FtColor.white54)
+        Text(text = value, style = FtType.natural(13f, 500), color = FtColor.txtHi)
+    }
+}
+
+/** 千分位容量文本（`4200` → `4,200`）。 */
+private fun volumeText(volumeKg: Double): String {
+    val rounded = Math.round(volumeKg)
+    val digits = rounded.toString()
+    val sb = StringBuilder()
+    var count = 0
+    for (i in digits.length - 1 downTo 0) {
+        sb.append(digits[i])
+        count++
+        if (count % 3 == 0 && i > 0) sb.append(',')
+    }
+    return sb.reverse().toString()
 }
 
 /** `.goal-actions button`（L1180-1190）：高 40 的胶囊，取消灰底、保存翡翠底。 */

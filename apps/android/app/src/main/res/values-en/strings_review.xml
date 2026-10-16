@@ -137,4 +137,17 @@
     <!-- `%1$s` metric name (`RIR` / `RPE`) -->
     <string name="review_effort_unit">%1$s · 8-session average</string>
 
+    <!-- Month heatmap day detail modal -->
+    <string name="review_day_detail_title">%2$d/%1$d · %3$s</string>
+    <string name="review_day_detail_duration">Duration</string>
+    <string name="review_day_detail_duration_value">%1$d min</string>
+    <string name="review_day_detail_exercises">Exercises</string>
+    <string name="review_day_detail_exercises_value">%1$d</string>
+    <string name="review_day_detail_sets">Sets</string>
+    <string name="review_day_detail_sets_value">%1$d</string>
+    <string name="review_day_detail_volume">Volume</string>
+    <string name="review_day_detail_volume_value">%1$s kg</string>
+    <string name="review_day_detail_empty">No workout on this day</string>
+    <string name="review_day_detail_close">Close</string>
+
 </resources>

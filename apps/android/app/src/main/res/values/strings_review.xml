@@ -159,4 +159,17 @@
     <!-- `%1$s` 记法名（`RIR` / `RPE`） -->
     <string name="review_effort_unit">%1$s · 近 8 次平均</string>
 
+    <!-- 月历热力格当天详情弹层 -->
+    <string name="review_day_detail_title">%1$d月%2$d日 · %3$s</string>
+    <string name="review_day_detail_duration">训练时长</string>
+    <string name="review_day_detail_duration_value">%1$d 分钟</string>
+    <string name="review_day_detail_exercises">动作数</string>
+    <string name="review_day_detail_exercises_value">%1$d 个</string>
+    <string name="review_day_detail_sets">总组数</string>
+    <string name="review_day_detail_sets_value">%1$d 组</string>
+    <string name="review_day_detail_volume">总容量</string>
+    <string name="review_day_detail_volume_value">%1$s kg</string>
+    <string name="review_day_detail_empty">这天没有训练记录</string>
+    <string name="review_day_detail_close">关闭</string>
+
 </resources>

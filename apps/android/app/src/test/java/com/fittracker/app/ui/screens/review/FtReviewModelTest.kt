@@ -360,6 +360,70 @@ class FtReviewModelTest {
     }
 
     @Test
+    fun `当天摘要聚合时长动作数组数与容量`() {
+        val now = day(2026, 6, 10)
+        val sessions = listOf(
+            session(day(2026, 6, 2), durationSeconds = 600, volumeSets = listOf(50.0 to 2, 30.0 to 3)), // 190
+            session(day(2026, 6, 2), durationSeconds = 300, volumeSets = listOf(100.0 to 1)), // 同日第二场 +100
+            session(day(2026, 6, 5), durationSeconds = 1200, volumeSets = listOf(999.0 to 1)), // 其它天
+        )
+        val summary = FtReviewModel.daySummary(sessions, 2, now, WeekStart.MONDAY)
+        assertEquals(2, summary.day)
+        assertTrue(summary.hasSession)
+        assertEquals(15, summary.durationMinutes) // (600+300)/60
+        assertEquals(1, summary.exerciseCount) // 两场同 exerciseId "e" → 去重
+        assertEquals(3, summary.setCount) // 2 + 1 组
+        assertEquals(290.0, summary.volumeKg, 1e-6) // (50*2 + 30*3) + 100*1
+    }
+
+    @Test
+    fun `当天摘要无训练返回空态`() {
+        val summary = FtReviewModel.daySummary(emptyList(), 9, day(2026, 6, 10), WeekStart.MONDAY)
+        assertEquals(9, summary.day)
+        assertTrue(!summary.hasSession)
+        assertEquals(0, summary.durationMinutes)
+        assertEquals(0, summary.exerciseCount)
+        assertEquals(0, summary.setCount)
+        assertEquals(0.0, summary.volumeKg, 1e-6)
+    }
+
+    @Test
+    fun `当天摘要排除热身组且按 exerciseId 去重`() {
+        val now = day(2026, 6, 10)
+        val warmup = WorkoutSession(
+            sessionId = "s-w",
+            planId = "p",
+            dayId = "d",
+            startedAt = day(2026, 6, 3),
+            endedAt = day(2026, 6, 3) + 300_000L,
+            durationSeconds = 300,
+            totalSets = 2,
+            totalVolume = 0.0,
+            fatigueScore = 0.0,
+            notes = "",
+            sets = listOf(
+                WorkoutSet(setId = "w1", exerciseId = "warm", weight = 20.0, reps = 10, rpe = 5.0, isWarmup = true),
+                WorkoutSet(setId = "w2", exerciseId = "a", weight = 40.0, reps = 5, rpe = 8.0, isWarmup = false),
+                WorkoutSet(setId = "w3", exerciseId = "b", weight = 40.0, reps = 5, rpe = 8.0, isWarmup = false),
+            ),
+        )
+        val summary = FtReviewModel.daySummary(listOf(warmup), 3, now, WeekStart.MONDAY)
+        assertTrue(summary.hasSession)
+        assertEquals(2, summary.setCount) // 排除热身
+        assertEquals(3, summary.exerciseCount) // warmup/"a"/"b" 三个动作（热身也算做过该动作，双端口径一致）
+        assertEquals(400.0, summary.volumeKg, 1e-6) // 40*5 + 40*5
+    }
+
+    @Test
+    fun `月历图例五档取到与主格同源的五个颜色`() {
+        val levels = (0..4).map { FtReviewColors.monthLegendSwatch(it) }
+        assertEquals(5, levels.toSet().size) // 五档可辨（不再全同色）
+        // 高/大两档须与主格同源
+        assertEquals(FtReviewColors.mcalFill(1), levels[1])
+        assertEquals(FtReviewColors.mcalFill(4), levels[4])
+    }
+
+    @Test
     fun `月历前置空位对齐当月首日周几`() {
         val now = day(2026, 7, 15)
         val cells = FtReviewModel.monthGrid(emptyList(), now, WeekStart.MONDAY)
