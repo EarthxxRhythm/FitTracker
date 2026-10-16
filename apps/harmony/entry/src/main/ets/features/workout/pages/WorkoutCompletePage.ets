@@ -64,6 +64,12 @@ export struct WorkoutCompletePage {
   @State private summary: WorkoutSummary = WorkoutSummaryService.createEmptySummary()
   @State private streakCount: number = 0
   @State private weekActiveFlags: boolean[] = [false, false, false, false, false, false, false]
+  /** 本次训练整体 RPE（1–10）；0 = 未评价。落库写入 [WorkoutSession.sessionRpe]。 */
+  @State private sessionRpe: number = 0
+  /** 最近一次已保存会话的 id（写回 RPE 用）；空串 = 尚未读到。 */
+  @State private latestSessionId: string = ''
+  /** RPE 已保存的即时反馈（避免重复点击；下一次读回覆盖）。 */
+  @State private rpeSaved: boolean = false
   private confettiTimer: number = -1
 
   /** 训练完成后触发一次后台云同步（静默，失败不阻塞完成页）。 */
@@ -168,8 +174,13 @@ export struct WorkoutCompletePage {
       if (sessions.length > 0) {
         const latestSession: WorkoutSession = sessions[sessions.length - 1]
         this.summary = WorkoutSummaryService.createSummary(latestSession)
+        // 记录会话 id 与已存的 RPE，供用户为本次训练打分后写回。
+        this.latestSessionId = latestSession.sessionId
+        this.sessionRpe = latestSession.sessionRpe === undefined ? 0 : latestSession.sessionRpe
       } else {
         this.summary = WorkoutSummaryService.createEmptySummary()
+        this.latestSessionId = ''
+        this.sessionRpe = 0
       }
       const trainingDates: string[] = await WorkoutSessionService.getTrainingDates(ctx)
       this.streakCount = this.computeStreakCount(trainingDates)
@@ -178,6 +189,36 @@ export struct WorkoutCompletePage {
       this.summary = WorkoutSummaryService.createEmptySummary()
       this.streakCount = 0
       this.weekActiveFlags = []
+    }
+  }
+
+  /**
+   * 记录本次训练的整体努力程度（RPE 1–10），写回最近一次会话。
+   *
+   * 这是复盘页「努力程度」柱状图的唯一真实来源——逐组 RPE 采集成本高，故按次采集。
+   */
+  private async selectSessionRpe(value: number): Promise<void> {
+    if (this.sessionRpe === value) {
+      return
+    }
+    this.sessionRpe = value
+    const ctx: Context | undefined = this.getUIContext().getHostContext()
+    if (ctx === undefined || this.latestSessionId.length === 0) {
+      return
+    }
+    try {
+      const sessions: WorkoutSession[] = await WorkoutSessionPersistenceBridgeService.loadPersistedSessions(ctx)
+      for (let index = 0; index < sessions.length; index++) {
+        if (sessions[index].sessionId === this.latestSessionId) {
+          sessions[index].sessionRpe = value
+          await WorkoutSessionPersistenceBridgeService.saveOrUpdateSession(ctx, sessions[index])
+          break
+        }
+      }
+      this.rpeSaved = true
+    } catch (error) {
+      // 写回失败时保留界面选择态；下次进入完成页会以持久化值为准。
+      this.rpeSaved = false
     }
   }
 
@@ -238,6 +279,7 @@ export struct WorkoutCompletePage {
           Column() {
             this.completionHero()
             this.streakCard()
+            this.rpeCard()
           }
           .width('100%')
           .padding({ left: 20, right: 20, top: 48, bottom: 48 })
@@ -313,6 +355,68 @@ export struct WorkoutCompletePage {
     .visibility(this.confettiVisible ? Visibility.Visible : Visibility.Hidden)
     .animation({ duration: 500, curve: Curve.Ease })
   }
+
+  /**
+   * 本次训练整体努力程度（RPE 1–10）采集卡。
+   *
+   * 这是复盘页「努力程度」柱状图的唯一真数据来源（逐组采集成本高，故按次）。
+   */
+  @Builder
+  private rpeCard() {
+    Column({ space: 10 }) {
+      Row() {
+        Text('本次训练强度')
+          .fontFamily('HarmonyOS Sans')
+          .fontSize(15)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#F7FBF8')
+        Text(this.sessionRpe > 0 ? ('RPE ' + this.sessionRpe.toString() + (this.rpeSaved ? ' · 已保存' : '')) : '未评价')
+          .fontFamily('HarmonyOS Sans')
+          .fontSize(12)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#50ECA7')
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.SpaceBetween)
+      .alignItems(VerticalAlign.Center)
+
+      Text('1 轻松 · 10 极限')
+        .fontFamily('HarmonyOS Sans')
+        .fontSize(11)
+        .fontColor('#8AFFFFFF')
+        .width('100%')
+
+      Row({ space: 4 }) {
+        ForEach(this.rpeOptions, (value: number) => {
+          Text(value.toString())
+            .fontFamily('HarmonyOS Sans')
+            .fontSize(13)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(this.sessionRpe === value ? '#07100B' : '#B3FFFFFF')
+            .textAlign(TextAlign.Center)
+            .layoutWeight(1)
+            .height(34)
+            .borderRadius(10)
+            .backgroundColor(this.sessionRpe === value ? '#50ECA7' : '#14FFFFFF')
+            .border({ width: 1, color: this.sessionRpe === value ? '#00000000' : '#14FFFFFF' })
+            .onClick(() => {
+              this.selectSessionRpe(value)
+            })
+        }, (value: number) => value.toString())
+      }
+      .width('100%')
+    }
+    .width('100%')
+    .padding(16)
+    .margin({ top: 14 })
+    .backgroundColor('#08FFFFFF')
+    .borderRadius(22)
+    .border({ width: 1, color: '#1AFFFFFF' })
+    .opacity(this.streakOpacity)
+  }
+
+  /** RPE 可选项（1–10）。 */
+  private readonly rpeOptions: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
   @Builder
   private completionHero() {
