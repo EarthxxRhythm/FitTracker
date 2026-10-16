@@ -62,6 +62,10 @@ android {
         buildConfigField("String", "WECHAT_APP_ID", "\"$wechatAppId\"")
         // QQ AppID——空串时 QQ 登录通道不可用
         buildConfigField("String", "QQ_APP_ID", "\"$qqAppId\"")
+        // QQ SDK 的回调 scheme 需在 AndroidManifest 中声明为字面量
+        // （com.tencent.tauth.AuthActivity 的 intent-filter data scheme = tencent<APPID>）。
+        // 用 manifestPlaceholders 注入，避免把 AppID 硬编码进入库的 manifest。
+        manifestPlaceholders["qqAppId"] = qqAppId
     }
 
     signingConfigs {

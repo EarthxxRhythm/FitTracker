@@ -58,6 +58,33 @@
             android:exported="true"
             android:launchMode="singleTask"
             android:theme="@style/Theme.FitTracker" />
+
+        <!--
+          QQ 互联 SDK 回调声明（官方硬性要求，缺失会导致 Tencent.createInstance 抛异常）。
+
+          1) AuthActivity：接收 QQ 授权后的回跳。
+             scheme 必须为 `tencent<APPID>`，通过 manifestPlaceholders 注入（见 build.gradle.kts），
+             避免把 AppID 硬编码进这份入库文件。
+          2) AssistActivity：QQ 未安装时的网页登录兜底。
+        -->
+        <activity
+            android:name="com.tencent.tauth.AuthActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:noHistory="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="tencent${qqAppId}" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name="com.tencent.connect.common.AssistActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:screenOrientation="behind"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:exported="false" />
     </application>
 
 </manifest>
