@@ -23,7 +23,9 @@ import org.robolectric.annotation.Config
  * ② 部位 / 肌群 / 器械展示名走 `ContentRepository`（按语言），故类级钉 `qualifiers = "zh-rCN"`
  *    取 `nameZh` 真源；不钉时 Robolectric 默认 en 区域（会取到 `Chest` 等英文名）。
  *
- * 期望值取自真实内容 `assets/exercise-content.json`（6 肌群 / 6 器械 / 50 动作）。
+ * 期望值取自真实内容 `assets/exercise-content.json`（6 肌群 / 7 器械 / 102 动作）。
+ * 2026-10-16：该资产由 `tools/sync-content-to-android.mjs` 从鸿蒙内容源同步生成，
+ * 计数随源更新——改资产请改脚本，不要手改 JSON。
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "zh-rCN")
@@ -116,7 +118,7 @@ class FtLibraryModelTest {
     @Test
     fun `真实内容映射_部位取主肌群展示名且 id 域填满`() {
         val all = library()
-        assertEquals(50, all.size)
+        assertEquals(102, all.size)
 
         val bench = all.first { it.id == "ex_barbell_bench_press" }
         assertEquals("muscle_chest", bench.partId)

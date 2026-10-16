@@ -19,8 +19,11 @@ import org.robolectric.annotation.Config
  * 内容库装载与查询的契约测试（`ContentRepository` + `assets/exercise-content.json`）。
  *
  * 期望值取自种子数据 `LocalExerciseContent.ets`（LOCAL_MUSCLES L7-14 / LOCAL_EQUIPMENT L16-23 /
- * LOCAL_EXERCISES L25 起）：共 6 肌群、6 器械、50 动作。字段名与鸿蒙模型逐字一致，
+ * LOCAL_EXERCISES L25 起）：共 6 肌群、7 器械、102 动作。字段名与鸿蒙模型逐字一致，
  * 故断言直接用 camelCase 字段。
+ *
+ * 2026-10-16：内容资产由 `tools/sync-content-to-android.mjs` 从鸿蒙内容源同步生成
+ * （此前 Android 资产停留在 50 动作 / 6 器械的旧快照）。计数随源更新，勿手工改资产。
  *
  * `@Config(sdk = [34])`：与既有 `JsonStoreTest` 一致——项目 targetSdk 37 超出
  * Robolectric 4.16 支持范围，必须钉到受支持的 SDK。
@@ -44,8 +47,8 @@ class ContentRepositoryTest {
     @Test
     fun `从资产装载成功且三个集合计数与种子一致`() {
         assertEquals(6, ContentRepository.muscles().size)
-        assertEquals(6, ContentRepository.equipment().size)
-        assertEquals(50, ContentRepository.exercises().size)
+        assertEquals(7, ContentRepository.equipment().size)
+        assertEquals(102, ContentRepository.exercises().size)
         assertTrue(ContentRepository.isLoaded)
     }
 
@@ -63,6 +66,23 @@ class ContentRepositoryTest {
         assertEquals("muscle_unknown", ContentRepository.getMuscleName("muscle_unknown"))
         assertEquals("eq_unknown", ContentRepository.getEquipmentName("eq_unknown"))
         assertNull(ContentRepository.getExercise("ex_not_exist"))
+    }
+
+    /**
+     * 新增器械 `eq_kettlebell`（2026-10-16 随内容同步引入）。
+     * Android 侧器械展示名取自内容库而非字符串资源，故只需资产里存在即可生效。
+     */
+    @Test
+    fun `新增器械 eq_kettlebell 可解析且带双语名`() {
+        assertEquals("壶铃", ContentRepository.getEquipmentName("eq_kettlebell"))
+
+        val kettlebell = ContentRepository.equipment().first { it.equipmentId == "eq_kettlebell" }
+        assertEquals("壶铃", kettlebell.nameZh)
+        assertEquals("Kettlebell", kettlebell.nameEn)
+
+        // 且确有动作使用它（否则器械表里会留下无人引用的空维度）
+        val users = ContentRepository.search(equipmentId = "eq_kettlebell")
+        assertTrue("应有动作使用 eq_kettlebell：${users.size}", users.isNotEmpty())
     }
 
     // ── 内容双语（Wave 8） ────────────────────────────────────────
@@ -167,7 +187,7 @@ class ContentRepositoryTest {
 
     @Test
     fun `无关键词无过滤返回全库`() {
-        assertEquals(50, ContentRepository.search().size)
+        assertEquals(102, ContentRepository.search().size)
         assertEquals(ContentRepository.exercises().size, ContentRepository.search("").size)
     }
 
@@ -181,7 +201,7 @@ class ContentRepositoryTest {
     @Test
     fun `按肌群过滤取主或次肌群`() {
         val results = ContentRepository.search(muscleId = "muscle_chest")
-        assertEquals(11, results.size)
+        assertEquals(24, results.size)
         assertTrue(
             "每条结果的 primary/secondary 都应含 muscle_chest",
             results.all { "muscle_chest" in it.primaryMuscleIds || "muscle_chest" in it.secondaryMuscleIds },
