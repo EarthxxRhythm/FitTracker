@@ -163,7 +163,11 @@ class ContentRepositoryTest {
     @Test
     fun `关键词命中中文名`() {
         assertEquals(
-            setOf("ex_barbell_bench_press", "ex_dumbbell_bench_press", "ex_incline_dumbbell_press"),
+            setOf(
+                "ex_barbell_bench_press", "ex_dumbbell_bench_press", "ex_incline_dumbbell_press",
+                "ex_barbell_incline_bench_press", "ex_close_grip_barbell_bench_press",
+                "ex_decline_barbell_bench_press", "ex_decline_dumbbell_bench_press",
+            ),
             ids(ContentRepository.search("卧推")),
         )
     }
@@ -171,16 +175,23 @@ class ContentRepositoryTest {
     @Test
     fun `关键词命中英文名且大小写不敏感`() {
         assertEquals(
-            setOf("ex_barbell_bench_press", "ex_dumbbell_bench_press"),
+            setOf(
+                "ex_barbell_bench_press", "ex_dumbbell_bench_press",
+                "ex_barbell_incline_bench_press", "ex_close_grip_barbell_bench_press",
+                "ex_decline_barbell_bench_press", "ex_decline_dumbbell_bench_press",
+                "ex_bench_dips",
+            ),
             ids(ContentRepository.search("BENCH")),
         )
     }
 
     @Test
     fun `关键词命中别名`() {
-        // ex_romanian_deadlift 的 alias 为 "rdl"；ex_single_leg_romanian_deadlift 名内含 rdl
+        // ex_romanian_deadlift 的 alias 为 "rdl"；ex_single_leg / ex_deficit 版本名内含 rdl
         assertEquals(
-            setOf("ex_romanian_deadlift", "ex_single_leg_romanian_deadlift"),
+            setOf(
+                "ex_romanian_deadlift", "ex_single_leg_romanian_deadlift", "ex_deficit_romanian_deadlift",
+            ),
             ids(ContentRepository.search("rdl")),
         )
     }
@@ -223,6 +234,9 @@ class ContentRepositoryTest {
             setOf(
                 "ex_barbell_bench_press", "ex_dumbbell_bench_press", "ex_incline_dumbbell_press",
                 "ex_incline_machine_press", "ex_machine_chest_press",
+                "ex_barbell_incline_bench_press", "ex_close_grip_barbell_bench_press",
+                "ex_decline_barbell_bench_press", "ex_decline_dumbbell_bench_press",
+                "ex_seated_barbell_shoulder_press",
             ),
             ids(ContentRepository.search("press", muscleId = "muscle_chest")),
         )
