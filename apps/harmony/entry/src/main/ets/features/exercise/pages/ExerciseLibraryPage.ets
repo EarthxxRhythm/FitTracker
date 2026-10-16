@@ -37,7 +37,6 @@ class LibPalette {
   static readonly FAV_BORDER: string = 'rgba(255,255,255,0.16)'
   static readonly BACKDROP: string = 'rgba(4,7,9,0.55)'
   static readonly TOAST_BG: string = 'rgba(13,17,23,0.94)'
-  static readonly HANDLE: string = 'rgba(255,255,255,0.18)'
   static readonly HAIRLINE: string = 'rgba(255,255,255,0.06)'
   static readonly FOCUS_GLOW: string = 'rgba(80,236,167,0.22)'
   static readonly TAG_BG: string = 'rgba(80,236,167,0.12)'
@@ -115,6 +114,11 @@ const EXERCISES: ExerciseItem[] = [
 
 const PART_OPTIONS: string[] = ['全部', '胸部', '背部', '肩部', '手臂', '腿部', '核心']
 
+// 单行态 chip 行高（chip 约 34vp：fontSize 13 + padding 8/8 + 1vp 边框）。
+const PART_ROW_HEIGHT: number = 36
+// 收回后等待单行 List 重建完成再滚动；当帧调用时布局未落定，居中不生效。
+const PART_COLLAPSE_SETTLE_MS: number = 50
+
 interface PartMusclesEntry {
   part: string
   muscles: string[]
@@ -145,6 +149,7 @@ function getMusclesForPart(part: string): string[] {
 export struct ExerciseLibraryPage {
   @State private query: string = ''
   @State private selectedPart: string = '全部'
+  @State private partExpanded: boolean = false
   @State private selectedMuscle: string = '全部肌群'
   @State private favOnly: boolean = false
   @State private favoriteIds: string[] = []
@@ -164,6 +169,8 @@ export struct ExerciseLibraryPage {
   @State private bottomInset: number = 0
   @State private failedGifIds: string[] = []
   private win: window.Window | null = null
+  private partScroller: Scroller = new Scroller()
+  private partScrollTimer: number = -1
   private toastTimer: number = -1
   private ctaTimer: number = -1
 
@@ -195,6 +202,10 @@ export struct ExerciseLibraryPage {
     if (this.ctaTimer >= 0) {
       clearTimeout(this.ctaTimer)
       this.ctaTimer = -1
+    }
+    if (this.partScrollTimer >= 0) {
+      clearTimeout(this.partScrollTimer)
+      this.partScrollTimer = -1
     }
   }
 
@@ -303,9 +314,33 @@ export struct ExerciseLibraryPage {
     return result
   }
 
-  private selectPart(part: string): void {
+  private selectPart(part: string, index: number): void {
     this.selectedPart = part
     this.selectedMuscle = '全部肌群'
+    this.collapseToPart(part, index)
+  }
+
+  private togglePartExpanded(): void {
+    this.partExpanded = !this.partExpanded
+  }
+
+  private collapseToPart(part: string, index: number): void {
+    if (this.partScrollTimer >= 0) {
+      clearTimeout(this.partScrollTimer)
+      this.partScrollTimer = -1
+    }
+    this.selectedPart = part
+    this.partExpanded = false
+    // 收回后等单行 List 重建完成；本帧调用时布局未落定，居中不生效。
+    this.partScrollTimer = setTimeout(() => {
+      this.partScrollTimer = -1
+      // 收回会销毁网格、重建单行 List；Scroller 重新绑定前调用可能抛错，不得影响主流程。
+      try {
+        this.partScroller.scrollToIndex(index, true, ScrollAlign.CENTER)
+      } catch (e) {
+        // 居中失败不阻塞收回；下次选中会再次尝试。
+      }
+    }, PART_COLLAPSE_SETTLE_MS)
   }
 
   private selectMuscle(muscle: string): void {
@@ -330,16 +365,27 @@ export struct ExerciseLibraryPage {
   }
 
   private openSheet(id: string): void {
-    this.selectedId = id
     this.ctaBusy = false
-    this.sheetVisible = true
+    // geometryTransition 只认 animateTo 驱动；动效时长/曲线取自此处配置。
+    this.getUIContext().animateTo({
+      duration: MotionTokens.DURATION_MODAL_POP,
+      curve: MotionTokens.EASE_PANEL
+    }, () => {
+      this.selectedId = id
+      this.sheetVisible = true
+    })
   }
 
   private closeSheet(): void {
     if (!this.sheetVisible) {
       return
     }
-    this.sheetVisible = false
+    this.getUIContext().animateTo({
+      duration: MotionTokens.DURATION_MODAL_POP,
+      curve: MotionTokens.EASE_PANEL
+    }, () => {
+      this.sheetVisible = false
+    })
     try {
       this.getUIContext().getFocusController().requestFocus('lib-card-' + this.selectedId)
     } catch (e) {
@@ -453,7 +499,16 @@ export struct ExerciseLibraryPage {
       }
 
       if (this.sheetVisible) {
-        this.buildSheet()
+        // 居中承载层：面板由卡片原位放大到屏幕中央；自身不拦截命中，点空白仍可关闭。
+        Column() {
+          this.buildSheet()
+        }
+        .width('100%')
+        .height('100%')
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+        .padding({ left: 16, right: 16 })
+        .hitTestBehavior(HitTestMode.None)
       }
 
       if (this.toastVisible) {
@@ -621,21 +676,96 @@ export struct ExerciseLibraryPage {
 
   @Builder
   private buildPartChips() {
-    Scroll() {
-      Row({ space: 8 }) {
-        ForEach(PART_OPTIONS, (part: string) => {
-          Column() {
+    if (this.partExpanded) {
+      this.buildPartGrid()
+    } else {
+      this.buildPartRow()
+    }
+  }
+
+  @Builder
+  private buildPartRow() {
+    Row() {
+      List({ scroller: this.partScroller }) {
+        ForEach(PART_OPTIONS, (part: string, index: number) => {
+          ListItem() {
             this.buildChip(part, this.selectedPart === part)
           }
           .onClick(() => {
-            this.selectPart(part)
+            this.selectPart(part, index)
           })
         }, (part: string) => part)
       }
+      .listDirection(Axis.Horizontal)
+      .scrollBar(BarState.Off)
+      .height(PART_ROW_HEIGHT)
+      .layoutWeight(1)
+
+      this.buildExpandKey(false)
     }
-    .scrollable(ScrollDirection.Horizontal)
-    .scrollBar(BarState.Off)
     .width('100%')
+    .alignItems(VerticalAlign.Center)
+  }
+
+  @Builder
+  private buildExpandKey(up: boolean) {
+    Column() {
+      SymbolGlyph(up ? $r('sys.symbol.chevron_up') : $r('sys.symbol.chevron_down'))
+        .fontSize(14)
+        .fontColor([LibPalette.ACCENT])
+    }
+    .width(32)
+    .height(PART_ROW_HEIGHT)
+    .justifyContent(FlexAlign.Center)
+    .borderRadius(999)
+    .backgroundColor(LibPalette.CHIP_ACTIVE_BG)
+    .border({ width: 1, color: LibPalette.CHIP_ACTIVE_BORDER })
+    .key('lib-part-expand-key')
+    .focusable(true)
+    .onClick(() => {
+      this.togglePartExpanded()
+    })
+  }
+
+  @Builder
+  private buildPartGrid() {
+    Column() {
+      Flex({ wrap: FlexWrap.Wrap }) {
+        ForEach(PART_OPTIONS, (part: string, index: number) => {
+          Column() {
+            this.buildChip(part, this.selectedPart === part)
+          }
+          .margin({ right: 8, bottom: 8 })
+          .key('lib-part-grid-' + index)
+          .onClick(() => {
+            this.collapseToPart(part, index)
+          })
+        }, (part: string) => part)
+      }
+      .width('100%')
+
+      Row() {
+        Text('收起')
+          .fontSize(12)
+          .fontColor(LibPalette.WHITE_62)
+        SymbolGlyph($r('sys.symbol.chevron_up'))
+          .fontSize(13)
+          .fontColor([LibPalette.WHITE_62])
+          .margin({ left: 4 })
+      }
+      .alignItems(VerticalAlign.Center)
+      .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+      .borderRadius(999)
+      .backgroundColor(LibPalette.CHIP_BG)
+      .border({ width: 1, color: LibPalette.CHIP_BORDER })
+      .key('lib-part-collapse-key')
+      .focusable(true)
+      .onClick(() => {
+        this.togglePartExpanded()
+      })
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
   }
 
   @Builder
@@ -741,12 +871,13 @@ export struct ExerciseLibraryPage {
       .alignItems(HorizontalAlign.Start)
     }
     .width('100%')
-    .borderRadius(14)
+    .borderRadius(this.sheetVisible && this.selectedId === item.id ? 0 : 14)
     .backgroundColor(LibPalette.CARD_BG)
     .border({ width: 1, color: LibPalette.STROKE })
     .clip(true)
     .key('lib-card-' + item.id)
     .focusable(true)
+    .geometryTransition('lib-card-' + item.id)
     .onTouch((event: TouchEvent) => {
       if (event.type === TouchType.Down) {
         this.pressedCardId = item.id
@@ -865,13 +996,6 @@ export struct ExerciseLibraryPage {
   @Builder
   private buildSheet() {
     Column() {
-      Row()
-        .width(40)
-        .height(4)
-        .borderRadius(999)
-        .backgroundColor(LibPalette.HANDLE)
-        .margin({ bottom: 16 })
-
       Stack({ alignContent: Alignment.TopStart }) {
         if (this.isGifFailed(this.currentExercise().id)) {
           Column() {
@@ -1013,16 +1137,17 @@ export struct ExerciseLibraryPage {
         })
     }
     .width('100%')
-    .padding({ left: 18, right: 18, top: 12, bottom: 20 + this.bottomInset })
+    .padding({ left: 18, right: 18, top: 20, bottom: 20 })
     .constraintSize({ maxHeight: '84%' })
     .backgroundColor(LibPalette.SHEET_BG)
-    .borderRadius({ topLeft: 26, topRight: 26 })
-    .border({ width: { left: 1, right: 1, top: 1, bottom: 0 }, color: LibPalette.CHIP_BORDER })
-    .transition(TransitionEffect.translate({ y: '100%' })
-      .animation({
-        duration: MotionTokens.DURATION_PANEL,
-        curve: MotionTokens.EASE_PANEL
-      }))
+    .borderRadius(26)
+    .border({ width: 1, color: LibPalette.CHIP_BORDER })
+    // 共享元素转场：与 buildCard 外层同一 id，由卡片原位放大到居中；离场时反向缩回。
+    .geometryTransition('lib-card-' + this.selectedId)
+    .transition(TransitionEffect.OPACITY.animation({
+      duration: MotionTokens.DURATION_MODAL_SCRIM,
+      curve: MotionTokens.EASE_MOTION
+    }))
   }
 
   private sheetTags(): string[] {
