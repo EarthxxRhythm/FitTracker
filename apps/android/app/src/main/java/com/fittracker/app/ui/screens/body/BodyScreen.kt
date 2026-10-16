@@ -37,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -69,12 +70,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fittracker.app.data.model.BodyMeasurement
+import com.fittracker.app.data.model.MEASUREMENT_UNSET
 import com.fittracker.app.data.model.WeightRecord
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
+import com.fittracker.app.data.service.BodyMeasurementService
 import com.fittracker.app.data.service.BodyRecordService
 import com.fittracker.app.data.service.BodyTrend
+import com.fittracker.app.data.service.Gender
 import com.fittracker.app.data.service.SettingsService
+import com.fittracker.app.data.service.UserProfile
 import com.fittracker.app.data.service.UserProfileService
 import com.fittracker.app.data.service.WeekStart
 import com.fittracker.app.data.service.currentLanguageTag
@@ -133,10 +139,30 @@ fun BodyScreen(
     var weightUnit by remember { mutableStateOf(WeightUnit.KG) }
     var records by remember { mutableStateOf<List<WeightRecord>>(emptyList()) }
     var weekStart by remember { mutableStateOf(WeekStart.MONDAY) }
+    // 身体测量记录（围度 + 体成分）与用户档案（身高/性别/出生年）——体成分与围度卡的真实数据源。
+    var measurements by remember { mutableStateOf<List<BodyMeasurement>>(emptyList()) }
+    var profile by remember { mutableStateOf(UserProfileService.getDefaultProfile()) }
     LaunchedEffect(Unit) {
-        weightUnit = UserProfileService.loadProfile(store).weightUnit
+        val loadedProfile = UserProfileService.loadProfile(store)
+        weightUnit = loadedProfile.weightUnit
+        profile = loadedProfile
         records = BodyRecordService.loadRecords(store)
+        measurements = BodyMeasurementService.loadMeasurements(store)
         weekStart = SettingsService.loadSettings(store).weekStart
+    }
+    // 测量档案刷新口令：录入面板保存后 bump，触发重读。
+    var measurementReload by remember { mutableIntStateOf(0) }
+    LaunchedEffect(measurementReload) {
+        if (measurementReload > 0) {
+            measurements = BodyMeasurementService.loadMeasurements(store)
+            profile = UserProfileService.loadProfile(store)
+        }
+    }
+    val latestMeasurement: BodyMeasurement? = remember(measurements) {
+        BodyMeasurementService.latest(measurements)
+    }
+    val previousMeasurement: BodyMeasurement? = remember(measurements) {
+        BodyMeasurementService.previous(measurements)
     }
 
     // 有记录 → 主数值 / 趋势 / 「较上周」取真实值；**无记录 → 空态占位**（不再回落到原型样例数值——
@@ -207,9 +233,9 @@ fun BodyScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp), // `.bd-content { gap: 14px }`
                 ) {
                     WeightSummaryCard(weight = weight, saved = saved, unit = weightUnit, delta = deltaLabel, updated = updatedText)
-                    CompositionCard(unit = weightUnit)
+                    CompositionCard(unit = weightUnit, latest = latestMeasurement, profile = profile, weightKg = weight, now = now)
                     TrendCard(period = period, onPeriod = { period = it }, series = trendSeries, caption = trendCaptionLabel.text())
-                    MeasurementsCard()
+                    MeasurementsCard(latest = latestMeasurement, previous = previousMeasurement)
                     RecordButton(onClick = { sheetOpen = true }) // `#btn-record-weight`（L421）
                     Text(
                         text = stringResource(FtBodyModel.footNote(weightUnit)), // 承诺随当前单位改写（L422）
@@ -242,7 +268,7 @@ fun BodyScreen(
             exit = slideOutVertically(tween(FtMotion.DURATION_PANEL, easing = FtMotion.EASE_PANEL)) { it },
         ) {
             WeightSheet(
-                initial = weight ?: FtBodyModel.INITIAL_WEIGHT, // 输入框预填（可编辑；非数据展示）
+                initial = weight, // 输入框预填为最近一次真实体重；无记录则留空（不再回落原型样例 72.5）
                 unit = weightUnit,
                 onDismiss = { sheetOpen = false },
                 onSave = { value ->
@@ -463,7 +489,13 @@ private fun WeightSummaryCard(weight: Double?, saved: Boolean, unit: WeightUnit,
 
 /** `.card` + 身体成分（L160-175）。 */
 @Composable
-private fun CompositionCard(unit: WeightUnit) {
+private fun CompositionCard(
+    unit: WeightUnit,
+    latest: BodyMeasurement?,
+    profile: UserProfile,
+    weightKg: Double?,
+    now: Long,
+) {
     Card {
         CardHead(
             title = stringResource(FtBodyModel.COMPOSITION_TITLE_RES),
@@ -507,7 +539,7 @@ private fun CompositionCard(unit: WeightUnit) {
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             // 各指标 App 暂无录入渠道 → 值占位置灰（保留 tile 布局；不再展示原型样例值——2026-10-09 验收点名）
-            FtBodyModel.metrics(unit).chunked(2).forEach { row ->
+            FtBodyModel.metrics(unit, latest, profile, weightKg, now).chunked(2).forEach { row ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -803,14 +835,14 @@ private fun TrendChart(series: TrendSeries, modifier: Modifier = Modifier) {
 
 /** `.card` + 围度记录（L187-194）。 */
 @Composable
-private fun MeasurementsCard() {
+private fun MeasurementsCard(latest: BodyMeasurement?, previous: BodyMeasurement?) {
     Card {
         CardHead(
             title = stringResource(FtBodyModel.MEASURE_TITLE_RES),
             meta = stringResource(FtBodyModel.MEASURE_META_RES),
         )
         Column(modifier = Modifier.fillMaxWidth()) {
-            FtBodyModel.MEASURES.forEachIndexed { index, measure ->
+            FtBodyModel.measures(latest, previous).forEachIndexed { index, measure ->
                 // `.measure-row + .measure-row { border-top: 1px solid var(--hairline) }`（L189）
                 if (index > 0) {
                     Box(
@@ -902,12 +934,13 @@ private fun RecordButton(onClick: () -> Unit) {
  */
 @Composable
 private fun WeightSheet(
-    initial: Double,
+    initial: Double?,
     unit: WeightUnit,
     onDismiss: () -> Unit,
     onSave: (Double) -> Unit,
 ) {
-    var text by remember { mutableStateOf(FtBodyModel.formatDisplay(initial, unit)) }
+    // 有记录 → 预填最近一次体重；无记录 → 空输入框（不再回落原型样例 72.5）。
+    var text by remember { mutableStateOf(initial?.let { FtBodyModel.formatDisplay(it, unit) } ?: "") }
     var hintRes by remember { mutableStateOf<Int?>(null) }
     // `stringResource` 不能在 `semantics { }`（非 @Composable lambda）内调用——先取值。
     val inputDesc = stringResource(FtBodyModel.SHEET_INPUT_A11Y_RES)

@@ -2,7 +2,13 @@ package com.fittracker.app.ui.screens.body
 
 import androidx.annotation.StringRes
 import com.fittracker.app.R
+import com.fittracker.app.data.model.BodyMeasurement
+import com.fittracker.app.data.model.MEASUREMENT_UNSET
+import com.fittracker.app.data.service.BodyMeasurementService
+import com.fittracker.app.data.service.BodyMetrics
 import com.fittracker.app.data.service.BodyTrend
+import com.fittracker.app.data.service.Gender
+import com.fittracker.app.data.service.UserProfile
 import com.fittracker.app.data.service.WeightUnit
 import java.util.Locale
 import kotlin.math.abs
@@ -23,10 +29,12 @@ data class BodyMetric(
     val value: String,
     /** `.mt-value .unit`；为 null 时只有数值（如 BMI）。 */
     val unit: String?,
-    /** `.mt-note`（L174）文案资源；空态占位时可为 null（不渲染注解）。 */
-    @StringRes val noteRes: Int?,
+    /** `.mt-note`（L174）**静态**文案资源；空态占位时可为 null（不渲染注解）。 */
+    @StringRes val noteRes: Int? = null,
+    /** `.mt-note` 的**动态**文案（如 BMI 分级）；非空时优先于 [noteRes]。 */
+    val noteText: String? = null,
     /** `.mt-note.mut`：true 走 `--white-40`，false 走 `--accent`。 */
-    val muted: Boolean,
+    val muted: Boolean = false,
 )
 
 /** 围度记录的一行（原型 `.measure-row`，L398-417）。 */
@@ -115,20 +123,37 @@ object FtBodyModel {
         R.string.body_fat_scale_high,
     )
 
-    /** `.fat-zone` 的内联 `left: 25%; width: 50%`（L343）。 */
+    /** `.fat-zone` 的内联 `left: 25%; width: 50%`（L343）——**版式几何**，非数据。 */
     const val FAT_ZONE_LEFT = 0.25f
     const val FAT_ZONE_WIDTH = 0.50f
 
-    /** `.fat-marker` 的内联 `left: 56%`（L344）。 */
-    const val FAT_MARKER_LEFT = 0.56f
+    /**
+     * `.fat-marker` 的内联 `left: 56%`（L344）——**已由真实体脂率派生**，不再是常量。
+     *
+     * 映射口径：健康区间 `[low, high]` 线性铺满 `.fat-zone`（轨道 25%–75%），
+     * 即 `left = FAT_ZONE_LEFT + (bf − low) / (high − low) × FAT_ZONE_WIDTH`。
+     * 校验：`bf = 16.2`（男，区间 10–20）→ 0.25 + 0.62 × 0.5 = **0.56**，与原型内联值逐位一致。
+     *
+     * @return 标记点在轨道上的横向比例（0–1）；体脂率未录 / 性别未填（无健康区间）时返回 null（不绘制）。
+     */
+    fun fatMarkerLeft(bodyFatPercent: Double?, gender: Gender): Float? {
+        if (bodyFatPercent == null || !bodyFatPercent.isFinite() || bodyFatPercent < 0.0) return null
+        val range = BodyMetrics.bodyFatHealthyRange(gender) ?: return null
+        val span = range.high - range.low
+        if (span <= 0.0) return null
+        val fraction = FAT_ZONE_LEFT + ((bodyFatPercent - range.low) / span).toFloat() * FAT_ZONE_WIDTH
+        return fraction.coerceIn(0f, 1f)
+    }
 
-    /** `.metric-grid` 四格（L350-368）。数值为样例数据（非文案），标签/注解走资源。 */
-    val METRICS: List<BodyMetric> = listOf(
-        BodyMetric(R.string.body_metric_bmi, "22.9", null, R.string.body_metric_bmi_note, muted = false),
-        BodyMetric(R.string.body_metric_muscle, "34.2", "kg", R.string.body_metric_muscle_note, muted = true),
-        BodyMetric(R.string.body_metric_bmr, "1710", "kcal", R.string.body_metric_bmr_note, muted = true),
-        BodyMetric(R.string.body_metric_water, "58.2", "%", R.string.body_metric_water_note, muted = false),
-    )
+    /** 未录入占位（原型无此符号，仓内既有约定：值渲染 `--`）。 */
+    const val PLACEHOLDER = "--"
+
+    /** 数值格文案：未录入（null）→ [PLACEHOLDER]，否则 `%.1f`。 */
+    fun valueText(value: Double?): String =
+        if (value == null || !value.isFinite()) PLACEHOLDER else formatWeight(value)
+
+    /** 由出生年推得的周岁：`ageFromBirthYear` 的便捷口（`0` 表未填）。 */
+    fun ageOf(birthYear: Int, now: Long): Int = BodyMetrics.ageFromBirthYear(birthYear, now)
 
     /** `.card-title`（L377）。 */
     @StringRes
@@ -149,15 +174,6 @@ object FtBodyModel {
     /** `.card-meta`（L395）。 */
     @StringRes
     val MEASURE_META_RES = R.string.body_measure_meta
-
-    /** `.measure-list` 五行（L398-417）。 */
-    val MEASURES: List<BodyMeasure> = listOf(
-        BodyMeasure(R.string.body_measure_chest, "96.0 cm", "+0.5", down = false),
-        BodyMeasure(R.string.body_measure_waist, "78.0 cm", "−1.0", down = true),
-        BodyMeasure(R.string.body_measure_hip, "92.0 cm", "+0.3", down = false),
-        BodyMeasure(R.string.body_measure_arm, "34.5 cm", "+0.2", down = false),
-        BodyMeasure(R.string.body_measure_thigh, "54.0 cm", "+0.4", down = false),
-    )
 
     /** `.bd-cta`（L421）。 */
     @StringRes
@@ -225,18 +241,11 @@ object FtBodyModel {
     /** `var GOAL = 74.0`（L518）。 */
     const val GOAL_KG = 74.0
 
-    /** `#hero-weight` 初始值（L317）。 */
-    const val INITIAL_WEIGHT = 72.5
-
-    /** `.goal-fill` 初始内联 `width: 98%`（L327）——与 `goalPercent(72.5)` 一致。 */
-    const val INITIAL_GOAL_PERCENT = 98
-
     /**
      * `setGoalUI` 的目标进度百分比：`min(100, round(current / GOAL * 100))`（L527）。
      */
     fun goalPercent(current: Double): Int =
         ((current / GOAL_KG) * 100.0).roundToInt().coerceAtMost(100)
-
     /**
      * `setGoalUI` 的目标标签（L526）：`增肌目标 <目标值> <单位>`。
      * `%1$s` 目标值 · `%2$s` 单位标签（按 [unit] 换算）。
@@ -291,6 +300,11 @@ object FtBodyModel {
     /** 质量单位标签（`kg` / `lbs`）——数值/单位非文案，取自设置项 id。 */
     private const val MASS_UNIT_KG = "kg"
 
+    /** 无单位数值格的单位后缀（`kcal` / `%` / `cm`）——数值/单位非文案。 */
+    private const val UNIT_KCAL_LABEL = "kcal"
+    private const val UNIT_PERCENT_LABEL = "%"
+    private const val UNIT_CM_LABEL = "cm"
+
     /** 单位标签——`.weight-value span`（L317）/ `.sheet-unit`（L436）文案。 */
     fun unitLabel(unit: WeightUnit): String = unit.id
 
@@ -306,16 +320,12 @@ object FtBodyModel {
     fun formatDisplay(kg: Double, unit: WeightUnit): String = formatWeight(toDisplay(kg, unit))
 
     /**
-     * `#hero-delta` 初始文案（L320，千克基准 `较上周 −0.3 kg`；`−` 为 U+2212）。
-     */
-    fun deltaInitial(unit: WeightUnit): FtBodyLabel = deltaText(-0.3, unit)
-
-    /**
-     * 「较上周」文案（样例态 L320 的通用式）：`较上周 ` + [signedWeight]。
-     * 有记录时由 [deltaText] 承载真实差值（见 `BodyScreen`）。
+     * `#hero-delta` 的通用式：`较上周 ` + [signedWeight]。样例值 `−0.3 kg` 已去——
+     * 无记录时调用方不渲染 delta（见 `BodyScreen`），故本函数只承载真实差值。
      */
     fun deltaText(deltaKg: Double, unit: WeightUnit): FtBodyLabel =
         FtBodyLabel(R.string.body_delta_last_week, listOf(signedWeight(deltaKg, unit)))
+
 
     /**
      * 带符号质量差值文案：正号 `+`、负号用 U+2212（原型 `−`，L320），
@@ -327,14 +337,13 @@ object FtBodyModel {
     }
 
     /**
-     * `.trend-cap` 文案（L182，`SERIES[key].caption`，L527-531）——以千克基准换算。
-     * `%1$s` 带符号差值。
+     * `.trend-cap` 文案的空态式（`SERIES[key].caption` 的样例值已去）——无记录时由
+     * `BodyScreen` 直接渲染 [TREND_EMPTY_RES]，本函数只在**有记录但 trend 为 null**
+     * 的兜底路径使用，故返回空态资源而非假差值。
      */
-    fun trendCaption(period: TrendPeriod, unit: WeightUnit): FtBodyLabel = when (period) {
-        TrendPeriod.WEEK -> FtBodyLabel(R.string.body_trend_caption_week, listOf(signedWeight(-0.3, unit)))
-        TrendPeriod.MONTH -> FtBodyLabel(R.string.body_trend_caption_month, listOf(signedWeight(0.7, unit)))
-        TrendPeriod.YEAR -> FtBodyLabel(R.string.body_trend_caption_year, listOf(signedWeight(4.5, unit)))
-    }
+    fun trendCaption(period: TrendPeriod, unit: WeightUnit): FtBodyLabel =
+        FtBodyLabel(TREND_EMPTY_RES)
+
 
     // ── 真实记录的趋势适配（Wave 3 · W3-1） ────────────────────────
     //
@@ -355,21 +364,140 @@ object FtBodyModel {
         )
 
     /**
-     * `.metric-grid` 四格（L350-368）——质量为千克的格（`骨骼肌`）按展示单位换算，其余原样。
+     * `.metric-grid` 四格（L350-368）——**由服务注入的真值**（不再有样例常量）。
+     *
+     * 口径：
+     * - BMI：`BodyMetrics.computeBmi(weightKg, heightCm)` + `bmiCategoryLabel` 作 note；体重/身高缺一律 `--`。
+     * - 基础代谢：`BodyMetrics.basalMetabolicRate(weight, height, age, gender)`；性别未填/年龄未知一律 `--`。
+     * - 骨骼肌 / 身体水分：取 [latest]（体脂秤读数，仅用户录入，不做公式推算）；未录一律 `--`。
+     *
+     * 未录格一律 `value = "--"`、`noteRes = null`、`muted = true`（既有空态约定）。
+     *
+     * @param unit 体重单位（`骨骼肌` 为质量，随单位换算）
+     * @param latest 最新一条体成分记录；null = 无任何记录
+     * @param profile 身体档案（身高/性别/出生年）
+     * @param weightKg 当前体重（千克）；null = 无体重记录
+     * @param now 当前时间（用于由出生年推周岁，保证纯函数可单测）
      */
-    fun metrics(unit: WeightUnit): List<BodyMetric> =
-        if (unit == WeightUnit.KG) {
-            METRICS
+    fun metrics(
+        unit: WeightUnit,
+        latest: BodyMeasurement?,
+        profile: UserProfile,
+        weightKg: Double?,
+        now: Long,
+    ): List<BodyMetric> {
+        // BMI
+        val bmi = if (weightKg != null) {
+            BodyMetrics.computeBmi(weightKg, profile.heightCm.toDouble())
         } else {
-            METRICS.map { metric ->
-                val kg = metric.value.toDoubleOrNull()
-                if (metric.unit == MASS_UNIT_KG && kg != null) {
-                    metric.copy(value = formatWeight(toDisplay(kg, unit)), unit = unitLabel(unit))
-                } else {
-                    metric
-                }
-            }
+            null
         }
+        val bmiTile = if (bmi != null) {
+            BodyMetric(
+                labelRes = R.string.body_metric_bmi,
+                value = formatWeight(bmi),
+                unit = null,
+                noteRes = null,
+                noteText = BodyMetrics.bmiCategoryLabel(BodyMetrics.bmiCategory(bmi)),
+                muted = false,
+            )
+        } else {
+            blankMetric(R.string.body_metric_bmi)
+        }
+
+        // 骨骼肌（质量：kg 基准，随单位换算）
+        val muscle = latest?.skeletalMuscleKg?.let { unsetOrValue(it) }
+        val muscleTile = if (muscle != null) {
+            BodyMetric(
+                labelRes = R.string.body_metric_muscle,
+                value = formatDisplay(muscle, unit),
+                unit = unitLabel(unit),
+                noteRes = R.string.body_metric_muscle_note,
+                muted = true,
+            )
+        } else {
+            blankMetric(R.string.body_metric_muscle)
+        }
+
+        // 基础代谢（kcal）
+        val bmr = if (weightKg != null) {
+            BodyMetrics.basalMetabolicRate(
+                weightKg = weightKg,
+                heightCm = profile.heightCm.toDouble(),
+                age = BodyMetrics.ageFromBirthYear(profile.birthYear, now),
+                gender = profile.gender,
+            )
+        } else {
+            null
+        }
+        val bmrTile = if (bmr != null) {
+            BodyMetric(
+                labelRes = R.string.body_metric_bmr,
+                value = bmr.toString(),
+                unit = UNIT_KCAL_LABEL,
+                noteRes = R.string.body_metric_bmr_note,
+                muted = true,
+            )
+        } else {
+            blankMetric(R.string.body_metric_bmr)
+        }
+
+        // 身体水分（%）
+        val water = latest?.bodyWaterPercent?.let { unsetOrValue(it) }
+        val waterTile = if (water != null) {
+            BodyMetric(
+                labelRes = R.string.body_metric_water,
+                value = formatWeight(water),
+                unit = UNIT_PERCENT_LABEL,
+                noteRes = R.string.body_metric_water_note,
+                muted = false,
+            )
+        } else {
+            blankMetric(R.string.body_metric_water)
+        }
+
+        return listOf(bmiTile, muscleTile, bmrTile, waterTile)
+    }
+
+    /** 围度卡五行（L398-417）——**由真实 latest/previous 填充**，未录一律 `--`。 */
+    fun measures(latest: BodyMeasurement?, previous: BodyMeasurement?): List<BodyMeasure> = listOf(
+        measureRow(R.string.body_measure_chest, latest?.chestCm, previous?.chestCm),
+        measureRow(R.string.body_measure_waist, latest?.waistCm, previous?.waistCm),
+        measureRow(R.string.body_measure_hip, latest?.hipCm, previous?.hipCm),
+        measureRow(R.string.body_measure_arm, latest?.armCm, previous?.armCm),
+        measureRow(R.string.body_measure_thigh, latest?.thighCm, previous?.thighCm),
+    )
+
+    /** 单行围度：值未录 → `--`；差值任一侧未录 → `--`（不猜涨跌）。 */
+    private fun measureRow(labelRes: Int, latest: Double?, previous: Double?): BodyMeasure {
+        val value = latest?.let { unsetOrValue(it) }
+        val delta = if (latest != null && previous != null) {
+            BodyMetrics.measurementDelta(latest, previous, MEASUREMENT_UNSET.toDouble())
+        } else {
+            null
+        }
+        return BodyMeasure(
+            labelRes = labelRes,
+            value = if (value == null) PLACEHOLDER else formatWeight(value) + " " + UNIT_CM_LABEL,
+            delta = if (delta == null) PLACEHOLDER else signedCm(delta),
+            down = delta != null && delta < 0.0,
+        )
+    }
+
+    /** 围度带符号差值：正号 `+`、负号 U+2212（与 [signedWeight] 同符号口径，无单位后缀）。 */
+    fun signedCm(deltaCm: Double): String {
+        val sign = if (deltaCm < 0.0) "\u2212" else "+"
+        return sign + formatWeight(abs(deltaCm))
+    }
+
+    /** 空态格（未录）：值 `--`、无注解、置灰。 */
+    private fun blankMetric(@StringRes labelRes: Int): BodyMetric =
+        BodyMetric(labelRes = labelRes, value = PLACEHOLDER, unit = null, noteRes = null, muted = true)
+
+    /** 围度字段的未录判定（`-1` → null）。 */
+    private fun unsetOrValue(raw: Double): Double? =
+        if (raw == MEASUREMENT_UNSET.toDouble() || !raw.isFinite()) null else raw
+
 
     /**
      * `.foot-note`（L422）——承诺随当前单位改写（kg 时说「可切换为磅」，
