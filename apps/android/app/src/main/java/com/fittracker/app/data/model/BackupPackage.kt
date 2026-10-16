@@ -28,6 +28,13 @@ data class UserDataBackupPackage(
     val currentPlanId: String,
     val sessions: List<WorkoutSession>,
     val contentMeta: UserDataBackupContentMeta,
+    /**
+     * 体重记录。**可选**（默认 null = 包内无该字段）：本版本导出的包恒包含（可能是空数组，
+     * 表示「导出时确无记录」）；旧版本备份包无此字段 → 导入时保留本地既有记录，不被清空。
+     */
+    val bodyRecords: List<WeightRecord>? = null,
+    /** 身体测量记录（围度 + 体成分）。语义同 [bodyRecords]。 */
+    val bodyMeasurements: List<BodyMeasurement>? = null,
 )
 
 /**

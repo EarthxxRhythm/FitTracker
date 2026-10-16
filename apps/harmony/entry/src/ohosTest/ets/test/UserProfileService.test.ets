@@ -25,7 +25,10 @@ export default function userProfileServiceTest(): void {
       const savedProfile: UserProfile = {
         nickname: 'Power Tester',
         avatar: 'avatar_strength_blue',
-        weightUnit: 'lbs'
+        weightUnit: 'lbs',
+        heightCm: 178,
+        gender: 'male',
+        birthYear: 1995
       }
 
       await UserProfileService.saveProfile(getTestContext(), savedProfile)
@@ -34,6 +37,9 @@ export default function userProfileServiceTest(): void {
       expect(reloadedProfile.nickname).assertEqual('Power Tester')
       expect(reloadedProfile.avatar).assertEqual('avatar_strength_blue')
       expect(reloadedProfile.weightUnit).assertEqual('lbs')
+      expect(reloadedProfile.heightCm).assertEqual(178)
+      expect(reloadedProfile.gender).assertEqual('male')
+      expect(reloadedProfile.birthYear).assertEqual(1995)
       expect(UserProfileService.getLastPersistenceError()).assertEqual('')
     })
 
@@ -41,7 +47,10 @@ export default function userProfileServiceTest(): void {
       const savedProfile: UserProfile = {
         nickname: 'Temp User',
         avatar: 'avatar_power_red',
-        weightUnit: 'kg'
+        weightUnit: 'kg',
+        heightCm: 165,
+        gender: 'female',
+        birthYear: 2000
       }
 
       await UserProfileService.saveProfile(getTestContext(), savedProfile)
@@ -51,6 +60,10 @@ export default function userProfileServiceTest(): void {
       expect(reloadedProfile.nickname).assertEqual('')
       expect(reloadedProfile.avatar).assertEqual('')
       expect(reloadedProfile.weightUnit).assertEqual('kg')
+      // 清库后身体档案回落未填状态（0 / 空串 / 0）。
+      expect(reloadedProfile.heightCm).assertEqual(0)
+      expect(reloadedProfile.gender).assertEqual('')
+      expect(reloadedProfile.birthYear).assertEqual(0)
     })
   })
 }

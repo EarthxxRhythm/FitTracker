@@ -74,6 +74,10 @@ interface CloudPayloadEnvelope {
   nickname: string
   avatar: string
   weightUnit: string
+  /** 身体档案（用于 BMI / 基础代谢派生）；旧信封无此字段时为 undefined。 */
+  heightCm: number
+  gender: string
+  birthYear: number
 }
 
 class CloudSyncService {
@@ -249,7 +253,10 @@ class CloudSyncService {
       backupJson: backupJson,
       nickname: profile.nickname,
       avatar: profile.avatar,
-      weightUnit: profile.weightUnit
+      weightUnit: profile.weightUnit,
+      heightCm: profile.heightCm,
+      gender: profile.gender,
+      birthYear: profile.birthYear
     }
     return JSON.stringify(envelope)
   }
@@ -263,10 +270,18 @@ class CloudSyncService {
       const importResult: UserDataBackupImportResult = await UserDataBackupService.importPackage(context, envelope.backupJson)
       if (typeof envelope.nickname === 'string') {
         const unit: string = envelope.weightUnit === 'lbs' ? 'lbs' : 'kg'
+        // 身体档案：旧信封（无 heightCm/gender/birthYear）时保留本地已填值，不用 0 覆盖。
+        const local: UserProfile = await UserProfileService.loadProfile(context)
+        const heightCm: number = typeof envelope.heightCm === 'number' ? envelope.heightCm : local.heightCm
+        const gender: string = typeof envelope.gender === 'string' ? envelope.gender : local.gender
+        const birthYear: number = typeof envelope.birthYear === 'number' ? envelope.birthYear : local.birthYear
         const profile: UserProfile = {
           nickname: envelope.nickname,
           avatar: typeof envelope.avatar === 'string' ? envelope.avatar : '',
-          weightUnit: unit === 'lbs' ? 'lbs' : 'kg'
+          weightUnit: unit === 'lbs' ? 'lbs' : 'kg',
+          heightCm: heightCm,
+          gender: gender === 'male' || gender === 'female' ? gender : '',
+          birthYear: birthYear
         }
         await UserProfileService.saveProfile(context, profile)
       }
@@ -301,11 +316,17 @@ class CloudSyncService {
           plans: backup.plans,
           currentPlanId: backup.currentPlanId,
           sessions: backup.sessions,
-          contentMeta: backup.contentMeta
+          contentMeta: backup.contentMeta,
+          // 身体数据域：不入此视图则其变化不改变 hash，同步变更检测对该域「失明」。
+          bodyRecords: backup.bodyRecords,
+          bodyMeasurements: backup.bodyMeasurements
         }),
         nickname: envelope.nickname,
         avatar: envelope.avatar,
-        weightUnit: envelope.weightUnit
+        weightUnit: envelope.weightUnit,
+        heightCm: envelope.heightCm,
+        gender: envelope.gender,
+        birthYear: envelope.birthYear
       }
       return JSON.stringify(view)
     } catch (error) {

@@ -78,13 +78,14 @@ class JsonStoreTest {
     }
 
     @Test
-    fun `键名清单_十五项_带语义前缀_无重复`() {
-        // 15 项 = 10 基键 + CLOUD_SESSION（Wave 6 云端会话）
+    fun `键名清单_十六项_带语义前缀_无重复`() {
+        // 16 项 = 10 基键 + CLOUD_SESSION（Wave 6 云端会话）
         //        + PLAN_STATE（plan 屏浏览状态，原型完整实现 Wave 1）
         //        + SETTINGS（设置偏好，原型完整实现 Wave 1）
         //        + BODY_RECORDS（体重记录，原型完整实现 Wave 3 · W3-1）
         //        + TRAINING_PREFERENCES（训练偏好，原型完整实现 Wave 5 · B2）
-        assertEquals(15, StoreNames.ALL.size)
+        //        + BODY_MEASUREMENTS（身体测量记录，新增数据源 Wave 0）
+        assertEquals(16, StoreNames.ALL.size)
         assertTrue(StoreNames.ALL.all { it.startsWith("fit_tracker_") })
         assertEquals(StoreNames.ALL.size, StoreNames.ALL.toSet().size)
     }

@@ -148,7 +148,10 @@ class DeviceSeedService {
     const demoProfile: UserProfile = {
       nickname: '谱尼',
       avatar: '谱',
-      weightUnit: 'kg'
+      weightUnit: 'kg',
+      heightCm: 0,
+      gender: '',
+      birthYear: 0
     }
     await UserProfileService.saveProfile(context, demoProfile)
     await GoalRepository.saveGoal(

@@ -46,6 +46,10 @@ data class CloudPayloadEnvelope(
     val nickname: String = "",
     val avatar: String = "",
     val weightUnit: String = "kg",
+    /** 身体档案（用于 BMI / 基础代谢派生）；旧信封无此字段时为 null。 */
+    val heightCm: Int? = null,
+    val gender: String? = null,
+    val birthYear: Int? = null,
 )
 
 /**
@@ -74,6 +78,9 @@ object LocalSnapshotStore {
             nickname = profile.nickname,
             avatar = profile.avatar,
             weightUnit = profile.weightUnit,
+            heightCm = profile.heightCm,
+            gender = profile.gender,
+            birthYear = profile.birthYear,
         )
         return JsonCodec.json.encodeToString(CloudPayloadEnvelope.serializer(), envelope) // 源 :256
     }
@@ -89,13 +96,16 @@ object LocalSnapshotStore {
     suspend fun readCurrentEnvelope(store: JsonStore): CloudPayloadEnvelope? =
         parseEnvelope(buildLocalPayload(store))
 
-    /** 源 `:250-251`——读备份包 + 用户资料，投影为信封所需的三个资料字段。 */
+    /** 源 `:250-251`——读备份包 + 用户资料，投影为信封所需的资料字段。 */
     private suspend fun loadProfile(store: JsonStore): ProfileLike {
         val profile = UserProfileService.loadProfile(store) // 源 :251
         return ProfileLike(
             nickname = profile.nickname,
             avatar = profile.avatar,
             weightUnit = profile.weightUnit.id,
+            heightCm = profile.heightCm,
+            gender = profile.gender.id,
+            birthYear = profile.birthYear,
         )
     }
 
@@ -139,6 +149,9 @@ object LocalSnapshotStore {
             put("currentPlanId", backup["currentPlanId"] ?: JsonNull)
             put("sessions", backup["sessions"] ?: JsonNull)
             put("contentMeta", backup["contentMeta"] ?: JsonNull)
+            // 身体数据域：不入此视图则其变化不改变 hash，同步变更检测对该域「失明」。
+            put("bodyRecords", backup["bodyRecords"] ?: JsonNull)
+            put("bodyMeasurements", backup["bodyMeasurements"] ?: JsonNull)
         }
         val view: JsonObject = buildJsonObject { // 源 :309-317
             put("schemaVersion", envelope["schemaVersion"] ?: JsonNull)
@@ -149,6 +162,10 @@ object LocalSnapshotStore {
             put("nickname", envelope["nickname"] ?: JsonNull)
             put("avatar", envelope["avatar"] ?: JsonNull)
             put("weightUnit", envelope["weightUnit"] ?: JsonNull)
+            // 身体档案：不入此视图则身高/性别/出生年变化不改变 hash，同步变更检测对其失明。
+            put("heightCm", envelope["heightCm"] ?: JsonNull)
+            put("gender", envelope["gender"] ?: JsonNull)
+            put("birthYear", envelope["birthYear"] ?: JsonNull)
         }
         JsonCodec.json.encodeToString(JsonObject.serializer(), view) // 源 :318
     } catch (error: Exception) {
@@ -160,6 +177,9 @@ object LocalSnapshotStore {
         val nickname: String,
         val avatar: String,
         val weightUnit: String,
+        val heightCm: Int,
+        val gender: String,
+        val birthYear: Int,
     )
 }
 

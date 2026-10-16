@@ -137,6 +137,8 @@ data class WorkoutSession(
     val totalSets: Int,
     val totalVolume: Double,
     val fatigueScore: Double,
+    /** 本次训练整体努力程度（RPE 1–10）；0 表示未评价（旧数据/未采集）。 */
+    val sessionRpe: Int = 0,
     val notes: String,
     val sets: List<WorkoutSet>,
 )
