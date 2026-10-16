@@ -8,12 +8,12 @@ import { LOCAL_EQUIPMENT, LOCAL_EXERCISES, LOCAL_MUSCLES } from './LocalExercise
 export const BUNDLED_CONTENT_SYNC_MANIFEST: ContentSyncManifest = createContentSyncManifest(
   1,
   "full",
-  2,
+  3,
   "local://content-package",
-  "sha256:0703ac1cf656180c596d0b7bde4cae5d5034015cd99d603c811f8bd19d076447",
-  44946,
+  "sha256:23b3a7c3b191c2fe9dbfac4cf26ffcf1d2bf8825e06dae9fb99049ab7ce34fd8",
+  100441,
   1780704000000,
-  50,
+  102,
   "bundled",
   "菲特 bundled content package"
 )
