@@ -3,6 +3,7 @@
 import { AppRoutes } from '../../../app/AppRoutes'
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 import { currentCanvasScale } from '../../../common/utils/CanvasScale'
+import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 
 /**
  * 还原说明（2026-09-12 重构 · 第二轮）
@@ -49,10 +50,10 @@ struct PencilWelcomePage {
       .width(34)
       .height(34)
       .borderRadius(12)
-      .backgroundColor('#1A50ECA7')
+      .backgroundColor(PrototypeTokens.ACCENT_A10)
       .border({
         width: 1,
-        color: '#4D50ECA7'
+        color: PrototypeTokens.ACCENT_A30
       })
 
       Text('FITTRACKER')
@@ -61,7 +62,7 @@ struct PencilWelcomePage {
         .fontFamily('Inter')
         .fontSize(14)
         .fontWeight(FontWeight.Bold)
-        .fontColor('#F7FBF8')
+        .fontColor(PrototypeTokens.TEXT_HI)
         .letterSpacing(1.8)
     }
     .width(382)
@@ -76,27 +77,27 @@ struct PencilWelcomePage {
       Column()
         .width('100%')
         .height('100%')
-        .backgroundColor('#14241F')
+        .backgroundColor(PrototypeTokens.VISUAL_A)
 
       // 原型 w-visual 的 3 个同心圆（SVG viewBox cx=265 cy=85, r=80/58/38，
       // 转左上角坐标 = cx-r, cy-r），均为描边、无填充。
       Circle({ width: 160, height: 160 })
         .fill(Color.Transparent)
-        .stroke('#50ECA7')
+        .stroke(PrototypeTokens.ACCENT)
         .strokeOpacity(0.10)
         .strokeWidth(1.5)
         .position({ x: 185, y: 5 })
 
       Circle({ width: 116, height: 116 })
         .fill(Color.Transparent)
-        .stroke('#50ECA7')
+        .stroke(PrototypeTokens.ACCENT)
         .strokeOpacity(0.17)
         .strokeWidth(1.5)
         .position({ x: 207, y: 27 })
 
       Circle({ width: 76, height: 76 })
         .fill(Color.Transparent)
-        .stroke('#50ECA7')
+        .stroke(PrototypeTokens.ACCENT)
         .strokeOpacity(0.14)
         .strokeWidth(1.5)
         .position({ x: 227, y: 47 })
@@ -107,7 +108,7 @@ struct PencilWelcomePage {
         .objectFit(ImageFit.Contain)
         .shadow({
           radius: 18,
-          color: '#66000000',
+          color: PrototypeTokens.BLACK_A40,
           offsetX: 0,
           offsetY: 8
         })
@@ -138,7 +139,7 @@ struct PencilWelcomePage {
         .fontFamily('Geist Mono')
         .fontSize(10)
         .fontWeight(600)
-        .fontColor('#66FFFFFF')
+        .fontColor(PrototypeTokens.WHITE_A40)
         .lineHeight(10)
         .letterSpacing(1.1)
         .position({
@@ -152,7 +153,7 @@ struct PencilWelcomePage {
     .borderRadius(30)
     .border({
       width: 1,
-      color: '#14FFFFFF'
+      color: PrototypeTokens.WHITE_A08
     })
     .shadow({
       radius: 36,
@@ -169,16 +170,16 @@ struct PencilWelcomePage {
         .fontFamily('Noto Sans SC')
         .fontSize(16)
         .fontWeight(FontWeight.Bold)
-        .fontColor('#07100B')
+        .fontColor(PrototypeTokens.TEXT_ON_ACCENT)
         .textAlign(TextAlign.Center)
     }
     .width(382)
     .height(52)
-    .backgroundColor('#50ECA7')
+    .backgroundColor(PrototypeTokens.ACCENT)
     .borderRadius(18)
     .shadow({
       radius: 24,
-      color: '#66000000',
+      color: PrototypeTokens.BLACK_A40,
       offsetX: 0,
       offsetY: 10
     })
@@ -202,7 +203,7 @@ struct PencilWelcomePage {
       Column()
         .width('100%')
         .height('100%')
-        .backgroundColor('#10171B')
+        .backgroundColor(PrototypeTokens.BG_INK_WELCOME)
 
       // 430×900 设计空间（对齐原型 .w-frame：430×900 × scale(0.90698)）
       Stack({ alignContent: Alignment.TopStart }) {
@@ -215,7 +216,7 @@ struct PencilWelcomePage {
           .fontFamily('Geist Mono')
           .fontSize(11)
           .fontWeight(600)
-          .fontColor('#50ECA7')
+          .fontColor(PrototypeTokens.ACCENT)
           .lineHeight(11)
           .letterSpacing(1.3)
           .position({ x: 24, y: 196 })
@@ -225,7 +226,7 @@ struct PencilWelcomePage {
           .fontFamily('Noto Sans SC')
           .fontSize(42)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#F7FBF8')
+          .fontColor(PrototypeTokens.TEXT_HI)
           .lineHeight(1.3 * 42)
           .position({ x: 24, y: 224 })
 
@@ -234,7 +235,7 @@ struct PencilWelcomePage {
           .fontFamily('Noto Sans SC')
           .fontSize(16)
           .fontWeight(FontWeight.Normal)
-          .fontColor('#A6FFFFFF')
+          .fontColor(PrototypeTokens.WHITE_A65)
           .lineHeight(1.6 * 16)
           .position({ x: 24, y: 336 })
 
@@ -253,7 +254,7 @@ struct PencilWelcomePage {
           .fontFamily('Noto Sans SC')
           .fontSize(11)
           .fontWeight(FontWeight.Normal)
-          .fontColor('#52FFFFFF')
+          .fontColor(PrototypeTokens.WHITE_A32)
           .lineHeight(1.45 * 11)
           .textAlign(TextAlign.Center)
           .position({ x: 24, y: 852 })
@@ -265,7 +266,7 @@ struct PencilWelcomePage {
     .width('100%')
     .height('100%')
     .clip(true)
-    .backgroundColor('#10171B')
+    .backgroundColor(PrototypeTokens.BG_INK_WELCOME)
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }

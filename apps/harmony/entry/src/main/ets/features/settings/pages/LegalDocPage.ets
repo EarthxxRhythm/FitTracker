@@ -7,6 +7,7 @@ import { Context } from '@kit.AbilityKit'
 import { buffer } from '@kit.ArkTS'
 import { window } from '@kit.ArkUI'
 import { MotionTokens } from '../../../common/styles/DesignTokens'
+import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 
 interface LegalDocParams {
   kind?: string
@@ -103,7 +104,7 @@ struct LegalDocPage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#0B0F13')
+    .backgroundColor(PrototypeTokens.BG_INK)
   }
 
   @Builder
@@ -136,7 +137,7 @@ struct LegalDocPage {
         .fontFamily('Noto Sans SC')
         .fontSize(16)
         .fontWeight(FontWeight.Bold)
-        .fontColor('#F7FBF8')
+        .fontColor(PrototypeTokens.TEXT_HI)
         .layoutWeight(1)
         .textAlign(TextAlign.Center)
         .maxLines(1)
@@ -150,7 +151,7 @@ struct LegalDocPage {
     .padding({ top: Math.max(52 - this.topInsetVp, 0), bottom: 10, left: 12, right: 12 })
     .alignItems(VerticalAlign.Center)
     .backgroundColor('#D10A0D12')
-    .border({ width: { bottom: 1 }, color: '#0FFFFFFF' })
+    .border({ width: { bottom: 1 }, color: PrototypeTokens.WHITE_A06 })
   }
 
   @Builder
@@ -160,11 +161,11 @@ struct LegalDocPage {
         .fontFamily('Noto Sans SC')
         .fontSize(16)
         .fontWeight(FontWeight.Bold)
-        .fontColor('#F7FBF8')
+        .fontColor(PrototypeTokens.TEXT_HI)
       Text('未能读取本地文档，请返回重试。')
         .fontFamily('Noto Sans SC')
         .fontSize(13)
-        .fontColor('#9EFFFFFF')
+        .fontColor(PrototypeTokens.WHITE_A62)
     }
     .width('100%')
     .layoutWeight(1)

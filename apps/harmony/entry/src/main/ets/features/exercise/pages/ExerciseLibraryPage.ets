@@ -6,24 +6,31 @@
  * 收藏经 FavoriteExerciseService 持久化。
  */
 import { MotionTokens } from '../../../common/styles/DesignTokens'
+import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 import FavoriteExerciseService from '../../../common/services/FavoriteExerciseService'
 import { window } from '@kit.ArkUI'
 
 // ---------------------------------------------------------------------------
 // 配色（Cold Emerald，就地集中声明）
 // ---------------------------------------------------------------------------
+// 本页私有调色板。**与 PrototypeTokens 同值的成员一律委托**，不重复写值——
+// 见下方 `// 委托` 标注。独有值（本页专有的玻璃层/收藏按钮/遮罩等）就地声明。
+// 详见 `design/06_prototype_redraw/TOKENS.md` 与 收口计划的 §5。
 class LibPalette {
-  static readonly BG_BASE: string = '#0B0F13'
-  static readonly ACCENT: string = '#50ECA7'
-  static readonly ON_ACCENT: string = '#07100B'
+  // ── 与 PrototypeTokens 同值 -> 委托（值一字不改）────────────────────
+  static readonly BG_BASE: string = PrototypeTokens.BG_INK              // 委托
+  static readonly ACCENT: string = PrototypeTokens.ACCENT               // 委托
+  static readonly ON_ACCENT: string = PrototypeTokens.TEXT_ON_ACCENT    // 委托
+  static readonly TEXT_HI: string = PrototypeTokens.TEXT_HI             // 委托
+  static readonly STROKE: string = PrototypeTokens.WHITE_A10            // 委托
+  static readonly WHITE_70: string = PrototypeTokens.WHITE_A70          // 委托
+  static readonly WHITE_62: string = PrototypeTokens.WHITE_A62          // 委托
+  static readonly WHITE_54: string = PrototypeTokens.WHITE_A54          // 委托
+  static readonly WHITE_40: string = PrototypeTokens.WHITE_A40          // 委托
+  static readonly WHITE_32: string = PrototypeTokens.WHITE_A32          // 委托
+  static readonly HAIRLINE: string = PrototypeTokens.WHITE_A06          // 委托
+  // ── 本页独有值（原型中为裸值或本页特例，就地声明）──────────────────
   static readonly SHEET_BG: string = '#0E1316'
-  static readonly STROKE: string = 'rgba(255,255,255,0.10)'
-  static readonly TEXT_HI: string = '#F7FBF8'
-  static readonly WHITE_70: string = 'rgba(255,255,255,0.70)'
-  static readonly WHITE_62: string = 'rgba(255,255,255,0.62)'
-  static readonly WHITE_54: string = 'rgba(255,255,255,0.54)'
-  static readonly WHITE_40: string = 'rgba(255,255,255,0.40)'
-  static readonly WHITE_32: string = 'rgba(255,255,255,0.32)'
   static readonly GLASS_BTN_BG: string = 'rgba(255,255,255,0.047)'
   static readonly GLASS_BTN_BORDER: string = 'rgba(255,255,255,0.08)'
   static readonly GLASS_CLOSE_BG: string = 'rgba(255,255,255,0.06)'
@@ -37,12 +44,12 @@ class LibPalette {
   static readonly FAV_BORDER: string = 'rgba(255,255,255,0.16)'
   static readonly BACKDROP: string = 'rgba(4,7,9,0.55)'
   static readonly TOAST_BG: string = 'rgba(13,17,23,0.94)'
-  static readonly HAIRLINE: string = 'rgba(255,255,255,0.06)'
   static readonly FOCUS_GLOW: string = 'rgba(80,236,167,0.22)'
   static readonly TAG_BG: string = 'rgba(80,236,167,0.12)'
   static readonly TAG_BORDER: string = 'rgba(80,236,167,0.30)'
   static readonly FAV_FILTER_ON_BG: string = 'rgba(80,236,167,0.12)'
   static readonly MEDIA_BG: string = 'rgba(255,255,255,0.04)'
+
   static readonly MEDIA_BG_SHEET: string = 'rgba(255,255,255,0.045)'
 }
 
