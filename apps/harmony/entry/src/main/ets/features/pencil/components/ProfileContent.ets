@@ -9,6 +9,9 @@ import WorkoutSessionService, { WeeklyStats } from '../../../common/services/Wor
 import SettingsService, { AppSettings } from '../../../common/services/SettingsService'
 import { resolveWeekStart, WeekStart } from '../../../common/utils/WeekUtils'
 import { computeStreakCount, computeWeekActiveFlagsFrom } from '../../../common/utils/StreakUtils'
+import PersonalRecordService, { ExercisePersonalRecordDetail } from '../../../shared/services/PersonalRecordService'
+import WorkoutSessionPersistenceBridgeService from '../../workout/services/WorkoutSessionPersistenceBridgeService'
+import { WorkoutSession } from '../../../shared/models/TrainingModels'
 import GoalRepository from '../../../shared/services/GoalRepository'
 import { UserGoal } from '../../../shared/models/TrainingModels'
 import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
@@ -54,7 +57,6 @@ export struct ProfileContent {
   @State private weekRangeText: string = '7 \u6708 21 \u2013 27 \u65e5'
   @State private weekDurationText: string = '186'
   @State private weekCountText: string = '4'
-  @State private weekCaloriesText: string = '1,240'
   /** 连续训练天数（真实派生）；0 = 尚未开始。 */
   @State private streakCount: number = 0
   /** 本周打卡标记（跟随「设置 · 周开始日」）。 */
@@ -63,6 +65,8 @@ export struct ProfileContent {
   @State private weekDayLabels: string[] = ['一', '二', '三', '四', '五', '六', '日']
   /** 「设置 · 周开始日」（打卡格与连续记录的周口径）。 */
   private weekStartKey: WeekStart = 'monday'
+  /** 个人记录明细（真实 PR，供成就卡派生）。 */
+  private personalRecordDetails: ExercisePersonalRecordDetail[] = []
 
   private contextOrNull(): Context | null {
     const host = this.getUIContext().getHostContext()
@@ -131,7 +135,6 @@ export struct ProfileContent {
       const stats: WeeklyStats = await WorkoutSessionService.getWeeklyStats(context)
       this.weekDurationText = Math.round(stats.duration / 60).toString()
       this.weekCountText = stats.count.toString()
-      this.weekCaloriesText = this.estimateCaloriesText(stats.volume)
     } catch (error) {
       // Weekly stats read failed: keep the placeholder numbers.
     }
@@ -144,6 +147,15 @@ export struct ProfileContent {
       this.streakCount = 0
       this.weekActiveFlags = [false, false, false, false, false, false, false]
     }
+    // 个人记录：取真实会话派生（供成就卡）；失败保持空（成就卡渲染空态）。
+    try {
+      const sessions: WorkoutSession[] = await WorkoutSessionPersistenceBridgeService.loadPersistedSessions(context)
+      this.personalRecordDetails = PersonalRecordService.createRecordDetails(sessions)
+    } catch (error) {
+      this.personalRecordDetails = []
+    }
+    // 成就行在 streak / 本周统计 / PR 都就绪后统一重算（首帧那次用的是空数据）。
+    this.achievementRows = this.createAchievementRows()
   }
 
   /** 按周开始日重排打卡格：周日首时标签序与标记都随之旋转。 */
@@ -181,13 +193,6 @@ export struct ProfileContent {
     const oneDayMs: number = 24 * 60 * 60 * 1000
     const days: number = Math.floor((Date.now() - createdAt) / oneDayMs) + 1
     return days < 1 ? 1 : days
-  }
-
-  private estimateCaloriesText(volume: number): string {
-    // WeeklyStats has no calorie field. Rough placeholder estimate:
-    // 1 kg of training volume is treated as ~0.1 kcal; volume 0 shows 0.
-    // Replace once real metabolic data is available.
-    return Math.round(volume * 0.1).toString()
   }
 
   build() {
@@ -324,7 +329,6 @@ export struct ProfileContent {
 
       Row({ space: 12 }) {
         this.buildFocusMeta('\u8bad\u7ec3', this.weekCountText, '\u6b21')
-        this.buildFocusMeta('\u6d88\u8017', this.weekCaloriesText, '\u5343\u5361')
       }
       .width('100%')
     }
@@ -427,23 +431,49 @@ export struct ProfileContent {
     return text + ' ' + weightUnitLabel(this.displayUnit)
   }
 
-  /** 构建成就行数据（重量文案按当前单位换算）。 */
+  /**
+   * 构建成就行数据（全部由真实数据派生；无数据时返回空数组 → 卡片渲染空态）。
+   *
+   * ① 连续训练：用本轮已算出的 [streakCount]；
+   * ② 重量突破：取个人记录里最大 `bestWeight` 的动作与数值（重量按当前单位换算）。
+   */
   private createAchievementRows(): AchievementRow[] {
-    const rows: AchievementRow[] = [
-      {
+    const rows: AchievementRow[] = []
+    if (this.streakCount > 0) {
+      const streakRow: AchievementRow = {
         title: '\u7a33\u5b9a\u8f93\u51fa',
-        note: '\u8fde\u7eed\u8bad\u7ec3 7 \u5929',
-        value: '\u672c\u5468\u5b8c\u6210\u5ea6 86%',
+        note: '\u8fde\u7eed\u8bad\u7ec3 ' + this.streakCount.toString() + ' \u5929',
+        value: '\u672c\u5468 ' + this.weekCountText + ' \u6b21',
         icon: 'flame'
-      },
-      {
+      }
+      rows.push(streakRow)
+    }
+    const best: ExercisePersonalRecordDetail | undefined = this.bestRecord()
+    if (best !== undefined) {
+      const prRow: AchievementRow = {
         title: '\u91cd\u91cf\u7a81\u7834',
-        note: '\u6df1\u8e72\u8fbe\u5230 ' + this.achievementWeightText(80),
-        value: '\u5237\u65b0\u4e2a\u4eba\u6700\u4f73',
+        note: best.exerciseName + ' ' + this.achievementWeightText(best.bestWeight),
+        value: best.bestDateText,
         icon: 'trophy'
       }
-    ]
+      rows.push(prRow)
+    }
     return rows
+  }
+
+  /** 个人记录里最大重量的动作；无记录返回 undefined。 */
+  private bestRecord(): ExercisePersonalRecordDetail | undefined {
+    const details: ExercisePersonalRecordDetail[] = this.personalRecordDetails
+    if (details.length === 0) {
+      return undefined
+    }
+    let best: ExercisePersonalRecordDetail = details[0]
+    for (let index = 1; index < details.length; index++) {
+      if (details[index].bestWeight > best.bestWeight) {
+        best = details[index]
+      }
+    }
+    return best.bestWeight > 0 ? best : undefined
   }
 
   @Builder
@@ -454,9 +484,17 @@ export struct ProfileContent {
         .fontWeight(FontWeight.Bold)
         .fontColor(PrototypeTokens.TEXT_HI)
         .margin({ bottom: 12 })
-      ForEach(this.achievementRows, (row: AchievementRow) => {
-        this.buildAchievement(row.title, row.note, row.value, row.icon)
-      }, (row: AchievementRow) => row.title + '|' + row.note)
+      if (this.achievementRows.length === 0) {
+        Text('\u5b8c\u6210\u8bad\u7ec3\u540e\uff0c\u8fd9\u91cc\u4f1a\u663e\u793a\u4f60\u7684\u6210\u5c31\u3002')
+          .fontFamily('Inter')
+          .fontSize(12.5)
+          .fontColor('#9EFFFFFF')
+          .padding({ top: 2, bottom: 2 })
+      } else {
+        ForEach(this.achievementRows, (row: AchievementRow) => {
+          this.buildAchievement(row.title, row.note, row.value, row.icon)
+        }, (row: AchievementRow) => row.title + '|' + row.note)
+      }
     }
     .width('100%')
     .padding(16)
