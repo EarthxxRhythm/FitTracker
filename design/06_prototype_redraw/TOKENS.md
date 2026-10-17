@@ -97,13 +97,47 @@
 
 ## 3. 还原时须新增/对齐的令牌（GAP，颜色）
 
-> 仅列高频且与现有令牌语义对应的候选；页面专用值就地写，不强行入 token。
+> **2026-10-17 更新**：本节原有的 GAP 清单已由 `common/styles/PrototypeTokens.ets` 落地。
+> 该文件是**原型 `:root` 规范值的镜像层**（59 成员），与 `ColorTokens` 并存且**有意不合并**：
+> - `PrototypeTokens.ACCENT`(#50ECA7) 与 `ColorTokens.ACCENT_PRIMARY`(#50ECA7) **同值**；
+> - `PrototypeTokens.BG_INK`(#0B0F13) 与 `ColorTokens.BG_PRIMARY`(#09100F) **不同值**。
+>
+> 异值正是本文件 §5「不做全局覆盖」裁决的直接后果，**不是漂移缺陷**。还原屏时引用
+> `PrototypeTokens` 成员，不要改 `ColorTokens` 去"对齐"。
 
-- `--ink-0`（规范值 #0B0F13）-> 页面背景主色（现 BG_PRIMARY='#09100F'）。还原屏时若色差 > 1 L* 需新增语义成员，否则页面级直写。
-- `--ink-1`（规范值 #0A0D12）-> 页面背景次级（现 BG_SECONDARY='#0F1716'）。还原屏时若色差 > 1 L* 需新增语义成员，否则页面级直写。
-- `--surface`（规范值 ?）-> 卡片面（现 SURFACE_PRIMARY='#16211F'）。还原屏时若色差 > 1 L* 需新增语义成员，否则页面级直写。
-- `--bg`（规范值 ?）-> 最外层背景（现 APP_BG_HOME='#0A1110'）。还原屏时若色差 > 1 L* 需新增语义成员，否则页面级直写。
-- `--accent-12/20/32/40`（规范值 rgba(80,236,167,.12)）-> 强调 alpha 蒙层/描边（现 OVERLAY_PRIMARY / BORDER_ACCENT）。还原屏时若色差 > 1 L* 需新增语义成员，否则页面级直写。
+### 3.1 已落地的原型变量映射（PrototypeTokens）
+
+| 原型 `:root` 变量 | PrototypeTokens 成员 | 值 |
+|---|---|---|
+| `--ink-0` | `BG_INK` | `#0B0F13` |
+| `--ink-1` | `BG_INK_1` | `#0A0D12` |
+| `--ink-welcome-0` | `BG_INK_WELCOME` | `#10171B` |
+| `--ring-inner` | `BG_RING_INNER` | `#0D1117` |
+| `--visual-a` | `VISUAL_A` | `#14241F` |
+| `--stat-bg` | `STAT_BG` | `#14181E` |
+| `--streak-bg` / `--streak-surface` | `STREAK_BG` | `#171C23` |
+| `--surface-stat` | `SURFACE_STAT` | `#171D24` |
+| `--complete-bg` / `--canvas` | `COMPLETE_BG` | `#07100F` |
+| `--complete-circle` | `COMPLETE_CIRCLE` | `#122D28` |
+| `--complete-check` | `COMPLETE_CHECK` | `#7EF0CB` |
+| `--accent` / `--accent-deep` / `--accent-soft` | `ACCENT` / `ACCENT_DEEP` / `ACCENT_SOFT` | `#50ECA7` / `#45C9A1` / `#8CEBCC` |
+| `--txt-hi` / `--on-accent` | `TEXT_HI` / `TEXT_ON_ACCENT` | `#F7FBF8` / `#07100B` |
+| `--white-32/40/48/54/56/60/62/65/70/82/87` | `WHITE_A32/A40/A48/A54/A56/A60/A62/A65/A70/A82/A87` | 纯白阶 |
+| `--white-90` `rgba(243,251,247,.90)` | `WHITE_90_TINT` | `#E6F3FBF7` |
+| `--gold` / `--gold-*` | `GOLD` / `GOLD_BRIGHT` | `#D3B487` / `#D9C86B` |
+
+> ⚠️ `WHITE_90_TINT` 的基色是 `F3FBF7`（偏绿白）而非 `FFFFFF`——**不可**与纯白阶或
+> `TEXT_HI`(#F7FBF8) 相互替代。命名用 `_TINT` 后缀标记此差异。
+
+### 3.2 仍未入令牌的值（就地保留，非遗漏）
+
+以下值实测**在原型 `:root` 中零命中**，按「原型无对应则就地直写」纪律保留在页面内：
+`#06FFFFFF`、`#B8FFFFFF`、`#C9FFFFFF`、`#57000000`、`#F00D1117`、`#D10A0D12`、
+`#FFFFFF`、`#0E1316`（`--` 裸值非变量）。
+
+语义错误态（如退出登录按钮的 `#D77C78` 族）归 `DesignTokens`：`ERROR` / `ERROR_A08` /
+`ERROR_A30`——**不**收进 `PrototypeTokens`（后者只镜像视觉基线值，不承载语义状态色）。
+
 
 ## 4. MotionTokens 覆盖审计（HTML 动效值 -> 令牌）
 
