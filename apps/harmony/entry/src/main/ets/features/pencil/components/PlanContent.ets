@@ -24,7 +24,7 @@ import {
   TrainingPlan,
   UserGoal
 } from '../../../shared/models/TrainingModels'
-import { PencilTokens } from '../PencilTokens'
+import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 
 /**
  * 当前计划卡（原型 .master-card）高度，单位 vp。
@@ -325,7 +325,7 @@ export struct PlanContent {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(PencilTokens.BG_INK)
+    .backgroundColor(PrototypeTokens.BG_INK)
   }
 
   @Builder
@@ -336,12 +336,12 @@ export struct PlanContent {
           .fontFamily('Noto Sans SC')
           .fontSize(12)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.ACCENT)
+          .fontColor(PrototypeTokens.ACCENT)
         Text(this.weeklyProgress)
           .fontFamily('Inter')
           .fontSize(11)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.ACCENT)
+          .fontColor(PrototypeTokens.ACCENT)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -350,14 +350,14 @@ export struct PlanContent {
         .fontFamily('Noto Sans SC')
         .fontSize(22)
         .fontWeight(FontWeight.Bold)
-        .fontColor(PencilTokens.TEXT_HI)
+        .fontColor(PrototypeTokens.TEXT_HI)
         .width('100%')
         .margin({ top: 8 })
 
       Text(this.planMeta)
         .fontFamily('Noto Sans SC')
         .fontSize(11.5)
-        .fontColor(PencilTokens.WHITE_A62)
+        .fontColor(PrototypeTokens.WHITE_A62)
         .width('100%')
         .margin({ top: 5 })
 
@@ -373,7 +373,7 @@ export struct PlanContent {
           Row()
             .width(this.progressPercent.toString() + '%')
             .height(6)
-            .backgroundColor(PencilTokens.ACCENT)
+            .backgroundColor(PrototypeTokens.ACCENT)
             .borderRadius(999)
         }
         .layoutWeight(1)
@@ -383,7 +383,7 @@ export struct PlanContent {
           .fontFamily('Inter')
           .fontSize(11)
           .fontWeight(FontWeight.Medium)
-          .fontColor(PencilTokens.WHITE_A62)
+          .fontColor(PrototypeTokens.WHITE_A62)
       }
       .width('100%')
       .alignItems(VerticalAlign.Center)
@@ -394,9 +394,9 @@ export struct PlanContent {
     // Card Surface v1（白系玻璃）：底 rgba(255,255,255,.031) + 描边 rgba(255,255,255,.102)。
     // 注意：冻结原型 fittracker-plan.html 的 .master-card 写的是绿系（rgba(80,236,167,.06)/.22），
     // 与原型参考图及 cards.md「不要把所有卡都染绿」相悖，此处按参考图/设计规范取中性。
-    .backgroundColor(PencilTokens.WHITE_A03)
+    .backgroundColor(PrototypeTokens.WHITE_A03)
     .borderRadius(24)
-    .border({ width: 1, color: PencilTokens.WHITE_A10 })
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
     .shadow({ radius: 28, color: '#33000000', offsetX: 0, offsetY: 14 })
     .onTouch((event: TouchEvent) => {
       if (event.type === TouchType.Down) {
@@ -432,27 +432,27 @@ export struct PlanContent {
               .fontFamily('Geist Mono')
               .fontSize(11)
               .fontWeight(FontWeight.Medium)
-              .fontColor(PencilTokens.WHITE_A62)
+              .fontColor(PrototypeTokens.WHITE_A62)
             Text(day.badge)
               .fontFamily('Noto Sans SC')
               .fontSize(10)
               .fontWeight(day.today ? FontWeight.Bold : FontWeight.Normal)
-              .fontColor(day.today ? PencilTokens.TEXT_ON_ACCENT : PencilTokens.WHITE_A62)
+              .fontColor(day.today ? PrototypeTokens.TEXT_ON_ACCENT : PrototypeTokens.WHITE_A62)
               .padding({ left: 9, right: 9, top: 4, bottom: 4 })
-              .backgroundColor(day.today ? PencilTokens.ACCENT : PencilTokens.WHITE_A06)
+              .backgroundColor(day.today ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A06)
               .borderRadius(999)
-              .border({ width: 1, color: day.today ? PencilTokens.WHITE_A00 : PencilTokens.WHITE_A06 })
+              .border({ width: 1, color: day.today ? PrototypeTokens.WHITE_A00 : PrototypeTokens.WHITE_A06 })
             Blank()
             Stack({ alignContent: Alignment.Center }) {
               Image($rawfile('pencil-lucide-dumbbell.svg'))
                 .width(20)
                 .height(20)
-                .fillColor(PencilTokens.ACCENT)
+                .fillColor(PrototypeTokens.ACCENT)
             }
             .width(40)
             .height(40)
             .borderRadius(12)
-            .backgroundColor(PencilTokens.ACCENT_A10)
+            .backgroundColor(PrototypeTokens.ACCENT_A10)
             .border({ width: 1, color: '#4050ECA7' })
           }
           .width('100%')
@@ -461,13 +461,13 @@ export struct PlanContent {
             .fontFamily('Noto Sans SC')
             .fontSize(34)
             .fontWeight(FontWeight.Bold)
-            .fontColor(PencilTokens.TEXT_HI)
+            .fontColor(PrototypeTokens.TEXT_HI)
             .width('100%')
 
           Text(daySubtitle(day))
             .fontFamily('Noto Sans SC')
             .fontSize(14)
-            .fontColor(PencilTokens.WHITE_A62)
+            .fontColor(PrototypeTokens.WHITE_A62)
             .width('100%')
         }
         .width('100%')
@@ -478,7 +478,7 @@ export struct PlanContent {
               .fontFamily('Noto Sans SC')
               .fontSize(11)
               .fontWeight(FontWeight.Bold)
-              .fontColor(PencilTokens.WHITE_A54)
+              .fontColor(PrototypeTokens.WHITE_A54)
               .width('100%')
             ForEach(day.exercises, (exercise: PlanExerciseItem, exerciseIndex: number) => {
               Row({ space: 10 }) {
@@ -486,17 +486,17 @@ export struct PlanContent {
                   .fontFamily('Geist Mono')
                   .fontSize(11)
                   .fontWeight(FontWeight.Medium)
-                  .fontColor(PencilTokens.ACCENT)
+                  .fontColor(PrototypeTokens.ACCENT)
                   .width(24)
                 Text(exercise.name)
                   .fontFamily('Noto Sans SC')
                   .fontSize(13.5)
                   .fontWeight(FontWeight.Medium)
-                  .fontColor(PencilTokens.TEXT_HI)
+                  .fontColor(PrototypeTokens.TEXT_HI)
                 Text(exercise.muscle)
                   .fontFamily('Noto Sans SC')
                   .fontSize(11)
-                  .fontColor(PencilTokens.WHITE_A54)
+                  .fontColor(PrototypeTokens.WHITE_A54)
                   .layoutWeight(1)
                   .maxLines(1)
                   .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -504,12 +504,12 @@ export struct PlanContent {
                   .fontFamily('Inter')
                   .fontSize(12)
                   .fontWeight(FontWeight.Medium)
-                  .fontColor(PencilTokens.WHITE_A62)
+                  .fontColor(PrototypeTokens.WHITE_A62)
               }
               .width('100%')
               .height(44)
               .padding({ left: 10, right: 10 })
-              .backgroundColor(PencilTokens.WHITE_A06)
+              .backgroundColor(PrototypeTokens.WHITE_A06)
               .borderRadius(10)
               .alignItems(VerticalAlign.Center)
             }, (exercise: PlanExerciseItem) => exercise.name)
@@ -541,7 +541,7 @@ export struct PlanContent {
     .height('100%')
     // 卡面底色改由卡内首层 Column 承担（叠放场景需用不透明合成色，见 deckCard 顶部注释）。
     .borderRadius(24)
-    .border({ width: 1, color: PencilTokens.WHITE_A10 })
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
     .shadow({ radius: 36, color: '#52000000', offsetX: 0, offsetY: 18 })
     .position({ x: PLAN_DECK_CARD_OFFSET_X, y: 0 })
     .translate({ x: this.rel(index) * PLAN_DECK_STEP_X, y: 16 * Math.abs(this.rel(index)) })

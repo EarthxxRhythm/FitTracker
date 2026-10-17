@@ -14,7 +14,7 @@ import PersonalRecordService, { ExercisePersonalRecordDetail } from '../../../sh
 import { WeightRecord, BodyTrend } from '../../../shared/models/BodyModels'
 import { resolveWeekStart, WeekStart } from '../../../common/utils/WeekUtils'
 import { shakeField } from '../../../common/utils/FieldShake'
-import { PencilTokens } from '../PencilTokens'
+import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 
 interface ReviewBarItem {
   label: string
@@ -76,12 +76,12 @@ const MM_LEVELS_FATIGUE: number[] = [1, 2, 2, 3, 1, 2, 2, 1, 1, 1, 1, 4, 4, 3, 1
 
 const MM_LEVELS_STRENGTH: number[] = [1, 3, 4, 3, 1, 2, 2, 1, 2, 1, 1, 3, 4, 3, 1, 1, 2, 1]
 
-const BALANCE_FILLS: string[] = ['#3A705E', '#429B77', '#49C48F', PencilTokens.ACCENT]
-const FATIGUE_FILLS: string[] = ['#66644A', PencilTokens.GOLD_BRIGHT, '#E5B878', '#F0A48A']
-const STRENGTH_FILLS: string[] = ['#3A705E', '#429B77', '#49C48F', PencilTokens.GOLD_BRIGHT]
-const BALANCE_LEGEND: string[] = ['#2F6655', '#3B9572', '#45C18D', PencilTokens.ACCENT]
-const FATIGUE_LEGEND: string[] = ['#5B5B42', PencilTokens.GOLD_BRIGHT, '#E5B878', '#F0A48A']
-const STRENGTH_LEGEND: string[] = ['#2F6655', '#3B9572', '#45C18D', PencilTokens.GOLD_BRIGHT]
+const BALANCE_FILLS: string[] = ['#3A705E', '#429B77', '#49C48F', PrototypeTokens.ACCENT]
+const FATIGUE_FILLS: string[] = ['#66644A', PrototypeTokens.GOLD_BRIGHT, '#E5B878', '#F0A48A']
+const STRENGTH_FILLS: string[] = ['#3A705E', '#429B77', '#49C48F', PrototypeTokens.GOLD_BRIGHT]
+const BALANCE_LEGEND: string[] = ['#2F6655', '#3B9572', '#45C18D', PrototypeTokens.ACCENT]
+const FATIGUE_LEGEND: string[] = ['#5B5B42', PrototypeTokens.GOLD_BRIGHT, '#E5B878', '#F0A48A']
+const STRENGTH_LEGEND: string[] = ['#2F6655', '#3B9572', '#45C18D', PrototypeTokens.GOLD_BRIGHT]
 const SILHOUETTE_FILL: string = '#3F454A'
 const BODY_PATH_STROKE: string = '#171D24'
 const MUSCLE_BASE_FILL: string = '#30353B'
@@ -90,8 +90,8 @@ const HEATMAP_CELL_BASE: string = '#09FFFFFF'
 const HEATMAP_CELL_L1: string = '#4C5A57'
 const HEATMAP_CELL_L2: string = '#618B7B'
 const HEATMAP_CELL_L3: string = '#63BB95'
-const HEATMAP_CELL_L4: string = PencilTokens.ACCENT
-const HEATMAP_LEGEND_BASE: string = PencilTokens.WHITE_A05_ALT
+const HEATMAP_CELL_L4: string = PrototypeTokens.ACCENT
+const HEATMAP_LEGEND_BASE: string = PrototypeTokens.WHITE_A05_ALT
 
 const MM_MUSCLE_LABELS: string[] = [
   '斜方肌', '肩', '胸', '上背', '前锯肌', '二头', '三头', '前臂',
@@ -103,7 +103,7 @@ const MM_FATIGUE_WORDS: string[] = ['已恢复', '恢复中', '略疲劳', '疲�
 
 const MM_STRENGTH_WORDS: string[] = ['弱', '一般', '中', '强']
 
-const SELECTED_MUSCLE_STROKE: string = PencilTokens.TEXT_HI
+const SELECTED_MUSCLE_STROKE: string = PrototypeTokens.TEXT_HI
 
 /** 某一天的训练摘要（供月历热力格点击弹层使用）。 */
 interface DaySummaryItem {
@@ -1587,7 +1587,7 @@ export struct ReviewContent {
     ctx.lineTo(330, 120)
     ctx.closePath()
     ctx.fill()
-    ctx.strokeStyle = PencilTokens.ACCENT
+    ctx.strokeStyle = PrototypeTokens.ACCENT
     ctx.lineWidth = 2.5
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
@@ -1597,7 +1597,7 @@ export struct ReviewContent {
       ctx.lineTo(WEIGHT_CHART_POINTS[index].x, WEIGHT_CHART_POINTS[index].y)
     }
     ctx.stroke()
-    ctx.fillStyle = PencilTokens.ACCENT
+    ctx.fillStyle = PrototypeTokens.ACCENT
     for (let index = 0; index < WEIGHT_CHART_POINTS.length; index++) {
       ctx.beginPath()
       ctx.arc(WEIGHT_CHART_POINTS[index].x, WEIGHT_CHART_POINTS[index].y, 3, 0, Math.PI * 2)
@@ -1742,7 +1742,7 @@ export struct ReviewContent {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(PencilTokens.BG_INK)
+    .backgroundColor(PrototypeTokens.BG_INK)
   }
 
   @Builder
@@ -1753,9 +1753,9 @@ export struct ReviewContent {
         this.segmentButton('月', 'month')
       }
       .padding(3)
-      .backgroundColor(PencilTokens.WHITE_A05)
+      .backgroundColor(PrototypeTokens.WHITE_A05)
       .borderRadius(999)
-      .border({ width: 1, color: PencilTokens.WHITE_A10 })
+      .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
     }
     .width('100%')
     .justifyContent(FlexAlign.Start)
@@ -1767,11 +1767,11 @@ export struct ReviewContent {
       .fontFamily('Noto Sans SC')
       .fontSize(13)
       .fontWeight(this.timeScale === key ? FontWeight.Bold : FontWeight.Medium)
-      .fontColor(this.timeScale === key ? PencilTokens.TEXT_ON_ACCENT : PencilTokens.WHITE_A62)
+      .fontColor(this.timeScale === key ? PrototypeTokens.TEXT_ON_ACCENT : PrototypeTokens.WHITE_A62)
       .height(44)
       .padding({ left: 20, right: 20 })
       .textAlign(TextAlign.Center)
-      .backgroundColor(this.timeScale === key ? PencilTokens.ACCENT : PencilTokens.TRANSPARENT)
+      .backgroundColor(this.timeScale === key ? PrototypeTokens.ACCENT : PrototypeTokens.TRANSPARENT)
       .borderRadius(999)
       .onClick(() => {
         this.timeScale = key
@@ -1795,14 +1795,14 @@ export struct ReviewContent {
           .fontFamily('Noto Sans SC')
           .fontSize(12.7)
           .fontWeight(FontWeight.Medium)
-          .fontColor(PencilTokens.WHITE_A70)
+          .fontColor(PrototypeTokens.WHITE_A70)
         Text(this.badgeText())
           .fontFamily('Inter')
           .fontSize(10.9)
           .fontWeight(FontWeight.Medium)
-          .fontColor(PencilTokens.ACCENT)
+          .fontColor(PrototypeTokens.ACCENT)
           .padding({ left: 9.1, right: 9.1, top: 5.4, bottom: 5.4 })
-          .backgroundColor(PencilTokens.ACCENT_A10)
+          .backgroundColor(PrototypeTokens.ACCENT_A10)
           .borderRadius(999)
       }
       .width('100%')
@@ -1812,23 +1812,23 @@ export struct ReviewContent {
         .fontFamily('Noto Sans SC')
         .fontSize(20)
         .fontWeight(FontWeight.Bold)
-        .fontColor(PencilTokens.TEXT_HI)
+        .fontColor(PrototypeTokens.TEXT_HI)
         .width('100%')
 
       Text(this.descriptionText())
         .fontFamily('Noto Sans SC')
         .fontSize(11.8)
         .lineHeight(15.9)
-        .fontColor(PencilTokens.WHITE_A48)
+        .fontColor(PrototypeTokens.WHITE_A48)
         .width('100%')
     }
     .width('100%')
     .constraintSize({ minHeight: 145.1 })
     .padding(16.3)
     // 卡面统一 Card Surface v1（与首页「本周节奏」卡一致）：底 3.1% 白 + 描边 10.2% 白。
-    .backgroundColor(PencilTokens.WHITE_A03)
+    .backgroundColor(PrototypeTokens.WHITE_A03)
     .borderRadius(25.4)
-    .border({ width: 1, color: PencilTokens.WHITE_A10 })
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
   }
 
   @Builder
@@ -1848,25 +1848,25 @@ export struct ReviewContent {
       Text(label)
         .fontFamily('Noto Sans SC')
         .fontSize(10.9)
-        .fontColor(PencilTokens.WHITE_A48)
+        .fontColor(PrototypeTokens.WHITE_A48)
       Row({ space: 3.6 }) {
         Text(this.statValue(index))
           .fontFamily('Geist Mono')
           .fontSize(21.8)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.TEXT_HI)
+          .fontColor(PrototypeTokens.TEXT_HI)
         Text(unit)
           .fontFamily('Noto Sans SC')
           .fontSize(10.9)
-          .fontColor(PencilTokens.ACCENT)
+          .fontColor(PrototypeTokens.ACCENT)
       }
     }
     .layoutWeight(1)
     .height(73.5)
     .padding(12.7)
-    .backgroundColor(PencilTokens.WHITE_A03)
+    .backgroundColor(PrototypeTokens.WHITE_A03)
     .borderRadius(18.1)
-    .border({ width: 1, color: PencilTokens.WHITE_A10 })
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
     .alignItems(HorizontalAlign.Start)
   }
 
@@ -1878,11 +1878,11 @@ export struct ReviewContent {
           .fontFamily('Noto Sans SC')
           .fontSize(14.5)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.TEXT_HI)
+          .fontColor(PrototypeTokens.TEXT_HI)
         Text(this.timeScale === 'week' ? '过去 7 天' : '每天 · 越深量越大')
           .fontFamily('Noto Sans SC')
           .fontSize(10.9)
-          .fontColor(PencilTokens.WHITE_A48)
+          .fontColor(PrototypeTokens.WHITE_A48)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -1894,12 +1894,12 @@ export struct ReviewContent {
               Row()
                 .width('100%')
                 .height(bar.height)
-                .backgroundColor(bar.active ? PencilTokens.ACCENT : PencilTokens.ACCENT_A20)
+                .backgroundColor(bar.active ? PrototypeTokens.ACCENT : PrototypeTokens.ACCENT_A20)
                 .borderRadius(9.1)
               Text(bar.label)
                 .fontFamily('Noto Sans SC')
                 .fontSize(10)
-                .fontColor(bar.active ? PencilTokens.ACCENT : PencilTokens.WHITE_A54)
+                .fontColor(bar.active ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A54)
             }
             .layoutWeight(1)
             .height('100%')
@@ -1916,9 +1916,9 @@ export struct ReviewContent {
     }
     .width('100%')
     .padding(16.3)
-    .backgroundColor(PencilTokens.WHITE_A03)
+    .backgroundColor(PrototypeTokens.WHITE_A03)
     .borderRadius(25.4)
-    .border({ width: 1, color: PencilTokens.WHITE_A10 })
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
   }
 
   @Builder
@@ -1929,11 +1929,11 @@ export struct ReviewContent {
           .fontFamily('Noto Sans SC')
           .fontSize(15)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.TEXT_HI)
+          .fontColor(PrototypeTokens.TEXT_HI)
         Text('训练 ' + this.trainDays.length.toString() + ' 天 · ' + this.monthDurationMinutes.toString() + ' 分钟')
           .fontFamily('Noto Sans SC')
           .fontSize(10.9)
-          .fontColor(PencilTokens.WHITE_A48)
+          .fontColor(PrototypeTokens.WHITE_A48)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -1942,7 +1942,7 @@ export struct ReviewContent {
       Text('一格代表一天 · 颜色越深，当天训练量越大')
         .fontFamily('Noto Sans SC')
         .fontSize(11)
-        .fontColor(PencilTokens.WHITE_A48)
+        .fontColor(PrototypeTokens.WHITE_A48)
         .lineHeight(1.55)
         .width('100%')
 
@@ -1951,7 +1951,7 @@ export struct ReviewContent {
           Text(day)
             .fontFamily('Noto Sans SC')
             .fontSize(10)
-            .fontColor(PencilTokens.WHITE_A40)
+            .fontColor(PrototypeTokens.WHITE_A40)
             .layoutWeight(1)
             .textAlign(TextAlign.Center)
         }, (day: string) => day)
@@ -2022,7 +2022,7 @@ export struct ReviewContent {
       Text(label)
         .fontFamily('Noto Sans SC')
         .fontSize(9)
-        .fontColor(PencilTokens.WHITE_A48)
+        .fontColor(PrototypeTokens.WHITE_A48)
     }
     .alignItems(HorizontalAlign.Center)
   }
@@ -2070,22 +2070,22 @@ export struct ReviewContent {
   private calendarCellTextColor(day: number): string {
     const level: number = this.monthDayLevel(day)
     if (level >= 3) {
-      return PencilTokens.TEXT_ON_ACCENT
+      return PrototypeTokens.TEXT_ON_ACCENT
     }
     if (level >= 1) {
-      return PencilTokens.TEXT_HI
+      return PrototypeTokens.TEXT_HI
     }
-    return PencilTokens.WHITE_A70
+    return PrototypeTokens.WHITE_A70
   }
 
   private calendarCellBorderColor(day: number): string {
     if (day === this.todayDay) {
-      return PencilTokens.TEXT_HI
+      return PrototypeTokens.TEXT_HI
     }
     if (this.monthDayLevel(day) > 0) {
-      return PencilTokens.TRANSPARENT
+      return PrototypeTokens.TRANSPARENT
     }
-    return PencilTokens.WHITE_A06
+    return PrototypeTokens.WHITE_A06
   }
 
   // ── 当天详情弹层辅助 ──────────────────────────────────────────
@@ -2133,7 +2133,7 @@ export struct ReviewContent {
           .fontFamily('Noto Sans SC')
           .fontSize(16)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.TEXT_HI)
+          .fontColor(PrototypeTokens.TEXT_HI)
           .width('100%')
         if (this.selectedDaySummary().hasSession) {
           this.dayDetailRow('训练时长', this.selectedDaySummary().durationMinutes.toString() + ' 分钟')
@@ -2144,7 +2144,7 @@ export struct ReviewContent {
           Text('这天没有训练记录')
             .fontFamily('Noto Sans SC')
             .fontSize(13)
-            .fontColor(PencilTokens.WHITE_A54)
+            .fontColor(PrototypeTokens.WHITE_A54)
             .margin({ top: 18 })
             .width('100%')
         }
@@ -2153,10 +2153,10 @@ export struct ReviewContent {
             .fontFamily('Noto Sans SC')
             .fontSize(13)
             .fontWeight(FontWeight.Medium)
-            .fontColor(PencilTokens.TEXT_ON_ACCENT)
+            .fontColor(PrototypeTokens.TEXT_ON_ACCENT)
             .height(40)
             .padding({ left: 16, right: 16 })
-            .backgroundColor(PencilTokens.ACCENT)
+            .backgroundColor(PrototypeTokens.ACCENT)
             .borderRadius(999)
             .onClick(() => {
               this.showDayDetail = false
@@ -2168,9 +2168,9 @@ export struct ReviewContent {
       }
       .width(300)
       .padding(20)
-      .backgroundColor(PencilTokens.BG_INK_WELCOME)
+      .backgroundColor(PrototypeTokens.BG_INK_WELCOME)
       .borderRadius(22)
-      .border({ width: 1, color: PencilTokens.WHITE_A10 })
+      .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
     }
     .width('100%')
     .height('100%')
@@ -2182,12 +2182,12 @@ export struct ReviewContent {
       Text(label)
         .fontFamily('Noto Sans SC')
         .fontSize(13)
-        .fontColor(PencilTokens.WHITE_A54)
+        .fontColor(PrototypeTokens.WHITE_A54)
       Text(value)
         .fontFamily('Noto Sans SC')
         .fontSize(13)
         .fontWeight(FontWeight.Medium)
-        .fontColor(PencilTokens.TEXT_HI)
+        .fontColor(PrototypeTokens.TEXT_HI)
     }
     .width('100%')
     .justifyContent(FlexAlign.SpaceBetween)
@@ -2202,11 +2202,11 @@ export struct ReviewContent {
           .fontFamily('Noto Sans SC')
           .fontSize(14.5)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.TEXT_HI)
+          .fontColor(PrototypeTokens.TEXT_HI)
         Text(this.muscleMeta())
           .fontFamily('Noto Sans SC')
           .fontSize(10.9)
-          .fontColor(PencilTokens.WHITE_A40)
+          .fontColor(PrototypeTokens.WHITE_A40)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -2220,9 +2220,9 @@ export struct ReviewContent {
       }
       .width('100%')
       .padding(3)
-      .backgroundColor(PencilTokens.WHITE_A05)
+      .backgroundColor(PrototypeTokens.WHITE_A05)
       .borderRadius(999)
-      .border({ width: 1, color: PencilTokens.WHITE_A10 })
+      .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
 
       Row({ space: 6 }) {
         Canvas(this.mmFrontContext)
@@ -2251,7 +2251,7 @@ export struct ReviewContent {
         Text('低')
           .fontFamily('Noto Sans SC')
           .fontSize(11)
-          .fontColor(PencilTokens.WHITE_A48)
+          .fontColor(PrototypeTokens.WHITE_A48)
         ForEach(this.currentLegend(), (color: string) => {
           Row()
             .width(10)
@@ -2262,7 +2262,7 @@ export struct ReviewContent {
         Text('高')
           .fontFamily('Noto Sans SC')
           .fontSize(11)
-          .fontColor(PencilTokens.WHITE_A48)
+          .fontColor(PrototypeTokens.WHITE_A48)
       }
       .width('100%')
       .justifyContent(FlexAlign.End)
@@ -2275,16 +2275,16 @@ export struct ReviewContent {
       Text(this.muscleNote())
         .fontFamily('Noto Sans SC')
         .fontSize(12)
-        .fontColor(PencilTokens.WHITE_A40)
+        .fontColor(PrototypeTokens.WHITE_A40)
         .lineHeight(1.45)
         .margin({ top: 10 })
         .width('100%')
     }
     .width('100%')
     .padding(16.3)
-    .backgroundColor(PencilTokens.WHITE_A03)
+    .backgroundColor(PrototypeTokens.WHITE_A03)
     .borderRadius(25.4)
-    .border({ width: 1, color: PencilTokens.WHITE_A10 })
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
   }
 
   @Builder
@@ -2293,7 +2293,7 @@ export struct ReviewContent {
       Text(this.muscleLabel(this.selectedMuscleKey))
         .fontFamily('Noto Sans SC')
         .fontSize(14)
-        .fontColor(PencilTokens.TEXT_HI)
+        .fontColor(PrototypeTokens.TEXT_HI)
         .layoutWeight(1)
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -2301,7 +2301,7 @@ export struct ReviewContent {
         Row()
           .width(this.muscleDetailBarWidth())
           .height('100%')
-          .backgroundColor(PencilTokens.ACCENT)
+          .backgroundColor(PrototypeTokens.ACCENT)
           .borderRadius(3)
       }
       .width(74)
@@ -2312,7 +2312,7 @@ export struct ReviewContent {
       Text(this.muscleDetailValue())
         .fontFamily('Noto Sans SC')
         .fontSize(12)
-        .fontColor(PencilTokens.WHITE_A62)
+        .fontColor(PrototypeTokens.WHITE_A62)
         .textAlign(TextAlign.End)
         .width(52)
     }
@@ -2328,11 +2328,11 @@ export struct ReviewContent {
       .fontFamily('Noto Sans SC')
       .fontSize(13)
       .fontWeight(this.segmentActive(group, key) ? FontWeight.Bold : FontWeight.Medium)
-      .fontColor(this.segmentActive(group, key) ? PencilTokens.TEXT_ON_ACCENT : PencilTokens.WHITE_A62)
+      .fontColor(this.segmentActive(group, key) ? PrototypeTokens.TEXT_ON_ACCENT : PrototypeTokens.WHITE_A62)
       .height(36)
       .layoutWeight(1)
       .textAlign(TextAlign.Center)
-      .backgroundColor(this.segmentActive(group, key) ? PencilTokens.ACCENT : PencilTokens.TRANSPARENT)
+      .backgroundColor(this.segmentActive(group, key) ? PrototypeTokens.ACCENT : PrototypeTokens.TRANSPARENT)
       .borderRadius(999)
       .onClick(() => {
         this.applyOpenStatsSegment(group, key)
@@ -2354,15 +2354,15 @@ export struct ReviewContent {
           .fontFamily('Noto Sans SC')
           .fontSize(14.5)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.TEXT_HI)
+          .fontColor(PrototypeTokens.TEXT_HI)
         Text('目标 ' + this.goalWeightText() + ' ' + weightUnitLabel(this.displayUnit))
           .fontFamily('Inter')
           .fontSize(13)
           .fontWeight(FontWeight.Medium)
-          .fontColor(PencilTokens.ACCENT)
+          .fontColor(PrototypeTokens.ACCENT)
           .height(36)
           .padding({ left: 14, right: 14 })
-          .backgroundColor(PencilTokens.ACCENT_A10)
+          .backgroundColor(PrototypeTokens.ACCENT_A10)
           .borderRadius(999)
           .border({ width: 1, color: '#6150ECA7' })
           .onClick(() => {
@@ -2399,18 +2399,18 @@ export struct ReviewContent {
           Text('当前')
             .fontFamily('Noto Sans SC')
             .fontSize(12)
-            .fontColor(PencilTokens.WHITE_A40)
+            .fontColor(PrototypeTokens.WHITE_A40)
           Text(this.weightCardCurrentText())
             .fontFamily('Noto Sans SC')
             .fontSize(17)
             .fontWeight(FontWeight.Medium)
-            .fontColor(PencilTokens.TEXT_HI)
+            .fontColor(PrototypeTokens.TEXT_HI)
             .margin({ left: 4 })
         }
         Text(this.weightCardDeltaText())
           .fontFamily('Inter')
           .fontSize(12)
-          .fontColor(PencilTokens.WHITE_A40)
+          .fontColor(PrototypeTokens.WHITE_A40)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -2419,9 +2419,9 @@ export struct ReviewContent {
     }
     .width('100%')
     .padding(16.3)
-    .backgroundColor(PencilTokens.WHITE_A03)
+    .backgroundColor(PrototypeTokens.WHITE_A03)
     .borderRadius(25.4)
-    .border({ width: 1, color: PencilTokens.WHITE_A10 })
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
   }
 
   @Builder
@@ -2432,11 +2432,11 @@ export struct ReviewContent {
           .fontFamily('Noto Sans SC')
           .fontSize(14.5)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.TEXT_HI)
+          .fontColor(PrototypeTokens.TEXT_HI)
         Text('Effort · RIR / RPE')
           .fontFamily('Noto Sans SC')
           .fontSize(10.9)
-          .fontColor(PencilTokens.WHITE_A40)
+          .fontColor(PrototypeTokens.WHITE_A40)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -2449,14 +2449,14 @@ export struct ReviewContent {
       }
       .width('100%')
       .padding(3)
-      .backgroundColor(PencilTokens.WHITE_A05)
+      .backgroundColor(PrototypeTokens.WHITE_A05)
       .borderRadius(999)
-      .border({ width: 1, color: PencilTokens.WHITE_A10 })
+      .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
 
       Text('RIR 记的是你还剩几次；RPE 用 0–10 表示主观用力，RPE ≈ 10 − RIR。')
         .fontFamily('Noto Sans SC')
         .fontSize(11)
-        .fontColor(PencilTokens.WHITE_A40)
+        .fontColor(PrototypeTokens.WHITE_A40)
         .lineHeight(1.5)
         .margin({ top: 12 })
         .width('100%')
@@ -2466,11 +2466,11 @@ export struct ReviewContent {
           .fontFamily('Inter')
           .fontSize(30)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.TEXT_HI)
+          .fontColor(PrototypeTokens.TEXT_HI)
         Text(this.effortUnitText())
           .fontFamily('Noto Sans SC')
           .fontSize(12)
-          .fontColor(PencilTokens.WHITE_A40)
+          .fontColor(PrototypeTokens.WHITE_A40)
           .margin({ left: 8 })
       }
       .width('100%')
@@ -2483,12 +2483,12 @@ export struct ReviewContent {
             Row()
               .width('100%')
               .height(this.effortBarHeight(index))
-              .backgroundColor(PencilTokens.ACCENT)
+              .backgroundColor(PrototypeTokens.ACCENT)
               .borderRadius(6)
             Text((index + 1).toString())
               .fontFamily('Inter')
               .fontSize(9)
-              .fontColor(PencilTokens.WHITE_A40)
+              .fontColor(PrototypeTokens.WHITE_A40)
               .height(EFFORT_BAR_LABEL_HEIGHT)
           }
           .layoutWeight(1)
@@ -2504,9 +2504,9 @@ export struct ReviewContent {
     }
     .width('100%')
     .padding(16.3)
-    .backgroundColor(PencilTokens.WHITE_A03)
+    .backgroundColor(PrototypeTokens.WHITE_A03)
     .borderRadius(25.4)
-    .border({ width: 1, color: PencilTokens.WHITE_A10 })
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
   }
 
   @Builder
@@ -2517,11 +2517,11 @@ export struct ReviewContent {
           .fontFamily('Noto Sans SC')
           .fontSize(14.5)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.TEXT_HI)
+          .fontColor(PrototypeTokens.TEXT_HI)
         Text('来自最佳有效组')
           .fontFamily('Noto Sans SC')
           .fontSize(10.9)
-          .fontColor(PencilTokens.WHITE_A40)
+          .fontColor(PrototypeTokens.WHITE_A40)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -2533,39 +2533,39 @@ export struct ReviewContent {
           Text(item.name)
             .fontFamily('Noto Sans SC')
             .fontSize(15)
-            .fontColor(PencilTokens.TEXT_HI)
+            .fontColor(PrototypeTokens.TEXT_HI)
             .layoutWeight(1)
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
           Text(item.source)
             .fontFamily('Noto Sans SC')
             .fontSize(11)
-            .fontColor(PencilTokens.WHITE_A40)
+            .fontColor(PrototypeTokens.WHITE_A40)
           Row() {
             Text(this.oneRmDisplayText(item.value))
               .fontFamily('Inter')
               .fontSize(17)
               .fontWeight(FontWeight.Bold)
-              .fontColor(PencilTokens.TEXT_HI)
+              .fontColor(PrototypeTokens.TEXT_HI)
             Text(weightUnitLabel(this.displayUnit))
               .fontFamily('Noto Sans SC')
               .fontSize(11)
               .fontWeight(FontWeight.Medium)
-              .fontColor(PencilTokens.ACCENT)
+              .fontColor(PrototypeTokens.ACCENT)
               .margin({ left: 2 })
           }
         }
         .width('100%')
         .alignItems(VerticalAlign.Center)
         .padding({ top: 10, bottom: 10 })
-        .border({ width: { bottom: index === this.oneRmRows.length - 1 ? 0 : 1 }, color: PencilTokens.WHITE_A06 })
+        .border({ width: { bottom: index === this.oneRmRows.length - 1 ? 0 : 1 }, color: PrototypeTokens.WHITE_A06 })
       }, (item: OneRmRowItem) => item.name)
     }
     .width('100%')
     .padding(16.3)
-    .backgroundColor(PencilTokens.WHITE_A03)
+    .backgroundColor(PrototypeTokens.WHITE_A03)
     .borderRadius(25.4)
-    .border({ width: 1, color: PencilTokens.WHITE_A10 })
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
   }
 
   @Builder
@@ -2583,12 +2583,12 @@ export struct ReviewContent {
           .fontFamily('Noto Sans SC')
           .fontSize(16)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.TEXT_HI)
+          .fontColor(PrototypeTokens.TEXT_HI)
           .width('100%')
         Text('输入你的目标体重，更新曲线上的目标线。')
           .fontFamily('Noto Sans SC')
           .fontSize(12)
-          .fontColor(PencilTokens.WHITE_A54)
+          .fontColor(PrototypeTokens.WHITE_A54)
           .margin({ top: 6 })
           .width('100%')
         Row({ space: 10 }) {
@@ -2597,10 +2597,10 @@ export struct ReviewContent {
             .fontFamily('Inter')
             .fontSize(20)
             .fontWeight(FontWeight.Medium)
-            .fontColor(PencilTokens.TEXT_HI)
+            .fontColor(PrototypeTokens.TEXT_HI)
             .placeholderColor('#4DFFFFFF')
             .placeholderFont({ size: 20, weight: FontWeight.Medium })
-            .backgroundColor(PencilTokens.TRANSPARENT)
+            .backgroundColor(PrototypeTokens.TRANSPARENT)
             .layoutWeight(1)
             .height(40)
             .onChange((value: string) => {
@@ -2612,13 +2612,13 @@ export struct ReviewContent {
           Text(weightUnitLabel(this.displayUnit))
             .fontFamily('Noto Sans SC')
             .fontSize(13)
-            .fontColor(PencilTokens.WHITE_A54)
+            .fontColor(PrototypeTokens.WHITE_A54)
         }
         .margin({ top: 16 })
         .padding({ left: 14, right: 14 })
         .backgroundColor(this.goalError.length > 0 ? ColorTokens.FIELD_ERROR_FILL : '#171D24')
         .borderRadius(14)
-        .border({ width: 1, color: this.goalError.length > 0 ? ColorTokens.FIELD_ERROR_BORDER : PencilTokens.WHITE_A10 })
+        .border({ width: 1, color: this.goalError.length > 0 ? ColorTokens.FIELD_ERROR_BORDER : PrototypeTokens.WHITE_A10 })
         .translate({ x: this.shakeOffset })
         if (this.goalError.length > 0) {
           Text(this.goalError)
@@ -2633,10 +2633,10 @@ export struct ReviewContent {
             .fontFamily('Noto Sans SC')
             .fontSize(13)
             .fontWeight(FontWeight.Medium)
-            .fontColor(PencilTokens.WHITE_A70)
+            .fontColor(PrototypeTokens.WHITE_A70)
             .height(40)
             .padding({ left: 16, right: 16 })
-            .backgroundColor(PencilTokens.WHITE_A06)
+            .backgroundColor(PrototypeTokens.WHITE_A06)
             .borderRadius(999)
             .onClick(() => {
               this.closeGoalModal()
@@ -2645,10 +2645,10 @@ export struct ReviewContent {
             .fontFamily('Noto Sans SC')
             .fontSize(13)
             .fontWeight(FontWeight.Medium)
-            .fontColor(PencilTokens.TEXT_ON_ACCENT)
+            .fontColor(PrototypeTokens.TEXT_ON_ACCENT)
             .height(40)
             .padding({ left: 16, right: 16 })
-            .backgroundColor(PencilTokens.ACCENT)
+            .backgroundColor(PrototypeTokens.ACCENT)
             .borderRadius(999)
             .onClick(() => {
               this.saveGoal()
@@ -2660,9 +2660,9 @@ export struct ReviewContent {
       }
       .width(320)
       .padding(20)
-      .backgroundColor(PencilTokens.BG_INK_WELCOME)
+      .backgroundColor(PrototypeTokens.BG_INK_WELCOME)
       .borderRadius(22)
-      .border({ width: 1, color: PencilTokens.WHITE_A10 })
+      .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
     }
     .width('100%')
     .height('100%')
