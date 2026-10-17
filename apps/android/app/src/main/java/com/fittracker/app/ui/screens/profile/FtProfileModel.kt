@@ -46,6 +46,15 @@ data class FtProfileAchievement(
     val gold: Boolean,
     /** 卡片文案里的样例重量（kg 基准），需按单位换算注入 `noteRes` 的 `%1$s`。 */
     val weightKgParam: Int? = null,
+    /**
+     * 运行期派生文案（优先于 [titleRes]/[noteRes]/[valueRes] 资源）。
+     *
+     * 成就卡改为真实数据派生后，文案由会话/PR 统计生成（如「连续训练 3 天」），
+     * 无法预置为资源；此三字段承载派生结果，为空时回落资源（原型静态基线的兼容路径）。
+     */
+    val titleText: String? = null,
+    val noteText: String? = null,
+    val valueText: String? = null,
 )
 
 /** 一个快捷入口（原型 `.shortcut`，L1442-1451）。 */
@@ -106,8 +115,12 @@ object FtProfileModel {
     @StringRes
     val WEEK_META_SAMPLE_RES = R.string.profile_week_meta_sample
 
-    /** `.focus-hero-value`（L1386）——数值样例（运行期由会话仓储注入），非文案。 */
-    const val WEEK_VALUE = "186"
+    /**
+     * `.focus-hero-value`（L1386）——**空态占位**（原型样例 186 已移除）。
+     *
+     * 有会话时由 `ProfileScreen` 注入真实周时长；无数据时显示 `--`。
+     */
+    const val WEEK_VALUE = "--"
 
     /** `.focus-hero-unit`（L1387）。 */
     @StringRes
@@ -117,17 +130,17 @@ object FtProfileModel {
     @StringRes
     val WEEK_LABEL_RES = R.string.profile_week_label
 
-    /** `.focus-meta-row` 的两格（L1392-1401）；数值为运行期注入的样例。 */
+    /**
+     * `.focus-meta-row` 的一格（L1393-1395）；数值由运行期注入（会话仓储统计）。
+     *
+     * 原型还有第二格「消耗 kcal」（L1398-1400），但 `WorkoutSession` 无热量字段——
+     * 无代谢数据源，任何估算都是编造，故**不保留该格**（2026-10-17 真数据化改造决策）。
+     */
     val WEEK_METRICS: List<FtProfileMetric> = listOf(
-        FtProfileMetric( // L1393-1395
+        FtProfileMetric(
             labelRes = R.string.profile_week_metric_workouts,
-            value = "4",
+            value = "0",
             unitRes = R.string.profile_unit_times,
-        ),
-        FtProfileMetric( // L1398-1400
-            labelRes = R.string.profile_week_metric_burned,
-            value = "1,240",
-            unitRes = R.string.profile_unit_kcal,
         ),
     )
 
@@ -180,8 +193,55 @@ object FtProfileModel {
         ),
     )
 
-    // ── 快捷入口（L1441-1452） ────────────────────────────────────
+    /**
+     * 由真实数据派生成就行（Wave 3 · W3-2）。
+     *
+     * ① 连续训练：`streakDays > 0` 时给出「连续训练 N 天 / 本周 M 次」；
+     * ② 重量突破：取 [PersonalRecordLike] 里最大重量动作（含动作名与日期）。
+     * 无数据返回空列表 → 调用方渲染空态（不再显示原型样例「连续训练 7 天」「86%」「80 kg」）。
+     *
+     * [weightText] 由调用方注入（数据层不持有 Context，重量换算在 UI 层完成）。
+     */
+    fun derivedAchievements(
+        streakDays: Int,
+        weekSessions: Int,
+        bestExerciseName: String?,
+        bestWeightText: String?,
+        bestDateText: String?,
+    ): List<FtProfileAchievement> {
+        val rows = mutableListOf<FtProfileAchievement>()
+        if (streakDays > 0) {
+            rows.add(
+                FtProfileAchievement(
+                    icon = FtProfileIcon.FLAME,
+                    titleRes = R.string.profile_achievement_streak_title,
+                    noteRes = R.string.profile_achievement_streak_note,
+                    valueRes = R.string.profile_achievement_streak_value,
+                    gold = false,
+                    titleText = "稳定输出",
+                    noteText = "连续训练 $streakDays 天",
+                    valueText = "本周 $weekSessions 次",
+                ),
+            )
+        }
+        if (bestExerciseName != null && bestWeightText != null) {
+            rows.add(
+                FtProfileAchievement(
+                    icon = FtProfileIcon.TROPHY,
+                    titleRes = R.string.profile_achievement_pr_title,
+                    noteRes = R.string.profile_achievement_pr_note,
+                    valueRes = R.string.profile_achievement_pr_value,
+                    gold = true,
+                    titleText = "重量突破",
+                    noteText = "$bestExerciseName $bestWeightText",
+                    valueText = bestDateText ?: "",
+                ),
+            )
+        }
+        return rows
+    }
 
+    // ── 快捷入口（L1441-1452） ────────────────────────────────────
     /**
      * 身体数据 → `body`、训练偏好 → `trainingPreferences`、动作库 → `library`
      * （首末两项原型脚本 L1767-1768；中间项为设计侧新增，出处见 [FtProfileIcon.SLIDERS]）。

@@ -84,12 +84,13 @@ class FtProfileStringsTest {
         assertEquals("训练连续记录", context.getString(FtProfileModel.STREAK_TITLE_RES))
         assertEquals("最近成就", context.getString(FtProfileModel.ACHIEVEMENTS_TITLE_RES))
         assertEquals("本周训练时长", context.getString(FtProfileModel.WEEK_LABEL_RES))
+        // 周概览仅保留「训练」格——「消耗 kcal」已删除（WorkoutSession 无热量字段，W3-3）。
         assertEquals(
-            listOf("训练", "消耗"),
+            listOf("训练"),
             FtProfileModel.WEEK_METRICS.map { context.getString(it.labelRes) },
         )
         assertEquals(
-            listOf("次", "千卡"),
+            listOf("次"),
             FtProfileModel.WEEK_METRICS.map { context.getString(it.unitRes) },
         )
         assertEquals(
