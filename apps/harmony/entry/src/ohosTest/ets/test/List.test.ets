@@ -46,6 +46,7 @@ import accountDataLifecycleTest from './AccountDataLifecycle.test'
 import workoutReminderServiceTest from './WorkoutReminderService.test'
 import achievementNoticeServiceTest from './AchievementNoticeService.test'
 import supabaseCloudSnapshotStoreTest from './SupabaseCloudSnapshotStore.test'
+import streakUtilsTest from './StreakUtils.test'
 
 export default function testsuite(): void {
   abilityTest()
@@ -96,4 +97,5 @@ export default function testsuite(): void {
   workoutReminderServiceTest()
   achievementNoticeServiceTest()
   supabaseCloudSnapshotStoreTest()
+  streakUtilsTest()
 }
