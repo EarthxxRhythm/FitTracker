@@ -35,6 +35,8 @@
     <string name="review_unit_times">次</string>
     <string name="review_unit_minutes">分钟</string>
     <string name="review_unit_kg">kg</string>
+    <!-- 空态提示（无已评价训练时；不再展示原型样例柱） -->
+    <string name="review_empty_hint">完成训练并评价强度后，这里会显示数据。</string>
 
     <!-- 概览卡文案（原型 WEEK / MONTH，L1541-1563） -->
     <string name="review_week_headline">状态不错，继续保持。</string>

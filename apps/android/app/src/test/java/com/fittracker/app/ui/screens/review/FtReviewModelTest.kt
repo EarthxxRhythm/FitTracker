@@ -563,6 +563,51 @@ class FtReviewModelTest {
         )
     }
 
+    // ── 真实努力程度派生 effortFrom（未提交增量） ─────────────────
+
+    @Test
+    fun `effortFrom_空序列返回null`() {
+        assertNull(FtReviewModel.effortFrom(EffortMetric.RIR, emptyList()))
+        assertNull(FtReviewModel.effortFrom(EffortMetric.RPE, emptyList()))
+    }
+
+    /** RIR_DATA 的 RPE 镜像即完成页可采集到的真实 RPE；此路径应与样例视图逐字段一致。 */
+    @Test
+    fun `effortFrom_RIR口径等于样例视图当输入为RPE镜像`() {
+        val mirrored = FtReviewModel.RIR_DATA.map { 10 - it }
+        val real = FtReviewModel.effortFrom(EffortMetric.RIR, mirrored)
+        val sample = FtReviewModel.effort(EffortMetric.RIR)
+        assertEquals(sample.average, real?.average) // "2.3"
+        assertEquals(sample.barPercents, real?.barPercents) // [50,75,25,50,100,25,75,50]
+        assertEquals(sample.barLabels, real?.barLabels)
+    }
+
+    @Test
+    fun `effortFrom_RPE直通且均值柱高按原型公式`() {
+        val view = FtReviewModel.effortFrom(EffortMetric.RPE, listOf(8, 7, 9, 8, 6, 9, 7, 8))
+        assertEquals("7.8", view?.average)
+        assertEquals(listOf(50, 25, 75, 50, 8, 75, 25, 50), view?.barPercents)
+    }
+
+    /**
+     * H1 探针：RIR 口径下低 RPE 输入的柱高上界。
+     *
+     * RPE=3 → `vals = 10 − 3 = 7`，`min=0 / max=4` 下 `percent = 7 × 100 / 4 = 175%`。
+     * 柱高换算 `175 × 78 / 100 = 136.5` 超出 78 的轨道——`EFFORT_MIN_BAR_PERCENT` 只夹下限。
+     * 本断言写期望语义（≤100）：红即实证缺陷，绿即证伪。
+     */
+    @Test
+    fun `effortFrom_RIR口径下低RPE输入的柱高上界`() {
+        val view = FtReviewModel.effortFrom(EffortMetric.RIR, listOf(3))
+        val maxPercent = view?.barPercents?.max() ?: 0
+        assertTrue("柱高百分比须 ≤ 100，实际 $maxPercent（rpe=3）", maxPercent <= 100)
+    }
+
+    @Test
+    fun `EMPTY_VALUE_为仓内约定占位`() {
+        assertEquals("--", FtReviewModel.EMPTY_VALUE)
+    }
+
     /** 构造含若干 set 的会话（每个 exerciseId 一条 set）。 */
     private fun sessionWith(startedAt: Long, exerciseIds: List<String>, rpe: Int = 8): WorkoutSession {
         val sets = exerciseIds.mapIndexed { index, exerciseId ->

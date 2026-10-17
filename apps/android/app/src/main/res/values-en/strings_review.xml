@@ -136,6 +136,7 @@
     <string name="review_effort_note">RIR is how many reps you had left; RPE rates effort from 0–10, where RPE ≈ 10 − RIR.</string>
     <!-- `%1$s` metric name (`RIR` / `RPE`) -->
     <string name="review_effort_unit">%1$s · 8-session average</string>
+    <string name="review_empty_hint">Complete a workout and rate its effort — your data will appear here.</string>
 
     <!-- Month heatmap day detail modal -->
     <string name="review_day_detail_title">%2$d/%1$d · %3$s</string>
