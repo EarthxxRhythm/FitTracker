@@ -296,6 +296,9 @@ object FtReviewModel {
      */
     const val EFFORT_BAR_TRACK_HEIGHT = EFFORT_BAR_COLUMN_HEIGHT - EFFORT_BAR_GAP - EFFORT_BAR_LABEL_HEIGHT
 
+    /** 未录入占位（仓内既有约定：值渲染 `--`）。 */
+    const val EMPTY_VALUE = "--"
+
     /** 单根柱的高度：把轨道百分比 [percent] 落到固定值，使柱与间距、序号互不挤压。 */
     fun effortBarHeight(percent: Int): Float = percent * EFFORT_BAR_TRACK_HEIGHT / 100f
 
@@ -303,14 +306,46 @@ object FtReviewModel {
     @StringRes
     val EFFORT_UNIT_RES = R.string.review_effort_unit
 
+    /**
+     * 把原始量表值映射为柱高百分比：先夹到量表范围 [min, max]，再按量程归一，最后夹下限。
+     *
+     * 「夹到量表范围」这一步不可省——RIR 口径的量表上界是 4，而真实 RPE 反推的 RIR 最高可达 9
+     * （rpe=1 → RIR=9）；不夹会让百分比冲到 225%（柱高 175.5 远超 78 的轨道，柱子溢出列高）。
+     * 样例路径 [RIR_DATA] 全在 1–4 内故不触发，但两处共用同一口径，统一在此收口。
+     */
+    private fun barPercentsOf(values: List<Int>, min: Int, max: Int): List<Int> =
+        values.map { raw ->
+            val clamped = raw.coerceIn(min, max)
+            maxOf(EFFORT_MIN_BAR_PERCENT, ((clamped - min) * 100.0 / (max - min)).toInt())
+        }
+
     fun effort(metric: EffortMetric): EffortView {
         val vals = if (metric == EffortMetric.RIR) RIR_DATA else RIR_DATA.map { 10 - it }
         val min = if (metric == EffortMetric.RIR) 0 else 6
         val max = if (metric == EffortMetric.RIR) 4 else 10
         val avg = vals.sum().toDouble() / vals.size
-        val percents = vals.map { v ->
-            maxOf(EFFORT_MIN_BAR_PERCENT, ((v - min) * 100.0 / (max - min)).toInt())
-        }
+        val percents = barPercentsOf(vals, min, max)
+        return EffortView(
+            average = String.format(Locale.US, "%.1f", avg),
+            metric = metric,
+            barPercents = percents,
+            barLabels = vals.indices.map { (it + 1).toString() },
+        )
+    }
+
+    /**
+     * 由**真实**整体 RPE 序列构造努力程度视图（Wave 2）。
+     *
+     * [rpeValues] 为近 N 次已评价训练的整体 RPE（1–10）。空列表 → 返回 null（调用方渲染空态，
+     * 不再回落 [RIR_DATA] 的样例行）。RIR 口径 = `10 − RPE`（与原型 `effort()` 一致）。
+     */
+    fun effortFrom(metric: EffortMetric, rpeValues: List<Int>): EffortView? {
+        if (rpeValues.isEmpty()) return null
+        val vals = if (metric == EffortMetric.RIR) rpeValues.map { 10 - it } else rpeValues
+        val min = if (metric == EffortMetric.RIR) 0 else 6
+        val max = if (metric == EffortMetric.RIR) 4 else 10
+        val avg = vals.sum().toDouble() / vals.size
+        val percents = barPercentsOf(vals, min, max)
         return EffortView(
             average = String.format(Locale.US, "%.1f", avg),
             metric = metric,

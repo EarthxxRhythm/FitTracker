@@ -63,6 +63,7 @@ import com.fittracker.app.data.model.WorkoutSession
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
 import com.fittracker.app.data.service.BodyRecordService
+import com.fittracker.app.data.service.ContentRepository
 import com.fittracker.app.data.service.SettingsService
 import com.fittracker.app.data.service.UserProfileService
 import com.fittracker.app.data.service.WeeklyStats
@@ -126,18 +127,8 @@ fun ReviewScreen(
     // V2：需肌群聚合服务（WorkoutSet.exerciseId × ContentRepository 肌肉映射）。
     val context = LocalContext.current
     val resources = LocalResources.current
-    // 空库降级样例：1RM 四行文案走资源（真实路径由 PersonalRecordService 填充）。
-    val sampleOneRmRows = remember(context) {
-        FtReviewModel.ONE_RM_SAMPLES.map { sample ->
-            OneRmRow(
-                name = resources.getString(sample.nameRes),
-                src = resources.getString(sample.srcRes),
-                value = sample.value,
-                unit = resources.getString(R.string.review_unit_kg),
-            )
-        }
-    }
-    var oneRmRows by remember { mutableStateOf(sampleOneRmRows) }
+    // 1RM 表：无会话时为空态（不再回落原型样例行）。
+    var oneRmRows by remember { mutableStateOf<List<OneRmRow>>(emptyList()) }
     var weekStats by remember { mutableStateOf<WeeklyStats?>(null) }
     var weekBars by remember { mutableStateOf(FtReviewModel.WEEK_BARS) }
     var monthCells by remember { mutableStateOf(FtReviewModel.MONTH_CELLS) }
@@ -146,12 +137,16 @@ fun ReviewScreen(
     var weekHeadText by remember { mutableStateOf(resources.getString(FtReviewModel.WEEK.weekRes)) }
     var monthHeadText by remember { mutableStateOf(resources.getString(FtReviewModel.MONTH.weekRes)) }
     var monthHead by remember { mutableStateOf(WeekWindow.dayLabels(WeekStart.MONDAY)) }
-    var weightCurrent by remember { mutableStateOf(FtReviewModel.WEIGHT_CURRENT) }
+    // 体重卡：无记录时为空态（不再显示原型样例 69.2 kg）。
+    var weightCurrent by remember { mutableStateOf<String?>(null) }
     var weightDelta by remember { mutableStateOf(resources.getString(FtReviewModel.WEIGHT_DELTA_RES)) }
     var weightPoints by remember { mutableStateOf(FtReviewModel.WEIGHT_POINTS) }
     var weightUnit by remember { mutableStateOf(WeightUnit.KG) }
     var hasWeightRecords by remember { mutableStateOf(false) }
     var weightDeltaValue by remember { mutableStateOf("") }
+    // 努力程度（按次采集的整体 RPE）与肌群热力的真实派生值；空列表 = 无数据（渲染空态）。
+    var effortLevels by remember { mutableStateOf<List<Int>>(emptyList()) }
+    var muscleVolume by remember { mutableStateOf<List<Int>>(emptyList()) }
     // 月历热力格点击：保留聚合所需的原始会话与口径参数（供弹层取当天摘要）。
     var reviewSessions by remember { mutableStateOf<List<WorkoutSession>>(emptyList()) }
     var reviewWeekStart by remember { mutableStateOf(WeekStart.MONDAY) }
@@ -175,6 +170,13 @@ fun ReviewScreen(
             weekStats = WorkoutSessionService.weeklyStats(sessions, now, weekStart)
             weekBars = FtReviewModel.weeklyBars(sessions, now, weekStart)
             monthCells = FtReviewModel.monthGrid(sessions, now, weekStart)
+            // 努力程度（近 8 次训练的整体 RPE）与肌群训练量：真实派生，供图表着色。
+            effortLevels = FtReviewModel.effortLevels(sessions, 8)
+            muscleVolume = FtReviewModel.muscleVolume(
+                sessions,
+                { exerciseId -> ContentRepository.getExercise(exerciseId)?.primaryMuscleIds.orEmpty() },
+                8,
+            )
             val monthLabelArgs = FtReviewModel.monthLabel(now)
             monthLabel = resources.getString(R.string.review_month_label, monthLabelArgs.year, monthLabelArgs.month)
             val monthMetaArgs = FtReviewModel.monthMeta(sessions, now)
@@ -263,11 +265,11 @@ fun ReviewScreen(
                 goal = goal,
                 goalLineY = goalLineY,
                 points = weightPoints,
-                currentText = weightCurrent,
+                currentText = weightCurrent ?: FtReviewModel.EMPTY_VALUE,
                 deltaText = weightDelta,
                 onOpenGoal = { goalModalOpen = true },
             )
-            EffortCard(metric = effortMetric, onMetric = { effortMetric = it })
+            EffortCard(metric = effortMetric, rpeValues = effortLevels, onMetric = { effortMetric = it })
             OneRmCard(rows = oneRmRows)
         }
 
@@ -1020,8 +1022,9 @@ private fun WeightChart(
 
 /** `.openstats .card` + 努力程度（L1195-1210）。 */
 @Composable
-private fun EffortCard(metric: EffortMetric, onMetric: (EffortMetric) -> Unit) {
-    val view = remember(metric) { FtReviewModel.effort(metric) }
+private fun EffortCard(metric: EffortMetric, rpeValues: List<Int>, onMetric: (EffortMetric) -> Unit) {
+    // 真实数据优先；无已评价训练时为空态（不再回落 RIR_DATA 样例行）。
+    val view = remember(metric, rpeValues) { FtReviewModel.effortFrom(metric, rpeValues) }
     Card {
         CardTitle(title = stringResource(R.string.review_effort_title), meta = stringResource(R.string.review_effort_meta))
         SegmentedPill(
@@ -1046,17 +1049,27 @@ private fun EffortCard(metric: EffortMetric, onMetric: (EffortMetric) -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = view.average,
+                text = view?.average ?: FtReviewModel.EMPTY_VALUE,
                 style = FtType.natural(30f, 700, FtType.num).copy(letterSpacing = (-0.6).sp), // -.02em
                 color = FtReviewColors.label,
             )
             Text(
-                text = stringResource(FtReviewModel.EFFORT_UNIT_RES, view.metric.display),
+                text = stringResource(FtReviewModel.EFFORT_UNIT_RES, metric.display),
                 style = FtType.natural(12f),
                 color = FtReviewColors.label3,
             )
         }
-        EffortBars(percents = view.barPercents, labels = view.barLabels)
+        if (view != null) {
+            EffortBars(percents = view.barPercents, labels = view.barLabels)
+        } else {
+            // 无已评价训练 → 空态提示（不再展示原型样例柱）。
+            Text(
+                text = stringResource(R.string.review_empty_hint),
+                modifier = Modifier.padding(top = 14.dp),
+                style = FtType.natural(11.5f),
+                color = FtReviewColors.label3,
+            )
+        }
     }
 }
 

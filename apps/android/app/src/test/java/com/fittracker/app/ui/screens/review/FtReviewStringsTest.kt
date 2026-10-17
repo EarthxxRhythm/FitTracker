@@ -122,12 +122,13 @@ class FtReviewStringsTest {
             R.string.review_effort_a11y_scale to "努力程度刻度",
             R.string.review_effort_note to "RIR 记的是你还剩几次；RPE 用 0–10 表示主观用力，RPE ≈ 10 − RIR。",
             R.string.review_effort_unit to "%1\$s · 近 8 次平均",
+            R.string.review_empty_hint to "完成训练并评价强度后，这里会显示数据。",
         )
 
         expectations.forEach { (id, expected) ->
             assertEquals("资源 id=$id 与原型中文不一致", expected, context.getString(id))
         }
-        assertEquals("资源条数（zh）", 97, expectations.size)
+        assertEquals("资源条数（zh）", 98, expectations.size)
     }
 
     /** 带参模板的插值结果（原型样例值）。 */
@@ -155,5 +156,9 @@ class FtReviewStringsTest {
         assertEquals("RIR · 8-session average", context.getString(R.string.review_effort_unit, "RIR"))
         assertEquals("6/2026", context.getString(R.string.review_month_label, 2026, 6))
         assertEquals("Chest", context.getString(R.string.review_muscle_chest))
+        assertEquals(
+            "Complete a workout and rate its effort — your data will appear here.",
+            context.getString(R.string.review_empty_hint),
+        )
     }
 }
