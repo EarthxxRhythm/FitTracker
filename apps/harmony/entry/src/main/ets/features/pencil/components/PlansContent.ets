@@ -6,6 +6,7 @@ import { MotionTokens } from '../../../common/styles/DesignTokens'
 import TrainingPlanService, { PresetPlan } from '../../../common/services/TrainingPlanService'
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
+import { PencilTokens } from '../PencilTokens'
 
 interface GroupCard {
   planId: string
@@ -116,7 +117,7 @@ export struct PlansContent {
       Column()
         .width('100%')
         .height('100%')
-        .linearGradient({ angle: 180, colors: [['#0B0F13', 0], ['#0A0D12', 1]] })
+        .linearGradient({ angle: 180, colors: [[PencilTokens.BG_INK, 0], ['#0A0D12', 1]] })
 
       Column() {
         Row({ space: 8 }) {
@@ -148,7 +149,7 @@ export struct PlansContent {
             .fontFamily('Noto Sans SC')
             .fontSize(16)
             .fontWeight(FontWeight.Bold)
-            .fontColor('#F7FBF8')
+            .fontColor(PencilTokens.TEXT_HI)
             .layoutWeight(1)
             .textAlign(TextAlign.Center)
           Row()
@@ -158,8 +159,8 @@ export struct PlansContent {
         .width('100%')
         .padding({ top: Math.max(52 - this.topInsetVp, 0), bottom: 10, left: 12, right: 12 })
         .alignItems(VerticalAlign.Center)
-        .backgroundColor('#F50A0D12')
-        .border({ width: { bottom: 1 }, color: '#0FFFFFFF' })
+        .backgroundColor(PencilTokens.SCRIM_DEEP)
+        .border({ width: { bottom: 1 }, color: PencilTokens.WHITE_A06 })
 
         Scroll() {
           Column({ space: 20 }) {
@@ -170,7 +171,7 @@ export struct PlansContent {
                 .fontFamily('Noto Sans SC')
                 .fontSize(16)
                 .fontWeight(FontWeight.Bold)
-                .fontColor('#8AFFFFFF')
+                .fontColor(PencilTokens.WHITE_A54)
                 .width('100%')
               Column({ space: 10 }) {
                 ForEach(this.groups, (group: GroupCard) => {
@@ -197,7 +198,7 @@ export struct PlansContent {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#0B0F13')
+    .backgroundColor(PencilTokens.BG_INK)
   }
 
   @Builder
@@ -208,19 +209,19 @@ export struct PlansContent {
           .fontFamily('Noto Sans SC')
           .fontSize(11)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#50ECA7')
+          .fontColor(PencilTokens.ACCENT)
         Text(this.hasCurrentPlan ? this.currentPlanName : '尚未启用计划')
           .fontFamily('Noto Sans SC')
           .fontSize(20)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#F7FBF8')
+          .fontColor(PencilTokens.TEXT_HI)
           .lineHeight(23)
           .margin({ top: 9 })
           .padding({ right: 76 })
         Text(this.hasCurrentPlan ? this.currentPlanMeta : '从下方选择一个训练计划开始')
           .fontFamily('Noto Sans SC')
           .fontSize(12)
-          .fontColor('#9EFFFFFF')
+          .fontColor(PencilTokens.WHITE_A62)
           .margin({ top: 6 })
       }
       .width('100%')
@@ -232,9 +233,9 @@ export struct PlansContent {
           .fontFamily('Noto Sans SC')
           .fontSize(10)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#07100B')
+          .fontColor(PencilTokens.TEXT_ON_ACCENT)
           .padding({ left: 10, right: 10, top: 4, bottom: 4 })
-          .backgroundColor('#50ECA7')
+          .backgroundColor(PencilTokens.ACCENT)
           .borderRadius(999)
           .margin({ top: 14, right: 14 })
       }
@@ -255,7 +256,7 @@ export struct PlansContent {
       .width(52)
       .height(52)
       .borderRadius(14)
-      .backgroundColor('#1A50ECA7')
+      .backgroundColor(PencilTokens.ACCENT_A10)
       .border({ width: 1, color: '#3850ECA7' })
       .justifyContent(FlexAlign.Center)
       .alignItems(VerticalAlign.Center)
@@ -264,29 +265,29 @@ export struct PlansContent {
           .fontFamily('Noto Sans SC')
           .fontSize(16)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#F7FBF8')
+          .fontColor(PencilTokens.TEXT_HI)
         Row({ space: 8 }) {
           Text(group.audience)
             .fontFamily('Noto Sans SC')
             .fontSize(11)
-            .fontColor('#9EFFFFFF')
+            .fontColor(PencilTokens.WHITE_A62)
             .padding({ left: 9, right: 9, top: 3, bottom: 3 })
-            .backgroundColor('#0FFFFFFF')
-            .border({ width: 1, color: '#0FFFFFFF' })
+            .backgroundColor(PencilTokens.WHITE_A06)
+            .border({ width: 1, color: PencilTokens.WHITE_A06 })
             .borderRadius(999)
           Text(group.freq)
             .fontFamily('Noto Sans SC')
             .fontSize(11)
-            .fontColor('#8AFFFFFF')
+            .fontColor(PencilTokens.WHITE_A54)
           Text(group.days.toString() + ' 个训练日')
             .fontFamily('Inter')
             .fontSize(11)
-            .fontColor('#8AFFFFFF')
+            .fontColor(PencilTokens.WHITE_A54)
         }
         Text('示例 ' + group.examples)
           .fontFamily('Noto Sans SC')
           .fontSize(11)
-          .fontColor('#8AFFFFFF')
+          .fontColor(PencilTokens.WHITE_A54)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
@@ -300,7 +301,7 @@ export struct PlansContent {
     .width('100%')
     .padding({ top: 13, right: 14, bottom: 13, left: 14 })
     .backgroundColor('#151B20')
-    .border({ width: 1, color: '#14FFFFFF' })
+    .border({ width: 1, color: PencilTokens.WHITE_A08 })
     .borderRadius(18)
     .constraintSize({ minHeight: 92 })
     .scale({ x: this.pressedCardKey === group.planId ? MotionTokens.PRESS_PRIMARY : 1, y: this.pressedCardKey === group.planId ? MotionTokens.PRESS_PRIMARY : 1 })
@@ -346,18 +347,18 @@ export struct PlansContent {
           .width(16)
           .height(16)
           .fillOpacity(0)
-          .stroke('#50ECA7')
+          .stroke(PencilTokens.ACCENT)
           .strokeWidth(1.8)
         Circle()
           .width(6)
           .height(6)
           .fillOpacity(0)
-          .stroke('#50ECA7')
+          .stroke(PencilTokens.ACCENT)
           .strokeWidth(1.8)
         Circle()
           .width(1.2)
           .height(1.2)
-          .fill('#50ECA7')
+          .fill(PencilTokens.ACCENT)
       }
       .width(24)
       .height(24)
@@ -375,12 +376,12 @@ export struct PlansContent {
           .width(16)
           .height(16)
           .fillOpacity(0)
-          .stroke('#50ECA7')
+          .stroke(PencilTokens.ACCENT)
           .strokeWidth(1.8)
         Circle()
           .width(4.8)
           .height(4.8)
-          .fill('#50ECA7')
+          .fill(PencilTokens.ACCENT)
       }
       .width(24)
       .height(24)

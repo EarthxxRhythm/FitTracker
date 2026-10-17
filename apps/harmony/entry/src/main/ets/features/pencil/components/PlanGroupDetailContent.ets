@@ -5,6 +5,7 @@ import TrainingPlanService, { PresetPlan, TrainingDay, UserPlan } from '../../..
 import { dayFocusMuscles, shortDayTag } from './PlanTabModel'
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
+import { PencilTokens } from '../PencilTokens'
 
 interface GroupExercise {
   name: string
@@ -203,7 +204,7 @@ export struct PlanGroupDetailContent {
         .radialGradient({
           center: ['16%', '6%'],
           radius: 320,
-          colors: [['#1F50ECA7', 0], ['#0050ECA7', 1]]
+          colors: [[PencilTokens.ACCENT_A12, 0], [PencilTokens.ACCENT_A00, 1]]
         })
       Column()
         .width('100%')
@@ -255,7 +256,7 @@ export struct PlanGroupDetailContent {
           Text(this.toastMessage)
             .fontFamily('Noto Sans SC')
             .fontSize(13)
-            .fontColor('#F7FBF8')
+            .fontColor(PencilTokens.TEXT_HI)
             .lineHeight(18)
             .textAlign(TextAlign.Center)
         }
@@ -263,7 +264,7 @@ export struct PlanGroupDetailContent {
         .constraintSize({ maxWidth: 320 })
         .backgroundColor('#F00D1117')
         .borderRadius(999)
-        .border({ width: 1, color: '#1AFFFFFF' })
+        .border({ width: 1, color: PencilTokens.WHITE_A10 })
         .margin({ bottom: 88 })
         .transition(TransitionEffect.OPACITY
           .combine(TransitionEffect.translate({ y: 10 }))
@@ -272,7 +273,7 @@ export struct PlanGroupDetailContent {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#0B0F13')
+    .backgroundColor(PencilTokens.BG_INK)
   }
 
   @Builder
@@ -282,11 +283,11 @@ export struct PlanGroupDetailContent {
         .fontFamily('Noto Sans SC')
         .fontSize(16)
         .fontWeight(FontWeight.Bold)
-        .fontColor('#F7FBF8')
+        .fontColor(PencilTokens.TEXT_HI)
       Text('计划参数缺失或已下线，请返回重新选择。')
         .fontFamily('Noto Sans SC')
         .fontSize(13)
-        .fontColor('#9EFFFFFF')
+        .fontColor(PencilTokens.WHITE_A62)
     }
     .width('100%')
     .layoutWeight(1)
@@ -327,7 +328,7 @@ export struct PlanGroupDetailContent {
         .fontFamily('Noto Sans SC')
         .fontSize(16)
         .fontWeight(FontWeight.Bold)
-        .fontColor('#F7FBF8')
+        .fontColor(PencilTokens.TEXT_HI)
         .layoutWeight(1)
         .textAlign(TextAlign.Center)
         .maxLines(1)
@@ -341,7 +342,7 @@ export struct PlanGroupDetailContent {
     .padding({ top: Math.max(52 - this.topInsetVp, 0), bottom: 10, left: 12, right: 12 })
     .alignItems(VerticalAlign.Center)
     .backgroundColor('#D10A0D12')
-    .border({ width: { bottom: 1 }, color: '#0FFFFFFF' })
+    .border({ width: { bottom: 1 }, color: PencilTokens.WHITE_A06 })
   }
 
   @Builder
@@ -351,21 +352,21 @@ export struct PlanGroupDetailContent {
         .fontFamily('Noto Sans SC')
         .fontSize(11)
         .fontWeight(FontWeight.Bold)
-        .fontColor('#50ECA7')
+        .fontColor(PencilTokens.ACCENT)
         .letterSpacing(0.33)
       Text(this.planName)
         .fontFamily('Noto Sans SC')
         .fontSize(22)
         .fontWeight(FontWeight.Bold)
         .lineHeight(26)
-        .fontColor('#F7FBF8')
+        .fontColor(PencilTokens.TEXT_HI)
         .margin({ top: 8 })
         .padding({ right: 8 })
       Text(this.planDesc)
         .fontFamily('Noto Sans SC')
         .fontSize(13)
         .lineHeight(21)
-        .fontColor('#9EFFFFFF')
+        .fontColor(PencilTokens.WHITE_A62)
         .margin({ top: 8 })
       Row({ space: 7 }) {
         ForEach(this.planTags, (tag: string) => {
@@ -373,10 +374,10 @@ export struct PlanGroupDetailContent {
             .fontFamily('Noto Sans SC')
             .fontSize(11)
             .fontWeight(FontWeight.Medium)
-            .fontColor('#50ECA7')
+            .fontColor(PencilTokens.ACCENT)
             .padding({ top: 4, bottom: 4, left: 11, right: 11 })
             .backgroundColor('#2450ECA7')
-            .border({ width: 1, color: '#1AFFFFFF' })
+            .border({ width: 1, color: PencilTokens.WHITE_A10 })
             .borderRadius(999)
         }, (tag: string) => tag)
       }
@@ -389,8 +390,8 @@ export struct PlanGroupDetailContent {
     // 与首页「本周节奏」卡（HomeContent.weekPanel）逐值一致。注意：冻结原型
     // fittracker-plan-group-detail.html 的 .pgd-summary 写的是绿系实心 #12241D，此处按需求
     // 取中性玻璃面，属有意偏离（同 PlanContent master card 的先例，原型不手改）。
-    .backgroundColor('#08FFFFFF')
-    .border({ width: 1, color: '#1AFFFFFF' })
+    .backgroundColor(PencilTokens.WHITE_A03)
+    .border({ width: 1, color: PencilTokens.WHITE_A10 })
     .borderRadius(22)
     .shadow({ radius: 30, color: '#5C000000', offsetX: 0, offsetY: 14 })
   }
@@ -402,7 +403,7 @@ export struct PlanGroupDetailContent {
         .fontFamily('Noto Sans SC')
         .fontSize(12)
         .fontWeight(FontWeight.Bold)
-        .fontColor('#8AFFFFFF')
+        .fontColor(PencilTokens.WHITE_A54)
         .letterSpacing(0.24)
       Row({ space: 5 }) {
         ForEach(this.weekCells, (cell: string, index: number) => {
@@ -411,23 +412,23 @@ export struct PlanGroupDetailContent {
               .fontFamily('Noto Sans SC')
               .fontSize(11)
               .fontWeight(FontWeight.Medium)
-              .fontColor('#66FFFFFF')
+              .fontColor(PencilTokens.WHITE_A40)
             Column() {
               Text(cell)
                 .fontFamily('Noto Sans SC')
                 .fontSize(12)
                 .fontWeight(FontWeight.Bold)
-                .fontColor(this.isWeekRest(cell) ? '#66FFFFFF' : '#07100B')
+                .fontColor(this.isWeekRest(cell) ? PencilTokens.WHITE_A40 : PencilTokens.TEXT_ON_ACCENT)
             }
             .width('100%')
             .height(34)
             .justifyContent(FlexAlign.Center)
             .borderRadius(10)
-            .backgroundColor(this.isWeekRest(cell) ? '#151D1B' : '#50ECA7')
-            .border({ width: 1, color: this.isWeekRest(cell) ? '#14FFFFFF' : '#00000000' })
+            .backgroundColor(this.isWeekRest(cell) ? '#151D1B' : PencilTokens.ACCENT)
+            .border({ width: 1, color: this.isWeekRest(cell) ? PencilTokens.WHITE_A08 : PencilTokens.TRANSPARENT })
             .shadow(this.isWeekRest(cell)
-              ? { radius: 0, color: '#00000000', offsetX: 0, offsetY: 0 }
-              : { radius: 12, color: '#3350ECA7', offsetX: 0, offsetY: 4 })
+              ? { radius: 0, color: PencilTokens.TRANSPARENT, offsetX: 0, offsetY: 0 }
+              : { radius: 12, color: PencilTokens.ACCENT_A20, offsetX: 0, offsetY: 4 })
           }
           .layoutWeight(1)
           .alignItems(HorizontalAlign.Center)
@@ -449,12 +450,12 @@ export struct PlanGroupDetailContent {
                 .fontFamily('Inter')
                 .fontSize(11)
                 .fontWeight(FontWeight.Medium)
-                .fontColor(this.activeDay === index ? '#A307100B' : '#8AFFFFFF')
+                .fontColor(this.activeDay === index ? '#A307100B' : PencilTokens.WHITE_A54)
               Text(day.title)
                 .fontFamily('Noto Sans SC')
                 .fontSize(14)
                 .fontWeight(FontWeight.Bold)
-                .fontColor(this.activeDay === index ? '#07100B' : '#F7FBF8')
+                .fontColor(this.activeDay === index ? PencilTokens.TEXT_ON_ACCENT : PencilTokens.TEXT_HI)
             }
             // 原型 .pgd-day-tab 是 flex:0 0 auto + min-width:96px——宽度按内容、多个标签并排横向滚动。
             // 这里不能给 Column 设 width('100%')：它会撑满 Scroll 视口，导致只有第一个训练日可见。
@@ -462,11 +463,11 @@ export struct PlanGroupDetailContent {
           }
           .constraintSize({ minWidth: 96 })
           .padding({ top: 10, bottom: 10, left: 12, right: 12 })
-          .backgroundColor(this.activeDay === index ? '#50ECA7' : '#141B1A')
-          .border({ width: 1, color: this.activeDay === index ? '#00000000' : '#14FFFFFF' })
+          .backgroundColor(this.activeDay === index ? PencilTokens.ACCENT : '#141B1A')
+          .border({ width: 1, color: this.activeDay === index ? PencilTokens.TRANSPARENT : PencilTokens.WHITE_A08 })
           .shadow(this.activeDay === index
-            ? { radius: 20, color: '#3D50ECA7', offsetX: 0, offsetY: 8 }
-            : { radius: 0, color: '#00000000', offsetX: 0, offsetY: 0 })
+            ? { radius: 20, color: PencilTokens.ACCENT_A24, offsetX: 0, offsetY: 8 }
+            : { radius: 0, color: PencilTokens.TRANSPARENT, offsetX: 0, offsetY: 0 })
           .borderRadius(14)
           .scale({ x: this.dayKey === day.title ? MotionTokens.PRESS_SHORTCUT : 1, y: this.dayKey === day.title ? MotionTokens.PRESS_SHORTCUT : 1 })
           .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
@@ -497,11 +498,11 @@ export struct PlanGroupDetailContent {
           .fontFamily('Noto Sans SC')
           .fontSize(16)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#F7FBF8')
+          .fontColor(PencilTokens.TEXT_HI)
         Text(this.days[this.activeDay].focus)
           .fontFamily('Noto Sans SC')
           .fontSize(12)
-          .fontColor('#8AFFFFFF')
+          .fontColor(PencilTokens.WHITE_A54)
           .layoutWeight(1)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -517,15 +518,15 @@ export struct PlanGroupDetailContent {
                 .fontFamily('Inter')
                 .fontSize(13)
                 .fontWeight(FontWeight.Bold)
-                .fontColor('#07100B')
+                .fontColor(PencilTokens.TEXT_ON_ACCENT)
             }
             .width(28)
             .height(28)
             .justifyContent(FlexAlign.Center)
             .borderRadius(9)
-            .backgroundColor('#50ECA7')
-            .border({ width: 1, color: '#00000000' })
-            .shadow({ radius: 10, color: '#3350ECA7', offsetX: 0, offsetY: 3 })
+            .backgroundColor(PencilTokens.ACCENT)
+            .border({ width: 1, color: PencilTokens.TRANSPARENT })
+            .shadow({ radius: 10, color: PencilTokens.ACCENT_A20, offsetX: 0, offsetY: 3 })
 
             Column({ space: 3 }) {
               Row({ space: 7 }) {
@@ -533,7 +534,7 @@ export struct PlanGroupDetailContent {
                   .fontFamily('Noto Sans SC')
                   .fontSize(14)
                   .fontWeight(FontWeight.Bold)
-                  .fontColor('#F7FBF8')
+                  .fontColor(PencilTokens.TEXT_HI)
                   .layoutWeight(1)
                   .maxLines(1)
                   .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -541,10 +542,10 @@ export struct PlanGroupDetailContent {
                   .fontFamily('Noto Sans SC')
                   .fontSize(10)
                   .fontWeight(FontWeight.Medium)
-                  .fontColor('#8AFFFFFF')
+                  .fontColor(PencilTokens.WHITE_A54)
                   .padding({ left: 7, right: 7, top: 2, bottom: 2 })
-                  .backgroundColor('#0FFFFFFF')
-                  .border({ width: 1, color: '#0FFFFFFF' })
+                  .backgroundColor(PencilTokens.WHITE_A06)
+                  .border({ width: 1, color: PencilTokens.WHITE_A06 })
                   .borderRadius(999)
               }
               .width('100%')
@@ -557,13 +558,13 @@ export struct PlanGroupDetailContent {
               .fontFamily('Inter')
               .fontSize(13)
               .fontWeight(FontWeight.Bold)
-              .fontColor('#8CEBCC')
+              .fontColor(PencilTokens.ACCENT_SOFT)
           }
           .width('100%')
           .padding({ top: 12, bottom: 12, left: 13, right: 13 })
           .alignItems(VerticalAlign.Center)
           .backgroundColor('#151B20')
-          .border({ width: 1, color: '#14FFFFFF' })
+          .border({ width: 1, color: PencilTokens.WHITE_A08 })
           .borderRadius(15)
           .scale({ x: this.exerciseKey === exercise.name ? MotionTokens.PRESS_PRIMARY : 1, y: this.exerciseKey === exercise.name ? MotionTokens.PRESS_PRIMARY : 1 })
           .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
@@ -593,7 +594,7 @@ export struct PlanGroupDetailContent {
             .fontFamily('Noto Sans SC')
             .fontSize(15)
             .fontWeight(FontWeight.Bold)
-            .fontColor('#07100B')
+            .fontColor(PencilTokens.TEXT_ON_ACCENT)
             .letterSpacing(0.15)
         }
         .width('100%')
@@ -602,7 +603,7 @@ export struct PlanGroupDetailContent {
       .width('100%')
       .height(52)
       .padding(0)
-      .backgroundColor('#50ECA7')
+      .backgroundColor(PencilTokens.ACCENT)
       .borderRadius(16)
       .scale({ x: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1 })
       .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
@@ -620,6 +621,6 @@ export struct PlanGroupDetailContent {
     .width('100%')
     .padding({ top: 12, bottom: 20, left: 16, right: 16 })
     .backgroundColor('#EB0A0D12')
-    .border({ width: { top: 1 }, color: '#0FFFFFFF' })
+    .border({ width: { top: 1 }, color: PencilTokens.WHITE_A06 })
   }
 }
