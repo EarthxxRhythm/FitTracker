@@ -51,6 +51,8 @@
 
     <!-- 最近成就（L1421-1439） -->
     <string name="profile_achievements_title">最近成就</string>
+    <!-- 无成就数据时的空态（不再显示原型样例「连续训练 7 天」「86%」「80 kg」） -->
+    <string name="profile_achievements_empty">完成训练后，这里会显示你的成就。</string>
     <!-- 第一条（L1424-1429，`#i-flame`） -->
     <string name="profile_achievement_streak_title">稳定输出</string>
     <string name="profile_achievement_streak_note">连续训练 7 天</string>

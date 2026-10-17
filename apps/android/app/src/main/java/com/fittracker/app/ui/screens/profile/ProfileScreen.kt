@@ -50,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.fittracker.app.R
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
 import com.fittracker.app.data.service.SettingsService
@@ -61,6 +62,7 @@ import com.fittracker.app.data.service.WeekWindow
 import com.fittracker.app.data.service.currentLanguageTag
 import com.fittracker.app.data.service.WorkoutRepository
 import com.fittracker.app.data.service.WorkoutSessionService
+import com.fittracker.app.data.service.stats.PersonalRecordService
 import com.fittracker.app.ui.theme.FtColor
 import com.fittracker.app.ui.theme.FtShape
 import com.fittracker.app.ui.theme.FtType
@@ -113,6 +115,8 @@ fun ProfileScreen(
     var weekValue by remember { mutableStateOf(FtProfileModel.WEEK_VALUE) }
     var weekSessions by remember { mutableStateOf(FtProfileModel.WEEK_METRICS[0].value) }
     var streakActive by remember { mutableStateOf(FtProfileModel.STREAK_DAYS.map { it.active }) }
+    // 成就卡：由真实数据派生（连续天数 / 本周次数 / 最大重量 PR）；无数据为空列表 → 空态。
+    var achievements by remember { mutableStateOf<List<FtProfileAchievement>>(emptyList()) }
     // 连续记录 7 格标签：默认原型序（周一起始），进屏后按「周开始日」设置重排
     var streakLabels by remember { mutableStateOf(WeekWindow.dayLabels(WeekStart.MONDAY, currentLanguageTag())) }
     var weekRangeText by remember { mutableStateOf(sampleWeekRange) }
@@ -136,6 +140,18 @@ fun ProfileScreen(
             weekSessions = stats.count.toString()
             streakActive = weekActiveDays(WorkoutSessionService.trainingDates(sessions).toSet(), weekStart)
             streakLabels = WeekWindow.dayLabels(weekStart, currentLanguageTag())
+            // 成就卡派生：连续天数 + 本周次数 + 最大重量 PR（无 PR 记录时该项不出现）。
+            val trainingDates = WorkoutSessionService.trainingDates(sessions).toSet()
+            val best = PersonalRecordService.createRecordDetails(sessions).maxByOrNull { it.bestOneRepMax }
+            achievements = FtProfileModel.derivedAchievements(
+                streakDays = currentStreakDays(trainingDates),
+                weekSessions = stats.count,
+                bestExerciseName = best?.exerciseName,
+                bestWeightText = best?.let {
+                    WeightUtils.formatWeight(it.bestWeight, weightUnit) + " " + WeightUtils.unitLabel(weightUnit)
+                },
+                bestDateText = best?.bestDateText,
+            )
         }
     }
 
@@ -164,7 +180,7 @@ fun ProfileScreen(
             labels = streakLabels,
             modifier = Modifier.weight(1.9f),
         )
-        AchievementsCard(weightUnit = weightUnit, modifier = Modifier.weight(2.7f))
+        AchievementsCard(achievements = achievements, weightUnit = weightUnit, modifier = Modifier.weight(2.7f))
         Shortcuts(onNavigate = onNavigate, modifier = Modifier.weight(1f))
     }
 }
@@ -342,7 +358,6 @@ private fun WeekOverviewCard(
         ) {
             val metrics = listOf(
                 FtProfileModel.WEEK_METRICS[0].copy(value = sessions),
-                FtProfileModel.WEEK_METRICS[1],
             )
             metrics.forEach { metric ->
                 FocusMetric(metric = metric, modifier = Modifier.weight(1f)) // `.focus-meta { flex:1 1 0 }`（L345）
@@ -474,7 +489,11 @@ private fun StreakDayColumn(
 
 /** `.card` L280-285（同 [StreakCard] 的底/描边）+ `.achievements-title`（L390）`.card-title` 字号。 */
 @Composable
-private fun AchievementsCard(weightUnit: WeightUnit, modifier: Modifier = Modifier) {
+private fun AchievementsCard(
+    achievements: List<FtProfileAchievement>,
+    weightUnit: WeightUnit,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -494,7 +513,15 @@ private fun AchievementsCard(weightUnit: WeightUnit, modifier: Modifier = Modifi
             fontWeight = FontWeight.Bold,
         )
 
-        FtProfileModel.ACHIEVEMENTS.forEachIndexed { index, achievement ->
+        if (achievements.isEmpty()) {
+            Text(
+                text = stringResource(R.string.profile_achievements_empty), // 无数据空态（不再显示原型样例）
+                modifier = Modifier.padding(top = 5.dp, bottom = 5.dp),
+                style = FtType.natural(12f),
+                color = FtColor.white62,
+            )
+        }
+        achievements.forEachIndexed { index, achievement ->
             if (index > 0) {
                 // `.achievement + .achievement { border-top:1px solid var(--hairline)(L398); margin-top:2px(L399) }`
                 Box(
@@ -544,12 +571,12 @@ private fun AchievementRow(
 
         Column(modifier = Modifier.weight(1f)) { // `.ach-id { flex: 1 1 auto }`（L413）
             Text(
-                text = stringResource(achievement.titleRes),
+                text = achievement.titleText ?: stringResource(achievement.titleRes),
                 style = FtType.natural(14f, 700), // `.ach-title` 14px/700，未声明 line-height（L414）
                 color = FtColor.txtHi,
             )
             Text(
-                text = achievement.weightKgParam?.let { kg ->
+                text = achievement.noteText ?: achievement.weightKgParam?.let { kg ->
                     stringResource(
                         achievement.noteRes,
                         WeightUtils.formatWeight(kg.toDouble(), weightUnit) + " " + WeightUtils.unitLabel(weightUnit),
@@ -562,7 +589,7 @@ private fun AchievementRow(
         }
 
         Text(
-            text = stringResource(achievement.valueRes),
+            text = achievement.valueText ?: stringResource(achievement.valueRes),
             style = FtType.natural(11f), // `.ach-value` 11px，未声明 line-height（L416）
             color = if (achievement.gold) FtColor.gold else FtColor.accent, // L416 / L421
             textAlign = TextAlign.End, // `text-align: right`（L416）
@@ -634,6 +661,25 @@ private fun ShortcutButton(
         )
         ChevronIcon(modifier = Modifier.size(18.dp), color = FtColor.white62) // `.sc-chev` 18×18 white-62（L446）
     }
+}
+
+/**
+ * 本设置周（周首由 [weekStart] 决定：周一态 周一→周日 / 周日态 周日→周六）每天是否有训练——
+ * `dates` 为 `YYYY-MM-DD` 集合（口径同 [WorkoutSessionService.trainingDates]）。
+ * 返回长度 7 的布尔表，索引 0 = 周首日。
+ */
+private fun currentStreakDays(trainingDates: Set<String>): Int {
+    val formatter = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+    val calendar = java.util.Calendar.getInstance()
+    if (formatter.format(calendar.time) !in trainingDates) {
+        calendar.add(java.util.Calendar.DAY_OF_MONTH, -1)
+    }
+    var count = 0
+    while (formatter.format(calendar.time) in trainingDates) {
+        count++
+        calendar.add(java.util.Calendar.DAY_OF_MONTH, -1)
+    }
+    return count
 }
 
 /**
