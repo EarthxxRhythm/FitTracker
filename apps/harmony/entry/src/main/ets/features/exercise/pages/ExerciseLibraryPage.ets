@@ -8,6 +8,7 @@
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 import FavoriteExerciseService from '../../../common/services/FavoriteExerciseService'
+import ContentRepository, { ExerciseLibraryItem, ExerciseDetailViewModel } from '../../../shared/services/ContentRepository'
 import { window } from '@kit.ArkUI'
 
 // ---------------------------------------------------------------------------
@@ -93,31 +94,47 @@ function makeExercise(
   return item
 }
 
-const EXERCISES: ExerciseItem[] = [
-  makeExercise('push-up', '俯卧撑', '胸部', '胸大肌', '自重', '入门', '胸大肌 · 三角肌前束 · 肱三头肌', '核心收紧，身体保持一条直线，下放至胸部接近地面后推起。'),
-  makeExercise('barbell-bench-press', '杠铃卧推', '胸部', '胸大肌', '杠铃', '进阶', '胸大肌 · 三角肌前束 · 肱三头肌', '肩胛后收下沉，杠铃下放至胸部中段，推起时呼气。'),
-  makeExercise('dumbbell-fly', '哑铃飞鸟', '胸部', '胸大肌', '哑铃', '进阶', '胸大肌', '肘部保持微屈，双臂向两侧展开至胸部充分拉伸，再夹拢。'),
-  makeExercise('cable-crossover', '绳索夹胸', '胸部', '胸大肌', '器械', '进阶', '胸大肌内侧', '身体略前倾，双手向身体中线夹拢，顶峰收缩 1 秒。'),
-  makeExercise('pull-up', '引体向上', '背部', '背阔肌', '自重', '进阶', '背阔肌 · 肱二头肌', '肩胛下沉，将胸部引向横杆，避免摆动借力。'),
-  makeExercise('barbell-row', '杠铃划船', '背部', '背阔肌', '杠铃', '进阶', '背阔肌 · 斜方肌 · 菱形肌', '髋部后移、背部平直，将杠铃拉向腹部，肩胛主动后收。'),
-  makeExercise('seated-row', '坐姿划船', '背部', '菱形肌', '器械', '入门', '背阔肌 · 菱形肌', '挺胸收腹，肘部贴近身体向后拉，挤压肩胛骨。'),
-  makeExercise('lat-pulldown', '高位下拉', '背部', '背阔肌', '器械', '入门', '背阔肌', '下拉至锁骨上方，控制还原，避免耸肩和身体后仰。'),
-  makeExercise('band-pulldown', '弹力带高位下拉', '背部', '背阔肌', '弹力带', '入门', '背阔肌', '固定弹力带于高位，下拉至锁骨，控制还原。'),
-  makeExercise('overhead-press', '站姿推举', '肩部', '三角肌前束', '哑铃', '进阶', '三角肌前中束', '核心收紧，将哑铃推至头顶上方，避免腰部过度反弓。'),
-  makeExercise('lateral-raise', '侧平举', '肩部', '三角肌中束', '哑铃', '入门', '三角肌中束', '肘部微屈，抬至与肩同高即可，避免耸肩借力。'),
-  makeExercise('band-lateral-raise', '弹力带侧平举', '肩部', '三角肌中束', '弹力带', '入门', '三角肌中束', '踩住弹力带，双臂向两侧抬至与肩同高。'),
-  makeExercise('face-pull', '面拉', '肩部', '三角肌后束', '器械', '入门', '三角肌后束 · 上背', '拉向面部，肘部外展高于手腕，改善圆肩体态。'),
-  makeExercise('biceps-curl', '二头弯举', '手臂', '肱二头肌', '哑铃', '入门', '肱二头肌', '上臂贴紧身体，避免摆动借力，顶峰收缩。'),
-  makeExercise('triceps-pushdown', '绳索下压', '手臂', '肱三头肌', '器械', '入门', '肱三头肌', '肘部固定于身体两侧，下压至手臂完全伸直。'),
-  makeExercise('squat', '深蹲', '腿部', '股四头肌', '杠铃', '进阶', '股四头肌 · 臀大肌', '膝盖与脚尖同向，下蹲至大腿接近平行地面，保持躯干稳定。'),
-  makeExercise('lunge', '弓步蹲', '腿部', '股四头肌', '哑铃', '入门', '股四头肌 · 臀大肌', '前膝与脚尖同向，身体垂直下沉，后膝轻触地面。'),
-  makeExercise('leg-press', '腿举', '腿部', '股四头肌', '器械', '入门', '股四头肌 · 臀大肌', '下放至膝盖约 90 度，避免完全锁死膝关节。'),
-  makeExercise('leg-curl', '腿弯举', '腿部', '腘绳肌', '器械', '入门', '腘绳肌', '控制离心下放，顶峰收缩大腿后侧。'),
-  makeExercise('band-squat', '弹力带深蹲', '腿部', '股四头肌', '弹力带', '入门', '股四头肌 · 臀大肌', '踩住弹力带下蹲，起身时保持弹力带张力。'),
-  makeExercise('plank', '平板支撑', '核心', '腹直肌', '自重', '入门', '腹横肌 · 腹直肌', '身体保持一条直线，收紧核心与臀部，避免塌腰。'),
-  makeExercise('crunch', '卷腹', '核心', '腹直肌', '自重', '入门', '腹直肌', '下背贴地，卷起上背而非颈部，呼气时收缩腹部。'),
-  makeExercise('hanging-leg-raise', '悬垂举腿', '核心', '腹直肌', '自重', '熟练', '腹直肌 · 髂腰肌', '控制身体不摆动，抬腿至与地面平行或更高。')
-]
+/**
+ * 内容库动作 → 页面 `ExerciseItem` 的映射。
+ *
+ * 内容库的 `primaryMuscleName` 恰好与 [PART_OPTIONS] 同取值（胸部/背部/腿部/肩部/手臂/核心），
+ * 故 `part` 直接取该字段；`muscle` 同源（供肌群二级筛选，其候选由 [PART_MUSCLES] 给出）。
+ * `muscles` 与 `tip` 由详情能力补充（步骤/要点），此处用主肌群与首条要点合成展示文案。
+ */
+function toExerciseItem(item: ExerciseLibraryItem, tip: string): ExerciseItem {
+  const result: ExerciseItem = {
+    id: item.exerciseId,
+    name: item.name,
+    part: item.primaryMuscleName,
+    muscle: item.primaryMuscleName,
+    equipment: item.equipmentText,
+    level: item.difficultyText,
+    muscles: item.primaryMuscleName,
+    tip: tip
+  }
+  return result
+}
+
+/**
+ * 从内容库装配动作列表（取代此前的 23 条写死常量）。
+ *
+ * `tip` 取动作详情的首条要点（内容库的 `cues`），无详情时留空。
+ */
+function loadExercisesFromContent(): ExerciseItem[] {
+  const items: ExerciseItem[] = []
+  const libraryItems: ExerciseLibraryItem[] = ContentRepository.getExerciseLibraryItems()
+  for (let index = 0; index < libraryItems.length; index++) {
+    const libraryItem: ExerciseLibraryItem = libraryItems[index]
+    const detail: ExerciseDetailViewModel | undefined =
+      ContentRepository.getExerciseDetailViewModel(libraryItem.exerciseId)
+    let tip: string = ''
+    if (detail !== undefined && detail.cues.length > 0) {
+      tip = detail.cues[0]
+    }
+    items.push(toExerciseItem(libraryItem, tip))
+  }
+  return items
+}
 
 const PART_OPTIONS: string[] = ['全部', '胸部', '背部', '肩部', '手臂', '腿部', '核心']
 
@@ -155,6 +172,8 @@ function getMusclesForPart(part: string): string[] {
 @Component
 export struct ExerciseLibraryPage {
   @State private query: string = ''
+  /** 动作列表（由内容库装配；取代此前的 23 条写死常量）。 */
+  @State private exercises: ExerciseItem[] = []
   @State private selectedPart: string = '全部'
   @State private partExpanded: boolean = false
   @State private selectedMuscle: string = '全部肌群'
@@ -183,6 +202,8 @@ export struct ExerciseLibraryPage {
 
   aboutToAppear(): void {
     this.loadFavorites()
+    // 从内容库装配动作列表（内容库是动作数据的唯一事实源）。
+    this.exercises = loadExercisesFromContent()
     const host = this.getUIContext().getHostContext()
     if (host === undefined) {
       return
@@ -293,9 +314,9 @@ export struct ExerciseLibraryPage {
 
   private filteredExercises(): ExerciseItem[] {
     const result: ExerciseItem[] = []
-    for (let index = 0; index < EXERCISES.length; index++) {
-      if (this.matchesFilters(EXERCISES[index])) {
-        result.push(EXERCISES[index])
+    for (let index = 0; index < this.exercises.length; index++) {
+      if (this.matchesFilters(this.exercises[index])) {
+        result.push(this.exercises[index])
       }
     }
     return result
@@ -361,14 +382,27 @@ export struct ExerciseLibraryPage {
   // -------------------------------------------------------------------------
   // 弹层 / toast
   // -------------------------------------------------------------------------
-  private currentExercise(): ExerciseItem {
+  private currentExercise(): ExerciseItem | undefined {
     const selectedId: string = this.selectedId
-    for (let index = 0; index < EXERCISES.length; index++) {
-      if (EXERCISES[index].id === selectedId) {
-        return EXERCISES[index]
+    for (let index = 0; index < this.exercises.length; index++) {
+      if (this.exercises[index].id === selectedId) {
+        return this.exercises[index]
       }
     }
-    return EXERCISES[0]
+    // 内容库为空或 id 失配时返回 undefined（调用方渲染空态，不再回落写死样例行）。
+    return this.exercises.length > 0 ? this.exercises[0] : undefined
+  }
+
+  /**
+   * 供 @Builder 使用的非空便捷口：无动作时返回一个空壳（字段全空串），
+   * 使弹层在内容库为空时不崩、渲染为空白（弹层本身仅在选中动作后才可见）。
+   */
+  private sheetExercise(): ExerciseItem {
+    const exercise: ExerciseItem | undefined = this.currentExercise()
+    if (exercise !== undefined) {
+      return exercise
+    }
+    return makeExercise('', '', '', '', '', '', '', '')
   }
 
   private openSheet(id: string): void {
@@ -416,7 +450,7 @@ export struct ExerciseLibraryPage {
       return
     }
     this.ctaBusy = true
-    const name: string = this.currentExercise().name
+    const name: string = this.sheetExercise().name
     if (this.ctaTimer >= 0) {
       clearTimeout(this.ctaTimer)
     }
@@ -1004,7 +1038,7 @@ export struct ExerciseLibraryPage {
   private buildSheet() {
     Column() {
       Stack({ alignContent: Alignment.TopStart }) {
-        if (this.isGifFailed(this.currentExercise().id)) {
+        if (this.isGifFailed(this.sheetExercise().id)) {
           Column() {
             Image($rawfile('pencil-lucide-dumbbell.svg'))
               .width(36)
@@ -1017,14 +1051,14 @@ export struct ExerciseLibraryPage {
           .alignItems(HorizontalAlign.Center)
           .borderRadius(14)
         } else {
-          Image($rawfile('exercise-gifs/' + this.currentExercise().id + '.gif'))
+          Image($rawfile('exercise-gifs/' + this.sheetExercise().id + '.gif'))
             .width('100%')
             .aspectRatio(16 / 9)
             .objectFit(ImageFit.Contain)
             .borderRadius(14)
-            .alt(this.currentExercise().name + ' 动作演示')
+            .alt(this.sheetExercise().name + ' 动作演示')
             .onError(() => {
-              this.markGifFailed(this.currentExercise().id)
+              this.markGifFailed(this.sheetExercise().id)
             })
         }
 
@@ -1045,7 +1079,7 @@ export struct ExerciseLibraryPage {
       .margin({ bottom: 16 })
 
       Row({ space: 12 }) {
-        Text(this.currentExercise().name)
+        Text(this.sheetExercise().name)
           .layoutWeight(1)
           .fontSize(21)
           .fontWeight(FontWeight.Bold)
@@ -1101,14 +1135,14 @@ export struct ExerciseLibraryPage {
       .margin({ top: 12, bottom: -7 })
 
       Column() {
-        this.buildSheetRow('目标肌群', this.currentExercise().muscles)
-        this.buildSheetRow('器械', this.currentExercise().equipment)
-        this.buildSheetRow('难度', this.currentExercise().level)
+        this.buildSheetRow('目标肌群', this.sheetExercise().muscles)
+        this.buildSheetRow('器械', this.sheetExercise().equipment)
+        this.buildSheetRow('难度', this.sheetExercise().level)
       }
       .width('100%')
       .margin({ top: 6 })
 
-      Text(this.currentExercise().tip)
+      Text(this.sheetExercise().tip)
         .width('100%')
         .fontSize(13)
         .lineHeight(22)
@@ -1158,8 +1192,11 @@ export struct ExerciseLibraryPage {
   }
 
   private sheetTags(): string[] {
-    const exercise: ExerciseItem = this.currentExercise()
+    const exercise: ExerciseItem | undefined = this.currentExercise()
     const tags: string[] = []
+    if (exercise === undefined) {
+      return tags
+    }
     tags.push(exercise.part)
     tags.push(exercise.equipment)
     tags.push(exercise.level)
