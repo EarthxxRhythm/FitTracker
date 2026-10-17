@@ -39,6 +39,15 @@ export class ColorTokens {
   static readonly SUCCESS_LIGHT: string = ColorTokens.ACCENT_SOFT
   static readonly WARNING: string = ColorTokens.ACCENT_GOLD
   static readonly ERROR: string = '#D77C78'
+  /**
+   * 错误态底（退出登录按钮）：`#14D77C78` = alpha 0x14≈0.08 / 基色 ERROR。
+   * 原为 `SettingsContent.ets` 内直写，Wave 3 收编——错误态语义归 DesignTokens。
+   */
+  static readonly ERROR_A08: string = '#14D77C78'
+  /**
+   * 错误态描边（退出登录按钮）：`#4DD77C78` = alpha 0x4D≈0.30 / 基色 ERROR。
+   */
+  static readonly ERROR_A30: string = '#4DD77C78'
   static readonly INFO: string = ColorTokens.ACCENT_METAL
   static readonly NEW_RECORD: string = ColorTokens.ACCENT_GOLD
   static readonly NEW_RECORD_BG: string = 'rgba(181,152,105,0.18)'

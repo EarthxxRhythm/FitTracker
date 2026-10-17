@@ -1,5 +1,5 @@
 /** SettingsContent —— 设置二级页界面体（对应 settings.html · screen-settings，390 直绘）。 */
-import { MotionTokens } from '../../../common/styles/DesignTokens'
+import { ColorTokens, MotionTokens } from '../../../common/styles/DesignTokens'
 import { window } from '@kit.ArkUI'
 import { bundleManager } from '@kit.AbilityKit'
 import { i18n } from '@kit.LocalizationKit'
@@ -9,6 +9,7 @@ import AccountDataLifecycle, { SignOutPreview } from '../../../shared/services/A
 import SettingsService, { AppSettings, SettingsToggleKey } from '../../../common/services/SettingsService'
 import WorkoutReminderService from '../../../common/services/WorkoutReminderService'
 import AppNotificationService from '../../../common/services/AppNotificationService'
+import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 
 interface SwitchRow {
   key: string
@@ -349,7 +350,7 @@ export struct SettingsContent {
         },
         secondaryButton: {
           value: $r('app.string.settings_sign_out_confirm'),
-          fontColor: '#D77C78',
+          fontColor: ColorTokens.ERROR,
           action: () => {
             this.performSignOut()
           }
@@ -414,8 +415,8 @@ export struct SettingsContent {
           .width(44)
           .height(44)
           .borderRadius(22)
-          .backgroundColor('#0CFFFFFF')
-          .border({ width: 1, color: '#14FFFFFF' })
+          .backgroundColor(PrototypeTokens.WHITE_A05)
+          .border({ width: 1, color: PrototypeTokens.WHITE_A08 })
           .justifyContent(FlexAlign.Center)
           .scale({ x: this.backPressed ? MotionTokens.PRESS_BACK : 1, y: this.backPressed ? MotionTokens.PRESS_BACK : 1 })
           .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
@@ -433,7 +434,7 @@ export struct SettingsContent {
             .fontFamily('Noto Sans SC')
             .fontSize(18)
             .fontWeight(FontWeight.Bold)
-            .fontColor('#F7FBF8')
+            .fontColor(PrototypeTokens.TEXT_HI)
             .layoutWeight(1)
             .textAlign(TextAlign.Center)
           Row()
@@ -454,7 +455,7 @@ export struct SettingsContent {
             Text($r('app.string.settings_footer'))
               .fontFamily('Noto Sans SC')
               .fontSize(11)
-              .fontColor('#8AFFFFFF')
+              .fontColor(PrototypeTokens.WHITE_A54)
               .lineHeight(18)
               .padding({ left: 6, right: 6, top: 2 })
           }
@@ -472,13 +473,13 @@ export struct SettingsContent {
         Text(this.toastMessage)
           .fontFamily('Noto Sans SC')
           .fontSize(13)
-          .fontColor('#F7FBF8')
+          .fontColor(PrototypeTokens.TEXT_HI)
           .lineHeight(18)
           .textAlign(TextAlign.Center)
           .padding({ left: 16, right: 16, top: 10, bottom: 10 })
           .constraintSize({ maxWidth: 320 })
           .backgroundColor('#F00D1117')
-          .border({ width: 1, color: '#1AFFFFFF' })
+          .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
           .borderRadius(999)
           .margin({ bottom: 30 })
           .transition(TransitionEffect.OPACITY
@@ -488,7 +489,7 @@ export struct SettingsContent {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#0B0F13')
+    .backgroundColor(PrototypeTokens.BG_INK)
   }
 
   @Builder
@@ -500,7 +501,7 @@ export struct SettingsContent {
           Text(row.label)
             .fontFamily('Noto Sans SC')
             .fontSize(14)
-            .fontColor('#F7FBF8')
+            .fontColor(PrototypeTokens.TEXT_HI)
           Blank()
           Row({ space: 2 }) {
             ForEach(row.options, (option: Resource, optionIndex: number) => {
@@ -510,8 +511,8 @@ export struct SettingsContent {
                 .fontFamily('Noto Sans SC')
                 .fontSize(12.5)
                 .fontWeight(FontWeight.Bold)
-                .fontColor(optionIndex === row.selected ? '#07100B' : '#9EFFFFFF')
-                .backgroundColor(optionIndex === row.selected ? '#50ECA7' : Color.Transparent)
+                .fontColor(optionIndex === row.selected ? PrototypeTokens.TEXT_ON_ACCENT : PrototypeTokens.WHITE_A62)
+                .backgroundColor(optionIndex === row.selected ? PrototypeTokens.ACCENT : Color.Transparent)
                 .borderRadius(9)
                 .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: MotionTokens.EASE_MOTION })
                 .onClick(() => {
@@ -520,13 +521,13 @@ export struct SettingsContent {
             }, (option: Resource, optionIndex: number) => row.key + ':' + optionIndex.toString())
           }
           .padding(3)
-          .backgroundColor('#0FFFFFFF')
-          .border({ width: 1, color: '#1AFFFFFF' })
+          .backgroundColor(PrototypeTokens.WHITE_A06)
+          .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
           .borderRadius(12)
         }
         .width('100%')
         .padding({ top: 15, bottom: 15, left: 2, right: 2 })
-        .border({ width: { top: index === 0 ? 0 : 1 }, color: '#0FFFFFFF' })
+        .border({ width: { top: index === 0 ? 0 : 1 }, color: PrototypeTokens.WHITE_A06 })
       }, (row: SegRowDef) => row.key + ':' + row.selected.toString())
       ForEach(this.switchRows, (row: SwitchRow, index: number) => {
         if (index < 4) {
@@ -534,22 +535,22 @@ export struct SettingsContent {
             Text(row.label)
               .fontFamily('Noto Sans SC')
               .fontSize(14)
-              .fontColor('#F7FBF8')
+              .fontColor(PrototypeTokens.TEXT_HI)
             Blank()
             Row() {
               Row()
                 .width(22)
                 .height(22)
                 .borderRadius(11)
-                .backgroundColor(row.on ? '#07100B' : '#FFFFFF')
+                .backgroundColor(row.on ? PrototypeTokens.TEXT_ON_ACCENT : '#FFFFFF')
                 .translate({ x: row.on ? 18 : 0 })
                 .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: MotionTokens.EASE_MOTION })
             }
             .width(46)
             .height(28)
             .borderRadius(14)
-            .backgroundColor(row.on ? '#50ECA7' : '#1FFFFFFF')
-            .border({ width: 1, color: row.on ? '#50ECA7' : '#1AFFFFFF' })
+            .backgroundColor(row.on ? PrototypeTokens.ACCENT : '#1FFFFFFF')
+            .border({ width: 1, color: row.on ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A10 })
             .padding({ left: 1, top: 1 })
             .justifyContent(FlexAlign.Start)
             .alignItems(VerticalAlign.Top)
@@ -560,14 +561,14 @@ export struct SettingsContent {
           }
           .width('100%')
           .padding({ top: 15, bottom: 15, left: 2, right: 2 })
-          .border({ width: { top: 1 }, color: '#0FFFFFFF' })
+          .border({ width: { top: 1 }, color: PrototypeTokens.WHITE_A06 })
         }
       }, (row: SwitchRow) => row.key + (row.on ? ':1' : ':0'))
     }
     .width('100%')
     .padding({ left: 16, right: 16, top: 16, bottom: 16 })
-    .backgroundColor('#08FFFFFF')
-    .border({ width: 1, color: '#1AFFFFFF' })
+    .backgroundColor(PrototypeTokens.WHITE_A03)
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
     .borderRadius(22)
   }
 
@@ -584,22 +585,22 @@ export struct SettingsContent {
             Text(row.label)
               .fontFamily('Noto Sans SC')
               .fontSize(14)
-              .fontColor('#F7FBF8')
+              .fontColor(PrototypeTokens.TEXT_HI)
             Blank()
             Row() {
               Row()
                 .width(22)
                 .height(22)
                 .borderRadius(11)
-                .backgroundColor(row.on ? '#07100B' : '#FFFFFF')
+                .backgroundColor(row.on ? PrototypeTokens.TEXT_ON_ACCENT : '#FFFFFF')
                 .translate({ x: row.on ? 18 : 0 })
                 .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: MotionTokens.EASE_MOTION })
             }
             .width(46)
             .height(28)
             .borderRadius(14)
-            .backgroundColor(row.on ? '#50ECA7' : '#1FFFFFFF')
-            .border({ width: 1, color: row.on ? '#50ECA7' : '#1AFFFFFF' })
+            .backgroundColor(row.on ? PrototypeTokens.ACCENT : '#1FFFFFFF')
+            .border({ width: 1, color: row.on ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A10 })
             .padding({ left: 1, top: 1 })
             .justifyContent(FlexAlign.Start)
             .alignItems(VerticalAlign.Top)
@@ -610,14 +611,14 @@ export struct SettingsContent {
           }
           .width('100%')
           .padding({ top: 15, bottom: 15, left: 2, right: 2 })
-          .border({ width: { top: 1 }, color: '#0FFFFFFF' })
+          .border({ width: { top: 1 }, color: PrototypeTokens.WHITE_A06 })
         }
       }, (row: SwitchRow) => row.key + (row.on ? ':1' : ':0'))
     }
     .width('100%')
     .padding({ left: 16, right: 16, top: 16, bottom: 16 })
-    .backgroundColor('#08FFFFFF')
-    .border({ width: 1, color: '#1AFFFFFF' })
+    .backgroundColor(PrototypeTokens.WHITE_A03)
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
     .borderRadius(22)
   }
 
@@ -631,9 +632,9 @@ export struct SettingsContent {
       .fontFamily('Noto Sans SC')
       .fontSize(15)
       .fontWeight(FontWeight.Bold)
-      .fontColor('#D77C78')
-      .backgroundColor('#14D77C78')
-      .border({ width: 1, color: '#4DD77C78' })
+      .fontColor(ColorTokens.ERROR)
+      .backgroundColor(ColorTokens.ERROR_A08)
+      .border({ width: 1, color: ColorTokens.ERROR_A30 })
       .borderRadius(16)
       .enabled(!this.signingOut)
       .onClick(() => {
@@ -649,11 +650,11 @@ export struct SettingsContent {
           .fontFamily('Noto Sans SC')
           .fontSize(15)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#F7FBF8')
+          .fontColor(PrototypeTokens.TEXT_HI)
         Text($r('app.string.settings_brand'))
           .fontFamily('Noto Sans SC')
           .fontSize(11)
-          .fontColor('#9EFFFFFF')
+          .fontColor(PrototypeTokens.WHITE_A62)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -663,11 +664,11 @@ export struct SettingsContent {
         Text($r('app.string.settings_row_version'))
           .fontFamily('Noto Sans SC')
           .fontSize(14)
-          .fontColor('#F7FBF8')
+          .fontColor(PrototypeTokens.TEXT_HI)
         Text(this.versionText)
           .fontFamily('Noto Sans SC')
           .fontSize(12.5)
-          .fontColor('#8AFFFFFF')
+          .fontColor(PrototypeTokens.WHITE_A54)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -682,8 +683,8 @@ export struct SettingsContent {
     }
     .width('100%')
     .padding({ left: 16, right: 16, top: 16, bottom: 16 })
-    .backgroundColor('#08FFFFFF')
-    .border({ width: 1, color: '#1AFFFFFF' })
+    .backgroundColor(PrototypeTokens.WHITE_A03)
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
     .borderRadius(22)
   }
 
@@ -694,12 +695,12 @@ export struct SettingsContent {
         .fontFamily('Noto Sans SC')
         .fontSize(15)
         .fontWeight(FontWeight.Bold)
-        .fontColor('#F7FBF8')
+        .fontColor(PrototypeTokens.TEXT_HI)
       if (meta.length > 0) {
         Text(meta)
           .fontFamily('Noto Sans SC')
           .fontSize(11)
-          .fontColor('#9EFFFFFF')
+          .fontColor(PrototypeTokens.WHITE_A62)
       }
     }
     .width('100%')
@@ -713,13 +714,13 @@ export struct SettingsContent {
       Text(label)
         .fontFamily('Noto Sans SC')
         .fontSize(14)
-        .fontColor('#F7FBF8')
+        .fontColor(PrototypeTokens.TEXT_HI)
       Blank()
       if (value !== null) {
         Text(value)
           .fontFamily('Noto Sans SC')
           .fontSize(12.5)
-          .fontColor('#8AFFFFFF')
+          .fontColor(PrototypeTokens.WHITE_A54)
       }
       Image($rawfile('pencil-plan-nav-chevron-right.svg'))
         .width(18)
@@ -729,7 +730,7 @@ export struct SettingsContent {
     }
     .width('100%')
     .padding({ top: 15, bottom: 15, left: 2, right: 2 })
-    .border({ width: { top: first ? 0 : 1 }, color: '#0FFFFFFF' })
+    .border({ width: { top: first ? 0 : 1 }, color: PrototypeTokens.WHITE_A06 })
     .onClick(() => {
       if (onTap !== undefined) {
         onTap()

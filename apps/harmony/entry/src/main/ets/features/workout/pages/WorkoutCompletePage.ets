@@ -9,6 +9,7 @@ import WorkoutSessionPersistenceBridgeService from '../../../features/workout/se
 import WorkoutSummaryService, { WorkoutSummary } from '../../../shared/services/WorkoutSummaryService'
 import CloudSyncService from '../../../shared/services/CloudSyncService'
 import { WorkoutSession } from '../../../shared/models/TrainingModels'
+import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 
 const STREAK_DAYS: string[] = ['一', '二', '三', '四', '五', '六', '日']
 
@@ -23,26 +24,26 @@ interface ConfettiPiece {
 }
 
 const CONFETTI_PIECES: ConfettiPiece[] = [
-  { id: 'cf0', x: 24, y: 18, width: 8, height: 14, rot: 18, color: '#50ECA7' },
-  { id: 'cf1', x: 66, y: 96, width: 7, height: 12, rot: -24, color: '#8CEBCC' },
-  { id: 'cf2', x: 108, y: 42, width: 9, height: 16, rot: 33, color: '#45C9A1' },
-  { id: 'cf3', x: 152, y: 128, width: 7, height: 13, rot: -12, color: '#7EF0CB' },
-  { id: 'cf4', x: 196, y: 26, width: 8, height: 15, rot: 41, color: '#E6F3FBF7' },
-  { id: 'cf5', x: 238, y: 108, width: 9, height: 14, rot: -33, color: '#50ECA7' },
-  { id: 'cf6', x: 282, y: 34, width: 7, height: 12, rot: 15, color: '#8CEBCC' },
-  { id: 'cf7', x: 322, y: 92, width: 8, height: 15, rot: -21, color: '#45C9A1' },
-  { id: 'cf8', x: 356, y: 40, width: 8, height: 13, rot: 28, color: '#7EF0CB' },
-  { id: 'cf9', x: 42, y: 178, width: 8, height: 14, rot: -18, color: '#E6F3FBF7' },
-  { id: 'cf10', x: 92, y: 234, width: 7, height: 12, rot: 26, color: '#50ECA7' },
-  { id: 'cf11', x: 138, y: 288, width: 8, height: 14, rot: -40, color: '#8CEBCC' },
-  { id: 'cf12', x: 182, y: 186, width: 9, height: 15, rot: 12, color: '#45C9A1' },
-  { id: 'cf13', x: 226, y: 252, width: 7, height: 13, rot: -26, color: '#7EF0CB' },
-  { id: 'cf14', x: 270, y: 300, width: 8, height: 14, rot: 36, color: '#E6F3FBF7' },
-  { id: 'cf15', x: 312, y: 176, width: 8, height: 15, rot: -14, color: '#50ECA7' },
-  { id: 'cf16', x: 352, y: 226, width: 7, height: 12, rot: 22, color: '#8CEBCC' },
-  { id: 'cf17', x: 58, y: 320, width: 8, height: 14, rot: -30, color: '#45C9A1' },
-  { id: 'cf18', x: 132, y: 356, width: 7, height: 12, rot: 17, color: '#7EF0CB' },
-  { id: 'cf19', x: 214, y: 330, width: 8, height: 14, rot: -22, color: '#E6F3FBF7' }
+  { id: 'cf0', x: 24, y: 18, width: 8, height: 14, rot: 18, color: PrototypeTokens.ACCENT },
+  { id: 'cf1', x: 66, y: 96, width: 7, height: 12, rot: -24, color: PrototypeTokens.ACCENT_SOFT },
+  { id: 'cf2', x: 108, y: 42, width: 9, height: 16, rot: 33, color: PrototypeTokens.ACCENT_DEEP },
+  { id: 'cf3', x: 152, y: 128, width: 7, height: 13, rot: -12, color: PrototypeTokens.COMPLETE_CHECK },
+  { id: 'cf4', x: 196, y: 26, width: 8, height: 15, rot: 41, color: PrototypeTokens.WHITE_90_TINT },
+  { id: 'cf5', x: 238, y: 108, width: 9, height: 14, rot: -33, color: PrototypeTokens.ACCENT },
+  { id: 'cf6', x: 282, y: 34, width: 7, height: 12, rot: 15, color: PrototypeTokens.ACCENT_SOFT },
+  { id: 'cf7', x: 322, y: 92, width: 8, height: 15, rot: -21, color: PrototypeTokens.ACCENT_DEEP },
+  { id: 'cf8', x: 356, y: 40, width: 8, height: 13, rot: 28, color: PrototypeTokens.COMPLETE_CHECK },
+  { id: 'cf9', x: 42, y: 178, width: 8, height: 14, rot: -18, color: PrototypeTokens.WHITE_90_TINT },
+  { id: 'cf10', x: 92, y: 234, width: 7, height: 12, rot: 26, color: PrototypeTokens.ACCENT },
+  { id: 'cf11', x: 138, y: 288, width: 8, height: 14, rot: -40, color: PrototypeTokens.ACCENT_SOFT },
+  { id: 'cf12', x: 182, y: 186, width: 9, height: 15, rot: 12, color: PrototypeTokens.ACCENT_DEEP },
+  { id: 'cf13', x: 226, y: 252, width: 7, height: 13, rot: -26, color: PrototypeTokens.COMPLETE_CHECK },
+  { id: 'cf14', x: 270, y: 300, width: 8, height: 14, rot: 36, color: PrototypeTokens.WHITE_90_TINT },
+  { id: 'cf15', x: 312, y: 176, width: 8, height: 15, rot: -14, color: PrototypeTokens.ACCENT },
+  { id: 'cf16', x: 352, y: 226, width: 7, height: 12, rot: 22, color: PrototypeTokens.ACCENT_SOFT },
+  { id: 'cf17', x: 58, y: 320, width: 8, height: 14, rot: -30, color: PrototypeTokens.ACCENT_DEEP },
+  { id: 'cf18', x: 132, y: 356, width: 7, height: 12, rot: 17, color: PrototypeTokens.COMPLETE_CHECK },
+  { id: 'cf19', x: 214, y: 330, width: 8, height: 14, rot: -22, color: PrototypeTokens.WHITE_90_TINT }
 ]
 
 @Entry
@@ -298,8 +299,8 @@ export struct WorkoutCompletePage {
             .fontFamily('HarmonyOS Sans')
             .fontSize(16)
             .fontWeight(FontWeight.Bold)
-            .fontColor('#07100B')
-            .backgroundColor('#50ECA7')
+            .fontColor(PrototypeTokens.TEXT_ON_ACCENT)
+            .backgroundColor(PrototypeTokens.ACCENT)
             .borderRadius(18)
             .onTouch((event: TouchEvent) => {
               if (event.type === TouchType.Down) {
@@ -316,8 +317,8 @@ export struct WorkoutCompletePage {
         }
         .width('100%')
         .padding({ left: 20, right: 20, top: 12, bottom: 20 })
-        .backgroundColor('#07100F')
-        .border({ width: { top: 1 }, color: '#0FFFFFFF' })
+        .backgroundColor(PrototypeTokens.COMPLETE_BG)
+        .border({ width: { top: 1 }, color: PrototypeTokens.WHITE_A06 })
         .opacity(this.dockOpacity)
         .translate({ y: this.dockOffsetY })
       }
@@ -330,7 +331,7 @@ export struct WorkoutCompletePage {
     .width('100%')
     .height('100%')
     .clip(true)
-    .backgroundColor('#07100F')
+    .backgroundColor(PrototypeTokens.COMPLETE_BG)
   }
 
   @Builder
@@ -369,12 +370,12 @@ export struct WorkoutCompletePage {
           .fontFamily('HarmonyOS Sans')
           .fontSize(15)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#F7FBF8')
+          .fontColor(PrototypeTokens.TEXT_HI)
         Text(this.sessionRpe > 0 ? ('RPE ' + this.sessionRpe.toString() + (this.rpeSaved ? ' · 已保存' : '')) : '未评价')
           .fontFamily('HarmonyOS Sans')
           .fontSize(12)
           .fontWeight(FontWeight.Medium)
-          .fontColor('#50ECA7')
+          .fontColor(PrototypeTokens.ACCENT)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -383,7 +384,7 @@ export struct WorkoutCompletePage {
       Text('1 轻松 · 10 极限')
         .fontFamily('HarmonyOS Sans')
         .fontSize(11)
-        .fontColor('#8AFFFFFF')
+        .fontColor(PrototypeTokens.WHITE_A54)
         .width('100%')
 
       Row({ space: 4 }) {
@@ -392,13 +393,13 @@ export struct WorkoutCompletePage {
             .fontFamily('HarmonyOS Sans')
             .fontSize(13)
             .fontWeight(FontWeight.Bold)
-            .fontColor(this.sessionRpe === value ? '#07100B' : '#B3FFFFFF')
+            .fontColor(this.sessionRpe === value ? PrototypeTokens.TEXT_ON_ACCENT : PrototypeTokens.WHITE_A70)
             .textAlign(TextAlign.Center)
             .layoutWeight(1)
             .height(34)
             .borderRadius(10)
-            .backgroundColor(this.sessionRpe === value ? '#50ECA7' : '#14FFFFFF')
-            .border({ width: 1, color: this.sessionRpe === value ? '#00000000' : '#14FFFFFF' })
+            .backgroundColor(this.sessionRpe === value ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A08)
+            .border({ width: 1, color: this.sessionRpe === value ? PrototypeTokens.TRANSPARENT : PrototypeTokens.WHITE_A08 })
             .onClick(() => {
               this.selectSessionRpe(value)
             })
@@ -409,9 +410,9 @@ export struct WorkoutCompletePage {
     .width('100%')
     .padding(16)
     .margin({ top: 14 })
-    .backgroundColor('#08FFFFFF')
+    .backgroundColor(PrototypeTokens.WHITE_A03)
     .borderRadius(22)
-    .border({ width: 1, color: '#1AFFFFFF' })
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
     .opacity(this.streakOpacity)
   }
 
@@ -426,8 +427,8 @@ export struct WorkoutCompletePage {
           .width(102)
           .height(102)
           .borderRadius(51)
-          .backgroundColor('#122D28')
-          .border({ width: 1, color: '#3B50ECA7' })
+          .backgroundColor(PrototypeTokens.COMPLETE_CIRCLE)
+          .border({ width: 1, color: PrototypeTokens.ACCENT_A23 })
         Image($rawfile('pencil-complete-medal.svg'))
           .width(80)
           .height(80)
@@ -442,7 +443,7 @@ export struct WorkoutCompletePage {
         .fontSize(36)
         .lineHeight(44)
         .fontWeight(FontWeight.Bold)
-        .fontColor('#F7FBF8')
+        .fontColor(PrototypeTokens.TEXT_HI)
         .margin({ top: 26 })
         .opacity(this.titleOpacity)
         .translate({ y: this.titleOffsetY })
@@ -470,12 +471,12 @@ export struct WorkoutCompletePage {
           .fontSize(18)
           .lineHeight(21.6)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#F7FBF8')
+          .fontColor(PrototypeTokens.TEXT_HI)
         Text(this.streakCount > 0 ? '连续 ' + this.streakCount.toString() + ' 天' : '开始连续训练')
           .fontFamily('Inter')
           .fontSize(13)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#50ECA7')
+          .fontColor(PrototypeTokens.ACCENT)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -487,13 +488,13 @@ export struct WorkoutCompletePage {
             Row()
               .width(28)
               .height(28)
-              .backgroundColor(this.weekActiveFlags[index] ? '#50ECA7' : '#14FFFFFF')
+              .backgroundColor(this.weekActiveFlags[index] ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A08)
               .borderRadius(14)
             Text(day)
               .fontFamily('HarmonyOS Sans')
               .fontSize(11)
               .lineHeight(11)
-              .fontColor(this.weekActiveFlags[index] ? '#50ECA7' : '#8AFFFFFF')
+              .fontColor(this.weekActiveFlags[index] ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A54)
           }
           .layoutWeight(1)
           .alignItems(HorizontalAlign.Center)
@@ -503,9 +504,9 @@ export struct WorkoutCompletePage {
     }
     .width('100%')
     .padding(18)
-    .backgroundColor('#171C23')
+    .backgroundColor(PrototypeTokens.STREAK_BG)
     .borderRadius(28)
-    .border({ width: 1, color: '#14FFFFFF' })
+    .border({ width: 1, color: PrototypeTokens.WHITE_A08 })
     .margin({ top: 30 })
     .opacity(this.streakOpacity)
     .translate({ y: this.streakOffsetY })

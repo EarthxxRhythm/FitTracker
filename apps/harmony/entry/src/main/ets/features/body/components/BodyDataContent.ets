@@ -19,6 +19,7 @@ import BodyRecordService from '../../../shared/services/BodyRecordService'
 import BodyMeasurementService from '../../../shared/services/BodyMeasurementService'
 import { WeightRecord, BodyTrend, BodyMeasurement, MEASUREMENT_UNSET } from '../../../shared/models/BodyModels'
 import { WeekStart } from '../../../common/utils/WeekUtils'
+import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 
 interface BodyMetricTile {
   label: string
@@ -592,7 +593,7 @@ export struct BodyDataContent {
     ctx.closePath()
     ctx.fill()
 
-    ctx.strokeStyle = '#50ECA7'
+    ctx.strokeStyle = PrototypeTokens.ACCENT
     ctx.lineWidth = 2
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
@@ -608,9 +609,9 @@ export struct BodyDataContent {
       const radius: number = isLast ? 4.5 : 3
       ctx.beginPath()
       ctx.arc(this.trendX[i], pointsY[i], radius, 0, Math.PI * 2)
-      ctx.fillStyle = isLast ? '#50ECA7' : '#0B0F13'
+      ctx.fillStyle = isLast ? PrototypeTokens.ACCENT : PrototypeTokens.BG_INK
       ctx.fill()
-      ctx.strokeStyle = '#50ECA7'
+      ctx.strokeStyle = PrototypeTokens.ACCENT
       ctx.lineWidth = 1.5
       ctx.stroke()
     }
@@ -655,8 +656,8 @@ export struct BodyDataContent {
       .fontFamily('Noto Sans SC')
       .fontSize(12)
       .fontWeight(FontWeight.Bold)
-      .fontColor(this.sheetTab === key ? '#07100B' : '#9EFFFFFF')
-      .backgroundColor(this.sheetTab === key ? '#50ECA7' : Color.Transparent)
+      .fontColor(this.sheetTab === key ? PrototypeTokens.TEXT_ON_ACCENT : PrototypeTokens.WHITE_A62)
+      .backgroundColor(this.sheetTab === key ? PrototypeTokens.ACCENT : Color.Transparent)
       .borderRadius(9)
       .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: MotionTokens.EASE_MOTION })
       .onClick(() => {
@@ -670,14 +671,14 @@ export struct BodyDataContent {
       Text(label)
         .fontFamily('Noto Sans SC')
         .fontSize(13)
-        .fontColor('#B3FFFFFF')
+        .fontColor(PrototypeTokens.WHITE_A70)
       Blank()
       TextInput({ text: value, placeholder: '—' })
         .type(InputType.NUMBER_DECIMAL)
         .fontFamily('Inter')
         .fontSize(15)
-        .fontColor('#F7FBF8')
-        .placeholderColor('#52FFFFFF')
+        .fontColor(PrototypeTokens.TEXT_HI)
+        .placeholderColor(PrototypeTokens.WHITE_A32)
         .backgroundColor(Color.Transparent)
         .borderRadius(0)
         .width(96)
@@ -689,15 +690,15 @@ export struct BodyDataContent {
       Text(unit)
         .fontFamily('Inter')
         .fontSize(12)
-        .fontColor('#9EFFFFFF')
+        .fontColor(PrototypeTokens.WHITE_A62)
         .width(24)
         .textAlign(TextAlign.End)
     }
     .width('100%')
     .height(48)
     .padding({ left: 14, right: 14 })
-    .backgroundColor('#0FFFFFFF')
-    .border({ width: 1, color: '#14FFFFFF' })
+    .backgroundColor(PrototypeTokens.WHITE_A06)
+    .border({ width: 1, color: PrototypeTokens.WHITE_A08 })
     .borderRadius(14)
   }
 
@@ -709,9 +710,9 @@ export struct BodyDataContent {
       .fontFamily('Noto Sans SC')
       .fontSize(13)
       .fontWeight(FontWeight.Medium)
-      .fontColor(this.genderSelect === value ? '#07100B' : '#B3FFFFFF')
-      .backgroundColor(this.genderSelect === value ? '#50ECA7' : '#0FFFFFFF')
-      .border({ width: 1, color: this.genderSelect === value ? '#50ECA7' : '#14FFFFFF' })
+      .fontColor(this.genderSelect === value ? PrototypeTokens.TEXT_ON_ACCENT : PrototypeTokens.WHITE_A70)
+      .backgroundColor(this.genderSelect === value ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A06)
+      .border({ width: 1, color: this.genderSelect === value ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A08 })
       .borderRadius(10)
       .onClick(() => {
         this.genderSelect = value
@@ -723,7 +724,7 @@ export struct BodyDataContent {
       Column()
         .width('100%')
         .height('100%')
-        .linearGradient({ angle: 180, colors: [['#0B0F13', 0], ['#0A0D12', 1]] })
+        .linearGradient({ angle: 180, colors: [[PrototypeTokens.BG_INK, 0], [PrototypeTokens.BG_INK_1, 1]] })
 
       Column() {
         Row({ space: 10 }) {
@@ -736,8 +737,8 @@ export struct BodyDataContent {
           .width(44)
             .height(44)
             .borderRadius(22)
-            .backgroundColor('#0CFFFFFF')
-            .border({ width: 1, color: '#14FFFFFF' })
+            .backgroundColor(PrototypeTokens.WHITE_A05)
+            .border({ width: 1, color: PrototypeTokens.WHITE_A08 })
             .justifyContent(FlexAlign.Center)
             .alignItems(VerticalAlign.Center)
             .scale({ x: this.backPressed ? MotionTokens.PRESS_BACK : 1, y: this.backPressed ? MotionTokens.PRESS_BACK : 1 })
@@ -756,7 +757,7 @@ export struct BodyDataContent {
             .fontFamily('Noto Sans SC')
             .fontSize(18)
             .fontWeight(FontWeight.Bold)
-            .fontColor('#F7FBF8')
+            .fontColor(PrototypeTokens.TEXT_HI)
             .layoutWeight(1)
             .textAlign(TextAlign.Center)
           Column() {
@@ -764,12 +765,12 @@ export struct BodyDataContent {
               .fontFamily('Inter')
               .fontSize(13)
               .fontWeight(FontWeight.Medium)
-              .fontColor('#B3FFFFFF')
+              .fontColor(PrototypeTokens.WHITE_A70)
               .lineHeight(13)
             Text(this.headerMonth)
               .fontFamily('Noto Sans SC')
               .fontSize(11)
-              .fontColor('#8AFFFFFF')
+              .fontColor(PrototypeTokens.WHITE_A54)
               .lineHeight(11)
               .margin({ top: 2 })
           }
@@ -796,10 +797,10 @@ export struct BodyDataContent {
               .fontFamily('Noto Sans SC')
               .fontSize(15)
               .fontWeight(FontWeight.Bold)
-              .fontColor('#07100B')
-              .backgroundColor('#50ECA7')
+              .fontColor(PrototypeTokens.TEXT_ON_ACCENT)
+              .backgroundColor(PrototypeTokens.ACCENT)
               .borderRadius(17)
-              .shadow({ radius: 28, color: '#52000000', offsetX: 0, offsetY: 12 })
+              .shadow({ radius: 28, color: PrototypeTokens.BLACK_A32, offsetX: 0, offsetY: 12 })
               .scale({ x: this.ctaPressed ? MotionTokens.PRESS_SHORTCUT : 1, y: this.ctaPressed ? MotionTokens.PRESS_SHORTCUT : 1 })
               .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
               .onTouch((event: TouchEvent) => {
@@ -816,7 +817,7 @@ export struct BodyDataContent {
             Text('身体数据仅保存在本机；单位可在「设置」中切换为磅（lbs）。本页数值为界面示例，用于展示信息层级与交互。')
               .fontFamily('Noto Sans SC')
               .fontSize(11)
-              .fontColor('#66FFFFFF')
+              .fontColor(PrototypeTokens.WHITE_A40)
               .lineHeight(18)
               .padding({ left: 4, right: 4 })
               .width('100%')
@@ -844,19 +845,19 @@ export struct BodyDataContent {
               .width(40)
               .height(4)
               .borderRadius(999)
-              .backgroundColor('#52FFFFFF')
+              .backgroundColor(PrototypeTokens.WHITE_A32)
             Text(this.sheetTitle())
               .fontFamily('Noto Sans SC')
               .fontSize(17)
               .fontWeight(FontWeight.Bold)
-              .fontColor('#F7FBF8')
+              .fontColor(PrototypeTokens.TEXT_HI)
               .textAlign(TextAlign.Center)
               .width('100%')
               .margin({ top: 18 })
             Text(this.sheetSubtitle())
               .fontFamily('Noto Sans SC')
               .fontSize(12)
-              .fontColor('#8AFFFFFF')
+              .fontColor(PrototypeTokens.WHITE_A54)
               .textAlign(TextAlign.Center)
               .width('100%')
               .margin({ top: 5 })
@@ -876,10 +877,10 @@ export struct BodyDataContent {
                   .fontFamily('Inter')
                   .fontSize(40)
                   .fontWeight(FontWeight.Bold)
-                  .fontColor('#F7FBF8')
-                  .placeholderColor('#52FFFFFF')
-                  .backgroundColor(this.sheetHint.length > 0 ? ColorTokens.FIELD_ERROR_FILL : '#0FFFFFFF')
-                  .border({ width: 1, color: this.sheetHint.length > 0 ? ColorTokens.FIELD_ERROR_BORDER : '#14FFFFFF' })
+                  .fontColor(PrototypeTokens.TEXT_HI)
+                  .placeholderColor(PrototypeTokens.WHITE_A32)
+                  .backgroundColor(this.sheetHint.length > 0 ? ColorTokens.FIELD_ERROR_FILL : PrototypeTokens.WHITE_A06)
+                  .border({ width: 1, color: this.sheetHint.length > 0 ? ColorTokens.FIELD_ERROR_BORDER : PrototypeTokens.WHITE_A08 })
                   .borderRadius(18)
                   .width(140)
                   .padding({ left: 14, right: 14, top: 8, bottom: 8 })
@@ -894,7 +895,7 @@ export struct BodyDataContent {
                 Text(weightUnitLabel(this.displayUnit))
                   .fontFamily('Inter')
                   .fontSize(16)
-                  .fontColor('#9EFFFFFF')
+                  .fontColor(PrototypeTokens.WHITE_A62)
               }
               .width('100%')
               .justifyContent(FlexAlign.Center)
@@ -970,7 +971,7 @@ export struct BodyDataContent {
                   Text('性别')
                     .fontFamily('Noto Sans SC')
                     .fontSize(13)
-                    .fontColor('#B3FFFFFF')
+                    .fontColor(PrototypeTokens.WHITE_A70)
                   Blank()
                   Row({ space: 8 }) {
                     this.genderButton('男', 'male')
@@ -980,8 +981,8 @@ export struct BodyDataContent {
                 .width('100%')
                 .height(48)
                 .padding({ left: 14, right: 14 })
-                .backgroundColor('#0FFFFFFF')
-                .border({ width: 1, color: '#14FFFFFF' })
+                .backgroundColor(PrototypeTokens.WHITE_A06)
+                .border({ width: 1, color: PrototypeTokens.WHITE_A08 })
                 .borderRadius(14)
               }
               .width('100%')
@@ -991,7 +992,7 @@ export struct BodyDataContent {
             Text(this.sheetHint)
               .fontFamily('Noto Sans SC')
               .fontSize(11.5)
-              .fontColor(this.sheetHint.length > 0 ? ColorTokens.FIELD_ERROR_TEXT : '#50ECA7')
+              .fontColor(this.sheetHint.length > 0 ? ColorTokens.FIELD_ERROR_TEXT : PrototypeTokens.ACCENT)
               .textAlign(TextAlign.Center)
               .width('100%')
               .height(16)
@@ -1004,9 +1005,9 @@ export struct BodyDataContent {
                 .fontFamily('Noto Sans SC')
                 .fontSize(14.5)
                 .fontWeight(FontWeight.Medium)
-                .fontColor('#B3FFFFFF')
-                .backgroundColor('#0FFFFFFF')
-                .border({ width: 1, color: '#14FFFFFF' })
+                .fontColor(PrototypeTokens.WHITE_A70)
+                .backgroundColor(PrototypeTokens.WHITE_A06)
+                .border({ width: 1, color: PrototypeTokens.WHITE_A08 })
                 .borderRadius(16)
                 .onClick(() => {
                   this.closeSheet()
@@ -1018,8 +1019,8 @@ export struct BodyDataContent {
                 .fontFamily('Noto Sans SC')
                 .fontSize(14.5)
                 .fontWeight(FontWeight.Medium)
-                .fontColor('#07100B')
-                .backgroundColor('#50ECA7')
+                .fontColor(PrototypeTokens.TEXT_ON_ACCENT)
+                .backgroundColor(PrototypeTokens.ACCENT)
                 .borderRadius(16)
                 .onClick(() => {
                   if (this.sheetTab === 'weight') {
@@ -1036,20 +1037,20 @@ export struct BodyDataContent {
           }
           .width('100%')
           .padding({ left: 20, right: 20, top: 12, bottom: 30 })
-          .backgroundColor('#0A0D12')
-          .border({ width: { top: 1 }, color: '#1AFFFFFF' })
+          .backgroundColor(PrototypeTokens.BG_INK_1)
+          .border({ width: { top: 1 }, color: PrototypeTokens.WHITE_A10 })
           .borderRadius({ topLeft: 28, topRight: 28 })
-          .shadow({ radius: 60, color: '#73000000', offsetX: 0, offsetY: -24 })
+          .shadow({ radius: 60, color: PrototypeTokens.BLACK_A45, offsetX: 0, offsetY: -24 })
         }
         .width('100%')
         .height('100%')
-        .backgroundColor('#80000000')
+        .backgroundColor(PrototypeTokens.BLACK_A50)
         .transition(TransitionEffect.OPACITY.animation({ duration: MotionTokens.DURATION_OVERLAY, curve: MotionTokens.EASE_MOTION }))
       }
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#0B0F13')
+    .backgroundColor(PrototypeTokens.BG_INK)
   }
 
   @Builder
@@ -1059,11 +1060,11 @@ export struct BodyDataContent {
         Text('当前体重')
           .fontFamily('Noto Sans SC')
           .fontSize(12)
-          .fontColor('#9EFFFFFF')
+          .fontColor(PrototypeTokens.WHITE_A62)
         Text('今日 · 更新于 07:40')
           .fontFamily('Inter')
           .fontSize(11)
-          .fontColor('#8AFFFFFF')
+          .fontColor(PrototypeTokens.WHITE_A54)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -1073,14 +1074,14 @@ export struct BodyDataContent {
           .fontFamily('Inter')
           .fontSize(56)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#F7FBF8')
+          .fontColor(PrototypeTokens.TEXT_HI)
           .letterSpacing(-1.1)
           .margin({ top: 10 })
         if (this.hasWeight) {
           Text(weightUnitLabel(this.displayUnit))
             .fontFamily('Inter')
             .fontSize(16)
-            .fontColor('#9EFFFFFF')
+            .fontColor(PrototypeTokens.WHITE_A62)
             .margin({ top: 10 })
         }
       }
@@ -1095,10 +1096,10 @@ export struct BodyDataContent {
             .fontFamily('Noto Sans SC')
             .fontSize(12)
             .fontWeight(FontWeight.Medium)
-            .fontColor('#50ECA7')
+            .fontColor(PrototypeTokens.ACCENT)
         }
         .padding({ left: 11, right: 11, top: 5, bottom: 5 })
-        .backgroundColor('#1A50ECA7')
+        .backgroundColor(PrototypeTokens.ACCENT_A10)
         .borderRadius(999)
         .margin({ top: 12 })
       }
@@ -1106,19 +1107,19 @@ export struct BodyDataContent {
       Row()
         .width('100%')
         .height(1)
-        .backgroundColor('#0FFFFFFF')
+        .backgroundColor(PrototypeTokens.WHITE_A06)
         .margin({ top: 16 })
 
       Row() {
         Text('增肌目标 ' + formatWeight(74.0, this.displayUnit) + ' ' + weightUnitLabel(this.displayUnit))
           .fontFamily('Noto Sans SC')
           .fontSize(12)
-          .fontColor('#9EFFFFFF')
+          .fontColor(PrototypeTokens.WHITE_A62)
         Text('还差 ' + formatWeight(1.5, this.displayUnit) + ' ' + weightUnitLabel(this.displayUnit))
           .fontFamily('Inter')
           .fontSize(12)
           .fontWeight(FontWeight.Medium)
-          .fontColor('#F7FBF8')
+          .fontColor(PrototypeTokens.TEXT_HI)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -1128,12 +1129,12 @@ export struct BodyDataContent {
         Row()
           .width('100%')
           .height(7)
-          .backgroundColor('#14FFFFFF')
+          .backgroundColor(PrototypeTokens.WHITE_A08)
           .borderRadius(999)
         Row()
           .width('98%')
           .height(7)
-          .backgroundColor('#50ECA7')
+          .backgroundColor(PrototypeTokens.ACCENT)
           .borderRadius(999)
           .animation({ duration: MotionTokens.DURATION_PROGRESS, curve: MotionTokens.EASE_PANEL })
       }
@@ -1143,10 +1144,10 @@ export struct BodyDataContent {
     }
     .width('100%')
     .padding(18)
-    .backgroundColor('#0F50ECA7')
-    .border({ width: 1, color: '#3850ECA7' })
+    .backgroundColor(PrototypeTokens.ACCENT_A06)
+    .border({ width: 1, color: PrototypeTokens.ACCENT_A22 })
     .borderRadius(26)
-    .shadow({ radius: 40, color: '#38000000', offsetX: 0, offsetY: 20 })
+    .shadow({ radius: 40, color: PrototypeTokens.BLACK_A22, offsetX: 0, offsetY: 20 })
   }
 
   @Builder
@@ -1157,11 +1158,11 @@ export struct BodyDataContent {
           .fontFamily('Noto Sans SC')
           .fontSize(16)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#F7FBF8')
+          .fontColor(PrototypeTokens.TEXT_HI)
         Text('目标 · 增肌')
           .fontFamily('Noto Sans SC')
           .fontSize(11)
-          .fontColor('#9EFFFFFF')
+          .fontColor(PrototypeTokens.WHITE_A62)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -1172,13 +1173,13 @@ export struct BodyDataContent {
             .fontFamily('Inter')
             .fontSize(24)
             .fontWeight(FontWeight.Bold)
-            .fontColor('#50ECA7')
+            .fontColor(PrototypeTokens.ACCENT)
           if (this.bodyFatValue !== '--') {
             Text('%')
               .fontFamily('Inter')
               .fontSize(13)
               .fontWeight(FontWeight.Medium)
-              .fontColor('#9EFFFFFF')
+              .fontColor(PrototypeTokens.WHITE_A62)
           }
         }
         .alignItems(VerticalAlign.Bottom)
@@ -1186,7 +1187,7 @@ export struct BodyDataContent {
         Text(this.bodyFatNote)
           .fontFamily('Noto Sans SC')
           .fontSize(11)
-          .fontColor('#9EFFFFFF')
+          .fontColor(PrototypeTokens.WHITE_A62)
       }
       .width('100%')
       .margin({ top: 14, bottom: 8 })
@@ -1195,13 +1196,13 @@ export struct BodyDataContent {
         Row()
           .width('100%')
           .height(8)
-          .backgroundColor('#14FFFFFF')
+          .backgroundColor(PrototypeTokens.WHITE_A08)
           .borderRadius(999)
           .position({ x: 0, y: 11 })
         Row()
           .width('50%')
           .height(8)
-          .backgroundColor('#3350ECA7')
+          .backgroundColor(PrototypeTokens.ACCENT_A20)
           .borderRadius(999)
           .position({ x: 82, y: 11 })
         Row()
@@ -1209,14 +1210,14 @@ export struct BodyDataContent {
           .height(20)
           .borderRadius(10)
           .backgroundColor(Color.Transparent)
-          .border({ width: 1, color: '#8050ECA7' })
+          .border({ width: 1, color: PrototypeTokens.ACCENT_A50 })
           .position({ x: 173, y: 5 })
         Row()
           .width(18)
           .height(18)
           .borderRadius(9)
-          .backgroundColor('#50ECA7')
-          .border({ width: 3, color: '#0B0F13' })
+          .backgroundColor(PrototypeTokens.ACCENT)
+          .border({ width: 3, color: PrototypeTokens.BG_INK })
           .position({ x: 174, y: 6 })
       }
       .width('100%')
@@ -1227,15 +1228,15 @@ export struct BodyDataContent {
         Text('偏低')
           .fontFamily('Inter')
           .fontSize(10)
-          .fontColor('#66FFFFFF')
+          .fontColor(PrototypeTokens.WHITE_A40)
         Text('健康')
           .fontFamily('Inter')
           .fontSize(10)
-          .fontColor('#66FFFFFF')
+          .fontColor(PrototypeTokens.WHITE_A40)
         Text('偏高')
           .fontFamily('Inter')
           .fontSize(10)
-          .fontColor('#66FFFFFF')
+          .fontColor(PrototypeTokens.WHITE_A40)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -1248,33 +1249,33 @@ export struct BodyDataContent {
               Text(tile.label)
                 .fontFamily('Noto Sans SC')
                 .fontSize(11.5)
-                .fontColor('#9EFFFFFF')
+                .fontColor(PrototypeTokens.WHITE_A62)
               Row({ space: 3 }) {
                 Text(tile.value)
                   .fontFamily('Inter')
                   .fontSize(21)
                   .fontWeight(FontWeight.Bold)
-                  .fontColor('#F7FBF8')
+                  .fontColor(PrototypeTokens.TEXT_HI)
                 if (tile.unit.length > 0) {
                   Text(tile.unit)
                     .fontFamily('Inter')
                     .fontSize(12)
                     .fontWeight(FontWeight.Medium)
-                    .fontColor('#9EFFFFFF')
+                    .fontColor(PrototypeTokens.WHITE_A62)
                 }
               }
               .margin({ top: 7 })
               Text(tile.note)
                 .fontFamily('Noto Sans SC')
                 .fontSize(10.5)
-                .fontColor(tile.noteMuted ? '#66FFFFFF' : '#50ECA7')
+                .fontColor(tile.noteMuted ? PrototypeTokens.WHITE_A40 : PrototypeTokens.ACCENT)
                 .margin({ top: 6 })
             }
             .width('100%')
             .alignItems(HorizontalAlign.Start)
             .padding({ top: 13, bottom: 13, left: 14, right: 14 })
             .backgroundColor('#06FFFFFF')
-            .border({ width: 1, color: '#0FFFFFFF' })
+            .border({ width: 1, color: PrototypeTokens.WHITE_A06 })
             .borderRadius(16)
           }
         }, (tile: BodyMetricTile) => tile.label + tile.unit)
@@ -1287,8 +1288,8 @@ export struct BodyDataContent {
     }
     .width('100%')
     .padding(16)
-    .backgroundColor('#08FFFFFF')
-    .border({ width: 1, color: '#1AFFFFFF' })
+    .backgroundColor(PrototypeTokens.WHITE_A03)
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
     .borderRadius(22)
   }
 
@@ -1301,11 +1302,11 @@ export struct BodyDataContent {
             .fontFamily('Noto Sans SC')
             .fontSize(16)
             .fontWeight(FontWeight.Bold)
-            .fontColor('#F7FBF8')
+            .fontColor(PrototypeTokens.TEXT_HI)
           Text(this.trendCap)
             .fontFamily('Inter')
             .fontSize(11)
-            .fontColor('#8AFFFFFF')
+            .fontColor(PrototypeTokens.WHITE_A54)
             .margin({ top: 3 })
         }
         Row({ space: 2 }) {
@@ -1314,8 +1315,8 @@ export struct BodyDataContent {
           this.periodButton('年', 'year')
         }
         .padding(3)
-        .backgroundColor('#0FFFFFFF')
-        .border({ width: 1, color: '#1AFFFFFF' })
+        .backgroundColor(PrototypeTokens.WHITE_A06)
+        .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
         .borderRadius(12)
       }
       .width('100%')
@@ -1332,8 +1333,8 @@ export struct BodyDataContent {
     }
     .width('100%')
     .padding(16)
-    .backgroundColor('#08FFFFFF')
-    .border({ width: 1, color: '#1AFFFFFF' })
+    .backgroundColor(PrototypeTokens.WHITE_A03)
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
     .borderRadius(22)
   }
 
@@ -1345,8 +1346,8 @@ export struct BodyDataContent {
       .fontFamily('Noto Sans SC')
       .fontSize(12.5)
       .fontWeight(FontWeight.Bold)
-      .fontColor(this.period === key ? '#07100B' : '#9EFFFFFF')
-      .backgroundColor(this.period === key ? '#50ECA7' : Color.Transparent)
+      .fontColor(this.period === key ? PrototypeTokens.TEXT_ON_ACCENT : PrototypeTokens.WHITE_A62)
+      .backgroundColor(this.period === key ? PrototypeTokens.ACCENT : Color.Transparent)
       .borderRadius(9)
       .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: MotionTokens.EASE_MOTION })
       .onClick(() => {
@@ -1362,11 +1363,11 @@ export struct BodyDataContent {
           .fontFamily('Noto Sans SC')
           .fontSize(16)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#F7FBF8')
+          .fontColor(PrototypeTokens.TEXT_HI)
         Text('较上月')
           .fontFamily('Noto Sans SC')
           .fontSize(11)
-          .fontColor('#9EFFFFFF')
+          .fontColor(PrototypeTokens.WHITE_A62)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -1377,29 +1378,29 @@ export struct BodyDataContent {
           Text(row.label)
             .fontFamily('Noto Sans SC')
             .fontSize(13.5)
-            .fontColor('#B3FFFFFF')
+            .fontColor(PrototypeTokens.WHITE_A70)
           Blank()
           Text(row.value)
             .fontFamily('Inter')
             .fontSize(14)
             .fontWeight(FontWeight.Medium)
-            .fontColor('#F7FBF8')
+            .fontColor(PrototypeTokens.TEXT_HI)
           Text(row.delta)
             .fontFamily('Inter')
             .fontSize(11.5)
-            .fontColor(row.deltaDown ? '#8AFFFFFF' : '#50ECA7')
+            .fontColor(row.deltaDown ? PrototypeTokens.WHITE_A54 : PrototypeTokens.ACCENT)
             .width(44)
             .textAlign(TextAlign.End)
         }
         .width('100%')
         .padding({ top: 13, bottom: 13 })
-        .border({ width: { top: index === 0 ? 0 : 1 }, color: '#0FFFFFFF' })
+        .border({ width: { top: index === 0 ? 0 : 1 }, color: PrototypeTokens.WHITE_A06 })
       }, (row: MeasureRow) => row.label)
     }
     .width('100%')
     .padding(16)
-    .backgroundColor('#08FFFFFF')
-    .border({ width: 1, color: '#1AFFFFFF' })
+    .backgroundColor(PrototypeTokens.WHITE_A03)
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
     .borderRadius(22)
   }
 }

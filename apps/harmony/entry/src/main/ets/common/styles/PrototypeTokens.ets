@@ -62,6 +62,16 @@ export class PrototypeTokens {
   /** alpha 0.45 */
   static readonly ACCENT_A45: string = '#7350ECA7'
 
+  // ── 强调色 alpha 阶（补充，Wave 1 由 body/workout 实测反推）────────
+  /** alpha 0.06（原型 rgba(80,236,167,.06)） */
+  static readonly ACCENT_A06: string = '#0F50ECA7'
+  /** alpha 0.22（原型 rgba(80,236,167,.22)） */
+  static readonly ACCENT_A22: string = '#3850ECA7'
+  /** alpha 0.23（原型 `--complete-circle-border` rgba(80,236,167,.23)） */
+  static readonly ACCENT_A23: string = '#3B50ECA7'
+  /** alpha 0.50（原型 rgba(80,236,167,.50)） */
+  static readonly ACCENT_A50: string = '#8050ECA7'
+
   // ── 文本基色 ────────────────────────────────────────────────────
   /** `--txt-hi` 最高层级文本（标题、关键数值） */
   static readonly TEXT_HI: string = '#F7FBF8'
@@ -71,10 +81,28 @@ export class PrototypeTokens {
   // ── 背景 / 表面基色 ─────────────────────────────────────────────
   /** `--ink-0` 页面背景主色 */
   static readonly BG_INK: string = '#0B0F13'
+  /** `--ink-1` 页面背景次级（原型 5 屏均有，如 settings.html:15） */
+  static readonly BG_INK_1: string = '#0A0D12'
   /** `--ink-welcome-0` 欢迎页背景 */
   static readonly BG_INK_WELCOME: string = '#10171B'
   /** `--ring-inner` 进度环内圈 */
   static readonly BG_RING_INNER: string = '#0D1117'
+
+  // ── 表面 / 面底（原型 --visual-* / --stat-bg / --streak-* / --complete-*）──
+  /** `--visual-a` 视觉卡底（原型 14 屏均有） */
+  static readonly VISUAL_A: string = '#14241F'
+  /** `--stat-bg` 统计卡底 */
+  static readonly STAT_BG: string = '#14181E'
+  /** `--streak-bg` / `--streak-surface` 连续天数卡底 */
+  static readonly STREAK_BG: string = '#171C23'
+  /** `--surface-stat` 复盘统计面 */
+  static readonly SURFACE_STAT: string = '#171D24'
+  /** `--complete-bg` / `--canvas` 完成页底 */
+  static readonly COMPLETE_BG: string = '#07100F'
+  /** `--complete-circle` 完成勾选圆池底 */
+  static readonly COMPLETE_CIRCLE: string = '#122D28'
+  /** `--complete-check` 完成勾选高光（亦作 confetti c3） */
+  static readonly COMPLETE_CHECK: string = '#7EF0CB'
 
   // ── 白阶（半透明叠加层级，前缀两位为 alpha）───────────────────────
   /** alpha 0.00 */
@@ -91,24 +119,50 @@ export class PrototypeTokens {
   static readonly WHITE_A08: string = '#14FFFFFF'
   /** alpha 0.10 */
   static readonly WHITE_A10: string = '#1AFFFFFF'
+  /** alpha 0.32（原型 `--white-32` rgba(255,255,255,.32)） */
+  static readonly WHITE_A32: string = '#52FFFFFF'
   /** alpha 0.40 */
   static readonly WHITE_A40: string = '#66FFFFFF'
   /** alpha 0.48 */
   static readonly WHITE_A48: string = '#7AFFFFFF'
   /** alpha 0.54 */
   static readonly WHITE_A54: string = '#8AFFFFFF'
+  /** alpha 0.56（原型 `--white-56` rgba(255,255,255,.561)） */
+  static readonly WHITE_A56: string = '#8FFFFFFF'
   /** alpha 0.60 */
   static readonly WHITE_A60: string = '#99FFFFFF'
   /** alpha 0.62 */
   static readonly WHITE_A62: string = '#9EFFFFFF'
+  /** alpha 0.65（原型 `--white-65` rgba(255,255,255,.65)） */
+  static readonly WHITE_A65: string = '#A6FFFFFF'
   /** alpha 0.70 */
   static readonly WHITE_A70: string = '#B3FFFFFF'
   /** alpha 0.82 */
   static readonly WHITE_A82: string = '#D1FFFFFF'
+  /** alpha 0.87（原型 `--white-87` rgba(255,255,255,.87)） */
+  static readonly WHITE_A87: string = '#DEFFFFFF'
+  /**
+   * alpha 0.90，**基色为 F3FBF7（偏绿白）而非 FFFFFF**。
+   * 来源原型 `--white-90` rgba(243,251,247,.90)。
+   * 命名用 `_TINT` 后缀以区别于纯白阶族——**不可**与 `WHITE_A82`(#D1FFFFFF) 或
+   * `TEXT_HI`(#F7FBF8) 相互替代。
+   */
+  static readonly WHITE_90_TINT: string = '#E6F3FBF7'
 
-  // ── 黑阶与遮罩 ──────────────────────────────────────────────────
+  // ── 黑阶（浮动层底 / 遮罩）───────────────────────────────────────
+  /** 黑 alpha 0.22（原型 rgba(0,0,0,.22)） */
+  static readonly BLACK_A22: string = '#38000000'
   /** 黑 alpha 0.24（分隔、压暗） */
   static readonly BLACK_A24: string = '#3D000000'
+  /** 黑 alpha 0.32（原型 rgba(0,0,0,.32)，浮动按钮底） */
+  static readonly BLACK_A32: string = '#52000000'
+  /** 黑 alpha 0.40（原型 rgba(0,0,0,.40)，欢迎页遮罩） */
+  static readonly BLACK_A40: string = '#66000000'
+  /** 黑 alpha 0.45（原型 rgba(0,0,0,.45)） */
+  static readonly BLACK_A45: string = '#73000000'
+  /** 黑 alpha 0.50（原型 rgba(0,0,0,.50)） */
+  static readonly BLACK_A50: string = '#80000000'
+
   /** 深层遮罩（原型 #F50A0D12：alpha 0.96 / 基色 #0A0D12） */
   static readonly SCRIM_DEEP: string = '#F50A0D12'
   /** 遮罩（原型 #D1080D11：alpha 0.82 / 基色 #080D11） */
