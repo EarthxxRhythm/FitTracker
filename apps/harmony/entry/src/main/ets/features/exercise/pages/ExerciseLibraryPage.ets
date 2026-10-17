@@ -9,6 +9,7 @@ import { MotionTokens } from '../../../common/styles/DesignTokens'
 import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 import FavoriteExerciseService from '../../../common/services/FavoriteExerciseService'
 import ContentRepository, { ExerciseLibraryItem, ExerciseDetailViewModel } from '../../../shared/services/ContentRepository'
+import ExerciseGifCatalog from '../../../shared/services/ExerciseGifCatalog'
 import { window } from '@kit.ArkUI'
 
 // ---------------------------------------------------------------------------
@@ -56,6 +57,9 @@ class LibPalette {
 
 // HTML `.lib-fav:active` 按压缩放系数（MotionTokens 无 .9 档，页面级集中声明）。
 const PRESS_HEART_SCALE: number = 0.9
+// 实拍素材的圆角：实拍照无白底、是矩形实景，须套圆角收敛（线稿素材已烘页底色，圆角对其无感）。
+// 取既有卡面口径 14，与该页卡片/弹层既有圆角一致，不引入新视觉值。
+const LIB_MEDIA_RADIUS: number = 14
 
 // ---------------------------------------------------------------------------
 // 数据模型与动作库常量
@@ -859,14 +863,31 @@ export struct ExerciseLibraryPage {
           .alignItems(HorizontalAlign.Center)
           .backgroundColor(LibPalette.MEDIA_BG)
         } else {
-          Image($rawfile('exercise-gifs/' + item.id + '.gif'))
-            .width('100%')
-            .aspectRatio(4 / 3)
-            .objectFit(ImageFit.Cover)
-            .alt(item.name + ' 动作演示')
-            .onError(() => {
-              this.markGifFailed(item.id)
-            })
+          // 素材路径经 ExerciseGifCatalog 解析：动作库已改读内容库，item.id 是内容库 id
+          // （ex_barbell_bench_press），而素材文件名是 kebab（barbell-bench-press），
+          // 直接拼接会全部落空（实测命中 0/102）。解析器内部做 id 归一化与两套目录的分派。
+          // 实拍素材无白底，是矩形实景，须套圆角卡片收敛；线稿素材已烘页底色，圆角对其无感。
+          if (ExerciseGifCatalog.usesPhotoStyleByExerciseId(item.id)) {
+            Image($rawfile(ExerciseGifCatalog.resolveDemoSourceByExerciseId(item.id)))
+              .width('100%')
+              .aspectRatio(4 / 3)
+              .objectFit(ImageFit.Cover)
+              .borderRadius(LIB_MEDIA_RADIUS)
+              .clip(true)
+              .alt(item.name + ' 动作演示')
+              .onError(() => {
+                this.markGifFailed(item.id)
+              })
+          } else {
+            Image($rawfile(ExerciseGifCatalog.resolveDemoSourceByExerciseId(item.id)))
+              .width('100%')
+              .aspectRatio(4 / 3)
+              .objectFit(ImageFit.Cover)
+              .alt(item.name + ' 动作演示')
+              .onError(() => {
+                this.markGifFailed(item.id)
+              })
+          }
         }
 
         Column() {
@@ -1051,7 +1072,9 @@ export struct ExerciseLibraryPage {
           .alignItems(HorizontalAlign.Center)
           .borderRadius(14)
         } else {
-          Image($rawfile('exercise-gifs/' + this.sheetExercise().id + '.gif'))
+          // 与网格卡片同源：路径经 ExerciseGifCatalog 解析（内容库 id -> kebab 素材名），
+          // 实拍素材套圆角收敛。此处容器已是 16:9 圆角，故实拍分支沿用同一圆角值。
+          Image($rawfile(ExerciseGifCatalog.resolveDemoSourceByExerciseId(this.sheetExercise().id)))
             .width('100%')
             .aspectRatio(16 / 9)
             .objectFit(ImageFit.Contain)

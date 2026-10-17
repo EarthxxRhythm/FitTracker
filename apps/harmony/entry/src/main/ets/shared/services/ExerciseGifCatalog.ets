@@ -18,6 +18,28 @@ export const DEFAULT_EXERCISE_GIF_ID: string = 'barbell-bench-press'
 export const DEMO_GIF_DIRECTORY: string = 'exercise-gifs-onpage/'
 const GIF_SUFFIX: string = '.gif'
 
+/**
+ * 实拍风格素材目录（free-exercise-db 实拍照合成，供线稿素材未覆盖的动作使用）。
+ *
+ * 与线稿素材的差异是**刻意的**：线稿素材把页底色烘进了图里（无缝），实拍照是全彩
+ * 矩形实景、无白底，故由消费端的圆角卡片容器承载。详见
+ * tools/content/build-exercise-gifs-photo.mjs 的文档头与 tools/content/exercise-photo-sources.json。
+ */
+export const PHOTO_GIF_DIRECTORY: string = 'exercise-gifs-photo/'
+
+/** 内容库 exerciseId（ex_barbell_bench_press）-> kebab GIF 名（barbell-bench-press）。 */
+export function gifIdOfExerciseId(exerciseId: string): string {
+  const trimmed: string = exerciseId.trim()
+  if (trimmed.length === 0) {
+    return DEFAULT_EXERCISE_GIF_ID
+  }
+  let body: string = trimmed
+  if (body.indexOf('ex_') === 0) {
+    body = body.substring(3)
+  }
+  return body.replace(/_/g, '-')
+}
+
 interface ExerciseGifGroup {
   gifId: string
   names: string[]
@@ -118,6 +140,256 @@ const EXERCISE_GIF_GROUPS: ExerciseGifGroup[] = [
   }
 ]
 
+
+/**
+ * 实拍风格素材组（free-exercise-db 实拍照合成，见 tools/content/build-exercise-gifs-photo.mjs）。
+ *
+ * 与上方 EXERCISE_GIF_GROUPS（自制线稿）的分工：
+ * - 线稿组先于本组解析，因此已被线稿覆盖的名字（如「杠铃划船」「腿弯举」）仍走既有素材，
+ *   既有视觉主线零回归；本组只为线稿未覆盖的动作提供演示素材。
+ * - 两组目录不同，由 resolveDemoSource 按命中组决定，故本组必须独立遍历。
+ *
+ * 数据来源：tools/content/exercise-photo-sources.json（人工逐条核对，59 条）。
+ */
+const EXERCISE_PHOTO_GIF_GROUPS: ExerciseGifGroup[] = [
+  {
+    gifId: 'dead-bug',
+    names: ['死虫式', 'dead bug']
+  },
+  {
+    gifId: 'romanian-deadlift',
+    names: ['罗马尼亚硬拉', 'rdl']
+  },
+  {
+    gifId: 'pallof-press',
+    names: ['帕洛夫抗旋推', 'pallof']
+  },
+  {
+    gifId: 'dumbbell-pullover',
+    names: ['哑铃上拉', 'pullover']
+  },
+  {
+    gifId: 'single-leg-romanian-deadlift',
+    names: ['单腿罗马尼亚硬拉', 'single leg rdl']
+  },
+  {
+    gifId: 'assisted-dip',
+    names: ['辅助双杠臂屈伸', 'assisted dip']
+  },
+  {
+    gifId: 'farmers-carry',
+    names: ['农夫走', 'farmer carry']
+  },
+  {
+    gifId: 'mountain-climber',
+    names: ['登山者', 'mountain climber']
+  },
+  {
+    gifId: 'kettlebell-swing-placeholder',
+    names: ['髋铰链摆动', 'swing pattern']
+  },
+  {
+    gifId: 'bodyweight-glute-bridge',
+    names: ['臀桥', 'glute bridge']
+  },
+  {
+    gifId: 'barbell-incline-bench-press',
+    names: ['上斜杠铃卧推', '上斜卧推', 'incline bench press']
+  },
+  {
+    gifId: 'decline-barbell-bench-press',
+    names: ['下斜杠铃卧推', '下斜卧推', 'decline bench press']
+  },
+  {
+    gifId: 'decline-dumbbell-bench-press',
+    names: ['下斜哑铃卧推', '下斜哑铃推胸', 'decline dumbbell press']
+  },
+  {
+    gifId: 'incline-dumbbell-flyes',
+    names: ['上斜哑铃飞鸟', '上斜飞鸟', 'incline dumbbell fly']
+  },
+  {
+    gifId: 'machine-chest-fly',
+    names: ['蝴蝶机夹胸', '蝴蝶机', 'butterfly', 'pec deck']
+  },
+  {
+    gifId: 'cable-crossover',
+    names: ['龙门架交叉夹胸', '龙门架夹胸', 'cable crossover']
+  },
+  {
+    gifId: 'wide-push-up',
+    names: ['宽距俯卧撑', '宽距俯卧撑', 'wide push up']
+  },
+  {
+    gifId: 'incline-push-up',
+    names: ['上斜俯卧撑', '高位俯卧撑', 'incline push up']
+  },
+  {
+    gifId: 'chin-up',
+    names: ['反握引体向上', '反握引体', 'chin up']
+  },
+  {
+    gifId: 'barbell-deadlift',
+    names: ['杠铃硬拉', '硬拉', 'deadlift']
+  },
+  {
+    gifId: 'bent-over-barbell-row',
+    names: ['俯身杠铃划船', '杠铃划船', 'barbell row']
+  },
+  {
+    gifId: 'close-grip-lat-pulldown',
+    names: ['窄距高位下拉', '窄距下拉', 'close grip pulldown']
+  },
+  {
+    gifId: 'dumbbell-shrug',
+    names: ['哑铃耸肩', '耸肩', 'dumbbell shrug']
+  },
+  {
+    gifId: 'barbell-shrug',
+    names: ['杠铃耸肩', '杠铃耸肩', 'barbell shrug']
+  },
+  {
+    gifId: 'rack-pull',
+    names: ['架上硬拉', '架上拉', 'rack pull']
+  },
+  {
+    gifId: 'straight-arm-pulldown',
+    names: ['直臂下压', '直臂下拉', 'straight arm pulldown']
+  },
+  {
+    gifId: 'standing-dumbbell-upright-row',
+    names: ['站姿哑铃直立划船', '哑铃直立划船', 'dumbbell upright row']
+  },
+  {
+    gifId: 'one-arm-kettlebell-row',
+    names: ['单臂壶铃划船', '壶铃划船', 'kettlebell row']
+  },
+  {
+    gifId: 'barbell-full-squat',
+    names: ['杠铃全蹲', '全蹲', 'full squat']
+  },
+  {
+    gifId: 'barbell-lunge',
+    names: ['杠铃箭步蹲', '杠铃弓步', 'barbell lunge']
+  },
+  {
+    gifId: 'dumbbell-lunges',
+    names: ['哑铃箭步蹲', '哑铃弓步', 'dumbbell lunge']
+  },
+  {
+    gifId: 'leg-extensions',
+    names: ['坐姿腿屈伸', '腿屈伸', 'leg extension']
+  },
+  {
+    gifId: 'lying-leg-curls',
+    names: ['俯卧腿弯举', '腿弯举', 'lying leg curl']
+  },
+  {
+    gifId: 'seated-calf-raise',
+    names: ['坐姿提踵', '坐姿提踵', 'seated calf raise']
+  },
+  {
+    gifId: 'standing-calf-raises',
+    names: ['站姿提踵', '站姿提踵', 'standing calf raise']
+  },
+  {
+    gifId: 'deficit-romanian-deadlift',
+    names: ['垫高罗马尼亚硬拉', '垫高 RDL', 'deficit RDL']
+  },
+  {
+    gifId: 'dumbbell-step-ups',
+    names: ['哑铃登阶', '登阶', 'step up']
+  },
+  {
+    gifId: 'smith-machine-squat',
+    names: ['史密斯机深蹲', '史密斯深蹲', 'smith squat']
+  },
+  {
+    gifId: 'barbell-hip-thrust',
+    names: ['杠铃臀推', '臀推', 'hip thrust']
+  },
+  {
+    gifId: 'seated-barbell-shoulder-press',
+    names: ['坐姿杠铃肩推', '坐姿推举', 'seated shoulder press']
+  },
+  {
+    gifId: 'front-dumbbell-raise',
+    names: ['哑铃前平举', '前平举', 'front raise']
+  },
+  {
+    gifId: 'reverse-flyes',
+    names: ['俯卧上斜哑铃飞鸟', '后束飞鸟', 'reverse fly']
+  },
+  {
+    gifId: 'arnold-dumbbell-press',
+    names: ['阿诺德推举', '阿诺德推', 'arnold press']
+  },
+  {
+    gifId: 'upright-barbell-row',
+    names: ['杠铃直立划船', '直立划船', 'upright row']
+  },
+  {
+    gifId: 'seated-rear-delt-raise',
+    names: ['坐姿俯身后束飞鸟', '坐姿后束飞鸟', 'rear delt raise']
+  },
+  {
+    gifId: 'cable-shoulder-press',
+    names: ['绳索肩推', '龙门架肩推', 'cable shoulder press']
+  },
+  {
+    gifId: 'alternate-hammer-curl',
+    names: ['交替锤式弯举', '锤式弯举', 'hammer curl']
+  },
+  {
+    gifId: 'preacher-curl',
+    names: ['牧师凳弯举', '牧师凳弯举', 'preacher curl']
+  },
+  {
+    gifId: 'concentration-curls',
+    names: ['集中弯举', '集中弯举', 'concentration curl']
+  },
+  {
+    gifId: 'close-grip-barbell-bench-press',
+    names: ['窄距杠铃卧推', '窄距卧推', 'close grip bench press']
+  },
+  {
+    gifId: 'triceps-dip',
+    names: ['双杠臂屈伸（三头）', '双杠臂屈伸', 'triceps dip']
+  },
+  {
+    gifId: 'standing-dumbbell-triceps-extension',
+    names: ['站姿哑铃臂屈伸', '哑铃颈后臂屈伸', 'overhead triceps extension']
+  },
+  {
+    gifId: 'bench-dips',
+    names: ['凳上臂屈伸', '凳上臂屈伸', 'bench dip']
+  },
+  {
+    gifId: 'lying-triceps-press',
+    names: ['仰卧杠铃臂屈伸', '仰卧臂屈伸', 'lying triceps extension', '碎颅式']
+  },
+  {
+    gifId: 'three-quarter-sit-up',
+    names: ['四分之三卷腹', '3/4 卷腹', 'three quarter sit up']
+  },
+  {
+    gifId: 'russian-twist',
+    names: ['俄罗斯转体', '俄罗斯转体', 'russian twist']
+  },
+  {
+    gifId: 'cable-crunch',
+    names: ['绳索卷腹', '绳索卷腹', 'cable crunch']
+  },
+  {
+    gifId: 'alternating-kettlebell-press',
+    names: ['壶铃交替推举', '壶铃交替推举', 'kettlebell press']
+  },
+  {
+    gifId: 'flutter-kicks',
+    names: ['俯卧剪刀腿', '剪刀腿', 'flutter kicks']
+  }
+]
+
 class ExerciseGifCatalogImpl {
   /** 动作中文名 -> GIF 文件名；未命中回退默认演示动作。 */
   resolveGifId(exerciseName: string): string {
@@ -125,25 +397,100 @@ class ExerciseGifCatalogImpl {
     if (name.length === 0) {
       return DEFAULT_EXERCISE_GIF_ID
     }
-    for (let groupIndex = 0; groupIndex < EXERCISE_GIF_GROUPS.length; groupIndex++) {
-      const group: ExerciseGifGroup = EXERCISE_GIF_GROUPS[groupIndex]
+    const lineArtId: string = this.findInGroups(EXERCISE_GIF_GROUPS, name)
+    if (lineArtId.length > 0) {
+      return lineArtId
+    }
+    const photoId: string = this.findInGroups(EXERCISE_PHOTO_GIF_GROUPS, name)
+    if (photoId.length > 0) {
+      return photoId
+    }
+    return DEFAULT_EXERCISE_GIF_ID
+  }
+
+  /** 在给定分组里按中文名精确查找；未命中返回空串。 */
+  private findInGroups(groups: ExerciseGifGroup[], name: string): string {
+    for (let groupIndex = 0; groupIndex < groups.length; groupIndex++) {
+      const group: ExerciseGifGroup = groups[groupIndex]
       for (let nameIndex = 0; nameIndex < group.names.length; nameIndex++) {
         if (group.names[nameIndex] === name) {
           return group.gifId
         }
       }
     }
-    return DEFAULT_EXERCISE_GIF_ID
+    return ''
   }
 
-  /** 动作中文名 -> 训练执行页用的深色素材路径，可直接交给 $rawfile。 */
+  /** 动作中文名 -> 训练执行页用的素材路径，可直接交给 $rawfile。 */
   resolveDemoSource(exerciseName: string): string {
-    return this.demoSourceOfGifId(this.resolveGifId(exerciseName))
+    const name: string = exerciseName.trim()
+    if (name.length > 0) {
+      const lineArtId: string = this.findInGroups(EXERCISE_GIF_GROUPS, name)
+      if (lineArtId.length > 0) {
+        return DEMO_GIF_DIRECTORY + lineArtId + GIF_SUFFIX
+      }
+      const photoId: string = this.findInGroups(EXERCISE_PHOTO_GIF_GROUPS, name)
+      if (photoId.length > 0) {
+        return PHOTO_GIF_DIRECTORY + photoId + GIF_SUFFIX
+      }
+    }
+    return DEMO_GIF_DIRECTORY + DEFAULT_EXERCISE_GIF_ID + GIF_SUFFIX
+  }
+
+  /** 动作中文名是否命中实拍风格素材（消费端据此决定是否套圆角卡片）。 */
+  usesPhotoStyle(exerciseName: string): boolean {
+    const name: string = exerciseName.trim()
+    if (name.length === 0) {
+      return false
+    }
+    if (this.findInGroups(EXERCISE_GIF_GROUPS, name).length > 0) {
+      return false
+    }
+    return this.findInGroups(EXERCISE_PHOTO_GIF_GROUPS, name).length > 0
   }
 
   /** GIF 文件名 -> 深色素材路径。 */
   demoSourceOfGifId(gifId: string): string {
     return DEMO_GIF_DIRECTORY + gifId + GIF_SUFFIX
+  }
+
+  /**
+   * 内容库 exerciseId（ex_barbell_bench_press）-> 素材路径，可直接交给 $rawfile。
+   *
+   * 动作库页拿到的是内容库 id 而非中文名，故单独给出按 id 的入口：先在线稿组里找，
+   * 再在实拍组里找，都未命中才回退默认演示动作。id 由 gifIdOfExerciseId 归一化
+   * （去 ex_ 前缀、下划线转连字符），与两组表的 gifId 命名一致。
+   */
+  resolveDemoSourceByExerciseId(exerciseId: string): string {
+    const gifId: string = gifIdOfExerciseId(exerciseId)
+    if (this.hasGifId(EXERCISE_GIF_GROUPS, gifId)) {
+      return DEMO_GIF_DIRECTORY + gifId + GIF_SUFFIX
+    }
+    if (this.hasGifId(EXERCISE_PHOTO_GIF_GROUPS, gifId)) {
+      return PHOTO_GIF_DIRECTORY + gifId + GIF_SUFFIX
+    }
+    return DEMO_GIF_DIRECTORY + DEFAULT_EXERCISE_GIF_ID + GIF_SUFFIX
+  }
+
+  /** 按 exerciseId 判断是否命中实拍风格素材（消费端据此决定容器形态）。 */
+  usesPhotoStyleByExerciseId(exerciseId: string): boolean {
+    const gifId: string = gifIdOfExerciseId(exerciseId)
+    if (this.hasGifId(EXERCISE_GIF_GROUPS, gifId)) {
+      return false
+    }
+    return this.hasGifId(EXERCISE_PHOTO_GIF_GROUPS, gifId)
+  }
+
+  private hasGifId(groups: ExerciseGifGroup[], gifId: string): boolean {
+    if (gifId.length === 0) {
+      return false
+    }
+    for (let index = 0; index < groups.length; index++) {
+      if (groups[index].gifId === gifId) {
+        return true
+      }
+    }
+    return false
   }
 }
 
