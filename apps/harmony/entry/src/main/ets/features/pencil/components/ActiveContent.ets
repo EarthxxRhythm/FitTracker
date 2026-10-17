@@ -2,7 +2,7 @@
 import { AppRoutes } from '../../../app/AppRoutes'
 import { window } from '@kit.ArkUI'
 import { MotionTokens } from '../../../common/styles/DesignTokens'
-import { WorkoutSession, WorkoutSet, createWorkoutSession, createWorkoutSet } from '../../../shared/models/TrainingModels'
+import { WorkoutSession } from '../../../shared/models/TrainingModels'
 import WorkoutRepository from '../../../shared/services/WorkoutRepository'
 import ExerciseGifCatalog from '../../../shared/services/ExerciseGifCatalog'
 import ActiveWorkoutService, {
@@ -58,8 +58,6 @@ const DEMO_CARD_HEIGHT: number = 280
 // 演示图自身尺寸，与容器高度解耦——容器加高时图不跟着放大（素材仅 180×180，
 // 放大会变糊）。图在容器内居中。
 const DEMO_MEDIA_SIZE: number = 230
-// 无训练数据时角标回落到原型示例值，保持空态观感。
-const DEMO_CARD_BADGE_FALLBACK: string = '1 / 4'
 
 interface CelebratePiece {
   id: string
@@ -122,6 +120,18 @@ export struct ActiveContent {
   private win: window.Window | null = null
   private keepScreenOnApplied: boolean = false
   private soundEnabled: boolean = true
+  /** 进入训练时解析出的完整训练状态（含真实 planId / dayId / 各动作 exerciseId）。 */
+  private activeState: ActiveWorkoutState = {
+    hasWorkout: false,
+    planId: '',
+    dayId: '',
+    title: '',
+    totalTargetSets: 0,
+    completedSets: 0,
+    currentExerciseName: '',
+    currentExerciseSetProgress: '0/0 正式组',
+    exercises: []
+  }
   /** 展示单位（来自「设置 · 体重单位」）；重量基准值始终为 kg，仅输入与展示按单位换算。 */
   @State private displayUnit: WeightUnit = 'kg'
 
@@ -238,6 +248,9 @@ export struct ActiveContent {
     } catch (e) {
       state = this.createEmptyActiveState()
     }
+    // 留存完整 state：保存会话时需回读真实 planId / dayId / 各动作 exerciseId
+    //（此前的写死值 'active_plan' / 'active_day' / 'bench_press' 即源于此处丢失）。
+    this.activeState = state
     this.exerciseName = state.currentExerciseName
     this.exerciseGifSource = ExerciseGifCatalog.resolveDemoSource(state.currentExerciseName)
     this.exerciseTotal = state.exercises.length
@@ -311,10 +324,10 @@ export struct ActiveContent {
     return state.exercises.length
   }
 
-  /** 角标「当前动作 / 动作总数」；无数据时回落原型示例值。 */
+  /** 角标「当前动作 / 动作总数」；无训练数据时返回空串（不再回落原型示例值）。 */
   private exerciseBadgeText(): string {
     if (this.exerciseTotal <= 0) {
-      return DEMO_CARD_BADGE_FALLBACK
+      return ''
     }
     return this.exerciseIndex.toString() + ' / ' + this.exerciseTotal.toString()
   }
@@ -389,38 +402,44 @@ export struct ActiveContent {
     }, isLast ? 900 : 1400)
   }
 
+  /**
+   * 保存本次训练会话。
+   *
+   * 走 [ActiveWorkoutService.createCompletedSession] 构建——planId / dayId 取自进入训练时解析的
+   * 真实计划上下文，动作 id 取自各动作的真实 exerciseId（此前写死 'active_plan'/'active_day'/
+   * 'bench_press'，会让复盘与 PR 统计失去真实归属）。
+   *
+   * 用户的组记录（weight / reps）写回 state 对应动作的组条目后再构建，保证落库的组数据是实测值。
+   */
   private saveCompletedSession(): void {
-    const sets: WorkoutSet[] = []
-    let totalVolume: number = 0
-    for (let index = 0; index < this.records.length; index++) {
-      const record: SetRecordItem = this.records[index]
-      const set: WorkoutSet = createWorkoutSet(
-        'set_' + record.index.toString(),
-        'bench_press',
-        record.weight,
-        record.reps,
-        0,
-        false
-      )
-      sets.push(set)
-      totalVolume += record.weight * record.reps
-    }
     const endedAt: number = Date.now()
-    const startedAt: number = endedAt - 60000
-    const session: WorkoutSession = createWorkoutSession(
+    const startedAt: number = endedAt - this.elapsedSeconds * 1000
+    this.applyRecordsToState()
+    const session: WorkoutSession = ActiveWorkoutService.createCompletedSession(
       'session_' + endedAt.toString(),
-      'active_plan',
-      'active_day',
+      this.activeState,
       startedAt,
       endedAt,
-      60,
-      sets.length,
-      Math.round(totalVolume * 100) / 100,
-      0,
-      'completed_sets=' + sets.length.toString() + ';target_sets=' + PROGRESS_SEGMENTS.length.toString(),
-      sets
+      this.completed
     )
     WorkoutRepository.saveSession(session)
+  }
+
+  /** 把界面记录的实际重量/次数写回 state 的组条目（按记录顺序对齐「正式组」）。 */
+  private applyRecordsToState(): void {
+    let flatIndex: number = 0
+    for (let exerciseIndex = 0; exerciseIndex < this.activeState.exercises.length; exerciseIndex++) {
+      const exercise: ActiveWorkoutExercise = this.activeState.exercises[exerciseIndex]
+      for (let setIndex = 0; setIndex < exercise.sets.length; setIndex++) {
+        if (flatIndex >= this.records.length) {
+          return
+        }
+        const record: SetRecordItem = this.records[flatIndex]
+        exercise.sets[setIndex].weightText = record.weight.toString()
+        exercise.sets[setIndex].repsText = record.reps.toString()
+        flatIndex++
+      }
+    }
   }
 
   // 分段进度条：已完成段采用「圆点」的样式——实心 accent + ink-0 粗描边环（形状仍是胶囊），
