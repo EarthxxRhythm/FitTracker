@@ -11,7 +11,7 @@ import { resolveWeekStart, WeekStart } from '../../../common/utils/WeekUtils'
 import { computeStreakCount, computeWeekActiveFlagsFrom } from '../../../common/utils/StreakUtils'
 import GoalRepository from '../../../shared/services/GoalRepository'
 import { UserGoal } from '../../../shared/models/TrainingModels'
-import { PencilTokens } from '../PencilTokens'
+import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 
 /** 一条最近成就的展示数据（`note` 已按当前单位换算）。 */
 interface AchievementRow {
@@ -201,7 +201,7 @@ export struct ProfileContent {
     .width('100%')
     .height('100%')
     .padding({ left: 16, right: 16, top: Math.max(53 - this.topInsetVp, 0), bottom: 30 })
-    .backgroundColor(PencilTokens.BG_INK)
+    .backgroundColor(PrototypeTokens.BG_INK)
   }
 
   @Builder
@@ -212,13 +212,13 @@ export struct ProfileContent {
           .width(52)
           .height(52)
           .borderRadius(26)
-          .backgroundColor(PencilTokens.ACCENT_A10)
-          .border({ width: 1, color: PencilTokens.ACCENT_A30 })
+          .backgroundColor(PrototypeTokens.ACCENT_A10)
+          .border({ width: 1, color: PrototypeTokens.ACCENT_A30 })
         Text(this.avatarLetter)
           .fontFamily('Inter')
           .fontSize(22)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.ACCENT)
+          .fontColor(PrototypeTokens.ACCENT)
       }
       .width(52)
       .height(52)
@@ -227,14 +227,14 @@ export struct ProfileContent {
           .fontFamily('Inter')
           .fontSize(21)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.TEXT_HI)
+          .fontColor(PrototypeTokens.TEXT_HI)
           .lineHeight(25.2)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
         Text(this.goalSubtitle)
           .fontFamily('Inter')
           .fontSize(12.5)
-          .fontColor(PencilTokens.WHITE_A62)
+          .fontColor(PrototypeTokens.WHITE_A62)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
       }
@@ -245,8 +245,8 @@ export struct ProfileContent {
           .width(44)
           .height(44)
           .borderRadius(22)
-          .backgroundColor(PencilTokens.WHITE_A05)
-          .border({ width: 1, color: PencilTokens.WHITE_A08 })
+          .backgroundColor(PrototypeTokens.WHITE_A05)
+          .border({ width: 1, color: PrototypeTokens.WHITE_A08 })
         Image($rawfile('pencil-lucide-settings-2.svg'))
           .width(20)
           .height(20)
@@ -279,12 +279,12 @@ export struct ProfileContent {
           .fontFamily('Inter')
           .fontSize(17)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.TEXT_HI)
+          .fontColor(PrototypeTokens.TEXT_HI)
           .lineHeight(20.4)
         Text(this.weekRangeText)
           .fontFamily('Inter')
           .fontSize(11)
-          .fontColor(PencilTokens.WHITE_A62)
+          .fontColor(PrototypeTokens.WHITE_A62)
           .lineHeight(16)
       }
       .width('100%')
@@ -297,13 +297,13 @@ export struct ProfileContent {
           .fontFamily('Inter')
           .fontSize(48)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.ACCENT)
+          .fontColor(PrototypeTokens.ACCENT)
           .letterSpacing(-0.96)
           .lineHeight(48)
         Text('\u5206\u949f')
           .fontFamily('Inter')
           .fontSize(16)
-          .fontColor(PencilTokens.WHITE_A62)
+          .fontColor(PrototypeTokens.WHITE_A62)
       }
       .width('100%')
       .alignItems(VerticalAlign.Bottom)
@@ -312,14 +312,14 @@ export struct ProfileContent {
       Text('\u672c\u5468\u8bad\u7ec3\u65f6\u957f')
         .fontFamily('Inter')
         .fontSize(12)
-        .fontColor(PencilTokens.WHITE_A54)
+        .fontColor(PrototypeTokens.WHITE_A54)
         .lineHeight(17)
         .margin({ top: 8 })
 
       Row()
         .width('100%')
         .height(1)
-        .backgroundColor(PencilTokens.WHITE_A06)
+        .backgroundColor(PrototypeTokens.WHITE_A06)
         .margin({ top: 15, bottom: 13 })
 
       Row({ space: 12 }) {
@@ -334,9 +334,9 @@ export struct ProfileContent {
     // .card.focus 统一成同一卡面：底色 rgba(255,255,255,.031)=#08FFFFFF、描边 var(--line-10)
     // =rgba(255,255,255,.10)=#1AFFFFFF。文件前段那份绿色 .card.focus（accent .06 / .22）已被该
     // 后置规则推翻——本卡不再是绿色强调卡；圆角 28 / padding 18 / 阴影沿用 .card.focus 原值。
-    .backgroundColor(PencilTokens.WHITE_A03)
+    .backgroundColor(PrototypeTokens.WHITE_A03)
     .borderRadius(28)
-    .border({ width: 1, color: PencilTokens.WHITE_A10 })
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
     // .card.focus 的 `box-shadow: 0 20px 40px rgba(0,0,0,.22)`，ArkUI 的 radius 即模糊半径。
     .shadow({ radius: 40, color: '#38000000', offsetX: 0, offsetY: 20 })
   }
@@ -348,18 +348,18 @@ export struct ProfileContent {
         .fontFamily('Inter')
         .fontSize(10.5)
         .fontWeight(FontWeight.Medium)
-        .fontColor(PencilTokens.WHITE_A62)
+        .fontColor(PrototypeTokens.WHITE_A62)
       Row({ space: 3 }) {
         Text(value)
           .fontFamily('Inter')
           .fontSize(20)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.TEXT_HI)
+          .fontColor(PrototypeTokens.TEXT_HI)
           .lineHeight(20)
         Text(unit)
           .fontFamily('Inter')
           .fontSize(10.5)
-          .fontColor(PencilTokens.WHITE_A62)
+          .fontColor(PrototypeTokens.WHITE_A62)
           .lineHeight(12)
       }
       .alignItems(VerticalAlign.Bottom)
@@ -376,12 +376,12 @@ export struct ProfileContent {
           .fontFamily('Inter')
           .fontSize(17)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.TEXT_HI)
+          .fontColor(PrototypeTokens.TEXT_HI)
         Text(this.streakLabel())
           .fontFamily('Inter')
           .fontSize(12)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.ACCENT)
+          .fontColor(PrototypeTokens.ACCENT)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -396,9 +396,9 @@ export struct ProfileContent {
     }
     .width('100%')
     .padding(16)
-    .backgroundColor(PencilTokens.WHITE_A03)
+    .backgroundColor(PrototypeTokens.WHITE_A03)
     .borderRadius(22)
-    .border({ width: 1, color: PencilTokens.WHITE_A10 })
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
   }
 
   @Builder
@@ -408,13 +408,13 @@ export struct ProfileContent {
         .width(28)
         .height(28)
         .borderRadius(14)
-        .backgroundColor(active ? PencilTokens.ACCENT : PencilTokens.WHITE_A08)
-        .border({ width: 1, color: active ? PencilTokens.ACCENT : PencilTokens.WHITE_A08 })
+        .backgroundColor(active ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A08)
+        .border({ width: 1, color: active ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A08 })
       Text(label)
         .fontFamily('Inter')
         .fontSize(10.5)
         .fontWeight(FontWeight.Medium)
-        .fontColor(active ? PencilTokens.ACCENT : PencilTokens.WHITE_A62)
+        .fontColor(active ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A62)
     }
     .layoutWeight(1)
     .alignItems(HorizontalAlign.Center)
@@ -452,7 +452,7 @@ export struct ProfileContent {
         .fontFamily('Inter')
         .fontSize(17)
         .fontWeight(FontWeight.Bold)
-        .fontColor(PencilTokens.TEXT_HI)
+        .fontColor(PrototypeTokens.TEXT_HI)
         .margin({ bottom: 12 })
       ForEach(this.achievementRows, (row: AchievementRow) => {
         this.buildAchievement(row.title, row.note, row.value, row.icon)
@@ -460,9 +460,9 @@ export struct ProfileContent {
     }
     .width('100%')
     .padding(16)
-    .backgroundColor(PencilTokens.WHITE_A03)
+    .backgroundColor(PrototypeTokens.WHITE_A03)
     .borderRadius(22)
-    .border({ width: 1, color: PencilTokens.WHITE_A10 })
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
   }
 
   @Builder
@@ -473,17 +473,17 @@ export struct ProfileContent {
           .width(40)
           .height(40)
           .borderRadius(13)
-          .backgroundColor(icon === 'trophy' ? '#1FD3B487' : PencilTokens.ACCENT_A10)
+          .backgroundColor(icon === 'trophy' ? '#1FD3B487' : PrototypeTokens.ACCENT_A10)
         if (icon === 'flame') {
           Image($rawfile('pencil-lucide-flame.svg'))
             .width(20)
             .height(20)
-            .fillColor(PencilTokens.ACCENT)
+            .fillColor(PrototypeTokens.ACCENT)
         } else {
           Image($rawfile('pencil-lucide-trophy.svg'))
             .width(20)
             .height(20)
-            .fillColor(PencilTokens.GOLD)
+            .fillColor(PrototypeTokens.GOLD)
         }
       }
       .width(40)
@@ -493,18 +493,18 @@ export struct ProfileContent {
           .fontFamily('Inter')
           .fontSize(14)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.TEXT_HI)
+          .fontColor(PrototypeTokens.TEXT_HI)
         Text(note)
           .fontFamily('Inter')
           .fontSize(12)
-          .fontColor(PencilTokens.WHITE_A62)
+          .fontColor(PrototypeTokens.WHITE_A62)
       }
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
       Text(value)
         .fontFamily('Inter')
         .fontSize(11)
-        .fontColor(icon === 'trophy' ? PencilTokens.GOLD : PencilTokens.ACCENT)
+        .fontColor(icon === 'trophy' ? PrototypeTokens.GOLD : PrototypeTokens.ACCENT)
     }
     .width('100%')
     .padding({ top: 7, bottom: 7 })
@@ -532,7 +532,7 @@ export struct ProfileContent {
         .fontFamily('Inter')
         .fontSize(13)
         .fontWeight(FontWeight.Medium)
-        .fontColor(PencilTokens.WHITE_A70)
+        .fontColor(PrototypeTokens.WHITE_A70)
         .layoutWeight(1)
       Image($rawfile('pencil-plan-nav-chevron-right.svg'))
         .width(18)
@@ -542,9 +542,9 @@ export struct ProfileContent {
     .layoutWeight(1)
     .height(46)
     .padding({ left: 12, right: 12 })
-    .backgroundColor(PencilTokens.WHITE_A05)
+    .backgroundColor(PrototypeTokens.WHITE_A05)
     .borderRadius(16)
-    .border({ width: 1, color: PencilTokens.WHITE_A10 })
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
     .alignItems(VerticalAlign.Center)
     .onTouch((event: TouchEvent) => {
       if (event.type === TouchType.Down) {

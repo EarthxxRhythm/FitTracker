@@ -15,7 +15,7 @@ import SettingsService, { AppSettings } from '../../../common/services/SettingsS
 import UserProfileService, { UserProfile, WeightUnit } from '../../../common/services/UserProfileService'
 import { kgToDisplay, displayToKg, weightUnitLabel } from '../../../common/utils/WeightUtils'
 import HapticFeedbackService from '../../../common/services/HapticFeedbackService'
-import { PencilTokens } from '../PencilTokens'
+import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 
 interface ActiveWorkoutRouteParams {
   preview: WorkoutPreviewSummary
@@ -72,18 +72,18 @@ interface CelebratePiece {
 }
 
 const CELEBRATE_PIECES: CelebratePiece[] = [
-  { id: 'cp0', x: 120, y: 220, width: 8, height: 14, rot: 25, color: PencilTokens.ACCENT },
-  { id: 'cp1', x: 268, y: 212, width: 8, height: 14, rot: -30, color: PencilTokens.ACCENT_SOFT },
-  { id: 'cp2', x: 300, y: 330, width: 8, height: 14, rot: 15, color: PencilTokens.ACCENT_DEEP },
-  { id: 'cp3', x: 86, y: 342, width: 8, height: 14, rot: -20, color: PencilTokens.TEXT_HI },
-  { id: 'cp4', x: 148, y: 432, width: 8, height: 14, rot: 40, color: PencilTokens.ACCENT },
-  { id: 'cp5', x: 248, y: 444, width: 8, height: 14, rot: -45, color: PencilTokens.ACCENT_SOFT },
-  { id: 'cp6', x: 187, y: 168, width: 8, height: 14, rot: 12, color: PencilTokens.ACCENT_DEEP },
-  { id: 'cp7', x: 78, y: 262, width: 8, height: 14, rot: -15, color: PencilTokens.TEXT_HI },
-  { id: 'cp8', x: 296, y: 258, width: 8, height: 14, rot: 30, color: PencilTokens.ACCENT },
-  { id: 'cp9', x: 122, y: 186, width: 8, height: 14, rot: -35, color: PencilTokens.ACCENT_SOFT },
-  { id: 'cp10', x: 254, y: 190, width: 8, height: 14, rot: 20, color: PencilTokens.ACCENT_DEEP },
-  { id: 'cp11', x: 202, y: 494, width: 8, height: 14, rot: -25, color: PencilTokens.TEXT_HI }
+  { id: 'cp0', x: 120, y: 220, width: 8, height: 14, rot: 25, color: PrototypeTokens.ACCENT },
+  { id: 'cp1', x: 268, y: 212, width: 8, height: 14, rot: -30, color: PrototypeTokens.ACCENT_SOFT },
+  { id: 'cp2', x: 300, y: 330, width: 8, height: 14, rot: 15, color: PrototypeTokens.ACCENT_DEEP },
+  { id: 'cp3', x: 86, y: 342, width: 8, height: 14, rot: -20, color: PrototypeTokens.TEXT_HI },
+  { id: 'cp4', x: 148, y: 432, width: 8, height: 14, rot: 40, color: PrototypeTokens.ACCENT },
+  { id: 'cp5', x: 248, y: 444, width: 8, height: 14, rot: -45, color: PrototypeTokens.ACCENT_SOFT },
+  { id: 'cp6', x: 187, y: 168, width: 8, height: 14, rot: 12, color: PrototypeTokens.ACCENT_DEEP },
+  { id: 'cp7', x: 78, y: 262, width: 8, height: 14, rot: -15, color: PrototypeTokens.TEXT_HI },
+  { id: 'cp8', x: 296, y: 258, width: 8, height: 14, rot: 30, color: PrototypeTokens.ACCENT },
+  { id: 'cp9', x: 122, y: 186, width: 8, height: 14, rot: -35, color: PrototypeTokens.ACCENT_SOFT },
+  { id: 'cp10', x: 254, y: 190, width: 8, height: 14, rot: 20, color: PrototypeTokens.ACCENT_DEEP },
+  { id: 'cp11', x: 202, y: 494, width: 8, height: 14, rot: -25, color: PrototypeTokens.TEXT_HI }
 ]
 
 function formatClock(totalSeconds: number): string {
@@ -427,10 +427,10 @@ export struct ActiveContent {
   // 整排因此读作一串珠子；未完成/当前段同时抬高填充浓度（「实一点」）。
   private segmentBackground(index: number): string {
     if (index < this.completed) {
-      return PencilTokens.ACCENT
+      return PrototypeTokens.ACCENT
     }
     if (index === this.completed) {
-      return PencilTokens.ACCENT_A24
+      return PrototypeTokens.ACCENT_A24
     }
     return '#1FFFFFFF'
   }
@@ -438,12 +438,12 @@ export struct ActiveContent {
   private segmentBorder(index: number): string {
     if (index < this.completed) {
       // 与 .duo-marker 的 border 同色（ink-0），即圆点那圈深色环
-      return PencilTokens.BG_INK
+      return PrototypeTokens.BG_INK
     }
     if (index === this.completed) {
       return '#9950ECA7'
     }
-    return PencilTokens.WHITE_A10
+    return PrototypeTokens.WHITE_A10
   }
 
   // 已完成段用圆点的 3vp 描边宽度，其余保持 1vp
@@ -456,7 +456,7 @@ export struct ActiveContent {
       Column()
         .width('100%')
         .height('100%')
-        .backgroundColor(PencilTokens.BG_INK)
+        .backgroundColor(PrototypeTokens.BG_INK)
 
       Column() {
         this.topProgress()
@@ -496,25 +496,25 @@ export struct ActiveContent {
           .fontFamily('Noto Sans SC')
           .fontSize(12)
           .fontWeight(600)
-          .fontColor(PencilTokens.WHITE_A70)
+          .fontColor(PrototypeTokens.WHITE_A70)
         Row({ space: 6 }) {
           Row()
             .width(6)
             .height(6)
             .borderRadius(3)
-            .backgroundColor(PencilTokens.ACCENT)
+            .backgroundColor(PrototypeTokens.ACCENT)
             .opacity(this.livePulseLow ? 0.45 : 1)
             .scale({ x: this.livePulseLow ? 0.78 : 1, y: this.livePulseLow ? 0.78 : 1 })
             .animation({ duration: MotionTokens.DURATION_PULSE / 2, curve: Curve.EaseInOut })
           Text('总时长')
             .fontFamily('Noto Sans SC')
             .fontSize(12)
-            .fontColor(PencilTokens.WHITE_A60)
+            .fontColor(PrototypeTokens.WHITE_A60)
           Text(formatClock(this.elapsedSeconds))
             .fontFamily('Geist Mono')
             .fontSize(14)
             .fontWeight(FontWeight.Bold)
-            .fontColor(PencilTokens.TEXT_HI)
+            .fontColor(PrototypeTokens.TEXT_HI)
         }
       }
       .width('100%')
@@ -529,16 +529,16 @@ export struct ActiveContent {
               .backgroundColor(this.segmentBackground(index))
               .borderRadius(999)
               .border({ width: this.segmentBorderWidth(index), color: this.segmentBorder(index) })
-              .shadow({ radius: index === this.completed ? 2 : 0, color: index === this.completed ? PencilTokens.ACCENT_A12 : PencilTokens.TRANSPARENT, offsetX: 0, offsetY: 0 })
+              .shadow({ radius: index === this.completed ? 2 : 0, color: index === this.completed ? PrototypeTokens.ACCENT_A12 : PrototypeTokens.TRANSPARENT, offsetX: 0, offsetY: 0 })
               .scale({ x: index === this.segPopIndex ? 1.12 : 1, y: index === this.segPopIndex ? 1.12 : 1 })
               .animation({ duration: MotionTokens.DURATION_SEG_POP, curve: MotionTokens.EASE_MOTION })
             if (index === this.completed) {
               Row()
                 .width(18)
                 .height(18)
-                .backgroundColor(PencilTokens.ACCENT)
+                .backgroundColor(PrototypeTokens.ACCENT)
                 .borderRadius(9)
-                .border({ width: 3, color: PencilTokens.BG_INK })
+                .border({ width: 3, color: PrototypeTokens.BG_INK })
                 .transition(TransitionEffect.scale({ x: 0.4, y: 0.4 }).combine(TransitionEffect.OPACITY))
             }
           }
@@ -552,8 +552,8 @@ export struct ActiveContent {
     .padding({ left: 18, right: 18, top: 14, bottom: 12 })
     // 原型 .wo-top: rgba(10,13,18,.96)。ArkUI 的 8 位色是 #AARRGGBB，
     // 曾误按 #RRGGBBAA 写成 #0A0D12F5（= 4% 透明 + RGB(13,18,245)），顶栏因此比主体偏蓝。
-    .backgroundColor(PencilTokens.SCRIM_DEEP)
-    .border({ width: { bottom: 1 }, color: PencilTokens.WHITE_A06 })
+    .backgroundColor(PrototypeTokens.SCRIM_DEEP)
+    .border({ width: { bottom: 1 }, color: PrototypeTokens.WHITE_A06 })
   }
 
   @Builder
@@ -571,18 +571,18 @@ export struct ActiveContent {
         Text('动作')
           .fontFamily('Noto Sans SC')
           .fontSize(11)
-          .fontColor(PencilTokens.WHITE_A60)
+          .fontColor(PrototypeTokens.WHITE_A60)
         Text(this.exerciseBadgeText())
           .fontFamily('Geist Mono')
           .fontSize(12)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.ACCENT)
+          .fontColor(PrototypeTokens.ACCENT)
       }
       .padding({ left: 10, right: 10, top: 6, bottom: 6 })
       // 原型 .demo-position: rgba(8,13,17,.82)（同族笔误，原为 #080D11D1）
-      .backgroundColor(PencilTokens.SCRIM_DARK)
+      .backgroundColor(PrototypeTokens.SCRIM_DARK)
       .borderRadius(999)
-      .border({ width: 1, color: PencilTokens.WHITE_A10 })
+      .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
       .position({ x: 14, y: 14 })
 
       Row() {
@@ -591,28 +591,28 @@ export struct ActiveContent {
           .fontSize(18)
           .lineHeight(22)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.TEXT_HI)
+          .fontColor(PrototypeTokens.TEXT_HI)
         Text('第 ' + (this.completed + 1).toString() + ' 组 · 正式组')
           .fontFamily('Noto Sans SC')
           .fontSize(12)
           .lineHeight(14)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.ACCENT)
+          .fontColor(PrototypeTokens.ACCENT)
       }
       .width(326)
       .height(42)
       .padding({ left: 14, right: 14, top: 10, bottom: 10 })
       .justifyContent(FlexAlign.SpaceBetween)
       // 原型 .demo-caption: rgba(8,13,17,.82)（同族笔误，原为 #080D11D1）
-      .backgroundColor(PencilTokens.SCRIM_DARK)
+      .backgroundColor(PrototypeTokens.SCRIM_DARK)
       .borderRadius(16)
-      .border({ width: 1, color: PencilTokens.WHITE_A08 })
+      .border({ width: 1, color: PrototypeTokens.WHITE_A08 })
       .position({ x: 14, y: DEMO_CARD_HEIGHT - 56 })
     }
     .width('100%')
     .height(DEMO_CARD_HEIGHT)
     .borderRadius(28)
-    .border({ width: 1, color: PencilTokens.WHITE_A08 })
+    .border({ width: 1, color: PrototypeTokens.WHITE_A08 })
     .clip(true)
   }
 
@@ -642,12 +642,12 @@ export struct ActiveContent {
           Text('还没有完成组')
             .fontFamily('Noto Sans SC')
             .fontSize(13)
-            .fontColor(PencilTokens.WHITE_A54)
+            .fontColor(PrototypeTokens.WHITE_A54)
         }
         .width('100%')
         .height(52)
         .justifyContent(FlexAlign.Center)
-        .border({ width: 1, color: PencilTokens.WHITE_A10, style: BorderStyle.Dashed })
+        .border({ width: 1, color: PrototypeTokens.WHITE_A10, style: BorderStyle.Dashed })
         .borderRadius(14)
       } else {
         ForEach(this.records, (record: SetRecordItem) => {
@@ -655,24 +655,24 @@ export struct ActiveContent {
             Text('第 ' + record.index.toString() + ' 组')
               .fontFamily('Noto Sans SC')
               .fontSize(13)
-              .fontColor(PencilTokens.WHITE_A70)
+              .fontColor(PrototypeTokens.WHITE_A70)
             Text(this.displayWeightText(record.weight) + ' ' + weightUnitLabel(this.displayUnit) + ' × ' + record.reps.toString())
               .fontFamily('Geist Mono')
               .fontSize(14)
               .fontWeight(FontWeight.Bold)
-              .fontColor(PencilTokens.TEXT_HI)
+              .fontColor(PrototypeTokens.TEXT_HI)
             Text('✓')
               .fontFamily('HarmonyOS Sans')
               .fontSize(14)
               .fontWeight(FontWeight.Bold)
-              .fontColor(PencilTokens.ACCENT)
+              .fontColor(PrototypeTokens.ACCENT)
           }
           .width('100%')
           .height(44)
           .padding({ left: 12, right: 12 })
           .justifyContent(FlexAlign.SpaceBetween)
           .borderRadius(12)
-          .border({ width: 1, color: PencilTokens.WHITE_A08 })
+          .border({ width: 1, color: PrototypeTokens.WHITE_A08 })
           .transition(TransitionEffect.OPACITY.combine(TransitionEffect.translate({ y: 6 })))
         }, (record: SetRecordItem) => record.index.toString())
       }
@@ -690,10 +690,10 @@ export struct ActiveContent {
         .fontFamily('Noto Sans SC')
         .fontSize(15)
         .fontWeight(FontWeight.Bold)
-        .fontColor(this.completed >= PROGRESS_SEGMENTS.length ? PencilTokens.WHITE_A40 : PencilTokens.TEXT_ON_ACCENT)
-        .backgroundColor(this.completed >= PROGRESS_SEGMENTS.length ? PencilTokens.WHITE_A06 : PencilTokens.ACCENT)
+        .fontColor(this.completed >= PROGRESS_SEGMENTS.length ? PrototypeTokens.WHITE_A40 : PrototypeTokens.TEXT_ON_ACCENT)
+        .backgroundColor(this.completed >= PROGRESS_SEGMENTS.length ? PrototypeTokens.WHITE_A06 : PrototypeTokens.ACCENT)
         .borderRadius(16)
-        .shadow({ radius: this.completed >= PROGRESS_SEGMENTS.length ? 0 : 22, color: this.completed >= PROGRESS_SEGMENTS.length ? PencilTokens.TRANSPARENT : PencilTokens.BLACK_A24, offsetX: 0, offsetY: this.completed >= PROGRESS_SEGMENTS.length ? 0 : 10 })
+        .shadow({ radius: this.completed >= PROGRESS_SEGMENTS.length ? 0 : 22, color: this.completed >= PROGRESS_SEGMENTS.length ? PrototypeTokens.TRANSPARENT : PrototypeTokens.BLACK_A24, offsetX: 0, offsetY: this.completed >= PROGRESS_SEGMENTS.length ? 0 : 10 })
         .enabled(this.completed < PROGRESS_SEGMENTS.length)
         .onTouch((event: TouchEvent) => {
           if (event.type === TouchType.Down) {
@@ -712,7 +712,7 @@ export struct ActiveContent {
     .padding({ left: 18, right: 18, top: 12, bottom: 18 })
     // 原型 .wo-dock: rgba(10,13,18,.98)（同族笔误，原为 #0A0D12FA）
     .backgroundColor('#FA0A0D12')
-    .border({ width: { top: 1 }, color: PencilTokens.WHITE_A06 })
+    .border({ width: { top: 1 }, color: PrototypeTokens.WHITE_A06 })
   }
 
   @Builder
@@ -731,17 +731,17 @@ export struct ActiveContent {
               .fontFamily('Geist Mono')
               .fontSize(10)
               .letterSpacing(0.8)
-              .fontColor(PencilTokens.ACCENT)
+              .fontColor(PrototypeTokens.ACCENT)
               .margin({ bottom: 6 })
             Text('记录本组')
               .fontFamily('Noto Sans SC')
               .fontSize(22)
               .fontWeight(FontWeight.Bold)
-              .fontColor(PencilTokens.TEXT_HI)
+              .fontColor(PrototypeTokens.TEXT_HI)
             Text(this.currentExerciseLabel() + ' · 第 ' + (this.completed + 1).toString() + ' 组')
               .fontFamily('Noto Sans SC')
               .fontSize(13)
-              .fontColor(PencilTokens.WHITE_A60)
+              .fontColor(PrototypeTokens.WHITE_A60)
               .margin({ top: 4 })
           }
           .layoutWeight(1)
@@ -751,13 +751,13 @@ export struct ActiveContent {
             .fontFamily('HarmonyOS Sans')
             .fontSize(20)
             .lineHeight(36)
-            .fontColor(PencilTokens.WHITE_A70)
+            .fontColor(PrototypeTokens.WHITE_A70)
             .width(36)
             .height(36)
             .textAlign(TextAlign.Center)
-            .backgroundColor(PencilTokens.WHITE_A03)
+            .backgroundColor(PrototypeTokens.WHITE_A03)
             .borderRadius(18)
-            .border({ width: 1, color: PencilTokens.WHITE_A08 })
+            .border({ width: 1, color: PrototypeTokens.WHITE_A08 })
             .onTouch((event: TouchEvent) => {
               if (event.type === TouchType.Down) {
                 this.closePressed = true
@@ -789,8 +789,8 @@ export struct ActiveContent {
           .fontFamily('Noto Sans SC')
           .fontSize(15)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.TEXT_ON_ACCENT)
-          .backgroundColor(PencilTokens.ACCENT)
+          .fontColor(PrototypeTokens.TEXT_ON_ACCENT)
+          .backgroundColor(PrototypeTokens.ACCENT)
           .borderRadius(16)
           .onTouch((event: TouchEvent) => {
             if (event.type === TouchType.Down) {
@@ -812,7 +812,7 @@ export struct ActiveContent {
       // 下页内容透进面板（已实测）。描边 #1AFFFFFF 与首页卡一致，未改动。
       .backgroundColor('#13161A')
       .borderRadius(28)
-      .border({ width: 1, color: PencilTokens.WHITE_A10 })
+      .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
       .shadow({ radius: 60, color: '#80000000', offsetX: 0, offsetY: 28 })
       .transition(TransitionEffect.OPACITY.combine(TransitionEffect.translate({ y: 12 })).combine(TransitionEffect.scale({ x: 0.98, y: 0.98 })).animation({ duration: MotionTokens.DURATION_OVERLAY, curve: MotionTokens.EASE_MOTION }))
     }
@@ -851,13 +851,13 @@ export struct ActiveContent {
             .width(120)
             .height(120)
             .borderRadius(60)
-            .backgroundColor(PencilTokens.ACCENT_A07)
+            .backgroundColor(PrototypeTokens.ACCENT_A07)
           Row()
             .width(88)
             .height(88)
             .borderRadius(44)
-            .backgroundColor(PencilTokens.ACCENT)
-            .shadow({ radius: 54, color: PencilTokens.ACCENT_A20, offsetX: 0, offsetY: 0 })
+            .backgroundColor(PrototypeTokens.ACCENT)
+            .shadow({ radius: 54, color: PrototypeTokens.ACCENT_A20, offsetX: 0, offsetY: 0 })
           Image($rawfile('pencil-active-set-check.svg'))
             .width(42)
             .height(42)
@@ -871,13 +871,13 @@ export struct ActiveContent {
           .fontFamily('HarmonyOS Sans')
           .fontSize(21)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.TEXT_HI)
+          .fontColor(PrototypeTokens.TEXT_HI)
 
         Text('做得很好')
           .fontFamily('HarmonyOS Sans')
           .fontSize(14)
           .fontWeight(FontWeight.Medium)
-          .fontColor(PencilTokens.WHITE_A70)
+          .fontColor(PrototypeTokens.WHITE_A70)
           .margin({ top: -5 })
       }
       .translate({ y: -84 })
@@ -896,11 +896,11 @@ export struct ActiveContent {
         Text(label)
           .fontFamily('Noto Sans SC')
           .fontSize(12)
-          .fontColor(PencilTokens.WHITE_A60)
+          .fontColor(PrototypeTokens.WHITE_A60)
         Text(unit)
           .fontFamily('Geist Mono')
           .fontSize(10)
-          .fontColor(PencilTokens.ACCENT)
+          .fontColor(PrototypeTokens.ACCENT)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -909,13 +909,13 @@ export struct ActiveContent {
         Text('−')
           .fontFamily('HarmonyOS Sans')
           .fontSize(16)
-          .fontColor(PencilTokens.WHITE_A60)
+          .fontColor(PrototypeTokens.WHITE_A60)
           .width(36)
           .height(36)
           .textAlign(TextAlign.Center)
-          .backgroundColor(PencilTokens.WHITE_A03)
+          .backgroundColor(PrototypeTokens.WHITE_A03)
           .borderRadius(10)
-          .border({ width: 1, color: PencilTokens.WHITE_A06 })
+          .border({ width: 1, color: PrototypeTokens.WHITE_A06 })
           .onTouch((event: TouchEvent) => {
             if (event.type === TouchType.Down) {
               this.minusPressed = true
@@ -936,19 +936,19 @@ export struct ActiveContent {
           .fontFamily('Geist Mono')
           .fontSize(24)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.TEXT_HI)
+          .fontColor(PrototypeTokens.TEXT_HI)
           .layoutWeight(1)
           .textAlign(TextAlign.Center)
         Text('+')
           .fontFamily('HarmonyOS Sans')
           .fontSize(16)
-          .fontColor(PencilTokens.WHITE_A60)
+          .fontColor(PrototypeTokens.WHITE_A60)
           .width(36)
           .height(36)
           .textAlign(TextAlign.Center)
-          .backgroundColor(PencilTokens.WHITE_A03)
+          .backgroundColor(PrototypeTokens.WHITE_A03)
           .borderRadius(10)
-          .border({ width: 1, color: PencilTokens.WHITE_A06 })
+          .border({ width: 1, color: PrototypeTokens.WHITE_A06 })
           .onTouch((event: TouchEvent) => {
             if (event.type === TouchType.Down) {
               this.plusPressed = true
@@ -972,7 +972,7 @@ export struct ActiveContent {
     .padding(12)
     .backgroundColor('#06FFFFFF')
     .borderRadius(17)
-    .border({ width: 1, color: PencilTokens.WHITE_A06 })
+    .border({ width: 1, color: PrototypeTokens.WHITE_A06 })
   }
 }
 

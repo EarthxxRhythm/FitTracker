@@ -13,7 +13,7 @@ import PlanEngine from '../../../shared/services/PlanEngine'
 import HomePlanService, { HomePlanSummary } from '../../../shared/services/HomePlanService'
 import WorkoutSessionPersistenceBridgeService from '../../workout/services/WorkoutSessionPersistenceBridgeService'
 import SettingsService, { AppSettings } from '../../../common/services/SettingsService'
-import { PencilTokens } from '../PencilTokens'
+import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 
 interface HomeWeekDayItem {
   label: string
@@ -262,7 +262,7 @@ export struct HomeContent {
       Column()
         .width('100%')
         .height('100%')
-        .backgroundColor(PencilTokens.BG_INK)
+        .backgroundColor(PrototypeTokens.BG_INK)
       Column() {
         Column() {
           Column() {
@@ -270,7 +270,7 @@ export struct HomeContent {
               Text(this.currentDateText)
                 .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
                 .fontSize(12.7)
-                .fontColor(PencilTokens.WHITE_A70)
+                .fontColor(PrototypeTokens.WHITE_A70)
                 .fontWeight(FontWeight.Medium)
                 .letterSpacing(0.127)
                 .width('100%')
@@ -279,7 +279,7 @@ export struct HomeContent {
                 .fontSize(36.3)
                 .lineHeight(43.56)
                 .fontWeight(FontWeight.Bold)
-                .fontColor(PencilTokens.TEXT_HI)
+                .fontColor(PrototypeTokens.TEXT_HI)
                 .width('100%')
             }
             Row()
@@ -325,7 +325,7 @@ export struct HomeContent {
       Row()
         .width('100%')
         .height(1)
-        .backgroundColor(PencilTokens.WHITE_A05_ALT)
+        .backgroundColor(PrototypeTokens.WHITE_A05_ALT)
         .offset({ x: 0, y: -18 })
       Row({ space: 14 }) {
         Column({ space: 8 }) {
@@ -334,7 +334,7 @@ export struct HomeContent {
             .fontSize(12.7)
             .lineHeight(19)
             .fontWeight(FontWeight.Bold)
-            .fontColor(PencilTokens.ACCENT)
+            .fontColor(PrototypeTokens.ACCENT)
             .letterSpacing(0.762)
           Row({ space: 8 }) {
             Text(this.todayTitle)
@@ -342,15 +342,15 @@ export struct HomeContent {
               .fontSize(22)
               .lineHeight(24.64)
               .fontWeight(FontWeight.Bold)
-              .fontColor(PencilTokens.TEXT_HI)
+              .fontColor(PrototypeTokens.TEXT_HI)
             Text('\u63a8\u8350')
               .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
               .fontSize(9)
               .lineHeight(10.8)
               .fontWeight(FontWeight.Bold)
               .letterSpacing(0.18)
-              .fontColor(PencilTokens.ACCENT)
-              .backgroundColor(PencilTokens.ACCENT_A12)
+              .fontColor(PrototypeTokens.ACCENT)
+              .backgroundColor(PrototypeTokens.ACCENT_A12)
               .border({ width: 1, color: '#2B50ECA7' })
               .borderRadius(999)
               .padding({ left: 8, right: 8, top: 3, bottom: 3 })
@@ -359,13 +359,13 @@ export struct HomeContent {
             .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
             .fontSize(12.7)
             .lineHeight(19)
-            .fontColor(PencilTokens.WHITE_A62)
+            .fontColor(PrototypeTokens.WHITE_A62)
           Row({ space: 7 }) {
             Stack({ alignContent: Alignment.Center }) {
               Circle({ width: 12, height: 12 })
-                .fill(PencilTokens.ACCENT_A12)
+                .fill(PrototypeTokens.ACCENT_A12)
               Circle({ width: 6, height: 6 })
-                .fill(PencilTokens.ACCENT)
+                .fill(PrototypeTokens.ACCENT)
             }
             .width(12)
             .height(12)
@@ -374,7 +374,7 @@ export struct HomeContent {
               .fontSize(10.9)
               .lineHeight(16)
               .fontWeight(FontWeight.Medium)
-              .fontColor(PencilTokens.WHITE_A54)
+              .fontColor(PrototypeTokens.WHITE_A54)
           }
           // 原型 .today-id .day 是 margin-top:9px，而 .label/.title-row/.muscle 都是 8px；
           // 外层 Column space:8 统一了间距，这里补回这 1vp。
@@ -389,7 +389,7 @@ export struct HomeContent {
           Progress({ value: this.weeklyProgressPercent, total: 100, type: ProgressType.Ring })
             .width(96)
             .height(96)
-            .color(PencilTokens.ACCENT)
+            .color(PrototypeTokens.ACCENT)
             .backgroundColor('rgba(255,255,255,0.12)')
             .style({ strokeWidth: 7, enableSmoothEffect: true })
           Column()
@@ -401,9 +401,9 @@ export struct HomeContent {
             .linearGradient({
               angle: 180,
               colors: [
-                [PencilTokens.WHITE_A06, 0],
+                [PrototypeTokens.WHITE_A06, 0],
                 ['#000D1117', 0.52],
-                [PencilTokens.BG_RING_INNER, 1]
+                [PrototypeTokens.BG_RING_INNER, 1]
               ]
             })
             .border({ width: 1, color: '#17FFFFFF' })
@@ -413,12 +413,12 @@ export struct HomeContent {
               .fontFamily(HomeContent.NUMBER_FONT_FAMILY)
               .fontSize(19)
               .fontWeight(FontWeight.Bold)
-              .fontColor(PencilTokens.TEXT_HI)
+              .fontColor(PrototypeTokens.TEXT_HI)
               .letterSpacing(-0.38)
             Text('\u672c\u5468\u8fdb\u5ea6')
               .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
               .fontSize(9.5)
-              .fontColor(PencilTokens.WHITE_A54)
+              .fontColor(PrototypeTokens.WHITE_A54)
           }
           .alignItems(HorizontalAlign.Center)
         }
@@ -434,7 +434,7 @@ export struct HomeContent {
       Row()
         .width('100%')
         .height(1)
-        .linearGradient({ angle: 90, colors: [[PencilTokens.WHITE_A00, 0], ['#21FFFFFF', 0.5], [PencilTokens.WHITE_A00, 1]] })
+        .linearGradient({ angle: 90, colors: [[PrototypeTokens.WHITE_A00, 0], ['#21FFFFFF', 0.5], [PrototypeTokens.WHITE_A00, 1]] })
       Row()
         .height(16)
       Row({ space: 10 }) {
@@ -452,7 +452,7 @@ export struct HomeContent {
         .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
         .fontWeight(FontWeight.Bold)
         .fontColor('#08110D')
-        .backgroundColor(PencilTokens.ACCENT)
+        .backgroundColor(PrototypeTokens.ACCENT)
         .borderRadius(20)
         .onTouch((event: TouchEvent) => {
           if (event.type === TouchType.Down) {
@@ -475,20 +475,20 @@ export struct HomeContent {
         .fontSize(13.6)
         .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
         .fontWeight(FontWeight.Medium)
-        .fontColor(PencilTokens.TEXT_HI)
-        .backgroundColor(PencilTokens.WHITE_A03)
+        .fontColor(PrototypeTokens.TEXT_HI)
+        .backgroundColor(PrototypeTokens.WHITE_A03)
         .borderRadius(20)
         .padding(0)
-        .border({ width: 1, color: PencilTokens.WHITE_A10 })
+        .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
         .onClick(() => {
           this.openPreview()
         })
     }
     .width('100%')
     .padding({ left: 18, right: 18, top: 19, bottom: 18 })
-    .backgroundColor(PencilTokens.WHITE_A03)
+    .backgroundColor(PrototypeTokens.WHITE_A03)
     .borderRadius(26)
-    .border({ width: 1, color: PencilTokens.WHITE_A10 })
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
     .shadow({ radius: 44, color: 'rgba(0,0,0,0.24)', offsetX: 0, offsetY: 22 })
   }
 
@@ -501,19 +501,19 @@ export struct HomeContent {
             .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
             .fontSize(14.5)
             .fontWeight(FontWeight.Bold)
-            .fontColor(PencilTokens.TEXT_HI)
+            .fontColor(PrototypeTokens.TEXT_HI)
             .height(22)
           Text('\u5468\u4e00\u2014\u5468\u65e5')
             .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
             .fontSize(10)
-            .fontColor(PencilTokens.WHITE_A40)
+            .fontColor(PrototypeTokens.WHITE_A40)
             .height(16)
         }
         Text(this.weeklyTrainedCount.toString() + ' / ' + this.weeklyPlannedDays.toString() + ' 次')
           .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
           .fontSize(10)
           .fontWeight(FontWeight.Bold)
-          .fontColor(PencilTokens.ACCENT)
+          .fontColor(PrototypeTokens.ACCENT)
           .height(20)
           .translate({ y: 2 })
       }
@@ -533,9 +533,9 @@ export struct HomeContent {
     .width('100%')
     .height(168)
     .padding(16)
-    .backgroundColor(PencilTokens.WHITE_A03)
+    .backgroundColor(PrototypeTokens.WHITE_A03)
     .borderRadius(27.2)
-    .border({ width: 1, color: PencilTokens.WHITE_A10 })
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
     .shadow({ radius: 36, color: '#24000000', offsetX: 0, offsetY: 18 })
   }
 
@@ -560,14 +560,14 @@ export struct HomeContent {
           Stack({ alignContent: Alignment.Center }) {
             Circle({ width: 14.17, height: 14.17 })
               .fill(Color.Transparent)
-              .stroke(PencilTokens.ACCENT)
+              .stroke(PrototypeTokens.ACCENT)
               .strokeWidth(1.5)
             Circle({ width: 7.67, height: 7.67 })
               .fill(Color.Transparent)
-              .stroke(PencilTokens.ACCENT)
+              .stroke(PrototypeTokens.ACCENT)
               .strokeWidth(1.5)
             Circle({ width: 2, height: 2 })
-              .fill(PencilTokens.ACCENT)
+              .fill(PrototypeTokens.ACCENT)
           }
           .width(20)
           .height(20)
@@ -576,13 +576,13 @@ export struct HomeContent {
       .width(38)
       .height(38)
       .borderRadius(12)
-      .backgroundColor(PencilTokens.ACCENT_A07)
-      .border({ width: 1, color: PencilTokens.ACCENT_A12 })
+      .backgroundColor(PrototypeTokens.ACCENT_A07)
+      .border({ width: 1, color: PrototypeTokens.ACCENT_A12 })
       .margin({ bottom: 2 })
       Text(label)
         .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
         .fontSize(9.8)
-        .fontColor(PencilTokens.WHITE_A62)
+        .fontColor(PrototypeTokens.WHITE_A62)
         .width('100%')
         .height(15)
         .textAlign(TextAlign.Center)
@@ -594,7 +594,7 @@ export struct HomeContent {
         .fontSize(26)
         .lineHeight(26)
         .fontWeight(FontWeight.Bold)
-        .fontColor(PencilTokens.TEXT_HI)
+        .fontColor(PrototypeTokens.TEXT_HI)
         .letterSpacing(-0.52)
         .width('100%')
         .height(26)
@@ -604,7 +604,7 @@ export struct HomeContent {
       Text(note)
         .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
         .fontSize(8.8)
-        .fontColor(PencilTokens.WHITE_A54)
+        .fontColor(PrototypeTokens.WHITE_A54)
         .width('100%')
         .height(15)
         .textAlign(TextAlign.Center)
@@ -622,17 +622,17 @@ export struct HomeContent {
         .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
         .fontSize(10)
         .fontWeight(600)
-        .fontColor(active ? PencilTokens.TEXT_HI : PencilTokens.WHITE_A62)
+        .fontColor(active ? PrototypeTokens.TEXT_HI : PrototypeTokens.WHITE_A62)
         .height(14)
       Stack({ alignContent: Alignment.Center }) {
         Column()
           .width(34)
           .height(34)
           .borderRadius(17)
-          .backgroundColor(active ? PencilTokens.ACCENT : PencilTokens.WHITE_A06)
-          .border({ width: 1, color: active ? PencilTokens.ACCENT : PencilTokens.WHITE_A08 })
+          .backgroundColor(active ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A06)
+          .border({ width: 1, color: active ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A08 })
           // 受光玻璃：原型 .week-day.active .dot 第一层 `0 0 0 4px var(--accent-12)` 外圈光晕
-          .shadow({ radius: active ? 4 : 0, color: active ? PencilTokens.ACCENT_A12 : 'rgba(0,0,0,0)', offsetX: 0, offsetY: 0 })
+          .shadow({ radius: active ? 4 : 0, color: active ? PrototypeTokens.ACCENT_A12 : 'rgba(0,0,0,0)', offsetX: 0, offsetY: 0 })
           // 原型 .dot 的 `transition: background/border-color/box-shadow .18s ease`
           .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: MotionTokens.EASE_MOTION })
         if (active) {
@@ -649,7 +649,7 @@ export struct HomeContent {
       // 受光玻璃：原型 .week-day.active .dot 第二层 `0 5px 12px rgba(0,0,0,.24)` 下缘投影
       .shadow({
         radius: active ? 12 : 0,
-        color: active ? PencilTokens.BLACK_A24 : 'rgba(0,0,0,0)',
+        color: active ? PrototypeTokens.BLACK_A24 : 'rgba(0,0,0,0)',
         offsetX: 0,
         offsetY: active ? 5 : 0
       })
@@ -657,7 +657,7 @@ export struct HomeContent {
         .fontFamily(HomeContent.NUMBER_FONT_FAMILY)
         .fontSize(10)
         .fontWeight(600)
-        .fontColor(active ? PencilTokens.ACCENT : PencilTokens.WHITE_A54)
+        .fontColor(active ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A54)
         .height(14)
     }
     .layoutWeight(1)

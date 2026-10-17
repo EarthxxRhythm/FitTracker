@@ -12,7 +12,7 @@ import { Context, common } from '@kit.AbilityKit'
 import { ColorTokens, MotionTokens } from '../../../common/styles/DesignTokens'
 import { currentCanvasScale } from '../../../common/utils/CanvasScale'
 import { shakeField } from '../../../common/utils/FieldShake'
-import { PencilTokens } from '../PencilTokens'
+import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 
 const COUNTDOWN_SECONDS: number = 60
 
@@ -305,15 +305,15 @@ struct PencilLoginPage {
       .width(48)
       .height(48)
       .justifyContent(FlexAlign.Center)
-      .backgroundColor(PencilTokens.ACCENT_A10)
+      .backgroundColor(PrototypeTokens.ACCENT_A10)
       .borderRadius(16)
-      .border({ width: 1, color: PencilTokens.ACCENT_A30 })
+      .border({ width: 1, color: PrototypeTokens.ACCENT_A30 })
       Text('FITTRACKER')
         .fontFamily('Inter')
         .fontSize(13)
         .fontWeight(FontWeight.Bold)
         .letterSpacing(2.4)
-        .fontColor(PencilTokens.TEXT_HI)
+        .fontColor(PrototypeTokens.TEXT_HI)
     }
     .width('100%')
     .alignItems(HorizontalAlign.Center)
@@ -327,12 +327,12 @@ struct PencilLoginPage {
         .fontSize(11)
         .fontWeight(600)
         .letterSpacing(1.5)
-        .fontColor(PencilTokens.ACCENT)
+        .fontColor(PrototypeTokens.ACCENT)
       Text('欢迎回来')
         .fontFamily('Noto Sans SC')
         .fontSize(35)
         .fontWeight(FontWeight.Bold)
-        .fontColor(PencilTokens.TEXT_HI)
+        .fontColor(PrototypeTokens.TEXT_HI)
       Text('登录后，同步你的训练进度与身体数据')
         .fontFamily('Noto Sans SC')
         .fontSize(15)
@@ -349,7 +349,7 @@ struct PencilLoginPage {
       Text('演示模式：云服务未配置，手机验证码为 000000')
         .fontFamily('Noto Sans SC')
         .fontSize(12)
-        .fontColor(PencilTokens.GOLD)
+        .fontColor(PrototypeTokens.GOLD)
         .width('100%')
         .textAlign(TextAlign.Center)
         .padding({ top: 9, bottom: 9 })
@@ -368,8 +368,8 @@ struct PencilLoginPage {
     .width('100%')
     .height(44)
     .padding(3)
-    .backgroundColor(PencilTokens.WHITE_A06)
-    .border({ width: 1, color: PencilTokens.WHITE_A10 })
+    .backgroundColor(PrototypeTokens.WHITE_A06)
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
     .borderRadius(14)
   }
 
@@ -382,8 +382,8 @@ struct PencilLoginPage {
       .fontFamily('Noto Sans SC')
       .fontSize(13.5)
       .fontWeight(FontWeight.Bold)
-      .fontColor(this.loginMode === modeKey ? PencilTokens.TEXT_ON_ACCENT : PencilTokens.WHITE_A62)
-      .backgroundColor(this.loginMode === modeKey ? PencilTokens.ACCENT : Color.Transparent)
+      .fontColor(this.loginMode === modeKey ? PrototypeTokens.TEXT_ON_ACCENT : PrototypeTokens.WHITE_A62)
+      .backgroundColor(this.loginMode === modeKey ? PrototypeTokens.ACCENT : Color.Transparent)
       .borderRadius(11)
       .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: MotionTokens.EASE_MOTION })
       .onClick(() => {
@@ -434,7 +434,7 @@ struct PencilLoginPage {
         .fontFamily('Noto Sans SC')
         .fontSize(13)
         .fontWeight(FontWeight.Medium)
-        .fontColor(PencilTokens.WHITE_A62)
+        .fontColor(PrototypeTokens.WHITE_A62)
         .width('100%')
         .margin({ bottom: 8 })
       Row({ space: 12 }) {
@@ -444,8 +444,8 @@ struct PencilLoginPage {
           .layoutWeight(1)
           .fontFamily('Noto Sans SC')
           .fontSize(16)
-          .fontColor(PencilTokens.TEXT_HI)
-          .placeholderColor(PencilTokens.WHITE_A40)
+          .fontColor(PrototypeTokens.TEXT_HI)
+          .placeholderColor(PrototypeTokens.WHITE_A40)
           .backgroundColor(Color.Transparent)
           .padding(0)
           .onFocus(() => {
@@ -462,7 +462,7 @@ struct PencilLoginPage {
             Image($rawfile('pencil-lucide-eye.svg'))
               .width(20)
               .height(20)
-              .fillColor(this.revealPassword ? ColorTokens.ACCENT_PRIMARY : PencilTokens.WHITE_A54)
+              .fillColor(this.revealPassword ? ColorTokens.ACCENT_PRIMARY : PrototypeTokens.WHITE_A54)
               .onTouch((event: TouchEvent) => {
                 if (event.type === TouchType.Down) {
                   this.eyePressed = true
@@ -485,9 +485,9 @@ struct PencilLoginPage {
       .width('100%')
       .height(52)
       .padding({ left: 16, right: 16 })
-      .backgroundColor(this.fieldError(fieldKey).length > 0 ? FIELD_ERROR_FILL : (this.focusedField === fieldKey ? PencilTokens.ACCENT_A05 : PencilTokens.WHITE_A03))
+      .backgroundColor(this.fieldError(fieldKey).length > 0 ? FIELD_ERROR_FILL : (this.focusedField === fieldKey ? PrototypeTokens.ACCENT_A05 : PrototypeTokens.WHITE_A03))
       .borderRadius(18)
-      .border({ width: 1, color: this.fieldError(fieldKey).length > 0 ? FIELD_ERROR_BORDER : (this.focusedField === fieldKey ? PencilTokens.ACCENT_A45 : PencilTokens.WHITE_A08) })
+      .border({ width: 1, color: this.fieldError(fieldKey).length > 0 ? FIELD_ERROR_BORDER : (this.focusedField === fieldKey ? PrototypeTokens.ACCENT_A45 : PrototypeTokens.WHITE_A08) })
       .alignItems(VerticalAlign.Center)
       .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
       .translate({ x: this.shakeFieldKey === fieldKey ? this.shakeOffset : 0 })
@@ -516,7 +516,7 @@ struct PencilLoginPage {
         .fontFamily('Noto Sans SC')
         .fontSize(13)
         .fontWeight(FontWeight.Medium)
-        .fontColor(PencilTokens.WHITE_A62)
+        .fontColor(PrototypeTokens.WHITE_A62)
         .width('100%')
         .margin({ bottom: 8 })
       Row({ space: 10 }) {
@@ -527,8 +527,8 @@ struct PencilLoginPage {
           .layoutWeight(1)
           .fontFamily('Noto Sans SC')
           .fontSize(16)
-          .fontColor(PencilTokens.TEXT_HI)
-          .placeholderColor(PencilTokens.WHITE_A40)
+          .fontColor(PrototypeTokens.TEXT_HI)
+          .placeholderColor(PrototypeTokens.WHITE_A40)
           .backgroundColor(Color.Transparent)
           .padding(0)
           .onFocus(() => {
@@ -547,8 +547,8 @@ struct PencilLoginPage {
           .fontFamily('Noto Sans SC')
           .fontSize(12.5)
           .fontWeight(FontWeight.Bold)
-          .fontColor(this.countdown > 0 ? PencilTokens.WHITE_A40 : PencilTokens.TEXT_ON_ACCENT)
-          .backgroundColor(this.countdown > 0 ? PencilTokens.WHITE_A06 : PencilTokens.ACCENT)
+          .fontColor(this.countdown > 0 ? PrototypeTokens.WHITE_A40 : PrototypeTokens.TEXT_ON_ACCENT)
+          .backgroundColor(this.countdown > 0 ? PrototypeTokens.WHITE_A06 : PrototypeTokens.ACCENT)
           .borderRadius(12)
           .enabled(this.countdown === 0 && !this.sendingCode)
           .onClick(() => {
@@ -558,9 +558,9 @@ struct PencilLoginPage {
       .width('100%')
       .height(52)
       .padding({ left: 16, right: 10 })
-      .backgroundColor(this.codeError.length > 0 ? FIELD_ERROR_FILL : (this.focusedField === 'code' ? PencilTokens.ACCENT_A05 : PencilTokens.WHITE_A03))
+      .backgroundColor(this.codeError.length > 0 ? FIELD_ERROR_FILL : (this.focusedField === 'code' ? PrototypeTokens.ACCENT_A05 : PrototypeTokens.WHITE_A03))
       .borderRadius(18)
-      .border({ width: 1, color: this.codeError.length > 0 ? FIELD_ERROR_BORDER : (this.focusedField === 'code' ? PencilTokens.ACCENT_A45 : PencilTokens.WHITE_A08) })
+      .border({ width: 1, color: this.codeError.length > 0 ? FIELD_ERROR_BORDER : (this.focusedField === 'code' ? PrototypeTokens.ACCENT_A45 : PrototypeTokens.WHITE_A08) })
       .alignItems(VerticalAlign.Center)
       .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
       .translate({ x: this.shakeFieldKey === 'code' ? this.shakeOffset : 0 })
@@ -595,8 +595,8 @@ struct PencilLoginPage {
       .width(18)
       .height(18)
       .borderRadius(6)
-      .backgroundColor(this.agreeChecked ? PencilTokens.ACCENT : '#0AFFFFFF')
-      .border({ width: 1, color: this.agreeChecked ? PencilTokens.ACCENT : '#2EFFFFFF' })
+      .backgroundColor(this.agreeChecked ? PrototypeTokens.ACCENT : '#0AFFFFFF')
+      .border({ width: 1, color: this.agreeChecked ? PrototypeTokens.ACCENT : '#2EFFFFFF' })
       .margin({ top: 1 })
       .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: Curve.EaseInOut })
       .onClick(() => {
@@ -605,7 +605,7 @@ struct PencilLoginPage {
       Text() {
         Span('我已阅读并同意')
         Span('《用户协议》')
-          .fontColor(PencilTokens.ACCENT)
+          .fontColor(PrototypeTokens.ACCENT)
           .fontWeight(FontWeight.Medium)
           .onClick(() => {
             this.getUIContext().getRouter().pushUrl({
@@ -615,7 +615,7 @@ struct PencilLoginPage {
           })
         Span('与')
         Span('《隐私政策》')
-          .fontColor(PencilTokens.ACCENT)
+          .fontColor(PrototypeTokens.ACCENT)
           .fontWeight(FontWeight.Medium)
           .onClick(() => {
             this.getUIContext().getRouter().pushUrl({
@@ -626,7 +626,7 @@ struct PencilLoginPage {
       }
       .fontFamily('Noto Sans SC')
       .fontSize(12.5)
-      .fontColor(PencilTokens.WHITE_A54)
+      .fontColor(PrototypeTokens.WHITE_A54)
       .lineHeight(19)
     }
     .width('100%')
@@ -637,12 +637,12 @@ struct PencilLoginPage {
   @Builder
   private buildAuthDivider() {
     Row({ space: 12 }) {
-      Divider().layoutWeight(1).color(PencilTokens.WHITE_A08)
+      Divider().layoutWeight(1).color(PrototypeTokens.WHITE_A08)
       Text('其他登录方式')
         .fontFamily('Noto Sans SC')
         .fontSize(12)
-        .fontColor(PencilTokens.WHITE_A40)
-      Divider().layoutWeight(1).color(PencilTokens.WHITE_A08)
+        .fontColor(PrototypeTokens.WHITE_A40)
+      Divider().layoutWeight(1).color(PrototypeTokens.WHITE_A08)
     }
     .width('100%')
     .height(18)
@@ -677,15 +677,15 @@ struct PencilLoginPage {
         .fontFamily('Noto Sans SC')
         .fontSize(13.5)
         .fontWeight(600)
-        .fontColor(PencilTokens.TEXT_HI)
+        .fontColor(PrototypeTokens.TEXT_HI)
     }
     .layoutWeight(1)
     .height(50)
     .justifyContent(FlexAlign.Center)
     .alignItems(VerticalAlign.Center)
-    .backgroundColor(PencilTokens.WHITE_A03)
+    .backgroundColor(PrototypeTokens.WHITE_A03)
     .borderRadius(16)
-    .border({ width: 1, color: PencilTokens.WHITE_A10 })
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
     .onTouch((event: TouchEvent) => {
       if (event.type === TouchType.Down) {
         this.socialKey = key
@@ -705,7 +705,7 @@ struct PencilLoginPage {
       Column()
         .width('100%')
         .height('100%')
-        .backgroundColor(PencilTokens.BG_INK_WELCOME)
+        .backgroundColor(PrototypeTokens.BG_INK_WELCOME)
       Column() {
         Scroll() {
           Column() {
@@ -757,7 +757,7 @@ struct PencilLoginPage {
                 Text(this.hint)
                   .fontFamily('Noto Sans SC')
                   .fontSize(13)
-                  .fontColor(PencilTokens.ACCENT)
+                  .fontColor(PrototypeTokens.ACCENT)
                   .width('100%')
                   .textAlign(TextAlign.Center)
               }
@@ -770,7 +770,7 @@ struct PencilLoginPage {
                 .fontFamily('Noto Sans SC')
                 .fontSize(16)
                 .fontWeight(FontWeight.Bold)
-                .fontColor(PencilTokens.TEXT_ON_ACCENT)
+                .fontColor(PrototypeTokens.TEXT_ON_ACCENT)
                 .backgroundColor(ColorTokens.ACCENT_PRIMARY)
                 .borderRadius(18)
                 .shadow({ radius: 26, color: 'rgba(0,0,0,0.38)', offsetX: 0, offsetY: 12 })
@@ -803,12 +803,12 @@ struct PencilLoginPage {
               Text('还没有账号？')
                 .fontFamily('Noto Sans SC')
                 .fontSize(14)
-                .fontColor(PencilTokens.WHITE_A60)
+                .fontColor(PrototypeTokens.WHITE_A60)
               Text('立即注册')
                 .fontFamily('Noto Sans SC')
                 .fontSize(14)
                 .fontWeight(FontWeight.Bold)
-                .fontColor(PencilTokens.ACCENT)
+                .fontColor(PrototypeTokens.ACCENT)
                 .onClick(() => {
                   this.getUIContext().getRouter().pushUrl({ url: AppRoutes.REGISTER })
                 })

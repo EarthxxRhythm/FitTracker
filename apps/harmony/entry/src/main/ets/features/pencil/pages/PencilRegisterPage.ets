@@ -9,7 +9,7 @@ import { Context } from '@kit.AbilityKit'
 import { MotionTokens, ColorTokens } from '../../../common/styles/DesignTokens'
 import { currentCanvasScale } from '../../../common/utils/CanvasScale'
 import { shakeField } from '../../../common/utils/FieldShake'
-import { PencilTokens } from '../PencilTokens'
+import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 
 const COUNTDOWN_SECONDS: number = 60
 
@@ -197,15 +197,15 @@ struct PencilRegisterPage {
       .width(48)
       .height(48)
       .justifyContent(FlexAlign.Center)
-      .backgroundColor(PencilTokens.ACCENT_A10)
+      .backgroundColor(PrototypeTokens.ACCENT_A10)
       .borderRadius(16)
-      .border({ width: 1, color: PencilTokens.ACCENT_A30 })
+      .border({ width: 1, color: PrototypeTokens.ACCENT_A30 })
       Text('FITTRACKER')
         .fontFamily('Inter')
         .fontSize(13)
         .fontWeight(FontWeight.Bold)
         .letterSpacing(2.4)
-        .fontColor(PencilTokens.TEXT_HI)
+        .fontColor(PrototypeTokens.TEXT_HI)
     }
     .width('100%')
     .alignItems(HorizontalAlign.Center)
@@ -217,7 +217,7 @@ struct PencilRegisterPage {
       Text('演示模式：云服务未配置，验证码为 000000')
         .fontFamily('Noto Sans SC')
         .fontSize(12)
-        .fontColor(PencilTokens.GOLD)
+        .fontColor(PrototypeTokens.GOLD)
         .width('100%')
         .textAlign(TextAlign.Center)
         .padding({ top: 9, bottom: 9 })
@@ -282,7 +282,7 @@ struct PencilRegisterPage {
       Text(label)
         .fontFamily('Noto Sans SC')
         .fontSize(13)
-        .fontColor(PencilTokens.WHITE_A62)
+        .fontColor(PrototypeTokens.WHITE_A62)
         .width('100%')
         .margin({ bottom: 8 })
       Row({ space: 12 }) {
@@ -292,8 +292,8 @@ struct PencilRegisterPage {
           .layoutWeight(1)
           .fontFamily('Noto Sans SC')
           .fontSize(16)
-          .fontColor(PencilTokens.TEXT_HI)
-          .placeholderColor(PencilTokens.WHITE_A40)
+          .fontColor(PrototypeTokens.TEXT_HI)
+          .placeholderColor(PrototypeTokens.WHITE_A40)
           // TextInput 自身默认带不透明底色，且其 bounds 比外层容器小（内缩），
           // 不透明时会渲染成容器内的一个内缩色块。置透明以消除内层色层。
           .backgroundColor(Color.Transparent)
@@ -311,7 +311,7 @@ struct PencilRegisterPage {
           Image($rawfile('pencil-lucide-eye.svg'))
             .width(20)
             .height(20)
-            .fillColor(this.isPasswordVisible(label) ? PencilTokens.ACCENT : PencilTokens.WHITE_A54)
+            .fillColor(this.isPasswordVisible(label) ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A54)
             .onTouch((event: TouchEvent) => {
               if (event.type === TouchType.Down) {
                 this.eyeKey = label
@@ -329,9 +329,9 @@ struct PencilRegisterPage {
       .width('100%')
       .height(52)
       .padding({ left: 16, right: 16 })
-      .backgroundColor(this.fieldError(label).length > 0 ? FIELD_ERROR_FILL : (this.focusedKey === label ? PencilTokens.ACCENT_A05 : PencilTokens.WHITE_A03))
+      .backgroundColor(this.fieldError(label).length > 0 ? FIELD_ERROR_FILL : (this.focusedKey === label ? PrototypeTokens.ACCENT_A05 : PrototypeTokens.WHITE_A03))
       .borderRadius(18)
-      .border({ width: 1, color: this.fieldError(label).length > 0 ? FIELD_ERROR_BORDER : (this.focusedKey === label ? PencilTokens.ACCENT_A45 : PencilTokens.WHITE_A08) })
+      .border({ width: 1, color: this.fieldError(label).length > 0 ? FIELD_ERROR_BORDER : (this.focusedKey === label ? PrototypeTokens.ACCENT_A45 : PrototypeTokens.WHITE_A08) })
       .alignItems(VerticalAlign.Center)
       .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
       .translate({ x: this.shakeFieldKey === label ? this.shakeOffset : 0 })
@@ -359,7 +359,7 @@ struct PencilRegisterPage {
       Text('邮箱验证码')
         .fontFamily('Noto Sans SC')
         .fontSize(13)
-        .fontColor(PencilTokens.WHITE_A62)
+        .fontColor(PrototypeTokens.WHITE_A62)
         .width('100%')
         .margin({ bottom: 8 })
       Row({ space: 10 }) {
@@ -370,8 +370,8 @@ struct PencilRegisterPage {
           .layoutWeight(1)
           .fontFamily('Noto Sans SC')
           .fontSize(16)
-          .fontColor(PencilTokens.TEXT_HI)
-          .placeholderColor(PencilTokens.WHITE_A40)
+          .fontColor(PrototypeTokens.TEXT_HI)
+          .placeholderColor(PrototypeTokens.WHITE_A40)
           // 同 buildField：TextInput 默认底色会在容器内形成内缩色块，置透明。
           .backgroundColor(Color.Transparent)
           .padding(0)
@@ -391,8 +391,8 @@ struct PencilRegisterPage {
           .fontFamily('Noto Sans SC')
           .fontSize(12.5)
           .fontWeight(FontWeight.Bold)
-          .fontColor(this.countdown > 0 ? PencilTokens.WHITE_A40 : PencilTokens.TEXT_ON_ACCENT)
-          .backgroundColor(this.countdown > 0 ? PencilTokens.WHITE_A06 : PencilTokens.ACCENT)
+          .fontColor(this.countdown > 0 ? PrototypeTokens.WHITE_A40 : PrototypeTokens.TEXT_ON_ACCENT)
+          .backgroundColor(this.countdown > 0 ? PrototypeTokens.WHITE_A06 : PrototypeTokens.ACCENT)
           .borderRadius(12)
           .enabled(this.countdown === 0 && !this.sendingCode)
           .onClick(() => {
@@ -402,9 +402,9 @@ struct PencilRegisterPage {
       .width('100%')
       .height(52)
       .padding({ left: 16, right: 10 })
-      .backgroundColor(this.codeError.length > 0 ? FIELD_ERROR_FILL : (this.focusedKey === 'code' ? PencilTokens.ACCENT_A05 : PencilTokens.WHITE_A03))
+      .backgroundColor(this.codeError.length > 0 ? FIELD_ERROR_FILL : (this.focusedKey === 'code' ? PrototypeTokens.ACCENT_A05 : PrototypeTokens.WHITE_A03))
       .borderRadius(18)
-      .border({ width: 1, color: this.codeError.length > 0 ? FIELD_ERROR_BORDER : (this.focusedKey === 'code' ? PencilTokens.ACCENT_A45 : PencilTokens.WHITE_A08) })
+      .border({ width: 1, color: this.codeError.length > 0 ? FIELD_ERROR_BORDER : (this.focusedKey === 'code' ? PrototypeTokens.ACCENT_A45 : PrototypeTokens.WHITE_A08) })
       .alignItems(VerticalAlign.Center)
       .animation({ duration: MotionTokens.DURATION_COLOR_BASE, curve: Curve.EaseInOut })
       .translate({ x: this.shakeFieldKey === 'code' ? this.shakeOffset : 0 })
@@ -431,7 +431,7 @@ struct PencilRegisterPage {
       Column()
         .width('100%')
         .height('100%')
-        .linearGradient({ angle: 180, colors: [[PencilTokens.BG_INK, 0], ['#0A0D12', 1]] })
+        .linearGradient({ angle: 180, colors: [[PrototypeTokens.BG_INK, 0], ['#0A0D12', 1]] })
 
       Column() {
         Scroll() {
@@ -448,7 +448,7 @@ struct PencilRegisterPage {
                 .fontSize(11)
                 .fontWeight(FontWeight.Bold)
                 .letterSpacing(1.5)
-                .fontColor(PencilTokens.ACCENT)
+                .fontColor(PrototypeTokens.ACCENT)
                 .margin({ bottom: 11 })
               Text('创建账号')
                 .fontFamily('Noto Sans SC')
@@ -456,7 +456,7 @@ struct PencilRegisterPage {
                 .fontWeight(FontWeight.Bold)
                 .lineHeight(41.3)
                 .letterSpacing(-0.35)
-                .fontColor(PencilTokens.TEXT_HI)
+                .fontColor(PrototypeTokens.TEXT_HI)
               Text('开始记录每一次训练，见证看得见的进步')
                 .fontFamily('Noto Sans SC')
                 .fontSize(15)
@@ -465,7 +465,7 @@ struct PencilRegisterPage {
               Text('手机号用户可在登录页用验证码直接登录（自动注册）')
                 .fontFamily('Noto Sans SC')
                 .fontSize(12)
-                .fontColor(PencilTokens.WHITE_A40)
+                .fontColor(PrototypeTokens.WHITE_A40)
                 .margin({ top: 8 })
             }
             .width('100%')
@@ -503,8 +503,8 @@ struct PencilRegisterPage {
                 .width(18)
                 .height(18)
                 .borderRadius(6)
-                .backgroundColor(this.agreeChecked ? PencilTokens.ACCENT : '#0AFFFFFF')
-                .border({ width: 1, color: this.agreeChecked ? PencilTokens.ACCENT : '#2EFFFFFF' })
+                .backgroundColor(this.agreeChecked ? PrototypeTokens.ACCENT : '#0AFFFFFF')
+                .border({ width: 1, color: this.agreeChecked ? PrototypeTokens.ACCENT : '#2EFFFFFF' })
                 .margin({ top: 1 })
                 .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: Curve.EaseInOut })
                 .onClick(() => {
@@ -513,7 +513,7 @@ struct PencilRegisterPage {
                 Text() {
                   Span('我已阅读并同意')
                   Span('《用户协议》')
-                    .fontColor(PencilTokens.ACCENT)
+                    .fontColor(PrototypeTokens.ACCENT)
                     .fontWeight(FontWeight.Medium)
                     .onClick(() => {
                       this.getUIContext().getRouter().pushUrl({
@@ -523,7 +523,7 @@ struct PencilRegisterPage {
                     })
                   Span('与')
                   Span('《隐私政策》')
-                    .fontColor(PencilTokens.ACCENT)
+                    .fontColor(PrototypeTokens.ACCENT)
                     .fontWeight(FontWeight.Medium)
                     .onClick(() => {
                       this.getUIContext().getRouter().pushUrl({
@@ -534,7 +534,7 @@ struct PencilRegisterPage {
                 }
                 .fontFamily('Noto Sans SC')
                 .fontSize(12.5)
-                .fontColor(PencilTokens.WHITE_A54)
+                .fontColor(PrototypeTokens.WHITE_A54)
                 .lineHeight(19)
               }
               .width('100%')
@@ -561,7 +561,7 @@ struct PencilRegisterPage {
                 Text(this.hint)
                   .fontFamily('Noto Sans SC')
                   .fontSize(13)
-                  .fontColor(PencilTokens.ACCENT)
+                  .fontColor(PrototypeTokens.ACCENT)
                   .width('100%')
                   .textAlign(TextAlign.Center)
               }
@@ -573,8 +573,8 @@ struct PencilRegisterPage {
                 .fontFamily('Noto Sans SC')
                 .fontSize(16)
                 .fontWeight(FontWeight.Bold)
-                .fontColor(PencilTokens.TEXT_ON_ACCENT)
-                .backgroundColor(PencilTokens.ACCENT)
+                .fontColor(PrototypeTokens.TEXT_ON_ACCENT)
+                .backgroundColor(PrototypeTokens.ACCENT)
                 .borderRadius(18)
                 .shadow({ radius: 26, color: '#61000000', offsetX: 0, offsetY: 12 })
                 .onClick(() => {
@@ -598,12 +598,12 @@ struct PencilRegisterPage {
               Text('已有账号？')
                 .fontFamily('Noto Sans SC')
                 .fontSize(14)
-                .fontColor(PencilTokens.WHITE_A60)
+                .fontColor(PrototypeTokens.WHITE_A60)
               Text('直接登录')
                 .fontFamily('Noto Sans SC')
                 .fontSize(14)
                 .fontWeight(FontWeight.Bold)
-                .fontColor(PencilTokens.ACCENT)
+                .fontColor(PrototypeTokens.ACCENT)
                 .onClick(() => {
                   this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.LOGIN })
                 })
@@ -637,6 +637,6 @@ struct PencilRegisterPage {
     .width('100%')
     .height('100%')
     .clip(true)
-    .backgroundColor(PencilTokens.BG_INK_WELCOME)
+    .backgroundColor(PrototypeTokens.BG_INK_WELCOME)
   }
 }
