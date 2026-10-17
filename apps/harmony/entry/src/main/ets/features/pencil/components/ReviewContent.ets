@@ -10,6 +10,8 @@ import SettingsService, { AppSettings } from '../../../common/services/SettingsS
 import UserProfileService, { UserProfile, WeightUnit } from '../../../common/services/UserProfileService'
 import { kgToDisplay, displayToKg, weightUnitLabel } from '../../../common/utils/WeightUtils'
 import BodyRecordService from '../../../shared/services/BodyRecordService'
+import ContentRepository from '../../../shared/services/ContentRepository'
+import { ExerciseContent } from '../../../shared/models/TrainingModels'
 import PersonalRecordService, { ExercisePersonalRecordDetail } from '../../../shared/services/PersonalRecordService'
 import { WeightRecord, BodyTrend } from '../../../shared/models/BodyModels'
 import { resolveWeekStart, WeekStart } from '../../../common/utils/WeekUtils'
@@ -37,24 +39,6 @@ const WEEKDAY_LABELS: string[] = ['一', '二', '三', '四', '五', '六', '日
 /** 周开始日=周日时，周柱/日历表头从周日排起（首列=周日）。 */
 const WEEKDAY_LABELS_SUNDAY_FIRST: string[] = ['日', '一', '二', '三', '四', '五', '六']
 
-const WEIGHT_CHART_POINTS: WeightChartPoint[] = [
-  { x: 12, y: 42 },
-  { x: 57, y: 49 },
-  { x: 102, y: 47 },
-  { x: 147, y: 58 },
-  { x: 192, y: 64 },
-  { x: 237, y: 60 },
-  { x: 282, y: 68 },
-  { x: 330, y: 74 }
-]
-
-const ONE_RM_ROWS: OneRmRowItem[] = [
-  { name: '杠铃卧推', source: '6月10日 · 第3组', value: '62.5' },
-  { name: '杠铃深蹲', source: '6月8日 · 第2组', value: '95' },
-  { name: '杠铃硬拉', source: '6月5日 · 第1组', value: '105' },
-  { name: '杠铃划船', source: '6月3日 · 第2组', value: '58' }
-]
-
 // 努力程度柱状图：一列总高 96 要同时容纳柱子、6px 间距和 12px 序号，柱子可用高度只有 78
 const EFFORT_BAR_COLUMN_HEIGHT: number = 96
 const EFFORT_BAR_GAP: number = 6
@@ -62,19 +46,11 @@ const EFFORT_BAR_LABEL_HEIGHT: number = 12
 const EFFORT_BAR_TRACK_HEIGHT: number =
   EFFORT_BAR_COLUMN_HEIGHT - EFFORT_BAR_GAP - EFFORT_BAR_LABEL_HEIGHT
 
-const RIR_BARS: number[] = [2, 3, 1, 2, 4, 1, 3, 2]
-
 const MM_MUSCLE_KEYS: string[] = [
   'trapezius', 'deltoids', 'chest', 'upper-back', 'serratus', 'biceps', 'triceps', 'forearm',
   'abs', 'obliques', 'lower-back', 'gluteal', 'quadriceps', 'hamstring', 'adductors', 'hip-flexors',
   'calves', 'tibialis'
 ]
-
-const MM_LEVELS_BALANCE: number[] = [2, 3, 4, 3, 2, 3, 3, 2, 3, 2, 2, 3, 4, 3, 1, 1, 2, 1]
-
-const MM_LEVELS_FATIGUE: number[] = [1, 2, 2, 3, 1, 2, 2, 1, 1, 1, 1, 4, 4, 3, 1, 1, 1, 1]
-
-const MM_LEVELS_STRENGTH: number[] = [1, 3, 4, 3, 1, 2, 2, 1, 2, 1, 1, 3, 4, 3, 1, 1, 2, 1]
 
 const BALANCE_FILLS: string[] = ['#3A705E', '#429B77', '#49C48F', PrototypeTokens.ACCENT]
 const FATIGUE_FILLS: string[] = ['#66644A', PrototypeTokens.GOLD_BRIGHT, '#E5B878', '#F0A48A']
@@ -908,8 +884,14 @@ export struct ReviewContent {
   @State private bodyWeightKg: number | undefined = undefined
   /** 真实「较上月」差值（kg，近 30 天首尾之差）。 */
   @State private bodyWeightDeltaKg: number = -0.8
-  /** 1RM 行：有训练会话时由 [loadPersonalRecords] 覆盖；无会话时保持原型样例态。 */
-  @State private oneRmRows: OneRmRowItem[] = ONE_RM_ROWS
+  /** 1RM 行：有训练会话时由 [loadPersonalRecords] 覆盖；无会话时为空态（不再回落原型样例）。 */
+  @State private oneRmRows: OneRmRowItem[] = []
+  /** 努力程度序列（近 8 次已评价训练的整体 RPE）；空 = 无数据（柱区渲染空态）。 */
+  @State private effortLevels: number[] = []
+  /** 肌群训练量（18 部位，与 [MM_MUSCLE_KEYS] 同序）；空/全零 = 无数据。 */
+  @State private muscleVolume: number[] = []
+  /** 真实体重折线点（由 [BodyRecordService] 周趋势派生）；空 = 无记录（折线区渲染空态）。 */
+  @State private weightChartPoints: WeightChartPoint[] = []
   @State private selectedMuscleKey: string = ''
   @State private monthDayLevels: number[] = []
   @State private calendarLeadDays: number = 0
@@ -973,15 +955,21 @@ export struct ReviewContent {
       this.trendItems = ReviewInsightsService.createWeeklyTrendItems(sessions, now, settings.weekStart)
       this.weekBars = this.buildWeekBars(sessions, now, this.weekStartKey)
       this.initCalendarData(sessions, now)
-      // 真实数据接线：体重卡与 1RM 表（无记录/无会话时保持原型样例态）。
+      // 真实数据接线：体重折线 / 努力程度 / 肌群热力 / 1RM 表（无数据时各渲染空态）。
       await this.loadBodyWeight(context, now)
       this.loadPersonalRecords(sessions)
+      this.effortLevels = ReviewInsightsService.createEffortLevels(sessions, 8)
+      this.muscleVolume = ReviewInsightsService.createMuscleVolume(
+        sessions,
+        (exerciseId: string) => this.primaryMusclesOf(exerciseId),
+        8
+      )
     } catch (error) {
       this.applyEmptyState()
     }
   }
 
-  /** 读回体重记录：填充当前体重与「较上月」差值；无记录时保持样例态。 */
+  /** 读回体重记录：填充当前体重、「较上月」差值与折线点；无记录时保持空态。 */
   private async loadBodyWeight(context: Context, now: number): Promise<void> {
     const records: WeightRecord[] = await BodyRecordService.loadRecords(context)
     if (records.length === 0) {
@@ -995,6 +983,56 @@ export struct ReviewContent {
     if (month !== undefined) {
       this.bodyWeightDeltaKg = month.deltaKg
     }
+    // 折线点由周趋势序列派生（与体重卡数字同源）。
+    const week: BodyTrend | undefined = BodyRecordService.weekTrend(records, now, this.weekStartKey)
+    if (week !== undefined) {
+      this.weightChartPoints = this.buildWeightChartPoints(week.values)
+    }
+  }
+
+  /**
+   * 由真实体重序列派生折线坐标：x 均匀铺满绘图区，y 按 min/max 归一。
+   *
+   * 绘图区取自本组件既有坐标（x 12–330、y 16–120，见 `drawWeightChart` 的网格与面积基线）。
+   */
+  private buildWeightChartPoints(values: number[]): WeightChartPoint[] {
+    const points: WeightChartPoint[] = []
+    if (values.length === 0) {
+      return points
+    }
+    const x0: number = 12
+    const x1: number = 330
+    const yTop: number = 16
+    const yBottom: number = 120
+    let lo: number = values[0]
+    let hi: number = values[0]
+    for (let index = 0; index < values.length; index++) {
+      if (values[index] < lo) {
+        lo = values[index]
+      }
+      if (values[index] > hi) {
+        hi = values[index]
+      }
+    }
+    const span: number = hi - lo === 0 ? 1 : hi - lo
+    const count: number = values.length
+    for (let index = 0; index < count; index++) {
+      const x: number = count === 1
+        ? x0
+        : x0 + (x1 - x0) * index / (count - 1)
+      const y: number = yBottom - (values[index] - lo) / span * (yBottom - yTop)
+      points.push({ x: x, y: y })
+    }
+    return points
+  }
+
+  /** 动作主肌群（经内容库解析）；未收录返回空数组。 */
+  private primaryMusclesOf(exerciseId: string): string[] {
+    const exercise: ExerciseContent | undefined = ContentRepository.getExerciseById(exerciseId)
+    if (exercise === undefined) {
+      return []
+    }
+    return exercise.primaryMuscleIds
   }
 
   /** 由训练会话派生 1RM 行（取前 4 项）；无会话时保持样例态。 */
@@ -1316,14 +1354,18 @@ export struct ReviewContent {
     return -1
   }
 
+  /**
+   * 热力等级（18 部位，与 [MM_MUSCLE_KEYS] 同序）——由真实肌群训练量归一为 1–4 级。
+   *
+   * 三模式共用同一真实派生（当前数据源只有「按组数的肌群训练量」一项；三者的区分由
+   * 配色与文案承载，见 [currentFills] / [muscleMeta] / [muscleNote]）。无训练数据时全 0
+   * （UI 渲染空态）。
+   */
   private currentLevels(): number[] {
-    if (this.muscleMode === 'fatigue') {
-      return MM_LEVELS_FATIGUE
+    if (this.muscleVolume.length === 0) {
+      return []
     }
-    if (this.muscleMode === 'strength') {
-      return MM_LEVELS_STRENGTH
-    }
-    return MM_LEVELS_BALANCE
+    return ReviewInsightsService.createMuscleLevels(this.muscleVolume)
   }
 
   private currentFills(): string[] {
@@ -1375,14 +1417,16 @@ export struct ReviewContent {
     return '近 30 天 · 训练量'
   }
 
+  /**
+   * 肌群结论文案——由真实最高/最低训练量部位拼装（经 [ReviewInsightsService.createMuscleSummary]）。
+   *
+   * 三模式共用同一份真实训练量结论；无数据时给空态文案。
+   */
   private muscleNote(): string {
-    if (this.muscleMode === 'fatigue') {
-      return '腿部与臀部疲劳度较高，建议优先恢复。'
+    if (this.muscleVolume.length === 0) {
+      return '完成训练后，这里会显示肌群训练分布。'
     }
-    if (this.muscleMode === 'strength') {
-      return '胸部与腿部力量最强，核心相对薄弱。'
-    }
-    return '胸部训练量最高，核心最少。'
+    return ReviewInsightsService.createMuscleSummary(this.muscleVolume, MM_MUSCLE_LABELS)
   }
 
   private muscleLabel(key: string): string {
@@ -1417,18 +1461,28 @@ export struct ReviewContent {
     return (level * 25).toString() + '%'
   }
 
-  private effortAverage(): string {
-    const isRpe: boolean = this.effortMode === 'rpe'
-    let sum: number = 0
-    for (let index = 0; index < RIR_BARS.length; index++) {
-      if (isRpe) {
-        sum += 10 - RIR_BARS[index]
-      } else {
-        sum += RIR_BARS[index]
-      }
+  /** 努力程度柱区当前展示的序列：RIR 口径 = 10 − RPE（与原型一致）。无数据返回空数组。 */
+  private effortBars(): number[] {
+    if (this.effortMode === 'rpe') {
+      return this.effortLevels
     }
-    const average: number = sum / RIR_BARS.length
-    return average.toFixed(1)
+    const rir: number[] = []
+    for (let index = 0; index < this.effortLevels.length; index++) {
+      rir.push(10 - this.effortLevels[index])
+    }
+    return rir
+  }
+
+  private effortAverage(): string {
+    const bars: number[] = this.effortBars()
+    if (bars.length === 0) {
+      return '--'
+    }
+    let sum: number = 0
+    for (let index = 0; index < bars.length; index++) {
+      sum += bars[index]
+    }
+    return (sum / bars.length).toFixed(1)
   }
 
   private effortUnitText(): string {
@@ -1439,10 +1493,14 @@ export struct ReviewContent {
   }
 
   private effortBarHeight(index: number): number {
-    const raw: number = RIR_BARS[index]
+    const bars: number[] = this.effortBars()
+    if (index < 0 || index >= bars.length) {
+      return 0
+    }
+    const raw: number = bars[index]
     let percent: number = 0
     if (this.effortMode === 'rpe') {
-      percent = ((10 - raw - 6) / 4) * 100
+      percent = ((raw - 6) / 4) * 100
     } else {
       percent = (raw / 4) * 100
     }
@@ -1557,6 +1615,11 @@ export struct ReviewContent {
       return
     }
     ctx.clearRect(0, 0, width, height)
+    // 无体重记录 → 只画网格底，不画折线（不再展示原型样例曲线）。
+    const points: WeightChartPoint[] = this.weightChartPoints
+    if (points.length === 0) {
+      return
+    }
     const scaleX: number = width / 342
     const scaleY: number = height / 132
     ctx.save()
@@ -1581,8 +1644,8 @@ export struct ReviewContent {
     ctx.fillStyle = 'rgba(80,236,167,0.12)'
     ctx.beginPath()
     ctx.moveTo(12, 120)
-    for (let index = 0; index < WEIGHT_CHART_POINTS.length; index++) {
-      ctx.lineTo(WEIGHT_CHART_POINTS[index].x, WEIGHT_CHART_POINTS[index].y)
+    for (let index = 0; index < points.length; index++) {
+      ctx.lineTo(points[index].x, points[index].y)
     }
     ctx.lineTo(330, 120)
     ctx.closePath()
@@ -1592,15 +1655,15 @@ export struct ReviewContent {
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
     ctx.beginPath()
-    ctx.moveTo(WEIGHT_CHART_POINTS[0].x, WEIGHT_CHART_POINTS[0].y)
-    for (let index = 1; index < WEIGHT_CHART_POINTS.length; index++) {
-      ctx.lineTo(WEIGHT_CHART_POINTS[index].x, WEIGHT_CHART_POINTS[index].y)
+    ctx.moveTo(points[0].x, points[0].y)
+    for (let index = 1; index < points.length; index++) {
+      ctx.lineTo(points[index].x, points[index].y)
     }
     ctx.stroke()
     ctx.fillStyle = PrototypeTokens.ACCENT
-    for (let index = 0; index < WEIGHT_CHART_POINTS.length; index++) {
+    for (let index = 0; index < points.length; index++) {
       ctx.beginPath()
-      ctx.arc(WEIGHT_CHART_POINTS[index].x, WEIGHT_CHART_POINTS[index].y, 3, 0, Math.PI * 2)
+      ctx.arc(points[index].x, points[index].y, 3, 0, Math.PI * 2)
       ctx.fill()
     }
     ctx.restore()
@@ -2478,7 +2541,7 @@ export struct ReviewContent {
       .margin({ top: 14 })
 
       Row({ space: 8 }) {
-        ForEach(RIR_BARS, (value: number, index: number) => {
+        ForEach(this.effortBars(), (value: number, index: number) => {
           Column({ space: EFFORT_BAR_GAP }) {
             Row()
               .width('100%')
