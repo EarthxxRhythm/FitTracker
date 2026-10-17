@@ -11,6 +11,24 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!--
+      QQ OpenSDK 必需（真机实测驱动，2026-10-17）：
+      缺失时 QQ 登录报 `openSDK_LOG.AuthAgent: permission not granted` 而静默失败。
+
+      取证链（javap 反编译 open_sdk_3.5.19_r9483ffc7_lite.jar）：
+        1) 全 JAR 唯一引用的权限常量就是 ACCESS_NETWORK_STATE（出现 3 次）
+        2) Tencent.isPermissionNotGranted() 的实现：
+             if (!d) return true;                       // d = 设备信息是否初始化成功
+             return TextUtils.isEmpty(DeviceInfoUtils.getString());
+        3) Tencent.d 默认 false（static{} 置 0），仅由设备/网络信息初始化路径置 true
+        4) 真机日志实证该初始化未完成：
+             openSDK_LOG.DeviceInfoUtils: init, model =      ← 空
+             openSDK_LOG.DeviceInfoUtils: init, device =     ← 空
+             openSDK_LOG.AuthAgent: permission not granted   ← 恒真，登录被拒
+      故补声明。同时声明网络状态读取也符合 SDK 的网络诊断用途。
+    -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!--
       Android 11+（API 30）包可见性：未声明 <queries> 时，isQQInstalled() /
       isWXAppInstalled() 会返回 false（getPackageInfo 抛 NameNotFoundException），
       第三方登录直接失效。真机实测（PKB110 / Android 16）：
