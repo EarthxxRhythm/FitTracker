@@ -58,6 +58,9 @@ const DEMO_CARD_HEIGHT: number = 280
 // 演示图自身尺寸，与容器高度解耦——容器加高时图不跟着放大（素材仅 180×180，
 // 放大会变糊）。图在容器内居中。
 const DEMO_MEDIA_SIZE: number = 230
+// 实拍素材的圆角。实拍照无白底、是矩形实景，须靠圆角收敛；取既有卡面口径 16，
+// 与 demoCard 的标题条一致，不引入新视觉值。
+const DEMO_PHOTO_RADIUS: number = 16
 
 interface CelebratePiece {
   id: string
@@ -99,6 +102,15 @@ export struct ActiveContent {
   @State private reps: number = 0
   @State private exerciseName: string = ''
   @State private exerciseGifSource: string = ExerciseGifCatalog.resolveDemoSource('')
+  /**
+   * 当前动作是否用的是实拍风格素材（free-exercise-db 实拍照合成）。
+   *
+   * 两套素材的容器需求不同，故须区分：
+   * - 线稿素材已把页底色烘进图里，与页面无缝，加圆角对它是视觉无感的（圆角外即页底色）；
+   * - 实拍照是全彩矩形实景、无白底，必须靠圆角卡片收敛，否则在深色页上是一块亮矩形。
+   * 演示容器恰为正方形（DEMO_MEDIA_SIZE 230），圆角直接落在 Image 上即可，无需包壳。
+   */
+  @State private exerciseUsesPhotoStyle: boolean = false
   @State private exerciseIndex: number = 1
   @State private exerciseTotal: number = 0
   @State private showModal: boolean = false
@@ -253,6 +265,7 @@ export struct ActiveContent {
     this.activeState = state
     this.exerciseName = state.currentExerciseName
     this.exerciseGifSource = ExerciseGifCatalog.resolveDemoSource(state.currentExerciseName)
+    this.exerciseUsesPhotoStyle = ExerciseGifCatalog.usesPhotoStyle(state.currentExerciseName)
     this.exerciseTotal = state.exercises.length
     this.exerciseIndex = this.findCurrentExerciseIndex(state)
     this.completed = Math.min(state.completedSets, PROGRESS_SEGMENTS.length)
@@ -637,15 +650,28 @@ export struct ActiveContent {
 
   @Builder
   private demoVisual() {
-    // 动作演示内嵌 GIF（rawfile/exercise-gifs-onpage）。素材已按亮度软过渡合成到页面底色：
-    // 无白块、无抠图锯齿，颜色保持原貌。卡面不设底色，图片与页面无缝。
-    // 图按 DEMO_MEDIA_SIZE 固定尺寸并在容器内居中——容器高度变化不会放大素材。
+    // 动作演示内嵌 GIF，两套素材并存：
+    // - 线稿素材（rawfile/exercise-gifs-onpage）：页底色已烘进图里，图与页面无缝。
+    // - 实拍素材（rawfile/exercise-gifs-photo）：全彩矩形实景、无白底，须靠圆角卡片收敛，
+    //   否则在深色页上是一块亮矩形。圆角取既有卡面口径 16（与 demoCard 标题条一致）。
+    // 容器为正方形且图按 DEMO_MEDIA_SIZE 定尺寸居中——容器高度变化不会放大素材；
+    // 因容器即图尺寸，实拍分支的圆角可直接落在图上，无需额外包壳。
     Row() {
-      Image($rawfile(this.exerciseGifSource))
-        .width(DEMO_MEDIA_SIZE)
-        .height(DEMO_MEDIA_SIZE)
-        .objectFit(ImageFit.Contain)
-        .alt(this.currentExerciseLabel() + ' 动作演示')
+      if (this.exerciseUsesPhotoStyle) {
+        Image($rawfile(this.exerciseGifSource))
+          .width(DEMO_MEDIA_SIZE)
+          .height(DEMO_MEDIA_SIZE)
+          .objectFit(ImageFit.Cover)
+          .borderRadius(DEMO_PHOTO_RADIUS)
+          .clip(true)
+          .alt(this.currentExerciseLabel() + ' 动作演示')
+      } else {
+        Image($rawfile(this.exerciseGifSource))
+          .width(DEMO_MEDIA_SIZE)
+          .height(DEMO_MEDIA_SIZE)
+          .objectFit(ImageFit.Contain)
+          .alt(this.currentExerciseLabel() + ' 动作演示')
+      }
     }
     .width('100%')
     .height('100%')
