@@ -567,10 +567,12 @@ private fun CompositionCard(
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             FtBodyModel.FAT_SCALE_RES.forEach { labelRes ->
-                Text( // `.fat-scale`：10px white40（L167）
+                Text( // `.fat-scale`：10px 数据标尺标签（L167）
+                      // 原型 white40 在 bg 上实测 3.81:1，低于 WCAG AA 正文 4.5:1；
+                      // 改用同族既有令牌 white48（4.99:1），不新增 token。
                     text = stringResource(labelRes),
                     style = FtType.natural(10f, 400, FtType.num),
-                    color = FtColor.white40,
+                    color = FtColor.white48,
                 )
             }
         }

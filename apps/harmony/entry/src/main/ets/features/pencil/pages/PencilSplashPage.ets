@@ -9,6 +9,7 @@ import { window } from '@kit.ArkUI'
 import { text } from '@kit.ArkGraphics2D'
 import DeviceSeedService from '../../../shared/services/DeviceSeedService'
 import CloudEnvironment from '../../../common/services/CloudEnvironment'
+import { PencilTokens } from '../PencilTokens'
 
 @Entry
 @Component
@@ -49,20 +50,20 @@ struct PencilSplashPage {
         .height(120)
         .borderRadius(60)
         .backgroundColor('#0F50ECA7')
-        .border({ width: 2, color: '#50ECA7' })
+        .border({ width: 2, color: PencilTokens.ACCENT })
 
       Column()
         .width(72)
         .height(72)
         .borderRadius(36)
-        .backgroundColor('#1A50ECA7')
+        .backgroundColor(PencilTokens.ACCENT_A10)
         .border({ width: 1, color: '#8850ECA7' })
 
       Column()
         .width(24)
         .height(24)
         .borderRadius(12)
-        .backgroundColor('#50ECA7')
+        .backgroundColor(PencilTokens.ACCENT)
         .shadow({
           radius: 18,
           color: '#8850ECA7',
@@ -86,7 +87,7 @@ struct PencilSplashPage {
         .fontSize(10)
         .fontWeight(FontWeight.Medium)
         .letterSpacing(1.4)
-        .fontColor('#50ECA7')
+        .fontColor(PencilTokens.ACCENT)
         .textAlign(TextAlign.Center)
 
       Text('菲特')
@@ -149,7 +150,7 @@ struct PencilSplashPage {
         .height('100%')
         .linearGradient({
           angle: 180,
-          colors: [['#0B0F13', 0], ['#0D1117', 0.5], ['#090C11', 1]]
+          colors: [[PencilTokens.BG_INK, 0], [PencilTokens.BG_RING_INNER, 0.5], ['#090C11', 1]]
         })
 
       Column()
@@ -158,7 +159,7 @@ struct PencilSplashPage {
         .radialGradient({
           center: [195, 202.56],
           radius: 280,
-          colors: [['#1850ECA7', 0], ['#0050ECA7', 1]]
+          colors: [['#1850ECA7', 0], [PencilTokens.ACCENT_A00, 1]]
         })
 
       Column()
@@ -168,7 +169,7 @@ struct PencilSplashPage {
         .radialGradient({
           center: [102, 102],
           radius: 102,
-          colors: [['#0D50ECA7', 0], ['#0050ECA7', 1]]
+          colors: [[PencilTokens.ACCENT_A05, 0], [PencilTokens.ACCENT_A00, 1]]
         })
         .position({
           x: 113,

@@ -14,6 +14,32 @@ The system should never collapse into “just black with green buttons.”
 
 ---
 
+## Authority Boundary (authoritative reading order)
+
+This document states the **design intent** and the semantic role of each token. It is **not**
+the numeric source of truth for pixel restoration.
+
+Reading order when implementing or restoring a screen:
+
+1. `design/06_prototype_redraw/src/*.html` — frozen prototype, the **only** visual spec source
+2. `design/06_prototype_redraw/TOKENS.md` — per-screen `:root` values + code mapping
+3. this file — intent, role, and hard rules
+
+Where a numeric value in this file differs from the frozen prototype, **the prototype wins.**
+
+Known intended divergence (see `TOKENS.md` §5): the prototype uses `--ink-0 #0B0F13`,
+`--txt-hi #F7FBF8`, `--white-*` steps that have **no same-valued member** in
+`common/styles/DesignTokens.ets` (`BG_PRIMARY #09100F`, `TEXT_ON_DARK #F3FBF7`, …).
+`TOKENS.md` §5 rules that screen restoration prefers **page-level literals** over a global
+token overwrite. `features/pencil/**` follows that ruling — its literals are the prototype
+values, **not** drift to be "corrected" toward the older `DesignTokens` values.
+
+Accent values below were reconciled against both the frozen prototype and both codebases
+(2026-10-28). Prior to that they read `#45C9A1 / #61E0B5 / #287A63`, none of which matched
+the prototype or either codebase, and `#287A63` existed nowhere in code at all.
+
+---
+
 ## 1. Background Tokens
 
 | Token | Value | Usage |
@@ -83,10 +109,10 @@ The system should never collapse into “just black with green buttons.”
 ### Core Emerald Accent
 | Token | Value | Usage |
 |---|---:|---|
-| `ACCENT_PRIMARY` | `#45C9A1` | Primary action / key focus |
-| `ACCENT_HOVER` | `#61E0B5` | Hover / active state |
+| `ACCENT_PRIMARY` | `#50ECA7` | Primary action / key focus |
+| `ACCENT_HOVER` | `#53E7A5` | Hover / active state |
 | `ACCENT_SOFT` | `#8CEBCC` | Glow / soft highlight |
-| `ACCENT_DEEP` | `#287A63` | Deep support accent |
+| `ACCENT_DEEP` | `#45C9A1` | Deep support accent |
 | `ACCENT_GLOW` | `rgba(69,201,161,0.18)` | Very subtle emphasis glow |
 
 ### Precision / Value Accent

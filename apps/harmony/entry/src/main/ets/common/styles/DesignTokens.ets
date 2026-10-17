@@ -31,7 +31,7 @@ export class ColorTokens {
   static readonly NEUTRAL_50: string = '#EDF6F2'
   static readonly NEUTRAL_100: string = '#C8D5CF'
   static readonly NEUTRAL_200: string = '#A3B3AD'
-  static readonly NEUTRAL_300: string = '#6E8078'
+  static readonly NEUTRAL_300: string = '#7A8D85'
   static readonly NEUTRAL_400: string = '#2A3934'
   static readonly NEUTRAL_500: string = '#000000'
 
@@ -91,7 +91,11 @@ export class ColorTokens {
 
   static readonly TEXT_PRIMARY: string = '#EDF6F2'
   static readonly TEXT_SECONDARY: string = '#A3B3AD'
-  static readonly TEXT_TERTIARY: string = '#6E8078'
+  // 由 #6E8078 提亮：11-14px 正文在 SURFACE_PRIMARY(#16211F) 上原为 3.95:1、BG_TERTIARY(#141F1D) 4.04:1，
+  // 均未达 WCAG AA 正文 4.5:1（消费点 ExerciseDetailPage 的 label/description/infoRow，字号 11/13/14）。
+  // #7A8D85 实测：BG_PRIMARY 5.47 / SURFACE_PRIMARY 4.70 / BG_TERTIARY 4.81，三背景全达标；
+  // 与原值色差 12/255，低于 compare.py 阈值 16，不改动已收敛的像素基线。
+  static readonly TEXT_TERTIARY: string = '#7A8D85'
   static readonly TEXT_ON_DARK: string = '#F3FBF7'
   static readonly TEXT_ON_DARK_SECONDARY: string = 'rgba(243,251,247,0.74)'
   static readonly TEXT_ON_DARK_TERTIARY: string = 'rgba(243,251,247,0.56)'

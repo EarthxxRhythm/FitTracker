@@ -14,6 +14,7 @@ import { WorkoutPreviewExercise, WorkoutPreviewSummary } from '../../../shared/s
 import GoalRepository from '../../../shared/services/GoalRepository'
 import PlanEngine from '../../../shared/services/PlanEngine'
 import WorkoutPreviewService from '../../../shared/services/WorkoutPreviewService'
+import { PencilTokens } from '../PencilTokens'
 
 interface PreviewExerciseItem {
   name: string
@@ -183,8 +184,8 @@ export struct PencilPreviewContent {
         .width(44)
         .height(44)
         .borderRadius(15)
-        .backgroundColor('#08FFFFFF')
-        .border({ width: 1, color: '#14FFFFFF' })
+        .backgroundColor(PencilTokens.WHITE_A03)
+        .border({ width: 1, color: PencilTokens.WHITE_A08 })
         .onClick(() => {
           this.requestClose()
         })
@@ -202,7 +203,7 @@ export struct PencilPreviewContent {
           .fontFamily('Noto Sans SC')
           .fontSize(17)
           .fontWeight(600)
-          .fontColor('#F7FBF8')
+          .fontColor(PencilTokens.TEXT_HI)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .layoutWeight(1)
@@ -212,16 +213,16 @@ export struct PencilPreviewContent {
 
       Stack({ alignContent: Alignment.Center }) {
         Row({ space: 3 }) {
-          Circle({ width: 3.6, height: 3.6 }).fill('#D1FFFFFF')
-          Circle({ width: 3.6, height: 3.6 }).fill('#D1FFFFFF')
-          Circle({ width: 3.6, height: 3.6 }).fill('#D1FFFFFF')
+          Circle({ width: 3.6, height: 3.6 }).fill(PencilTokens.WHITE_A82)
+          Circle({ width: 3.6, height: 3.6 }).fill(PencilTokens.WHITE_A82)
+          Circle({ width: 3.6, height: 3.6 }).fill(PencilTokens.WHITE_A82)
         }
       }
       .width(44)
       .height(44)
       .borderRadius(15)
-      .backgroundColor('#08FFFFFF')
-      .border({ width: 1, color: '#14FFFFFF' })
+      .backgroundColor(PencilTokens.WHITE_A03)
+      .border({ width: 1, color: PencilTokens.WHITE_A08 })
       .onClick(() => {
         this.getUIContext().getPromptAction().showToast({ message: '更多选项（原型）' })
       })
@@ -246,33 +247,33 @@ export struct PencilPreviewContent {
       Text(this.dayBadge)
         .fontFamily('Geist Mono')
         .fontSize(11)
-        .fontColor('#50ECA7')
+        .fontColor(PencilTokens.ACCENT)
         .letterSpacing(2)
 
       Text(this.dayTitle)
         .fontFamily('Noto Sans SC')
         .fontSize(32)
         .fontWeight(FontWeight.Bold)
-        .fontColor('#F7FBF8')
+        .fontColor(PencilTokens.TEXT_HI)
         .margin({ top: 8 })
 
       Text(this.daySubtitle)
         .fontFamily('Noto Sans SC')
         .fontSize(13)
         .fontWeight(FontWeight.Medium)
-        .fontColor('#8AFFFFFF')
+        .fontColor(PencilTokens.WHITE_A54)
         .margin({ top: 8 })
 
       Stack({ alignContent: Alignment.Center }) {
         Image($rawfile('pencil-lucide-activity.svg'))
           .width(30)
           .height(30)
-          .fillColor('#50ECA7')
+          .fillColor(PencilTokens.ACCENT)
       }
       .width(64)
       .height(64)
       .borderRadius(32)
-      .border({ width: 2, color: '#4D50ECA7' })
+      .border({ width: 2, color: PencilTokens.ACCENT_A30 })
       .margin({ top: 14 })
     }
     .width('100%')
@@ -286,7 +287,7 @@ export struct PencilPreviewContent {
       .fontFamily('Noto Sans SC')
       .fontSize(12)
       .fontWeight(600)
-      .fontColor('#8AFFFFFF')
+      .fontColor(PencilTokens.WHITE_A54)
       .letterSpacing(0.96)
       .padding({ left: 6, right: 6 })
       .margin({ top: topMargin, bottom: 8 })
@@ -299,7 +300,7 @@ export struct PencilPreviewContent {
         .fontFamily('Noto Sans SC')
         .fontSize(16)
         .fontWeight(item.current ? 600 : 500)
-        .fontColor(item.current ? '#F7FBF8' : '#E0FFFFFF')
+        .fontColor(item.current ? PencilTokens.TEXT_HI : '#E0FFFFFF')
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .layoutWeight(1)
@@ -307,7 +308,7 @@ export struct PencilPreviewContent {
         .fontFamily('Inter')
         .fontSize(14)
         .fontWeight(FontWeight.Medium)
-        .fontColor(item.current ? '#50ECA7' : '#8AFFFFFF')
+        .fontColor(item.current ? PencilTokens.ACCENT : PencilTokens.WHITE_A54)
         .margin({ left: 12 })
     }
     .width('100%')
@@ -316,7 +317,7 @@ export struct PencilPreviewContent {
     .alignItems(VerticalAlign.Center)
     .borderRadius(16)
     .border({ width: 1, color: item.current ? '#4750ECA7' : '#0EFFFFFF' })
-    .backgroundColor(item.current ? '#1A50ECA7' : '#07FFFFFF')
+    .backgroundColor(item.current ? PencilTokens.ACCENT_A10 : '#07FFFFFF')
   }
 
   @Builder
@@ -337,7 +338,7 @@ export struct PencilPreviewContent {
           .fontFamily('Noto Sans SC')
           .fontSize(13)
           .fontWeight(FontWeight.Medium)
-          .fontColor('#8AFFFFFF')
+          .fontColor(PencilTokens.WHITE_A54)
           .margin({ top: 12 })
       }
     }
@@ -355,7 +356,7 @@ export struct PencilPreviewContent {
         .fontFamily('Noto Sans SC')
         .fontSize(12)
         .fontWeight(FontWeight.Medium)
-        .fontColor('#8AFFFFFF')
+        .fontColor(PencilTokens.WHITE_A54)
 
       Button('开始训练')
         .width('100%')
@@ -363,12 +364,12 @@ export struct PencilPreviewContent {
         .fontFamily('Noto Sans SC')
         .fontSize(16)
         .fontWeight(FontWeight.Bold)
-        .fontColor('#07100B')
+        .fontColor(PencilTokens.TEXT_ON_ACCENT)
         .backgroundColor(ColorTokens.ACCENT_PRIMARY)
         .borderRadius(26)
         .shadow({
           radius: 28,
-          color: '#3D000000',
+          color: PencilTokens.BLACK_A24,
           offsetX: 0,
           offsetY: 14
         })
@@ -406,6 +407,6 @@ export struct PencilPreviewContent {
       // 保持按钮到屏幕底仍为 25vp，手势导航条不会贴到按钮上。
       bottom: 25
     })
-    .backgroundColor('#0B0F13')
+    .backgroundColor(PencilTokens.BG_INK)
   }
 }
