@@ -783,7 +783,7 @@ export struct ExerciseLibraryPage {
           .margin({ right: 8, bottom: 8 })
           .key('lib-part-grid-' + index)
           .onClick(() => {
-            this.collapseToPart(part, index)
+            this.selectPart(part, index)
           })
         }, (part: string) => part)
       }
