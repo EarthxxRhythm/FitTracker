@@ -31,6 +31,14 @@ class FtCompleteStringsTest {
             R.string.complete_a11y_streak to "本周连续训练记录：周一至周六已打卡，周日未打卡",
             R.string.complete_continue to "继续",
             R.string.complete_a11y_continue to "继续查看训练总结",
+            R.string.complete_rpe_title to "本次训练强度",
+            R.string.complete_rpe_hint to "1 轻松 · 10 极限",
+            R.string.complete_rpe_unrated to "未评价",
+            R.string.complete_rpe_value to "RPE %1\$d%2\$s",
+            R.string.complete_rpe_saved to "\u0020· 已保存",
+            R.string.complete_a11y_rpe_option to "训练强度 %1\$d 档，%2\$s",
+            R.string.complete_a11y_rpe_selected to "已选中",
+            R.string.complete_a11y_rpe_unselected to "未选中",
         )
 
         expectations.forEach { (id, expected) ->

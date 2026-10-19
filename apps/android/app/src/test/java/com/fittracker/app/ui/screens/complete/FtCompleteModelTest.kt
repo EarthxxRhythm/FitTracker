@@ -86,4 +86,61 @@ class FtCompleteModelTest {
         assertEquals(-360, FtCompleteModel.confetti(count = 1) { 0f }[0].rotationDeg)
         assertEquals(360, FtCompleteModel.confetti(count = 1) { 1f }[0].rotationDeg)
     }
+
+    // ── 整体 RPE 采集（逐字对齐鸿蒙 WorkoutCompletePage.ets 的 rpeCard） ──
+
+    @Test
+    fun `RPE 档位为 1 到 10 共十档`() {
+        assertEquals(listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10), FtCompleteModel.RPE_OPTIONS)
+        assertEquals(10, FtCompleteModel.RPE_OPTIONS.size)
+    }
+
+    @Test
+    fun `RPE 档位不含零_未评价不可选`() {
+        // 0 表示未评价；不可选是「用户交互永不写 0 覆盖已存值」的结构保证
+        assertFalse(FtCompleteModel.RPE_OPTIONS.contains(0))
+        assertTrue(FtCompleteModel.RPE_OPTIONS.all { it > 0 })
+    }
+
+    @Test
+    fun `RPE 状态文案_未评价走未评价资源`() {
+        assertEquals(
+            R.string.complete_rpe_unrated,
+            FtCompleteModel.rpeStatusRes(rpe = 0, saved = false),
+        )
+        assertEquals(
+            R.string.complete_rpe_unrated,
+            FtCompleteModel.rpeStatusRes(rpe = 0, saved = true),
+        )
+    }
+
+    @Test
+    fun `RPE 状态文案_已评价走档位资源`() {
+        assertEquals(
+            R.string.complete_rpe_value,
+            FtCompleteModel.rpeStatusRes(rpe = 7, saved = false),
+        )
+        assertEquals(
+            R.string.complete_rpe_value,
+            FtCompleteModel.rpeStatusRes(rpe = 7, saved = true),
+        )
+    }
+
+    @Test
+    fun `RPE 写回守卫_同值不写`() {
+        // 对齐鸿蒙 selectSessionRpe 的 `if (this.sessionRpe === value) return`
+        assertFalse(FtCompleteModel.shouldPersistRpe(picked = 5, current = 5, sessionId = "s1"))
+    }
+
+    @Test
+    fun `RPE 写回守卫_会话 id 为空不写`() {
+        // 对齐鸿蒙 `if (ctx === undefined || this.latestSessionId.length === 0) return`
+        assertFalse(FtCompleteModel.shouldPersistRpe(picked = 5, current = 0, sessionId = ""))
+    }
+
+    @Test
+    fun `RPE 写回守卫_异值且 id 非空则写`() {
+        assertTrue(FtCompleteModel.shouldPersistRpe(picked = 5, current = 0, sessionId = "s1"))
+        assertTrue(FtCompleteModel.shouldPersistRpe(picked = 8, current = 5, sessionId = "s1"))
+    }
 }
