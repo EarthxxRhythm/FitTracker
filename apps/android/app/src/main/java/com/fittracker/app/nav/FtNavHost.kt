@@ -16,6 +16,7 @@ import androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner
 import com.fittracker.app.ui.screens.FtScreen
 import com.fittracker.app.ui.screens.exercise.ExerciseDetailScreen
 import com.fittracker.app.ui.screens.legal.LegalDocScreen
+import com.fittracker.app.ui.screens.plangroup.PlanGroupScreen
 
 /**
  * 导航宿主：原型 15 路由 + 鸿蒙独有 3 条（splash / exerciseDetail / legal）。
@@ -50,7 +51,7 @@ fun FtNavHost(
         popEnterTransition = { FtNavTransitions.enter(transitionDirection()) },
         popExitTransition = { FtNavTransitions.exit(transitionDirection()) },
     ) {
-        FtRoutes.navigable.filter { it.id != "legal" && it.id != "exerciseDetail" }.forEach { route ->
+        FtRoutes.navigable.filter { it.id != "legal" && it.id != "exerciseDetail" && it.id != "planGroup" }.forEach { route ->
             composable(
                 route = route.id,
                 deepLinks = listOf(navDeepLink { uriPattern = "${FtRoutes.DEEP_LINK_SCHEME}://${route.id}" }),
@@ -87,8 +88,31 @@ fun FtNavHost(
             )
         }
 
-        // exerciseDetail 特判：带 `exerciseId` 查询参数（缺失回退空串 → 屏内渲染「未找到动作」空态）。
-        // 入口说明：源 `ExerciseLibraryPage.ets:5` ——「卡片点击打开底部弹层（不再跳转
+        // planGroup 特判：带 `planId` 查询参数（缺失回退空串 → 屏内渲染「未找到计划」空态）。
+        // 列表页经 `onNavigate("planGroup?planId=preset_ppl")` 传入（对齐鸿蒙
+        // `PlansContent.ets:317-321` 的 `pushUrl(params:{planId})`）；深链亦可直达。
+        composable(
+            route = "planGroup?planId={planId}",
+            arguments = listOf(navArgument("planId") { defaultValue = "" }),
+            deepLinks = listOf(
+                navDeepLink { uriPattern = "${FtRoutes.DEEP_LINK_SCHEME}://planGroup" },
+                navDeepLink { uriPattern = "${FtRoutes.DEEP_LINK_SCHEME}://planGroup?planId={planId}" },
+            ),
+        ) { backStackEntry ->
+            PlanGroupScreen(
+                planId = backStackEntry.arguments?.getString("planId") ?: "",
+                onNavigate = { target ->
+                    navController.navigate(target) {
+                        if (navController.currentDestination?.route == "splash") {
+                            popUpTo("splash") { inclusive = true }
+                        }
+                    }
+                },
+                onBack = { navController.ftBack("planGroup") },
+            )
+        }
+
+        // exerciseDetail 特判：带 `exerciseId` 查询参数（缺失回退空串 → 屏内渲染「未找到动作」空态）。        // 入口说明：源 `ExerciseLibraryPage.ets:5` ——「卡片点击打开底部弹层（不再跳转
         // ExerciseDetailPage）」——本页在源侧为**保留可达页**（Library 的卡片走弹层）；
         // 安卓侧同理：Library 保持弹层，本页经深链 / 未来入口可达。
         composable(

@@ -30,7 +30,6 @@ import com.fittracker.app.ui.screens.complete.CompleteScreen
 import com.fittracker.app.ui.screens.home.HomeScreen
 import com.fittracker.app.ui.screens.library.LibraryScreen
 import com.fittracker.app.ui.screens.plan.PlanScreen
-import com.fittracker.app.ui.screens.plangroup.PlanGroupScreen
 import com.fittracker.app.ui.screens.plans.PlansScreen
 import com.fittracker.app.ui.screens.preferences.TrainingPreferencesScreen
 import com.fittracker.app.ui.screens.profile.ProfileScreen
@@ -82,7 +81,7 @@ fun FtScreen(
                 "home" -> HomeScreen(onNavigate = onNavigate)
                 "plan" -> PlanScreen(onNavigate = onNavigate)
                 "plans" -> PlansScreen(onNavigate = onNavigate, onBack = onBack)
-                "planGroup" -> PlanGroupScreen(onNavigate = onNavigate, onBack = onBack)
+                // planGroup 不在本分支：它在 FtNavHost 单独注册（带 planId 查询参数）
                 "workout" -> WorkoutPreviewScreen(onNavigate = onNavigate, onBack = onBack)
                 "active" -> ActiveScreen(onNavigate = onNavigate)
                 "complete" -> CompleteScreen(onNavigate = onNavigate)

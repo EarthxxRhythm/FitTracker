@@ -50,6 +50,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fittracker.app.R
+import com.fittracker.app.data.model.ExerciseContent
+import com.fittracker.app.data.model.PresetPlan
+import com.fittracker.app.data.model.TrainingDay
+import com.fittracker.app.data.service.ContentRepository
+import com.fittracker.app.data.service.TrainingPlanRepository
 import com.fittracker.app.ui.components.clickableNoRipple
 import com.fittracker.app.ui.theme.FtColor
 import com.fittracker.app.ui.theme.FtShape
@@ -78,12 +83,24 @@ fun PlanGroupScreen(
     onNavigate: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    planId: String = "",
 ) {
     val context = LocalContext.current
     val resources = LocalResources.current
     var currentDay by remember { mutableIntStateOf(0) }
     var useDisabled by remember { mutableStateOf(false) }
     var toast by remember { mutableStateOf<String?>(null) }
+
+    // 真实数据源取数（对齐鸿蒙 `PlanGroupDetailContent.ets:89-90` 的
+    // `TrainingPlanService.getPresetPlanById(planId)`）。planId 缺失或未命中 → null
+    // → 渲染 notFound 空态（鸿蒙同款分支：`:91-94` 置 notFound 后直接返回）。
+    val plan: PresetPlan? = remember(planId) {
+        if (planId.isEmpty()) null else TrainingPlanRepository.getPresetPlanById(planId)
+    }
+    // 展示模型：由 PresetPlan 映射（器械/要领从内容库补取，匹配不到则该行不渲染）
+    val detail: FtPlanGroupDetailView? = remember(plan) {
+        plan?.let { buildGroupDetail(it) }
+    }
 
     // 原型 `showToast` 的 `setTimeout(…, 1800)`（L452）
     LaunchedEffect(toast) {
@@ -127,7 +144,14 @@ fun PlanGroupScreen(
             },
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            TopBar(onBack = onBack)
+            TopBar(title = detail?.name ?: stringResource(R.string.plangroup_name), onBack = onBack)
+
+            if (detail == null) {
+                // notFound 空态（对齐鸿蒙 `PlanGroupDetailContent.ets:91-94` 的 notFound 分支）：
+                // planId 缺失或未命中时不再渲染下面的真实数据区，避免显示错位内容。
+                NotFoundState(modifier = Modifier.weight(1f))
+                return@Column
+            }
 
             Column(
                 modifier = Modifier
@@ -141,11 +165,15 @@ fun PlanGroupScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp), // `.pgd-content` gap: 16px
                 ) {
-                    SummaryCard()
-                    RhythmSection()
-                    DayTabs(currentDay = currentDay, onSelect = { currentDay = it })
+                    SummaryCard(name = detail.name, desc = detail.desc, tags = detail.tags)
+                    RhythmSection(cells = detail.weekCells)
+                    DayTabs(
+                        days = detail.days,
+                        currentDay = currentDay,
+                        onSelect = { currentDay = it },
+                    )
                     DayPanel(
-                        day = FtPlanGroupDetail.days[currentDay],
+                        day = detail.days[currentDay],
                         onExercise = { name ->
                             toast = resources.getString(R.string.plangroup_toast_exercise, name)
                         },
@@ -159,7 +187,7 @@ fun PlanGroupScreen(
                     useDisabled = true
                     toast = resources.getString(
                         R.string.plangroup_toast_switched,
-                        resources.getString(FtPlanGroupDetail.NAME_RES),
+                        detail.name,
                     )
                 },
             )
@@ -185,7 +213,7 @@ fun PlanGroupScreen(
 
 /** `.pgd-top` L137-144：52/12/10 内边距、44px 返回键、居中标题、右侧同宽占位。 */
 @Composable
-private fun TopBar(onBack: () -> Unit) {
+private fun TopBar(title: String, onBack: () -> Unit) {
     // `stringResource` 只能在 @Composable 上下文调用，`.semantics {}` lambda 不是——先解析再闭包捕获
     val backA11y = stringResource(R.string.plangroup_a11y_back)
     Row(
@@ -209,7 +237,7 @@ private fun TopBar(onBack: () -> Unit) {
         }
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
             Text(
-                text = stringResource(FtPlanGroupDetail.NAME_RES),
+                text = title,
                 style = FtType.natural(16f, 700),
                 color = FtColor.txtHi,
                 maxLines = 1,
@@ -222,7 +250,7 @@ private fun TopBar(onBack: () -> Unit) {
 
 /** `.pgd-summary` L172-193（OD 新版）：中性灰阶——石墨底 + 中性描边 + 顶部内高光，不参与强调色预算。 */
 @Composable
-private fun SummaryCard() {
+private fun SummaryCard(name: String, desc: String, tags: List<String>) {
     val shape = RoundedCornerShape(22.dp)
     Box(
         modifier = Modifier
@@ -242,7 +270,7 @@ private fun SummaryCard() {
                 color = FtColor.white54,
             )
             Text(
-                text = stringResource(FtPlanGroupDetail.NAME_RES),
+                text = name,
                 modifier = Modifier
                     .padding(top = 8.dp, end = 8.dp)
                     .fillMaxWidth(),
@@ -252,7 +280,7 @@ private fun SummaryCard() {
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = stringResource(FtPlanGroupDetail.DESC_RES),
+                text = desc,
                 modifier = Modifier.padding(top = 8.dp),
                 color = FtColor.white62,
                 fontSize = 13.sp,
@@ -262,7 +290,7 @@ private fun SummaryCard() {
                 modifier = Modifier.padding(top = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(7.dp), // `.pgd-summary-meta` gap: 7px
             ) {
-                FtPlanGroupDetail.TAGS.forEach { tagRes ->
+                tags.forEach { tag ->
                     Box(
                         modifier = Modifier
                             .clip(FtShape.pill)
@@ -271,7 +299,7 @@ private fun SummaryCard() {
                             .padding(horizontal = 11.dp, vertical = 4.dp),
                     ) {
                         Text(
-                            text = stringResource(tagRes),
+                            text = tag,
                             style = FtType.natural(11f, 600),
                             color = TagText, // rgba(255,255,255,.74)
                         )
@@ -284,7 +312,7 @@ private fun SummaryCard() {
 
 /** `.pgd-rhythm` L196-219：7 列等宽格 + 星期一~日标签。 */
 @Composable
-private fun RhythmSection() {
+private fun RhythmSection(cells: List<FtWeekCell>) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp), // `.pgd-rhythm` gap: 10px
@@ -298,11 +326,13 @@ private fun RhythmSection() {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(5.dp), // `.pgd-rhythm-grid` gap: 5px
         ) {
-            FtPlanGroupDetail.WEEK.forEachIndexed { index, labelRes ->
+            // 星期标签固定「一~日」（原型 DOW 静态），格内容由计划真实数据派生
+            FtPlanGroupDetail.DOW.forEachIndexed { index, dowRes ->
+                val cell = cells.getOrNull(index)
                 RhythmDay(
-                    dow = stringResource(FtPlanGroupDetail.DOW[index]),
-                    label = stringResource(labelRes),
-                    rest = index == FtPlanGroupDetail.REST_INDEX,
+                    dow = stringResource(dowRes),
+                    label = cell?.label ?: stringResource(R.string.plangroup_rhythm_rest),
+                    rest = cell?.rest ?: true,
                     modifier = Modifier.weight(1f), // grid-template-columns: repeat(7, 1fr)
                 )
             }
@@ -368,6 +398,7 @@ private fun RhythmDay(
 /** `.pgd-days` L222-248：横向滚动的天页签，选中态为纯色强调 + 发光（OD 新版）。 */
 @Composable
 private fun DayTabs(
+    days: List<FtGroupDay>,
     currentDay: Int,
     onSelect: (Int) -> Unit,
 ) {
@@ -377,7 +408,7 @@ private fun DayTabs(
             .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp), // `.pgd-days` gap: 8px
     ) {
-        FtPlanGroupDetail.days.forEachIndexed { index, day ->
+        days.forEachIndexed { index, day ->
             val active = index == currentDay
             val tabShape = RoundedCornerShape(16.dp)
             Column(
@@ -414,7 +445,7 @@ private fun DayTabs(
                     color = if (active) OnAccent64 else FtColor.white54, // `.active .n`：rgba(7,16,11,.64)
                 )
                 Text(
-                    text = stringResource(day.titleRes),
+                    text = day.title,
                     modifier = Modifier.padding(top = 3.dp),
                     style = FtType.natural(14f, 700),
                     color = if (active) FtColor.onAccent else FtColor.txtHi, // `.active .t`：#07100B
@@ -439,12 +470,12 @@ private fun DayPanel(
             horizontalArrangement = Arrangement.spacedBy(8.dp), // `.pgd-day-head` gap: 8px
         ) {
             Text(
-                text = stringResource(day.titleRes),
+                text = day.title,
                 style = FtType.natural(16f, 700),
                 color = FtColor.txtHi,
             )
             Text(
-                text = stringResource(day.focusRes),
+                text = day.focus,
                 style = FtType.natural(12f),
                 color = FtColor.white54,
             )
@@ -454,12 +485,10 @@ private fun DayPanel(
             verticalArrangement = Arrangement.spacedBy(9.dp), // `.pgd-ex-list` gap: 9px
         ) {
             day.exercises.forEachIndexed { index, exercise ->
-                // `stringResource` 不能在点击回调里调用——先解析再闭包捕获
-                val exerciseName = stringResource(exercise.nameRes)
                 GroupExerciseRow(
                     index = index,
                     exercise = exercise,
-                    onClick = { onExercise(exerciseName) },
+                    onClick = { onExercise(exercise.name) },
                 )
             }
         }
@@ -515,35 +544,41 @@ private fun GroupExerciseRow(
                 horizontalArrangement = Arrangement.spacedBy(7.dp),
             ) {
                 Text(
-                    text = stringResource(exercise.nameRes),
+                    text = exercise.name,
                     modifier = Modifier.weight(1f, fill = false),
                     style = FtType.natural(14f, 700),
                     color = FtColor.txtHi,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Box(
-                    modifier = Modifier
-                        .clip(FtShape.pill)
-                        .background(FtColor.glass6)
-                        .border(1.dp, FtColor.hairline, FtShape.pill)
-                        .padding(horizontal = 7.dp, vertical = 2.dp),
-                ) {
-                    Text(
-                        text = stringResource(exercise.equipmentRes),
-                        style = FtType.natural(10f, 600),
-                        color = FtColor.white54,
-                        maxLines = 1,
-                    )
+                // 器械胶囊：内容库匹配不到时整格不渲染（不显示空胶囊）
+                exercise.equipment?.let { equipment ->
+                    Box(
+                        modifier = Modifier
+                            .clip(FtShape.pill)
+                            .background(FtColor.glass6)
+                            .border(1.dp, FtColor.hairline, FtShape.pill)
+                            .padding(horizontal = 7.dp, vertical = 2.dp),
+                    ) {
+                        Text(
+                            text = equipment,
+                            style = FtType.natural(10f, 600),
+                            color = FtColor.white54,
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
-            Text(
-                text = stringResource(exercise.noteRes),
-                style = FtType.natural(11.5f),
-                color = FtColor.white54,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            // 动作要领：同样按可空处理（计划数据无此字段，由内容库补取）
+            exercise.note?.let { note ->
+                Text(
+                    text = note,
+                    style = FtType.natural(11.5f),
+                    color = FtColor.white54,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         Text(
             text = stringResource(R.string.plangroup_sets_reps, exercise.sets, exercise.reps),
@@ -673,54 +708,48 @@ private fun CheckIcon(modifier: Modifier = Modifier, color: Color = Color.Unspec
     }
 }
 
-// ── 数据（原型 `PLAN`，OD 新版 L437-477，逐字移植） ────────────────────────
+// ── 数据（由 `PresetPlans` 真实数据源派生，替代原型静态 `PLAN`） ─────────────
+//
+// 历史：本区块原为原型 `PLAN` 的逐字硬编码副本（OD 新版 L437-477），与计划列表页
+// 消费的 `PresetPlans.ALL` 是**两条独立数据源**——列表页已接真实数据、详情页仍读硬编码，
+// 导致「三分化（推拉杆）」等文案与真实预置计划（`preset_ppl` = 「三分化 · 谭成义」）对不上。
+// 现改为与鸿蒙 `PlanGroupDetailContent.ets:89-90` 同构：`getPresetPlanById(planId)` 取数后映射。
+//
+// `FrameSpec.ExerciseRef` 只有 (name, targetMuscle, sets, reps)——**无器械/要领字段**
+// （双端模型皆然；鸿蒙详情页因此不渲染这两行）。安卓侧保留该两行以免 UI 退化：
+// 器械与要领由内容库 `ContentRepository` 按动作名补取，**匹配不到则不渲染该行**
+// （不显示空胶囊/空文案）。
 
+/** 一个动作行（数据驱动版）：器械与要领可空——内容库匹配失败时为 null。 */
 data class FtGroupExercise(
-    val id: String,
-    @StringRes val nameRes: Int,
+    val name: String,
     val sets: Int,
     val reps: String,
-    @StringRes val equipmentRes: Int,
-    @StringRes val noteRes: Int,
+    val equipment: String?,
+    val note: String?,
 )
 
+/** 一天（数据驱动版）。 */
 data class FtGroupDay(
-    @StringRes val titleRes: Int,
-    @StringRes val focusRes: Int,
+    val title: String,
+    val focus: String,
     val exercises: List<FtGroupExercise>,
 )
 
+/** 每周节奏格：`label` 为训练日短标签或「休」。 */
+data class FtWeekCell(val label: String, val rest: Boolean)
+
+/** 详情页展示模型——由 `PresetPlan` 映射而来，屏内不再读任何静态数据。 */
+data class FtPlanGroupDetailView(
+    val name: String,
+    val desc: String,
+    val tags: List<String>,
+    val weekCells: List<FtWeekCell>,
+    val days: List<FtGroupDay>,
+)
+
+/** 静态常量（原型 `DOW`，OD 新版 L512）——星期标签与计划数据无关，保持逐字对齐原型。 */
 object FtPlanGroupDetail {
-
-    /** 计划名（原型 `PLAN.name`，OD 新版 L438）。 */
-    @StringRes
-    val NAME_RES = R.string.plangroup_name
-
-    /** 计划描述（原型 `PLAN.desc`）。 */
-    @StringRes
-    val DESC_RES = R.string.plangroup_desc
-
-    /** 概要卡的三个标签（原型同级字段 `audience`/`freq`/`totalDays` 拼装，OD 新版 L443）。 */
-    val TAGS: List<Int> = listOf(
-        R.string.plangroup_tag_audience,
-        R.string.plangroup_tag_freq,
-        R.string.plangroup_tag_days,
-    )
-
-    /** 每周节奏（原型 `week`，OD 新版 L444）：'休' 走 `.rest` 样式（见 [REST_INDEX]）。 */
-    val WEEK: List<Int> = listOf(
-        R.string.plangroup_rhythm_push,
-        R.string.plangroup_rhythm_pull,
-        R.string.plangroup_rhythm_legs,
-        R.string.plangroup_rhythm_push,
-        R.string.plangroup_rhythm_pull,
-        R.string.plangroup_rhythm_legs,
-        R.string.plangroup_rhythm_rest,
-    )
-
-    /** [WEEK] 中「休」的下标——原型以 `label === '休'` 判定 `.rest`，此处等价为下标判定。 */
-    const val REST_INDEX = 6
-
     /** 星期标签（原型 `DOW`，OD 新版 L512）。 */
     val DOW: List<Int> = listOf(
         R.string.plangroup_dow_mon,
@@ -731,123 +760,111 @@ object FtPlanGroupDetail {
         R.string.plangroup_dow_sat,
         R.string.plangroup_dow_sun,
     )
+}
 
-    val days: List<FtGroupDay> = listOf(
+/**
+ * `TrainingDay` → 周节奏短标签（对齐鸿蒙 `PlanGroupDetailContent.ets:139` 的 `shortDayTag`）。
+ *
+ * 取 `dayLabel` 的首段（「胸肩三头」→「胸」），用于 7 格节奏图的窄格。
+ */
+private fun shortDayTag(dayLabel: String): String =
+    dayLabel.split("·", "/", " ").firstOrNull()?.trim()?.take(2)?.ifEmpty { dayLabel } ?: dayLabel
+
+/**
+ * `TrainingDay` → 焦点肌群文案（对齐鸿蒙 `dayFocusMuscles`）。
+ *
+ * 计划数据无独立 focus 字段，取该日动作的 `targetMuscle` 去重后以「 · 」连接
+ * （与前 `FtPlanGroup` 的 examples 策略一致）。
+ */
+private fun dayFocusMuscles(day: TrainingDay): String =
+    day.exercises.map { it.targetMuscle }.distinct().joinToString(" · ")
+
+/**
+ * 每周节奏 7 格（对齐鸿蒙 `PlanGroupDetailContent.ets:133-149` 的 `buildWeekCells`）。
+ *
+ * 周一 → 周日；该日被某训练日的 `dayOfWeek` 覆盖则显示该日短标签，否则「休」。
+ * `dayOfWeek` 缺省（null）时按序自动分配（与计划数据模型的约定一致）。
+ */
+private fun buildWeekCells(plan: PresetPlan): List<FtWeekCell> {
+    val result: MutableList<FtWeekCell> = mutableListOf()
+    for (index in 0 until 7) {
+        // index 0 = 周一 → dayNum 1；index 6 = 周日 → dayNum 0
+        val dayNum = if (index == 6) 0 else index + 1
+        var label: String? = null
+        plan.days.forEachIndexed { dayIndex, day ->
+            val week = day.dayOfWeek
+            val covered = if (week == null) {
+                // 缺省：按序分配（第 i 个训练日落在第 i 个可用星期位）
+                dayIndex == index
+            } else {
+                week.contains(dayNum)
+            }
+            if (covered && label == null) {
+                label = shortDayTag(day.dayLabel)
+            }
+        }
+        result.add(FtWeekCell(label = label ?: "休", rest = label == null))
+    }
+    return result
+}
+
+/**
+ * `PresetPlan` → 详情页展示模型。
+ *
+ * 器械与要领由内容库补取：按动作名与 `ExerciseContent.nameZh` 精确匹配——
+ * `PresetPlans` 的动作名既参与备份跨平台互通、也是内容库按名匹配的锚点
+ * （见 `PresetPlans.kt:9-22` 的移植口径说明），故按名匹配是该数据集的既定契约。
+ * 匹配不到时该字段为 null，UI 侧不渲染对应行。
+ */
+private fun buildGroupDetail(plan: PresetPlan): FtPlanGroupDetailView {
+    val contentByName: Map<String, ExerciseContent> = ContentRepository
+        .exercises()
+        .associateBy { it.nameZh }
+
+    val days: List<FtGroupDay> = plan.days.map { day ->
         FtGroupDay(
-            titleRes = R.string.plangroup_rhythm_push,
-            focusRes = R.string.plangroup_focus_push,
-            exercises = listOf(
+            title = day.dayLabel,
+            focus = dayFocusMuscles(day),
+            exercises = day.exercises.map { ref ->
+                val content = contentByName[ref.name]
                 FtGroupExercise(
-                    id = "barbell-bench-press",
-                    nameRes = R.string.plangroup_ex_bench_press,
-                    sets = 4,
-                    reps = "8",
-                    equipmentRes = R.string.plangroup_equip_barbell,
-                    noteRes = R.string.plangroup_ex_bench_press_note,
-                ),
-                FtGroupExercise(
-                    id = "overhead-press",
-                    nameRes = R.string.plangroup_ex_overhead_press,
-                    sets = 3,
-                    reps = "10",
-                    equipmentRes = R.string.plangroup_equip_dumbbell,
-                    noteRes = R.string.plangroup_ex_overhead_press_note,
-                ),
-                FtGroupExercise(
-                    id = "lateral-raise",
-                    nameRes = R.string.plangroup_ex_lateral_raise,
-                    sets = 3,
-                    reps = "12",
-                    equipmentRes = R.string.plangroup_equip_dumbbell,
-                    noteRes = R.string.plangroup_ex_lateral_raise_note,
-                ),
-                FtGroupExercise(
-                    id = "triceps-pushdown",
-                    nameRes = R.string.plangroup_ex_triceps_pushdown,
-                    sets = 3,
-                    reps = "12",
-                    equipmentRes = R.string.plangroup_equip_machine,
-                    noteRes = R.string.plangroup_ex_triceps_pushdown_note,
-                ),
-            ),
+                    name = ref.name,
+                    sets = ref.sets,
+                    reps = ref.reps,
+                    equipment = content
+                        ?.equipmentIds
+                        ?.firstOrNull()
+                        ?.let { id -> ContentRepository.getEquipmentName(id) },
+                    note = content?.cues?.firstOrNull(),
+                )
+            },
+        )
+    }
+
+    return FtPlanGroupDetailView(
+        name = plan.name,
+        desc = plan.description,
+        // 概要卡三标签：对齐鸿蒙 `PlanGroupDetailContent.ets:97` 的 planTags 拼装
+        tags = listOf(
+            plan.targetAudience,
+            plan.weeklyFrequency,
+            "${plan.days.size} 个训练日",
         ),
-        FtGroupDay(
-            titleRes = R.string.plangroup_rhythm_pull,
-            focusRes = R.string.plangroup_focus_pull,
-            exercises = listOf(
-                FtGroupExercise(
-                    id = "pull-up",
-                    nameRes = R.string.plangroup_ex_pull_up,
-                    sets = 4,
-                    reps = "8",
-                    equipmentRes = R.string.plangroup_equip_bodyweight,
-                    noteRes = R.string.plangroup_ex_pull_up_note,
-                ),
-                FtGroupExercise(
-                    id = "barbell-row",
-                    nameRes = R.string.plangroup_ex_barbell_row,
-                    sets = 4,
-                    reps = "10",
-                    equipmentRes = R.string.plangroup_equip_barbell,
-                    noteRes = R.string.plangroup_ex_barbell_row_note,
-                ),
-                FtGroupExercise(
-                    id = "lat-pulldown",
-                    nameRes = R.string.plangroup_ex_lat_pulldown,
-                    sets = 3,
-                    reps = "12",
-                    equipmentRes = R.string.plangroup_equip_machine,
-                    noteRes = R.string.plangroup_ex_lat_pulldown_note,
-                ),
-                FtGroupExercise(
-                    id = "biceps-curl",
-                    nameRes = R.string.plangroup_ex_biceps_curl,
-                    sets = 3,
-                    reps = "12",
-                    equipmentRes = R.string.plangroup_equip_dumbbell,
-                    noteRes = R.string.plangroup_ex_biceps_curl_note,
-                ),
-            ),
-        ),
-        FtGroupDay(
-            titleRes = R.string.plangroup_rhythm_legs,
-            focusRes = R.string.plangroup_focus_legs,
-            exercises = listOf(
-                FtGroupExercise(
-                    id = "squat",
-                    nameRes = R.string.plangroup_ex_squat,
-                    sets = 4,
-                    reps = "8",
-                    equipmentRes = R.string.plangroup_equip_barbell,
-                    noteRes = R.string.plangroup_ex_squat_note,
-                ),
-                FtGroupExercise(
-                    id = "leg-press",
-                    nameRes = R.string.plangroup_ex_leg_press,
-                    sets = 3,
-                    reps = "12",
-                    equipmentRes = R.string.plangroup_equip_machine,
-                    noteRes = R.string.plangroup_ex_leg_press_note,
-                ),
-                FtGroupExercise(
-                    id = "leg-curl",
-                    nameRes = R.string.plangroup_ex_leg_curl,
-                    sets = 3,
-                    reps = "12",
-                    equipmentRes = R.string.plangroup_equip_machine,
-                    noteRes = R.string.plangroup_ex_leg_curl_note,
-                ),
-                FtGroupExercise(
-                    id = "lunge",
-                    nameRes = R.string.plangroup_ex_lunge,
-                    sets = 3,
-                    reps = "12",
-                    equipmentRes = R.string.plangroup_equip_dumbbell,
-                    noteRes = R.string.plangroup_ex_lunge_note,
-                ),
-            ),
-        ),
+        weekCells = buildWeekCells(plan),
+        days = days,
     )
+}
+
+/** notFound 空态：`planId` 缺失或未命中真实预置计划时显示（对齐鸿蒙 `notFound` 分支）。 */
+@Composable
+private fun NotFoundState(modifier: Modifier = Modifier) {
+    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Text(
+            text = stringResource(R.string.plangroup_not_found),
+            style = FtType.natural(14f),
+            color = FtColor.white54,
+        )
+    }
 }
 
 // ── 屏内色值（原型 `:root` 无对应令牌，按 FtColorUtil 规则就地换算） ──

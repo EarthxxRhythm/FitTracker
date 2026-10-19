@@ -100,4 +100,5 @@
     <!-- `%1$s` 计划名（`plangroup_name`） -->
     <string name="plangroup_toast_switched">已切换到「%1$s」</string>
 
+    <string name="plangroup_not_found">未找到该计划</string>
 </resources>
