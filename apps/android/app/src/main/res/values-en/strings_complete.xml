@@ -18,4 +18,15 @@
     <string name="complete_continue">Continue</string>
     <string name="complete_a11y_continue">Continue to workout summary</string>
 
+    <!-- Session RPE capture card (mirrors zh source of truth) -->
+    <string name="complete_rpe_title">Session intensity</string>
+    <string name="complete_rpe_hint">1 easy · 10 max</string>
+    <string name="complete_rpe_unrated">Not rated</string>
+    <string name="complete_rpe_value">RPE %1$d%2$s</string>
+    <!-- Leading space kept via \u0020: XML strips leading/trailing whitespace in element content. -->
+    <string name="complete_rpe_saved">\u0020· saved</string>
+    <string name="complete_a11y_rpe_option">Session intensity level %1$d, %2$s</string>
+    <string name="complete_a11y_rpe_selected">selected</string>
+    <string name="complete_a11y_rpe_unselected">not selected</string>
+
 </resources>

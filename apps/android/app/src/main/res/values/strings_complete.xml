@@ -27,4 +27,19 @@
     <!-- aria-label（原型 L436），逐字取自源码 -->
     <string name="complete_a11y_continue">继续查看训练总结</string>
 
+    <!-- 整体 RPE 采集卡（逐字对齐鸿蒙 WorkoutCompletePage.ets 的 rpeCard） -->
+    <string name="complete_rpe_title">本次训练强度</string>
+    <!-- 副文案，逐字取自鸿蒙实现 -->
+    <string name="complete_rpe_hint">1 轻松 · 10 极限</string>
+    <!-- 未评价态（sessionRpe == 0） -->
+    <string name="complete_rpe_unrated">未评价</string>
+    <!-- 已评价态：`%1$d` 为所选档位、`%2$s` 为「已保存」或空串 -->
+    <string name="complete_rpe_value">RPE %1$d%2$s</string>
+    <!-- 写回成功后的后缀，拼接在档位之后（前导空格用 \u0020 显式保留：XML 会剥离元素首尾空白） -->
+    <string name="complete_rpe_saved">\u0020· 已保存</string>
+    <!-- 档位格子的无障碍描述：`%1$d` 为档位、`%2$s` 为选中/未选中说明 -->
+    <string name="complete_a11y_rpe_option">训练强度 %1$d 档，%2$s</string>
+    <string name="complete_a11y_rpe_selected">已选中</string>
+    <string name="complete_a11y_rpe_unselected">未选中</string>
+
 </resources>

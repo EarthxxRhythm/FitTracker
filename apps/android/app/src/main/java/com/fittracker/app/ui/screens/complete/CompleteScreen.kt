@@ -28,6 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,6 +67,7 @@ import com.fittracker.app.ui.theme.FtShape
 import com.fittracker.app.ui.theme.FtType
 import java.util.Calendar
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 /**
@@ -117,6 +119,14 @@ fun CompleteScreen(
     var streakDays by remember {
         mutableStateOf(FtCompleteModel.STREAK_DAYS.map { it.copy(active = false) })
     }
+    // 本次训练整体 RPE（1–10）：0 = 未评价。落库写入 `WorkoutSession.sessionRpe`。
+    // 这是复盘页「努力程度」柱状图的唯一真数据来源（逐组采集成本高，故按次）。
+    var sessionRpe by remember { mutableIntStateOf(0) }
+    // 最近一次已保存会话的 id（写回 RPE 用）；空串 = 尚未读到。
+    var latestSessionId by remember { mutableStateOf("") }
+    // RPE 已保存的即时反馈（避免重复点击；下一次读回覆盖）。
+    var rpeSaved by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         val sessions = WorkoutRepository.getSessions(store)
@@ -132,6 +142,12 @@ fun CompleteScreen(
         }
         streakCount = currentStreak(trainingDates)
         streakDays = weekActivity(trainingDates, SettingsService.loadSettings(store).weekStart)
+        // RPE 读回：以最新一条会话为准，避免默认值覆盖已存值
+        // （对齐鸿蒙 `loadWorkoutStats`，`WorkoutCompletePage.ets`）
+        val latest = sessions.lastOrNull()
+        latestSessionId = latest?.sessionId ?: ""
+        sessionRpe = latest?.sessionRpe ?: 0
+        rpeSaved = false
     }
 
     // 训练完成后静默同步（源 `requestBackgroundSync`；自动同步开启时生效，失败不抛出。
@@ -164,6 +180,27 @@ fun CompleteScreen(
                         streakCount = streakCount,
                         days = streakDays,
                         modifier = Modifier.padding(top = 30.dp), // `.cf-streak { margin-top: 30px }`
+                    )
+                    RpeCard(
+                        value = sessionRpe,
+                        saved = rpeSaved,
+                        onSelect = { picked ->
+                            // 守卫对齐鸿蒙 selectSessionRpe：同值去重 + 会话 id 非空
+                            if (FtCompleteModel.shouldPersistRpe(picked, sessionRpe, latestSessionId)) {
+                                sessionRpe = picked
+                                val targetId = latestSessionId
+                                scope.launch {
+                                    val current = WorkoutRepository
+                                        .getSessions(store)
+                                        .firstOrNull { it.sessionId == targetId }
+                                    rpeSaved = current != null && WorkoutRepository.updateSession(
+                                        store,
+                                        current.copy(sessionRpe = picked),
+                                    )
+                                }
+                            }
+                        },
+                        modifier = Modifier.padding(top = 14.dp),
                     )
                 }
             }
@@ -276,10 +313,115 @@ private fun StreakCard(
     }
 }
 
+/**
+ * 整体 RPE 采集卡（逐字对齐鸿蒙 `WorkoutCompletePage.ets` 的 `rpeCard`）。
+ *
+ * 外卡：`padding 16` / `bg #08FFFFFF` / `radius 22` / `border #1AFFFFFF`——鸿蒙用
+ * `WHITE_A03`(#08FFFFFF) + `WHITE_A10`(#1AFFFFFF)，Android 侧由 [StreakFill] 与
+ * [FtColor.line10] 承载同名色值。
+ *
+ * 档位格子：10 个 `weight(1f)` 等宽，`height 34` / `radius 10` / 13sp Bold；
+ * 选中 `accent` 底 + `onAccent` 字，未选 `glass8`(#14FFFFFF = 鸿蒙 WHITE_A08) 底 + `white70` 字。
+ */
+@Composable
+private fun RpeCard(
+    value: Int,
+    saved: Boolean,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(RpeFill)
+            .border(1.dp, FtColor.line10, RoundedCornerShape(22.dp))
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = stringResource(FtCompleteModel.RPE_TITLE_RES),
+                color = FtColor.txtHi,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+            )
+            // 未评价走 RPE_UNRATED_RES，否则 RPE_VALUE_RES（`RPE n` + 可选「 · 已保存」）
+            val statusRes = FtCompleteModel.rpeStatusRes(value, saved)
+            Text(
+                text = if (value <= 0) {
+                    stringResource(statusRes)
+                } else {
+                    val suffix = if (saved) stringResource(FtCompleteModel.RPE_SAVED_RES) else ""
+                    stringResource(statusRes, value, suffix)
+                },
+                color = FtColor.accent,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+        Text(
+            text = stringResource(FtCompleteModel.RPE_HINT_RES),
+            color = FtColor.white54,
+            fontSize = 11.sp,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            FtCompleteModel.RPE_OPTIONS.forEach { option ->
+                RpeOptionCell(
+                    option = option,
+                    selected = value == option,
+                    onClick = { onSelect(option) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+/** RPE 单档格子：`.rpe-option` 的 `height 34` / `radius 10` / 13sp Bold，选中走翡翠。 */
+@Composable
+private fun RpeOptionCell(
+    option: Int,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val a11y = stringResource(
+        FtCompleteModel.RPE_A11Y_OPTION_RES,
+        option,
+        stringResource(
+            if (selected) FtCompleteModel.RPE_A11Y_SELECTED_RES
+            else FtCompleteModel.RPE_A11Y_UNSELECTED_RES,
+        ),
+    )
+    Box(
+        modifier = modifier
+            .height(34.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (selected) FtColor.accent else FtColor.glass8)
+            .semantics { contentDescription = a11y }
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = option.toString(),
+            color = if (selected) FtColor.onAccent else FtColor.white70,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+        )
+    }
+}
+
 /** `.streak-day` L254-259：28px 圆点 + 11px 星期字，`.on` 走翡翠、`.off` 走淡白。 */
 @Composable
-private fun StreakDayColumn(day: FtStreakDay, modifier: Modifier = Modifier) {
-    Column(
+private fun StreakDayColumn(day: FtStreakDay, modifier: Modifier = Modifier) {    Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp), // `.streak-day { gap: 6px }`
@@ -519,6 +661,11 @@ private fun Modifier.popIn(delayMs: Int, durationMs: Int): Modifier {
 /** 末尾覆盖层 `.cf-streak` 底 `rgba(255,255,255,.031)` → round(7.905) = 8 = 0x08 */
 private val StreakFill = Color(0x08FFFFFF)
 
+/**
+ * RPE 卡外卡底——鸿蒙 `PrototypeTokens.WHITE_A03`(`#08FFFFFF`)。
+ * 与 [StreakFill] 色值同源（`rgba(255,255,255,.031)`），因语义不同而独立声明。
+ */
+private val RpeFill = Color(0x08FFFFFF)
 /** 彩带五色（原型 `.confetti-piece.c0..c4`，L300-304）。 */
 private val ConfettiColors = listOf(
     FtColor.accent,      // c0 var(--accent)

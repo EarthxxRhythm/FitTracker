@@ -62,6 +62,75 @@ object FtCompleteModel {
     @StringRes
     val STREAK_A11Y_RES = R.string.complete_a11y_streak
 
+    // ── 整体 RPE 采集（逐字对齐鸿蒙 `WorkoutCompletePage.ets` 的 `rpeCard`） ──
+    //
+    // 采集口径：逐组采集成本高，故按「次」采集整体努力程度（1–10）。这是复盘页
+    // 「努力程度」柱状图（`FtReviewModel.effortLevels` 读 `sessionRpe`）的唯一真数据来源。
+
+    /** RPE 卡标题：「本次训练强度」。 */
+    @StringRes
+    val RPE_TITLE_RES = R.string.complete_rpe_title
+
+    /** RPE 卡副文案：「1 轻松 · 10 极限」。 */
+    @StringRes
+    val RPE_HINT_RES = R.string.complete_rpe_hint
+
+    /** 未评价态（`sessionRpe == 0`）：「未评价」。 */
+    @StringRes
+    val RPE_UNRATED_RES = R.string.complete_rpe_unrated
+
+    /** 已评价态：`RPE %1$d%2$s`——`%2$s` 拼 [RPE_SAVED_RES] 或空串。 */
+    @StringRes
+    val RPE_VALUE_RES = R.string.complete_rpe_value
+
+    /** 写回成功后的后缀：「 · 已保存」。 */
+    @StringRes
+    val RPE_SAVED_RES = R.string.complete_rpe_saved
+
+    /** 档位格子的无障碍描述：`训练强度 %1$d 档，%2$s`。 */
+    @StringRes
+    val RPE_A11Y_OPTION_RES = R.string.complete_a11y_rpe_option
+
+    /** 无障碍：已选中。 */
+    @StringRes
+    val RPE_A11Y_SELECTED_RES = R.string.complete_a11y_rpe_selected
+
+    /** 无障碍：未选中。 */
+    @StringRes
+    val RPE_A11Y_UNSELECTED_RES = R.string.complete_a11y_rpe_unselected
+
+    /**
+     * RPE 可选档位 1–10（鸿蒙 `rpeOptions`，`WorkoutCompletePage.ets:420`）。
+     *
+     * `0` 表示未评价，**不可选**——这保证用户交互永远不会用 0 覆盖已存值。
+     */
+    val RPE_OPTIONS: List<Int> = (1..10).toList()
+
+    /**
+     * RPE 状态文案的资源选择（纯逻辑，便于单测）。
+     *
+     * @param rpe 当前档位；`0` = 未评价
+     * @param saved 是否已写回成功
+     * @return 应展示的资源 ID——未评价走 [RPE_UNRATED_RES]，否则走 [RPE_VALUE_RES]
+     */
+    @StringRes
+    fun rpeStatusRes(rpe: Int, saved: Boolean): Int =
+        if (rpe <= 0) RPE_UNRATED_RES else RPE_VALUE_RES
+
+    /**
+     * RPE 写回前的守卫：判断是否应当发起写回（纯逻辑，便于单测）。
+     *
+     * 对齐鸿蒙 `selectSessionRpe` 的两条前置守卫（`WorkoutCompletePage.ets:197-205`）：
+     * ① 同值去重（避免重复点击产生多余写）；② 会话 id 为空时不写（尚未读到会话）。
+     *
+     * @param picked 用户点击的档位
+     * @param current 当前已选档位
+     * @param sessionId 目标会话 id；空串 = 尚未读到
+     * @return true 表示应当写回
+     */
+    fun shouldPersistRpe(picked: Int, current: Int, sessionId: String): Boolean =
+        picked != current && sessionId.isNotEmpty()
+
     /** 周一至周六打卡、周日未打卡（L418-425）。 */
     val STREAK_DAYS: List<FtStreakDay> = listOf(
         FtStreakDay("一", true),
