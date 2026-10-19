@@ -118,10 +118,24 @@ object FtCompleteModel {
         if (rpe <= 0) RPE_UNRATED_RES else RPE_VALUE_RES
 
     /**
-     * RPE 写回前的守卫：判断是否应当发起写回（纯逻辑，便于单测）。
+     * RPE 点选后的**状态更新**守卫：是否应把界面选择态改为 [picked]（纯逻辑，便于单测）。
      *
-     * 对齐鸿蒙 `selectSessionRpe` 的两条前置守卫（`WorkoutCompletePage.ets:197-205`）：
-     * ① 同值去重（避免重复点击产生多余写）；② 会话 id 为空时不写（尚未读到会话）。
+     * 对齐鸿蒙 `selectSessionRpe` 的第一步（`WorkoutCompletePage.ets:197-201`）：
+     * `if (this.sessionRpe === value) return` 之后**立即** `this.sessionRpe = value`。
+     * 即同值去重、异值更新界面——**与能否写回无关**（写回失败也要保留界面选择态）。
+     *
+     * @param picked 用户点击的档位
+     * @param current 当前已选档位
+     * @return true 表示应更新界面选择态
+     */
+    fun shouldUpdateRpeSelection(picked: Int, current: Int): Boolean = picked != current
+
+    /**
+     * RPE 写回守卫：是否应把选择持久化到会话（纯逻辑，便于单测）。
+     *
+     * 对齐鸿蒙 `selectSessionRpe` 的第二步（`WorkoutCompletePage.ets:203-205`）：
+     * 更新界面态**之后**才检查 `if (ctx === undefined || this.latestSessionId.length === 0) return`。
+     * 即界面反馈先行、持久化是可选后续——会话 id 为空（尚未读到会话）时不写。
      *
      * @param picked 用户点击的档位
      * @param current 当前已选档位

@@ -185,18 +185,24 @@ fun CompleteScreen(
                         value = sessionRpe,
                         saved = rpeSaved,
                         onSelect = { picked ->
-                            // 守卫对齐鸿蒙 selectSessionRpe：同值去重 + 会话 id 非空
-                            if (FtCompleteModel.shouldPersistRpe(picked, sessionRpe, latestSessionId)) {
+                            // 顺序对齐鸿蒙 selectSessionRpe：① 同值去重 → ② 立即更新界面态
+                            // → ③ 才尝试写回。界面反馈不依赖写回是否可行——否则新装应用
+                            // 首轮训练（尚无会话 id）点选将毫无反应。
+                            if (FtCompleteModel.shouldUpdateRpeSelection(picked, sessionRpe)) {
+                                val previous = sessionRpe
                                 sessionRpe = picked
-                                val targetId = latestSessionId
-                                scope.launch {
-                                    val current = WorkoutRepository
-                                        .getSessions(store)
-                                        .firstOrNull { it.sessionId == targetId }
-                                    rpeSaved = current != null && WorkoutRepository.updateSession(
-                                        store,
-                                        current.copy(sessionRpe = picked),
-                                    )
+                                rpeSaved = false
+                                if (FtCompleteModel.shouldPersistRpe(picked, previous, latestSessionId)) {
+                                    val targetId = latestSessionId
+                                    scope.launch {
+                                        val current = WorkoutRepository
+                                            .getSessions(store)
+                                            .firstOrNull { it.sessionId == targetId }
+                                        rpeSaved = current != null && WorkoutRepository.updateSession(
+                                            store,
+                                            current.copy(sessionRpe = picked),
+                                        )
+                                    }
                                 }
                             }
                         },
