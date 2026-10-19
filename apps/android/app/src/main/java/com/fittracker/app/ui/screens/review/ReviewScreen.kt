@@ -130,8 +130,9 @@ fun ReviewScreen(
     // 1RM 表：无会话时为空态（不再回落原型样例行）。
     var oneRmRows by remember { mutableStateOf<List<OneRmRow>>(emptyList()) }
     var weekStats by remember { mutableStateOf<WeeklyStats?>(null) }
-    var weekBars by remember { mutableStateOf(FtReviewModel.WEEK_BARS) }
-    var monthCells by remember { mutableStateOf(FtReviewModel.MONTH_CELLS) }
+    // 周柱 / 月历 / 体重曲线：无会话或读取失败时为空态（不再回落原型样例）。
+    var weekBars by remember { mutableStateOf<List<WeekBar>>(emptyList()) }
+    var monthCells by remember { mutableStateOf<List<MonthCell>>(emptyList()) }
     var monthLabel by remember { mutableStateOf(resources.getString(FtReviewModel.MONTH_LABEL_RES)) }
     var monthMeta by remember { mutableStateOf(resources.getString(FtReviewModel.MONTH_META_RES)) }
     var weekHeadText by remember { mutableStateOf(resources.getString(FtReviewModel.WEEK.weekRes)) }
@@ -140,7 +141,7 @@ fun ReviewScreen(
     // 体重卡：无记录时为空态（不再显示原型样例 69.2 kg）。
     var weightCurrent by remember { mutableStateOf<String?>(null) }
     var weightDelta by remember { mutableStateOf(resources.getString(FtReviewModel.WEIGHT_DELTA_RES)) }
-    var weightPoints by remember { mutableStateOf(FtReviewModel.WEIGHT_POINTS) }
+    var weightPoints by remember { mutableStateOf<List<Pair<Float, Float>>>(emptyList()) }
     var weightUnit by remember { mutableStateOf(WeightUnit.KG) }
     var hasWeightRecords by remember { mutableStateOf(false) }
     var weightDeltaValue by remember { mutableStateOf("") }
