@@ -127,7 +127,13 @@ fun PlansScreen(
                 verticalArrangement = Arrangement.spacedBy(20.dp), // `.pd-content` gap: 20px
             ) {
                 CurrentPlanCard(name = currentName, meta = currentMeta)
-                PlanGroupListSection(groups = groups, onOpen = { onNavigate("planGroup") })
+                PlanGroupListSection(
+                    groups = groups,
+                    // 携带 planId 查询参数——详情页据此取真实预设计划数据
+                    // （对齐鸿蒙 `PlansContent.ets:317-321` 的 `pushUrl(params:{planId})`）。
+                    // 复用同仓 `LegalDocScreen` 的查询串约定（`legal?kind=...`）。
+                    onOpen = { planId -> onNavigate("planGroup?planId=$planId") },
+                )
             }
         }
     }
@@ -231,7 +237,7 @@ private fun CurrentPlanCard(name: String?, meta: String?) {
 
 /** 计划组清单区（原型 `section[data-od-id=plan-groups-list]` L385-390）。 */
 @Composable
-private fun PlanGroupListSection(groups: List<FtPlanGroup>, onOpen: () -> Unit) {
+private fun PlanGroupListSection(groups: List<FtPlanGroup>, onOpen: (String) -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             // 顶栏标题与本小节标题在原型中逐字同为「计划组」——复用同一资源
@@ -244,7 +250,7 @@ private fun PlanGroupListSection(groups: List<FtPlanGroup>, onOpen: () -> Unit) 
             verticalArrangement = Arrangement.spacedBy(10.dp), // `.pg-list` gap: 10px
         ) {
             groups.forEach { group ->
-                PlanGroupCard(group = group, onClick = onOpen)
+                PlanGroupCard(group = group, onClick = { onOpen(group.planId) })
             }
         }
     }
@@ -343,6 +349,12 @@ enum class FtPlanGroupIcon { Layers, Activity, Target, Dumbbell }
  * 原型静态基线 [FtPlanGroups.all] 先经 `stringResource` 解析再落入本类型。
  */
 data class FtPlanGroup(
+    /**
+     * 预设计划 id（`PresetPlan.id`，如 `preset_ppl`）——详情页据此取真实数据。
+     * 静态基线 [FtPlanGroups.all] 无 id（占位空串），屏内实际数据由
+     * [ftPlanGroupsFromPresets] 填充，故运行时恒非空。
+     */
+    val planId: String,
     val name: String,
     val audience: String,
     val freq: String,
@@ -361,6 +373,7 @@ object FtPlanGroups {
     @Composable
     fun all(): List<FtPlanGroup> = listOf(
         FtPlanGroup(
+            planId = "preset_upper_lower",
             name = stringResource(R.string.plans_baseline_upper_lower_name),
             audience = stringResource(R.string.plans_baseline_audience_beginner),
             freq = stringResource(R.string.plans_baseline_freq_4days),
@@ -369,6 +382,7 @@ object FtPlanGroups {
             examples = stringResource(R.string.plans_baseline_upper_lower_examples),
         ),
         FtPlanGroup(
+            planId = "preset_ppl",
             name = stringResource(R.string.plans_baseline_ppl_name),
             audience = stringResource(R.string.plans_baseline_audience_all_levels),
             freq = stringResource(R.string.plans_baseline_freq_3to6days),
@@ -377,6 +391,7 @@ object FtPlanGroups {
             examples = stringResource(R.string.plans_baseline_ppl_examples),
         ),
         FtPlanGroup(
+            planId = "preset_split_4",
             name = stringResource(R.string.plans_baseline_split4_name),
             audience = stringResource(R.string.plans_baseline_audience_advanced),
             freq = stringResource(R.string.plans_baseline_freq_4days),
@@ -385,6 +400,7 @@ object FtPlanGroups {
             examples = stringResource(R.string.plans_baseline_split4_examples),
         ),
         FtPlanGroup(
+            planId = "preset_bro_split",
             name = stringResource(R.string.plans_baseline_split5_name),
             audience = stringResource(R.string.plans_baseline_audience_advanced),
             freq = stringResource(R.string.plans_baseline_freq_5days),
@@ -401,6 +417,7 @@ object FtPlanGroups {
  */
 fun ftPlanGroupsFromPresets(): List<FtPlanGroup> = PresetPlans.ALL.map { plan ->
     FtPlanGroup(
+        planId = plan.id,
         name = plan.name,
         audience = plan.targetAudience,
         freq = plan.weeklyFrequency,

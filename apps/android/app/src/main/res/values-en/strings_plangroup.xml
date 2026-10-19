@@ -84,5 +84,6 @@
     <!-- Toast -->
     <string name="plangroup_toast_exercise">Prototype: view “%1$s” details</string>
     <string name="plangroup_toast_switched">Switched to “%1$s”</string>
+    <string name="plangroup_not_found">Plan not found</string>
 
 </resources>
