@@ -1,6 +1,10 @@
+@file:OptIn(ExperimentalSharedTransitionApi::class)
 package com.fittracker.app.ui.screens.library
 
 import android.os.Build
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -9,8 +13,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,8 +25,13 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -31,6 +42,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,6 +82,7 @@ import coil.compose.SubcomposeAsyncImage
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * 动作库屏（原型 `fittracker-exercise-library.html` 的 `screen-exercise-library` 帧，L554-628）。
@@ -97,6 +110,7 @@ import kotlinx.coroutines.delay
  *    （媒体的 `aspect-ratio` 盒 + 原型自带的居中线稿图标，见 [MediaPlaceholder]），不动布局。
  * 3. 主按钮的 `:active { scale(.985) }`（L468）未复刻（同仓仅 `CompleteScreen` 的 CTA 做了按压缩放）。
  */
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun LibraryScreen(
     onNavigate: (String) -> Unit,
@@ -104,11 +118,17 @@ fun LibraryScreen(
     modifier: Modifier = Modifier,
 ) {
     var part by remember { mutableStateOf(FtLibraryModel.ALL_PARTS) }
+    var partExpanded by remember { mutableStateOf(false) }
+    val partListState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
     var muscle by remember { mutableStateOf(FtLibraryModel.ALL_MUSCLES) }
     var query by remember { mutableStateOf("") }
     var favOnly by remember { mutableStateOf(false) }
     var favorites by remember { mutableStateOf(emptySet<String>()) }
     var detail by remember { mutableStateOf<FtLibraryExercise?>(null) }
+    // 面板是否处于「展开」态：关闭时先置 false 让共享元素反向缩回，
+    // 待转场结束再清空 detail 把面板移出组件树（KDoc 要求 caller 自行移除 exiting 元素）。
+    var detailVisible by remember { mutableStateOf(false) }
     var addedToPlan by remember { mutableStateOf(false) }
     var toast by remember { mutableStateOf<String?>(null) }
 
@@ -144,11 +164,15 @@ fun LibraryScreen(
     val list = FtLibraryModel.filterSource(allExercises, part, muscle, favOnly, favorites, query)
     val groups = groupExercises(list)
 
-    Box(
+    // 共享元素转场作用域：卡片（网格）与详情面板绑定同一 key，
+    // 打开时面板从卡片原位放大到居中，关闭时反向缩回（对应鸿蒙端 geometryTransition）。
+    SharedTransitionLayout(
         modifier = modifier
             .fillMaxSize()
             .background(FtColor.ink0), // `.st-frame { background: var(--ink-0) }`
     ) {
+        val sharedScope: SharedTransitionScope = this
+        Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
             TopBar(
                 favOnly = favOnly,
@@ -178,10 +202,20 @@ fun LibraryScreen(
                                 ContentRepository.getMuscleName(id)
                             }
                         },
-                        onSelect = {
-                            part = it
+                        onSelect = { id ->
+                            part = id
                             muscle = FtLibraryModel.ALL_MUSCLES // 原型切部位时重置肌群（L801）
+                            partExpanded = false
+                            // 收回后把选中项滚到单行中央；索引取自 PART_IDS（哨兵在首位，
+                            // 故直接 indexOf 与 LazyRow 项位一致）。
+                            val idx = FtLibraryModel.PART_IDS.indexOf(id)
+                            if (idx >= 0) {
+                                scope.launch { partListState.animateScrollToItem(idx) }
+                            }
                         },
+                        expanded = partExpanded,
+                        onToggleExpand = { partExpanded = !partExpanded },
+                        listState = partListState,
                     )
                 }
                 if (part != FtLibraryModel.ALL_PARTS) {
@@ -226,7 +260,9 @@ fun LibraryScreen(
                                     onToggleFav = { id ->
                                         favorites = if (id in favorites) favorites - id else favorites + id
                                     },
-                                    onOpen = { detail = it },
+                                    onOpen = { detail = it; detailVisible = true },
+                                    sharedScope = sharedScope,
+                                    openId = if (detailVisible) detail?.id else null,
                                 )
                             }
                         }
@@ -236,11 +272,21 @@ fun LibraryScreen(
             }
         }
 
+        // 关闭后保留面板至转场结束，再移出组件树，避免「缩回」动画被截断。
+        LaunchedEffect(detailVisible, detail) {
+            if (detail != null && !detailVisible) {
+                delay(400)
+                if (!detailVisible) detail = null
+            }
+        }
+
         detail?.let { exercise ->
             DetailSheet(
                 exercise = exercise,
                 addedToPlan = addedToPlan,
-                onClose = { detail = null },
+                visible = detailVisible,
+                sharedScope = sharedScope,
+                onClose = { detailVisible = false },
                 onAddToPlan = {
                     addedToPlan = true
                     toast = resources.getString(FtLibraryModel.TOAST_ADDED_RES, exercise.name)
@@ -255,6 +301,7 @@ fun LibraryScreen(
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 30.dp),
         )
+        }
     }
 }
 
@@ -413,38 +460,119 @@ private fun CategoryRow(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
     small: Boolean = false,
+    expanded: Boolean = false,
+    onToggleExpand: (() -> Unit)? = null,
+    listState: LazyListState? = null,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .offset(x = (-2).dp) // `.cat-row { margin: 0 -2px }`
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 2.dp, vertical = 2.dp), // `.cat-row { padding: 2px }`
-        horizontalArrangement = Arrangement.spacedBy(8.dp), // `.cat-row { gap: 8px }`
-    ) {
-        ids.forEach { id ->
-            val active = id == selected
-            Box(
-                modifier = Modifier
-                    .clip(FtShape.pill)
-                    .background(if (active) ChipActiveFill else SearchFill)
-                    .border(1.dp, if (active) ChipActiveBorder else FtColor.line10, FtShape.pill)
-                    .clickableNoRipple(onClick = { onSelect(id) })
-                    .padding(
-                        horizontal = if (small) 12.dp else 14.dp,
-                        vertical = if (small) 6.dp else 8.dp,
-                    ),
-                contentAlignment = Alignment.Center,
+    if (expanded) {
+        // 展开态：网格铺满行宽，7 个部位一屏可见（FlowRow 换行语义，同设置页 `.chip-row`）。
+        Column(modifier = modifier.fillMaxWidth()) {
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(
-                    text = labelOf(id),
-                    // `.cat-chip.active { font-weight: 600 }`（L255），默认 500
-                    style = FtType.natural(if (small) 12f else 13f, if (active) 600 else 500),
-                    color = if (active) FtColor.accent else FtColor.white70,
-                    maxLines = 1,
-                )
+                ids.forEach { id ->
+                    CategoryChip(
+                        label = labelOf(id),
+                        active = id == selected,
+                        small = small,
+                        onClick = { onSelect(id) },
+                    )
+                }
+            }
+            if (onToggleExpand != null) {
+                Row(
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .clip(FtShape.pill)
+                        .background(SearchFill)
+                        .border(1.dp, FtColor.line10, FtShape.pill)
+                        .clickableNoRipple(onClick = onToggleExpand)
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = stringResource(R.string.library_part_collapse),
+                        style = FtType.natural(12f, 500),
+                        color = FtColor.white70,
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    ChevronUpIcon(modifier = Modifier.size(13.dp), color = FtColor.white70)
+                }
             }
         }
+    } else {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .offset(x = (-2).dp) // `.cat-row { margin: 0 -2px }`
+                .padding(vertical = 2.dp), // `.cat-row { padding: 2px }`
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            LazyRow(
+                state = listState ?: rememberLazyListState(),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp), // `.cat-row { gap: 8px }`
+            ) {
+                items(ids.size, key = { ids[it] }) { i ->
+                    val id = ids[i]
+                    CategoryChip(
+                        label = labelOf(id),
+                        active = id == selected,
+                        small = small,
+                        onClick = { onSelect(id) },
+                    )
+                }
+            }
+            if (onToggleExpand != null) {
+                // 尾部展开键：单行右端固定，不参与横向滚动。
+                Box(
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                        .size(if (small) 30.dp else 36.dp)
+                        .clip(FtShape.pill)
+                        .background(ChipActiveFill)
+                        .border(1.dp, ChipActiveBorder, FtShape.pill)
+                        .clickableNoRipple(onClick = onToggleExpand),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    ChevronDownIcon(modifier = Modifier.size(14.dp), color = FtColor.accent)
+                }
+            }
+        }
+    }
+}
+
+/** `.cat-chip`：胶囊筛选标签，选中态用翡翠描边/填充（原型 L245）。 */
+@Composable
+private fun CategoryChip(
+    label: String,
+    active: Boolean,
+    small: Boolean,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .clip(FtShape.pill)
+            .background(if (active) ChipActiveFill else SearchFill)
+            .border(1.dp, if (active) ChipActiveBorder else FtColor.line10, FtShape.pill)
+            .clickableNoRipple(onClick = onClick)
+            .padding(
+                horizontal = if (small) 12.dp else 14.dp,
+                vertical = if (small) 6.dp else 8.dp,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            // `.cat-chip.active { font-weight: 600 }`（L255），默认 500
+            style = FtType.natural(if (small) 12f else 13f, if (active) 600 else 500),
+            color = if (active) FtColor.accent else FtColor.white70,
+            maxLines = 1,
+        )
     }
 }
 
@@ -457,6 +585,8 @@ private fun ExerciseGroupSection(
     favorites: Set<String>,
     onToggleFav: (String) -> Unit,
     onOpen: (FtLibraryExercise) -> Unit,
+    sharedScope: SharedTransitionScope,
+    openId: String?,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -479,6 +609,8 @@ private fun ExerciseGroupSection(
                         favorite = exercise.id in favorites,
                         onToggleFav = { onToggleFav(exercise.id) },
                         onOpen = { onOpen(exercise) },
+                        sharedScope = sharedScope,
+                        opening = openId == exercise.id,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -498,6 +630,8 @@ private fun ExerciseCard(
     favorite: Boolean,
     onToggleFav: () -> Unit,
     onOpen: () -> Unit,
+    sharedScope: SharedTransitionScope,
+    opening: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(14.dp)
@@ -507,13 +641,23 @@ private fun ExerciseCard(
         if (favorite) R.string.library_a11y_fav_remove else R.string.library_a11y_fav_add,
         exercise.name,
     )
+    val cardShape = if (opening) RoundedCornerShape(0.dp) else shape
     Column(
         modifier = modifier
-            .clip(shape)
+            .clip(cardShape)
             .background(CardFill) // rgba(255,255,255,.031)
-            .border(1.dp, FtColor.line10, shape)
+            .border(1.dp, FtColor.line10, cardShape)
             .semantics { contentDescription = cardDesc }
-            .clickableNoRipple(onClick = onOpen),
+            .clickableNoRipple(onClick = onOpen)
+            // 共享元素：与详情面板同一 key，做「卡片原位 ↔ 居中面板」的边界插值。
+            .then(
+                with(sharedScope) {
+                    Modifier.sharedElementWithCallerManagedVisibility(
+                        rememberSharedContentState(key = "lib-card-" + exercise.id),
+                        visible = !opening,
+                    )
+                }
+            ),
     ) {
         Box(
             modifier = Modifier
@@ -681,6 +825,8 @@ private fun FootNote() {
 private fun DetailSheet(
     exercise: FtLibraryExercise,
     addedToPlan: Boolean,
+    visible: Boolean,
+    sharedScope: SharedTransitionScope,
     onClose: () -> Unit,
     onAddToPlan: () -> Unit,
 ) {
@@ -692,7 +838,7 @@ private fun DetailSheet(
     val closeDesc = stringResource(R.string.library_a11y_close) // 原型 aria-label（L614）
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val maxSheetHeight = maxHeight * 0.84f // `.lib-sheet-card { max-height: 84% }`
-        val shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp)
+        val shape = RoundedCornerShape(26.dp)
 
         // `.lib-sheet-backdrop { background: rgba(4,7,9,.55) }`
         Box(
@@ -705,30 +851,29 @@ private fun DetailSheet(
 
         Box(
             modifier = Modifier
-                .align(Alignment.BottomCenter)
+                .align(Alignment.Center) // 由贴底改为居中：共享元素的目标位置
                 .fillMaxWidth()
                 .heightIn(max = maxSheetHeight)
                 .clip(shape)
                 .background(SheetFill) // #0E1316
                 .border(1.dp, FtColor.line10, shape)
                 // 卡片吞掉点击，避免透传到遮罩（原型只在 backdrop 命中时关闭，L857-861）
-                .clickableNoRipple(onClick = {}),
+                .clickableNoRipple(onClick = {})
+                // 与卡片同一 key；本侧可见，故 target bounds 取自这里。
+                .then(
+                    with(sharedScope) {
+                        Modifier.sharedElementWithCallerManagedVisibility(
+                            rememberSharedContentState(key = "lib-card-" + exercise.id),
+                            visible = visible,
+                        )
+                    }
+                ),
         ) {
             Column(
                 modifier = Modifier
                     .verticalScroll(rememberScrollState()) // `overflow-y: auto`
                     .padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 20.dp), // `padding: 12px 18px 20px`
             ) {
-                // `.lib-sheet-handle { 40×4; margin: 0 auto 16px }`
-                Box(
-                    modifier = Modifier
-                        .padding(bottom = 16.dp)
-                        .align(Alignment.CenterHorizontally)
-                        .size(width = 40.dp, height = 4.dp)
-                        .clip(FtShape.pill)
-                        .background(HandleFill), // rgba(255,255,255,.18)
-                )
-
                 // `.lib-sheet-media`：16/9 + 演示小旗
                 Box(
                     modifier = Modifier
@@ -985,6 +1130,37 @@ private fun CloseIcon(modifier: Modifier = Modifier, color: Color = Color.Unspec
             moveTo(18f * k, 6f * k); lineTo(6f * k, 18f * k)
         }
         drawPath(p, color, style = Stroke(2f * k, cap = StrokeCap.Round))
+    }
+}
+
+/**
+ * 展开箭头（向下）：`M6 9.5l6 6 6-6`，描边 2、圆头圆角。
+ * 无图标库依赖（libs.versions.toml 未引 material-icons-extended），故按本屏既有自绘机制画。
+ */
+@Composable
+private fun ChevronDownIcon(modifier: Modifier = Modifier, color: Color = Color.Unspecified) {
+    Canvas(modifier = modifier) {
+        val k = size.minDimension / ICON_VIEW
+        val p = Path().apply {
+            moveTo(6f * k, 9.5f * k)
+            lineTo(12f * k, 15.5f * k)
+            lineTo(18f * k, 9.5f * k)
+        }
+        drawPath(p, color, style = Stroke(2f * k, cap = StrokeCap.Round, join = StrokeJoin.Round))
+    }
+}
+
+/** 收起箭头（向上）：`M6 14.5l6-6 6 6`，描边 2、圆头圆角。 */
+@Composable
+private fun ChevronUpIcon(modifier: Modifier = Modifier, color: Color = Color.Unspecified) {
+    Canvas(modifier = modifier) {
+        val k = size.minDimension / ICON_VIEW
+        val p = Path().apply {
+            moveTo(6f * k, 14.5f * k)
+            lineTo(12f * k, 8.5f * k)
+            lineTo(18f * k, 14.5f * k)
+        }
+        drawPath(p, color, style = Stroke(2f * k, cap = StrokeCap.Round, join = StrokeJoin.Round))
     }
 }
 
