@@ -143,4 +143,30 @@ class FtCompleteModelTest {
         assertTrue(FtCompleteModel.shouldPersistRpe(picked = 5, current = 0, sessionId = "s1"))
         assertTrue(FtCompleteModel.shouldPersistRpe(picked = 8, current = 5, sessionId = "s1"))
     }
+
+    // ── 界面态更新守卫（与写回守卫分离：界面反馈先行） ──
+
+    @Test
+    fun `RPE 选择态_异值应更新`() {
+        assertTrue(FtCompleteModel.shouldUpdateRpeSelection(picked = 7, current = 0))
+        assertTrue(FtCompleteModel.shouldUpdateRpeSelection(picked = 7, current = 3))
+    }
+
+    @Test
+    fun `RPE 选择态_同值不更新`() {
+        assertFalse(FtCompleteModel.shouldUpdateRpeSelection(picked = 7, current = 7))
+    }
+
+    /**
+     * 回归护栏：**界面态更新不得依赖会话 id**。
+     *
+     * 曾经的缺陷——把写回守卫前置到状态更新之前，导致会话 id 为空（新装应用首轮训练）
+     * 时用户点选毫无视觉反馈。鸿蒙 `selectSessionRpe` 的语义是「先更新界面、再尝试写回」。
+     */
+    @Test
+    fun `RPE 选择态更新与会话 id 无关_界面反馈不依赖可写回性`() {
+        // 会话 id 为空：不应写回，但**仍应更新界面态**
+        assertFalse(FtCompleteModel.shouldPersistRpe(picked = 7, current = 0, sessionId = ""))
+        assertTrue(FtCompleteModel.shouldUpdateRpeSelection(picked = 7, current = 0))
+    }
 }
