@@ -127,6 +127,9 @@ kotlin {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    // 状态层改造：提供 viewModel() composable，让屏状态挂在 NavBackStackEntry 作用域
+    // （tab 切换 saveState=true 不清除其 ViewModelStore，故状态与已装载数据存活）。
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.compose)
 
     implementation(platform(libs.androidx.compose.bom))
