@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -103,69 +104,24 @@ import java.util.Calendar
 fun ProfileScreen(
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier,
+    vm: ProfileViewModel = viewModel(),
 ) {
-    // Wave 4 资料域接线：昵称/头像取自 [UserProfileService]；本周时长/次数与连续记录取自会话仓储。
-    //
-    // 首帧不使用原型样例（「林默」/「增肌第 42 天 · 保持节奏」）——Tab 切换会重建本屏，
-    // `remember` 状态复位后先渲染样例、再由 LaunchedEffect 翻成真数据，表现为「闪一下别的数据」。
-    // 故首帧一律中性/空态，真值到达后再替换（同 `61fe4f7` ReviewScreen 初值改空态的收口口径）。
-    val context = LocalContext.current
-    // 空态占位：昵称未加载/未设置时显示破折号，副标题显示「未设置目标」（对齐鸿蒙 `ProfileContent`）。
-    val namePlaceholder = stringResource(FtProfileModel.NAME_NONE_RES)
-    val avatarPlaceholder = stringResource(FtProfileModel.AVATAR_NONE_RES)
-    var name by remember { mutableStateOf(namePlaceholder) }
-    var avatarInitial by remember { mutableStateOf(avatarPlaceholder) }
-    var weekValue by remember { mutableStateOf(FtProfileModel.WEEK_VALUE) }
-    var weekSessions by remember { mutableStateOf(FtProfileModel.WEEK_METRICS[0].value) }
-    // 连续记录 7 格：首帧全部未激活、标签按默认周首日——真值到达后按「周开始日」重排。
-    var streakActive by remember { mutableStateOf(List(FtProfileModel.STREAK_DAYS.size) { false }) }
-    // 连续训练天数（真实派生）；0 = 尚未开始——标题右侧文案随之改写。
-    var streakDays by remember { mutableIntStateOf(0) }
-    // 成就卡：由真实数据派生（连续天数 / 本周次数 / 最大重量 PR）；无数据为空列表 → 空态。
-    var achievements by remember { mutableStateOf<List<FtProfileAchievement>>(emptyList()) }
-    // 连续记录 7 格标签：默认原型序（周一起始），进屏后按「周开始日」设置重排
-    var streakLabels by remember { mutableStateOf(WeekWindow.dayLabels(WeekStart.MONDAY, currentLanguageTag())) }
-    // 周范围：**纯日期计算、不依赖 IO**——首帧即算真值，避免「样例日期 → 真日期」的翻转闪烁。
-    var weekRangeText by remember {
-        mutableStateOf(
-            WeekWindow.weekRangeText(System.currentTimeMillis(), WeekStart.MONDAY, currentLanguageTag()),
-        )
-    }
-    // 「体重单位」（设置页）：成就卡里的样例重量按此换算展示（基准值仍为 kg）。
-    var weightUnit by remember { mutableStateOf(WeightUnit.KG) }
-    LaunchedEffect(Unit) {
-        val store = JsonStore(context.appDataStore)
-        val weekStart = SettingsService.loadSettings(store).weekStart
-        // 周概览 meta：真实周范围（纯日期计算，与数据有无无关）
-        weekRangeText = WeekWindow.weekRangeText(System.currentTimeMillis(), weekStart, currentLanguageTag())
-        val profile = UserProfileService.loadProfile(store)
-        weightUnit = profile.weightUnit
-        if (profile.nickname.isNotBlank()) {
-            name = profile.nickname
-            avatarInitial = profile.nickname.trim().first().toString()
-        }
-        val sessions = WorkoutRepository.getSessions(store)
-        if (sessions.isNotEmpty()) {
-            val stats = WorkoutSessionService.weeklyStats(sessions, System.currentTimeMillis(), weekStart)
-            weekValue = (stats.duration / 60).toString()
-            weekSessions = stats.count.toString()
-            streakActive = weekActiveDays(WorkoutSessionService.trainingDates(sessions).toSet(), weekStart)
-            streakLabels = WeekWindow.dayLabels(weekStart, currentLanguageTag())
-            // 成就卡派生：连续天数 + 本周次数 + 最大重量 PR（无 PR 记录时该项不出现）。
-            val trainingDates = WorkoutSessionService.trainingDates(sessions).toSet()
-            streakDays = currentStreakDays(trainingDates)
-            val best = PersonalRecordService.createRecordDetails(sessions).maxByOrNull { it.bestOneRepMax }
-            achievements = FtProfileModel.derivedAchievements(
-                streakDays = streakDays,
-                weekSessions = stats.count,
-                bestExerciseName = best?.exerciseName,
-                bestWeightText = best?.let {
-                    WeightUtils.formatWeight(it.bestWeight, weightUnit) + " " + WeightUtils.unitLabel(weightUnit)
-                },
-                bestDateText = best?.bestDateText,
-            )
-        }
-    }
+    // 状态与装载由 [ProfileViewModel] 持有——`viewModel()` 取 NavBackStackEntry 作用域实例，
+    // tab 切换（`saveState=true`）取回同一实例：首帧即真数据、装载只跑一次。
+    // 首帧不用原型样例（「林默」/「增肌第 42 天」）——68e797f 已把初值收口为空态占位，
+    // 迁移后由 VM 保有同样语义（见 ProfileViewModel 状态字段注释）。
+    LaunchedEffect(Unit) { vm.load() }
+
+    val name = vm.name
+    val avatarInitial = vm.avatarInitial
+    val weekValue = vm.weekValue
+    val weekSessions = vm.weekSessions
+    val streakActive = vm.streakActive
+    val streakDays = vm.streakDays
+    val achievements = vm.achievements
+    val streakLabels = vm.streakLabels
+    val weekRangeText = vm.weekRangeText
+    val weightUnit = vm.weightUnit
 
     // 用户要求：个人页不可滑动（内容配合单屏）——LazyColumn 改静态 Column
     Column(
@@ -685,46 +641,9 @@ private fun ShortcutButton(
     }
 }
 
-/**
- * 本设置周（周首由 [weekStart] 决定：周一态 周一→周日 / 周日态 周日→周六）每天是否有训练——
- * `dates` 为 `YYYY-MM-DD` 集合（口径同 [WorkoutSessionService.trainingDates]）。
- * 返回长度 7 的布尔表，索引 0 = 周首日。
- */
-private fun currentStreakDays(trainingDates: Set<String>): Int {
-    val formatter = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
-    val calendar = java.util.Calendar.getInstance()
-    if (formatter.format(calendar.time) !in trainingDates) {
-        calendar.add(java.util.Calendar.DAY_OF_MONTH, -1)
-    }
-    var count = 0
-    while (formatter.format(calendar.time) in trainingDates) {
-        count++
-        calendar.add(java.util.Calendar.DAY_OF_MONTH, -1)
-    }
-    return count
-}
-
-/**
- * 本设置周（周首由 [weekStart] 决定：周一态 周一→周日 / 周日态 周日→周六）每天是否有训练——
- * `dates` 为 `YYYY-MM-DD` 集合（口径同 [WorkoutSessionService.trainingDates]）。
- * 返回长度 7 的布尔表，索引 0 = 周首日。
- */
-private fun weekActiveDays(dates: Set<String>, weekStart: WeekStart): List<Boolean> {
-    val weekStartDay = Calendar.getInstance().apply {
-        val jsDayOfWeek = get(Calendar.DAY_OF_WEEK) - 1 // 0 = 周日
-        add(Calendar.DAY_OF_MONTH, -WeekWindow.offsetFromWeekStart(jsDayOfWeek, weekStart))
-    }
-    return (0 until 7).map { i ->
-        val day = (weekStartDay.clone() as Calendar).apply { add(Calendar.DAY_OF_MONTH, i) }
-        val text = "${day.get(Calendar.YEAR)}-${pad2(day.get(Calendar.MONTH) + 1)}-" +
-            "${pad2(day.get(Calendar.DAY_OF_MONTH))}"
-        dates.contains(text)
-    }
-}
-
-private fun pad2(value: Int): String = if (value < 10) "0$value" else value.toString()
-
 // ── 图标（均取自本 HTML 的 <symbol>，viewBox 0 0 24 24） ─────────────────────
+//
+// `currentStreakDays` / `weekActiveDays` / `pad2` 已随状态迁入 ProfileViewModel.kt。
 
 /** 图标 viewBox 边长；一律按 `size.minDimension / 24` 等比换算（与 `FtIcons.kt` 同口径）。 */
 private const val VIEW = 24f
