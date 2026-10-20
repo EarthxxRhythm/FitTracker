@@ -102,11 +102,16 @@ fun PlanScreen(
     // 数据源（对齐鸿蒙 `PlanContent.loadPlanData`）：当前计划（用户启用的预置计划）→ 空态。
     // 鸿蒙的三级（含 GoalRepository + PlanEngine 生成路径）在 Android 暂为两级——GoalSetupPage
     // 已随产品变更移除（`AppState.ets` 注释），生成路径无输入源；随目标设置能力引入再补。
-    var planName by remember { mutableStateOf(resources.getString(FtPlanDefaults.NAME_RES)) }
-    var planMeta by remember { mutableStateOf(resources.getString(FtPlanDefaults.META_RES)) }
-    var weeklyProgress by remember { mutableStateOf(resources.getString(FtPlanDefaults.WEEK_PROGRESS_RES)) }
-    var progressFraction by remember { mutableStateOf(FtPlanDefaults.PROGRESS_FRACTION) }
-    var days by remember { mutableStateOf(FtPlanDefaults.days) }
+    //
+    // 首帧不使用原型样例（「五日增肌计划」+ 5 天带动作的假计划）——Tab 切换会重建本屏，
+    // `remember` 状态复位后先渲染样例、再由 LaunchedEffect 翻成真数据，表现为「闪一下别的数据」。
+    // 故初值一律取空态（与 `LaunchedEffect` 的 else 分支同值），真值到达后再替换
+    // （同 `61fe4f7` ReviewScreen 初值改空态的收口口径）。
+    var planName by remember { mutableStateOf(resources.getString(R.string.plan_fallback_name)) }
+    var planMeta by remember { mutableStateOf(resources.getString(R.string.plan_empty_meta)) }
+    var weeklyProgress by remember { mutableStateOf(resources.getString(R.string.plan_week_progress, 0, 0)) }
+    var progressFraction by remember { mutableStateOf(0f) }
+    var days by remember { mutableStateOf<List<FtPlanDay>>(emptyList()) }
     var activeIndex by remember { mutableIntStateOf(0) }
     var planId by remember { mutableStateOf("") }
     var restored by remember { mutableStateOf(false) }

@@ -22,6 +22,9 @@
     <string name="profile_sample_avatar_initial">林</string>
     <string name="profile_sample_name">林默</string>
     <string name="profile_sample_sub">增肌第 42 天 · 保持节奏</string>
+    <!-- 首帧/无资料占位：昵称未加载时显示破折号，副标题无目标来源时显示「未设置目标」（对齐鸿蒙 ProfileContent） -->
+    <string name="profile_name_none">—</string>
+    <string name="profile_sub_none">未设置目标</string>
     <!-- `.p-settings` 的 `aria-label="设置"`（L1375），逐字取自源码 -->
     <string name="profile_a11y_settings">设置</string>
 
@@ -39,7 +42,9 @@
 
     <!-- 训练连续记录（L1405-1419） -->
     <string name="profile_streak_title">训练连续记录</string>
-    <string name="profile_streak_count">连续 6 天</string>
+    <!-- 连续天数文案（真实派生）：`%1$d` 为天数；无训练时用 profile_streak_none -->
+    <string name="profile_streak_count">连续 %1$d 天</string>
+    <string name="profile_streak_none">尚未开始</string>
     <!-- `.streak-day` 七天日标签（L1411-1417，原型序＝周一起始）；真实标签由 `WeekWindow.dayLabels` 产出 -->
     <string name="profile_streak_day_mon">一</string>
     <string name="profile_streak_day_tue">二</string>
@@ -53,10 +58,10 @@
     <string name="profile_achievements_title">最近成就</string>
     <!-- 无成就数据时的空态（不再显示原型样例「连续训练 7 天」「86%」「80 kg」） -->
     <string name="profile_achievements_empty">完成训练后，这里会显示你的成就。</string>
-    <!-- 第一条（L1424-1429，`#i-flame`） -->
+    <!-- 第一条（L1424-1429，`#i-flame`）：文案改为真实派生，`%1$d` 由 streakDaysParam / weekSessionsParam 注入 -->
     <string name="profile_achievement_streak_title">稳定输出</string>
-    <string name="profile_achievement_streak_note">连续训练 7 天</string>
-    <string name="profile_achievement_streak_value">本周完成度 86%</string>
+    <string name="profile_achievement_streak_note">连续训练 %1$d 天</string>
+    <string name="profile_achievement_streak_value">本周 %1$d 次</string>
     <!-- 第二条（L1431-1437，`.gold` + `#i-trophy`） -->
     <string name="profile_achievement_pr_title">重量突破</string>
     <string name="profile_achievement_pr_note">深蹲达到 %1$s</string>

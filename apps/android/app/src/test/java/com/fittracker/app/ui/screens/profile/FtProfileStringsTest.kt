@@ -16,8 +16,8 @@ import org.robolectric.annotation.Config
  * `design/06_prototype_redraw/src/fittracker-personal.html` L1366-1452 与既有硬编码）——
  * 此处以 `context.getString` 解析校验，改动中文即红。
  *
- * 本域文案**无位置参数**（数值如「186」「4」「1,240」由数据层注入，不落资源），
- * 故断言里无需 `%1\$s` / `%1\$d` 转义。
+ * 本域带参文案用位置参数（`%1\$d` / `%1\$s`）——连续天数与成就卡文案已随真数据化改造
+ * 改为运行期注入（见 `ProfileScreen`），故断言里需 `%1\$d` 转义。
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "zh-rCN")
@@ -32,6 +32,8 @@ class FtProfileStringsTest {
             R.string.profile_sample_avatar_initial to "林",
             R.string.profile_sample_name to "林默",
             R.string.profile_sample_sub to "增肌第 42 天 · 保持节奏",
+            R.string.profile_name_none to "—",
+            R.string.profile_sub_none to "未设置目标",
             R.string.profile_a11y_settings to "设置",
             // 本周概览（L1380-1403）
             R.string.profile_week_title to "本周概览",
@@ -44,7 +46,9 @@ class FtProfileStringsTest {
             R.string.profile_unit_kcal to "千卡",
             // 训练连续记录（L1405-1419）
             R.string.profile_streak_title to "训练连续记录",
-            R.string.profile_streak_count to "连续 6 天",
+            // 连续天数为 `%1$d` 占位符——真实派生（原「连续 6 天」样例已随真数据化改造移除）。
+            R.string.profile_streak_count to "连续 %1\$d 天",
+            R.string.profile_streak_none to "尚未开始",
             R.string.profile_streak_day_mon to "一",
             R.string.profile_streak_day_tue to "二",
             R.string.profile_streak_day_wed to "三",
@@ -55,8 +59,9 @@ class FtProfileStringsTest {
             // 最近成就（L1421-1439）
             R.string.profile_achievements_title to "最近成就",
             R.string.profile_achievement_streak_title to "稳定输出",
-            R.string.profile_achievement_streak_note to "连续训练 7 天",
-            R.string.profile_achievement_streak_value to "本周完成度 86%",
+            // 天数为 `%1$d` 占位符——真实派生（原「连续训练 7 天」样例已随真数据化改造移除）。
+            R.string.profile_achievement_streak_note to "连续训练 %1\$d 天",
+            R.string.profile_achievement_streak_value to "本周 %1\$d 次",
             R.string.profile_achievement_pr_title to "重量突破",
             // 重量为 `%1$s` 占位符——实际文案按「设置 · 体重单位」换算后注入（原「深蹲达到 80 kg」）。
             R.string.profile_achievement_pr_note to "深蹲达到 %1\$s",
@@ -70,7 +75,7 @@ class FtProfileStringsTest {
         expectations.forEach { (id, expected) ->
             assertEquals("资源 id=$id 与原型中文不一致", expected, context.getString(id))
         }
-        assertEquals("资源条数（zh）", 31, expectations.size)
+        assertEquals("资源条数（zh）", 34, expectations.size)
     }
 
     /** 模型层持有的资源 ID 与真值一致（防止模型 ↔ 资源错位）。 */
@@ -118,7 +123,7 @@ class FtProfileStringsTest {
     fun `英文资源在 en 区域生效`() {
         assertEquals("Weekly overview", context.getString(R.string.profile_week_title))
         assertEquals("Jul 21 – 27", context.getString(R.string.profile_week_meta_sample))
-        assertEquals("6-day streak", context.getString(R.string.profile_streak_count))
+        assertEquals("%1\$d-day streak", context.getString(R.string.profile_streak_count))
         assertEquals("Exercise library", context.getString(R.string.profile_shortcut_library))
         assertEquals("Settings", context.getString(R.string.profile_a11y_settings))
         assertEquals("kcal", context.getString(R.string.profile_unit_kcal))

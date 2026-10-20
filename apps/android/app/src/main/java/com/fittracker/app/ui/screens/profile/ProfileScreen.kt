@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -104,28 +105,38 @@ fun ProfileScreen(
     modifier: Modifier = Modifier,
 ) {
     // Wave 4 资料域接线：昵称/头像取自 [UserProfileService]；本周时长/次数与连续记录取自会话仓储。
-    // 空数据时保持样例（既有视觉）。成就卡无对应服务，保持样例。
+    //
+    // 首帧不使用原型样例（「林默」/「增肌第 42 天 · 保持节奏」）——Tab 切换会重建本屏，
+    // `remember` 状态复位后先渲染样例、再由 LaunchedEffect 翻成真数据，表现为「闪一下别的数据」。
+    // 故首帧一律中性/空态，真值到达后再替换（同 `61fe4f7` ReviewScreen 初值改空态的收口口径）。
     val context = LocalContext.current
-    // 空数据降级样例（原型静态基线）——文案取自 `values/strings_profile.xml`
-    val sampleName = stringResource(FtProfileModel.SAMPLE_NAME_RES)
-    val sampleAvatarInitial = stringResource(FtProfileModel.SAMPLE_AVATAR_INITIAL_RES)
-    val sampleWeekRange = stringResource(FtProfileModel.WEEK_META_SAMPLE_RES)
-    var name by remember { mutableStateOf(sampleName) }
-    var avatarInitial by remember { mutableStateOf(sampleAvatarInitial) }
+    // 空态占位：昵称未加载/未设置时显示破折号，副标题显示「未设置目标」（对齐鸿蒙 `ProfileContent`）。
+    val namePlaceholder = stringResource(FtProfileModel.NAME_NONE_RES)
+    val avatarPlaceholder = stringResource(FtProfileModel.AVATAR_NONE_RES)
+    var name by remember { mutableStateOf(namePlaceholder) }
+    var avatarInitial by remember { mutableStateOf(avatarPlaceholder) }
     var weekValue by remember { mutableStateOf(FtProfileModel.WEEK_VALUE) }
     var weekSessions by remember { mutableStateOf(FtProfileModel.WEEK_METRICS[0].value) }
-    var streakActive by remember { mutableStateOf(FtProfileModel.STREAK_DAYS.map { it.active }) }
+    // 连续记录 7 格：首帧全部未激活、标签按默认周首日——真值到达后按「周开始日」重排。
+    var streakActive by remember { mutableStateOf(List(FtProfileModel.STREAK_DAYS.size) { false }) }
+    // 连续训练天数（真实派生）；0 = 尚未开始——标题右侧文案随之改写。
+    var streakDays by remember { mutableIntStateOf(0) }
     // 成就卡：由真实数据派生（连续天数 / 本周次数 / 最大重量 PR）；无数据为空列表 → 空态。
     var achievements by remember { mutableStateOf<List<FtProfileAchievement>>(emptyList()) }
     // 连续记录 7 格标签：默认原型序（周一起始），进屏后按「周开始日」设置重排
     var streakLabels by remember { mutableStateOf(WeekWindow.dayLabels(WeekStart.MONDAY, currentLanguageTag())) }
-    var weekRangeText by remember { mutableStateOf(sampleWeekRange) }
+    // 周范围：**纯日期计算、不依赖 IO**——首帧即算真值，避免「样例日期 → 真日期」的翻转闪烁。
+    var weekRangeText by remember {
+        mutableStateOf(
+            WeekWindow.weekRangeText(System.currentTimeMillis(), WeekStart.MONDAY, currentLanguageTag()),
+        )
+    }
     // 「体重单位」（设置页）：成就卡里的样例重量按此换算展示（基准值仍为 kg）。
     var weightUnit by remember { mutableStateOf(WeightUnit.KG) }
     LaunchedEffect(Unit) {
         val store = JsonStore(context.appDataStore)
         val weekStart = SettingsService.loadSettings(store).weekStart
-        // 周概览 meta：真实周范围（纯日期计算，与数据有无无关）——加载前首帧保持原型样例
+        // 周概览 meta：真实周范围（纯日期计算，与数据有无无关）
         weekRangeText = WeekWindow.weekRangeText(System.currentTimeMillis(), weekStart, currentLanguageTag())
         val profile = UserProfileService.loadProfile(store)
         weightUnit = profile.weightUnit
@@ -142,9 +153,10 @@ fun ProfileScreen(
             streakLabels = WeekWindow.dayLabels(weekStart, currentLanguageTag())
             // 成就卡派生：连续天数 + 本周次数 + 最大重量 PR（无 PR 记录时该项不出现）。
             val trainingDates = WorkoutSessionService.trainingDates(sessions).toSet()
+            streakDays = currentStreakDays(trainingDates)
             val best = PersonalRecordService.createRecordDetails(sessions).maxByOrNull { it.bestOneRepMax }
             achievements = FtProfileModel.derivedAchievements(
-                streakDays = currentStreakDays(trainingDates),
+                streakDays = streakDays,
                 weekSessions = stats.count,
                 bestExerciseName = best?.exerciseName,
                 bestWeightText = best?.let {
@@ -178,6 +190,11 @@ fun ProfileScreen(
         StreakCard(
             active = streakActive,
             labels = streakLabels,
+            streakLabel = if (streakDays > 0) {
+                stringResource(R.string.profile_streak_count, streakDays)
+            } else {
+                stringResource(R.string.profile_streak_none)
+            },
             modifier = Modifier.weight(1.9f),
         )
         AchievementsCard(achievements = achievements, weightUnit = weightUnit, modifier = Modifier.weight(2.7f))
@@ -223,7 +240,7 @@ private fun ProfileHead(name: String, avatarInitial: String, onNavigate: (String
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = stringResource(FtProfileModel.SAMPLE_SUB_RES),
+                text = stringResource(FtProfileModel.SUB_NONE_RES),
                 modifier = Modifier.padding(top = 4.dp), // `.p-sub { margin-top: 4px }`（L257）
                 style = FtType.natural(12.5f), // 12.5px，原型未声明 line-height
                 color = FtColor.white62,
@@ -401,6 +418,7 @@ private fun FocusMetric(metric: FtProfileMetric, modifier: Modifier = Modifier) 
 private fun StreakCard(
     active: List<Boolean>,
     labels: List<String>,
+    streakLabel: String,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -428,7 +446,7 @@ private fun StreakCard(
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = stringResource(FtProfileModel.STREAK_COUNT_RES),
+                text = streakLabel,
                 modifier = Modifier.alignByBaseline(),
                 style = FtType.natural(12f, 700, FtType.num), // `.streak-count` 12px/700 font-num（L361-367）
                 color = FtColor.accent,
@@ -581,6 +599,8 @@ private fun AchievementRow(
                         achievement.noteRes,
                         WeightUtils.formatWeight(kg.toDouble(), weightUnit) + " " + WeightUtils.unitLabel(weightUnit),
                     )
+                } ?: achievement.streakDaysParam?.let { days ->
+                    stringResource(achievement.noteRes, days)
                 } ?: stringResource(achievement.noteRes),
                 modifier = Modifier.padding(top = 3.dp), // `.ach-note { margin-top: 3px }`（L415）
                 style = FtType.natural(12f), // 12px，未声明 line-height（L415）
@@ -589,7 +609,9 @@ private fun AchievementRow(
         }
 
         Text(
-            text = achievement.valueText ?: stringResource(achievement.valueRes),
+            text = achievement.valueText ?: achievement.weekSessionsParam?.let { count ->
+                stringResource(achievement.valueRes, count)
+            } ?: stringResource(achievement.valueRes),
             style = FtType.natural(11f), // `.ach-value` 11px，未声明 line-height（L416）
             color = if (achievement.gold) FtColor.gold else FtColor.accent, // L416 / L421
             textAlign = TextAlign.End, // `text-align: right`（L416）

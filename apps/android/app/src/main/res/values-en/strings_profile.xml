@@ -12,6 +12,8 @@
     <string name="profile_sample_avatar_initial">L</string>
     <string name="profile_sample_name">Lin Mo</string>
     <string name="profile_sample_sub">Bulking · day 42 · keeping the pace</string>
+    <string name="profile_name_none">—</string>
+    <string name="profile_sub_none">No goal set</string>
     <string name="profile_a11y_settings">Settings</string>
 
     <!-- This week card -->
@@ -26,7 +28,8 @@
 
     <!-- Training streak card -->
     <string name="profile_streak_title">Training streak</string>
-    <string name="profile_streak_count">6-day streak</string>
+    <string name="profile_streak_count">%1$d-day streak</string>
+    <string name="profile_streak_none">Not started</string>
     <!-- Single-letter weekday labels (prototype order: Monday first) -->
     <string name="profile_streak_day_mon">M</string>
     <string name="profile_streak_day_tue">T</string>
@@ -39,8 +42,8 @@
     <!-- Recent achievements -->
     <string name="profile_achievements_title">Recent achievements</string>
     <string name="profile_achievement_streak_title">Steady output</string>
-    <string name="profile_achievement_streak_note">7-day training streak</string>
-    <string name="profile_achievement_streak_value">86% of this week</string>
+    <string name="profile_achievement_streak_note">%1$d-day training streak</string>
+    <string name="profile_achievement_streak_value">%1$d workouts this week</string>
     <string name="profile_achievement_pr_title">Strength PR</string>
     <string name="profile_achievement_pr_note">Squat hit %1$s</string>
     <string name="profile_achievement_pr_value">New personal best</string>
