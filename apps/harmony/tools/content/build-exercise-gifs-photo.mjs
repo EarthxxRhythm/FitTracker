@@ -42,9 +42,14 @@ const CACHE_DIR = path.join(HARMONY_ROOT, '.cache/exercise-photo-src')
 
 // 与消费端容器一致的输出规格：训练执行页 demoVisual 是 180×180 方形容器。
 const SIZE = 180
-// 交叉淡化时长与每帧驻留（秒）。两帧源只有起止两个姿态，用淡化衔接读起来更连贯。
-const FADE = 0.35
-const HOLD = 0.65
+// 三段乒乓的时间参数（秒）。
+// - HOLD：每段的驻留时长（不含淡化段）
+// - FADE：段间淡化时长
+// 总时长 ≈ 3*HOLD + FADE。取 0.42/0.2 ≈ 1.46s，与改前两帧版（1.64s）同量级：
+// 三帧结构本身会增加帧数，若沿用原 HOLD=0.65/FADE=0.35 总时长会到 2.3s，
+// 实测单文件从 109KB 涨到 188KB（+73%），故压到当前值。
+const FADE = 0.2
+const HOLD = 0.42
 const FPS = 14
 // 调色板色数与抖动：180×180 下 192 色足够，体积与观感平衡（实测均值 ~120KB）。
 const COLORS = 192
@@ -100,22 +105,43 @@ function download(url, dest) {
   return 0
 }
 
-/** 两帧交叉淡化 -> 调色板量化 -> GIF。分两步：先出中间 mp4，再 palettegen/paletteuse。 */
+/**
+ * 两帧源图 -> 三帧乒乓循环 -> 调色板量化 -> GIF。
+ *
+ * 为什么是乒乓而不是"混合出第三个姿态"：
+ * free-exercise-db 每个动作只有 2 张照片（实测 876 条中 873 条恰为 2 张，无一条有 3 张），
+ * 所以"第三个不同姿态"在素材层不存在。曾试过用 blend=average 把两图各 50% 合成中间帧，
+ * 结果是**双重曝光鬼影**（两个半透明人影叠在一起），放大到 180×180 一眼可见，不可用。
+ * 乒乓则是 A -> B -> A 的三段编排：两端都是清晰原图，零鬼影，同时修掉了原实现
+ * 「B 直接跳回 A」的突兀（原版 loop 回跳是硬切）。
+ *
+ * 代价（如实记录）：不同画面仍是 2 个，只是时段变成 3 段。若日后要真正的 3 个不同姿态，
+ * 只能换素材源（需每个动作 3 张照片的源，或自制拍摄）。
+ *
+ * 分两步：先出中间 mp4，再 palettegen/paletteuse（单步滤镜链会与 filter_complex 冲突）。
+ */
 function composeGif(ffmpeg, framePaths, outPath) {
   const mp4 = outPath.replace(/\.gif$/, '.tmp.mp4')
-  const build = (inputs, tail) => {
-    const args = ['-y', '-hide_banner', '-loglevel', 'error']
-    for (const p of inputs) args.push('-loop', '1', '-t', '1', '-i', p)
-    args.push('-filter_complex',
-      '[0:v]scale=' + SIZE + ':' + SIZE + ':force_original_aspect_ratio=increase,' +
-      'crop=' + SIZE + ':' + SIZE + ',setsar=1,fps=' + FPS + '[a];' +
-      '[1:v]scale=' + SIZE + ':' + SIZE + ':force_original_aspect_ratio=increase,' +
-      'crop=' + SIZE + ':' + SIZE + ',setsar=1,fps=' + FPS + '[b];' +
-      '[a][b]xfade=transition=fade:duration=' + FADE + ':offset=' + HOLD + '[v]')
-    args.push('-map', '[v]', ...tail)
-    return args
-  }
-  execFileSync(ffmpeg, build(framePaths, ['-c:v', 'libx264', '-pix_fmt', 'yuv420p', mp4]), { stdio: 'pipe' })
+  const scaleTo = (inputIndex, label) =>
+    '[' + inputIndex + ':v]scale=' + SIZE + ':' + SIZE + ':force_original_aspect_ratio=increase,' +
+    'crop=' + SIZE + ':' + SIZE + ',setsar=1[' + label + ']'
+  // 第一张图要用两次（开场与回程），故 split；第二张用一次。
+  const filter =
+    scaleTo(0, 'src0') + ';' +
+    scaleTo(1, 'src1') + ';' +
+    '[src0]split[a0][a2];' +
+    // 每段驻留 HOLD 秒，段间以 FADE 秒淡化衔接：
+    // 段1 A(0..HOLD) -> fade -> 段2 B -> fade -> 段3 A
+    '[a0]fps=' + FPS + ',trim=duration=' + (HOLD + FADE) + ',setpts=PTS-STARTPTS[seg1];' +
+    '[src1]fps=' + FPS + ',trim=duration=' + (HOLD + FADE) + ',setpts=PTS-STARTPTS[seg2];' +
+    '[a2]fps=' + FPS + ',trim=duration=' + (HOLD + FADE) + ',setpts=PTS-STARTPTS[seg3];' +
+    '[seg1][seg2]xfade=transition=fade:duration=' + FADE + ':offset=' + HOLD + '[x1];' +
+    '[x1][seg3]xfade=transition=fade:duration=' + FADE + ':offset=' + (HOLD * 2) + '[v]'
+  execFileSync(ffmpeg, ['-y', '-hide_banner', '-loglevel', 'error',
+    '-loop', '1', '-t', '1', '-i', framePaths[0],
+    '-loop', '1', '-t', '1', '-i', framePaths[1],
+    '-filter_complex', filter,
+    '-map', '[v]', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', mp4], { stdio: 'pipe' })
   execFileSync(ffmpeg, ['-y', '-hide_banner', '-loglevel', 'error', '-i', mp4,
     '-vf', 'split[s0][s1];[s0]palettegen=max_colors=' + COLORS + '[p];' +
       '[s1][p]paletteuse=dither=bayer:bayer_scale=' + BAYER,
