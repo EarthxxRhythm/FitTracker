@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -76,99 +77,25 @@ import com.fittracker.app.ui.theme.FtType
 fun HomeScreen(
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier,
+    vm: HomeViewModel = viewModel(),
 ) {
-    val context = LocalContext.current
-    val resources = LocalResources.current
-    val store = remember { JsonStore(context.appDataStore) }
+    // 状态与装载由 [HomeViewModel] 持有——`viewModel()` 取 NavBackStackEntry 作用域实例，
+    // tab 切换（`saveState=true`）取回同一实例：首帧即真数据、装载只跑一次
+    // （`LaunchedEffect(Unit)` 只在组件首次组合触发）。
+    LaunchedEffect(Unit) { vm.load() }
 
-    // 数据源（对齐鸿蒙 `HomeContent.loadDynamicContent`）：当前计划 → 空态。
-    // 目标生成路径因 GoalSetupPage 已移除而无输入源（同计划 Tab 的取舍）。
-    var dateText by remember { mutableStateOf("") }
-    var greetingText by remember { mutableStateOf("") }
-    var weeklyProgressPercent by remember { mutableStateOf(0) }
-    var todayTitle by remember { mutableStateOf(resources.getString(R.string.home_empty_plan_title)) }
-    var todayMuscleText by remember { mutableStateOf(resources.getString(R.string.home_empty_plan_subtitle)) }
-    var todayStatusText by remember { mutableStateOf(resources.getString(R.string.home_status_pending)) }
-    var todayExerciseCount by remember { mutableStateOf(0) }
-    var todayDurationMinutes by remember { mutableStateOf(0) }
-    var todayMuscleGroupCount by remember { mutableStateOf(0) }
-    var weeklyPlannedDays by remember { mutableStateOf(0) }
-    var weeklyTrainedCount by remember { mutableStateOf(0) }
-    var weekDays by remember { mutableStateOf(emptyList<HomeWeekDay>()) }
-
-    LaunchedEffect(Unit) {
-        // 日期与问候（`HomeContent.applyDateAndGreeting`）
-        val now = java.util.Calendar.getInstance()
-        val weekdayRes = intArrayOf(
-            R.string.home_weekday_sunday,
-            R.string.home_weekday_monday,
-            R.string.home_weekday_tuesday,
-            R.string.home_weekday_wednesday,
-            R.string.home_weekday_thursday,
-            R.string.home_weekday_friday,
-            R.string.home_weekday_saturday,
-        )
-        dateText = resources.getString(
-            R.string.home_date_format,
-            now.get(java.util.Calendar.MONTH) + 1,
-            now.get(java.util.Calendar.DAY_OF_MONTH),
-            resources.getString(weekdayRes[now.get(java.util.Calendar.DAY_OF_WEEK) - 1]),
-        )
-        greetingText = resources.getString(
-            when (now.get(java.util.Calendar.HOUR_OF_DAY)) {
-                in 5..10 -> R.string.home_greeting_morning
-                in 11..17 -> R.string.home_greeting_afternoon
-                else -> R.string.home_greeting_evening
-            },
-        )
-
-        val sessions = WorkoutRepository.getSessions(store)
-        val weekStart = SettingsService.loadSettings(store).weekStart
-        val stats = WorkoutSessionService.weeklyStats(sessions, System.currentTimeMillis(), weekStart)
-        val trainingDates = WorkoutSessionService.trainingDates(sessions)
-        val current = TrainingPlanRepository.getCurrentPlan(store)
-        if (current != null) {
-            val todayTraining = TrainingPlanRepository.getTodayTraining(current)
-            // 预置计划模型无单次时长字段；目标设置能力未引入时 sessionMinutes 取 0
-            // （对齐鸿蒙同口径：未设置目标时为 0，属数据缺口）
-            val summary = HomePlanService.createSummaryFromCurrentPlan(
-                current,
-                TrainingPlanRepository.getTodayLabel(),
-                todayTraining,
-                0,
-            )
-            todayTitle = summary.todayTitle
-            todayMuscleText = if (todayTraining == null) {
-                resources.getString(R.string.home_today_no_training)
-            } else {
-                dayFocusMuscles(todayTraining)
-            }
-            todayStatusText = resources.getString(
-                if (summary.hasTodayWorkout) R.string.home_status_training_day else R.string.home_status_rest_day,
-            )
-            todayExerciseCount = summary.todayExerciseCount
-            todayDurationMinutes = summary.sessionMinutes
-            todayMuscleGroupCount = summary.todayMuscleGroupCount
-            weeklyPlannedDays = summary.weeklyDays
-            weeklyProgressPercent = if (summary.weeklyDays > 0) {
-                ((stats.count * 100) / summary.weeklyDays).coerceAtMost(100)
-            } else {
-                0
-            }
-        } else {
-            // 空态（`HomeContent.applyEmptyState`）
-            todayTitle = resources.getString(R.string.home_empty_plan_title)
-            todayMuscleText = resources.getString(R.string.home_empty_plan_subtitle)
-            todayStatusText = resources.getString(R.string.home_status_pending)
-            todayExerciseCount = 0
-            todayDurationMinutes = 0
-            todayMuscleGroupCount = 0
-            weeklyPlannedDays = 0
-            weeklyProgressPercent = 0
-        }
-        weeklyTrainedCount = stats.count
-        weekDays = buildHomeWeekDays(trainingDates, weekStart)
-    }
+    val dateText = vm.dateText
+    val greetingText = vm.greetingText
+    val weeklyProgressPercent = vm.weeklyProgressPercent
+    val todayTitle = vm.todayTitle
+    val todayMuscleText = vm.todayMuscleText
+    val todayStatusText = vm.todayStatusText
+    val todayExerciseCount = vm.todayExerciseCount
+    val todayDurationMinutes = vm.todayDurationMinutes
+    val todayMuscleGroupCount = vm.todayMuscleGroupCount
+    val weeklyPlannedDays = vm.weeklyPlannedDays
+    val weeklyTrainedCount = vm.weeklyTrainedCount
+    val weekDays = vm.weekDays
 
     Column(
         modifier = modifier
@@ -705,33 +632,9 @@ private fun CheckMark() {
 }
 
 // ── 周节奏数据（对齐鸿蒙 `HomeContent.HomeWeekDayItem` / `createWeekDayItems`） ──
-
-/** 周节奏单日：`active` = 该日有训练记录。 */
-private data class HomeWeekDay(val label: String, val date: Int, val active: Boolean)
-
-/**
- * 周节奏七格：自**设置周首日**起七天（标签序唯一真源 [WeekWindow.dayLabels]），
- * 按训练日期集合标记 `active`。
- */
-private fun buildHomeWeekDays(trainingDates: List<String>, weekStart: WeekStart): List<HomeWeekDay> {
-    val calendar = java.util.Calendar.getInstance()
-    val dayOfWeek = calendar.get(java.util.Calendar.DAY_OF_WEEK) - 1 // 0 = 周日
-    calendar.add(
-        java.util.Calendar.DAY_OF_MONTH,
-        -WeekWindow.offsetFromWeekStart(dayOfWeek, weekStart),
-    )
-    val labels = WeekWindow.dayLabels(weekStart, currentLanguageTag())
-    return (0..6).map { index ->
-        val date = (calendar.clone() as java.util.Calendar).apply {
-            add(java.util.Calendar.DAY_OF_MONTH, index)
-        }
-        HomeWeekDay(
-            label = labels[index],
-            date = date.get(java.util.Calendar.DAY_OF_MONTH),
-            active = weekDateKey(date) in trainingDates,
-        )
-    }
-}
+//
+// `HomeWeekDay` / `buildHomeWeekDays` / `weekDateKey` 已随状态迁入 HomeViewModel.kt；
+// 此处只留 `weekRangeSubtitle`（依赖 `stringResource`，是 @Composable，必须留在屏内）。
 
 /**
  * 「本周节奏」副标题「周X—周Y」——随设置周首联动（周首标签序的唯一真源是
@@ -745,13 +648,6 @@ private fun weekRangeSubtitle(days: List<HomeWeekDay>): String {
         listOf(days.first().label, days.last().label)
     }
     return stringResource(R.string.home_week_range, labels.first(), labels.last())
-}
-
-/** `YYYY-MM-DD` 键（`HomeContent.formatDateKey`）。 */
-private fun weekDateKey(date: java.util.Calendar): String {
-    val pad = { value: Int -> if (value < 10) "0$value" else value.toString() }
-    return "${date.get(java.util.Calendar.YEAR)}-${pad(date.get(java.util.Calendar.MONTH) + 1)}-" +
-        pad(date.get(java.util.Calendar.DAY_OF_MONTH))
 }
 
 // ── 屏内色值（原型 `:root` 无对应令牌，按 FtColorUtil 规则就地定义） ──
