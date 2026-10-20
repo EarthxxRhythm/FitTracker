@@ -46,6 +46,10 @@ data class FtProfileAchievement(
     val gold: Boolean,
     /** 卡片文案里的样例重量（kg 基准），需按单位换算注入 `noteRes` 的 `%1$s`。 */
     val weightKgParam: Int? = null,
+    /** 「稳定输出」条派生参数：连续训练天数，注入 `noteRes` 的 `%1$d`。 */
+    val streakDaysParam: Int? = null,
+    /** 「稳定输出」条派生参数：本周训练次数，注入 `valueRes` 的 `%1$d`。 */
+    val weekSessionsParam: Int? = null,
     /**
      * 运行期派生文案（优先于 [titleRes]/[noteRes]/[valueRes] 资源）。
      *
@@ -90,6 +94,21 @@ object FtProfileModel {
     /** `.p-name`（L1372）——未接 `UserProfileService` 时的降级样例。 */
     @StringRes
     val SAMPLE_NAME_RES = R.string.profile_sample_name
+
+    /**
+     * `.p-name` 的**首帧/无资料占位**——昵称未加载或未设置时显示，避免渲染原型样例「林默」。
+     * Tab 切换会重建本屏，`remember` 状态复位后若无此占位会先闪出样例假数据。
+     */
+    @StringRes
+    val NAME_NONE_RES = R.string.profile_name_none
+
+    /** `.avatar` 的**首帧/无资料占位**（同 [NAME_NONE_RES] 的成因）。 */
+    @StringRes
+    val AVATAR_NONE_RES = R.string.profile_name_none
+
+    /** `.p-sub` 的**无目标占位**（对齐鸿蒙 `ProfileContent` 的「未设置目标」）。 */
+    @StringRes
+    val SUB_NONE_RES = R.string.profile_sub_none
 
     /** `.p-sub`（L1373）——同上。 */
     @StringRes
@@ -218,9 +237,11 @@ object FtProfileModel {
                     noteRes = R.string.profile_achievement_streak_note,
                     valueRes = R.string.profile_achievement_streak_value,
                     gold = false,
-                    titleText = "稳定输出",
-                    noteText = "连续训练 $streakDays 天",
-                    valueText = "本周 $weekSessions 次",
+                    titleText = null, // 走 titleRes 资源
+                    noteText = null,
+                    valueText = null,
+                    streakDaysParam = streakDays,
+                    weekSessionsParam = weekSessions,
                 ),
             )
         }
@@ -232,7 +253,9 @@ object FtProfileModel {
                     noteRes = R.string.profile_achievement_pr_note,
                     valueRes = R.string.profile_achievement_pr_value,
                     gold = true,
-                    titleText = "重量突破",
+                    // 文案全走资源：动作名 / 重量 / 日期为运行期数据，经 noteText / valueText 注入；
+                    // titleText 置空 → 回落 titleRes（避免硬编码中文在英文环境泄漏）。
+                    titleText = null,
                     noteText = "$bestExerciseName $bestWeightText",
                     valueText = bestDateText ?: "",
                 ),
