@@ -237,9 +237,9 @@ object FtProfileModel {
                     noteRes = R.string.profile_achievement_streak_note,
                     valueRes = R.string.profile_achievement_streak_value,
                     gold = false,
-                    titleText = null, // 走 titleRes 资源
-                    noteText = null,
-                    valueText = null,
+                    titleText = null, // 标题走资源
+                    noteText = null,  // 天数经 streakDaysParam 注入 noteRes 的 %1$d
+                    valueText = null, // 次数经 weekSessionsParam 注入 valueRes 的 %1$d
                     streakDaysParam = streakDays,
                     weekSessionsParam = weekSessions,
                 ),
