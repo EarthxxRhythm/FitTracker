@@ -133,11 +133,25 @@ fun LibraryScreen(
     var toast by remember { mutableStateOf<String?>(null) }
 
     // Wave 4 资料域接线：动作库接 [ContentRepository]（assets 真实 50 动作）。
-    // 装载失败时保持原型样例 [FtLibraryModel.EXERCISES]；动作 GIF 经 [FtLibraryModel.gifAssetFor]
-    // 反查（命中即播放），未命中素材回落同尺寸占位块（见本文件头取舍 2）。
+    // 动作 GIF 经 [FtLibraryModel.gifAssetFor] 反查（命中即播放），未命中素材回落同尺寸占位块
+    // （见本文件头取舍 2）。
+    //
+    // 首帧不使用原型样例 [FtLibraryModel.EXERCISES]——重新进入本屏会重建组件，
+    // `remember` 状态复位后先渲染样例、再由 LaunchedEffect 翻成真数据，表现为「闪一下别的数据」。
+    // 改为：初值直接**同步**取已装载的内容库（`ContentRepository` 的读取 API 同步，
+    // 且 `MainActivity` 启动时已 `ensureLoaded` 预热）——已装载时首帧即真数据，零翻转；
+    // 未装载时为**空态**（而非样例假数据），待 `LaunchedEffect` 装载后替换。
     val context = LocalContext.current
     val resources = LocalResources.current
-    var allExercises by remember { mutableStateOf(FtLibraryModel.EXERCISES) }
+    var allExercises by remember {
+        mutableStateOf(
+            if (ContentRepository.isLoaded) {
+                ContentRepository.exercises().map { FtLibraryModel.toLibraryExercise(it) }
+            } else {
+                emptyList()
+            },
+        )
+    }
     LaunchedEffect(Unit) {
         runCatching { ContentRepository.load(context) }
         if (ContentRepository.isLoaded) {
@@ -237,7 +251,11 @@ fun LibraryScreen(
                         )
                     }
                 }
-                if (list.isEmpty()) {
+                // 仅当**有数据但被筛选条件过滤空**时才显示空态。
+                // 未装载（`allExercises` 为空、`ContentRepository` 未 loaded）时不显示——
+                // 否则会误报「该部位暂无动作」，而实情是内容库尚未装载（该窗口极短：
+                // `MainActivity.onCreate` 已 `ensureLoaded` 预热）。
+                if (list.isEmpty() && allExercises.isNotEmpty()) {
                     item(key = "empty") {
                         // 空态上方的额外 14px：原型此时 `.lib-groups` 为空 div，仍占一份 gap（L755-756）
                         EmptyState(
