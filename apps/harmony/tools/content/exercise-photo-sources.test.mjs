@@ -190,3 +190,57 @@ test('映射表声明了素材来源与授权口径', function () {
     assert.ok(s.fedbId && s.fedbId.length > 0, '可用条目缺少 fedbId: ' + s.exerciseId)
   }
 })
+
+test('素材是 3 帧乒乓结构（A->B->A 三段），不是 2 帧淡化', function () {
+  // 背景：源库每动作只有 2 张照片，无法合成"第三个真实姿态"（实测 876 条中 873 条恰为 2 张，
+  // 无一条有 3 张）。曾试过 blend=average 混合中间帧，结果是双重曝光鬼影，已否决。
+  // 现方案是把 2 张照片编排成 A->B->A 三段循环，既满足"3 帧"结构，又修掉原版
+  // 「B 直接跳回 A」的硬切突兀。
+  //
+  // 判据为什么是「时长 == 3*HOLD + FADE」而不是「时长 >= 某个阈值」：
+  // 首版断言用了 >=1.2s，反向验证时发现它**抓不到回退**——旧两帧版时长 1.64s 反而比
+  // 新三段版 1.50s 更长，阈值判据永远绿（假绿）。改为从构建脚本读取 HOLD/FADE 常量、
+  // 按三段结构算出期望总时长再做等值断言：一旦实现退回两帧，期望值不变而实际变成
+  // HOLD+FADE，必然不等而变红。
+  const buildSrc = readFileSync(resolve(scriptDir, 'build-exercise-gifs-photo.mjs'), 'utf8')
+  const holdMatch = buildSrc.match(/^const HOLD = ([\d.]+)/m)
+  const fadeMatch = buildSrc.match(/^const FADE = ([\d.]+)/m)
+  assert.ok(holdMatch && fadeMatch, '构建脚本中未找到 HOLD/FADE 常量')
+  const hold = parseFloat(holdMatch[1])
+  const fade = parseFloat(fadeMatch[1])
+  // 三段：A -> fade -> B -> fade -> A，两次 xfade 的 offset 分别是 HOLD 与 2*HOLD。
+  const expectedSeconds = hold * 3 + fade
+
+  /** 读 GIF 全部 graphic control extension 的 delay 求和，返回总时长（秒）与帧块数。 */
+  function readGifTiming(file) {
+    const buf = readFileSync(resolve(PHOTO_DIR, file))
+    let ms = 0
+    let blocks = 0
+    for (let i = 0; i < buf.length - 8; i++) {
+      if (buf[i] === 0x21 && buf[i + 1] === 0xf9 && buf[i + 2] === 0x04) {
+        // GCE 布局：21 F9 04 <packed> <delay lo> <delay hi> <transparent> 00
+        ms += buf.readUInt16LE(i + 4) * 10
+        blocks++
+      }
+    }
+    return { seconds: ms / 1000, blocks }
+  }
+
+  const gifFiles = [...photoFiles].map((f) => f + '.gif')
+  assert.ok(gifFiles.length > 0, '没有可检查的素材文件')
+
+  const deviations = []
+  const noFrame = []
+  for (const file of gifFiles) {
+    const t = readGifTiming(file)
+    if (t.blocks === 0) noFrame.push(file)
+    // 允许 0.12s 误差：GIF delay 以 1/100 秒量化，且 fps 取整会带来几十毫秒偏差。
+    if (Math.abs(t.seconds - expectedSeconds) > 0.12) {
+      deviations.push(`${file} 实际 ${t.seconds.toFixed(2)}s，三段期望 ${expectedSeconds.toFixed(2)}s`)
+    }
+  }
+  assert.deepEqual(noFrame, [], '存在没有任何帧块的 GIF')
+  assert.deepEqual(deviations, [],
+    `这些素材的时长不符合「3 段乒乓」(HOLD=${hold} FADE=${fade} => ${expectedSeconds.toFixed(2)}s)：\n  ` +
+    deviations.join('\n  '))
+})
