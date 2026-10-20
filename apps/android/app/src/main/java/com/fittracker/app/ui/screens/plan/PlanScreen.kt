@@ -26,7 +26,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -49,6 +48,7 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -57,14 +57,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.fittracker.app.R
-import com.fittracker.app.data.persist.JsonCodec
-import com.fittracker.app.data.persist.JsonStore
-import com.fittracker.app.data.persist.StoreNames
-import com.fittracker.app.data.persist.appDataStore
-import com.fittracker.app.data.service.SettingsService
-import com.fittracker.app.data.service.TrainingPlanRepository
-import com.fittracker.app.data.service.WorkoutRepository
-import com.fittracker.app.data.service.WorkoutSessionService
 import com.fittracker.app.ui.components.FtDumbbellIcon
 import com.fittracker.app.ui.components.clickableNoRipple
 import com.fittracker.app.ui.theme.FtColor
@@ -72,7 +64,6 @@ import com.fittracker.app.ui.theme.FtShape
 import com.fittracker.app.ui.theme.FtType
 import kotlin.math.abs
 import kotlinx.coroutines.launch
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 
@@ -94,69 +85,24 @@ import kotlinx.serialization.encodeToString
 fun PlanScreen(
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier,
+    vm: PlanViewModel = viewModel(),
 ) {
-    val context = LocalContext.current
-    val resources = LocalResources.current
-    val store = remember { JsonStore(context.appDataStore) }
-
+    // 状态与装载由 [PlanViewModel] 持有——`viewModel()` 取 NavBackStackEntry 作用域的实例，
+    // Tab 切换（`saveState=true`）不清除其 ViewModelStore，故切回时取回同一实例：
+    // 首帧即真数据，且装载只跑一次（`LaunchedEffect(Unit)` 只在组件首次组合触发，
+    // 组件重建不重跑）。
+    //
     // 数据源（对齐鸿蒙 `PlanContent.loadPlanData`）：当前计划（用户启用的预置计划）→ 空态。
     // 鸿蒙的三级（含 GoalRepository + PlanEngine 生成路径）在 Android 暂为两级——GoalSetupPage
     // 已随产品变更移除（`AppState.ets` 注释），生成路径无输入源；随目标设置能力引入再补。
-    //
-    // 首帧不使用原型样例（「五日增肌计划」+ 5 天带动作的假计划）——Tab 切换会重建本屏，
-    // `remember` 状态复位后先渲染样例、再由 LaunchedEffect 翻成真数据，表现为「闪一下别的数据」。
-    // 故初值一律取空态（与 `LaunchedEffect` 的 else 分支同值），真值到达后再替换
-    // （同 `61fe4f7` ReviewScreen 初值改空态的收口口径）。
-    var planName by remember { mutableStateOf(resources.getString(R.string.plan_fallback_name)) }
-    var planMeta by remember { mutableStateOf(resources.getString(R.string.plan_empty_meta)) }
-    var weeklyProgress by remember { mutableStateOf(resources.getString(R.string.plan_week_progress, 0, 0)) }
-    var progressFraction by remember { mutableStateOf(0f) }
-    var days by remember { mutableStateOf<List<FtPlanDay>>(emptyList()) }
-    var activeIndex by remember { mutableIntStateOf(0) }
-    var planId by remember { mutableStateOf("") }
-    var restored by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { vm.load() }
 
-    LaunchedEffect(Unit) {
-        val weekStart = SettingsService.loadSettings(store).weekStart
-        val current = TrainingPlanRepository.getCurrentPlan(store)
-        if (current != null) {
-            planId = current.id
-            days = ftPlanDaysFromUserPlan(current)
-            planName = current.name.ifEmpty { resources.getString(R.string.plan_fallback_name) }
-            planMeta = resources.getString(
-                R.string.plan_meta_format,
-                current.targetAudience,
-                current.days.size,
-                current.weeklyFrequency,
-            )
-            val stats = WorkoutSessionService.weeklyStats(
-                WorkoutRepository.getSessions(store),
-                System.currentTimeMillis(),
-                weekStart,
-            )
-            val total = current.days.size
-            weeklyProgress = resources.getString(R.string.plan_week_progress, stats.count, total)
-            progressFraction = if (total > 0) (stats.count.toFloat() / total).coerceIn(0f, 1f) else 0f
-        } else {
-            // 空态（`PlanContent.applyEmptyState`）
-            days = emptyList()
-            planName = resources.getString(R.string.plan_fallback_name)
-            planMeta = resources.getString(R.string.plan_empty_meta)
-            weeklyProgress = resources.getString(R.string.plan_week_progress, 0, 0)
-            progressFraction = 0f
-        }
-        // 恢复上次浏览的卡片位置（原型 plan.html:743-746：localStorage 'fittracker-plan-state'
-        // 的 `card` 字段）。原型不做边界校验，本侧补 clamp——天数变化后旧索引会落到空位。
-        val saved = PlanStateWire.decode(store.readString(StoreNames.PLAN_STATE))?.card
-        activeIndex = if (saved != null && saved in days.indices) saved else 0
-        restored = true
-    }
-
-    // 卡片位置变更后回写（原型 `syncActive`，plan.html:820-824）
-    LaunchedEffect(activeIndex, restored) {
-        if (!restored) return@LaunchedEffect
-        store.writeString(StoreNames.PLAN_STATE, PlanStateWire.encode(planId, activeIndex))
-    }
+    val planName = vm.planName
+    val planMeta = vm.planMeta
+    val weeklyProgress = vm.weeklyProgress
+    val progressFraction = vm.progressFraction
+    val days = vm.days
+    val activeIndex = vm.activeIndex
 
     // 进度条右侧文案（`PlanContent.activeDayCaption`）：随卡片堆索引联动
     val caption = days.getOrNull(activeIndex)
@@ -185,36 +131,12 @@ fun PlanScreen(
         TodayPlanDeck(
             days = days,
             activeIndex = activeIndex,
-            onActiveIndexChange = { activeIndex = it },
+            onActiveIndexChange = { vm.selectCard(it) },
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(8f)
                 .padding(top = 16.dp), // `.today-plan` margin-top: 16px
         )
-    }
-}
-
-/**
- * 卡片位置的落盘形态——逐字段对齐原型 `localStorage['fittracker-plan-state']`
- * （`{ plan: activePlan, card: activeCard }`，plan.html:822）。
- *
- * Android 侧暂无计划选择器（原型 `plan` 字段对应多计划切换），故 `plan` 只作记录；
- * 恢复语义只消费 `card`。
- */
-@Serializable
-private data class PlanStateWire(val plan: String = "", val card: Int = 0) {
-
-    companion object {
-
-        fun encode(planId: String, card: Int): String =
-            JsonCodec.json.encodeToString(PlanStateWire.serializer(), PlanStateWire(planId, card))
-
-        /** 宽容解析：无存档 / 坏 JSON → `null`，由调用方回落默认位置。 */
-        fun decode(raw: String?): PlanStateWire? = if (raw.isNullOrEmpty()) {
-            null
-        } else {
-            runCatching { JsonCodec.json.decodeFromString(PlanStateWire.serializer(), raw) }.getOrNull()
-        }
     }
 }
 
