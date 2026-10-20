@@ -56,6 +56,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -136,38 +137,24 @@ fun BodyScreen(
     onNavigate: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    vm: BodyViewModel = viewModel(),
 ) {
     var period by remember { mutableStateOf(TrendPeriod.WEEK) }
-    var saved by remember { mutableStateOf(false) }
     // 录入面板档位：null = 关闭。体重档沿用既有 WeightSheet；测量档 / 档案档为本次新增。
     var sheetMode by remember { mutableStateOf<BodySheetMode?>(null) }
 
-    // 设置项「体重单位」的消费：与设置屏同一持久化口径（[UserProfileService]）。
-    val context = LocalContext.current
-    val store = remember { JsonStore(context.appDataStore) }
-    val scope = rememberCoroutineScope()
-    var weightUnit by remember { mutableStateOf(WeightUnit.KG) }
-    var records by remember { mutableStateOf<List<WeightRecord>>(emptyList()) }
-    var weekStart by remember { mutableStateOf(WeekStart.MONDAY) }
-    // 身体测量记录（围度 + 体成分）与用户档案（身高/性别/出生年）——体成分与围度卡的真实数据源。
-    var measurements by remember { mutableStateOf<List<BodyMeasurement>>(emptyList()) }
-    var profile by remember { mutableStateOf(UserProfileService.getDefaultProfile()) }
-    LaunchedEffect(Unit) {
-        val loadedProfile = UserProfileService.loadProfile(store)
-        weightUnit = loadedProfile.weightUnit
-        profile = loadedProfile
-        records = BodyRecordService.loadRecords(store)
-        measurements = BodyMeasurementService.loadMeasurements(store)
-        weekStart = SettingsService.loadSettings(store).weekStart
-    }
-    // 测量档案刷新口令：录入面板保存后 bump，触发重读。
-    var measurementReload by remember { mutableIntStateOf(0) }
-    LaunchedEffect(measurementReload) {
-        if (measurementReload > 0) {
-            measurements = BodyMeasurementService.loadMeasurements(store)
-            profile = UserProfileService.loadProfile(store)
-        }
-    }
+    // 数据态与写路径由 [BodyViewModel] 持有（`viewModel()` 取 NavBackStackEntry 作用域实例）。
+    // `period`/`sheetMode` 是纯 UI 交互态，留屏内；数据态（weightUnit/records/weekStart/
+    // measurements/profile）与三条写路径（体重/测量/档案）已迁入 VM。
+    LaunchedEffect(Unit) { vm.load() }
+
+    val weightUnit = vm.weightUnit
+    val records = vm.records
+    val weekStart = vm.weekStart
+    val measurements = vm.measurements
+    val profile = vm.profile
+    val saved = vm.saved
+
     val latestMeasurement: BodyMeasurement? = remember(measurements) {
         BodyMeasurementService.latest(measurements)
     }
@@ -288,15 +275,7 @@ fun BodyScreen(
                     onDismiss = { sheetMode = null },
                     onSave = { value ->
                         sheetMode = null
-                        // 落盘实际记录（kg 基准）后即时重读 → 主数值 / 趋势 / 「较上周」刷新。
-                        scope.launch {
-                            BodyRecordService.addRecord(
-                                store,
-                                WeightRecord(dateMillis = System.currentTimeMillis(), kg = value),
-                            )
-                            records = BodyRecordService.loadRecords(store)
-                            saved = true
-                        }
+                        vm.addWeightRecord(value)
                     },
                 )
                 BodySheetMode.MEASUREMENT -> MeasurementSheet(
@@ -304,13 +283,7 @@ fun BodyScreen(
                     onDismiss = { sheetMode = null },
                     onSave = { draft ->
                         sheetMode = null
-                        scope.launch {
-                            BodyMeasurementService.addMeasurement(
-                                store,
-                                draft.copy(dateMillis = System.currentTimeMillis()),
-                            )
-                            measurementReload += 1
-                        }
+                        vm.addMeasurement(draft)
                     },
                 )
                 BodySheetMode.PROFILE -> BodyProfileSheet(
@@ -318,10 +291,7 @@ fun BodyScreen(
                     onDismiss = { sheetMode = null },
                     onSave = { heightCm, gender, birthYear ->
                         sheetMode = null
-                        scope.launch {
-                            UserProfileService.saveBodyProfile(store, heightCm, gender, birthYear)
-                            measurementReload += 1
-                        }
+                        vm.saveBodyProfile(heightCm, gender, birthYear)
                     },
                 )
                 null -> Unit
