@@ -3,27 +3,12 @@
 import { AppRoutes } from '../../../app/AppRoutes'
 import { MotionTokens } from '../../../common/styles/DesignTokens'
 import { window } from '@kit.ArkUI'
-import GoalRepository from '../../../shared/services/GoalRepository'
-import PlanEngine from '../../../shared/services/PlanEngine'
-import ContentRepository from '../../../shared/services/ContentRepository'
-import WorkoutSessionService, { WeeklyStats } from '../../../common/services/WorkoutSessionService'
-import TrainingPlanService, { UserPlan } from '../../../common/services/TrainingPlanService'
 import {
   PlanDayItem,
   PlanExerciseItem,
-  buildPlanDayItemsFromUserPlan,
-  createPlanDayItem,
-  createPlanExerciseItem,
-  daySubtitle,
-  positionBadge
+  daySubtitle
 } from './PlanTabModel'
-import {
-  ExerciseContent,
-  PlanDay,
-  PlannedExercise,
-  TrainingPlan,
-  UserGoal
-} from '../../../shared/models/TrainingModels'
+import { PlanState } from './states/PlanState'
 import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 
 /**
@@ -50,27 +35,22 @@ const PLAN_DECK_STEP_X: number = PLAN_DECK_CARD_WIDTH * 0.86
 
 @Component
 export struct PlanContent {
-  // 数据源优先级：① 计划组「已启用的预置计划」→ ② 目标生成计划。
-  // 「计划组」点「使用此计划」只改 TrainingPlanService 的持久化状态、不重建目标；
-  // 本页若只读目标生成计划，就与「计划组」显示的当前计划对不上。
+  // 数据源优先级不变（见 PlanState）：① 计划组「已启用的预置计划」→ ② 目标生成计划。
+  // 数据态与装载已迁入 PlanState（壳 @State 持有，本组件 @ObjectLink 消费），
+  // 此处只留 UI 交互态。
   @State private activeCard: number = 0
   @State private masterPressed: boolean = false
   // 系统状态栏高度（vp）。页面区本身落在状态栏之下，原型顶距须扣掉它才不会双计。
   @State private topInsetVp: number = 0
-  @State private planDays: PlanDayItem[] = []
-  @State private planName: string = '训练计划'
-  @State private goalMeta: string = '尚未设置目标'
-  @State private planMeta: string = '完成目标设置后自动生成训练计划'
-  @State private weeklyProgress: string = '本周 0 / 0 天'
-  @State private progressPercent: number = 0
-  // 刷新令牌：宿主页（PencilAppShell / PencilPlanPage）在页面重新显示或切到「计划」时递增，
-  // 触发重读，避免启用计划后本页残留上一份数据（Tab 常驻，aboutToAppear 只跑一次）。
-  @Prop @Watch('onReloadTokenChanged') reloadToken: number = 0
-  private sessionMinutes: number = 45
+  // 状态层：由 PencilAppShell 传入。数据在 tab 间存活，切回时按需重读（invalidate 置脏）。
+  @ObjectLink state: PlanState
 
   aboutToAppear(): void {
     this.resolveTopInset()
-    this.loadPlanData()
+    const hostContext: Context | undefined = this.getUIContext().getHostContext()
+    if (hostContext !== undefined) {
+      this.state.refresh(hostContext)
+    }
   }
 
   /**
@@ -93,163 +73,12 @@ export struct PlanContent {
     }
   }
 
-  onReloadTokenChanged(): void {
-    this.loadPlanData()
-  }
-
-  private async loadPlanData(): Promise<void> {
-    const hostContext: Context | undefined = this.getUIContext().getHostContext()
-    if (hostContext === undefined) {
-      this.applyEmptyState()
-      return
-    }
-    try {
-      const current: UserPlan | null = await TrainingPlanService.getCurrentPlan(hostContext)
-      if (current !== null) {
-        this.applyCurrentPlanState(current)
-        await this.loadWeeklyProgress(hostContext, current.days.length)
-        return
-      }
-    } catch (error) {
-      // 读当前预置计划失败时回退到目标生成计划，不把整页打空。
-    }
-    try {
-      const goal: UserGoal | undefined = await GoalRepository.loadGoal(hostContext)
-      if (goal === undefined) {
-        this.applyEmptyState()
-        return
-      }
-      const plan: TrainingPlan = PlanEngine.generatePlan(goal)
-      this.sessionMinutes = goal.sessionMinutes
-      this.planDays = this.buildPlanDayItems(plan)
-      this.planName = plan.name.length > 0 ? plan.name : '训练计划'
-      this.goalMeta = this.goalTypeLabel(goal.goalType) + ' · ' + plan.days.length.toString() + ' 练分化'
-      this.planMeta = this.goalMeta + ' · ' + plan.cycleWeeks.toString() + ' 周推进'
-      await this.loadWeeklyProgress(hostContext, plan.days.length)
-    } catch (error) {
-      this.applyEmptyState()
-    }
-  }
-
-  /** 当前计划态：元信息与「计划组」列表页的当前计划卡同口径，保证两处一致。 */
-  private applyCurrentPlanState(plan: UserPlan): void {
-    this.planDays = buildPlanDayItemsFromUserPlan(plan)
-    this.planName = plan.name.length > 0 ? plan.name : '训练计划'
-    this.goalMeta = plan.targetAudience
-    this.planMeta = plan.targetAudience + ' · ' + plan.days.length.toString() + ' 练分化 · ' + plan.weeklyFrequency
-  }
-
-  private async loadWeeklyProgress(context: Context, totalDays: number): Promise<void> {
-    let completedDays: number = 0
-    try {
-      const stats: WeeklyStats = await WorkoutSessionService.getWeeklyStats(context)
-      completedDays = stats.count
-    } catch (error) {
-      completedDays = 0
-    }
-    this.weeklyProgress = '本周 ' + completedDays.toString() + ' / ' + totalDays.toString() + ' 天'
-    this.progressPercent = totalDays > 0 ? Math.min(100, Math.round(completedDays * 100 / totalDays)) : 0
-  }
-
-  private applyEmptyState(): void {
-    this.planDays = []
-    this.planName = '训练计划'
-    this.goalMeta = '尚未设置目标'
-    this.planMeta = '完成目标设置后自动生成训练计划'
-    this.weeklyProgress = '本周 0 / 0 天'
-    this.progressPercent = 0
-  }
-
-  private buildPlanDayItems(plan: TrainingPlan): PlanDayItem[] {
-    const items: PlanDayItem[] = []
-    for (let index = 0; index < plan.days.length; index++) {
-      const day: PlanDay = plan.days[index]
-      const focusName: string = this.focusMuscleName(day)
-      const title: string = focusName.length > 0 ? focusName + '日' : day.title
-      items.push(createPlanDayItem(
-        this.shortMuscleLabel(focusName),
-        title,
-        focusName + ' · 训练',
-        this.sessionMinutes.toString() + ' 分钟',
-        positionBadge(index),
-        index === 0,
-        this.buildExerciseItems(day.exercises, focusName)
-      ))
-    }
-    return items
-  }
-
-  private buildExerciseItems(planned: PlannedExercise[], dayFocusName: string): PlanExerciseItem[] {
-    const items: PlanExerciseItem[] = []
-    for (let index = 0; index < planned.length; index++) {
-      const item: PlannedExercise = planned[index]
-      const content: ExerciseContent | undefined = ContentRepository.getExerciseById(item.exerciseId)
-      let name: string = item.exerciseId
-      let muscle: string = dayFocusName
-      if (content !== undefined) {
-        name = content.nameZh
-        muscle = this.exerciseMuscleName(content, dayFocusName)
-      }
-      items.push(createPlanExerciseItem(name, muscle, item.targetSets.toString(), item.targetReps))
-    }
-    return items
-  }
-
-  private exerciseMuscleName(content: ExerciseContent, fallbackName: string): string {
-    if (content.primaryMuscleIds.length === 0) {
-      return fallbackName
-    }
-    return ContentRepository.getMuscleName(content.primaryMuscleIds[0])
-  }
-
-  private focusMuscleName(day: PlanDay): string {
-    if (day.focusMuscleIds.length === 0) {
-      return day.title
-    }
-    return ContentRepository.getMuscleName(day.focusMuscleIds[0])
-  }
-
-  private shortMuscleLabel(focusName: string): string {
-    if (focusName === '胸部') {
-      return '胸'
-    }
-    if (focusName === '背部') {
-      return '背'
-    }
-    if (focusName === '腿部') {
-      return '腿'
-    }
-    if (focusName === '肩部') {
-      return '肩'
-    }
-    if (focusName === '手臂') {
-      return '臂'
-    }
-    return focusName
-  }
-
-  private goalTypeLabel(goalType: string): string {
-    if (goalType === 'hypertrophy') {
-      return '增肌'
-    }
-    if (goalType === 'strength') {
-      return '力量'
-    }
-    if (goalType === 'fat_loss') {
-      return '减脂'
-    }
-    if (goalType === 'posture') {
-      return '体态'
-    }
-    return goalType
-  }
-
   private activeDayCaption(): string {
-    if (this.planDays.length === 0) {
+    if (this.state.planDays.length === 0) {
       return '暂无安排'
     }
-    const safeIndex: number = Math.min(this.activeCard, this.planDays.length - 1)
-    return '第 ' + (safeIndex + 1).toString() + ' 天 · ' + this.planDays[safeIndex].tag
+    const safeIndex: number = Math.min(this.activeCard, this.state.planDays.length - 1)
+    return '第 ' + (safeIndex + 1).toString() + ' 天 · ' + this.state.planDays[safeIndex].tag
   }
 
   private rel(index: number): number {
@@ -291,7 +120,7 @@ export struct PlanContent {
       Column({ space: 16 }) {
         this.masterCard()
         Stack({ alignContent: Alignment.TopStart }) {
-          ForEach(this.planDays, (day: PlanDayItem, index: number) => {
+          ForEach(this.state.planDays, (day: PlanDayItem, index: number) => {
             this.deckCard(day, index)
           }, (day: PlanDayItem) => day.title)
         }
@@ -304,7 +133,7 @@ export struct PlanContent {
               if (event.angle !== undefined) {
                 const horizontal: number = Math.abs(event.angle)
                 const isLeft: boolean = horizontal > 90 && horizontal < 270
-                if (isLeft && this.activeCard < this.planDays.length - 1) {
+                if (isLeft && this.activeCard < this.state.planDays.length - 1) {
                   this.activeCard += 1
                 } else if (!isLeft && this.activeCard > 0) {
                   this.activeCard -= 1
@@ -337,7 +166,7 @@ export struct PlanContent {
           .fontSize(12)
           .fontWeight(FontWeight.Bold)
           .fontColor(PrototypeTokens.ACCENT)
-        Text(this.weeklyProgress)
+        Text(this.state.weeklyProgress)
           .fontFamily('Inter')
           .fontSize(11)
           .fontWeight(FontWeight.Bold)
@@ -346,7 +175,7 @@ export struct PlanContent {
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
 
-      Text(this.planName)
+      Text(this.state.planName)
         .fontFamily('Noto Sans SC')
         .fontSize(22)
         .fontWeight(FontWeight.Bold)
@@ -354,7 +183,7 @@ export struct PlanContent {
         .width('100%')
         .margin({ top: 8 })
 
-      Text(this.planMeta)
+      Text(this.state.planMeta)
         .fontFamily('Noto Sans SC')
         .fontSize(11.5)
         .fontColor(PrototypeTokens.WHITE_A62)
@@ -371,7 +200,7 @@ export struct PlanContent {
             .backgroundColor('#2450ECA7')
             .borderRadius(999)
           Row()
-            .width(this.progressPercent.toString() + '%')
+            .width(this.state.progressPercent.toString() + '%')
             .height(6)
             .backgroundColor(PrototypeTokens.ACCENT)
             .borderRadius(999)
