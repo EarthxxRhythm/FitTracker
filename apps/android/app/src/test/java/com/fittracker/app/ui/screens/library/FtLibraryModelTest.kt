@@ -187,9 +187,41 @@ class FtLibraryModelTest {
     }
 
     @Test
-    fun `未匹配动作返回 null 保留占位`() {
-        org.junit.Assert.assertNull(FtLibraryModel.gifAssetFor("ex_dead_bug", "死虫式"))
+    fun `线稿未覆盖的动作走实拍素材`() {
+        // 死虫式此前无任何素材（旧断言是 assertNull），2026-10-20 起由实拍素材兜底。
+        assertEquals("exercise-gifs-photo/dead-bug.gif",
+            FtLibraryModel.gifAssetFor("ex_dead_bug", "死虫式"))
+        assertEquals("exercise-gifs-photo/romanian-deadlift.gif",
+            FtLibraryModel.gifAssetFor("ex_romanian_deadlift", "罗马尼亚硬拉"))
+        assertTrue(FtLibraryModel.usesPhotoStyle("ex_dead_bug", "死虫式"))
+    }
+
+    @Test
+    fun `线稿优先于实拍`() {
+        // 「杠铃划船」「腿弯举」两组同有（内容库与 free-exercise-db 指向同一动作），
+        // 解析顺序若被颠倒，老动作的演示图会被悄悄换成实拍——这是观感回归，须锁死。
+        assertEquals("exercise-gifs-cut/barbell-row.gif",
+            FtLibraryModel.gifAssetFor("ex_bent_over_barbell_row", "杠铃划船"))
+        assertEquals("exercise-gifs-cut/leg-curl.gif",
+            FtLibraryModel.gifAssetFor("ex_lying_leg_curls", "腿弯举"))
+        assertFalse(FtLibraryModel.usesPhotoStyle("ex_bent_over_barbell_row", "杠铃划船"))
+    }
+
+    @Test
+    fun `完全无素材的动作仍返回 null 保留占位`() {
+        // 鸟狗式在 free-exercise-db 源库中确实不存在（全库搜 dog 零命中），无实拍可兜底。
+        org.junit.Assert.assertNull(FtLibraryModel.gifAssetFor("ex_bird_dog", "鸟狗式"))
         org.junit.Assert.assertNull(FtLibraryModel.gifAssetFor("", ""))
+        org.junit.Assert.assertNull(FtLibraryModel.gifAssetFor("ex_not_real", "不存在的动作名"))
+    }
+
+    @Test
+    fun `实拍素材文件在 assets 中真实存在且与映射表自洽`() {
+        val photoNames = context.assets.list(PhotoGifCatalog.ASSET_DIR)!!.toSet()
+        assertEquals("实拍素材应有 59 个", 59, photoNames.size)
+        // 映射表里每个目标文件都必须真实存在，否则运行时会静默落占位块。
+        val missing = PhotoGifCatalog.BY_NAME.values.toSet().filter { "${it}.gif" !in photoNames }
+        assertTrue("映射表指向不存在的素材：$missing", missing.isEmpty())
     }
 
     @Test
@@ -197,10 +229,16 @@ class FtLibraryModelTest {
         val names = context.assets.list(FtLibraryModel.GIF_ASSET_DIR)!!.toSet()
         assertEquals("素材目录（${FtLibraryModel.GIF_ASSET_DIR}）应有 23 个素材", 23, names.size)
         assertTrue("每个原型动作 id 都应有素材", FtLibraryModel.EXERCISES.all { "${it.id}.gif" in names })
+
+        // 解析结果可能落在两个目录（线稿 cut / 实拍 photo），故按路径自身所属目录校验，
+        // 而不是拿单一线稿目录去比对——后者会把实拍素材误判为"缺失"。
         val resolved = library().mapNotNull { FtLibraryModel.gifAssetFor(it) }
         assertTrue("应至少命中一条真实动作：${resolved.size}", resolved.isNotEmpty())
         resolved.forEach { path ->
-            assertTrue("素材缺失：$path", path.substringAfterLast('/') in names)
+            val dir = path.substringBeforeLast('/')
+            val file = path.substringAfterLast('/')
+            val dirFiles = context.assets.list(dir)?.toSet() ?: emptySet()
+            assertTrue("素材缺失：$path（目录 $dir 下无此文件）", file in dirFiles)
         }
     }
 }

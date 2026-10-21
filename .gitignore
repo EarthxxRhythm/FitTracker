@@ -129,3 +129,7 @@ replay_pid*.log
 !*.env.template
 # Supabase CLI 预演产生的临时目录
 **/supabase/.temp/
+
+# 动作演示素材的源图缓存（tools/content/build-exercise-gifs-photo.mjs 下载的中间产物；
+# 合成后的 GIF 入库，源图可重新下载，不入库）
+apps/harmony/.cache/
