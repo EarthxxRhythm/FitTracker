@@ -6,6 +6,8 @@ import { ReviewContent } from '../features/pencil/components/ReviewContent'
 import { ProfileContent } from '../features/pencil/components/ProfileContent'
 import { PencilPreviewContent } from '../features/pencil/pages/PencilPreviewPage'
 import { PlanState } from '../features/pencil/components/states/PlanState'
+import { ProfileState } from '../features/pencil/components/states/ProfileState'
+import { HomeState } from '../features/pencil/components/states/HomeState'
 import { AppRoutes } from './AppRoutes'
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
@@ -24,7 +26,9 @@ export struct PencilAppShell {
   @State @Watch('handleTabChanged') currentTab: string = PencilTabKey.HOME
   // 常驻 Tab 的「计划」页状态层：切到该 Tab 或从被压栈的页面返回时置脏，
   // 触发 PlanContent 按需重读当前计划（可能在「计划组」里刚被改过）。
+  @State private homeState: HomeState = new HomeState()
   @State private planState: PlanState = new PlanState()
+  @State private profileState: ProfileState = new ProfileState()
   /** 切到「回顾」Tab 时 bump——体重/会话更新后复盘页需重读（Tab 常驻同因）。 */
   @State private reviewReloadToken: number = 0
   // 训练预览的全模态开关。
@@ -105,6 +109,7 @@ export struct PencilAppShell {
     Stack() {
       Column() {
         HomeContent({
+          state: this.homeState,
           onOpenPreview: () => {
             this.showPreview = true
           }
@@ -132,7 +137,7 @@ export struct PencilAppShell {
       .zIndex(this.layer(PencilTabKey.REVIEW))
 
       Column() {
-        ProfileContent()
+        ProfileContent({ state: this.profileState })
       }
       .width('100%')
       .height('100%')
