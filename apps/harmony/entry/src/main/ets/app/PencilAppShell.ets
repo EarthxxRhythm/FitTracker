@@ -5,6 +5,7 @@ import { PlanContent } from '../features/pencil/components/PlanContent'
 import { ReviewContent } from '../features/pencil/components/ReviewContent'
 import { ProfileContent } from '../features/pencil/components/ProfileContent'
 import { PencilPreviewContent } from '../features/pencil/pages/PencilPreviewPage'
+import { PlanState } from '../features/pencil/components/states/PlanState'
 import { AppRoutes } from './AppRoutes'
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
@@ -21,9 +22,9 @@ enum PencilTabKey {
 @Component
 export struct PencilAppShell {
   @State @Watch('handleTabChanged') currentTab: string = PencilTabKey.HOME
-  // 常驻 Tab 的「计划」页刷新令牌：切到该 Tab 或从被压栈的页面返回时递增，
-  // 触发 PlanContent 重读当前计划（可能在「计划组」里刚被改过）。
-  @State private planReloadToken: number = 0
+  // 常驻 Tab 的「计划」页状态层：切到该 Tab 或从被压栈的页面返回时置脏，
+  // 触发 PlanContent 按需重读当前计划（可能在「计划组」里刚被改过）。
+  @State private planState: PlanState = new PlanState()
   /** 切到「回顾」Tab 时 bump——体重/会话更新后复盘页需重读（Tab 常驻同因）。 */
   @State private reviewReloadToken: number = 0
   // 训练预览的全模态开关。
@@ -42,7 +43,7 @@ export struct PencilAppShell {
   // 需重读当前计划，否则启用结果不会反映到计划页。
   onPageShow(): void {
     if (this.currentTab === PencilTabKey.PLAN) {
-      this.planReloadToken += 1
+      this.planState.invalidate()
     }
   }
 
@@ -66,7 +67,7 @@ export struct PencilAppShell {
   // Tab 切换不带内容区转场：按需求直接切换（「训练」按钮打开的预览弹层动效保留）。
   private handleTabChanged(): void {
     if (this.currentTab === PencilTabKey.PLAN) {
-      this.planReloadToken += 1
+      this.planState.invalidate()
     }
     if (this.currentTab === PencilTabKey.REVIEW) {
       this.reviewReloadToken += 1
@@ -115,7 +116,7 @@ export struct PencilAppShell {
       .zIndex(this.layer(PencilTabKey.HOME))
 
       Column() {
-        PlanContent({ reloadToken: this.planReloadToken })
+        PlanContent({ state: this.planState })
       }
       .width('100%')
       .height('100%')
