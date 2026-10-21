@@ -29,6 +29,8 @@
          6 个部位 / 肌群名来自内容库（见文件头注释） -->
     <string name="library_part_all">全部</string>
     <string name="library_muscle_all">全部肌群</string>
+    <!-- 展开面板的收起键。原型无此交互（展开面板为本仓新增），文案与鸿蒙端保持一致。 -->
+    <string name="library_part_collapse">收起</string>
 
     <!-- 卡片（`.lib-card` L275-291） -->
     <!-- 卡片 `aria-label`（原型 L702）：`查看 {name} 详情` -->

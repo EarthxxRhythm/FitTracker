@@ -22,6 +22,8 @@
     <!-- Filter rows — only the two sentinel chips live here -->
     <string name="library_part_all">All</string>
     <string name="library_muscle_all">All muscles</string>
+    <!-- Collapse key for the expandable panel (repository-specific interaction, not in the prototype). -->
+    <string name="library_part_collapse">Collapse</string>
 
     <!-- Cards -->
     <string name="library_a11y_card">View %1$s details</string>
