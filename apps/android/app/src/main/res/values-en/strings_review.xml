@@ -107,6 +107,7 @@
     <string name="review_weight_delta_month">%1$s vs. last month</string>
     <!-- `%1$s` goal value -->
     <string name="review_weight_goal_label">Goal %1$s kg</string>
+    <string name="review_weight_goal_empty_label">Set goal</string>
     <string name="review_weight_goal_a11y_open">Set weight goal</string>
 
     <!-- Goal dialog -->

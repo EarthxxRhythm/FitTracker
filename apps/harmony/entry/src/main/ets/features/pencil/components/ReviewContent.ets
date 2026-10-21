@@ -872,18 +872,20 @@ export struct ReviewContent {
   @State private muscleMode: string = 'balance'
   @State private effortMode: string = 'rir'
   @State private showGoalModal: boolean = false
-  @State private goalWeight: number = 68
-  @State private goalInputText: string = '68'
+  /** 体重目标（kg）；`0` = 用户从未设置（不画目标线，头部按钮显示「设置目标」）。 */
+  @State private goalWeight: number = 0
+  /** 目标弹窗输入框初值（显示单位下的文本）；空 = 未设置。 */
+  @State private goalInputText: string = ''
   /** 目标体重越界时的错误提示（空 = 无错误）。 */
   @State private goalError: string = ''
   /** 目标输入越界时的横向抖动偏移。 */
   @State private shakeOffset: number = 0
   /** 展示单位（来自「设置 · 体重单位」）；体重基准值始终为 kg，仅输入与展示按单位换算。 */
   @State private displayUnit: WeightUnit = 'kg'
-  /** 真实当前体重（kg）；undefined 表示尚无记录，回落原型样例。 */
+  /** 真实当前体重（kg）；undefined 表示尚无记录，体重卡渲染空态 `--`（不回落原型样例）。 */
   @State private bodyWeightKg: number | undefined = undefined
-  /** 真实「较上月」差值（kg，近 30 天首尾之差）。 */
-  @State private bodyWeightDeltaKg: number = -0.8
+  /** 真实「较上月」差值（kg，近 30 天首尾之差）；仅在 [bodyWeightKg] 有值时参与展示。 */
+  @State private bodyWeightDeltaKg: number = 0
   /** 1RM 行：有训练会话时由 [loadPersonalRecords] 覆盖；无会话时为空态（不再回落原型样例）。 */
   @State private oneRmRows: OneRmRowItem[] = []
   /** 努力程度序列（近 8 次已评价训练的整体 RPE）；空 = 无数据（柱区渲染空态）。 */
@@ -892,6 +894,10 @@ export struct ReviewContent {
   @State private muscleVolume: number[] = []
   /** 真实体重折线点（由 [BodyRecordService] 周趋势派生）；空 = 无记录（折线区渲染空态）。 */
   @State private weightChartPoints: WeightChartPoint[] = []
+  /** 折线归一量程下界（kg）——目标线据此换算 y，与折线共用坐标系。 */
+  @State private chartLoKg: number = 0
+  /** 折线归一量程上界（kg）。 */
+  @State private chartHiKg: number = 0
   @State private selectedMuscleKey: string = ''
   @State private monthDayLevels: number[] = []
   @State private calendarLeadDays: number = 0
@@ -939,6 +945,8 @@ export struct ReviewContent {
     try {
       const settings: AppSettings = await SettingsService.loadSettings(context)
       this.weekStartKey = settings.weekStart
+      // 体重目标：`0` = 从未设置 → 目标线与「目标 N kg」按钮走空态。
+      this.goalWeight = settings.weightGoalKg
       try {
         const profile: UserProfile = await UserProfileService.loadProfile(context)
         this.displayUnit = profile.weightUnit
@@ -973,6 +981,11 @@ export struct ReviewContent {
   private async loadBodyWeight(context: Context, now: number): Promise<void> {
     const records: WeightRecord[] = await BodyRecordService.loadRecords(context)
     if (records.length === 0) {
+      // 记录被清空（删除 / 切账号）时复位折线与量程——否则会残留上一次的曲线与目标线。
+      this.bodyWeightKg = undefined
+      this.weightChartPoints = []
+      this.chartLoKg = 0
+      this.chartHiKg = 0
       return
     }
     const latest: number | undefined = BodyRecordService.latestKg(records)
@@ -1014,6 +1027,9 @@ export struct ReviewContent {
         hi = values[index]
       }
     }
+    // 归一量程对外暴露给目标线计算：目标线与折线必须共用同一坐标系，否则线位置是假的。
+    this.chartLoKg = lo
+    this.chartHiKg = hi
     const span: number = hi - lo === 0 ? 1 : hi - lo
     const count: number = values.length
     for (let index = 0; index < count; index++) {
@@ -1342,7 +1358,11 @@ export struct ReviewContent {
     if (!this.summary.hasSessions) {
       return '—'
     }
-    return this.timeScale === 'month' ? '-1.6' : '-0.8'
+    // 第三格是「体重变化」：只有体重记录成立时才展示，否则空态（不再回落原型样例 -0.8 / -1.6）。
+    if (this.bodyWeightKg === undefined) {
+      return '—'
+    }
+    return this.weightDeltaValueText()
   }
 
   private staticIndex(list: string[], target: string): number {
@@ -1520,31 +1540,48 @@ export struct ReviewContent {
     return Math.round(value * 10) % 10 === 0 ? Math.round(value).toString() : value.toFixed(1)
   }
 
-  /** 体重卡主数值：有真实记录用真实值，否则回落原型样例 69.2 kg。 */
+  /** 体重卡主数值：有真实记录用真实值，无记录显示空态 `--`（不回落原型样例）。 */
   private weightCardCurrentText(): string {
-    const kg: number = this.bodyWeightKg === undefined ? 69.2 : this.bodyWeightKg
-    return this.weightSampleText(kg)
+    if (this.bodyWeightKg === undefined) {
+      return '--'
+    }
+    return this.weightSampleText(this.bodyWeightKg)
   }
 
-  /** 体重卡「较上月」脚注：有真实记录用近 30 天差值，否则回落样例 −0.8 kg。 */
+  /** 体重卡「较上月」脚注：有真实记录用近 30 天差值，无记录显示空态脚注。 */
   private weightCardDeltaText(): string {
-    const delta: number = this.bodyWeightKg === undefined ? -0.8 : this.bodyWeightDeltaKg
-    return '较上月 ' + this.signedWeightSampleText(delta)
+    if (this.bodyWeightKg === undefined) {
+      return '较上月 --'
+    }
+    return '较上月 ' + this.signedWeightSampleText(this.bodyWeightDeltaKg)
   }
 
-  /** 原型样例体重（kg 基准）→ 当前单位下的展示文本。 */
+  /** 体重变化数值（显示单位、带符号、不含单位标签）——复盘统计第三格使用。 */
+  private weightDeltaValueText(): string {
+    const value: number = Math.round(kgToDisplay(this.bodyWeightDeltaKg, this.displayUnit) * 10) / 10
+    if (value > 0) {
+      return '+' + value.toString()
+    }
+    return value.toString()
+  }
+
+  /** 体重值（kg 基准）→ 当前单位下的展示文本。 */
   private weightSampleText(kg: number): string {
     return Math.round(kgToDisplay(kg, this.displayUnit) * 10) / 10 + ' ' + weightUnitLabel(this.displayUnit)
   }
 
-  /** 原型样例体重差分（kg 基准）→ 当前单位下带符号的展示文本。 */
+  /** 体重差值（kg 基准）→ 当前单位下带符号的展示文本。 */
   private signedWeightSampleText(deltaKg: number): string {
     const value: number = kgToDisplay(deltaKg, this.displayUnit)
     const sign: string = value >= 0 ? '+' : '−'
     return sign + (Math.round(Math.abs(value) * 10) / 10).toString() + ' ' + weightUnitLabel(this.displayUnit)
   }
 
+  /** 目标体重展示文本（显示单位、不含单位标签）；未设置返回空态 `--`。 */
   private goalWeightText(): string {
+    if (this.goalWeight <= 0) {
+      return '--'
+    }
     // 目标体重以 kg 存储，展示时按当前单位换算。
     const displayValue: number = kgToDisplay(this.goalWeight, this.displayUnit)
     if (Math.round(displayValue * 10) % 10 === 0) {
@@ -1553,19 +1590,27 @@ export struct ReviewContent {
     return displayValue.toFixed(1)
   }
 
+  /**
+   * 目标线在绘图区的 y 坐标；返回 `-1` 表示不画线。
+   *
+   * 三种不画线的情形：未设置目标、折线量程退化（0 或 1 个点）、目标落在量程外。
+   * 原实现用固定基准 71 kg / 固定跨度 4 kg 换算，与真实曲线不在同一坐标系——那条线看起来
+   * 有目标，位置却是假的；量程外的目标若 clamp 到边界，又会被读成「已达成/已达上限」。
+   */
   private goalLineY(): number {
-    const raw: number = 16 + ((71 - this.goalWeight) / 4) * 100
-    if (raw < 16) {
-      return 16
+    if (this.goalWeight <= 0 || this.chartHiKg <= this.chartLoKg) {
+      return -1
     }
-    if (raw > 116) {
-      return 116
+    if (this.goalWeight > this.chartHiKg || this.goalWeight < this.chartLoKg) {
+      return -1
     }
-    return raw
+    const ratio: number = (this.chartHiKg - this.goalWeight) / (this.chartHiKg - this.chartLoKg)
+    return 16 + ratio * 104
   }
 
   private openGoalModal(): void {
-    this.goalInputText = this.goalWeightText()
+    // 未设置目标时输入框留空（不预填 `--`，那会让用户以为要在此基础上编辑）。
+    this.goalInputText = this.goalWeight > 0 ? this.goalWeightText() : ''
     // 每次打开回到干净态：上一次的错误提示不应遗留到下一次
     this.goalError = ''
     this.shakeOffset = 0
@@ -1578,25 +1623,38 @@ export struct ReviewContent {
     this.showGoalModal = false
   }
 
-  private saveGoal(): void {
-    let value: number = Number(this.goalInputText)
-    if (Number.isNaN(value)) {
-      value = kgToDisplay(68, this.displayUnit)
-    }
+  private async saveGoal(): Promise<void> {
+    const value: number = Number(this.goalInputText)
     // 输入框为显示单位下的值，边界同按单位换算（30–200 kg）。
-    // 越界不再静默收敛到边界——那是无声改写用户输入；改为报错 + 红框 + 抖动，让用户自己改。
+    // 空值/非数字单列：NaN 与任何数比较都为 false，会漏进保存分支。
+    // 越界不静默收敛到边界——那是无声改写用户输入；改为报错 + 红框 + 抖动，让用户自己改。
     const minDisplay: number = kgToDisplay(30, this.displayUnit)
     const maxDisplay: number = kgToDisplay(200, this.displayUnit)
-    if (value < minDisplay || value > maxDisplay) {
+    const isEmpty: boolean = this.goalInputText.trim().length === 0
+    if (isEmpty || !Number.isFinite(value) || value < minDisplay || value > maxDisplay) {
       this.goalError = this.goalRangeHint()
       shakeField(this.getUIContext(), (offset: number) => {
         this.shakeOffset = offset
       })
       return
     }
-    this.goalWeight = displayToKg(value, this.displayUnit)
+    const kg: number = displayToKg(value, this.displayUnit)
+    const previous: number = this.goalWeight
+    this.goalWeight = kg
     this.showGoalModal = false
     this.drawWeightChart()
+    const context = this.getUIContext().getHostContext()
+    if (context === undefined) {
+      return
+    }
+    // 落库：目标必须是跨会话存在的数据，否则每次进页都回到未设置态（等于假数据）。
+    await SettingsService.saveWeightGoal(context, kg)
+    if (SettingsService.getLastPersistenceError().length > 0) {
+      this.goalWeight = previous
+      this.showGoalModal = true
+      this.goalError = '保存失败，请重试'
+      this.drawWeightChart()
+    }
   }
 
   /** 目标体重越界时的提示文案（按当前显示单位取整，避免出现 66.1386 这类值）。 */
@@ -1633,14 +1691,17 @@ export struct ReviewContent {
       ctx.lineTo(330, gridRows[index])
       ctx.stroke()
     }
+    // 目标线：仅在「已设置目标且在折线量程内」时绘制（见 [goalLineY]）。
     const goalY: number = this.goalLineY()
-    ctx.strokeStyle = 'rgba(255,255,255,0.32)'
-    ctx.setLineDash([4, 4])
-    ctx.beginPath()
-    ctx.moveTo(12, goalY)
-    ctx.lineTo(330, goalY)
-    ctx.stroke()
-    ctx.setLineDash([])
+    if (goalY >= 0) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.32)'
+      ctx.setLineDash([4, 4])
+      ctx.beginPath()
+      ctx.moveTo(12, goalY)
+      ctx.lineTo(330, goalY)
+      ctx.stroke()
+      ctx.setLineDash([])
+    }
     ctx.fillStyle = 'rgba(80,236,167,0.12)'
     ctx.beginPath()
     ctx.moveTo(12, 120)
@@ -2418,7 +2479,9 @@ export struct ReviewContent {
           .fontSize(14.5)
           .fontWeight(FontWeight.Bold)
           .fontColor(PrototypeTokens.TEXT_HI)
-        Text('目标 ' + this.goalWeightText() + ' ' + weightUnitLabel(this.displayUnit))
+        Text(this.goalWeight > 0
+          ? '目标 ' + this.goalWeightText() + ' ' + weightUnitLabel(this.displayUnit)
+          : '设置目标')
           .fontFamily('Inter')
           .fontSize(13)
           .fontWeight(FontWeight.Medium)
@@ -2655,7 +2718,7 @@ export struct ReviewContent {
           .margin({ top: 6 })
           .width('100%')
         Row({ space: 10 }) {
-          TextInput({ text: this.goalInputText, placeholder: '68' })
+          TextInput({ text: this.goalInputText, placeholder: '例 65' })
             .type(InputType.NUMBER_DECIMAL)
             .fontFamily('Inter')
             .fontSize(20)

@@ -3,6 +3,8 @@ package com.fittracker.app.ui.screens.review
 import androidx.annotation.StringRes
 import com.fittracker.app.R
 import com.fittracker.app.data.model.WorkoutSession
+import com.fittracker.app.data.service.ReviewInsightsService
+import com.fittracker.app.data.service.WeeklyStats
 import com.fittracker.app.data.service.WeightUnit
 import com.fittracker.app.data.service.WeightUtils
 import com.fittracker.app.data.service.WeekStart
@@ -233,21 +235,27 @@ object FtReviewModel {
     @StringRes
     val WEIGHT_DELTA_RES = R.string.review_weight_delta_sample
 
-    /** 目标线的初始 y：markup 写死 90，**与公式值 91 不同**——按 markup 走。 */
-    const val INITIAL_GOAL_LINE_Y = 90f
-
-    /** 弹窗初值取自按钮文案里的数字（原型 `openGoalModal`）。 */
-    fun initialGoal(): Double = GOAL_INITIAL
-
+    /** 目标体重合法区间（kg）——与鸿蒙 `SettingsService` 的越界校验同口径。 */
     const val GOAL_MIN = 30.0
     const val GOAL_MAX = 200.0
-    private const val GOAL_INITIAL = 68.0
 
     fun clampGoal(value: Double): Double = value.coerceIn(GOAL_MIN, GOAL_MAX)
 
-    /** `y = clamp(16, 116, 16 + (71 − goal) / 4 × 100)`（原型 `saveGoal`）。 */
-    fun goalLineY(goal: Double): Float =
-        (16.0 + ((71.0 - goal) / 4.0) * 100.0).coerceIn(16.0, 116.0).toFloat()
+    /**
+     * 目标线 y 坐标；返回 `-1f` = 不画。
+     *
+     * 三种不画线情形：未设置目标（`goal <= 0`）、折线量程退化（`hiKg <= loKg`，即 0 或 1 个点）、
+     * 目标落在量程外——贴着边界的线会被读成「已达成 / 已达上限」，是新的假信息。
+     *
+     * 原实现用固定基准 `71 kg` / 固定跨度 `4 kg` 换算（原型 `saveGoal`），与真实曲线不在同一
+     * 坐标系：那条线看起来有目标，位置却是假的。
+     */
+    fun goalLineY(goal: Double, loKg: Double, hiKg: Double): Float {
+        if (goal <= 0.0 || hiKg <= loKg) return -1f
+        if (goal > hiKg || goal < loKg) return -1f
+        val ratio: Float = ((hiKg - goal) / (hiKg - loKg)).toFloat()
+        return WEIGHT_PLOT_TOP + ratio * (WEIGHT_PLOT_BOTTOM - WEIGHT_PLOT_TOP)
+    }
 
     /**
      * 目标按钮的数值文案：整数不带小数，非整数保留一位（原型 `val % 1 === 0 ? … : toFixed(1)`）。
@@ -298,6 +306,13 @@ object FtReviewModel {
 
     /** 未录入占位（仓内既有约定：值渲染 `--`）。 */
     const val EMPTY_VALUE = "--"
+
+    /** 概览徽标：本周尚无训练（或整体无会话）——不显示涨跌。 */
+    const val BADGE_IDLE = "待积累"
+    /** 概览徽标：本周有训练但上周无基线，无法算涨跌。 */
+    const val BADGE_FIRST = "首次复盘"
+    /** 概览徽标：完成率与上周持平。 */
+    const val BADGE_FLAT = "— 持平"
 
     /** 单根柱的高度：把轨道百分比 [percent] 落到固定值，使柱与间距、序号互不挤压。 */
     fun effortBarHeight(percent: Int): Float = percent * EFFORT_BAR_TRACK_HEIGHT / 100f
@@ -802,6 +817,59 @@ object FtReviewModel {
         cal.clear()
         cal.set(year, month0, dayOfMonth)
         return cal
+    }
+
+    /**
+     * 当前自然月（本地时区）的训练汇总：次数 / 时长 / 组数 / 量。
+     *
+     * 口径同 [com.fittracker.app.data.service.WorkoutSessionService.weeklyStats]（跳过热身组）。
+     * 无本月会话返回 `null`——UI 渲染空态，不回落原型样例（月尺度原恒显 17 次 / 720 分钟）。
+     */
+    fun monthlyStats(
+        sessions: List<WorkoutSession>,
+        nowMillis: Long = System.currentTimeMillis(),
+    ): WeeklyStats? {
+        val now = calendarOf(nowMillis)
+        val year = now.get(Calendar.YEAR)
+        val month = now.get(Calendar.MONTH)
+        var count = 0
+        var duration = 0
+        var sets = 0
+        var volume = 0.0
+        for (session in sessions) {
+            val sessionCal = calendarOf(session.startedAt)
+            if (sessionCal.get(Calendar.YEAR) != year || sessionCal.get(Calendar.MONTH) != month) continue
+            count++
+            duration += session.durationSeconds
+            for (set in session.sets) {
+                if (set.isWarmup) continue
+                sets++
+                volume += set.weight * set.reps
+            }
+        }
+        if (count == 0) return null
+        return WeeklyStats(count = count, duration = duration, sets = sets, volume = volume)
+    }
+
+    /**
+     * 概览卡徽标：本周完成率相对上周的涨跌。
+     *
+     * 口径与鸿蒙 `ReviewContent.badgeText` 一致：无会话 / 本周未练 → `待积累`；上周无数据
+     * （无对比基线）→ `首次复盘`；否则 `↑ +N%` / `↓ -N%` / `— 持平`。原型写死的
+     * `↑ +18%` / `↑ +12%` 不再出现。
+     */
+    fun badgeText(sessions: List<WorkoutSession>, nowMillis: Long, weekStart: WeekStart): String {
+        if (sessions.isEmpty()) return BADGE_IDLE
+        val items = ReviewInsightsService.createWeeklyTrendItems(sessions, nowMillis, weekStart)
+        if (items.isEmpty()) return BADGE_IDLE
+        val current = items[0]
+        if (current.sessionCount == 0) return BADGE_IDLE
+        val previous = items.getOrNull(1)
+        if (previous == null || previous.sessionCount == 0) return BADGE_FIRST
+        val delta = current.completionRate - previous.completionRate
+        if (delta > 0) return "↑ +$delta%"
+        if (delta < 0) return "↓ -${-delta}%"
+        return BADGE_FLAT
     }
 
     /** 会话训练量：非热身组的 `weight × reps` 之和（同 `WorkoutSessionService.sessionVolume`）。 */

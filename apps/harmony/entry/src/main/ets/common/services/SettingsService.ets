@@ -19,6 +19,18 @@ const KEY_ACHIEVEMENT = 'achievement'
 const KEY_SOUND = 'sound'
 const KEY_KEEP_ON = 'keep_on'
 const KEY_ANONYMOUS = 'anonymous'
+/**
+ * 体重目标（kg）；`0` = 用户从未设置。
+ *
+ * 归本 store 而不归 `UserProfileService`：单位是随云同步 envelope 流转的档案字段，而目标体重
+ * 只是复盘页的展示辅助值——纳入 envelope 需同步改备份包与 `normalizePayloadForHash` 白名单，
+ * 收益不抵风险（已在计划「同步失明陷阱」条目标注）。故仅本地持久化，换设备需重设。
+ */
+const KEY_WEIGHT_GOAL = 'weight_goal_kg'
+
+/** 目标体重合法区间（kg）——与复盘页目标弹窗的越界校验同口径。 */
+const WEIGHT_GOAL_MIN_KG = 30
+const WEIGHT_GOAL_MAX_KG = 200
 
 export type AppLanguage = 'zh-CN' | 'en-US'
 export type SettingsToggleKey = 'reminder' | 'achievement' | 'sound' | 'keepOn' | 'anonymous'
@@ -31,6 +43,8 @@ export interface AppSettings {
   sound: boolean
   keepOn: boolean
   anonymous: boolean
+  /** 复盘页体重目标（kg）；`0` = 未设置（不画目标线）。 */
+  weightGoalKg: number
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -40,7 +54,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   achievement: false,
   sound: true,
   keepOn: true,
-  anonymous: false
+  anonymous: false,
+  weightGoalKg: 0
 }
 
 class SettingsService {
@@ -61,6 +76,7 @@ class SettingsService {
       const sound = await prefs.get(KEY_SOUND, DEFAULT_SETTINGS.sound) as boolean
       const keepOn = await prefs.get(KEY_KEEP_ON, DEFAULT_SETTINGS.keepOn) as boolean
       const anonymous = await prefs.get(KEY_ANONYMOUS, DEFAULT_SETTINGS.anonymous) as boolean
+      const weightGoalKg = await prefs.get(KEY_WEIGHT_GOAL, DEFAULT_SETTINGS.weightGoalKg) as number
       return {
         language: this.normalizeLanguage(language),
         weekStart: this.normalizeWeekStart(weekStart),
@@ -68,7 +84,8 @@ class SettingsService {
         achievement: achievement,
         sound: sound,
         keepOn: keepOn,
-        anonymous: anonymous
+        anonymous: anonymous,
+        weightGoalKg: this.normalizeGoalKg(weightGoalKg)
       }
     } catch (error) {
       this.lastPersistenceError = 'load_settings_failed'
@@ -109,6 +126,22 @@ class SettingsService {
     }
   }
 
+  /**
+   * 持久化复盘页体重目标（kg）；传 `0` 表示清除目标。
+   *
+   * 越界值不写入（`normalizeGoalKg` 归零），避免把越界值带进下次启动的展示态。
+   */
+  async saveWeightGoal(context: Context, kg: number): Promise<void> {
+    this.lastPersistenceError = ''
+    try {
+      const prefs = await preferences.getPreferences(context, STORE_NAME)
+      await prefs.put(KEY_WEIGHT_GOAL, this.normalizeGoalKg(kg))
+      await prefs.flush()
+    } catch (error) {
+      this.lastPersistenceError = 'save_weight_goal_failed'
+    }
+  }
+
   getDefaultSettings(): AppSettings {
     return {
       language: DEFAULT_SETTINGS.language,
@@ -117,7 +150,8 @@ class SettingsService {
       achievement: DEFAULT_SETTINGS.achievement,
       sound: DEFAULT_SETTINGS.sound,
       keepOn: DEFAULT_SETTINGS.keepOn,
-      anonymous: DEFAULT_SETTINGS.anonymous
+      anonymous: DEFAULT_SETTINGS.anonymous,
+      weightGoalKg: DEFAULT_SETTINGS.weightGoalKg
     }
   }
 
@@ -132,6 +166,7 @@ class SettingsService {
       await prefs.delete(KEY_SOUND)
       await prefs.delete(KEY_KEEP_ON)
       await prefs.delete(KEY_ANONYMOUS)
+      await prefs.delete(KEY_WEIGHT_GOAL)
       await prefs.flush()
     } catch (error) {
       this.lastPersistenceError = 'clear_settings_failed'
@@ -166,6 +201,22 @@ class SettingsService {
       return 'sunday'
     }
     return 'monday'
+  }
+
+  /**
+   * 目标体重归一到「合法值或 0」。
+   *
+   * `0`、负数、`NaN`、越界值一律归 0（= 未设置）——UI 据此渲染空态。不静默收敛到边界值：
+   * 那会把用户输入的 250 kg 变成 200 kg 并当作真实目标保存。
+   */
+  private normalizeGoalKg(value: number): number {
+    if (!Number.isFinite(value)) {
+      return 0
+    }
+    if (value < WEIGHT_GOAL_MIN_KG || value > WEIGHT_GOAL_MAX_KG) {
+      return 0
+    }
+    return value
   }
 }
 

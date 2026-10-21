@@ -7,6 +7,7 @@ import com.fittracker.app.data.service.WeightUnit
 import com.fittracker.app.data.service.WeekStart
 import java.util.Calendar
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -146,27 +147,22 @@ class FtReviewModelTest {
     // ── 体重目标（原型 saveGoal，L1744-1759） ────────────────────
 
     @Test
-    fun `目标线纵坐标按原型公式并夹在 16 到 116`() {
-        assertEquals(91.0f, FtReviewModel.goalLineY(68.0), 1e-3f) // 16 + (71−68)/4×100
-        assertEquals(16.0f, FtReviewModel.goalLineY(200.0), 1e-3f) // 越界夹到上端
-        assertEquals(116.0f, FtReviewModel.goalLineY(30.0), 1e-3f) // 越界夹到下端
+    fun `目标线纵坐标按折线量程映射而非原型固定基准`() {
+        // 原型公式 `16 + (71−goal)/4×100`（固定基准 71 kg / 跨度 4 kg）与真实曲线不同坐标系，
+        // 已改为按折线量程 lo..hi 映射到绘图区 16..100（[FtReviewModel.WEIGHT_PLOT_TOP]..BOTTOM）。
+        assertEquals(58.0f, FtReviewModel.goalLineY(65.0, 60.0, 70.0), 1e-3f) // 量程中点
+        assertEquals(16.0f, FtReviewModel.goalLineY(70.0, 60.0, 70.0), 1e-3f) // 上界 → 顶边
+        assertEquals(100.0f, FtReviewModel.goalLineY(60.0, 60.0, 70.0), 1e-3f) // 下界 → 底边
     }
 
-    /** 弹窗初值来自按钮文案里的数字（原型 `openGoalModal`）；数值文案由 UI 层套模板。 */
+    /** 数值文案由 UI 层套模板（`目标 %1$s kg`）；未设置时 UI 走「设置目标」空态文案。 */
     @Test
-    fun `目标数值文案与初值`() {
-        assertEquals(68.0, FtReviewModel.initialGoal(), 1e-6)
+    fun `目标数值文案与边界夹取`() {
         assertEquals("68", FtReviewModel.goalValueText(68.0))
         assertEquals("68.5", FtReviewModel.goalValueText(68.5)) // 非整数保留一位
         assertEquals(30.0, FtReviewModel.clampGoal(10.0), 1e-6) // 低于下限夹到 30
         assertEquals(200.0, FtReviewModel.clampGoal(999.0), 1e-6) // 高于上限夹到 200
         assertEquals(68.0, FtReviewModel.clampGoal(68.0), 1e-6) // 区间内原样
-    }
-
-    /** 原型里目标线的初始 y 是 markup 写死的 90，与公式值 91 不同——按 markup 走。 */
-    @Test
-    fun `目标线初始位置取原型 markup 的 90 而非公式值`() {
-        assertEquals(90f, FtReviewModel.INITIAL_GOAL_LINE_Y, 1e-3f)
     }
 
     // ── 体重曲线（原型 `.chart` SVG，L1311-1330） ────────────────
@@ -633,6 +629,63 @@ class FtReviewModelTest {
             sessionRpe = rpe,
             notes = "completed_sets=${sets.size};target_sets=${sets.size}",
             sets = sets,
+        )
+    }
+
+    // ── 真数据收口：目标线 / 月度汇总 / 概览徽标 ─────────────────
+
+    @Test
+    fun `目标线未设置目标时不画线`() {
+        // 0 = 用户从未设置过目标——原实现会按固定公式算出 y=89，画出一条「有目标」的假线。
+        assertEquals(-1f, FtReviewModel.goalLineY(0.0, 60.0, 70.0), 1e-3f)
+    }
+
+    @Test
+    fun `目标线目标落在折线量程外时不画线`() {
+        // 贴着边界的线会被读成「已达成 / 已达上限」，比不画更容易误导。
+        assertEquals(-1f, FtReviewModel.goalLineY(80.0, 60.0, 70.0), 1e-3f)
+        assertEquals(-1f, FtReviewModel.goalLineY(50.0, 60.0, 70.0), 1e-3f)
+    }
+
+    @Test
+    fun `目标线量程退化时不画线`() {
+        // 0 或 1 个体重点：量程上下界相同，无法定位。
+        assertEquals(-1f, FtReviewModel.goalLineY(65.0, 65.0, 65.0), 1e-3f)
+    }
+
+    @Test
+    fun `月度汇总无本月会话返回空`() {
+        val now = day(2026, 6, 10)
+        val previousMonth = session(day(2026, 5, 10), durationSeconds = 1800, volumeSets = listOf(40.0 to 10))
+        assertNull(FtReviewModel.monthlyStats(listOf(previousMonth), now))
+        assertNull(FtReviewModel.monthlyStats(emptyList(), now))
+    }
+
+    @Test
+    fun `月度汇总只累计本月会话且跳过热身组`() {
+        val now = day(2026, 6, 20)
+        val inMonth = session(day(2026, 6, 3), durationSeconds = 1200, volumeSets = listOf(40.0 to 10))
+        val otherMonth = session(day(2026, 5, 28), durationSeconds = 3600, volumeSets = listOf(50.0 to 5))
+        val stats = FtReviewModel.monthlyStats(listOf(inMonth, otherMonth), now)
+        assertNotNull(stats)
+        assertEquals(1, stats!!.count) // 只有本月那次
+        assertEquals(1200, stats.duration)
+        assertEquals(1, stats.sets)
+        assertEquals(400.0, stats.volume, 1e-6)
+    }
+
+    @Test
+    fun `概览徽标无会话时为待积累`() {
+        assertEquals(FtReviewModel.BADGE_IDLE, FtReviewModel.badgeText(emptyList(), day(2026, 6, 10), WeekStart.MONDAY))
+    }
+
+    @Test
+    fun `概览徽标本周有训练但上周无基线时为首次复盘`() {
+        val now = day(2026, 6, 10) // 周三
+        val thisWeek = session(day(2026, 6, 8), durationSeconds = 1800, volumeSets = listOf(40.0 to 10))
+        assertEquals(
+            FtReviewModel.BADGE_FIRST,
+            FtReviewModel.badgeText(listOf(thisWeek), now, WeekStart.MONDAY),
         )
     }
 }
