@@ -155,6 +155,17 @@ export struct PlanContent {
     .width('100%')
     .height('100%')
     .backgroundColor(PrototypeTokens.BG_INK)
+    // Tab 常驻（`visibility` 切换，`aboutToAppear` 只跑一次）：壳切到本 Tab 或从压栈页面返回时
+    // 只调 `invalidate()` 置脏；脏标记必须由本组件的可见性变化消费掉，否则数据永远停在首次装载。
+    // 口径同 HomeContent。ratios [0,1] 在显隐时可能多次回调，`needRefresh` + 装载并发保护会挡掉重复。
+    .onVisibleAreaChange([0.0, 1.0], (isVisible: boolean, currentRatio: number) => {
+      if (isVisible) {
+        const context: Context | undefined = this.getUIContext().getHostContext()
+        if (context !== undefined) {
+          this.state.refresh(context)
+        }
+      }
+    })
   }
 
   @Builder
