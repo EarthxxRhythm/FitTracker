@@ -57,6 +57,16 @@ export struct ProfileContent {
     .height('100%')
     .padding({ left: 16, right: 16, top: Math.max(53 - this.topInsetVp, 0), bottom: 30 })
     .backgroundColor(PrototypeTokens.BG_INK)
+    // Tab 常驻（`visibility` 切换，`aboutToAppear` 只跑一次）：壳切到本 Tab 时只调 `invalidate()`
+    // 置脏；脏标记必须由本组件的可见性变化消费掉，否则数据永远停在首次装载。口径同 HomeContent。
+    .onVisibleAreaChange([0.0, 1.0], (isVisible: boolean, currentRatio: number) => {
+      if (isVisible) {
+        const context: Context | null = this.contextOrNull()
+        if (context !== null) {
+          this.state.refresh(context)
+        }
+      }
+    })
   }
 
   @Builder

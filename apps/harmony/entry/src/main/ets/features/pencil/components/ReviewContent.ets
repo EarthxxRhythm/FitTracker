@@ -940,6 +940,7 @@ export struct ReviewContent {
     const context = this.getUIContext().getHostContext()
     if (context === undefined) {
       this.applyEmptyState()
+      this.redrawCanvases()
       return
     }
     try {
@@ -975,6 +976,21 @@ export struct ReviewContent {
     } catch (error) {
       this.applyEmptyState()
     }
+    this.redrawCanvases()
+  }
+
+  /**
+   * 装载完成后显式重绘两块 Canvas。
+   *
+   * Canvas 不走 `@State` 差量更新：`onReady` 只在挂载时跑一次，之后 `weightChartPoints` /
+   * `muscleVolume` 的 `@State` 变化只会让卡面文字重渲染，画布仍停在上一次装载的旧图——
+   * 表现为「体重卡数字已经变了，曲线还是旧的」。故每次装载（含空态回落）后统一重绘。
+   *
+   * 画布未就绪时 `ctx.width/height` 为 0，两个绘制方法都会直接返回，提前调用无害。
+   */
+  private redrawCanvases(): void {
+    this.drawWeightChart()
+    this.redrawBodymaps()
   }
 
   /** 读回体重记录：填充当前体重、「较上月」差值与折线点；无记录时保持空态。 */

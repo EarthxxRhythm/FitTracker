@@ -43,12 +43,32 @@ export struct PencilAppShell {
     await mainWindow.setWindowLayoutFullScreen(false)
   }
 
-  // 从「计划组」列表/详情等被压栈页面返回时重新显示本页——若当前停在「计划」Tab，
-  // 需重读当前计划，否则启用结果不会反映到计划页。
+  // 从「计划组」列表/详情、身体数据、设置等被压栈页面返回时重新显示本页——若当前停在该 Tab，
+  // 需重读数据，否则压栈页里的改动不会反映回来。
+  //
+  // 这里必须「置脏 + 立即重读」，不能只 invalidate：返回时 Tab 内容一直可见，`visibility` 没变化，
+  // 不会触发 `*Content` 的 `onVisibleAreaChange`，只置脏就再没有消费者（脏标记会一直挂着）。
   onPageShow(): void {
+    const context: Context | undefined = this.getUIContext().getHostContext()
+    if (context === undefined) {
+      return
+    }
+    if (this.currentTab === PencilTabKey.HOME) {
+      this.homeState.invalidate()
+      this.homeState.refresh(context)
+      return
+    }
     if (this.currentTab === PencilTabKey.PLAN) {
       this.planState.invalidate()
+      this.planState.refresh(context)
+      return
     }
+    if (this.currentTab === PencilTabKey.REVIEW) {
+      this.reviewReloadToken += 1
+      return
+    }
+    this.profileState.invalidate()
+    this.profileState.refresh(context)
   }
 
   // 训练预览覆盖层打开时，系统返回键先关闭它，不退出页面。
