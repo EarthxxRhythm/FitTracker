@@ -27,10 +27,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,6 +81,7 @@ import com.fittracker.app.ui.components.clickableNoRipple
 import com.fittracker.app.ui.theme.FtColor
 import com.fittracker.app.ui.theme.FtShape
 import com.fittracker.app.ui.theme.FtType
+import kotlinx.coroutines.launch
 
 /** 时间尺度（原型 `data-scale`）。 */
 internal enum class ReviewScale { WEEK, MONTH }
@@ -117,8 +120,8 @@ fun ReviewScreen(
     var muscleMode by remember { mutableStateOf(MuscleMode.BALANCE) }
     var selectedMuscle by remember { mutableStateOf<String?>(null) }
     var effortMetric by remember { mutableStateOf(EffortMetric.RIR) }
-    var goal by remember { mutableStateOf(FtReviewModel.initialGoal()) }
-    var goalLineY by remember { mutableFloatStateOf(FtReviewModel.INITIAL_GOAL_LINE_Y) }
+    // 体重目标：`0` = 从未设置（按钮显示「设置目标」、不画目标线）。真值由 LaunchedEffect 读回。
+    var goal by remember { mutableDoubleStateOf(0.0) }
     var goalModalOpen by remember { mutableStateOf(false) }
 
     // Wave 4 / W3-2b 资料域接线：复盘派生数据取自本地会话仓储与体重记录服务。空库时保持样例
@@ -126,6 +129,7 @@ fun ReviewScreen(
     // 与体重变化（数值 / 曲线 / 「较上周」脚注）；体态图（肌肉地图）本轮仍为样例——
     // V2：需肌群聚合服务（WorkoutSet.exerciseId × ContentRepository 肌肉映射）。
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val resources = LocalResources.current
     // 1RM 表：无会话时为空态（不再回落原型样例行）。
     var oneRmRows by remember { mutableStateOf<List<OneRmRow>>(emptyList()) }
@@ -133,14 +137,52 @@ fun ReviewScreen(
     // 周柱 / 月历 / 体重曲线：无会话或读取失败时为空态（不再回落原型样例）。
     var weekBars by remember { mutableStateOf<List<WeekBar>>(emptyList()) }
     var monthCells by remember { mutableStateOf<List<MonthCell>>(emptyList()) }
-    var monthLabel by remember { mutableStateOf(resources.getString(FtReviewModel.MONTH_LABEL_RES)) }
-    var monthMeta by remember { mutableStateOf(resources.getString(FtReviewModel.MONTH_META_RES)) }
-    var weekHeadText by remember { mutableStateOf(resources.getString(FtReviewModel.WEEK.weekRes)) }
-    var monthHeadText by remember { mutableStateOf(resources.getString(FtReviewModel.MONTH.weekRes)) }
+    var monthLabel by remember {
+        // 纯日期计算（不依赖 IO）——首帧即真值，不再先渲染样例年月再翻转。
+        mutableStateOf(
+            run {
+                val cal = java.util.Calendar.getInstance()
+                resources.getString(
+                    R.string.review_month_label,
+                    cal.get(java.util.Calendar.YEAR),
+                    cal.get(java.util.Calendar.MONTH) + 1,
+                )
+            },
+        )
+    }
+    // 月历脚注依赖会话数据 → 首帧无数据即「0 天 0 分钟」（真实空态，不是样例 17 天 720 分钟）。
+    var monthMeta by remember { mutableStateOf(resources.getString(R.string.review_month_meta, 0, 0)) }
+    // 周/月抬头：纯日期计算、不依赖 IO——首帧即真值（周首日后按设置重排周范围文案）。
+    var weekHeadText by remember {
+        mutableStateOf(
+            resources.getString(
+                R.string.review_head_week,
+                WeekWindow.weekRangeText(System.currentTimeMillis(), WeekStart.MONDAY, currentLanguageTag()),
+            ),
+        )
+    }
+    var monthHeadText by remember {
+        mutableStateOf(
+            resources.getString(
+                R.string.review_head_month,
+                java.util.Calendar.getInstance().get(java.util.Calendar.MONTH) + 1,
+            ),
+        )
+    }
+    // 概览徽标：本周完成率相对上周的涨跌（真实派生）；无基线时「待积累 / 首次复盘」。
+    var badgeText by remember { mutableStateOf(FtReviewModel.BADGE_IDLE) }
+    // 月尺度统计（次数 / 时长）：与周尺度同口径的月度汇总；null = 本月无训练 → 空态。
+    var monthStats by remember { mutableStateOf<WeeklyStats?>(null) }
+    // 体重折线量程（kg）：目标线据此换算 y，与折线共用同一坐标系。
+    var chartLoKg by remember { mutableDoubleStateOf(0.0) }
+    var chartHiKg by remember { mutableDoubleStateOf(0.0) }
     var monthHead by remember { mutableStateOf(WeekWindow.dayLabels(WeekStart.MONDAY)) }
     // 体重卡：无记录时为空态（不再显示原型样例 69.2 kg）。
     var weightCurrent by remember { mutableStateOf<String?>(null) }
-    var weightDelta by remember { mutableStateOf(resources.getString(FtReviewModel.WEIGHT_DELTA_RES)) }
+    // 体重卡「较上月」脚注：无记录时空态（不回落原型「较上月 -0.8 kg」）。
+    var weightDelta by remember {
+        mutableStateOf(resources.getString(R.string.review_weight_delta_month, FtReviewModel.EMPTY_VALUE))
+    }
     var weightPoints by remember { mutableStateOf<List<Pair<Float, Float>>>(emptyList()) }
     var weightUnit by remember { mutableStateOf(WeightUnit.KG) }
     var hasWeightRecords by remember { mutableStateOf(false) }
@@ -156,7 +198,10 @@ fun ReviewScreen(
     LaunchedEffect(Unit) {
         val store = JsonStore(context.appDataStore)
         val now = System.currentTimeMillis()
-        val weekStart = SettingsService.loadSettings(store).weekStart
+        val settings = SettingsService.loadSettings(store)
+        val weekStart = settings.weekStart
+        // 体重目标：`0` = 从未设置（目标线与按钮走空态）。
+        goal = settings.weightGoalKg
         weightUnit = UserProfileService.loadProfile(store).weightUnit
         // 周/月尺度抬头与月历表头：纯日期计算（与数据有无无关）
         weekHeadText = resources.getString(R.string.review_head_week, WeekWindow.weekRangeText(now, weekStart, currentLanguageTag()))
@@ -167,6 +212,9 @@ fun ReviewScreen(
         reviewSessions = sessions
         reviewWeekStart = weekStart
         reviewNow = now
+        // 概览徽标与月度汇总：无会话即空态（徽标「待积累」、月度统计 null → `--`）。
+        badgeText = FtReviewModel.badgeText(sessions, now, weekStart)
+        monthStats = FtReviewModel.monthlyStats(sessions, now)
         if (sessions.isNotEmpty()) {
             weekStats = WorkoutSessionService.weeklyStats(sessions, now, weekStart)
             weekBars = FtReviewModel.weeklyBars(sessions, now, weekStart)
@@ -194,7 +242,7 @@ fun ReviewScreen(
                 }
             }
         }
-        // W3-1 体重记录服务：有记录用真实值，无记录回落原型样例（与 BodyScreen 的 hasRecords/回落同口径）。
+        // W3-1 体重记录服务：有记录用真实值；无记录时主数值/脚注为 `--` 空态（不回落原型样例）。
         // 「较上月」脚注口径：近 30 天首尾之差（对齐原型 fittracker-review.html:1321 与鸿蒙侧）。
         val records = BodyRecordService.loadRecords(store)
         if (records.isNotEmpty()) {
@@ -208,28 +256,48 @@ fun ReviewScreen(
             weightDeltaValue = FtReviewModel.weightDeltaValue(deltaKg, weightUnit)
             hasWeightRecords = true
             val trend = BodyRecordService.weekTrend(records, now, weekStart, currentLanguageTag())
-            if (trend != null) weightPoints = FtReviewModel.weightPoints(trend.values)
+            if (trend != null) {
+                weightPoints = FtReviewModel.weightPoints(trend.values)
+                // 量程随折线一起记录：目标线必须落在同一坐标系里，否则线位置是假的。
+                chartLoKg = (trend.values.minOrNull() ?: 0f).toDouble()
+                chartHiKg = (trend.values.maxOrNull() ?: 0f).toDouble()
+            }
+        } else {
+            // 记录被清空（删除 / 切账号）时复位折线与量程——否则残留上一次的曲线与目标线。
+            hasWeightRecords = false
+            weightCurrent = null
+            weightDelta = resources.getString(R.string.review_weight_delta_month, FtReviewModel.EMPTY_VALUE)
+            weightDeltaValue = ""
+            weightPoints = emptyList()
+            chartLoKg = 0.0
+            chartHiKg = 0.0
         }
     }
 
     val baseData = if (scale == ReviewScale.WEEK) FtReviewModel.WEEK else FtReviewModel.MONTH
-    val weekData = weekStats
+    // 两个尺度共用同一套覆盖口径：次数 / 时长取对应周期汇总（无数据 → `--`），体重变化只在
+    // 真有记录时成立。原型写死的 4 / 186 / -0.8 与 17 / 720 / -1.6 不再出现在生产路径上。
+    val periodStats = if (scale == ReviewScale.WEEK) weekStats else monthStats
     val data = run {
         val stats = baseData.stats.toMutableList()
-        if (scale == ReviewScale.WEEK && weekData != null) {
-            stats[0] = ReviewStat(R.string.review_stat_workouts, weekData.count.toString(), R.string.review_unit_times)
-            stats[1] = ReviewStat(R.string.review_stat_duration, (weekData.duration / 60).toString(), R.string.review_unit_minutes)
+        val countText = if (periodStats != null) periodStats.count.toString() else FtReviewModel.EMPTY_VALUE
+        val durationText = if (periodStats != null) {
+            (periodStats.duration / 60).toString()
+        } else {
+            FtReviewModel.EMPTY_VALUE
         }
-        if (hasWeightRecords) {
-            stats[2] = ReviewStat(
-                R.string.review_stat_weight_change,
-                weightDeltaValue,
-                R.string.review_unit_kg,
-                unitText = WeightUtils.unitLabel(weightUnit),
-            )
-        }
+        stats[0] = ReviewStat(R.string.review_stat_workouts, countText, R.string.review_unit_times)
+        stats[1] = ReviewStat(R.string.review_stat_duration, durationText, R.string.review_unit_minutes)
+        stats[2] = ReviewStat(
+            R.string.review_stat_weight_change,
+            if (hasWeightRecords) weightDeltaValue else FtReviewModel.EMPTY_VALUE,
+            R.string.review_unit_kg,
+            unitText = WeightUtils.unitLabel(weightUnit),
+        )
         baseData.copy(stats = stats)
     }
+    // 目标线：`-1` = 不画（未设置 / 量程退化 / 目标落在量程外）。
+    val goalLineY = FtReviewModel.goalLineY(goal, chartLoKg, chartHiKg)
 
     val scrollState = rememberScrollState()
     Box(
@@ -242,7 +310,11 @@ fun ReviewScreen(
             onScale = { scale = it },
             scrollState = scrollState,
         ) {
-            OverviewCard(data = data, headText = if (scale == ReviewScale.WEEK) weekHeadText else monthHeadText)
+            OverviewCard(
+                data = data,
+                headText = if (scale == ReviewScale.WEEK) weekHeadText else monthHeadText,
+                badgeText = badgeText,
+            )
             StatsRow(stats = data.stats)
             ActivityCard(
                 scale = scale,
@@ -280,8 +352,9 @@ fun ReviewScreen(
                 onDismiss = { goalModalOpen = false },
                 onSave = { value ->
                     goal = value
-                    goalLineY = FtReviewModel.goalLineY(value)
                     goalModalOpen = false
+                    // 目标必须跨会话存在，否则每次进页都回到未设置态（等于假数据）。
+                    scope.launch { SettingsService.saveWeightGoal(JsonStore(context.appDataStore), value) }
                 },
             )
         }
@@ -461,7 +534,7 @@ private fun SegmentedPill(
 
 /** `.overview`（L434-475）：本周概览，`min-height: 145.1px`。 */
 @Composable
-private fun OverviewCard(data: ReviewScaleData, headText: String) {
+private fun OverviewCard(data: ReviewScaleData, headText: String, badgeText: String) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -483,7 +556,7 @@ private fun OverviewCard(data: ReviewScaleData, headText: String) {
                 color = FtColor.white70,
             )
             Text(
-                text = data.badge,
+                text = badgeText,
                 modifier = Modifier
                     .clip(FtShape.pill)
                     .background(FtColor.accent10) // rgba(80,236,167,.102)
@@ -908,8 +981,12 @@ private fun WeightGoalCard(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    // 文案由**当前目标值**给出（原型 `saveGoal` 直接改写按钮 textContent）
-                    text = stringResource(R.string.review_weight_goal_label, FtReviewModel.goalValueText(goal)),
+                    // 已设置 → 「目标 N kg」；未设置 → 「设置目标」（不再显示原型样例 68）。
+                    text = if (goal > 0.0) {
+                        stringResource(R.string.review_weight_goal_label, FtReviewModel.goalValueText(goal))
+                    } else {
+                        stringResource(R.string.review_weight_goal_empty_label)
+                    },
                     style = FtType.natural(13f, 600, FtType.num).copy(letterSpacing = 0.13.sp), // .01em
                     color = FtColor.accent,
                 )
@@ -980,14 +1057,16 @@ private fun WeightChart(
             )
         }
 
-        // 目标线：虚线 4 4、rgba(255,255,255,.32)
-        drawLine(
-            color = FtColor.white32,
-            start = Offset(px(12f), px(goalLineY)),
-            end = Offset(px(330f), px(goalLineY)),
-            strokeWidth = px(1f),
-            pathEffect = PathEffect.dashPathEffect(floatArrayOf(px(4f), px(4f))),
-        )
+        // 目标线：虚线 4 4、rgba(255,255,255,.32)——未设置/越界时 `goalLineY < 0`，不画。
+        if (goalLineY >= 0f) {
+            drawLine(
+                color = FtColor.white32,
+                start = Offset(px(12f), px(goalLineY)),
+                end = Offset(px(330f), px(goalLineY)),
+                strokeWidth = px(1f),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(px(4f), px(4f))),
+            )
+        }
 
         // 面积：折线点 + 右下角 + 左下角闭合，fill rgba(80,236,167,.12)
         val area = Path().apply {
@@ -1184,12 +1263,23 @@ private fun OneRmCard(rows: List<OneRmRow>) {
 @Composable
 private fun GoalModal(initial: Double, onDismiss: () -> Unit, onSave: (Double) -> Unit) {
     val targetWeightA11y = stringResource(R.string.review_goal_modal_a11y_input)
+    // 未设置目标（0）时输入框留空——不预填 0，也不预填原型样例 68。
     var text by remember {
-        mutableStateOf(if (initial % 1.0 == 0.0) initial.toLong().toString() else initial.toString())
+        mutableStateOf(
+            if (initial <= 0.0) {
+                ""
+            } else if (initial % 1.0 == 0.0) {
+                initial.toLong().toString()
+            } else {
+                initial.toString()
+            },
+        )
     }
 
     fun commit() {
-        onSave(FtReviewModel.clampGoal(text.toDoubleOrNull() ?: FtReviewModel.initialGoal()))
+        // 空 / 非数字不提交——原实现会静默换成样例 68 并当作真实目标保存。
+        val parsed = text.trim().toDoubleOrNull() ?: return
+        onSave(FtReviewModel.clampGoal(parsed))
     }
 
     Box(

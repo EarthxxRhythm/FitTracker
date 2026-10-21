@@ -183,6 +183,56 @@ class SettingsServiceTest {
         assertEquals(FtSettings(), SettingsService.loadSettings(store))
     }
 
+    // --- 复盘页体重目标（saveWeightGoal / normalizeWeightGoalKg） --------------
+
+    @Test
+    fun `体重目标跨存取持久化且不被单字段写清除`() = runBlocking {
+        val store = createStore()
+        SettingsService.saveWeightGoal(store, 65.5)
+
+        // 目标必须跨会话存在——否则每次进复盘页都回到「未设置」，等于假数据。
+        assertEquals(65.5, SettingsService.loadSettings(store).weightGoalKg, 1e-6)
+        assertEquals("", SettingsService.getLastPersistenceError())
+
+        SettingsService.setLanguage(store, SettingsLanguage.EN)
+        val loaded = SettingsService.loadSettings(store)
+        assertEquals(65.5, loaded.weightGoalKg, 1e-6) // 读-改-写不丢目标
+        assertEquals(SettingsLanguage.EN, loaded.language)
+    }
+
+    @Test
+    fun `体重目标越界归零不落盘`() = runBlocking {
+        val store = createStore()
+
+        // 越界不静默收敛到边界：那会把用户输入的 250 kg 当成 200 kg 保存。
+        SettingsService.saveWeightGoal(store, 250.0)
+        assertEquals(0.0, SettingsService.loadSettings(store).weightGoalKg, 1e-6)
+
+        SettingsService.saveWeightGoal(store, 10.0)
+        assertEquals(0.0, SettingsService.loadSettings(store).weightGoalKg, 1e-6)
+    }
+
+    @Test
+    fun `体重目标传零表示清除`() = runBlocking {
+        val store = createStore()
+        SettingsService.saveWeightGoal(store, 72.0)
+        SettingsService.saveWeightGoal(store, 0.0)
+
+        assertEquals(0.0, SettingsService.loadSettings(store).weightGoalKg, 1e-6)
+    }
+
+    @Test
+    fun `体重目标归一识别合法区间`() {
+        assertEquals(0.0, SettingsService.normalizeWeightGoalKg(Double.NaN), 1e-6)
+        assertEquals(0.0, SettingsService.normalizeWeightGoalKg(0.0), 1e-6)
+        assertEquals(0.0, SettingsService.normalizeWeightGoalKg(-5.0), 1e-6)
+        assertEquals(0.0, SettingsService.normalizeWeightGoalKg(29.9), 1e-6)
+        assertEquals(30.0, SettingsService.normalizeWeightGoalKg(30.0), 1e-6)
+        assertEquals(200.0, SettingsService.normalizeWeightGoalKg(200.0), 1e-6)
+        assertEquals(0.0, SettingsService.normalizeWeightGoalKg(200.1), 1e-6)
+        assertEquals(68.5, SettingsService.normalizeWeightGoalKg(68.5), 1e-6)
+    }
+
     @Test
     fun `归一函数仅识别 en 与 sunday`() {
         assertEquals(SettingsLanguage.ZH, SettingsService.normalizeLanguage("zh"))

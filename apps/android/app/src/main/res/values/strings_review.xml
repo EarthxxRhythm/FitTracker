@@ -128,6 +128,8 @@
     <string name="review_weight_delta_month">较上月 %1$s</string>
     <!-- 目标按钮文案：`%1$s` 目标值（整数不带小数，见 `goalValueText`） -->
     <string name="review_weight_goal_label">目标 %1$s kg</string>
+    <!-- 未设置目标时的按钮文案（原实现恒显示原型样例 68 kg） -->
+    <string name="review_weight_goal_empty_label">设置目标</string>
     <!-- `.goal-btn` 的 `aria-haspopup="dialog"` 语义 -->
     <string name="review_weight_goal_a11y_open">设置体重目标</string>
 

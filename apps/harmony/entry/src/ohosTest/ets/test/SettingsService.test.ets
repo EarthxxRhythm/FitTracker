@@ -30,6 +30,8 @@ export default function settingsServiceTest(): void {
       expect(settings.sound).assertEqual(true)
       expect(settings.keepOn).assertEqual(true)
       expect(settings.anonymous).assertEqual(false)
+      // 体重目标：从未设置 → 0（复盘页据此渲染「设置目标」空态，不显示样例 68）。
+      expect(settings.weightGoalKg).assertEqual(0)
     })
 
     it('saves and reloads all settings fields', 0, async () => {
@@ -64,6 +66,30 @@ export default function settingsServiceTest(): void {
       expect(settings.sound).assertEqual(true)
       expect(settings.reminder).assertEqual(true)
       expect(settings.keepOn).assertEqual(true)
+    })
+
+    it('persists weight goal across reloads', 0, async () => {
+      await SettingsService.saveWeightGoal(getTestContext(), 65.5)
+      const settings: AppSettings = await SettingsService.loadSettings(getTestContext())
+      // 目标必须跨会话存在——否则每次进复盘页都回到「未设置」，等于假数据。
+      expect(settings.weightGoalKg).assertEqual(65.5)
+      expect(SettingsService.getLastPersistenceError()).assertEqual('')
+    })
+
+    it('normalizes out-of-range weight goal to unset', 0, async () => {
+      // 越界不静默收敛到边界：那会把用户输入的 250 kg 当成 200 kg 保存。
+      await SettingsService.saveWeightGoal(getTestContext(), 250)
+      expect((await SettingsService.loadSettings(getTestContext())).weightGoalKg).assertEqual(0)
+      await SettingsService.saveWeightGoal(getTestContext(), 10)
+      expect((await SettingsService.loadSettings(getTestContext())).weightGoalKg).assertEqual(0)
+    })
+
+    it('does not disturb weight goal when another toggle is saved', 0, async () => {
+      await SettingsService.saveWeightGoal(getTestContext(), 70)
+      await SettingsService.saveToggle(getTestContext(), 'sound', false)
+      const settings: AppSettings = await SettingsService.loadSettings(getTestContext())
+      expect(settings.weightGoalKg).assertEqual(70)
+      expect(settings.sound).assertEqual(false)
     })
   })
 }
