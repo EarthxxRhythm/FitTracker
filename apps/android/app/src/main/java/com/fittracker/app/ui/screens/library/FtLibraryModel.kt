@@ -228,13 +228,34 @@ object FtLibraryModel {
     )
 
     /**
-     * 动作对应的 GIF asset 路径（`exercise-gifs/<file>.gif`）；无匹配返回 null。
-     * 先按 id 命中（原型样例 id == 文件名），否则按动作名（[GIF_BY_NAME] / [GIF_NAME_ALIASES]）。
+     * 动作对应的 GIF asset 路径；无匹配返回 null。
+     *
+     * 两套素材，与鸿蒙端同规则：
+     * 1. **线稿优先**——先按 id 命中（原型样例 id == 文件名），否则按动作名
+     *    （[GIF_BY_NAME] / [GIF_NAME_ALIASES]），命中即用 [GIF_ASSET_DIR]（抠图透明版）。
+     *    这一层保证「杠铃划船」「腿弯举」等两组同有的动作在老端上观感不变。
+     * 2. **实拍兜底**——线稿未覆盖时查 [PhotoGifCatalog.BY_NAME]（free-exercise-db 实拍照
+     *    合成的 59 个素材），命中即用其 [PhotoGifCatalog.ASSET_DIR]。这些是全彩矩形实景、
+     *    无白底，靠调用方已有的卡片圆角（LibraryScreen 的 `RoundedCornerShape(14.dp)`）
+     *    收敛，故此处只给出路径，不改视觉。
      */
     fun gifAssetFor(id: String, name: String): String? {
         val file = if (id in GIF_FILE_NAMES) id else GIF_BY_NAME[name] ?: GIF_NAME_ALIASES[name]
         // 2026-10-09：素材切换为「白底抠图（透明）GIF」（exercise-gifs-cut/；连通域抠图，见处理说明）
-        return file?.let { "$GIF_ASSET_DIR/$it.gif" }
+        if (file != null) return "$GIF_ASSET_DIR/$file.gif"
+        // 2026-10-20：线稿未覆盖的动作走实拍素材（content 库 102 条里此前约 79 条只能落占位块）
+        val photo = PhotoGifCatalog.BY_NAME[name]
+        return photo?.let { "${PhotoGifCatalog.ASSET_DIR}/$it.gif" }
+    }
+
+    /**
+     * 该动作是否走实拍素材（供调用方决定容器形态，如需额外圆角/描边时使用）。
+     * 与 [gifAssetFor] 的分派规则严格一致：线稿命中即 false。
+     */
+    fun usesPhotoStyle(id: String, name: String): Boolean {
+        if (id in GIF_FILE_NAMES) return false
+        if (GIF_BY_NAME[name] != null || GIF_NAME_ALIASES[name] != null) return false
+        return PhotoGifCatalog.BY_NAME[name] != null
     }
 
     /** [FtLibraryExercise] 重载。 */
