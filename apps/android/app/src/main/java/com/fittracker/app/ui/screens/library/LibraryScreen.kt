@@ -5,6 +5,8 @@ import android.os.Build
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -44,6 +46,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -75,6 +78,7 @@ import com.fittracker.app.R
 import com.fittracker.app.data.service.ContentRepository
 import com.fittracker.app.ui.components.clickableNoRipple
 import com.fittracker.app.ui.theme.FtColor
+import com.fittracker.app.ui.theme.FtMotion
 import com.fittracker.app.ui.theme.FtShape
 import com.fittracker.app.ui.theme.FtType
 import coil.ImageLoader
@@ -224,7 +228,21 @@ fun LibraryScreen(
                             // 故直接 indexOf 与 LazyRow 项位一致）。
                             val idx = FtLibraryModel.PART_IDS.indexOf(id)
                             if (idx >= 0) {
-                                scope.launch { partListState.animateScrollToItem(idx) }
+                                scope.launch {
+                                    // 对齐鸿蒙端 ScrollAlign.CENTER。onSelect 同一帧内把网格收回单行，
+                                    // 单行 LazyRow 此时尚未 attach/布局，直接调用会无效——先等一帧。
+                                    withFrameNanos { }
+                                    partListState.scrollToItem(idx)
+                                    // scrollToItem 后 layoutInfo 仍需一帧才反映新偏移，再等一帧取实测位置。
+                                    withFrameNanos { }
+                                    val li = partListState.layoutInfo
+                                    val info = li.visibleItemsInfo.firstOrNull { it.index == idx }
+                                    if (info != null) {
+                                        val viewport = li.viewportEndOffset - li.viewportStartOffset
+                                        val delta = viewport / 2 - (info.offset + info.size / 2)
+                                        if (delta != 0) partListState.scrollToItem(idx, -delta)
+                                    }
+                                }
                             }
                         },
                         expanded = partExpanded,
@@ -291,6 +309,8 @@ fun LibraryScreen(
         }
 
         // 关闭后保留面板至转场结束，再移出组件树，避免「缩回」动画被截断。
+        // 该保留窗口须 ≥ FtMotion.DURATION_OVERLAY（遮罩淡出 220ms）：DetailSheet 内的
+        // 遮罩透明度过渡依赖组件仍在树中，提前移出会让淡出被硬切。
         LaunchedEffect(detailVisible, detail) {
             if (detail != null && !detailVisible) {
                 delay(400)
@@ -662,12 +682,8 @@ private fun ExerciseCard(
     val cardShape = if (opening) RoundedCornerShape(0.dp) else shape
     Column(
         modifier = modifier
-            .clip(cardShape)
-            .background(CardFill) // rgba(255,255,255,.031)
-            .border(1.dp, FtColor.line10, cardShape)
-            .semantics { contentDescription = cardDesc }
-            .clickableNoRipple(onClick = onOpen)
-            // 共享元素：与详情面板同一 key，做「卡片原位 ↔ 居中面板」的边界插值。
+            // 共享元素必须置于 clip/background/border 之前：这些视觉修饰作为它的「子」
+            // 才会被带入共享渲染，否则过渡中只见卡片内容、不见卡片底板。
             .then(
                 with(sharedScope) {
                     Modifier.sharedElementWithCallerManagedVisibility(
@@ -675,7 +691,12 @@ private fun ExerciseCard(
                         visible = !opening,
                     )
                 }
-            ),
+            )
+            .clip(cardShape)
+            .background(CardFill) // rgba(255,255,255,.031)
+            .border(1.dp, FtColor.line10, cardShape)
+            .semantics { contentDescription = cardDesc }
+            .clickableNoRipple(onClick = onOpen),
     ) {
         Box(
             modifier = Modifier
@@ -858,11 +879,21 @@ private fun DetailSheet(
         val maxSheetHeight = maxHeight * 0.84f // `.lib-sheet-card { max-height: 84% }`
         val shape = RoundedCornerShape(26.dp)
 
+        // 遮罩透明度随面板显隐过渡：鸿蒙端 backdrop 用 `TransitionEffect.OPACITY`
+        // + `DURATION_OVERLAY`（ExerciseLibraryPage.ets:537），安卓侧原先只有静态
+        // `.background`，导致关闭时面板已缩回、黑幕仍整屏不透明直到组件被移出组件树。
+        val scrimAlpha by animateFloatAsState(
+            targetValue = if (visible) 1f else 0f,
+            animationSpec = tween(FtMotion.DURATION_OVERLAY, easing = FtMotion.EASE_MOTION),
+            label = "lib-sheet-scrim",
+        )
+
         // `.lib-sheet-backdrop { background: rgba(4,7,9,.55) }`
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(SheetBackdrop)
+                // 按基色 alpha（0x8C ≈ .55）等比缩放，保持原型色值与淡出同步
+                .background(SheetBackdrop.copy(alpha = SheetBackdrop.alpha * scrimAlpha))
                 .semantics { contentDescription = sheetDesc }
                 .clickableNoRipple(onClick = onClose),
         )
@@ -872,12 +903,7 @@ private fun DetailSheet(
                 .align(Alignment.Center) // 由贴底改为居中：共享元素的目标位置
                 .fillMaxWidth()
                 .heightIn(max = maxSheetHeight)
-                .clip(shape)
-                .background(SheetFill) // #0E1316
-                .border(1.dp, FtColor.line10, shape)
-                // 卡片吞掉点击，避免透传到遮罩（原型只在 backdrop 命中时关闭，L857-861）
-                .clickableNoRipple(onClick = {})
-                // 与卡片同一 key；本侧可见，故 target bounds 取自这里。
+                // 与卡片同一 key；视觉修饰须在其后，才会被带入共享渲染。
                 .then(
                     with(sharedScope) {
                         Modifier.sharedElementWithCallerManagedVisibility(
@@ -885,7 +911,12 @@ private fun DetailSheet(
                             visible = visible,
                         )
                     }
-                ),
+                )
+                .clip(shape)
+                .background(SheetFill) // #0E1316
+                .border(1.dp, FtColor.line10, shape)
+                // 卡片吞掉点击，避免透传到遮罩（原型只在 backdrop 命中时关闭，L857-861）
+                .clickableNoRipple(onClick = {}),
         ) {
             Column(
                 modifier = Modifier
