@@ -3,70 +3,17 @@ import { MotionTokens } from '../../../common/styles/DesignTokens'
 import { AppRoutes } from '../../../app/AppRoutes'
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
-import UserProfileService, { UserProfile, WeightUnit } from '../../../common/services/UserProfileService'
-import { kgToDisplay, weightUnitLabel } from '../../../common/utils/WeightUtils'
-import WorkoutSessionService, { WeeklyStats } from '../../../common/services/WorkoutSessionService'
-import SettingsService, { AppSettings } from '../../../common/services/SettingsService'
-import { resolveWeekStart, WeekStart } from '../../../common/utils/WeekUtils'
-import { computeStreakCount, computeWeekActiveFlagsFrom } from '../../../common/utils/StreakUtils'
-import PersonalRecordService, { ExercisePersonalRecordDetail } from '../../../shared/services/PersonalRecordService'
-import WorkoutSessionPersistenceBridgeService from '../../workout/services/WorkoutSessionPersistenceBridgeService'
-import { WorkoutSession } from '../../../shared/models/TrainingModels'
-import GoalRepository from '../../../shared/services/GoalRepository'
-import { UserGoal } from '../../../shared/models/TrainingModels'
+import { ProfileState, AchievementRow } from './states/ProfileState'
 import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
-
-/** 一条最近成就的展示数据（`note` 已按当前单位换算）。 */
-interface AchievementRow {
-  title: string
-  note: string
-  value: string
-  icon: string
-}
 
 @Component
 export struct ProfileContent {
   @State private settingsPressed: boolean = false
   @State private shortcutKey: string = ''
   @State private topInsetVp: number = 0
-  /** 展示单位（来自「设置 · 体重单位」）；成就卡样例重量的基准值仍为 kg。 */
-  @State private displayUnit: WeightUnit = 'kg'
-  /**
-   * 最近成就行——以 `@State` 数组驱动 `ForEach` 渲染。
-   *
-   * 不能把算好的 note 直接按值传给 `@Builder`：ArkUI 中 `@Builder` 接收基本类型参数时，
-   * 参数值变化不会触发其内部 UI 刷新（体重单位切换后会停留在首帧的 kg）。
-   */
-  @State private achievementRows: AchievementRow[] = [
-    {
-      title: '\u7a33\u5b9a\u8f93\u51fa',
-      note: '\u8fde\u7eed\u8bad\u7ec3 7 \u5929',
-      value: '\u672c\u5468\u5b8c\u6210\u5ea6 86%',
-      icon: 'flame'
-    },
-    {
-      title: '\u91cd\u91cf\u7a81\u7834',
-      note: '\u6df1\u8e72\u8fbe\u5230 80 kg',
-      value: '\u5237\u65b0\u4e2a\u4eba\u6700\u4f73',
-      icon: 'trophy'
-    }
-  ]
-  @State private avatarLetter: string = '\u6797'
-  @State private nickname: string = '\u8c31\u5c3c'
-  @State private goalSubtitle: string = '\u589e\u808c\u7b2c 42 \u5929 \u00b7 \u4fdd\u6301\u8282\u594f'
-  @State private weekRangeText: string = '7 \u6708 21 \u2013 27 \u65e5'
-  @State private weekDurationText: string = '186'
-  @State private weekCountText: string = '4'
-  /** 连续训练天数（真实派生）；0 = 尚未开始。 */
-  @State private streakCount: number = 0
-  /** 本周打卡标记（跟随「设置 · 周开始日」）。 */
-  @State private weekActiveFlags: boolean[] = [false, false, false, false, false, false, false]
-  /** 打卡格的星期标签序（随周开始日重排）。 */
-  @State private weekDayLabels: string[] = ['一', '二', '三', '四', '五', '六', '日']
-  /** 「设置 · 周开始日」（打卡格与连续记录的周口径）。 */
-  private weekStartKey: WeekStart = 'monday'
-  /** 个人记录明细（真实 PR，供成就卡派生）。 */
-  private personalRecordDetails: ExercisePersonalRecordDetail[] = []
+  // 状态层：由 PencilAppShell 传入。数据态与装载已迁入 ProfileState，
+  // 此处只留 UI 交互态（settingsPressed/shortcutKey/topInsetVp）。
+  @ObjectLink state: ProfileState
 
   private contextOrNull(): Context | null {
     const host = this.getUIContext().getHostContext()
@@ -92,107 +39,10 @@ export struct ProfileContent {
 
   async aboutToAppear(): Promise<void> {
     await this.resolveTopInset()
-    // 周区间由设置页「周开始日」决定，需读取持久化设置；先按默认周一渲染，读到设置后再覆盖。
-    this.weekRangeText = this.computeWeekRangeText('monday')
     const context: Context | null = this.contextOrNull()
-    if (context === null) {
-      // No host context: keep the placeholder values, never throw.
-      return
+    if (context !== null) {
+      this.state.refresh(context)
     }
-    try {
-      const settings: AppSettings = await SettingsService.loadSettings(context)
-      this.weekStartKey = settings.weekStart
-      this.weekRangeText = this.computeWeekRangeText(settings.weekStart)
-    } catch (error) {
-      // Settings read failed: keep the monday-based week range computed above.
-    }
-    try {
-      const profile: UserProfile = await UserProfileService.loadProfile(context)
-      // 成就卡里的样例重量按「设置 · 体重单位」换算展示（基准值仍是 kg）。
-      this.displayUnit = profile.weightUnit
-      this.achievementRows = this.createAchievementRows()
-      this.avatarLetter = profile.avatar.trim().length > 0
-        ? profile.avatar.trim().charAt(0)
-        : '\u6797'
-      this.nickname = profile.nickname.trim().length > 0
-        ? profile.nickname.trim()
-        : '\u8c31\u5c3c'
-    } catch (error) {
-      // Profile read failed: keep the default avatar letter and nickname placeholder.
-    }
-    try {
-      const goal: UserGoal | undefined = await GoalRepository.loadGoal(context)
-      if (goal !== undefined && goal.createdAt > 0) {
-        const dayCount: number = this.computeGoalDayCount(goal.createdAt)
-        this.goalSubtitle = '\u589e\u808c\u7b2c ' + dayCount.toString() + ' \u5929 \u00b7 \u4fdd\u6301\u8282\u594f'
-      } else {
-        this.goalSubtitle = '\u672a\u8bbe\u7f6e\u76ee\u6807'
-      }
-    } catch (error) {
-      // Goal read failed: keep the placeholder subtitle.
-    }
-    try {
-      const stats: WeeklyStats = await WorkoutSessionService.getWeeklyStats(context)
-      this.weekDurationText = Math.round(stats.duration / 60).toString()
-      this.weekCountText = stats.count.toString()
-    } catch (error) {
-      // Weekly stats read failed: keep the placeholder numbers.
-    }
-    // 连续记录与本周打卡：由真实训练日期派生（与完成页同一实现）。
-    try {
-      const trainingDates: string[] = await WorkoutSessionService.getTrainingDates(context)
-      this.streakCount = computeStreakCount(trainingDates)
-      this.applyWeekFlags(trainingDates, this.weekStartKey)
-    } catch (error) {
-      this.streakCount = 0
-      this.weekActiveFlags = [false, false, false, false, false, false, false]
-    }
-    // 个人记录：取真实会话派生（供成就卡）；失败保持空（成就卡渲染空态）。
-    try {
-      const sessions: WorkoutSession[] = await WorkoutSessionPersistenceBridgeService.loadPersistedSessions(context)
-      this.personalRecordDetails = PersonalRecordService.createRecordDetails(sessions)
-    } catch (error) {
-      this.personalRecordDetails = []
-    }
-    // 成就行在 streak / 本周统计 / PR 都就绪后统一重算（首帧那次用的是空数据）。
-    this.achievementRows = this.createAchievementRows()
-  }
-
-  /** 按周开始日重排打卡格：周日首时标签序与标记都随之旋转。 */
-  private applyWeekFlags(trainingDates: string[], weekStart: WeekStart): void {
-    const flags: boolean[] = computeWeekActiveFlagsFrom(weekStart, trainingDates)
-    if (weekStart === 'sunday') {
-      this.weekDayLabels = ['日', '一', '二', '三', '四', '五', '六']
-    } else {
-      this.weekDayLabels = ['一', '二', '三', '四', '五', '六', '日']
-    }
-    this.weekActiveFlags = flags
-  }
-
-  /** 连续记录标题右侧文案：有训练显示「连续 N 天」，无则「尚未开始」。 */
-  private streakLabel(): string {
-    if (this.streakCount <= 0) {
-      return '\u5c1a\u672a\u5f00\u59cb'
-    }
-    return '\u8fde\u7eed ' + this.streakCount.toString() + ' \u5929'
-  }
-
-  private computeWeekRangeText(weekStart: WeekStart): string {
-    const now: Date = new Date()
-    const weekStartDate: Date = resolveWeekStart(now, weekStart)
-    const weekEndDate: Date = new Date(weekStartDate.getFullYear(), weekStartDate.getMonth(), weekStartDate.getDate() + 6)
-    const startText: string = (weekStartDate.getMonth() + 1).toString() + ' \u6708 ' + weekStartDate.getDate().toString()
-    const endText: string = weekEndDate.getMonth() === weekStartDate.getMonth()
-      ? weekEndDate.getDate().toString() + ' \u65e5'
-      : (weekEndDate.getMonth() + 1).toString() + ' \u6708 ' + weekEndDate.getDate().toString() + ' \u65e5'
-    return startText + ' \u2013 ' + endText
-  }
-
-  private computeGoalDayCount(createdAt: number): number {
-    // createdAt is a millisecond timestamp; day 1 starts on the goal creation date.
-    const oneDayMs: number = 24 * 60 * 60 * 1000
-    const days: number = Math.floor((Date.now() - createdAt) / oneDayMs) + 1
-    return days < 1 ? 1 : days
   }
 
   build() {
@@ -219,7 +69,7 @@ export struct ProfileContent {
           .borderRadius(26)
           .backgroundColor(PrototypeTokens.ACCENT_A10)
           .border({ width: 1, color: PrototypeTokens.ACCENT_A30 })
-        Text(this.avatarLetter)
+        Text(this.state.avatarLetter)
           .fontFamily('Inter')
           .fontSize(22)
           .fontWeight(FontWeight.Bold)
@@ -228,7 +78,7 @@ export struct ProfileContent {
       .width(52)
       .height(52)
       Column({ space: 4 }) {
-        Text(this.nickname)
+        Text(this.state.nickname)
           .fontFamily('Inter')
           .fontSize(21)
           .fontWeight(FontWeight.Bold)
@@ -236,7 +86,7 @@ export struct ProfileContent {
           .lineHeight(25.2)
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
-        Text(this.goalSubtitle)
+        Text(this.state.goalSubtitle)
           .fontFamily('Inter')
           .fontSize(12.5)
           .fontColor(PrototypeTokens.WHITE_A62)
@@ -286,7 +136,7 @@ export struct ProfileContent {
           .fontWeight(FontWeight.Bold)
           .fontColor(PrototypeTokens.TEXT_HI)
           .lineHeight(20.4)
-        Text(this.weekRangeText)
+        Text(this.state.weekRangeText)
           .fontFamily('Inter')
           .fontSize(11)
           .fontColor(PrototypeTokens.WHITE_A62)
@@ -298,7 +148,7 @@ export struct ProfileContent {
       .margin({ bottom: 14 })
 
       Row({ space: 8 }) {
-        Text(this.weekDurationText)
+        Text(this.state.weekDurationText)
           .fontFamily('Inter')
           .fontSize(48)
           .fontWeight(FontWeight.Bold)
@@ -328,7 +178,7 @@ export struct ProfileContent {
         .margin({ top: 15, bottom: 13 })
 
       Row({ space: 12 }) {
-        this.buildFocusMeta('\u8bad\u7ec3', this.weekCountText, '\u6b21')
+        this.buildFocusMeta('\u8bad\u7ec3', this.state.weekCountText, '\u6b21')
       }
       .width('100%')
     }
@@ -381,7 +231,7 @@ export struct ProfileContent {
           .fontSize(17)
           .fontWeight(FontWeight.Bold)
           .fontColor(PrototypeTokens.TEXT_HI)
-        Text(this.streakLabel())
+        Text(this.state.streakLabel())
           .fontFamily('Inter')
           .fontSize(12)
           .fontWeight(FontWeight.Bold)
@@ -392,8 +242,8 @@ export struct ProfileContent {
       .alignItems(VerticalAlign.Bottom)
       .margin({ bottom: 14 })
       Row({ space: 7 }) {
-        ForEach(this.weekDayLabels, (label: string, index: number) => {
-          this.buildStreakDay(label, this.weekActiveFlags[index] === true)
+        ForEach(this.state.weekDayLabels, (label: string, index: number) => {
+          this.buildStreakDay(label, this.state.weekActiveFlags[index] === true)
         }, (label: string, index: number) => index.toString() + label)
       }
       .width('100%')
@@ -424,58 +274,6 @@ export struct ProfileContent {
     .alignItems(HorizontalAlign.Center)
   }
 
-  /** 成就卡样例重量（kg 基准）→ 当前单位下的展示文本（如 `80 kg` / `176.4 lbs`）。 */
-  private achievementWeightText(kg: number): string {
-    const value: number = kgToDisplay(kg, this.displayUnit)
-    const text: string = Math.round(value * 10) % 10 === 0 ? Math.round(value).toString() : value.toFixed(1)
-    return text + ' ' + weightUnitLabel(this.displayUnit)
-  }
-
-  /**
-   * 构建成就行数据（全部由真实数据派生；无数据时返回空数组 → 卡片渲染空态）。
-   *
-   * ① 连续训练：用本轮已算出的 [streakCount]；
-   * ② 重量突破：取个人记录里最大 `bestWeight` 的动作与数值（重量按当前单位换算）。
-   */
-  private createAchievementRows(): AchievementRow[] {
-    const rows: AchievementRow[] = []
-    if (this.streakCount > 0) {
-      const streakRow: AchievementRow = {
-        title: '\u7a33\u5b9a\u8f93\u51fa',
-        note: '\u8fde\u7eed\u8bad\u7ec3 ' + this.streakCount.toString() + ' \u5929',
-        value: '\u672c\u5468 ' + this.weekCountText + ' \u6b21',
-        icon: 'flame'
-      }
-      rows.push(streakRow)
-    }
-    const best: ExercisePersonalRecordDetail | undefined = this.bestRecord()
-    if (best !== undefined) {
-      const prRow: AchievementRow = {
-        title: '\u91cd\u91cf\u7a81\u7834',
-        note: best.exerciseName + ' ' + this.achievementWeightText(best.bestWeight),
-        value: best.bestDateText,
-        icon: 'trophy'
-      }
-      rows.push(prRow)
-    }
-    return rows
-  }
-
-  /** 个人记录里最大重量的动作；无记录返回 undefined。 */
-  private bestRecord(): ExercisePersonalRecordDetail | undefined {
-    const details: ExercisePersonalRecordDetail[] = this.personalRecordDetails
-    if (details.length === 0) {
-      return undefined
-    }
-    let best: ExercisePersonalRecordDetail = details[0]
-    for (let index = 1; index < details.length; index++) {
-      if (details[index].bestWeight > best.bestWeight) {
-        best = details[index]
-      }
-    }
-    return best.bestWeight > 0 ? best : undefined
-  }
-
   @Builder
   private buildAchievements() {    Column({ space: 0 }) {
       Text('\u6700\u8fd1\u6210\u5c31')
@@ -484,14 +282,14 @@ export struct ProfileContent {
         .fontWeight(FontWeight.Bold)
         .fontColor(PrototypeTokens.TEXT_HI)
         .margin({ bottom: 12 })
-      if (this.achievementRows.length === 0) {
+      if (this.state.achievementRows.length === 0) {
         Text('\u5b8c\u6210\u8bad\u7ec3\u540e\uff0c\u8fd9\u91cc\u4f1a\u663e\u793a\u4f60\u7684\u6210\u5c31\u3002')
           .fontFamily('Inter')
           .fontSize(12.5)
           .fontColor('#9EFFFFFF')
           .padding({ top: 2, bottom: 2 })
       } else {
-        ForEach(this.achievementRows, (row: AchievementRow) => {
+        ForEach(this.state.achievementRows, (row: AchievementRow) => {
           this.buildAchievement(row.title, row.note, row.value, row.icon)
         }, (row: AchievementRow) => row.title + '|' + row.note)
       }
