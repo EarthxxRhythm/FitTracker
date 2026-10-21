@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -81,31 +82,16 @@ fun PlansScreen(
     onNavigate: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
+    vm: PlansViewModel = viewModel(),
 ) {
-    val context = LocalContext.current
-    val resources = LocalResources.current
-    val store = remember { JsonStore(context.appDataStore) }
+    // 状态与装载由 [PlansViewModel] 持有（`viewModel()` 取 NavBackStackEntry 作用域实例）。
+    LaunchedEffect(Unit) { vm.load() }
 
-    // 当前计划（对齐鸿蒙 `PlansContent`：由宿主页读 getCurrentPlan 后注入；空＝尚未启用）
-    var currentName by remember { mutableStateOf<String?>(null) }
-    var currentMeta by remember { mutableStateOf<String?>(null) }
+    val currentName = vm.currentName
+    val currentMeta = vm.currentMeta
 
     // 计划组列表（`PlansContent.buildGroupCards`）：预置计划常量映射，无需 IO
     val groups = remember { ftPlanGroupsFromPresets() }
-
-    LaunchedEffect(Unit) {
-        val current = TrainingPlanRepository.getCurrentPlan(store)
-        if (current != null) {
-            currentName = current.name.ifEmpty { resources.getString(R.string.plans_current_fallback_name) }
-            // 元信息口径同计划 Tab（`PlanContent.applyCurrentPlanState`）
-            currentMeta = resources.getString(
-                R.string.plans_current_meta,
-                current.targetAudience,
-                current.days.size,
-                current.weeklyFrequency,
-            )
-        }
-    }
 
     Column(
         modifier = modifier
