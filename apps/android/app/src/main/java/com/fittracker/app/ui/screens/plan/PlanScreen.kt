@@ -6,7 +6,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -303,7 +305,9 @@ internal fun TodayPlanDeck(
                     var totalDx = 0f
                     var moved = false
 
-                    detectDragGestures(
+                    // 只消费**水平**拖拽：卡内动作清单改为纵向滚动后，竖向拖动必须让给
+                    // `verticalScroll`，否则卡片堆会把上下滑动也当成切卡手势吃掉。
+                    detectHorizontalDragGestures(
                         onDragStart = {
                             // 原型 L851-860：记录起点、清判别标志（并中止进行中的缓动）
                             animJob?.cancel() // 中止进行中的缓动（原型语义；此前遗漏导致快速连拖竞态）
@@ -327,9 +331,11 @@ internal fun TodayPlanDeck(
                             }
                         },
                         onDragCancel = { animateOffset(0f, SNAPBACK_DURATION_MS) },
-                        onDrag = { change, amount ->
+                        onHorizontalDrag = { change, dragAmount ->
                             change.consume()
-                            totalDx += amount.x
+                            // `detectHorizontalDragGestures` 给的是已判定的水平位移（Float），
+                            // 与旧 `detectDragGestures` 的 Offset 不同，取 x 分量的语义等价。
+                            totalDx += dragAmount
                             if (abs(totalDx) > moveThreshold) moved = true
                             dragOffset = FtDeckArc.clampDrag(startOffset - totalDx / stepPx)
                         },
@@ -385,9 +391,10 @@ private fun DeckCard(
             .background(FtColor.ink0)
             .background(DeckCardFill)
             .border(1.dp, DeckCardBorder, shape)
-            .padding(18.dp),
-        // `justify-content: space-between`
-        verticalArrangement = Arrangement.SpaceBetween,
+            .padding(18.dp)
+            // 卡片高度由 deck 舞台锁定；内容超出时在**卡内**滚动——动作清单因此完整可达。
+            // 此前没有滚动容器，副标题写着「N 个动作」而多余的行被 clip 直接裁掉、无法查看。
+            .verticalScroll(rememberScrollState()),
     ) {
         Column {
             Row(

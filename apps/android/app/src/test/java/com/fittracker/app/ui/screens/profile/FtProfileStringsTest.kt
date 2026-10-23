@@ -106,12 +106,13 @@ class FtProfileStringsTest {
             listOf("稳定输出", "重量突破"),
             FtProfileModel.ACHIEVEMENTS.map { context.getString(it.titleRes) },
         )
+        // 「训练偏好」入口已按需求从个人页移除（路由与屏保留，仅不在此处暴露）。
         assertEquals(
-            listOf("身体数据", "训练偏好", "动作库"),
+            listOf("身体数据", "动作库"),
             FtProfileModel.SHORTCUTS.map { context.getString(it.labelRes) },
         )
         assertEquals(
-            listOf("body", "trainingPreferences", "library"),
+            listOf("body", "library"),
             FtProfileModel.SHORTCUTS.map { it.route },
         )
         assertEquals("settings", FtProfileModel.SETTINGS_ROUTE)

@@ -1,8 +1,13 @@
 package com.fittracker.app.ui.screens.home
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,8 +19,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,6 +40,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
@@ -58,6 +66,7 @@ import com.fittracker.app.ui.components.FtTargetIcon
 import com.fittracker.app.ui.components.clickableNoRipple
 import com.fittracker.app.ui.screens.plan.dayFocusMuscles
 import com.fittracker.app.ui.theme.FtColor
+import com.fittracker.app.ui.theme.FtMotion
 import com.fittracker.app.ui.theme.FtShape
 import com.fittracker.app.ui.theme.FtType
 
@@ -97,17 +106,48 @@ fun HomeScreen(
     val weeklyTrainedCount = vm.weeklyTrainedCount
     val weekDays = vm.weekDays
 
+    // 入场：头部 → 今日卡 → 周卡 逐层落位（错峰 40ms），落位后不再重播。
+    var entered by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { entered = true }
+    val headIn by animateFloatAsState(
+        targetValue = if (entered) 1f else 0f,
+        animationSpec = tween(FtMotion.DURATION_ENTER, easing = FtMotion.EASE_ENTER),
+        label = "home-head-in",
+    )
+    val todayIn by animateFloatAsState(
+        targetValue = if (entered) 1f else 0f,
+        animationSpec = tween(
+            FtMotion.DURATION_ENTER,
+            delayMillis = FtMotion.DURATION_STAGGER,
+            easing = FtMotion.EASE_ENTER,
+        ),
+        label = "home-today-in",
+    )
+    val weekIn by animateFloatAsState(
+        targetValue = if (entered) 1f else 0f,
+        animationSpec = tween(
+            FtMotion.DURATION_ENTER,
+            delayMillis = FtMotion.DURATION_STAGGER * 2,
+            easing = FtMotion.EASE_ENTER,
+        ),
+        label = "home-week-in",
+    )
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            // 用户要求：首页不可滑动（内容配合单屏，移除滚动容器）
+            // 内容自适应 + 可滚动（内容不足一屏时无滚动行为）：卡片按内容定高，
+            // 富余高度留在页面底部，不再用 weight 把空白塞进卡片内部。
+            .verticalScroll(rememberScrollState())
             .background(FtColor.ink0) // 原型 .appshell 背景 var(--ink-0)（L174/L177）
             .padding(start = 16.dp, end = 16.dp, top = 44.dp, bottom = 20.dp), // 压缩进单屏：53/36 → 44/20
+        verticalArrangement = Arrangement.spacedBy(10.dp), // 卡片间距（原由各自 padding 承担）
     ) {
-        HomeHead(dateText = dateText, greeting = greetingText)
-        // 弹性撑满（同计划页 2f:8f 的做法）：抬头保持自然高，两张卡按**自然高度比**
-        // （实测 469 : 136 ≈ 3.4 : 1）分配剩余高度——真机内容区比设计画布高，多出的高度
-        // 按此比例分给两张卡，卡片等比变高，底部不再留空档。
+        HomeHead(
+            dateText = dateText,
+            greeting = greetingText,
+            modifier = Modifier.enterFromBelow(headIn),
+        )
         TodayCard(
             todayTitle = todayTitle,
             muscleText = todayMuscleText,
@@ -118,21 +158,22 @@ fun HomeScreen(
             progressPercent = weeklyProgressPercent,
             onStart = { onNavigate("active") },
             onPreview = { onNavigate("workout") },
-            modifier = Modifier.weight(3.4f),
+            modifier = Modifier.enterFromBelow(todayIn),
         )
         WeekCard(
             days = weekDays,
             trainedCount = weeklyTrainedCount,
             plannedDays = weeklyPlannedDays,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.enterFromBelow(weekIn),
         )
     }
 }
 
 /** `.home-head` L358-370：日期 12.7px/500，问候 36.3px/700，两者间隔 5.4px。 */
 @Composable
-private fun HomeHead(dateText: String, greeting: String) {
-    Column(modifier = Modifier.padding(bottom = 12.dp)) { // 压缩：19 → 12
+private fun HomeHead(dateText: String, greeting: String, modifier: Modifier = Modifier) {
+    // 间距由外层 `Arrangement.spacedBy(10.dp)` 统一提供，此处不再叠加 bottom padding。
+    Column(modifier = modifier) {
         Text(
             text = dateText,
             color = FtColor.white70,
@@ -149,6 +190,12 @@ private fun HomeHead(dateText: String, greeting: String) {
             fontWeight = FontWeight.Bold,
         )
     }
+}
+
+/** 入场效果：透明度 0→1 叠加 8dp 上移落位。 */
+private fun Modifier.enterFromBelow(progress: Float): Modifier = this.graphicsLayer {
+    alpha = progress
+    translationY = 8.dp.toPx() * (1f - progress)
 }
 
 /** `.today` L373-380：圆角 26、1px `--line-10` 描边、底 `rgba(255,255,255,.031)`。 */
@@ -215,10 +262,6 @@ private fun TodayCard(
             durationMinutes = durationMinutes,
             muscleGroupCount = muscleGroupCount,
         )
-
-        // 弹性间隔：卡片被拉伸时多出的高度落在这一处——下方操作按钮组因此贴住卡片底缘，
-        // 空白不会堆在卡片末尾（未拉伸时该间隔为 0，与原布局等价）。
-        Box(modifier = Modifier.weight(1f))
 
         CtaButton(
             text = stringResource(R.string.home_action_start),
@@ -479,16 +522,24 @@ private fun CtaButton(
     borderColor: Color? = null,
 ) {
     val shape = RoundedCornerShape(20.dp)
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale = if (pressed) FtMotion.PRESS_SCALE_CTA else 1f
     Box(
         modifier = modifier
             .fillMaxWidth()
             // 自适应：用 minHeight 而非 height —— 系统字号放大（≤1.3×）时按钮需能随之长高，
             // 定高会把文字裁掉。参考态下两者等价（单行文字高度小于 40dp）。
             .defaultMinSize(minHeight = 40.dp)
+            // 按压反馈：`scale(.985)`（原型 `.today .btn-primary:active`）。
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(shape)
             .background(bg)
             .then(if (borderColor != null) Modifier.border(1.dp, borderColor, shape) else Modifier)
-            .clickableNoRipple(onClick = onClick),
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -510,7 +561,6 @@ private fun WeekCard(
 ) {
     Column(
         modifier = modifier
-            .padding(top = 10.dp)
             .fillMaxWidth()
             .clip(WeekShape)
             .background(CardFill)
@@ -547,9 +597,7 @@ private fun WeekCard(
             )
         }
 
-        // 弹性间隔：卡片被拉伸时多出的高度落在标题行与周视图之间，周视图贴住卡片底缘。
-        Box(modifier = Modifier.weight(1f))
-
+        // 卡片已按内容定高：标题行与周视图之间不再保留弹性间隔。
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(7.dp),

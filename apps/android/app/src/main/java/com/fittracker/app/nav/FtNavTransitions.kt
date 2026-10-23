@@ -70,6 +70,7 @@ object FtNavTransitions {
         "body" to "profile",
         "settings" to "profile",
         "trainingPreferences" to "profile",
+        "profileEdit" to "profile",
     )
 
     /** 直接父屏；不在层级表内（含 null / 空串）返回 `null`。 */

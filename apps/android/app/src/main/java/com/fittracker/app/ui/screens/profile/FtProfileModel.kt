@@ -121,6 +121,9 @@ object FtProfileModel {
     /** 设置按钮的目标路由，取自原型脚本 `bindOpen('[data-od-id="btn-settings"]', 'settings')`（L1769）。 */
     const val SETTINGS_ROUTE = "settings"
 
+    /** 资料编辑页路由（设计侧新增；入口是头部「头像 + 身份」点击与「编辑」胶囊）。 */
+    const val EDIT_ROUTE = "profileEdit"
+
     // ── 本周概览（L1380-1403） ────────────────────────────────────
 
     /** `.card-title`（L1382）。 */
@@ -271,11 +274,6 @@ object FtProfileModel {
      */
     val SHORTCUTS: List<FtProfileShortcut> = listOf(
         FtProfileShortcut(FtProfileIcon.SCALE, R.string.profile_shortcut_body, "body"),                   // L1444
-        FtProfileShortcut(                                                                                // 设计侧新增（中间位）
-            FtProfileIcon.SLIDERS,
-            R.string.profile_shortcut_training_preferences,
-            "trainingPreferences",
-        ),
         FtProfileShortcut(FtProfileIcon.LIBRARY, R.string.profile_shortcut_library, "library"),           // L1449
     )
 }

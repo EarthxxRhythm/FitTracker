@@ -1,12 +1,18 @@
 package com.fittracker.app.ui
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -23,6 +29,7 @@ import com.fittracker.app.nav.FtRoutes
 import com.fittracker.app.nav.navigateToTab
 import com.fittracker.app.ui.components.FtBottomTabBar
 import com.fittracker.app.ui.theme.FtColor
+import com.fittracker.app.ui.theme.FtMotion
 import com.fittracker.app.ui.theme.FtTheme
 
 // ── Tab 切换内容动效令牌（W2-5） ──────────────────────────────────────────
@@ -62,6 +69,11 @@ fun FtApp() {
         // 故该屏不渲染底栏——否则内容区矮一个底栏高，与原型参照帧对不齐。
         val onTab = FtRoutes.tabs.any { it.id == currentId } && currentId != "workout"
 
+        // ── chrome 收起状态（内容屏写、壳层读） ─────────────────────────────
+        // 回顾页向下滚动时置 true：底栏滑出、屏内头部收缩。离开任何 Tab 帧时强制复位，
+        // 避免「在回顾页收起后进入设置/登录，底栏状态仍残留」。
+        val chrome = remember { FtChromeState() }
+
         // ── Tab 切换内容动效（W2-5，对齐原型 `select()`） ──────────────────
         // 原型语义：Tab 壳层**瞬时**换屏（`select()` 直接 classList.toggle，无过渡），
         // 动效只发生在**内容区** `#viewport` —— 先瞬时落到「侧偏 8px / 微缩 .99 /
@@ -77,6 +89,12 @@ fun FtApp() {
         val contentSettle = remember { Animatable(1f) }
 
         LaunchedEffect(currentId) {
+            // chrome 复位与 Tab 动效共用一次订阅：非 Tab 帧（settings / active / login…）
+            // 不该继承任何收起状态。
+            if (!onTab) {
+                chrome.updateCollapsed(false)
+            }
+
             val from = previousTabId
             previousTabId = currentId
             val fromIndex = from?.let { tabIds.indexOf(it) } ?: -1
@@ -98,37 +116,51 @@ fun FtApp() {
             )
         }
 
-        Scaffold(
-            containerColor = FtColor.bg,
-            // 关键：原型画布是**不含系统栏**的 390×844 整屏。
-            // Scaffold 默认会按 systemBars 内缩内容区，导致 FtCanvas 的可用高变小、
-            // fitScale 被算小（实测有效缩放 0.855 vs 原型 0.90698，且整体下移一个状态栏）。
-            // 故显式清零 insets，让内容真正 edge-to-edge。
-            contentWindowInsets = WindowInsets(0),
-            bottomBar = {
-                if (onTab) {
-                    FtBottomTabBar(
-                        currentRouteId = currentId,
-                        onSelect = { navController.navigateToTab(it) },
-                    )
-                }
-            },
-        ) { inner ->
-            FtNavHost(
-                navController = navController,
-                modifier = Modifier
-                    .padding(inner)
-                    // 动效施加在**内容区**（不含底栏），与原型作用于 `#viewport` 同级：
-                    // 底栏不参与位移/缩放，Tab 间也不会出现整屏推入式位移。
-                    .graphicsLayer {
-                        val away = 1f - contentSettle.value // 1f = 未归位（起点），0f = 已归位
-                        translationX = shiftDirection * TAB_SHIFT_DISTANCE_DP.dp.toPx() * away
-                        val scale = 1f - (1f - TAB_SHIFT_MIN_SCALE) * away
-                        scaleX = scale
-                        scaleY = scale
-                        alpha = 1f - (1f - TAB_SHIFT_MIN_ALPHA) * away
-                    },
-            )
+        CompositionLocalProvider(LocalFtChrome provides chrome) {
+            Scaffold(
+                containerColor = FtColor.bg,
+                // 关键：原型画布是**不含系统栏**的 390×844 整屏。
+                // Scaffold 默认会按 systemBars 内缩内容区，导致 FtCanvas 的可用高变小、
+                // fitScale 被算小（实测有效缩放 0.855 vs 原型 0.90698，且整体下移一个状态栏）。
+                // 故显式清零 insets，让内容真正 edge-to-edge。
+                contentWindowInsets = WindowInsets(0),
+                bottomBar = {
+                    // 收起/恢复：底栏整条滑出屏幕并淡出。Scaffold 按测量收缩 `inner` 的下内边距，
+                    // 内容区随之自然长高——不会像 `offset` 那样在底部留一条死区。
+                    AnimatedVisibility(
+                        visible = onTab && !chrome.collapsed,
+                        enter = slideInVertically(
+                            animationSpec = tween(FtMotion.DURATION_CHROME, easing = FtMotion.EASE_PANEL),
+                            initialOffsetY = { it },
+                        ) + fadeIn(tween(FtMotion.DURATION_CHROME)),
+                        exit = slideOutVertically(
+                            animationSpec = tween(FtMotion.DURATION_CHROME, easing = FtMotion.EASE_PANEL),
+                            targetOffsetY = { it },
+                        ) + fadeOut(tween(FtMotion.DURATION_COLOR_FAST)),
+                    ) {
+                        FtBottomTabBar(
+                            currentRouteId = currentId,
+                            onSelect = { navController.navigateToTab(it) },
+                        )
+                    }
+                },
+            ) { inner ->
+                FtNavHost(
+                    navController = navController,
+                    modifier = Modifier
+                        .padding(inner)
+                        // 动效施加在**内容区**（不含底栏），与原型作用于 `#viewport` 同级：
+                        // 底栏不参与位移/缩放，Tab 间也不会出现整屏推入式位移。
+                        .graphicsLayer {
+                            val away = 1f - contentSettle.value // 1f = 未归位（起点），0f = 已归位
+                            translationX = shiftDirection * TAB_SHIFT_DISTANCE_DP.dp.toPx() * away
+                            val scale = 1f - (1f - TAB_SHIFT_MIN_SCALE) * away
+                            scaleX = scale
+                            scaleY = scale
+                            alpha = 1f - (1f - TAB_SHIFT_MIN_ALPHA) * away
+                        },
+                )
+            }
         }
     }
 }

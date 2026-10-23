@@ -15,6 +15,25 @@
     <string name="profile_name_none">—</string>
     <string name="profile_sub_none">No goal set</string>
     <string name="profile_a11y_settings">Settings</string>
+    <!-- Profile edit entry (design addition) -->
+    <string name="profile_edit_entry">Edit</string>
+    <string name="profile_edit_title">Edit profile</string>
+    <string name="profile_edit_back">Back</string>
+    <string name="profile_edit_avatar_section">Avatar</string>
+    <string name="profile_edit_avatar_hint">The avatar shows your nickname initial; pick a color</string>
+    <string name="profile_edit_nickname_section">Nickname</string>
+    <string name="profile_edit_nickname_placeholder">Enter nickname</string>
+    <string name="profile_edit_body_section">Body profile</string>
+    <string name="profile_edit_height">Height</string>
+    <string name="profile_edit_height_unit">cm</string>
+    <string name="profile_edit_gender">Gender</string>
+    <string name="profile_edit_gender_male">Male</string>
+    <string name="profile_edit_gender_female">Female</string>
+    <string name="profile_edit_gender_unset">Not set</string>
+    <string name="profile_edit_birth_year">Birth year</string>
+    <string name="profile_edit_save">Save</string>
+    <string name="profile_edit_saved">Saved</string>
+    <string name="profile_edit_nickname_too_long">Nickname must be 20 characters or fewer</string>
 
     <!-- This week card -->
     <string name="profile_week_title">Weekly overview</string>

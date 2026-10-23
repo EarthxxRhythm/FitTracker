@@ -32,6 +32,7 @@ import com.fittracker.app.ui.screens.library.LibraryScreen
 import com.fittracker.app.ui.screens.plan.PlanScreen
 import com.fittracker.app.ui.screens.plans.PlansScreen
 import com.fittracker.app.ui.screens.preferences.TrainingPreferencesScreen
+import com.fittracker.app.ui.screens.profile.ProfileEditScreen
 import com.fittracker.app.ui.screens.profile.ProfileScreen
 import com.fittracker.app.ui.screens.review.ReviewScreen
 import com.fittracker.app.ui.screens.settings.SettingsScreen
@@ -89,6 +90,7 @@ fun FtScreen(
                 "library" -> LibraryScreen(onNavigate = onNavigate, onBack = onBack)
                 "body" -> BodyScreen(onNavigate = onNavigate, onBack = onBack)
                 "profile" -> ProfileScreen(onNavigate = onNavigate)
+                "profileEdit" -> ProfileEditScreen(onBack = onBack)
                 "settings" -> SettingsScreen(onNavigate = onNavigate)
                 "trainingPreferences" -> TrainingPreferencesScreen(onNavigate = onNavigate, onBack = onBack)
                 "splash" -> SplashScreen(onNavigate = onNavigate)

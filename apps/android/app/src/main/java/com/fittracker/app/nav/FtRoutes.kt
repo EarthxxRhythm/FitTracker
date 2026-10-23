@@ -202,6 +202,7 @@ object FtRoutes {
         FtRoute("legal", "法律文档", "LegalDocPage.ets", "screen-legal", FtCanvasKind.Direct),
         FtRoute("trainingPreferences", "训练偏好", "fittracker-training-preferences.html",
             "screen-training-preferences", FtCanvasKind.Direct),
+        FtRoute("profileEdit", "编辑资料", "ProfileEditScreen.kt", "screen-profile-edit", FtCanvasKind.Direct),
     )
 
     /** 全部可导航路由：原型 15 条 + [extra] 4 条（NavHost 注册来源）。 */
