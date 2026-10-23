@@ -27,6 +27,26 @@
     <string name="profile_sub_none">未设置目标</string>
     <!-- `.p-settings` 的 `aria-label="设置"`（L1375），逐字取自源码 -->
     <string name="profile_a11y_settings">设置</string>
+    <!-- 资料编辑入口（设计侧新增）：头部右侧胶囊文案 -->
+    <string name="profile_edit_entry">编辑</string>
+    <!-- 资料编辑页（设计侧新增） -->
+    <string name="profile_edit_title">编辑资料</string>
+    <string name="profile_edit_back">返回</string>
+    <string name="profile_edit_avatar_section">头像</string>
+    <string name="profile_edit_avatar_hint">头像显示昵称首字，可选择配色</string>
+    <string name="profile_edit_nickname_section">昵称</string>
+    <string name="profile_edit_nickname_placeholder">输入昵称</string>
+    <string name="profile_edit_body_section">身体档案</string>
+    <string name="profile_edit_height">身高</string>
+    <string name="profile_edit_height_unit">厘米</string>
+    <string name="profile_edit_gender">性别</string>
+    <string name="profile_edit_gender_male">男</string>
+    <string name="profile_edit_gender_female">女</string>
+    <string name="profile_edit_gender_unset">未填</string>
+    <string name="profile_edit_birth_year">出生年</string>
+    <string name="profile_edit_save">保存</string>
+    <string name="profile_edit_saved">已保存</string>
+    <string name="profile_edit_nickname_too_long">昵称最多 20 个字符</string>
 
     <!-- 本周概览（L1380-1403） -->
     <string name="profile_week_title">本周概览</string>

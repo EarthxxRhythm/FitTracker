@@ -34,23 +34,24 @@ class FtNavTransitionsTest {
     // ── 12 组父子关系：父 → 子 = 前进 ────────────────────────────
 
     @Test
-    fun `层级表含原型 10 条 + 补 1 条共 11 条`() {
-        assertEquals(11, FtNavTransitions.PARENT.size)
+    fun `层级表含原型 10 条 + 补 2 条共 12 条`() {
+        assertEquals(12, FtNavTransitions.PARENT.size)
         prototypeParent.forEach { (child, parent) ->
             assertEquals("$child 的父屏", parent, FtNavTransitions.PARENT[child])
         }
         assertEquals("profile", FtNavTransitions.PARENT["trainingPreferences"])
+        assertEquals("profile", FtNavTransitions.PARENT["profileEdit"])
     }
 
     @Test
-    fun `11 组父子关系——父到子判为前进`() {
+    fun `12 组父子关系——父到子判为前进`() {
         val wrong = FtNavTransitions.PARENT
             .filterNot { (child, parent) -> FtNavTransitions.navDir(parent, child) == FORWARD }
         assertEquals(emptyList<String>(), wrong.keys.toList())
     }
 
     @Test
-    fun `11 组父子关系——子到父判为返回`() {
+    fun `12 组父子关系——子到父判为返回`() {
         val wrong = FtNavTransitions.PARENT
             .filterNot { (child, parent) -> FtNavTransitions.navDir(child, parent) == BACK }
         assertEquals(emptyList<String>(), wrong.keys.toList())

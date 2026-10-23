@@ -6,6 +6,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
+import com.fittracker.app.R
+import com.fittracker.app.data.auth.AuthService
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
 import com.fittracker.app.data.service.SettingsService
@@ -43,6 +45,10 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         private set
     var avatarInitial by mutableStateOf("")
         private set
+
+    /** 头像色键（落在 `UserProfile.avatar`）；空串/未知键 = 默认翡翠。 */
+    var avatarKey by mutableStateOf("")
+        private set
     var weekValue by mutableStateOf(FtProfileModel.WEEK_VALUE)
         private set
     var weekSessions by mutableStateOf(FtProfileModel.WEEK_METRICS[0].value)
@@ -71,12 +77,20 @@ class ProfileViewModel(application: Application) : AndroidViewModel(application)
         val weekStart = SettingsService.loadSettings(store).weekStart
         // 周概览 meta：真实周范围（纯日期计算，与数据有无无关）
         weekRangeText = WeekWindow.weekRangeText(System.currentTimeMillis(), weekStart, currentLanguageTag())
+        val res = getApplication<Application>().resources
         val profile = UserProfileService.loadProfile(store)
         weightUnit = profile.weightUnit
-        if (profile.nickname.isNotBlank()) {
-            name = profile.nickname
-            avatarInitial = profile.nickname.trim().first().toString()
+        avatarKey = profile.avatar
+        // 昵称优先取本地资料，其次回落账号显示名；两者皆空时用「—」占位。
+        // 原实现在昵称非空时才赋值，新装用户 header 会渲染成一片空白（本次修复的根因）。
+        val accountName = AuthService.currentSession(store)?.displayName?.trim().orEmpty()
+        val displayName = when {
+            profile.nickname.isNotBlank() -> profile.nickname.trim()
+            accountName.isNotEmpty() -> accountName
+            else -> res.getString(R.string.profile_name_none)
         }
+        name = displayName
+        avatarInitial = displayName.first().toString()
         val sessions = WorkoutRepository.getSessions(store)
         if (sessions.isNotEmpty()) {
             val stats = WorkoutSessionService.weeklyStats(sessions, System.currentTimeMillis(), weekStart)

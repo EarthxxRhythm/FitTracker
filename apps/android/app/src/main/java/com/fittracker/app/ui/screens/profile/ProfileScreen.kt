@@ -1,5 +1,7 @@
 package com.fittracker.app.ui.screens.profile
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,8 +21,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -50,6 +54,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fittracker.app.R
@@ -66,6 +71,7 @@ import com.fittracker.app.data.service.WorkoutRepository
 import com.fittracker.app.data.service.WorkoutSessionService
 import com.fittracker.app.data.service.stats.PersonalRecordService
 import com.fittracker.app.ui.theme.FtColor
+import com.fittracker.app.ui.theme.FtMotion
 import com.fittracker.app.ui.theme.FtShape
 import com.fittracker.app.ui.theme.FtType
 import java.util.Calendar
@@ -114,96 +120,190 @@ fun ProfileScreen(
 
     val name = vm.name
     val avatarInitial = vm.avatarInitial
+    val avatarKey = vm.avatarKey
     val weekValue = vm.weekValue
     val weekSessions = vm.weekSessions
-    val streakActive = vm.streakActive
-    val streakDays = vm.streakDays
     val achievements = vm.achievements
-    val streakLabels = vm.streakLabels
     val weekRangeText = vm.weekRangeText
     val weightUnit = vm.weightUnit
 
-    // 用户要求：个人页不可滑动（内容配合单屏）——LazyColumn 改静态 Column
+    // 入场：头部 → 本周概览 → 最近成就 → 快捷入口 逐层落位（错峰 40ms）。
+    var entered by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { entered = true }
+    val headIn by animateFloatAsState(
+        targetValue = if (entered) 1f else 0f,
+        animationSpec = tween(FtMotion.DURATION_ENTER, easing = FtMotion.EASE_ENTER),
+        label = "profile-head-in",
+    )
+    val weekIn by animateFloatAsState(
+        targetValue = if (entered) 1f else 0f,
+        animationSpec = tween(
+            FtMotion.DURATION_ENTER,
+            delayMillis = FtMotion.DURATION_STAGGER,
+            easing = FtMotion.EASE_ENTER,
+        ),
+        label = "profile-week-in",
+    )
+    val achIn by animateFloatAsState(
+        targetValue = if (entered) 1f else 0f,
+        animationSpec = tween(
+            FtMotion.DURATION_ENTER,
+            delayMillis = FtMotion.DURATION_STAGGER * 2,
+            easing = FtMotion.EASE_ENTER,
+        ),
+        label = "profile-ach-in",
+    )
+    val shortcutIn by animateFloatAsState(
+        targetValue = if (entered) 1f else 0f,
+        animationSpec = tween(
+            FtMotion.DURATION_ENTER,
+            delayMillis = FtMotion.DURATION_STAGGER * 3,
+            easing = FtMotion.EASE_ENTER,
+        ),
+        label = "profile-shortcut-in",
+    )
+
+    // 内容自适应 + 可滚动（内容不足一屏时无滚动行为）：卡片按内容定高，
+    // 富余高度留在页面底部，不再用 weight 把空白塞进卡片内部。
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .background(FtColor.ink0) // `.appshell` 底 var(--ink-0) = #0B0F13（L206）
             // `.profile-content { padding: 53px 16px 30px }`（L228）
             .padding(start = 16.dp, end = 16.dp, top = 44.dp, bottom = 14.dp), // 压缩进单屏：53/30 → 44/14
         // `.profile-content { gap: 16px }`（L231）
         verticalArrangement = Arrangement.spacedBy(10.dp), // 压缩：16 → 10
     ) {
-        ProfileHead(name = name, avatarInitial = avatarInitial, onNavigate = onNavigate)
-        // 弹性撑满（同计划页 2f:8f 的做法）：头部保持自然高，四张卡按**自然高度比**
-        // （实测 207 : 102 : 150 : 55 ≈ 3.8 : 1.9 : 2.7 : 1）分配剩余高度——真机内容区
-        // 比设计画布高，多出的高度按此比例分给卡片，底部不再留空档。
+        ProfileHead(
+            name = name,
+            avatarInitial = avatarInitial,
+            avatarKey = avatarKey,
+            onNavigate = onNavigate,
+            modifier = Modifier.enterFromBelow(headIn),
+        )
         WeekOverviewCard(
             value = weekValue,
             sessions = weekSessions,
             rangeText = weekRangeText,
-            modifier = Modifier.weight(3.8f),
+            modifier = Modifier.enterFromBelow(weekIn),
         )
-        StreakCard(
-            active = streakActive,
-            labels = streakLabels,
-            streakLabel = if (streakDays > 0) {
-                stringResource(R.string.profile_streak_count, streakDays)
-            } else {
-                stringResource(R.string.profile_streak_none)
-            },
-            modifier = Modifier.weight(1.9f),
+        // 「训练连续记录」卡已按需求移除——连续天数仍由成就卡的「稳定输出」派生消费。
+        AchievementsCard(
+            achievements = achievements,
+            weightUnit = weightUnit,
+            modifier = Modifier.enterFromBelow(achIn),
         )
-        AchievementsCard(achievements = achievements, weightUnit = weightUnit, modifier = Modifier.weight(2.7f))
-        Shortcuts(onNavigate = onNavigate, modifier = Modifier.weight(1f))
+        Shortcuts(onNavigate = onNavigate, modifier = Modifier.enterFromBelow(shortcutIn))
     }
 }
 
 // ── 头部 ─────────────────────────────────────────────────────────────────
+
+/** 入场效果：透明度 0→1 叠加 8dp 上移落位。 */
+private fun Modifier.enterFromBelow(progress: Float): Modifier = this.graphicsLayer {
+    alpha = progress
+    translationY = 8.dp.toPx() * (1f - progress)
+}
 
 /**
  * `.p-head` L234-238：`display:flex; align-items:center; gap:12px`。
  * 头像（L240-253）+ 身份块（L255-257）+ 设置钮（L259-278）。
  */
 @Composable
-private fun ProfileHead(name: String, avatarInitial: String, onNavigate: (String) -> Unit) {
+private fun ProfileHead(
+    name: String,
+    avatarInitial: String,
+    avatarKey: String,
+    onNavigate: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val tint = avatarTintOf(avatarKey)
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically, // align-items: center（L236）
         horizontalArrangement = Arrangement.spacedBy(12.dp), // gap: 12px（L237）
     ) {
-        // `.avatar` L240-253：52×52、50% 圆、accent-10 底、1px rgba(80,236,167,.30) 描边、22px/700 accent
-        Box(
+        // 头像 + 身份块整体可点击 → 资料编辑页（只点小头像不好发现）。
+        Row(
             modifier = Modifier
-                .requiredSize(52.dp)
-                .clip(CircleShape)
-                .background(FtColor.accent10)
-                .border(1.dp, AvatarBorder, CircleShape),
-            contentAlignment = Alignment.Center,
+                .weight(1f)
+                .clip(ProfileHeadShape)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = { onNavigate(FtProfileModel.EDIT_ROUTE) },
+                ),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(
-                text = avatarInitial,
-                style = FtType.natural(22f, 700, FtType.num), // 原型 font-num 22px/700（L248-250）
-                color = FtColor.accent,
-            )
+            // `.avatar` L240-253：52×52、50% 圆、色键底色 + 同色系描边、前景同色系高亮
+            Box(
+                modifier = Modifier
+                    .requiredSize(52.dp)
+                    .clip(CircleShape)
+                    .background(tint.bg)
+                    .border(1.dp, tint.border, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = avatarInitial,
+                    style = FtType.natural(22f, 700, FtType.num), // 原型 font-num 22px/700（L248-250）
+                    color = tint.fg,
+                )
+            }
+
+            Column(modifier = Modifier.weight(1f)) { // `.p-id { flex: 1 1 auto }`（L255）
+                Text(
+                    text = name,
+                    color = FtColor.txtHi,
+                    fontSize = 21.sp,
+                    lineHeight = 25.2.sp, // line-height: 1.2（L256）
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = stringResource(FtProfileModel.SUB_NONE_RES),
+                    modifier = Modifier.padding(top = 4.dp), // `.p-sub { margin-top: 4px }`（L257）
+                    style = FtType.natural(12.5f), // 12.5px，原型未声明 line-height
+                    color = FtColor.white62,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
 
-        Column(modifier = Modifier.weight(1f)) { // `.p-id { flex: 1 1 auto }`（L255）
-            Text(
-                text = name,
-                color = FtColor.txtHi,
-                fontSize = 21.sp,
-                lineHeight = 25.2.sp, // line-height: 1.2（L256）
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = stringResource(FtProfileModel.SUB_NONE_RES),
-                modifier = Modifier.padding(top = 4.dp), // `.p-sub { margin-top: 4px }`（L257）
-                style = FtType.natural(12.5f), // 12.5px，原型未声明 line-height
-                color = FtColor.white62,
-            )
-        }
-
+        EditChip(onClick = { onNavigate(FtProfileModel.EDIT_ROUTE) })
         SettingsButton(onClick = { onNavigate(FtProfileModel.SETTINGS_ROUTE) })
+    }
+}
+
+/** 资料编辑入口（设计侧新增）：32dp 文字胶囊，按压 `scale(.96)` 与设置钮同语汇。 */
+@Composable
+private fun EditChip(onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale = if (pressed) PRESS_SCALE_SETTINGS else 1f
+    Box(
+        modifier = Modifier
+            .height(32.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(FtShape.pill)
+            .background(EditChipFill)
+            .border(1.dp, FtColor.line10, FtShape.pill)
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = stringResource(R.string.profile_edit_entry),
+            style = FtType.natural(12f, 600),
+            color = FtColor.white70,
+        )
     }
 }
 
@@ -363,98 +463,6 @@ private fun FocusMetric(metric: FtProfileMetric, modifier: Modifier = Modifier) 
             text = stringResource(metric.unitRes),
             style = FtType.natural(10.5f), // `.fm-unit` 10.5px，未声明 line-height（L359）
             color = FtColor.white62,
-        )
-    }
-}
-
-// ── 训练连续记录 ──────────────────────────────────────────────────────────
-
-/** `.card` L280-285 + 末尾覆盖层 L1229-1231：圆角 22（L281）、底 `rgba(255,255,255,.031)`、描边 `--line-10`、padding 16（L284）。 */
-@Composable
-private fun StreakCard(
-    active: List<Boolean>,
-    labels: List<String>,
-    streakLabel: String,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(FtShape.panel) // `border-radius: 22px`（L281）
-            .background(CardFill)
-            .border(1.dp, FtColor.line10, FtShape.panel)
-            .padding(12.dp), // `.card { padding: 16px }`（L284）——压缩 16 → 12
-        // 弹性撑满：多出的高度摊到标题行与周视图之间（周视图贴住卡片底缘）。
-        verticalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 10.dp), // `.card-head { margin-bottom: 14px }`（L299）——压缩 14 → 10
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                text = stringResource(FtProfileModel.STREAK_TITLE_RES),
-                modifier = Modifier.alignByBaseline(),
-                color = FtColor.txtHi,
-                fontSize = 17.sp,
-                lineHeight = 20.4.sp, // `.card-title` line-height: 1.2（L306）
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = streakLabel,
-                modifier = Modifier.alignByBaseline(),
-                style = FtType.natural(12f, 700, FtType.num), // `.streak-count` 12px/700 font-num（L361-367）
-                color = FtColor.accent,
-            )
-        }
-
-        // `.streak-days { display:flex; gap:7px }`（L368）
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(7.dp),
-        ) {
-            FtProfileModel.STREAK_DAYS.forEachIndexed { index, day ->
-                StreakDayColumn(
-                    // 激活态取本周训练日；标签序随「周开始日」设置重排（[WeekWindow.dayLabels]，
-                    // 模型内保持原型周一起始），无运行期标签时回落模型资源
-                    day = day.copy(active = active.getOrElse(index) { day.active }),
-                    label = labels.getOrNull(index),
-                    modifier = Modifier.weight(1f), // `.streak-day { flex:1 1 0 }`（L370）
-                )
-            }
-        }
-    }
-}
-
-/**
- * `.streak-day` L369-388：28px 圆点 + 10.5px 星期字，纵向 gap 6（L374），`.active` 走翡翠（L384-388）。
- *
- * [label] 为运行期日标签（`WeekWindow.dayLabels`）；为 `null` 时回落 [FtProfileStreakDay.labelRes]。
- */
-@Composable
-private fun StreakDayColumn(
-    day: FtProfileStreakDay,
-    label: String?,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally, // align-items: center（L373）
-        verticalArrangement = Arrangement.spacedBy(6.dp), // gap: 6px（L374）
-    ) {
-        // `.streak-day .dot` L376-382：底与描边同色（非激活 = --line-14，激活 = --accent）
-        Box(
-            modifier = Modifier
-                .requiredSize(28.dp)
-                .clip(CircleShape)
-                .background(if (day.active) FtColor.accent else FtColor.line14)
-                .border(1.dp, if (day.active) FtColor.accent else FtColor.line14, CircleShape),
-        )
-        Text(
-            text = label ?: stringResource(day.labelRes),
-            style = FtType.natural(10.5f), // `.d-label` 10.5px，未声明 line-height（L383）
-            color = if (day.active) FtColor.accent else FtColor.white62, // L383（非激活）/ L388（激活）
         )
     }
 }
@@ -860,3 +868,21 @@ private const val PRESS_SCALE_SETTINGS = 0.96f
 
 /** `.shortcut:active { transform: scale(.98) }`（L443）＝ `FtMotion.PRESS_SCALE_CARD`。 */
 private const val PRESS_SCALE_SHORTCUT = 0.98f
+
+/** 资料编辑入口底 `rgba(255,255,255,.047)`（同快捷入口语汇）→ `0x0CFFFFFF`。 */
+private val EditChipFill = Color(0x0CFFFFFF)
+
+/** 头部「头像 + 身份」可点击区域的圆角（与卡片语汇一致）。 */
+private val ProfileHeadShape = RoundedCornerShape(16.dp)
+
+/** 头像配色组：`UserProfile.avatar` 存色键，空/未知键回落翡翠。编辑页复用同一映射。 */
+internal data class AvatarTint(val bg: Color, val fg: Color, val border: Color)
+
+internal fun avatarTintOf(key: String): AvatarTint = when (key) {
+    "gold" -> AvatarTint(Color(0x1AD3B487), Color(0xFFD3B487), Color(0x4DD3B487))
+    "sky" -> AvatarTint(Color(0x1A5AC8FA), Color(0xFF8CD1FF), Color(0x4D5AC8FA))
+    "rose" -> AvatarTint(Color(0x1AFF8A9B), Color(0xFFFF9FB0), Color(0x4DFF8A9B))
+    "violet" -> AvatarTint(Color(0x1AA78BFA), Color(0xFFC4B5FD), Color(0x4DA78BFA))
+    "amber" -> AvatarTint(Color(0x1AFFC46B), Color(0xFFFFD08A), Color(0x4DFFC46B))
+    else -> AvatarTint(FtColor.accent10, FtColor.accent, AvatarBorder)
+}

@@ -1,5 +1,8 @@
 package com.fittracker.app.ui.screens.review
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,6 +21,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,9 +41,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -45,7 +53,9 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -78,8 +88,10 @@ import com.fittracker.app.data.service.currentLanguageTag
 import com.fittracker.app.data.service.WorkoutRepository
 import com.fittracker.app.data.service.WorkoutSessionService
 import com.fittracker.app.data.service.stats.PersonalRecordService
+import com.fittracker.app.ui.LocalFtChrome
 import com.fittracker.app.ui.components.clickableNoRipple
 import com.fittracker.app.ui.theme.FtColor
+import com.fittracker.app.ui.theme.FtMotion
 import com.fittracker.app.ui.theme.FtShape
 import com.fittracker.app.ui.theme.FtType
 import kotlinx.coroutines.launch
@@ -183,6 +195,25 @@ fun ReviewScreen(
     val goalLineY = FtReviewModel.goalLineY(goal, chartLoKg, chartHiKg)
 
     val scrollState = rememberScrollState()
+
+    // ── 滚动驱动 chrome 收起 ────────────────────────────────────────────────
+    // 采用「方向 + 阈值」而不是逐像素跟随：头部高度会随收起而变化，逐像素方案在高度
+    // 收缩的那一帧容易被新的 scroll 值反推，来回抖动。阈值让一次上滑就稳定进入浏览态，
+    // 下滑或回顶即恢复。
+    val chrome = LocalFtChrome.current
+    LaunchedEffect(scrollState) {
+        var last = 0
+        snapshotFlow { scrollState.value }.collect { value ->
+            val dy = value - last
+            when {
+                value <= 4 -> chrome.updateCollapsed(false)
+                dy > 6 && value > 24 -> chrome.updateCollapsed(true)
+                dy < -6 -> chrome.updateCollapsed(false)
+            }
+            last = value
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -278,17 +309,44 @@ internal fun ReviewScaffold(
     tagPrefix: String = "review",
     content: @Composable () -> Unit,
 ) {
+    val chrome = LocalFtChrome.current
+    // 顶距改由「状态栏实测高 + 8dp」表达：原型的 52.6dp 是含状态栏的绝对顶距，
+    // 在不同状态栏高度下会把正文推得更低；按实测状态栏 + 8dp 可以稳定地把首卡片提上来。
+    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    // 展开态 = 状态栏 + 8 顶距 + 胶囊 50（44 + 3×2 内边距）+ 16.3 与首卡片间距。
+    val expandedHeight = statusBarHeight + 8.dp + 50.dp + 16.3.dp
+    val headerHeight by animateDpAsState(
+        targetValue = if (chrome.collapsed) statusBarHeight else expandedHeight,
+        animationSpec = tween(FtMotion.DURATION_CHROME, easing = FtMotion.EASE_PANEL),
+        label = "$tagPrefix-header-height",
+    )
+    val headerAlpha by animateFloatAsState(
+        targetValue = if (chrome.collapsed) 0f else 1f,
+        animationSpec = tween(FtMotion.DURATION_CHROME, easing = FtMotion.EASE_PANEL),
+        label = "$tagPrefix-header-alpha",
+    )
+
     Column(modifier = Modifier.fillMaxSize()) {
-        // 固定头：工具条留在滚动区外，卡片滚动时它不动（产品要求；原型本在滚动区内）。
-        Column(
+        // 可收起头部：向下浏览时高度收缩到状态栏高、胶囊淡出上移；回到顶部恢复。
+        // 工具条仍在滚动区**外**（产品既有要求：卡片滚动时胶囊不动），只是多了收起态。
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                // `.review-content` 的顶距 52.6 与左右留白 16.3；底部 16.3 还原原 `.review-stats`
-                // 的 gap（工具条与首卡片原是同列相邻项，拆开后这一档间距要显式补回）
-                .padding(start = 16.3.dp, end = 16.3.dp, top = 52.6.dp, bottom = 16.3.dp)
-                .testTag("$tagPrefix-toolbar"),
+                .height(headerHeight)
+                .clipToBounds(),
         ) {
-            ScaleToolbar(scale = scale, onScale = onScale, tagPrefix = tagPrefix)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.3.dp, end = 16.3.dp, top = statusBarHeight + 8.dp, bottom = 16.3.dp)
+                    .graphicsLayer {
+                        alpha = headerAlpha
+                        translationY = -10.dp.toPx() * (1f - headerAlpha)
+                    }
+                    .testTag("$tagPrefix-toolbar"),
+            ) {
+                ScaleToolbar(scale = scale, onScale = onScale, tagPrefix = tagPrefix)
+            }
         }
 
         Column(

@@ -18,6 +18,7 @@ object FtMotion {
     const val DURATION_COLOR_BASE = 180     // .18s 色
     const val DURATION_OVERLAY = 220        // .22s backdrop / modal / veil
     const val DURATION_PANEL = 280          // .28s ~ .3s sheet
+    const val DURATION_CHROME = 220         // 头部/底栏收起（沿用 OVERLAY 语汇，单列便于调参）
     const val DURATION_RECORD = 180         // recordIn .18s
     const val DURATION_MARKER = 300         // markerPop .3s
     const val DURATION_PROGRESS = 350       // .goal-fill width .35s（TOKENS §5 建议补入）
@@ -59,6 +60,20 @@ object FtMotion {
 
     /** 彩带下落：cubic-bezier(.2, .55, .35, 1) */
     val EASE_FALL: Easing = CubicBezierEasing(0.2f, 0.55f, 0.35f, 1f)
+
+    /**
+     * 入场曲线：cubic-bezier(.2, .8, .2, 1) —— 起步快、收尾稳。
+     *
+     * 与按压语汇 [EASE_MOTION] 不同：按压要「立刻给反馈」，入场要「柔和落位」。
+     * 用于卡片入场、页面元素错峰出现。
+     */
+    val EASE_ENTER: Easing = CubicBezierEasing(0.2f, 0.8f, 0.2f, 1f)
+
+    /** 入场时长（卡片淡入 + 上移落位）。 */
+    const val DURATION_ENTER = 320
+
+    /** 列表项错峰间隔。 */
+    const val DURATION_STAGGER = 40
 
     /**
      * 抖动曲线：CSS `ease-in-out` 的等价贝塞尔 (0.42, 0, 0.58, 1)。
