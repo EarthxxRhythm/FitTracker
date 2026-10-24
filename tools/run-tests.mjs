@@ -25,6 +25,7 @@ const groups = [
       'tools/cloud-debug/inject-net-retry.test.mjs',
       'tools/check-gates.test.mjs',
       'tools/check-dead-refs.test.mjs',
+      'tools/check-icon-assets.test.mjs',
     ],
   },
 ];
