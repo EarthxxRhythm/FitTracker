@@ -1,7 +1,8 @@
 /** ActiveContent - 训练中界面体（供 PencilActivePage 独立渲染）。 */
 import { AppRoutes } from '../../../app/AppRoutes'
 import { window } from '@kit.ArkUI'
-import { MotionTokens } from '../../../common/styles/DesignTokens'
+import { MediaTokens, MotionTokens } from '../../../common/styles/DesignTokens'
+import { ExerciseDemoImage } from '../../../components/ExerciseDemoImage'
 import { WorkoutSession } from '../../../shared/models/TrainingModels'
 import WorkoutRepository from '../../../shared/services/WorkoutRepository'
 import ExerciseGifCatalog from '../../../shared/services/ExerciseGifCatalog'
@@ -58,9 +59,9 @@ const DEMO_CARD_HEIGHT: number = 280
 // 演示图自身尺寸，与容器高度解耦——容器加高时图不跟着放大（素材仅 180×180，
 // 放大会变糊）。图在容器内居中。
 const DEMO_MEDIA_SIZE: number = 230
-// 实拍素材的圆角。实拍照无白底、是矩形实景，须靠圆角收敛；取既有卡面口径 16，
+// 实拍素材的圆角。实拍照无白底、是矩形实景，须靠圆角收敛；收编到 MediaTokens.RADIUS_INLINE（16），
 // 与 demoCard 的标题条一致，不引入新视觉值。
-const DEMO_PHOTO_RADIUS: number = 16
+const DEMO_PHOTO_RADIUS: number = MediaTokens.RADIUS_INLINE
 
 interface CelebratePiece {
   id: string
@@ -651,27 +652,20 @@ export struct ActiveContent {
   @Builder
   private demoVisual() {
     // 动作演示内嵌 GIF，两套素材并存：
-    // - 线稿素材（rawfile/exercise-gifs-onpage）：页底色已烘进图里，图与页面无缝。
-    // - 实拍素材（rawfile/exercise-gifs-photo）：全彩矩形实景、无白底，须靠圆角卡片收敛，
-    //   否则在深色页上是一块亮矩形。圆角取既有卡面口径 16（与 demoCard 标题条一致）。
-    // 容器为正方形且图按 DEMO_MEDIA_SIZE 定尺寸居中——容器高度变化不会放大素材；
-    // 因容器即图尺寸，实拍分支的圆角可直接落在图上，无需额外包壳。
+    // - 线稿素材（rawfile/exercise-gifs-onpage）：页底色已烘进图里，图与页面无缝，用 Contain；
+    // - 实拍素材（rawfile/exercise-gifs-photo）：全彩矩形实景、无白底，须 Cover + 圆角收敛。
+    // 容器为正方形且按 DEMO_MEDIA_SIZE 定尺寸居中——容器高度变化不会放大素材。
+    // 占位 / 淡入 / 失败回退由 ExerciseDemoImage 统一承担（此前这里两者皆无：
+    // 加载失败就是一块空白方框，首帧解码前卡片会跳一下）。
     Row() {
-      if (this.exerciseUsesPhotoStyle) {
-        Image($rawfile(this.exerciseGifSource))
-          .width(DEMO_MEDIA_SIZE)
-          .height(DEMO_MEDIA_SIZE)
-          .objectFit(ImageFit.Cover)
-          .borderRadius(DEMO_PHOTO_RADIUS)
-          .clip(true)
-          .alt(this.currentExerciseLabel() + ' 动作演示')
-      } else {
-        Image($rawfile(this.exerciseGifSource))
-          .width(DEMO_MEDIA_SIZE)
-          .height(DEMO_MEDIA_SIZE)
-          .objectFit(ImageFit.Contain)
-          .alt(this.currentExerciseLabel() + ' 动作演示')
-      }
+      ExerciseDemoImage({
+        source: this.exerciseGifSource,
+        photoStyle: this.exerciseUsesPhotoStyle,
+        radius: DEMO_PHOTO_RADIUS,
+        fit: this.exerciseUsesPhotoStyle ? ImageFit.Cover : ImageFit.Contain,
+        fixedSize: DEMO_MEDIA_SIZE,
+        label: this.currentExerciseLabel() + ' 动作演示'
+      })
     }
     .width('100%')
     .height('100%')

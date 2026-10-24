@@ -527,3 +527,23 @@ export class IconTokens {
   static readonly SIZE_LG: number = 24
   static readonly SIZE_XL: number = 30
 }
+
+/**
+ * 媒体口径 —— 动作演示图/卡的圆角、比例与加载过渡。
+ *
+ * 两个圆角值来自实测现状而非拍脑袋：列表卡 14（原 ExerciseLibraryPage.ets:62 的
+ * LIB_MEDIA_RADIUS）、内联卡 16（原 ActiveContent.ets 的 DEMO_PHOTO_RADIUS，注释
+ * 写明与 demoCard 标题条对齐）。本波只做收编、不改数值——改数值等于改像素基线。
+ *
+ * 为什么圆角要分两档而不统一：列表卡在 4:3 网格里、内联卡在正方形容器里，
+ * 视觉圆角半径需与各自的卡面尺寸成比例；统一成一个值必然有一侧显得过钝或过方。
+ */
+export class MediaTokens {
+  static readonly RADIUS_GRID: number = 14
+  static readonly RADIUS_INLINE: number = 16
+  static readonly ASPECT_CARD: number = 4 / 3
+  static readonly FADE_DURATION: number = 180
+  static readonly PLACEHOLDER_ICON: number = 30
+  static readonly PLACEHOLDER_BG: string = 'rgba(255,255,255,0.04)'
+  static readonly PLACEHOLDER_ICON_COLOR: string = 'rgba(255,255,255,0.32)'
+}
