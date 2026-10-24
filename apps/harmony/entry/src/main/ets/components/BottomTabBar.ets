@@ -4,6 +4,7 @@
 import {
   ColorTokens,
   FontTokens,
+  IconTokens,
   MotionTokens,
   RadiusTokens,
   ShadowTokens,
@@ -15,26 +16,31 @@ interface BottomTabItem {
   key: string
   label: string
   highlight: boolean
-  icon: Resource
-  selectedIcon: Resource
 }
 
-function createBottomTabItem(key: string, label: string, highlight: boolean, icon: Resource, selectedIcon: Resource): BottomTabItem {
+function createBottomTabItem(key: string, label: string, highlight: boolean): BottomTabItem {
   return {
     key: key,
     label: label,
-    highlight: highlight,
-    icon: icon,
-    selectedIcon: selectedIcon
+    highlight: highlight
   }
 }
 
+/**
+ * 五项底部导航。
+ *
+ * icon / selectedIcon 字段已于图标体系收口时移除：原型
+ * design/06_prototype_redraw/src/fittracker-welcome-home.html:927-942 的四个 .tab
+ * 内只有 <span>文字</span>，只有中间 .tab-center 带图标位；原字段填了 8 个 iconfont
+ * 资源却从未参与绘制（非高亮分支只渲染 Text），是重构残留。
+ * 中间键图标固定在 buildWorkoutPrimaryTab 内引用 pencil-tab-workout.svg。
+ */
 const BOTTOM_TAB_ITEMS: BottomTabItem[] = [
-  createBottomTabItem('home', '首页', false, $rawfile('首页.svg'), $rawfile('首页_选中 .svg')),
-  createBottomTabItem('plan', '计划', false, $rawfile('日历.svg'), $rawfile('日历.svg')),
-  createBottomTabItem('workout', '', true, $rawfile('pencil-tab-selected.svg'), $rawfile('pencil-tab-selected.svg')),
-  createBottomTabItem('review', '回顾', false, $rawfile('闪电.svg'), $rawfile('闪电.svg')),
-  createBottomTabItem('profile', '我的', false, $rawfile('我的.svg'), $rawfile('我的_选中.svg'))
+  createBottomTabItem('home', '首页', false),
+  createBottomTabItem('plan', '计划', false),
+  createBottomTabItem('workout', '', true),
+  createBottomTabItem('review', '回顾', false),
+  createBottomTabItem('profile', '我的', false)
 ]
 
 @Preview
@@ -64,9 +70,9 @@ export struct BottomTabBar {
   @Builder
   private buildWorkoutPrimaryTab(item: BottomTabItem) {
     Row() {
-      Image(this.isCurrent(item) ? item.selectedIcon : item.icon)
-        .width(24)
-        .height(24)
+      Image($rawfile('pencil-tab-workout.svg'))
+        .width(IconTokens.SIZE_LG)
+        .height(IconTokens.SIZE_LG)
         .fillColor(ColorTokens.TEXT_ON_PRIMARY)
     }
     .width(72)

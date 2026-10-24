@@ -504,3 +504,26 @@ export class StopwatchTokens {
   static readonly CASE_SIZE: number = 280
   static readonly CONTAINER_HEIGHT: number = 320
 }
+
+/**
+ * 图标口径 v1。
+ *
+ * 视框/描边/端点三项取自既有 pencil-lucide-* 族实测规格（24 视框、stroke-width 2、
+ * round cap 与 join），是当前唯一风格自洽的一族，故以其为基准而不再新造第三套。
+ *
+ * 尺寸梯度对齐 TouchTokens.TAB_ICON = 24，避免两处各自声明图标边长。
+ *
+ * ⚠ 染色边界：ArkUI 的 Image.fillColor 只替换 SVG 的 fill，对 stroke 无效。
+ *   - stroke-based 图标（pencil-lucide-* 这批）色彩写死在文件里，无法运行时改色；
+ *   - 需要随状态/主题变色的图标，必须是 fill-based（如 pencil-tab-workout.svg）。
+ *   详见 apps/harmony/tools/check-icon-assets.mjs 的文档头。
+ */
+export class IconTokens {
+  static readonly VIEWBOX: number = 24
+  static readonly STROKE_WIDTH: number = 2
+  static readonly SIZE_XS: number = 12
+  static readonly SIZE_SM: number = 16
+  static readonly SIZE_MD: number = 20
+  static readonly SIZE_LG: number = 24
+  static readonly SIZE_XL: number = 30
+}

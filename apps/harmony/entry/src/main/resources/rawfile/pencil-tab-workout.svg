@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- 底部 Tab 中间训练键图标（fill-based，24 视框口径）。
+       为什么是 fill 而不是 stroke：BottomTabBar 靠 .fillColor(ColorTokens.TEXT_ON_PRIMARY)
+       把图标染成深色置于品牌绿药丸上，而 ArkUI 的 fillColor 只替换 fill、对 stroke 无效。
+       几何左右对称于 x=12、上下对称于 y=12：1+23 / 3.2+20.8 / 3.6+20.4 / 7.4+16.6 均等于 24。 -->
+  <rect x="1" y="10.4" width="2.2" height="3.2" rx="1.1" fill="#50ECA7"/>
+  <rect x="3.6" y="8.8" width="3.6" height="6.4" rx="1.6" fill="#50ECA7"/>
+  <rect x="16.8" y="8.8" width="3.6" height="6.4" rx="1.6" fill="#50ECA7"/>
+  <rect x="20.8" y="10.4" width="2.2" height="3.2" rx="1.1" fill="#50ECA7"/>
+  <rect x="7.4" y="11" width="9.2" height="2" rx="1" fill="#50ECA7"/>
+</svg>
