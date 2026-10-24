@@ -2,6 +2,7 @@ package com.fittracker.app.ui.screens.plan
 
 import androidx.annotation.StringRes
 import com.fittracker.app.R
+import com.fittracker.app.data.model.PresetPlan
 import com.fittracker.app.data.model.TrainingDay
 import com.fittracker.app.data.model.UserPlan
 
@@ -211,7 +212,19 @@ fun dayFocusMuscles(day: TrainingDay): String {
  * 与源一致的取舍：`duration` 传空（预置计划无单次时长），卡片副标题渲染时省略尾段
  * （`daySubtitle` 的「duration 为空不追加」口径）。
  */
-fun ftPlanDaysFromUserPlan(plan: UserPlan): List<FtPlanDay> = plan.days.mapIndexed { index, day ->
+fun ftPlanDaysFromUserPlan(plan: UserPlan): List<FtPlanDay> = ftPlanDaysFromDays(plan.days)
+
+/**
+ * 由「计划组」的预设计划构建日卡——**计划页动作清单的权威来源**。
+ *
+ * 为什么不能只用 [ftPlanDaysFromUserPlan]：启用计划时落盘的是**当时那份预设的克隆**，
+ * 预设模板后续更新后两份内容会漂移。设备实测（PKB110）：同名「三分化 · 谭成义」在
+ * 计划组详情有 5 个动作，而计划页读落盘副本只有 3 个、日标签还是旧版「拉」。
+ * 计划页与计划组必须同源，故清单取预设模板最新的 `days`。
+ */
+fun ftPlanDaysFromPreset(plan: PresetPlan): List<FtPlanDay> = ftPlanDaysFromDays(plan.days)
+
+private fun ftPlanDaysFromDays(days: List<TrainingDay>): List<FtPlanDay> = days.mapIndexed { index, day ->
     FtPlanDay(
         tag = shortDayTag(day.dayLabel),
         title = day.dayLabel,
