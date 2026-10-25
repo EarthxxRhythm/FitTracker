@@ -267,5 +267,93 @@ export default function activeWorkoutServiceTest(): void {
         expect(savedSession.sets[1].reps).assertEqual(10)
       }
     })
+
+    it('advances to the next exercise only after the current one is fully recorded', 0, () => {
+      // 缺陷回归：训练页曾把整场训练写死成 6 组、动作名只在进入时赋值一次，
+      // 于是做完一个动作的组后不会切到下一个动作。此处锁住「组记录 → 动作推进」契约。
+      const presetPlan: PresetPlan | undefined = TrainingPlanService.getPresetPlanById('preset_upper_lower')
+      expect(presetPlan !== undefined).assertTrue()
+      if (presetPlan !== undefined) {
+        const currentPlan: UserPlan = {
+          id: presetPlan.id,
+          name: presetPlan.name,
+          coverColor: presetPlan.coverColor,
+          targetAudience: presetPlan.targetAudience,
+          weeklyFrequency: presetPlan.weeklyFrequency,
+          description: presetPlan.description,
+          days: presetPlan.days,
+          enabledAt: 102
+        }
+        const preview: WorkoutPreviewSummary = WorkoutPreviewService.createPreviewForCurrentPlan(
+          currentPlan,
+          'current_plan_day_1',
+          '周一',
+          currentPlan.days[0]
+        )
+        const initial: ActiveWorkoutState = ActiveWorkoutService.createState(preview)
+        expect(initial.exercises.length >= 2).assertTrue()
+
+        const first: ActiveWorkoutExercise = initial.exercises[0]
+        const second: ActiveWorkoutExercise = initial.exercises[1]
+        expect(ActiveWorkoutService.nextPlannedExerciseId(initial)).assertEqual(first.plannedExerciseId)
+        expect(ActiveWorkoutService.nextSetIndex(initial)).assertEqual(0)
+
+        let state: ActiveWorkoutState = initial
+        for (let index = 0; index < first.targetSets - 1; index++) {
+          state = ActiveWorkoutService.recordSet(state, '40', '10')
+        }
+        // 差一组时仍停在第一个动作，下一组下标指向它的最后一组
+        expect(state.currentExerciseName).assertEqual(first.name)
+        expect(ActiveWorkoutService.nextPlannedExerciseId(state)).assertEqual(first.plannedExerciseId)
+        expect(ActiveWorkoutService.nextSetIndex(state)).assertEqual(first.targetSets - 1)
+
+        state = ActiveWorkoutService.recordSet(state, '40', '10')
+        // 第一个动作录满 → 当前动作切到第二个动作的第 1 组
+        expect(state.exercises[0].completedSets).assertEqual(first.targetSets)
+        expect(state.currentExerciseName).assertEqual(second.name)
+        expect(state.currentExerciseSetProgress).assertEqual('0/' + second.targetSets.toString() + ' 正式组')
+        expect(ActiveWorkoutService.nextPlannedExerciseId(state)).assertEqual(second.plannedExerciseId)
+        expect(ActiveWorkoutService.nextSetIndex(state)).assertEqual(0)
+      }
+    })
+
+    it('reports workout completion only after every exercise target is recorded', 0, () => {
+      // 结束判据必须是计划总组数（跨动作求和），不是页面里的固定段数常量。
+      const equipmentIds: string[] = ['eq_bodyweight']
+      const restrictedMuscleIds: string[] = []
+      const goal: UserGoal = createUserGoal(
+        'goal_active_finish',
+        'hypertrophy',
+        'beginner',
+        3,
+        45,
+        equipmentIds,
+        restrictedMuscleIds,
+        100,
+        100
+      )
+      const plan: TrainingPlan = PlanEngine.generatePlan(goal)
+      const preview: WorkoutPreviewSummary = WorkoutPreviewService.createPreview(plan, 1)
+      const initial: ActiveWorkoutState = ActiveWorkoutService.createState(preview)
+      expect(initial.hasWorkout).assertTrue()
+
+      let expectedTotal: number = 0
+      for (let index = 0; index < initial.exercises.length; index++) {
+        expectedTotal += initial.exercises[index].targetSets
+      }
+      expect(expectedTotal > 0).assertTrue()
+      expect(ActiveWorkoutService.totalTargetSets(initial)).assertEqual(expectedTotal)
+
+      let state: ActiveWorkoutState = initial
+      for (let index = 0; index < expectedTotal - 1; index++) {
+        state = ActiveWorkoutService.recordSet(state, '40', '8')
+      }
+      expect(state.completedSets).assertEqual(expectedTotal - 1)
+      expect(ActiveWorkoutService.nextExercise(state) !== undefined).assertTrue()
+
+      state = ActiveWorkoutService.recordSet(state, '40', '8')
+      expect(state.completedSets).assertEqual(expectedTotal)
+      expect(ActiveWorkoutService.nextExercise(state) === undefined).assertTrue()
+    })
   })
 }

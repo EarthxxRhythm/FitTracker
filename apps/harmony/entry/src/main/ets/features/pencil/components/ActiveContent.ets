@@ -2,6 +2,7 @@
 import { AppRoutes } from '../../../app/AppRoutes'
 import { window } from '@kit.ArkUI'
 import { MediaTokens, MotionTokens } from '../../../common/styles/DesignTokens'
+import { DuTokens } from '../../../common/styles/DuTokens'
 import { ExerciseDemoImage } from '../../../components/ExerciseDemoImage'
 import { WorkoutSession } from '../../../shared/models/TrainingModels'
 import WorkoutRepository from '../../../shared/services/WorkoutRepository'
@@ -42,11 +43,15 @@ function createSetRecord(index: number, weight: number, reps: number): SetRecord
   return item
 }
 
-const PROGRESS_SEGMENTS: number[] = [0, 1, 2, 3, 4, 5]
+// 进度条段数不固定：段数 = 本次训练总组数（跨动作求和，见 ActiveWorkoutService.totalTargetSets），
+// 由 @State targetSets 驱动。此前这里是硬编码的 6 段常量，结束判据也压在它上面——
+// 于是「做完一个动作的组」就会被当成整场训练做完，后面的动作永远不会出现在训练页。
 
 // 重量步进区间（kg 基准，来自原型 `data-min/max`）；显示时按当前单位换算。
 const WEIGHT_MIN_KG: number = 20
 const WEIGHT_MAX_KG: number = 200
+// 目标次数解析不出时的兜底（原型输入框占位为「8–10」）。
+const FALLBACK_REPS: number = 8
 
 // 分段进度条胶囊高度。原型 .duo-seg 为 12px；此处有意加高——12vp 时 3vp 的圆点环
 // 要占掉一半高度、绿芯只剩 6vp，显得偏细；加高后环占比接近圆点自身（3/18），
@@ -114,6 +119,8 @@ export struct ActiveContent {
   @State private exerciseUsesPhotoStyle: boolean = false
   @State private exerciseIndex: number = 1
   @State private exerciseTotal: number = 0
+  /** 本次训练总组数（跨动作求和）：进度条段数、组号文案与收尾判据都以它为准。 */
+  @State private targetSets: number = 0
   @State private showModal: boolean = false
   @State private records: SetRecordItem[] = []
   @State private celebrating: boolean = false
@@ -269,10 +276,14 @@ export struct ActiveContent {
     this.exerciseUsesPhotoStyle = ExerciseGifCatalog.usesPhotoStyle(state.currentExerciseName)
     this.exerciseTotal = state.exercises.length
     this.exerciseIndex = this.findCurrentExerciseIndex(state)
-    this.completed = Math.min(state.completedSets, PROGRESS_SEGMENTS.length)
+    this.targetSets = ActiveWorkoutService.totalTargetSets(state)
+    this.completed = state.completedSets
+    // 重量/次数必须有可落库的初值：组条目初建时是空文本（解析出 0），而
+    // ActiveWorkoutService 只把 weight>0 && reps>0 的组判为已完成——沿用 0 时
+    // 「完成本组」写不进进度，训练会卡在同一组反复覆盖。故回落到重量下限与目标次数。
     const initialValues: InitialSetValues = this.findInitialSetValues(state)
-    this.weight = initialValues.weight
-    this.reps = initialValues.reps
+    this.weight = initialValues.weight > 0 ? initialValues.weight : WEIGHT_MIN_KG
+    this.reps = initialValues.reps > 0 ? initialValues.reps : this.findTargetRepsValue(state)
   }
 
   private createEmptyActiveState(): ActiveWorkoutState {
@@ -304,6 +315,36 @@ export struct ActiveContent {
     values.weight = this.parsePositiveNumber(firstSet.weightText)
     values.reps = this.parsePositiveNumber(firstSet.repsText)
     return values
+  }
+
+  /**
+   * 从首个动作的目标次数文本（「8–10」「10 次」等）里取首个数字；取不到回退 [FALLBACK_REPS]。
+   *
+   * 只作为输入框的初值——组条目自身是空文本，直接解析永远得到 0，而重量/次数为 0
+   * 的组不会计入进度（见 ActiveWorkoutService.createSetEntry 的 isComplete 判据）。
+   */
+  private findTargetRepsValue(state: ActiveWorkoutState): number {
+    if (state.exercises.length === 0) {
+      return FALLBACK_REPS
+    }
+    const text: string = state.exercises[0].targetReps
+    let digits: string = ''
+    for (let index = 0; index < text.length; index++) {
+      const char: string = text.charAt(index)
+      if (char >= '0' && char <= '9') {
+        digits += char
+      } else if (digits.length > 0) {
+        break
+      }
+    }
+    if (digits.length === 0) {
+      return FALLBACK_REPS
+    }
+    const parsed: number = Number(digits)
+    if (Number.isNaN(parsed) || parsed <= 0) {
+      return FALLBACK_REPS
+    }
+    return parsed
   }
 
   private parsePositiveNumber(text: string): number {
@@ -352,7 +393,7 @@ export struct ActiveContent {
   }
 
   private openModal(): void {
-    if (this.completed < PROGRESS_SEGMENTS.length) {
+    if (this.completed < this.targetSets) {
       this.getUIContext().animateTo({ duration: MotionTokens.DURATION_OVERLAY, curve: MotionTokens.EASE_MOTION }, () => {
         this.showModal = true
       })
@@ -377,9 +418,15 @@ export struct ActiveContent {
   }
 
   private completeSet(): void {
-    if (this.completed >= PROGRESS_SEGMENTS.length || this.finished) {
+    if (this.finished || this.completed >= this.targetSets) {
       return
     }
+    // 唯一写入口：目标动作与组下标都由 state 推导（首个未录满动作的下一组），
+    // 所以第一个动作录满后，本次记录会自动落到下一个动作的第 1 组。
+    const weightText: string = this.weight.toString()
+    const repsText: string = this.reps.toString()
+    const nextState: ActiveWorkoutState = ActiveWorkoutService.recordSet(this.activeState, weightText, repsText)
+    this.activeState = nextState
     const nextRecords: SetRecordItem[] = this.records.slice()
     nextRecords.push(createSetRecord(this.completed + 1, this.weight, this.reps))
     const justDoneIndex: number = this.completed
@@ -402,7 +449,9 @@ export struct ActiveContent {
       HapticFeedbackService.confirm()
     }
     this.celebrating = true
-    const isLast: boolean = justDoneIndex + 1 >= PROGRESS_SEGMENTS.length
+    // 动作卡与角标跟着 state 走：录满当前动作的最后一组后，动作名/演示图/序号立即切到下一个动作。
+    this.applyCurrentExercise(nextState)
+    const isLast: boolean = justDoneIndex + 1 >= this.targetSets
     if (isLast) {
       this.finished = true
       this.saveCompletedSession()
@@ -414,6 +463,14 @@ export struct ActiveContent {
         this.finish()
       }
     }, isLast ? 900 : 1400)
+  }
+
+  /** 把 state 推导出的当前动作同步到展示态（名称 / 演示素材 / 角标序号）。 */
+  private applyCurrentExercise(state: ActiveWorkoutState): void {
+    this.exerciseName = state.currentExerciseName
+    this.exerciseGifSource = ExerciseGifCatalog.resolveDemoSource(state.currentExerciseName)
+    this.exerciseUsesPhotoStyle = ExerciseGifCatalog.usesPhotoStyle(state.currentExerciseName)
+    this.exerciseIndex = this.findCurrentExerciseIndex(state)
   }
 
   /**
@@ -428,32 +485,25 @@ export struct ActiveContent {
   private saveCompletedSession(): void {
     const endedAt: number = Date.now()
     const startedAt: number = endedAt - this.elapsedSeconds * 1000
-    this.applyRecordsToState()
+    // 每组已在 completeSet 里实时写入 activeState（经 recordSet），此处不再按界面记录回填：
+    // 旧实现按扁平顺序摊到所有动作，动作边界一变就会把组记到错误的动作/组上。
     const session: WorkoutSession = ActiveWorkoutService.createCompletedSession(
       'session_' + endedAt.toString(),
       this.activeState,
       startedAt,
       endedAt,
-      this.completed
+      ActiveWorkoutService.countCompletedSets(this.activeState.exercises)
     )
     WorkoutRepository.saveSession(session)
   }
 
-  /** 把界面记录的实际重量/次数写回 state 的组条目（按记录顺序对齐「正式组」）。 */
-  private applyRecordsToState(): void {
-    let flatIndex: number = 0
-    for (let exerciseIndex = 0; exerciseIndex < this.activeState.exercises.length; exerciseIndex++) {
-      const exercise: ActiveWorkoutExercise = this.activeState.exercises[exerciseIndex]
-      for (let setIndex = 0; setIndex < exercise.sets.length; setIndex++) {
-        if (flatIndex >= this.records.length) {
-          return
-        }
-        const record: SetRecordItem = this.records[flatIndex]
-        exercise.sets[setIndex].weightText = record.weight.toString()
-        exercise.sets[setIndex].repsText = record.reps.toString()
-        flatIndex++
-      }
+  /** 进度条段的索引序列（0..targetSets-1）；段数即本次训练总组数。 */
+  private segmentIndexes(): number[] {
+    const indexes: number[] = []
+    for (let index = 0; index < this.targetSets; index++) {
+      indexes.push(index)
     }
+    return indexes
   }
 
   // 分段进度条：已完成段采用「圆点」的样式——实心 accent + ink-0 粗描边环（形状仍是胶囊），
@@ -523,9 +573,11 @@ export struct ActiveContent {
   private topProgress() {
     Column({ space: 10 }) {
       Row() {
-        Text(this.completed >= PROGRESS_SEGMENTS.length
-          ? '训练完成 · 全部 ' + PROGRESS_SEGMENTS.length.toString() + ' 组'
-          : '第 ' + (this.completed + 1).toString() + ' 组 / 共 ' + PROGRESS_SEGMENTS.length.toString() + ' 组')
+        Text(this.targetSets <= 0
+          ? '暂无训练内容'
+          : (this.completed >= this.targetSets
+            ? '训练完成 · 全部 ' + this.targetSets.toString() + ' 组'
+            : '第 ' + (this.completed + 1).toString() + ' 组 / 共 ' + this.targetSets.toString() + ' 组'))
           .fontFamily('Noto Sans SC')
           .fontSize(12)
           .fontWeight(600)
@@ -554,7 +606,7 @@ export struct ActiveContent {
       .justifyContent(FlexAlign.SpaceBetween)
 
       Row({ space: 6 }) {
-        ForEach(PROGRESS_SEGMENTS, (index: number) => {
+        ForEach(this.segmentIndexes(), (index: number) => {
           Stack({ alignContent: Alignment.Center }) {
             Row()
               .width('100%')
@@ -625,7 +677,7 @@ export struct ActiveContent {
           .lineHeight(22)
           .fontWeight(FontWeight.Bold)
           .fontColor(PrototypeTokens.TEXT_HI)
-        Text('第 ' + (this.completed + 1).toString() + ' 组 · 正式组')
+        Text('第 ' + Math.min(this.completed + 1, Math.max(this.targetSets, 1)).toString() + ' 组 · 正式组')
           .fontFamily('Noto Sans SC')
           .fontSize(12)
           .lineHeight(14)
@@ -722,18 +774,18 @@ export struct ActiveContent {
   @Builder
   private dock() {
     Column() {
-      Button(this.completed >= PROGRESS_SEGMENTS.length ? '已完成' : '提交')
+      Button(this.completed >= this.targetSets ? '已完成' : '提交')
         .width('100%')
         .height(50)
         .padding(0)
         .fontFamily('Noto Sans SC')
         .fontSize(15)
         .fontWeight(FontWeight.Bold)
-        .fontColor(this.completed >= PROGRESS_SEGMENTS.length ? PrototypeTokens.WHITE_A40 : PrototypeTokens.TEXT_ON_ACCENT)
-        .backgroundColor(this.completed >= PROGRESS_SEGMENTS.length ? PrototypeTokens.WHITE_A06 : PrototypeTokens.ACCENT)
+        .fontColor(this.completed >= this.targetSets ? PrototypeTokens.WHITE_A40 : PrototypeTokens.TEXT_ON_ACCENT)
+        .backgroundColor(this.completed >= this.targetSets ? PrototypeTokens.WHITE_A06 : PrototypeTokens.ACCENT)
         .borderRadius(16)
-        .shadow({ radius: this.completed >= PROGRESS_SEGMENTS.length ? 0 : 22, color: this.completed >= PROGRESS_SEGMENTS.length ? PrototypeTokens.TRANSPARENT : PrototypeTokens.BLACK_A24, offsetX: 0, offsetY: this.completed >= PROGRESS_SEGMENTS.length ? 0 : 10 })
-        .enabled(this.completed < PROGRESS_SEGMENTS.length)
+        .shadow({ radius: this.completed >= this.targetSets ? 0 : 22, color: this.completed >= this.targetSets ? PrototypeTokens.TRANSPARENT : PrototypeTokens.BLACK_A24, offsetX: 0, offsetY: this.completed >= this.targetSets ? 0 : 10 })
+        .enabled(this.completed < this.targetSets)
         .onTouch((event: TouchEvent) => {
           if (event.type === TouchType.Down) {
             this.submitPressed = true
@@ -741,7 +793,12 @@ export struct ActiveContent {
             this.submitPressed = false
           }
         })
-        .scale({ x: this.submitPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.submitPressed ? MotionTokens.PRESS_PRIMARY : 1 })
+        // Duolingo 硬边厚底：按下收平 + 整体下沉，替代缩放按压
+        .border({
+          width: { bottom: this.submitPressed ? 0 : DuTokens.PRESS_DEPTH },
+          color: { bottom: PrototypeTokens.ACCENT_DEEP }
+        })
+        .translate({ y: this.submitPressed ? DuTokens.PRESS_SHIFT : 0 })
         .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
         .onClick(() => {
           this.openModal()
@@ -838,7 +895,12 @@ export struct ActiveContent {
               this.completePressed = false
             }
           })
-          .scale({ x: this.completePressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.completePressed ? MotionTokens.PRESS_PRIMARY : 1 })
+          // Duolingo 硬边厚底：完成本组是全页最高频操作，用物理厚度强化反馈
+          .border({
+            width: { bottom: this.completePressed ? 0 : DuTokens.PRESS_DEPTH },
+            color: { bottom: PrototypeTokens.ACCENT_DEEP }
+          })
+          .translate({ y: this.completePressed ? DuTokens.PRESS_SHIFT : 0 })
           .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
           .onClick(() => {
             this.completeSet()
