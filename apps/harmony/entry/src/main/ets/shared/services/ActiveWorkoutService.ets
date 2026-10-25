@@ -117,6 +117,73 @@ class ActiveWorkoutService {
     return session
   }
 
+  /**
+   * 下一个待填组的动作：首个 completedSets < targetSets 的动作。
+   *
+   * 全部录满返回 undefined——训练页据此判定收尾，而不是依赖页面里写死的段数常量。
+   */
+  nextExercise(state: ActiveWorkoutState): ActiveWorkoutExercise | undefined {
+    for (let index = 0; index < state.exercises.length; index++) {
+      const exercise: ActiveWorkoutExercise = state.exercises[index]
+      if (exercise.completedSets < exercise.targetSets) {
+        return exercise
+      }
+    }
+    return undefined
+  }
+
+  /** 下一个待填组所属动作的 plannedExerciseId；全部录满返回空串。 */
+  nextPlannedExerciseId(state: ActiveWorkoutState): string {
+    const exercise: ActiveWorkoutExercise | undefined = this.nextExercise(state)
+    if (exercise === undefined) {
+      return ''
+    }
+    return exercise.plannedExerciseId
+  }
+
+  /** 下一个待填组在该动作内的序号（0 起）；全部录满返回 0。 */
+  nextSetIndex(state: ActiveWorkoutState): number {
+    const exercise: ActiveWorkoutExercise | undefined = this.nextExercise(state)
+    if (exercise === undefined) {
+      return 0
+    }
+    return exercise.completedSets
+  }
+
+  /** 训练总组数（跨动作求和）；state 里已算好时直接用，异常态回退重算。 */
+  totalTargetSets(state: ActiveWorkoutState): number {
+    if (state.totalTargetSets > 0) {
+      return state.totalTargetSets
+    }
+    let total: number = 0
+    for (let index = 0; index < state.exercises.length; index++) {
+      total += state.exercises[index].targetSets
+    }
+    return total
+  }
+
+  /**
+   * 记录一组：写入「当前待填动作的下一组」并返回推进后的 state。
+   *
+   * 训练页每次「完成本组」都只走这一个写入口——目标动作与组下标都由 state 推导，
+   * 不依赖界面上的序号，因此第一个动作录满后会自动落到下一个动作的第 1 组。
+   * 已全部录满时原样返回（调用方应先看 nextExercise 决定是否收尾）。
+   */
+  recordSet(state: ActiveWorkoutState, weightText: string, repsText: string): ActiveWorkoutState {
+    const exercise: ActiveWorkoutExercise | undefined = this.nextExercise(state)
+    if (exercise === undefined) {
+      return state
+    }
+    const updated: ActiveWorkoutExercise[] = this.updateSetEntry(
+      state.exercises,
+      exercise.plannedExerciseId,
+      exercise.completedSets,
+      weightText,
+      repsText
+    )
+    return this.createStateWithProgress(state, updated)
+  }
+
   countCompletedSets(exercises: ActiveWorkoutExercise[]): number {
     let completedSets: number = 0
     for (let index = 0; index < exercises.length; index++) {
