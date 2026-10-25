@@ -496,8 +496,8 @@ struct PencilRegisterPage {
                 Stack({ alignContent: Alignment.Center }) {
                   if (this.agreeChecked) {
                     Image($rawfile('pencil-auth-check-agree.svg'))
-                      .width(13)
-                      .height(8)
+                      .width(14)
+                      .height(14)
                   }
                 }
                 .width(18)

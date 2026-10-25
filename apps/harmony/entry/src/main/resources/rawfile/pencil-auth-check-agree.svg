@@ -1,1 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="13" height="8" viewBox="-1 -1 13 8"><path d="M0 3 L4 6 L11 0" fill="none" stroke="#07100B" stroke-width="2"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- Lucide `check`（ISC License）。来源：https://api.iconify.design/lucide.json?icons=check
+       stroke 用 #07100B = PrototypeTokens.TEXT_ON_ACCENT —— 语义是「强调色面之上的深色内容」，
+       与容器 backgroundColor(#50ECA7) 成对。圆头端点与容器的 6px 圆角语言一致。
+       勾形占视框 x 4..20 / y 6..17（横向 67%、纵向 46%），渲染 14px 时约 9.3×6.4。 -->
+  <path d="M20 6L9 17l-5-5" fill="none" stroke="#07100B" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
