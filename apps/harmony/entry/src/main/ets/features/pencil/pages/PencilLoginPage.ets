@@ -588,8 +588,8 @@ struct PencilLoginPage {
       Stack({ alignContent: Alignment.Center }) {
         if (this.agreeChecked) {
           Image($rawfile('pencil-auth-check-agree.svg'))
-            .width(13)
-            .height(8)
+            .width(14)
+            .height(14)
         }
       }
       .width(18)
@@ -655,17 +655,17 @@ struct PencilLoginPage {
       Image($rawfile('pencil-social-huawei.svg'))
         .width(20)
         .height(20)
-        .opacity(0.7)
+        .opacity(0.9)
     } else if (key === 'wechat') {
       Image($rawfile('pencil-social-wechat.svg'))
         .width(20)
         .height(20)
-        .opacity(0.7)
+        .opacity(0.9)
     } else {
       Image($rawfile('pencil-social-qq.svg'))
         .width(20)
         .height(20)
-        .opacity(0.7)
+        .opacity(0.9)
     }
   }
 
