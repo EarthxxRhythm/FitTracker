@@ -1,159 +1,182 @@
-# 菲特
+# FitTracker · 菲特
 
-HarmonyOS 上的健身训练记录应用（ArkTS / ArkUI · Stage 模型）。
+**双端健身训练记录应用。** HarmonyOS（ArkTS / ArkUI）与 Android（Kotlin / Jetpack Compose）各自原生实现，共用一个跨端数据契约；数据本地优先，登录后可选用云端整包快照同步。
 
-记录训练组数、次数与重量，按 Epley 公式估算 1RM，并管理训练目标、计划、训练会话、复盘统计与本地备份数据。数据默认只保存在设备本机；登录后可选择云同步（华为端云一体化 AGC：认证服务 + 云数据库整包快照），跨设备恢复数据。
+[![License](https://img.shields.io/badge/license-Apache--2.0-2ea44f)](LICENSE)
+[![HarmonyOS](https://img.shields.io/badge/HarmonyOS-6.0.2%20(22)-000000)](apps/harmony)
+[![Android](https://img.shields.io/badge/Android-minSdk%2024-3ddc84)](apps/android)
+[![Release](https://img.shields.io/github/v/release/EarthxxRhythm/FitTracker?include_prereleases&sort=semver)](https://github.com/EarthxxRhythm/FitTracker/releases)
 
-| 项 | 值 |
-| --- | --- |
-| 应用身份 | `com.earthrhythm.fittracker`（vendor `EarthRhythm`） |
-| 当前版本 | `1.0.0`（`versionCode 1000000`）；「云端账号与同步」（1.1.0）开发中，见 `docs\CHANGELOG.md` |
-| 主路由 | `entry\src\main\resources\base\profile\main_pages.json` 注册的 18 个页面 |
-| 目标设备 | `phone` |
+<p>
+<img src="docs/screenshots/01-home.jpg" width="200" alt="首页">
+<img src="docs/screenshots/02-training.jpg" width="200" alt="训练">
+<img src="docs/screenshots/04-review.jpg" width="200" alt="复盘">
+<img src="docs/screenshots/05-plans.jpg" width="200" alt="计划">
+<img src="docs/screenshots/06-library.jpg" width="200" alt="动作库">
+</p>
+
+---
+
+## 这个项目解决什么
+
+市面上的健身 App 大多要求先注册账号，数据放在别人的服务器上，导出功能形同虚设。FitTracker 反过来做：**装上就能用，数据先落在自己设备上**；想跨设备再登录开云同步，而且同步的是**整包可读 JSON 快照**——导出的备份能直接导入另一台设备，甚至能在 HarmonyOS 与 Android 之间互导（见 `contracts/`）。
+
+它同时也是个相对完整的双端工程样本：两套原生 UI、同一份数据契约、可自托管后端、七条代码门禁，以及一套真正在跑的本地回归脚本。仓库里保留了完整的演进历史和工程约定文档，因为这些东西都还活着。
 
 ## 功能
 
-- **训练流**：训练预览 → 训练执行（组次录入、组间计时）→ 完成摘要
-- **训练计划**：按分化数成套的预置计划组（如「三分化」），可启用并落库；首页直接呈现「今日训练」
-- **训练复盘**：历史训练、周趋势、动作 PR 下钻、肌肉分布与进阶洞察
-- **动作库**：动作列表、筛选、收藏与动作详情（含要点与内置 GIF 素材）
-- **身体数据**：体重、体脂等记录
-- **账号与云同步**：AGC 认证（手机验证码 / 邮箱 / 华为账号）+ 云数据库整包快照（本地存储：离线可写、联网同步）；未配置 AGC 时自动降级为沙盒演示模式
-- **启动分流**：冷启动按登录态分流（未登录 → 登录页；已登录 → 主壳）
-- **数据备份与恢复**：本地 JSON 导出 / 导入，并承接系统备份回调
-- **设置**：单位、语言、周开始日与各项开关状态
-- **视觉主线**：按 Open Design 原型还原的深色翠绿（Cool Emerald）界面
+| 模块 | 说明 |
+|---|---|
+| **训练流** | 训练预览 → 执行（组次录入、组间计时、切动作保留分组）→ 完成摘要 |
+| **训练计划** | 按分化数成套的预置计划组（如三分化），可启用落库；首页直接呈现「今日训练」 |
+| **训练复盘** | 历史训练、周趋势、动作 PR 下钻、肌肉分布、进阶洞察 |
+| **动作库** | 列表 / 筛选 / 收藏 / 详情，内置动作演示 GIF |
+| **身体数据** | 体重、体脂等趋势记录 |
+| **账号与云同步** | HarmonyOS 走 AGC 认证 + 云数据库；Android 走 Supabase 认证 + 自托管栈。未配置云端时**自动降级为沙盒演示模式**，功能可跑通 |
+| **备份与恢复** | 本地 JSON 整包导出 / 导入，承接系统备份回调 |
+| **训练强度** | Epley 公式估算 1RM，训练量、连续天数统计 |
+| **设置** | 单位、语言、周开始日、各类开关 |
 
-## 技术栈
+## 架构
 
-| 项 | 值 |
-| --- | --- |
-| 语言 / UI | ArkTS、ArkUI 声明式 UI（strict mode，无 `any` / 解构 / 函数表达式） |
-| 应用模型 | HarmonyOS Stage，单 `entry` 模块 |
-| SDK | HarmonyOS `6.0.2(22)`（compatible 与 target 一致） |
-| 数据层 | `@kit.ArkData` preferences + 仓库 / 内存仓库组合（本地存储）；云同步走 `@hw-agconnect/auth` + `@kit.CloudFoundationKit`（AGC） |
-| 测试 | `@ohos/hypium` 1.0.25、`@ohos/hamock` 1.0.0（`entry/src/ohosTest`） |
-| 构建 | DevEco Studio + DevEco CLI（`devecocli`） |
+```
+FitTracker/
+├── apps/
+│   ├── harmony/          HarmonyOS 应用（ArkTS / ArkUI，Stage 模型）
+│   └── android/          Android 应用（Kotlin / Compose，单 app 模块）
+├── contracts/            ★ 跨端数据契约（备份包 JSON 真源，两端必须逐条一致）
+├── content/              动作内容源（JSONL，两端由脚本同步派生）
+├── server/               可选：自托管 Supabase 栈 + Edge Functions + Caddy 部署资产
+├── docs/                 设计与工程文档（见 docs/README.md）
+├── tools/                根级同步与设备冒烟脚本
+└── AGENTS.md             工程约束（改代码前必读）
+```
+
+**关键设计：契约层统一、供应商实现分家。** 两端云端后端不同源（华为 AGC vs 自托管 Supabase），但「备份包 JSON」是同一份结构——鸿蒙导出的备份应能被 Android 导入，反之亦然。改契约前先改 `contracts/README.md`，再同步两端实现。
 
 ## 快速开始
 
-前置：DevEco Studio（含 HarmonyOS SDK 6.0.2）已安装，`devecocli` 在 PATH 中。
+### 一、HarmonyOS 端
+
+前置：[DevEco Studio](https://developer.huawei.com/consumer/cn/deveco-studio/)（含 HarmonyOS SDK 6.0.2）已安装，`devecocli` 在 PATH 中。
 
 ```bash
-# 构建 debug HAP
-devecocli build --modules entry@default --product default
-
-# 构建测试 HAP（ohosTest）
-devecocli build --modules entry@ohosTest --product default
+cd apps/harmony
+devecocli build --product default                            # 构建 default HAP
+devecocli build --modules entry@ohosTest --product default   # 构建测试 HAP
 ```
 
-产物：
-
-- `entry\build\default\outputs\default\entry-default-signed.hap`、`entry-default-unsigned.hap`
-- `entry\build\default\outputs\ohosTest\entry-ohosTest-signed.hap`、`entry-ohosTest-unsigned.hap`
-
-安装到真机或模拟器（`hdc` 已连接目标设备）：
+产物在 `apps/harmony/entry/build/default/outputs/` 下。安装到真机或模拟器：
 
 ```bash
 hdc install -r entry/build/default/outputs/default/entry-default-signed.hap
 ```
 
-签名材料存放在工作区外（`~\.ohos\config\`），由 `build-profile.json5` 的 `app.signingConfigs` 引用，不入库。云同步功能需在 `AppScope/resources/rawfile/` 放入 AGC 配置（`agconnect-services.json`，不入库）方可用真实云端；缺失时自动走沙盒。
+**没有 AGC 配置也能跑。** 缺少 `agconnect-services.json` 时应用自动进入沙盒演示模式，所有界面与本地功能完整可用。要接真实云端，按 [`docs/cloud/cloud-setup.md`](docs/cloud/cloud-setup.md) 配置 AGC。
+
+签名材料放在工作区外（`~/.ohos/config/`），由 `build-profile.json5` 的 `app.signingConfigs` 引用，**不入库**。
+
+### 二、Android 端
+
+前置：Android Studio（JDK 17+）。用 Studio 打开 `apps/android` 即可，`local.properties` 会自动生成。
+
+```bash
+cd apps/android
+./gradlew :app:assembleDebug
+./gradlew :app:testDebugUnitTest          # 单元测试（JUnit + Robolectric，无需设备）
+```
+
+**第三方 SDK 说明**：QQ 登录依赖 `app/libs/open_sdk_3.5.19_r9483ffc7_lite.jar`（仓库内已包含）。替换方式与原版许可说明见 [`app/libs/README.md`](apps/android/app/libs/README.md) 与 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。微信登录走 Maven 依赖，无需额外操作。
+
+### 三、服务端（可选）
+
+只有想用自托管后端时才需要。完整部署手册见 [`server/deploy/README.md`](server/deploy/README.md)，环境变量模板见 [`server/deploy/.env.template`](server/deploy/.env.template)（全部为占位符，不含真实密钥）。
 
 ## 质量门禁
 
-提交前自检：
+提交前自检（在 `apps/harmony` 下执行）：
 
 | 命令 | 作用 |
-| --- | --- |
-| `node tools/check-gates.mjs` | 总门禁：内容构建 → 页面注册 → 空白检查 → 文档死链 → ArkTS 真实编译（`--skip-build` 可跳过编译，仅在已知编译状态时用） |
-| `node tools/check-main-pages.mjs` | 校验 `main_pages.json` 中 18 个页面文件存在，且每页仅一个 `@Entry` |
+|---|---|
+| `node tools/check-gates.mjs` | 总门禁：内容构建 → 页面注册 → 空白检查 → 文档死链 → 规范注册表 → 双端对等 → 代码规则 → 真实 ArkTS 编译 |
+| `node tools/check-gates.mjs --skip-build` | 跳过编译段（CI 用这个） |
+| `node tools/check-main-pages.mjs` | 校验 `main_pages.json` 中注册的页面文件存在，且每页仅一个 `@Entry` |
 | `node tools/check-dead-refs.mjs` | 校验文档 / 配置里的仓库内路径断言是否仍成立 |
 | `node tools/check-release-readiness.mjs` | release 前置条件：build mode、签名材料、应用身份、产物、材料未入库 |
-| `node --test tools/check-release-readiness.test.mjs` | 上述 readiness 脚本的回归测试 |
 | `node tools/content/build-content.mjs` | 校验并构建 `content/exercises/*.jsonl` 内容源 |
+
+根级：
+
+| 命令 | 作用 |
+|---|---|
+| `node --test "tools/*.test.mjs"` | 根级脚本回归测试（20 项） |
+| `cd apps/harmony && node --test "tools/*.test.mjs"` | 鸿蒙工具脚本回归测试（91 项） |
+| `node tools/device-smoke.mjs` | 设备冒烟（需已连接设备） |
+
+**CI 现状**：GitHub Actions 跑 `check-gates --skip-build` 与 Android 单测。**HarmonyOS 编译不上公共 CI**——它需要 DevEco Studio 与华为账号授权，公共 runner 装不了。涉及鸿蒙的 PR 请在本地跑一次 `devecocli build --product default` 并附输出。
 
 ## 测试
 
-- **单元测试（Hypium，需设备）**：`powershell -ExecutionPolicy Bypass -File tools/ohos-test.ps1`。可选 `-ClassNames <类名>` 或 `-Preset backup|content-sync|full` 过滤，`-CheckOnly` 只校验前置条件；结果写入 `test_run\ohosTest\<时间戳>\ohos-test-summary.md`。已装 signed HAP 的设备需显式传 `-DefaultHapPath` / `-TestHapPath` 指向 signed 产物。
-- **设备流程 smoke**：`tools\auth-regression.ps1`（认证回归）、`tools\dev-smoke.ps1`（Midscene 入口冒烟，需先在会话中设置 `MIDSCENE_MODEL_API_KEY`）。
-- **原型 / 视觉对比**：`tools\visual-diff\compare.py`（原型帧 vs 设备截图）、`tools\spec-bounds-diff.py`（CSS 声明值 vs 设备 bounds）、`tools\scroll-assert.py`（滚动断言）、`tools\probe-css-metrics.py`（headless Chrome 读计算样式）。
+- **Hypium 单元测试（需设备）**：`powershell -ExecutionPolicy Bypass -File tools/ohos-test.ps1`，可选 `-ClassNames` / `-Preset backup|content-sync|full` 过滤，结果写入 `test_run/ohosTest/<时间戳>/`。
+- **Android 单元测试**：`./gradlew :app:testDebugUnitTest`。
+- **视觉回归**：`tools/visual-diff/compare.py` 等脚本做原型帧与设备截图比对。
 
-## 目录结构
-
-```text
-菲特/
-├── AppScope/                     应用级配置与资源（bundleName / 版本 / 图标 / 名称 / AGC 配置与 schema.json）
-├── entry/
-│   ├── src/main/ets/
-│   │   ├── app/                  启动、路由常量（AppRoutes.ets）、应用壳（PencilAppShell）
-│   │   ├── features/             pencil（视觉主线）/ welcome / account / exercise / body / settings / workout
-│   │   ├── shared/               跨功能服务：内容目录、计划引擎、复盘、备份、云同步、内存仓库
-│   │   ├── common/               认证（AGC/沙盒）、会话、云环境探测、计划 / 训练持久化、设计令牌（styles\DesignTokens.ets）
-│   │   ├── components/           可复用 ArkUI 组件
-│   │   ├── generated/ · mock/    内容同步包类型、开发用种子数据
-│   │   └── entryability/         EntryAbility 与系统备份扩展
-│   ├── src/main/resources/       资源：rawfile 内置动作 GIF / SVG、字符串、颜色
-│   └── src/ohosTest/ets/test/    Hypium 单元测试（42 个文件）
-├── content/exercises/            动作内容源（JSONL + 同步 manifest）
-├── design/                       设计基线：brief / 设计系统 / 组件与页面规格 / 原型重绘
-├── docs/                         文档：PRD、发布 runbook、验收与合规
-├── tools/                        构建、校验、视觉对比与设备回归脚本
-└── AGENTS.md                     工程约束（改动代码前必读）
-```
-
-## 主路由
+## 主路由（HarmonyOS 端）
 
 ```mermaid
 flowchart LR
-  S[PencilSplashPage] -- 未登录 --> L[PencilLoginPage / PencilRegisterPage]
+  S[PencilSplashPage] -- 未登录 --> L[登录 / 注册]
   L -- 登录成功 --> Shell
   S -- 已登录 --> Shell
   subgraph Shell[PencilAppShell · 底部四 Tab]
     Home[首页] --- Plan[计划] --- Review[复盘] --- Profile[个人]
   end
-  Home --> P[训练预览（壳内弹出）] --> A[训练执行] --> C[完成摘要]
+  Home --> P[训练预览] --> A[训练执行] --> C[完成摘要]
   Home --> Lib[动作库 → 动作详情]
   Profile --> Body[身体数据]
   Profile --> Acc[账号与同步]
   Profile --> Set[设置]
 ```
 
-页面注册唯一事实来源是 `entry\src\main\resources\base\profile\main_pages.json`，代码中的路由常量来自 `entry\src\main\ets\app\AppRoutes.ets`；新页面必须同时满足「文件存在 + 已注册 + 被引用」三项。
+页面注册唯一事实来源是 `entry/src/main/resources/base/profile/main_pages.json`，代码路由常量来自 `entry/src/main/ets/app/AppRoutes.ets`；新页面必须同时满足「文件存在 + 已注册 + 被引用」。
 
 ## 文档导航
 
 | 文档 | 内容 |
-| --- | --- |
-| `AGENTS.md` | 工程约束：页面注册、服务归属、ArkTS / ArkUI 约定、清理规则、构建命令 |
-| `docs\README.md` | 文档入口与实现依据索引 |
-| `docs\release\release-build-runbook.md` | 构建 / 发布工程面的状态、命令与接入点 |
-| `docs\cloud\cloud-setup.md` | AGC 云服务配置手册（认证服务 / 云数据库 / 证书指纹；配置记录 + 排错速查） |
-| `docs\CHANGELOG.md` | 版本说明与更新日志 |
-| `docs\closeout\mvp-closeout.md` | MVP 功能收官记录 |
-| `docs\legal\privacy-policy.md`、`docs\legal\user-agreement.md` | 隐私政策与用户协议 |
-| `design\README.md` | 设计基线与阅读顺序（brief → 设计系统 → 组件 → 页面规格） |
+|---|---|
+| [AGENTS.md](AGENTS.md) | 工程约束：代码边界、服务归属、ArkTS / ArkUI 约定、清理规则 |
+| [docs/README.md](docs/README.md) | 文档入口与实现依据索引 |
+| [contracts/README.md](contracts/README.md) | 跨端数据契约（改数据结构的起点） |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | 提交格式、门禁、双端同步要求 |
+| [docs/release/release-build-runbook.md](docs/release/release-build-runbook.md) | 构建与发布工程面 |
+| [docs/cloud/cloud-setup.md](docs/cloud/cloud-setup.md) | AGC 云服务配置手册 |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) | 版本说明 |
+| [docs/legal/](docs/legal/) | 隐私政策与用户协议 |
+| [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) | 第三方组件与许可 |
+| [ASSETS.md](ASSETS.md) | 非代码资源来源与授权 |
 
-## 现状与限制
+## 已知限制
 
-- **云同步依赖 AGC 配置**：真实账号与云同步需工程内放入 AGC 配置文件（`AppScope/resources/rawfile/`）并完成 AGC 控制台配置（见 `docs\cloud\cloud-setup.md`）；未配置时自动降级为沙盒演示模式（数据仅在本机，云端用本地沙盒模拟）。微信 / QQ 登录未开通（需开放平台资质与 SDK 支持评估），华为账号登录待真机验证。
-- **「匿名使用数据」「健康数据授权」开关仍仅记录状态**：未接入统计服务或健康数据权限。
-- **界面仅提供简体中文**：设置页的「English」选项目前只记录选择状态；`zh_CN` / `en_US` 资源目录已就绪，界面文案仍为代码内中文。
-- **仅支持 `phone` 设备类型**（`entry\src\main\module.json5`）。
-- **`bundleName` 决定应用私有沙箱路径**：由样板值改为 `com.earthrhythm.fittracker` 后，旧身份包留下的本地数据在新包下不可见，升级前请先导出备份包（迁移路径见 `docs\release\release-build-runbook.md` 第 9 节）。
+- **云同步需自备配置**：HarmonyOS 需 AGC 项目配置，Android 需自托管 Supabase 或自有项目。未配置时走沙盒演示模式，数据只在本机。
+- **微信 / QQ 登录需要开放平台资质**：各平台对移动应用审核有门槛，仓库内的集成代码不代表凭据可用。
+- **界面仅简体中文**：`zh_CN` / `en_US` 资源目录已就绪，界面文案仍以代码内中文为主。
+- **仅支持 phone**：不响应平板 / 折叠屏专有布局。
+- **动作演示素材的授权状态待补全**：见 [ASSETS.md](ASSETS.md) 第一节。在补齐前请勿将素材单独再利用。
+- **`bundleName` 决定应用私有沙箱路径**：改身份会让旧数据在新包下不可见，升级前先导出备份。
 
-「界面仅提供简体中文」为 `1.0.0` 起的既有限制，版本更新记录见 `docs\CHANGELOG.md`。
+## 贡献
 
-## 开发约定（摘要）
+欢迎 issue 与 PR。动手前请读 [CONTRIBUTING.md](CONTRIBUTING.md)：
 
-- 页面统一放 `features/<feature>/pages/`，无 `@Entry` 的界面体放 `features/<feature>/components/`；不要复活已移除的历史壳与旧路由。
-- 服务使用模块级 singleton（`export default new ServiceName()`），调用方直接导入默认实例。
-- 导航走 `this.getUIContext().getRouter()`，路由名只引用 `AppRoutes` 常量。
-- 颜色 / 字体 / 间距优先取 `common\styles\DesignTokens.ets`，避免组件内散落魔法值。
-- 用户可见文本使用中文；新能力需确认有生产调用方。
+- 提交信息格式 `<type>(<scope>): <中文摘要>`
+- 提交前跑质量门禁，任一红即停
+- 改动涉及数据结构时，先改 `contracts/` 再同步两端
+- 行为准则见 [CODE_OF_CONDUCT.md](.github/CODE_OF_CONDUCT.md)，安全问题走私密渠道（[SECURITY.md](.github/SECURITY.md)）
 
-完整约束见 `AGENTS.md`。
+**适合新手上手的入手点**：Android 端补英文资源、动作库筛选条件的边界处理、文档路径断言修复，以及 [`docs/blockers.md`](docs/blockers.md) 里登记的活跃卡点。
 
 ## 许可
 
-本仓库当前未包含开源许可文件。
+源代码以 **Apache License 2.0** 授权，见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE)。
+
+第三方组件（字体、SDK、图标、品牌标识）各有自己的许可，详见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。特别提示：`apps/android/app/libs/open_sdk_*.jar` 是腾讯官方分发的 SDK 二进制，**不受 Apache-2.0 覆盖**。
