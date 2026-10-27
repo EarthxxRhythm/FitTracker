@@ -76,11 +76,28 @@
 
 ## 分支与合并
 
-本仓库当前为单人 + agent 协作模式，无 PR 流程。约定：
+本仓库以「单人 + agent 协作」起步，现已对外开放协作。约定：
 
+- 外部贡献一律走 **fork → 分支 → PR**，不要直接推 `master`
 - 一个逻辑单元一个提交，不把不相关改动混在一起
 - 不 force push `main` / `master`
 - 分支命名 `feature/<主题>` 或 `fix/<主题>`
+- PR 描述用仓库的 [.github/PULL_REQUEST_TEMPLATE.md](.github/PULL_REQUEST_TEMPLATE.md)，自查项逐条勾
+
+## 开源协作约定
+
+| 事项 | 约定 |
+|---|---|
+| 提交前 | 在 `apps/harmony` 下跑 `node tools/check-gates.mjs`；CI 只跑 `--skip-build` 版，真实编译需本地 DevEco |
+| 无法上 CI 的部分 | 鸿蒙构建、真机回归。PR 里附本地命令与输出摘要即可 |
+| 数据契约改动 | 先改 `contracts/README.md`，再同步两端；两端实现必须同一次 PR 到齐 |
+| 新增第三方依赖或资源 | 同一次提交更新 `THIRD-PARTY-NOTICES.md` 或 `ASSETS.md` |
+| 密钥与本地配置 | 绝不入库：`.env`、`agconnect-services.json`、`local.properties`、签名材料 |
+| 行为准则 | [.github/CODE_OF_CONDUCT.md](.github/CODE_OF_CONDUCT.md) |
+| 安全问题 | 走私密渠道，见 [.github/SECURITY.md](.github/SECURITY.md)，不要开公开 issue |
+| 响应时间 | 个人维护，issue 一般 3 个工作日内首次回应 |
+
+**第一次提 PR 的建议路径**：从文档路径断言、Android 端英文资源、动作库筛选边界这类不触发双端同步要求的改动开始。
 
 ## 评审
 

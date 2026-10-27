@@ -207,7 +207,7 @@ chrome.exe --remote-debugging-port=9223
 
 - `entry/src/main/ets/features/pencil/pages/PencilSplashPage.ets:122`——`testMode === 'sandbox'` 生效的前置条件是 `isDebuggablePackage()`（`appInfo.debug`）。
 - 同文件 `:125-128`——`devSeed` 的消费**没有** debug 门禁，但它依赖 seed 内的 `AuthService.seedSandboxSession(...)` 建立登录态（`DeviceSeedService.ets:applyDemoDataSeed`）。
-- `AppScope/resources/rawfile/agconnect-services.json` 在位 → `CloudEnvironment` 走 AGC 真实链路 → **不切沙盒时 `seedSandboxSession` 不构成有效登录态**（实验 A/B 都停在登录页即为证据）。
+- `AppScope/resources/rawfile/` 下存在 `agconnect-services.json`（本地自备、不入库）→ `CloudEnvironment` 走 AGC 真实链路 → **不切沙盒时 `seedSandboxSession` 不构成有效登录态**（实验 A/B 都停在登录页即为证据）。
 - 合起来：devSeed 要生效必须先切沙盒，而切沙盒只对 debug 包开放 ⇒ release 包拿不到 seed 数据。
 
 > **修正既有记录**：`docs/release/release-build-runbook.md` §10 曾把该现象记为「`devSeed` 在 debug 包生效、在 release 包失效」。按本次实测，**真正变量不是构建模式而是 `testMode=sandbox`**（B 组证明 debug 包不传 testMode 同样失效）；该文档写于 2026-09-13，早于 AGC 真实接线（`0b2742f`，2026-10-01）与 testMode 门禁（`6a1b3cd`，2026-10-01），当时 devSeed 生效是因为尚无 AGC 链路。
@@ -341,6 +341,6 @@ test_run/cloud-debug/
 - **通道 B 工具**：`tools/cloud-debug/cdp.mjs`（含头部环境诊断）、`tools/cloud-debug/inject-net-retry.js`、`tools/cloud-debug/cdp.test.mjs`、`tools/cloud-debug/inject-net-retry.test.mjs`
 - **通道 B 证据**：`test_run/cloud-debug/probe/channel-diagnosis.md`（诊断全文）、`hold3.log`（注入成功 + 页面事件流）、`network-fails2.txt`（TLS 失败 URL）、`chrome-procs.txt`（进程边界）、`05-project-page.png`（卡死截图）
 - **通道 A / 演示数据实测**：`test_run/cloud-debug/manual-run/`（上传件归档、注入实验截图）
-- **代码锚点**：`AppScope/app.json5:3`、`entry/src/main/module.json5:6,20`、`entry/src/main/ets/features/pencil/pages/PencilSplashPage.ets:34,122,125`、`entry/src/main/ets/shared/services/DeviceSeedService.ets`、`entry/src/main/ets/shared/services/UserDataBackupService.ets:15,95,103`、`AppScope/resources/rawfile/agconnect-services.json`
+- **代码锚点**：`AppScope/app.json5:3`、`entry/src/main/module.json5:6,20`、`entry/src/main/ets/features/pencil/pages/PencilSplashPage.ets:34,122,125`、`entry/src/main/ets/shared/services/DeviceSeedService.ets`、`entry/src/main/ets/shared/services/UserDataBackupService.ets:15,95,103`、`AppScope/resources/rawfile/`（AGC 配置目录；`agconnect-services.json` 不入库）
 - **构建与签名**：`devecocli build --product default --build-mode release`（2026-10-09 BUILD SUCCESSFUL in 1 min 8 s）
 - **外部来源**：官方《使用控制面板调试》（控制面板能力）、官方单机调试流程文档（申请设备 / 同账号 2 台上限）、51cto《鸿蒙云调试——远程真机，不用买也能测》（入口与流程）、CSDN《华为 云调试：应用上传、调试》（上传失败三因）、官方云调试产品页（配额）

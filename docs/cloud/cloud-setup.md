@@ -192,7 +192,7 @@
 ### 修复步骤（可复制）
 
 1. **改签名方式（DevEco Studio GUI）**：File → Project Structure → Project → Signing Configs → 勾选「**Associate with registered application**」→ 登录 + 选 Team → OK（Automatic 按 bundle name 在 AGC 关联应用并生成绑定版签名）。
-   - 验证绑定：拆 `.p7b` 后 `bundle-info.app-identifier` 应与 `AppScope/resources/rawfile/agconnect-services.json` 的 `app_id` **一致**。
+   - 验证绑定：拆 `.p7b` 后 `bundle-info.app-identifier` 应与本地 `AppScope/resources/rawfile/` 下 `agconnect-services.json`（不入库，需自行放置）的 `app_id` **一致**。
 2. **重建 + 卸载重装**（调试验证必须重装，不可覆盖安装）。
 3. **生成调试凭据**：模拟器中触发任意 CFK 接口（失败属预期）→ 抓日志（过滤 `debugToken`）取 `[clouddevelopproxy.debugToken=<值>]`；若日志显示 `ApplyCredential fail 15800002`（申请被网络阻断），连续重试触发直至出现该行。
 4. **注册凭据**：AGC 控制台 →「证书、APP ID 和 Profile」→「模拟器调试凭据」→ 注册 token 值、**绑定正确应用**。生效后 `205525007` 消失（表现为 `404 Trigger not exist` 或成功——取决于目标函数是否存在）。
