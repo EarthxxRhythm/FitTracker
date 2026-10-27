@@ -3,7 +3,7 @@
 > **层级**：L2 展开
 > **最后核对**：2026-10-27
 > **上位文档**：`AGENTS.md`（冲突以 L1 为准）
-> **状态**：现行（安卓 MuMu 段已脚本化，设备连通性待模拟器真正开机后验证）
+> **状态**：现行（双端设备链路已实测连通：2026-10-27 安卓 MuMu 与鸿蒙 DevEco 均判 PASS；应用内启动与 instrumented 用例仍未验证）
 > **路径基准**：命令中 `tools\…` 相对 `apps\harmony\`；`gradlew` 相对 `apps\android\`
 > **适用端**：双端
 
@@ -46,7 +46,15 @@ hdc install -r entry/build/default/outputs/default/entry-default-signed.hap
     虚拟内存余量 26GB；且 `hw.ramSize=4096` 与 `2048` 在同样的持久 shell 内**都连续 90s 稳定**
     （`hdc` 保持 `127.0.0.1:5555 Connected`、procs=2），证明 ramSize 不是变量。
     `hw.ramSize` 已还原为 4096（备份 `hardware-qemu.ini.bak-ram4096-*` 仅用于对照，可删）。
-  - **正确做法**：在**持久终端**里执行 `devecocli emulator start "Pura 90"` 并保持该终端不关。
+  - **正确做法（两条都实测可行，2026-10-27）**：
+    1. **起 + 用放同一次 shell 调用内**（agent / CI 首选）：`devecocli emulator start "Pura 90"`
+       前台执行约 54–65s 后返回 `Emulator "Pura 90" started successfully.`（exit 0），
+       同一次调用内接着跑 `device-smoke` / `hdc install` / 截图**全部成功**；
+       **调用一结束即转 `Offline`**（三次实测一致）。
+    2. 人工长驻：在**持久终端**里执行并保持该终端不关。
+  - **推论陷阱（留档避免重复）**：由上面这条**不能**推出「必须由人手动启动」。
+    曾有判断据此把启动责任推给用户；实测证明 agent 在同一次调用内起 + 用完全可行——
+    真正的边界是「**跨调用复用设备**」，不是「agent 能否启动」。
   - 另一条独立坑：`devecocli emulator start` 若在自身超时内没在 `hdc list targets` 看到目标，
     会打印 `... did not appear in hdc list targets within the timeout` 后退出，模拟器随之被带走。
     boot 需约 50–60s（`Log\Emulator.log` 的 `Guest OS Boot Completed!!`），慢机器上容易撞上这个超时。
@@ -69,11 +77,16 @@ hdc install -r entry/build/default/outputs/default/entry-default-signed.hap
 >   `adb connect 127.0.0.1:16384` 后 `adb devices` 出现 `device`，
 >   `node tools/android-device.mjs check` 报 `Android 15 / ABI x86_64 / 判定为模拟器 ✅`。
 >   仍然成立的是：**launch 的返回码不是就绪信号**，就绪判据只能是端口监听 + `adb devices` 出现 `device`。
-> - 本轮 `adb devices -l` 为空、`mumu-cli info` 为未启动 → **安卓侧设备连通性尚未实测通过**
+> - **2026-10-27 实测已连通**：`mumu-cli control --vmindex 0 launch` 返回 `errcode 0` 后
+>   `16384` 进入 `LISTENING`（`MuMuNxDevice.exe`，约 1.5GB 常驻），
+>   `adb connect 127.0.0.1:16384` → `adb devices` 出现 `device`；
+>   `node tools/device-smoke.mjs` 判 **PASS**（Android 15 / ABI x86_64 / model 22041211A）。
+>   与鸿蒙不同：**MuMu 实例独立存活，跨 shell 不受影响**，起一次可反复复用。
+> - 附带实测：`mumu-cli info` 单独调用报 `errcode -21 Missing param <vmindex>`，需写 `info --vmindex 0`。
 
 **连接步骤**（端口以实例配置为准，不要照抄任何默认值）：
 
-1. 在 MuMu 多开器里启动实例，确认实例进入桌面（launch 返回码不可信，见上方已知坑）
+1. 启动实例：`"<MuMuHome>\nx_main\mumu-cli.exe" control --vmindex 0 launch`（参数顺序见上），或经多开器界面启动；确认实例进入桌面（launch 返回码不是就绪信号）
 2. 脚本会自动从 `vm_config.json` 读端口；也可手动 `adb connect 127.0.0.1:<端口>`
 3. `adb devices` 应出现一行 `<ip>:<port>\tdevice`（不是 `offline`）
 
@@ -106,9 +119,9 @@ adb exec-out screencap -p > <out>.png
 
 | 实例名（目录） | CLI index | adb 端口 | 端口来源 | 连通性 |
 |---|---|---|---|---|
-| `MuMuPlayer-15.0-0` | `0` | `16384` | `configs\vm_config.json` → `vm.nat.port_forward.adb.host_port`（2026-10-27 读得） | ⚠️ **未连通**：实例未开机，`adb devices` 为空 |
+| `MuMuPlayer-15.0-0` | `0` | `16384` | `configs\vm_config.json` → `vm.nat.port_forward.adb.host_port`（2026-10-27 读得） | ✅ **已连通**（2026-10-27 实测）：`adb connect 127.0.0.1:16384` → `device`；device-smoke 判 **PASS**，截图 `apps\android\test_run\device-smoke-1793100496980.png`（1,406,502 字节） |
 
-> 端口一栏填的是**配置值**而非连通验证值。等模拟器真正开机、`adb devices` 出现 `device` 后，把该行连通性改为「已连通 + 日期」并补一张截图路径。
+> 端口一栏是**配置值**（读 `vm_config.json`），连通性一栏是**实测值**（以 `adb devices` 出现 `device` 为准）。换机或换实例后两栏都要重测——不要照抄本行。
 
 ## 构建命令
 
@@ -131,6 +144,10 @@ node tools/device-smoke.mjs
 
 可选参数：`--android-install`（安卓额外构建并安装 debug APK）、`--harmony-test`（鸿蒙额外跑 `ohos-test.ps1`）。
 
+> `--harmony-test` 会以脚本默认的 **unsigned** 包路径调用 `ohos-test.ps1`；设备上已装 signed 包时会撞 `code:9568332`，此时应绕开该开关、直接调 `ohos-test.ps1` 并显式传 `-DefaultHapPath` / `-TestHapPath` 指向 signed 包。
+>
+> 鸿蒙端跑这条命令前，模拟器必须在**同一次 shell 调用内**先启动（见上文「模拟器的存活绑定」）；跨调用复用一定得到 `SKIP`。
+
 ## 什么时候必须上设备
 
 **必须**：
@@ -152,7 +169,9 @@ node tools/device-smoke.mjs
 
 ## 本文的验证边界
 
-- **鸿蒙段**：命令有书面记录可查，模拟器清单可用 `devecocli emulator list` 列出（本机 8 台，含 `Pura 90`），但**本轮未启动**，`hdc list targets -v` 只有 `COM1 UART Ready`（UART 不可用于自动化）
-- **安卓段**：发现链路已脚本化并单测覆盖（`apps\android\tools\android-device.test.mjs`，16 例）；**设备连通性未验证**——MuMu 实例未能开机，`adb devices` 为空
-- 两端设备侧实跑（安装 / 截图 / instrumented）在本轮**均为未验证**，不得据此声称"双端已验"
+- **鸿蒙段（2026-10-27 实测）**：模拟器清单 `devecocli emulator list` 本机 8 台（含 `Pura 90`）。`devecocli emulator start "Pura 90"` 前台 54–65s 返回 `started successfully`，`hdc list targets -v` 得 `127.0.0.1:5555` / `5557` `TCP Connected`；signed HAP 安装成功（`install bundle successfully`），截图 `apps\harmony\test_run\harmony-smoke\smoke.png`（1,300,321 字节）。
+  ⚠️ 该截图是**锁屏界面**——只证明模拟器在跑，**未证明应用已启动**。
+- **安卓段（2026-10-27 实测）**：发现链路脚本化并单测覆盖（`apps\android\tools\android-device.test.mjs` 16 例，实测 **16/16 pass**）；设备连通性**已通过**——MuMu 实例开机、`adb connect 127.0.0.1:16384` 后 `adb devices` 出现 `device`，`device-smoke` 判 PASS 并落截图。
+- **跨端**：`node tools\device-smoke.mjs` 2026-10-27 跑出双端 **PASS**，摘要 `test_run\device-smoke-summary.md`。
+- **仍未验证（不得称为已验）**：应用内启动（鸿蒙截图停在锁屏）、`ohos-test.ps1`（ohosTest 用例）、`android-device.mjs install` 与 `test`（connectedDebugAndroidTest）。
 - 本文档只覆盖模拟器路径，真机路径见各端的 release runbook
