@@ -37,7 +37,7 @@ QQ 互联表单的两条硬校验：
 
 ### 应用图标
 
-上传 `design/07_app_icon/market/icon-100.png`（100×100，5.1 KB）。
+上传 `FitTracker-design/design/07_app_icon/market/icon-100.png`（100×100，5.1 KB）。
 
 > 生成方式：`python design/07_app_icon/make_market_icon.py`（已扩展 SIZES 至 1024/216/100）。
 > 视觉确认：翡翠进度环 + 墨黑微光晕底，与包内图标同源合成。
@@ -172,16 +172,16 @@ ewsd22gLJmPZsZO/9ysTy3e2DpGh+eE3hPZBPdBeTyr/jkBOz6flqsxplQ==
 
 | 文件 | 尺寸 | 大小 | 适用 |
 | --- | --- | --- | --- |
-| `design/07_app_icon/market/icon-100.png` | 100×100 | 5.1 KB | **开放平台注册表单（本表单要求）** |
-| `design/07_app_icon/market/icon-1024.png` | 1024×1024 | 104 KB | 应用市场素材（优先） |
-| `design/07_app_icon/market/icon-1024.webp` | 1024×1024 | 11.8 KB | 应用市场（WEBP ≤100KB） |
-| `design/07_app_icon/market/icon-216.png` | 216×216 | 17.6 KB | 应用市场备选 |
-| `design/07_app_icon/market/icon-216.webp` | 216×216 | 2.4 KB | 应用市场备选 |
+| `FitTracker-design/design/07_app_icon/market/icon-100.png` | 100×100 | 5.1 KB | **开放平台注册表单（本表单要求）** |
+| `FitTracker-design/design/07_app_icon/market/icon-1024.png` | 1024×1024 | 104 KB | 应用市场素材（优先） |
+| `FitTracker-design/design/07_app_icon/market/icon-1024.webp` | 1024×1024 | 11.8 KB | 应用市场（WEBP ≤100KB） |
+| `FitTracker-design/design/07_app_icon/market/icon-216.png` | 216×216 | 17.6 KB | 应用市场备选 |
+| `FitTracker-design/design/07_app_icon/market/icon-216.webp` | 216×216 | 2.4 KB | 应用市场备选 |
 
 **图标设计说明**（供填写「图标说明」或审核问询时使用）：
 进度环 PURE——270° 翡翠色弧（`#50ECA7`）+ 缺口中央里程碑点，墨黑微光晕底；寓意训练进度与目标达成。
 
-**生成管线可复现**：`design/07_app_icon/make_market_icon.py`，母版 SVG 源为 `master_bg.html` / `master_fg.html`。
+**生成管线可复现**：`FitTracker-design/design/07_app_icon/make_market_icon.py`，母版 SVG 源为 `master_bg.html` / `master_fg.html`。
 （注：`master_bg.html` / `master_fg.html` 当前有未提交改动，属你的资产，未触碰。）
 
 ---

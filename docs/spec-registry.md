@@ -42,7 +42,6 @@
 | L2 | `docs\process\test-environments.md` | 鸿蒙 DevEco 模拟器 + 安卓 MuMu 模拟器的连法与取图 | 双端 | 现行 | 是 | `check-specs`（头部） |
 | L2 | `docs\process\auth-verification.md` | 登录验证优先级：自部署栈 → 沙盒降级 → 显式跳过 | 双端 | 现行 | 是 | `check-specs`（头部） |
 | L2 | `docs\process\agent-team-fittracker-overlay.md` | 多 agent 协作适配层 | 双端 | 现行 | 否 | `check-specs`（头部） |
-| L2 | `design\README.md` | 设计基线阅读顺序与工作规则 | 双端 | 现行 | 是 | `check-specs`（头部） |
 | L3 | `docs\process\harmonyos-default.md` | 官方 ArkTS 语法约束摘录 | 仅鸿蒙 | 现行 | 否 | `check-specs`（头部） |
 | L3 | `docs\process\pi-agent-parallel-restore.md` | pi 宿主多 agent 并行还原的安装与派工说明 | 双端 | 现行 | 是 | `check-specs`（仅存在） |
 | L3 | `docs\process\qq-appid-landing-checklist.md` | QQ AppID / AppKey 落位清单（待人工提供凭据） | 双端 | 部分失效 | 是 | `check-specs`（仅存在） |
@@ -50,7 +49,6 @@
 | L3 | `docs\process\thirdparty-qualification-guide.md` | 第三方登录资质申请操作手册（待人工执行） | 双端 | 部分失效 | 是 | `check-specs`（仅存在） |
 | L3 | `docs\ui\ui-acceptance-checklist.md` | UI 验收口径 A/B/C/D 四维 | 双端 | 现行 | 否 | `check-specs`（仅存在） |
 | L3 | `docs\ui\模拟器视觉回归说明.md` | 模拟器视觉回归的操作说明 | 双端 | 现行 | 是 | `check-specs`（仅存在） |
-| L3 | `docs\ui\ui-final-acceptance-runbook.md` | 旧版 UI 验收 runbook（工具链已失效，仅存方法论） | 双端 | 部分失效 | 是 | `check-specs`（仅存在） |
 | L3 | `docs\ui\ui-acceptance-record-template.md` | 验收记录模板 | 双端 | 现行 | 否 | `check-specs`（仅存在） |
 | L3 | `docs\ui\ui-design-review-packet.md` | 设计评审包模板 | 双端 | 现行 | 否 | `check-specs`（仅存在） |
 | L3 | `docs\ui\ui-sample-spot-check.md` | 抽样检查说明 | 双端 | 现行 | 否 | `check-specs`（仅存在） |
