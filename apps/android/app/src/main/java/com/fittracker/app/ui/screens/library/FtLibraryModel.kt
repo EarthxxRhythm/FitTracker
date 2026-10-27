@@ -200,8 +200,14 @@ object FtLibraryModel {
     // 即**素材文件名 == 原型动作 id**（[EXERCISES] 的 `id`）。真实内容 id 为 `ex_*` 不同名，
     // 故先按 id 命中，再按动作名（[GIF_BY_NAME] / [GIF_NAME_ALIASES]）；未匹配返回 null 保留占位。
 
-    /** 素材目录（`assets/` 下相对路径）。 */
-    const val GIF_ASSET_DIR: String = "exercise-gifs-cut" // 2026-10-09：白底抠图（透明）素材目录；原素材 exercise-gifs/ 保留
+    /**
+     * 已停用：原「线稿」素材目录。
+     *
+     * 2026-10-28 版权清理：该套 23 个 GIF 为 Gym Visual（© gymvisual.com）素材，
+     * 经第三方数据集转授权，授权链条不成立，已从仓库移除。见仓库根 ASSETS.md。
+     * 现在动作演示统一走 [PhotoGifCatalog]（free-exercise-db，Unlicense）。
+     */
+    const val GIF_ASSET_DIR: String = "exercise-gifs-photo"
 
     /** 已有素材的文件名集合（不含目录与扩展名）——即 [EXERCISES] 各 `id`。 */
     val GIF_FILE_NAMES: Set<String> = EXERCISES.map { it.id }.toSet()
@@ -240,10 +246,10 @@ object FtLibraryModel {
      *    收敛，故此处只给出路径，不改视觉。
      */
     fun gifAssetFor(id: String, name: String): String? {
-        val file = if (id in GIF_FILE_NAMES) id else GIF_BY_NAME[name] ?: GIF_NAME_ALIASES[name]
-        // 2026-10-09：素材切换为「白底抠图（透明）GIF」（exercise-gifs-cut/；连通域抠图，见处理说明）
-        if (file != null) return "$GIF_ASSET_DIR/$file.gif"
-        // 2026-10-20：线稿未覆盖的动作走实拍素材（content 库 102 条里此前约 79 条只能落占位块）
+        // 2026-10-28：线稿层已随版权清理整体停用，不再参与解析。
+        // 若保留「线稿 id 先命中」的逻辑，它会返回 exercise-gifs-photo/<线稿id>.gif —— 该文件
+        // 不存在，于是连本可用的实拍兜底也被跳过，导致「杠铃划船」这类两端都有的动作退化成占位块。
+        // 故此处直接短路到实拍层，未知动作返回 null，由调用方渲染占位。
         val photo = PhotoGifCatalog.BY_NAME[name]
         return photo?.let { "${PhotoGifCatalog.ASSET_DIR}/$it.gif" }
     }
