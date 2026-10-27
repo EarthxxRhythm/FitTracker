@@ -1,5 +1,12 @@
 # 菲特 Design Base
 
+> **层级**：L2 展开
+> **最后核对**：2026-10-27
+> **上位文档**：仓库根 `AGENTS.md`（L1）；视觉 token 的实际实现以 `apps\harmony\entry\src\main\ets\common\styles\DesignTokens.ets` 与安卓 `ui\theme\DuTokens.kt` 为准
+> **状态**：现行
+> **路径基准**：文中 `design\…` 相对仓库根
+> **适用端**：双端
+
 This directory is the design foundation for AI-assisted UI/UX and visual refactoring.
 
 It exists to prevent the project from drifting into:

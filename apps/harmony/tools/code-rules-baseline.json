@@ -1,0 +1,234 @@
+{
+  "generatedBy": "check-code-rules.mjs --write-baseline",
+  "note": "存量技术债台账：只允许缩小。新增违规不得写入本文件。",
+  "entries": [
+    {
+      "rule": "DS-01",
+      "file": "app/PencilAppShell.ets",
+      "snippet": "#000000",
+      "line": 213
+    },
+    {
+      "rule": "DS-01",
+      "file": "app/PencilAppShell.ets",
+      "snippet": "#0B0F13",
+      "line": 245
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/body/components/BodyDataContent.ets",
+      "snippet": "#06FFFFFF",
+      "line": 1278
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/ActiveContent.ets",
+      "snippet": "#FA0A0D12",
+      "line": 821
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/ActiveContent.ets",
+      "snippet": "#030606B8",
+      "line": 831
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/ActiveContent.ets",
+      "snippet": "#13161A",
+      "line": 925
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/ActiveContent.ets",
+      "snippet": "#8C0B0F13",
+      "line": 944
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/ActiveContent.ets",
+      "snippet": "#06FFFFFF",
+      "line": 1085
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/HomeContent.ets",
+      "snippet": "#08110D",
+      "line": 292
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/PlanContent.ets",
+      "snippet": "#2450ECA7",
+      "line": 211
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/PlanContent.ets",
+      "snippet": "#13171A",
+      "line": 266
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/PlanContent.ets",
+      "snippet": "#000000",
+      "line": 375
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/PlanGroupDetailContent.ets",
+      "snippet": "#F00D1117",
+      "line": 390
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/PlanGroupDetailContent.ets",
+      "snippet": "#D10A0D12",
+      "line": 469
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/PlanGroupDetailContent.ets",
+      "snippet": "#2450ECA7",
+      "line": 504
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/PlanGroupDetailContent.ets",
+      "snippet": "#151B20",
+      "line": 725
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/PlanGroupDetailContent.ets",
+      "snippet": "#EB0A0D12",
+      "line": 789
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/PlansContent.ets",
+      "snippet": "#1450ECA7",
+      "line": 244
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/PlansContent.ets",
+      "snippet": "#151B20",
+      "line": 303
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/ProfileContent.ets",
+      "snippet": "#9EFFFFFF",
+      "line": 336
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/ProfileEditContent.ets",
+      "snippet": "#E61A201E",
+      "line": 200
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/ReviewContent.ets",
+      "snippet": "#9E040608",
+      "line": 2330
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/ReviewContent.ets",
+      "snippet": "#20272F",
+      "line": 2522
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/ReviewContent.ets",
+      "snippet": "#9E040608",
+      "line": 2792
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/pages/PencilLoginPage.ets",
+      "snippet": "#A6FFFFFF",
+      "line": 339
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/pages/PencilLoginPage.ets",
+      "snippet": "#14D3B487",
+      "line": 356
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/pages/PencilRegisterPage.ets",
+      "snippet": "#14D3B487",
+      "line": 224
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/pages/PencilRegisterPage.ets",
+      "snippet": "#A6FFFFFF",
+      "line": 463
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/pages/PencilRegisterPage.ets",
+      "snippet": "#FFD7C5",
+      "line": 557
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/pages/PencilSplashPage.ets",
+      "snippet": "#0F50ECA7",
+      "line": 52
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/pages/PencilSplashPage.ets",
+      "snippet": "#F5F7FA",
+      "line": 98
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/pages/PencilSplashPage.ets",
+      "snippet": "#AAB4BF",
+      "line": 107
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/pages/PencilSplashPage.ets",
+      "snippet": "#6F7C87",
+      "line": 194
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/pages/PencilSplashPage.ets",
+      "snippet": "#090C11",
+      "line": 203
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/settings/components/SettingsContent.ets",
+      "snippet": "#F00D1117",
+      "line": 484
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/settings/pages/LegalDocPage.ets",
+      "snippet": "#C9FFFFFF",
+      "line": 91
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/settings/pages/LegalDocPage.ets",
+      "snippet": "#D10A0D12",
+      "line": 153
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/workout/pages/WorkoutCompletePage.ets",
+      "snippet": "#B8FFFFFF",
+      "line": 460
+    }
+  ]
+}

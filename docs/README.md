@@ -8,7 +8,7 @@
 | --- | --- |
 | `docs/release/` | 构建与发布：release runbook、上架截图清单、云调试自动化 |
 | `docs/cloud/` | 云与数据：AGC 配置手册、内容库 schema/同步、内容导入说明、动作视频库方案 |
-| `docs/ui/` | UI 与视觉验收：验收清单与记录模板、评审包、视觉回归说明、设计系统规范 |
+| `docs/ui/` | UI 与视觉验收：验收清单与记录模板、评审包、视觉回归说明 |
 | `docs/prototype/` | 原型还原：1:1 还原规则、动效与发散还原工作流、ArkUI 迁移提示词 |
 | `docs/process/` | 工程流程与协作：开发工作流（唯一权威 `vibe-coding-workflow.md`）、团队角色路由、任务队列 |
 | `docs/closeout/` | 阶段收尾与治理：MVP/备份收尾、收尾审计、路线图、旧页面治理清单 |

@@ -26,7 +26,16 @@ const groups = [
       'tools/check-gates.test.mjs',
       'tools/check-dead-refs.test.mjs',
       'tools/check-icon-assets.test.mjs',
+      'tools/check-specs.test.mjs',
+      'tools/check-parity.test.mjs',
+      'tools/check-code-rules.test.mjs',
     ],
+  },
+  {
+    // 安卓设备层：只测纯解析逻辑（adb 文本解析、端口/身份判定），不触设备。
+    // 设备实跑入口是 apps/android/tools/android-device.mjs 的 CLI，不进默认 verify。
+    cwd: path.join(repoRoot, 'apps', 'android'),
+    files: ['tools/android-device.test.mjs'],
   },
 ];
 
