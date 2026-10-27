@@ -1,0 +1,40 @@
+name: 门禁
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: gates-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  harmony-gates:
+    name: 鸿蒙工程门禁（跳过编译）
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出（需要完整历史供 git 空白检查）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 七条门禁（内容构建 / 页面注册 / 空白 / 死链 / 规范注册表 / 双端对等 / 代码规则）
+        working-directory: apps/harmony
+        run: node tools/check-gates.mjs --skip-build
+
+      - name: 鸿蒙工具脚本回归测试
+        working-directory: apps/harmony
+        run: node --test "tools/*.test.mjs"
+
+      - name: 根级脚本回归测试
+        run: node --test "tools/*.test.mjs"
+
+  # 说明：ArkTS 真实编译需要 DevEco Studio 与 HarmonyOS SDK（含华为账号授权），
+  # 公共 runner 装不了，因此这里只跑不依赖 SDK 的静态门禁。
+  # 涉及鸿蒙改动的 PR 请在本地跑 `devecocli build --product default` 并在描述里附输出。

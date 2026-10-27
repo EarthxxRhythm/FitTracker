@@ -1,0 +1,52 @@
+name: Android
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'apps/android/**'
+      - '.github/workflows/android.yml'
+  pull_request:
+    paths:
+      - 'apps/android/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-test:
+    name: 单元测试（JUnit + Robolectric）
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: 配置 Gradle 缓存
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: 安装 Android SDK Platform
+        uses: android-actions/setup-android@v3
+
+      - name: 补齐 compileSdk 所需平台
+        run: sdkmanager "platforms;android-37" || echo "platform 37 已预装或不可用，交由 Gradle 自行解析"
+
+      - name: 单元测试
+        working-directory: apps/android
+        run: ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace
+
+      - name: 上传测试报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-unit-test-report
+          path: apps/android/app/build/reports/tests/
+          if-no-files-found: ignore

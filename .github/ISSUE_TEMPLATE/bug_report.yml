@@ -1,0 +1,85 @@
+name: Bug 报告
+description: 报告一个可复现的问题
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。请尽量把下面填完整——信息越具体，定位越快。
+        如果是**安全问题**，请不要用这个表单，走 [SECURITY.md](../blob/master/.github/SECURITY.md) 的私密渠道。
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 平台
+      options:
+        - HarmonyOS 应用
+        - Android 应用
+        - 服务端 / 云同步
+        - 构建 / 脚本 / 文档
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 版本或提交
+      description: Release 版本号，或 `git rev-parse --short HEAD` 的输出
+      placeholder: v1.0.0 / 3752b97
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: 运行环境
+      description: 设备型号 + 系统版本 / DevEco 或 AGP 版本 / Node 版本
+      placeholder: 例如 P50 (HarmonyOS 5.0.1) 或 Pixel 7 (Android 14)
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 从冷启动开始，逐步写清点了什么、输入了什么
+      placeholder: |
+        1. 冷启动进入首页
+        2. 点「开始训练」
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望结果
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志 / 截图
+      description: `hdc hilog` / `adb logcat` 相关片段，或界面截图
+      render: shell
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 确认
+      options:
+        - label: 我已搜索过现有 issue，没有重复
+          required: true
+        - label: 我用的是最新 master 或最新 Release
+          required: false
