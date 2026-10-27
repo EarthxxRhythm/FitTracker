@@ -6,6 +6,7 @@ import sessionManagerTest from './SessionManager.test'
 import workoutSessionLogicTest from './WorkoutSessionService.test'
 import trainingPlanServiceTest from './TrainingPlanService.test'
 import planTabModelTest from './PlanTabModel.test'
+import activeSetRecordModelTest from './ActiveSetRecordModel.test'
 import startupRoutingTest from './StartupRouting.test'
 import contentRepositoryTest from './ContentRepository.test'
 import contentDatabaseServiceTest from './ContentDatabaseService.test'
@@ -31,6 +32,7 @@ import personalRecordServiceTest from './PersonalRecordService.test'
 import bodyRecordServiceTest from './BodyRecordService.test'
 import bodyMeasurementServiceTest from './BodyMeasurementService.test'
 import bodyMetricsTest from './BodyMetrics.test'
+import planProgressServiceTest from './PlanProgressService.test'
 import persistenceFallbackServiceTest from './PersistenceFallbackService.test'
 import deviceSeedServiceTest from './DeviceSeedService.test'
 import exerciseMediaResolverServiceTest from './ExerciseMediaResolverService.test'
@@ -57,6 +59,7 @@ export default function testsuite(): void {
   workoutSessionLogicTest()
   trainingPlanServiceTest()
   planTabModelTest()
+  activeSetRecordModelTest()
   startupRoutingTest()
   contentRepositoryTest()
   contentDatabaseServiceTest()
@@ -82,6 +85,7 @@ export default function testsuite(): void {
   bodyRecordServiceTest()
   bodyMeasurementServiceTest()
   bodyMetricsTest()
+  planProgressServiceTest()
   persistenceFallbackServiceTest()
   deviceSeedServiceTest()
   exerciseMediaResolverServiceTest()
