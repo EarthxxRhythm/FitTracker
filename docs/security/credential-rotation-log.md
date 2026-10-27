@@ -5,7 +5,7 @@
 
 | 日期 | 凭据 | 原因 | 消费端已同步 | 验证方式 | 执行人 |
 |---|---|---|---|---|---|
-| _(示例，未执行)_ 2026-10-28 | QQ_APP_KEY | 曾在聊天中暴露 | Edge Function Secrets + 函数重部署 | 真机 QQ 登录成功 | Earth |
+| 2026-10-28 | QQ_APP_KEY | 曾在聊天中暴露 | **未完成**：首次执行误填 AppID（与 `QQ_APP_ID` 同值、纯数字），已置空，待填入正确 AppKey | 重做后校验「新值 ≠ AppID」且非纯数字 | Earth |
 
 ## 轮换周期建议
 
@@ -15,6 +15,12 @@
 | 阿里云 RAM AccessKey | 每 6 个月 |
 | QQ / 微信 / AGC 平台密钥 | 每年，或怀疑泄露时立即 |
 | `SEND_SMS_HOOK_SECRET` | 随 service_role 一起 |
+
+## 已踩过的坑
+
+| 症状 | 原因 | 处置 |
+|---|---|---|
+| 替换后 `QQ_APP_KEY` 变成纯数字，且与 `QQ_APP_ID` 同值 | QQ 互联后台 AppID 与 AppKey 并排显示，复制到了 AppID | 重新复制 AppKey；本仓库 `tools/rotate-credential.mjs` 未做格式校验，靠比对两个键发现 |
 
 ## 相关文档
 

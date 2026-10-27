@@ -136,11 +136,21 @@ function main() {
   const rawNew = readFileSync(TMP_PATH, 'utf8').trim()
   if (rawNew.length < 8) fail('.rotate.tmp 内容太短，看起来不像有效密钥（可能是空文件或占位符）')
   if (/[\r\n]/.test(rawNew)) fail('.rotate.tmp 必须只有一行')
+  if (/^[0-9]+$/.test(rawNew)) {
+    fail('新值是纯数字。密钥几乎都是字母与数字混合——你多半复制到了 AppID 而不是 AppKey。\n' +
+      '  QQ 互联后台里 AppID 是 10 位纯数字，AppKey 在它旁边，是一长串字母数字混合值。')
+  }
 
   const originalText = readFileSync(ENV_PATH, 'utf8')
   const eol = originalText.includes('\r\n') ? '\r\n' : '\n'
   const lines = originalText.split(/\r?\n/)
   const map = parseEnv(originalText)
+  for (const [otherKey, otherValue] of map) {
+    if (otherKey !== key && otherValue.length >= 8 && otherValue === rawNew) {
+      fail('新值与同文件中的 ' + otherKey + ' 完全相同，疑似复制错了字段。\n' +
+        '  多半是把 AppID 当成了 AppKey。')
+    }
+  }
   const oldValue = map.get(key) ?? ''
 
   let replaced = false
@@ -184,7 +194,7 @@ function main() {
     '\n下一步（脚本不代替你执行）：\n' +
     '  1) 推送 secrets：npx supabase secrets set --env-file server/deploy/thirdparty.env --project-ref <ref>\n' +
     '  2) 重新部署：  npx supabase functions deploy thirdparty-exchange --project-ref <ref>\n' +
-    '  3) 验证：      docs/security/credential-rotation.md `4\n' +
+    '  3) 验证：      docs/security/credential-rotation.md 第 4 节\n' +
     '  4) 服务器侧还需同步：/opt/fittracker/sms-hook.env 或 /opt/supabase/docker/.env\n'
   )
 }
