@@ -30,6 +30,24 @@
 - **第三方登录回调**：`wxapi.WXEntryActivity` 与鸿蒙侧的登录回调参数校验。
 - **本地数据隔离**：跨 `bundleName` / `applicationId` 的数据可见性。
 
+## 已知不可轮换的凭据
+
+`QQ_APP_KEY`（QQ 互联 AppKey）**无法在开放平台后台重置**——受应用资质限制，重置入口不可用。
+
+这意味着它的保护策略不能是"泄露后再轮换"，只能是"确保永不泄露 + 泄露即止损"：
+
+| 措施 | 状态 |
+|---|---|
+| 只存放于服务端 `server/deploy/thirdparty.env`（`chmod 600`，`.gitignore` 覆盖） | ✅ |
+| 绝不注入客户端（Android / HarmonyOS 均不引用） | ✅ |
+| 只经 Supabase Edge Function 使用 | ✅ |
+| 按内容扫描 git 全历史（`git log -S`），确认从未入库 | ✅ 2026-10-28 |
+| 泄露时的唯一止损手段：下架 QQ 登录入口 | — |
+
+同理，`SUPABASE_SERVICE_ROLE_KEY` 一旦泄露可轮换，但两个平台（自托管栈、Edge Function）都要同步改，属于"能换但麻烦"的一类。
+
+**报告这类问题请直接走私密渠道**，不要开公开 issue。
+
 ## 不支持的报告
 
 - 依赖版本号过旧但无可利用路径的自动化扫描结果

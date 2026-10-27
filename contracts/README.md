@@ -10,12 +10,13 @@
 
 | | 鸿蒙 | Android |
 |---|---|---|
-| 云端存储 | 华为 AGC | 自托管 Supabase |
-| 存储实现 | `apps/harmony/entry/src/main/ets/shared/services/AgcCloudSnapshotStore.ets` | `apps/android/app/src/main/java/com/fittracker/app/data/cloud/SupabaseCloudSnapshotStore.kt` |
-| 后端资产 | `apps/harmony/cloud/agc/` | `server/supabase/`、`server/deploy/` |
+| 云端存储 | 自托管 Supabase | 自托管 Supabase |
+| 存储实现 | `apps/harmony/entry/src/main/ets/shared/services/SupabaseCloudSnapshotStore.ets` | `apps/android/app/src/main/java/com/fittracker/app/data/cloud/SupabaseCloudSnapshotStore.kt` |
+| 后端资产 | `server/supabase/`、`server/deploy/`（两端共用同一后端） | 同鸿蒙 |
 
-即 **契约层统一、供应商实现分家**。云端各自独立，但「备份包 JSON」必须双向可解析——
-鸿蒙导出的备份应能被 Android 导入，反之亦然。
+即 **契约层统一、后端同源**。2026-10-28 起华为 AGC 后端的双端链路已整体移除，
+两端共用同一套自托管 Supabase；但「备份包 JSON」仍必须双向可解析——
+鸿蒙导出的备份应能被 Android 导入，反之亦然（离线场景与手动迁移都依赖这一点）。
 
 ## 1. 备份包 `UserDataBackupPackage`
 
@@ -133,7 +134,7 @@ RLS 三策略 `auth.uid() = user_id`（select / insert / update；**刻意不建
 
 ## 7. 已知未收敛项
 
-- **两端后端不同源**（AGC / Supabase）：云端数据互不可见，跨端迁移目前只能靠**手动备份包导出导入**。
+- **两端后端同源**（自托管 Supabase）：共用一套 Postgres 与 RLS 策略。但两端仍各自维护本地快照缓存，同一账号在两端登录时以云端为准、本地滞后写入需靠同步收敛。
   是否统一云端是独立决策，不在本契约范围内。
 - **同一条训练记录两端都改**：按 §5 规则由导入包版本胜出，本端那次修改被替换。
   当前 Android 侧 `WorkoutRepository.updateSession` 无生产调用方（记录只增不改），故实际不会触发。
