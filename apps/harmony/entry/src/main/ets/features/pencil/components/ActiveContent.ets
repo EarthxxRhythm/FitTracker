@@ -2,6 +2,7 @@
 import { AppRoutes } from '../../../app/AppRoutes'
 import { window } from '@kit.ArkUI'
 import { MediaTokens, MotionTokens } from '../../../common/styles/DesignTokens'
+import { MotionIntent } from '../../../common/styles/MotionIntent'
 import { DuTokens } from '../../../common/styles/DuTokens'
 import { ExerciseDemoImage } from '../../../components/ExerciseDemoImage'
 import { WorkoutSession } from '../../../shared/models/TrainingModels'
@@ -18,6 +19,11 @@ import UserProfileService, { UserProfile, WeightUnit } from '../../../common/ser
 import { kgToDisplay, displayToKg, weightUnitLabel } from '../../../common/utils/WeightUtils'
 import HapticFeedbackService from '../../../common/services/HapticFeedbackService'
 import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
+import {
+  ActiveExerciseRecordGroup,
+  ActiveSetRecord,
+  appendSetRecord
+} from './ActiveSetRecordModel'
 
 interface ActiveWorkoutRouteParams {
   preview: WorkoutPreviewSummary
@@ -28,20 +34,8 @@ interface InitialSetValues {
   reps: number
 }
 
-interface SetRecordItem {
-  index: number
-  weight: number
-  reps: number
-}
-
-function createSetRecord(index: number, weight: number, reps: number): SetRecordItem {
-  const item: SetRecordItem = {
-    index: index,
-    weight: weight,
-    reps: reps
-  }
-  return item
-}
+// 组记录按动作分组（见 ActiveSetRecordModel）：分组键是 plannedExerciseId，
+// 不再是一条贯穿全场的扁平列表。
 
 // 进度条段数不固定：段数 = 本次训练总组数（跨动作求和，见 ActiveWorkoutService.totalTargetSets），
 // 由 @State targetSets 驱动。此前这里是硬编码的 6 段常量，结束判据也压在它上面——
@@ -122,7 +116,7 @@ export struct ActiveContent {
   /** 本次训练总组数（跨动作求和）：进度条段数、组号文案与收尾判据都以它为准。 */
   @State private targetSets: number = 0
   @State private showModal: boolean = false
-  @State private records: SetRecordItem[] = []
+  @State private recordGroups: ActiveExerciseRecordGroup[] = []
   @State private celebrating: boolean = false
   @State private elapsedSeconds: number = 0
   @State private submitPressed: boolean = false
@@ -425,13 +419,15 @@ export struct ActiveContent {
     // 所以第一个动作录满后，本次记录会自动落到下一个动作的第 1 组。
     const weightText: string = this.weight.toString()
     const repsText: string = this.reps.toString()
+    // 记录归属必须在推进前解析：recordSet 之后 nextExercise 已指向下一个动作，
+    // 那时再取会把这一组挂到错误的动作分组上。
+    const recordingExercise: ActiveWorkoutExercise | undefined = ActiveWorkoutService.nextExercise(this.activeState)
     const nextState: ActiveWorkoutState = ActiveWorkoutService.recordSet(this.activeState, weightText, repsText)
     this.activeState = nextState
-    const nextRecords: SetRecordItem[] = this.records.slice()
-    nextRecords.push(createSetRecord(this.completed + 1, this.weight, this.reps))
+    const nextGroups: ActiveExerciseRecordGroup[] = this.appendRecordGroup(recordingExercise)
     const justDoneIndex: number = this.completed
     this.getUIContext().animateTo({ duration: MotionTokens.DURATION_RECORD, curve: MotionTokens.EASE_MOTION }, () => {
-      this.records = nextRecords
+      this.recordGroups = nextGroups
     })
     this.getUIContext().animateTo({ duration: MotionTokens.DURATION_MARKER, curve: MotionTokens.EASE_MOTION }, () => {
       this.completed += 1
@@ -440,29 +436,51 @@ export struct ActiveContent {
     if (this.segPopTimer !== -1) {
       clearTimeout(this.segPopTimer)
     }
+    // 放大段只持续 UP 时长；回落到常态由渲染处按 DOWN 时长接管（合计 = DURATION_SEG_POP）
     this.segPopTimer = setTimeout(() => {
       this.segPopIndex = -1
       this.segPopTimer = -1
-    }, MotionTokens.DURATION_SEG_POP)
+    }, MotionTokens.DURATION_SEG_POP_UP)
     this.showModal = false
     if (this.soundEnabled) {
       HapticFeedbackService.confirm()
     }
-    this.celebrating = true
     // 动作卡与角标跟着 state 走：录满当前动作的最后一组后，动作名/演示图/序号立即切到下一个动作。
     this.applyCurrentExercise(nextState)
     const isLast: boolean = justDoneIndex + 1 >= this.targetSets
     if (isLast) {
+      // 庆祝只在里程碑出现。此前每组都置 celebrating=true 并铺 1.4s 全屏遮罩：
+      // 一次训练放 N 次焰火，情绪价值被稀释，还会打断连续记录的输入节奏。
+      // Duolingo 的 guardrail 正是「庆祝要稀缺，不要给每次进度变化都加通用弹跳」。
+      this.celebrating = true
       this.finished = true
       this.saveCompletedSession()
-    }
-    this.celebrateTimer = setTimeout(() => {
-      this.celebrating = false
-      this.celebrateTimer = -1
-      if (isLast) {
+      this.celebrateTimer = setTimeout(() => {
+        this.celebrating = false
+        this.celebrateTimer = -1
         this.finish()
-      }
-    }, isLast ? 900 : 1400)
+      }, 900)
+    }
+  }
+
+  /**
+   * 把本组记录并入其所属动作的分组。
+   *
+   * [exercise] 必须取自 recordSet 之前的状态快照——该快照的 completedSets 不含本组，
+   * 因此 +1 即本组在动作内的序号（组号从 1 起，切动作后重新计数）。
+   */
+  private appendRecordGroup(exercise: ActiveWorkoutExercise | undefined): ActiveExerciseRecordGroup[] {
+    if (exercise === undefined) {
+      return this.recordGroups
+    }
+    return appendSetRecord(
+      this.recordGroups,
+      exercise.plannedExerciseId,
+      exercise.name,
+      exercise.completedSets + 1,
+      this.weight,
+      this.reps
+    )
   }
 
   /** 把 state 推导出的当前动作同步到展示态（名称 / 演示素材 / 角标序号）。 */
@@ -616,7 +634,15 @@ export struct ActiveContent {
               .border({ width: this.segmentBorderWidth(index), color: this.segmentBorder(index) })
               .shadow({ radius: index === this.completed ? 2 : 0, color: index === this.completed ? PrototypeTokens.ACCENT_A12 : PrototypeTokens.TRANSPARENT, offsetX: 0, offsetY: 0 })
               .scale({ x: index === this.segPopIndex ? 1.12 : 1, y: index === this.segPopIndex ? 1.12 : 1 })
-              .animation({ duration: MotionTokens.DURATION_SEG_POP, curve: MotionTokens.EASE_MOTION })
+              // 放大用 UP + 过冲曲线（弹一下），回缩用 DOWN + 常规缓动（稳稳落回）
+              .animation({
+                duration: this.segPopIndex >= 0
+                  ? MotionTokens.DURATION_SEG_POP_UP
+                  : MotionTokens.DURATION_SEG_POP_DOWN,
+                curve: this.segPopIndex >= 0
+                  ? MotionTokens.EASE_BACK_OUT
+                  : MotionTokens.EASE_MOTION
+              })
             if (index === this.completed) {
               Row()
                 .width(18)
@@ -728,7 +754,7 @@ export struct ActiveContent {
   @Builder
   private setList() {
     Column({ space: 10 }) {
-      if (this.records.length === 0) {
+      if (this.recordGroups.length === 0) {
         Column() {
           Text('还没有完成组')
             .fontFamily('Noto Sans SC')
@@ -741,31 +767,58 @@ export struct ActiveContent {
         .border({ width: 1, color: PrototypeTokens.WHITE_A10, style: BorderStyle.Dashed })
         .borderRadius(14)
       } else {
-        ForEach(this.records, (record: SetRecordItem) => {
-          Row() {
-            Text('第 ' + record.index.toString() + ' 组')
-              .fontFamily('Noto Sans SC')
-              .fontSize(13)
-              .fontColor(PrototypeTokens.WHITE_A70)
-            Text(this.displayWeightText(record.weight) + ' ' + weightUnitLabel(this.displayUnit) + ' × ' + record.reps.toString())
-              .fontFamily('Geist Mono')
-              .fontSize(14)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(PrototypeTokens.TEXT_HI)
-            Text('✓')
-              .fontFamily('HarmonyOS Sans')
-              .fontSize(14)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(PrototypeTokens.ACCENT)
+        ForEach(this.recordGroups, (group: ActiveExerciseRecordGroup) => {
+          Column({ space: 8 }) {
+            Row() {
+              Text(group.exerciseName)
+                .fontFamily('Noto Sans SC')
+                .fontSize(13)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(PrototypeTokens.WHITE_A70)
+                .layoutWeight(1)
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+              Text(group.sets.length.toString() + ' 组')
+                .fontFamily('Geist Mono')
+                .fontSize(12)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(PrototypeTokens.ACCENT)
+            }
+            .width('100%')
+            .justifyContent(FlexAlign.SpaceBetween)
+
+            ForEach(group.sets, (record: ActiveSetRecord) => {
+              Row() {
+                Text('第 ' + record.setNumber.toString() + ' 组')
+                  .fontFamily('Noto Sans SC')
+                  .fontSize(13)
+                  .fontColor(PrototypeTokens.WHITE_A70)
+                Text(this.displayWeightText(record.weight) + ' ' + weightUnitLabel(this.displayUnit) + ' × ' + record.reps.toString())
+                  .fontFamily('Geist Mono')
+                  .fontSize(14)
+                  .fontWeight(FontWeight.Bold)
+                  .fontColor(PrototypeTokens.TEXT_HI)
+                Text('✓')
+                  .fontFamily('HarmonyOS Sans')
+                  .fontSize(14)
+                  .fontWeight(FontWeight.Bold)
+                  .fontColor(PrototypeTokens.ACCENT)
+              }
+              .width('100%')
+              .height(40)
+              .padding({ left: 10, right: 10 })
+              .justifyContent(FlexAlign.SpaceBetween)
+              .borderRadius(10)
+              .border({ width: 1, color: PrototypeTokens.WHITE_A08 })
+              .transition(TransitionEffect.OPACITY.combine(TransitionEffect.translate({ y: 6 })))
+            }, (record: ActiveSetRecord) => record.setNumber.toString())
           }
           .width('100%')
-          .height(44)
-          .padding({ left: 12, right: 12 })
-          .justifyContent(FlexAlign.SpaceBetween)
-          .borderRadius(12)
-          .border({ width: 1, color: PrototypeTokens.WHITE_A08 })
-          .transition(TransitionEffect.OPACITY.combine(TransitionEffect.translate({ y: 6 })))
-        }, (record: SetRecordItem) => record.index.toString())
+          .padding({ left: 12, right: 12, top: 10, bottom: 12 })
+          .backgroundColor('#06FFFFFF')
+          .borderRadius(16)
+          .border({ width: 1, color: PrototypeTokens.WHITE_A06 })
+        }, (group: ActiveExerciseRecordGroup) => group.plannedExerciseId)
       }
     }
     .width('100%')
@@ -818,7 +871,7 @@ export struct ActiveContent {
         .width('100%')
         .height('100%')
         .backgroundColor('#030606B8')
-        .transition(TransitionEffect.OPACITY.animation({ duration: MotionTokens.DURATION_OVERLAY, curve: Curve.EaseInOut }))
+        .transition(TransitionEffect.OPACITY.animation({ duration: MotionIntent.scrimDuration(), curve: MotionIntent.scrimCurve() }))
 
       Column() {
         Row() {
