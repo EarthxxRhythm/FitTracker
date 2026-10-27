@@ -20,4 +20,3 @@
 - 鎿嶄綔鎵嬪唽锛歚docs/security/credential-rotation.md`
 - 鐜鍙橀噺妯℃澘锛歚server/deploy/.env.template`
 - 绗笁鏂硅祫璐ㄦ祦绋嬶細`docs/process/thirdparty-qualification-guide.md`
-| 2026-10-27 | HUAWEI_CLIENT_SECRET | 瑙佽疆鎹㈡墜鍐?| 寰呯‘璁わ細闇€鎺ㄩ€?secrets / 閲嶅惎鏈嶅姟 | 寰呭～ | Earth |

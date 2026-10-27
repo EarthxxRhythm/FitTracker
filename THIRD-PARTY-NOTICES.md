@@ -16,7 +16,8 @@
 | Inter | `apps/harmony/entry/src/main/resources/rawfile/fonts/Inter-Variable.ttf` | SIL OFL-1.1 | Copyright 2016 The Inter Project Authors (https://github.com/rsms/inter) |
 | Noto Sans SC | `apps/harmony/entry/src/main/resources/rawfile/fonts/NotoSansSC-Variable.ttf` | SIL OFL-1.1 | © 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source' |
 | 腾讯 QQ 互联 Android SDK | `apps/android/app/libs/open_sdk_3.5.19_r9483ffc7_lite.jar` | 腾讯专有许可 | 由 QQ 互联开放平台官方分发，**不适用本仓库的 Apache-2.0**。仅为让 Android 端开箱可编译而保留。详见第六节 |
-| Lucide 图标（9 个） | `apps/harmony/entry/src/main/resources/rawfile/pencil-lucide-*.svg` | ISC | Copyright (c) Lucide Contributors |
+| Lucide 图标 | `apps/harmony/entry/src/main/resources/rawfile/pencil-lucide-*.svg` | ISC | Copyright (c) Lucide Contributors |
+| 动作演示素材（59 条 GIF） | `rawfile/exercise-gifs-photo/`、`apps/android/app/src/main/assets/exercise-gifs-photo/` | Unlicense（公共领域） | 来源 [free-exercise-db](https://github.com/yuhonas/free-exercise-db)，由 `build-exercise-gifs-photo.mjs` 合成三段乒乓 GIF。Unlicense 不强制署名，此处为来源登记 |
 | Gradle Wrapper | `apps/android/gradle/wrapper/gradle-wrapper.jar` | Apache-2.0 | Gradle 官方分发的包装器 |
 
 三个字体文件的 OFL 全文见 `apps/harmony/entry/src/main/resources/rawfile/fonts/OFL.txt`。
