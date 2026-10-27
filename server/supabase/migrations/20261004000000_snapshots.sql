@@ -2,7 +2,7 @@
 --
 -- 执行方式（任选其一）：
 --   ① Supabase Dashboard → SQL Editor → 粘贴本文件全文 → Run（推荐，零依赖）
---   ② supabase link --project-ref ixzozsqaprtquwxzhdsm && supabase db push（需 CLI 已登录）
+--   ② supabase link --project-ref <YOUR_PROJECT_REF> && supabase db push（需 CLI 已登录）
 --
 -- 说明：publishable key 为公开客户端凭据，数据访问受本文件的 RLS 约束。
 

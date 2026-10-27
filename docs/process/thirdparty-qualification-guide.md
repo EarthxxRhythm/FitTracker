@@ -56,7 +56,7 @@ debug   签名 → 6918742142862924944   （.ohos/config/ 下 IDE 自动生成�
 
 ## 3. 线 A · 华为账号（几乎无需操作）
 
-**好消息：AGC 侧配置已在仓库中**（`apps/harmony/AppScope/resources/rawfile/agconnect-services.json` 已含 `client_id` / `client_secret` / `project_id`），说明应用已在 AGC 控制台创建并配好了凭证。
+**AGC 侧配置需本地自备**：`apps/harmony/AppScope/resources/rawfile/` 下的 `agconnect-services.json` 含 `client_id` / `client_secret` / `project_id`。该文件由 `.gitignore` 排除、不入库，从 AGC 控制台下载后自行放入。是否存在该文件决定运行期走真实云端还是沙盒降级。
 
 **只需确认两件事**：
 

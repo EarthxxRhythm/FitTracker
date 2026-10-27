@@ -133,3 +133,8 @@ replay_pid*.log
 # 动作演示素材的源图缓存（tools/content/build-exercise-gifs-photo.mjs 下载的中间产物；
 # 合成后的 GIF 入库，源图可重新下载，不入库）
 apps/harmony/.cache/
+
+# 开源合规：素材授权尚待确认时的本地隔离目录（见 ASSETS.md）
+**/assets/nonfree/
+# 本地临时文件
+/.tmp-*
