@@ -1,5 +1,12 @@
 # Shared Services - Knowledge Base
 
+> **层级**：L2 展开
+> **最后核对**：2026-10-27
+> **上位文档**：仓库根 `AGENTS.md`（L1）
+> **状态**：现行
+> **路径基准**：文中路径相对 `apps\harmony\entry\src\main\ets\`
+> **适用端**：仅鸿蒙
+
 ## OVERVIEW
 
 `shared/services/` owns cross-feature domain logic, content access, derived view-models, sync state, backup composition, and in-memory repositories used by the current feature-first flow.

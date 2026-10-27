@@ -1,5 +1,12 @@
 # common/services 目录约束
 
+> **层级**：L2 展开
+> **最后核对**：2026-10-27
+> **上位文档**：仓库根 `AGENTS.md`（L1）
+> **状态**：现行
+> **路径基准**：文中路径相对 `apps\harmony\entry\src\main\ets\`
+> **适用端**：仅鸿蒙
+
 这里放稳定的应用级服务：认证、会话 token、用户资料、训练计划、训练会话、动作目录和训练草稿。跨 feature 的内容、复盘、备份、同步与内存仓库放在 `shared/services/`；训练页面专属编排放在 `features/workout/services/`。
 
 ## 服务清单

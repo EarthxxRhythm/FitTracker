@@ -1,6 +1,13 @@
 # 菲特 项目约束
 
-> 最后核对：2026-10-12（本次按 monorepo 重组同步路径：鸿蒙工程位于 `apps/harmony/`，安卓位于 `apps/android/`，共享文档在仓库根 `docs/`。页面清单与 features 边界已按 `main_pages.json` 最新版校准；登录/注册已云端化（AGC），「训练目标」引导页已移除）。本文只描述当前主线；历史设计、旧路由和已归档计划不作为实现依据。
+> **层级**：L1 权威
+> **最后核对**：2026-10-27
+> **上位文档**：无，本文为顶层
+> **状态**：现行
+> **路径基准**：文中 `apps\…`、`docs\…`、`server\…` 相对仓库根；标注 `cd apps/harmony` 之后的 `tools\…` 相对鸿蒙工程根
+> **适用端**：双端
+
+> 2026-10-12 monorepo 重组说明：鸿蒙工程位于 `apps/harmony/`，安卓位于 `apps/android/`，共享文档在仓库根 `docs/`。页面清单与 features 边界已按 `main_pages.json` 最新版校准；登录/注册已云端化（AGC），「训练目标」引导页已移除。本文只描述当前主线；历史设计、旧路由和已归档计划不作为实现依据。
 
 ## 项目概览
 
@@ -74,6 +81,22 @@ devecocli build --product default
 ```
 
 设备回归使用 `apps/harmony/tools/auth-regression.ps1` 或 `apps/harmony/tools/dev-smoke.ps1`；没有设备时至少运行路由检查、静态引用检查和可用的 ArkTS/ohosTest 构建。
+
+## 规范在哪
+
+全部规范载体见 `docs\spec-registry.md`（层级 / 状态 / 适用端 / 自动检查方式）。
+
+本目录树下的就近约束——进入该目录改代码前**先读那一份**，与本文冲突时以本文（L1）为准：
+
+| 目录 | 约束文件 | 管什么 |
+|---|---|---|
+| `common\services\` | `AGENTS.md` | 应用级服务清单、singleton / flush / Context 约定 |
+| `shared\` | `AGENTS.md` | 跨功能领域逻辑归属 + ANTI-PATTERNS |
+| `components\` | `AGENTS.md` | 通用组件约定 + AppButton 厚底规则 |
+| `features\workout\pages\` | `AGENTS.md` | 训练页仅保留 2 页，禁建第二套主线 |
+| `features\workout\services\` | `AGENTS.md` | 训练编排归属 + ANTI-PATTERNS |
+
+双端同步要求见 `docs\process\dual-platform-parity.md`；测试环境见 `docs\process\test-environments.md`；登录验证见 `docs\process\auth-verification.md`；代码细则（rule id）见 `docs\process\engineering-standards.md`。
 
 ## 多代理消息通道（平台通道故障时的文件信箱协议）
 

@@ -102,6 +102,24 @@ function main() {
       command: 'node',
       args: ['tools/check-dead-refs.mjs'],
       help: '文档/配置里引用了仓库内已不存在的路径。改为当前路径；若该引用本就是「已归档/已删除」说明，请在同一句带上失效措辞（脚本据此豁免）。'
+    },
+    {
+      name: 'spec registry',
+      command: 'node',
+      args: ['tools/check-specs.mjs'],
+      help: '注册表与规范文档头部不一致。修法：文件不存在改注册表路径；缺头部补 6 行（层级/最后核对/上位文档/状态/路径基准/适用端）；状态不一致统一两处。'
+    },
+    {
+      name: 'dual-platform parity',
+      command: 'node',
+      args: ['tools/check-parity.mjs'],
+      help: '双端对等清单与代码不一致。修法：新屏加到 docs/process/dual-platform-parity.md 的对等清单，或加进已知不对称表并写清理由与复核方式；上架身份不一致时对齐 applicationId 与 bundleName。'
+    },
+    {
+      name: 'code rules',
+      command: 'node',
+      args: ['tools/check-code-rules.mjs'],
+      help: '按 [rule-id] 定位：RT=路由 SV=服务 AR=分层 DS=设计系统。规则说明见 docs/process/engineering-standards.md 同名章节。确属架构例外时加入 EXEMPTIONS 并写明 reason/ref；存量色值债只能用 --write-baseline 追加，不得手工编辑基线。'
     }
   ]
 

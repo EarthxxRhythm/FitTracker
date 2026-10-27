@@ -1,5 +1,12 @@
 # FitTracker Agent Team Workflow Overlay
 
+> **层级**：L2 展开
+> **最后核对**：2026-10-27
+> **上位文档**：`vibe-coding-workflow.md`（L1 流程权威）+ 仓库根 `AGENTS.md`（L1 工程约束）
+> **状态**：现行
+> **路径基准**：文中 `docs\…`、`apps\…` 相对仓库根
+> **适用端**：双端
+
 这份文档是 `agent-team-studio` 和 `design-review-studio` 在 FitTracker 仓库内的项目适配层。
 
 目标只有一个：让后续开发默认按“主控经理 + 职业分工 specialist + 轻量验证”的方式稳定推进，而不是每轮重新发明流程。
