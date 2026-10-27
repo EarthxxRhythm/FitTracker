@@ -150,6 +150,8 @@ apps/harmony/.cache/
 **/assets/exercise-gifs-cut/
 # 本地临时文件
 /.tmp-*
+# 凭据轮换临时文件（tools/rotate-credential.mjs 读取后立即删除）
+/.rotate.tmp
 
 # 设计过程资产（原型重绘、规格提取、参考实现资源）
 # 2026-10-28 起移出主仓，独立存放为 FitTracker-design。
