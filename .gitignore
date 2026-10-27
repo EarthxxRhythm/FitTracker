@@ -49,17 +49,19 @@ Thumbs.db
 
 # AGC service configuration (contains client keys — never commit).
 # Copy agconnect-services.json into AppScope/resources/rawfile/ locally before Wave 5 build.
-**/agconnect-services.json
+# 用通配而非精确文件名：.disabled / .bak / .old 等变体同样含真实凭据，不能绕过本规则。
+**/agconnect-services.json*
 
 # Supabase 自托管后端配置（含 publishable key；本仓库为 public，不入库）
 # 本地放置：apps/harmony/AppScope/resources/rawfile/supabase.json
 # 字段形状见同目录 supabase.example.json（模板入库）
-**/supabase.json
+# 同样用通配覆盖 .disabled / .bak 等变体。
+**/supabase.json*
 
 # 第三方登录运行时配置（含微信/QQ AppID 等；真值不入库，模板入库）
 # 本地放置：apps/harmony/AppScope/resources/rawfile/thirdparty.json
 # 注意：QQ AppID 还需同步填入 entry/src/main/module.json5 的 skills.uris[].host
-**/thirdparty.json
+**/thirdparty.json*
 
 # C/C++ tooling
 .cxx
@@ -136,5 +138,21 @@ apps/harmony/.cache/
 
 # 开源合规：素材授权尚待确认时的本地隔离目录（见 ASSETS.md）
 **/assets/nonfree/
+
+# 动作演示素材：原「线稿」套系为 Gym Visual（© gymvisual.com）素材，
+# 经第三方数据集转授权，授权链条不成立。2026-10-28 起不再随仓库分发，
+# 统一改用 free-exercise-db（Unlicense）实拍素材。详见 ASSETS.md。
+# 本地若保留旧副本仅供对照，不要提交。
+**/rawfile/exercise-gifs/
+**/rawfile/exercise-gifs-dark/
+**/rawfile/exercise-gifs-onpage/
+**/assets/exercise-gifs/
+**/assets/exercise-gifs-cut/
 # 本地临时文件
 /.tmp-*
+
+# 设计过程资产（原型重绘、规格提取、参考实现资源）
+# 2026-10-28 起移出主仓，独立存放为 FitTracker-design。
+# 其中 design/06_prototype_redraw/src/assets/opengym-ref/ 是第三方参考实现的资源副本，
+# 不适合随 Apache-2.0 仓库分发；产物截图见 docs/screenshots/。
+/design/

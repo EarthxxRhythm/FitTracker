@@ -34,7 +34,9 @@ const MAP_PATH = resolve(scriptDir, 'exercise-photo-sources.json')
 const CATALOG_PATH = resolve(harmonyRoot, 'entry/src/main/ets/shared/services/ExerciseGifCatalog.ets')
 const JSONL_PATH = resolve(harmonyRoot, 'content/exercises/exercises.zh-CN.jsonl')
 const PHOTO_DIR = resolve(harmonyRoot, 'entry/src/main/resources/rawfile/exercise-gifs-photo')
-const LINE_DIR = resolve(harmonyRoot, 'entry/src/main/resources/rawfile/exercise-gifs-onpage')
+// 2026-10-28：线稿素材（Gym Visual，授权链条不成立）已从仓库移除。
+// catalog 的 DEMO_GIF_DIRECTORY 现与 PHOTO_GIF_DIRECTORY 同值，两套目录收敛为一套。
+const LINE_DIR = PHOTO_DIR
 
 /** 内容库 exerciseId(ex_xxx_yyy) -> 素材文件名(xxx-yyy)，与 catalog 实现同一规则。 */
 function gifIdOf(exerciseId) {
@@ -80,15 +82,20 @@ const findIn = (groups, name) => {
   for (const g of groups) if (g.names.indexOf(name) >= 0) return g.gifId
   return ''
 }
-/** 与 catalog 的 resolveDemoSource 同构：线稿优先，实拍兜底，最后默认素材。 */
+/**
+ * 与 catalog 的 resolveDemoSource 同构：线稿组优先、实拍组兜底、最后回退默认素材。
+ *
+ * 注意目录：线稿组命中后同样落到 photo 目录，因为线稿目录已被撤下。
+ * 对尚未补生成的动作，这个路径会指向不存在的文件，消费端由失败回退降级为占位图标。
+ */
 const resolveSource = (name) => {
   const n = String(name).trim()
-  if (!n) return 'exercise-gifs-onpage/barbell-bench-press.gif'
+  if (!n) return 'exercise-gifs-photo/barbell-deadlift.gif'
   const a = findIn(lineGroups, n)
-  if (a) return 'exercise-gifs-onpage/' + a + '.gif'
+  if (a) return 'exercise-gifs-photo/' + a + '.gif'
   const b = findIn(photoGroups, n)
   if (b) return 'exercise-gifs-photo/' + b + '.gif'
-  return 'exercise-gifs-onpage/barbell-bench-press.gif'
+  return 'exercise-gifs-photo/barbell-deadlift.gif'
 }
 
 test('映射表的每条可用条目都能在内容库里找到，且互不重复', function () {
@@ -129,13 +136,16 @@ test('catalog 实拍组的每个条目都至少有一个中文名', function () 
   }
 })
 
-test('线稿优先：既有素材对应的动作不被实拍素材顶替', function () {
-  // 「杠铃划船」「腿弯举」在两个分组里都存在（内容库与 free-exercise-db 指向同一动作）。
-  // 解析顺序若被颠倒，老动作的演示图会被悄悄换掉——这是视觉回归，必须锁死。
-  assert.equal(resolveSource('杠铃划船'), 'exercise-gifs-onpage/barbell-row.gif')
-  assert.equal(resolveSource('腿弯举'), 'exercise-gifs-onpage/leg-curl.gif')
-  assert.equal(resolveSource('深蹲'), 'exercise-gifs-onpage/squat.gif')
-  assert.equal(resolveSource('杠铃卧推'), 'exercise-gifs-onpage/barbell-bench-press.gif')
+test('线稿组优先解析，但目录已收敛到 photo', function () {
+  // 「杠铃划船」「腿弯举」在两个分组里都存在。解析顺序不变（线稿组先），
+  // 只是线稿目录已被撤下，故两类命中都落到 photo 目录。
+  // 顺序本身仍要锁死：若被颠倒，补生成同名素材后老动作会被悄悄换掉。
+  assert.equal(resolveSource('杠铃划船'), 'exercise-gifs-photo/barbell-row.gif')
+  assert.equal(resolveSource('腿弯举'), 'exercise-gifs-photo/leg-curl.gif')
+  assert.equal(resolveSource('深蹲'), 'exercise-gifs-photo/squat.gif')
+  assert.equal(resolveSource('杠铃卧推'), 'exercise-gifs-photo/barbell-bench-press.gif')
+  // 线稿组独有、且 photo 组也有的（cable-crossover）应立即有效。
+  assert.equal(resolveSource('绳索夹胸'), 'exercise-gifs-photo/cable-crossover.gif')
 })
 
 test('实拍兜底：线稿未覆盖的动作解析到实拍目录', function () {
@@ -144,10 +154,13 @@ test('实拍兜底：线稿未覆盖的动作解析到实拍目录', function ()
   assert.equal(resolveSource('死虫式'), 'exercise-gifs-photo/dead-bug.gif')
 })
 
-test('未命中与空串回退到默认演示素材', function () {
-  assert.equal(resolveSource('不存在的动作名'), 'exercise-gifs-onpage/barbell-bench-press.gif')
-  assert.equal(resolveSource(''), 'exercise-gifs-onpage/barbell-bench-press.gif')
-  assert.equal(resolveSource('   '), 'exercise-gifs-onpage/barbell-bench-press.gif')
+test('未命中与空串回退到默认演示素材（且该文件必须真实存在）', function () {
+  // 回退目标若指向不存在的文件，消费端会二次落空、只剩占位图。
+  assert.equal(resolveSource('不存在的动作名'), 'exercise-gifs-photo/barbell-deadlift.gif')
+  assert.equal(resolveSource(''), 'exercise-gifs-photo/barbell-deadlift.gif')
+  assert.equal(resolveSource('   '), 'exercise-gifs-photo/barbell-deadlift.gif')
+  assert.ok(existsSync(resolve(PHOTO_DIR, 'barbell-deadlift.gif')),
+    'catalog 的 DEFAULT_EXERCISE_GIF_ID 在 photo 目录中不存在，回退会失效')
 })
 
 test('内容库覆盖率不低于 101/102（本管线的核心收益）', function () {
@@ -166,17 +179,20 @@ test('内容库覆盖率不低于 101/102（本管线的核心收益）', functi
     '未覆盖集合与预期不符（源库无鸟狗式，其余应全部覆盖）')
 })
 
-test('两个素材目录的文件与各自目录常量声明一致', function () {
+test('素材目录常量与磁盘内容一致', function () {
   // 目录名是 catalog 的导出常量，若被改名而素材未迁移会全线失效。
   assert.ok(catalogSrc.includes("export const PHOTO_GIF_DIRECTORY: string = 'exercise-gifs-photo/'"),
     'PHOTO_GIF_DIRECTORY 常量缺失或与素材目录不符')
-  assert.ok(catalogSrc.includes("export const DEMO_GIF_DIRECTORY: string = 'exercise-gifs-onpage/'"),
-    'DEMO_GIF_DIRECTORY 常量缺失或与素材目录不符')
+  assert.ok(catalogSrc.includes("export const DEMO_GIF_DIRECTORY: string = 'exercise-gifs-photo/'"),
+    'DEMO_GIF_DIRECTORY 必须与 PHOTO_GIF_DIRECTORY 同值（线稿目录已撤下）')
+  assert.ok(!catalogSrc.includes("'exercise-gifs-onpage/'"),
+    'catalog 仍在引用已移除的线稿目录')
   assert.ok(existsSync(PHOTO_DIR), '实拍素材目录不存在')
-  assert.ok(existsSync(LINE_DIR), '线稿素材目录不存在')
-  assert.equal(lineFiles.size, lineGroups.length,
-    `线稿目录 ${lineFiles.size} 个文件 vs catalog ${lineGroups.length} 条`)
+  assert.equal(photoFiles.size, photoGroups.length,
+    `素材目录 ${photoFiles.size} 个文件 vs catalog 实拍组 ${photoGroups.length} 条`)
   assert.ok(lineGroups.length > 0 && photoGroups.length > 0, '分组解析结果为空，catalog 结构可能已变')
+  // 线稿组映射数据保留（补生成后可复活），但素材文件不应再出现在仓库里。
+  assert.equal(lineFiles.size, photoFiles.size, '线稿目录已撤下，不应再有独立文件集合')
 })
 
 test('映射表声明了素材来源与授权口径', function () {

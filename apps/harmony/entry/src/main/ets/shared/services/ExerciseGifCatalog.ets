@@ -1,21 +1,47 @@
 /**
  * ExerciseGifCatalog -- 训练演示 GIF 的解析目录。
  *
- * 素材位于 rawfile/exercise-gifs-onpage/<gifId>.gif（180×180、12 帧动作演示），
- * 由 tools/build-exercise-gifs-onpage.py 把原白底素材**按亮度软过渡合成到页面底色**上：
- * 颜色不动、白底区即页面底色、边缘是逐像素插值而非 1 bit 阈值，故既无白块也无锯齿。
- * 训练执行页的动作卡相应不设卡面底色（见 ActiveContent.demoVisual）。
+ * ## 素材来源（2026-10-28 变更）
+ *
+ * 旧版有两套素材：23 个「线稿」+ 59 个 free-exercise-db 实拍。线稿套系经查为
+ * Gym Visual（© gymvisual.com）素材，由第三方数据集转授权而来，授权链条不成立，
+ * 已从仓库移除、不再分发（详见 ASSETS.md）。
+ *
+ * 现**唯一素材源**为 rawfile/exercise-gifs-photo/<gifId>.gif（180×180，12 帧）：
+ * 由 tools/content/build-exercise-gifs-photo.mjs 从 free-exercise-db（Unlicense）的
+ * 实拍照合成，色板 192 色、Bayer 抖动，三段乒乓循环。
+ *
+ * ## 为什么保留 EXERCISE_GIF_GROUPS
+ *
+ * 那 23 条「动作中文名 -> gifId」映射本身是资产：它们指向的动作在内容库里都存在，
+ * 只是素材文件被撤下。DEMO_GIF_DIRECTORY 现指向 photo 目录，故这些 gifId 在补生成
+ * 之前解析到不存在的文件，消费端由 ExerciseDemoImage 的失败回退降级为占位图标。
+ *
+ * 补全方式（需能访问 raw.githubusercontent.com）：
+ *   node tools/content/build-exercise-gifs-photo.mjs --only squat,barbell-bench-press,...
+ * 生成同名 <gifId>.gif 到 photo 目录后，这 23 个动作自动恢复，无需改本文件。
  *
  * 文件名沿用动作库的 kebab 英文命名；训练执行页拿到的是动作中文名（内容库 nameZh），
  * 两套命名空间在此收敛：中文名 -> GIF 文件名 -> rawfile 路径。
  *
- * 未命中映射时回退到默认演示动作（杠铃卧推）——与原型的 .demo-visual 演示一致。
+ * 未命中映射时回退到 DEFAULT_EXERCISE_GIF_ID（该文件在 photo 目录中真实存在）。
  */
 
-export const DEFAULT_EXERCISE_GIF_ID: string = 'barbell-bench-press'
+/**
+ * 未命中映射时的默认演示素材。
+ *
+ * 必须指向 photo 目录中真实存在的文件，否则回退会二次落空、只剩占位图标。
+ * （旧值 'barbell-bench-press' 只存在于已移除的线稿目录。）
+ */
+export const DEFAULT_EXERCISE_GIF_ID: string = 'barbell-deadlift'
 
-/** 演示素材目录（导出供单测断言复用，避免改目录时多处同步）。 */
-export const DEMO_GIF_DIRECTORY: string = 'exercise-gifs-onpage/'
+/**
+ * 演示素材目录（导出供单测断言复用，避免改目录时多处同步）。
+ *
+ * 与 PHOTO_GIF_DIRECTORY 同值：线稿目录已随版权清理撤下，两套目录收敛为一套。
+ * 保留这个导出名是因为单测与消费端仍按「线稿层」语义引用它。
+ */
+export const DEMO_GIF_DIRECTORY: string = 'exercise-gifs-photo/'
 const GIF_SUFFIX: string = '.gif'
 
 /**
@@ -45,6 +71,10 @@ interface ExerciseGifGroup {
   names: string[]
 }
 
+/**
+ * 旧「线稿」映射组（23 条）。素材文件因版权问题已移除，但映射数据保留：
+ * 补生成同名 photo 素材后即可自动复活（见文件头说明）。
+ */
 const EXERCISE_GIF_GROUPS: ExerciseGifGroup[] = [
   {
     gifId: 'barbell-bench-press',
