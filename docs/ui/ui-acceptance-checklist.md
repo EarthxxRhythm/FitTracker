@@ -10,7 +10,7 @@ It is intended for a short manual acceptance round after engineering closeout.
 
 Use this checklist together with:
 
-- `docs/ui/ui-final-acceptance-runbook.md`
+- `docs/ui/ui-final-acceptance-runbook.md`（已移除，随设计资产移出主仓，见 FitTracker-design）
 - `docs/ui/ui-design-review-packet.md`
 - `docs/ui/ui-acceptance-record-template.md`
 - `node tools/generate-ui-acceptance-record.mjs`

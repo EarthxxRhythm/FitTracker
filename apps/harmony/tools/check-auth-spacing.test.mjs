@@ -6,7 +6,7 @@
 //
 // 运行：node --test tools/check-auth-spacing.test.mjs
 
-import { test } from 'node:test'
+import { test as nodeTest } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, existsSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
@@ -44,6 +44,21 @@ function findRepoRoot(startDir) {
 // 解析不到 —— 依赖它的用例全部 ENOENT（实测 pass 1 / fail 7）。此处改为双基准解析。
 const repoRoot = findRepoRoot(scriptDir) ?? resolve(scriptDir, '..')
 const baseDirs = [repoRoot, resolve(repoRoot, 'apps', 'harmony')]
+
+/**
+ * 设计资产 design/ 已于 2026-10-28 移出主仓（见仓库根 ASSETS.md）。
+ *
+ * 本文件所有断言都在核对 ArkUI 实现与原型 HTML 的间距一致性——没有原型就没有判据。
+ * 故 design 缺失时整体 skip，而不是让外部贡献者看到一片红。本地若需跑这些断言，
+ * 把 FitTracker-design 放回 design/ 即可自动恢复。
+ */
+const DESIGN_AVAILABLE = existsSync(
+  resolve(repoRoot, 'design/06_prototype_redraw/src/fittracker-auth.html')
+)
+
+/** 统一注入 skip：缺失设计资产时说明原因，避免被误读成「测试坏了」。 */
+const test = (name, fn) =>
+  nodeTest(name, { skip: DESIGN_AVAILABLE ? false : '设计原型已移出主仓（FitTracker-design），无判据可比' }, fn)
 
 function readRepoFile(relativePath) {
   for (const base of baseDirs) {
