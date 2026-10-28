@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "FitTracker · 登录与整包云同步",
+    "locale": "zh-CN",
+    "output": "docs/diagrams/02-cloud-sync.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/EarthxxRhythm/FitTracker",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "139b7735266f8aee81a0d79f11296a43d2480d88"
+    }
+  },
+  "participants": [
+    { "id": "user", "type": "external", "label": "用户", "sublabel": "登录前置" },
+    { "id": "app", "type": "frontend", "label": "FitTracker", "sublabel": "双端同构", "sources": [{ "path": "apps/harmony/entry/src/main/ets/common/services/AuthService.ets", "line": 21 }] },
+    { "id": "gotrue", "type": "security", "label": "GoTrue", "sublabel": "/auth/v1", "sources": [{ "path": "apps/harmony/entry/src/main/ets/common/services/auth/SupabaseAuthProvider.ets", "line": 227 }] },
+    { "id": "sync", "type": "backend", "label": "同步内核", "sublabel": "三值 hash 判定", "sources": [{ "path": "apps/harmony/entry/src/main/ets/shared/services/CloudSyncService.ets", "line": 108 }] },
+    { "id": "rest", "type": "backend", "label": "PostgREST", "sublabel": "/rest/v1", "sources": [{ "path": "apps/harmony/entry/src/main/ets/shared/services/SupabaseCloudSnapshotStore.ets", "line": 359 }] },
+    { "id": "pg", "type": "database", "label": "snapshots", "sublabel": "RLS 限本人", "sources": [{ "path": "server/supabase/migrations/20261004000000_snapshots.sql", "line": 10, "end_line": 22 }] }
+  ],
+  "messages": [
+    { "id": "enter-credentials", "from": "user", "to": "app", "y": 160, "label": "邮箱 / 密码或验证码", "variant": "default" },
+    { "id": "token-request", "from": "app", "to": "gotrue", "y": 190, "label": "POST /auth/v1/token", "variant": "emphasis" },
+    { "id": "token-response", "from": "gotrue", "to": "app", "y": 220, "label": "access_token + refresh", "variant": "return" },
+    { "id": "trigger-sync", "from": "app", "to": "sync", "y": 252, "label": "登录成功即触发同步", "variant": "default" },
+    { "id": "read-remote", "from": "sync", "to": "rest", "y": 282, "label": "GET /rest/v1/snapshots", "variant": "emphasis" },
+    { "id": "remote-hash", "from": "rest", "to": "sync", "y": 312, "label": "远端 hash + updated_at", "variant": "return" },
+    { "id": "upsert", "from": "sync", "to": "rest", "y": 374, "label": "POST 整包快照 upsert", "variant": "emphasis" },
+    { "id": "write-row", "from": "rest", "to": "pg", "y": 404, "label": "写入本人行", "variant": "dashed" },
+    { "id": "ack", "from": "rest", "to": "sync", "y": 434, "label": "2xx 视为成功", "variant": "return" },
+    { "id": "commit-baseline", "from": "sync", "to": "app", "y": 464, "label": "回写 lastSyncedHash", "variant": "dashed" },
+    { "id": "enter-shell", "from": "app", "to": "user", "y": 494, "label": "进入主壳", "variant": "return" }
+  ],
+  "activations": [
+    { "participant": "app", "from": 155, "to": 500, "type": "frontend" },
+    { "participant": "gotrue", "from": 185, "to": 226, "type": "security" },
+    { "participant": "sync", "from": 246, "to": 470, "type": "backend" },
+    { "participant": "rest", "from": 276, "to": 440, "type": "backend" },
+    { "participant": "pg", "from": 398, "to": 410, "type": "database" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "为什么是三值判定", "items": ["本地 hash 变了但远端没变 → 上传", "远端变了而本地没动 → 拉下并整包覆盖", "两边都变 → 以基线判定冲突，避免静默丢数据"] },
+    { "dot": "rose", "title": "信任边界", "items": ["客户端只持 publishable key 与用户 access token", "snapshots 表开启 RLS：策略条件是 auth.uid() = user_id", "没有 delete 策略：客户端无法删掉自己的快照"] },
+    { "dot": "emerald", "title": "未配置云端时", "items": ["探测不到 supabase.json 就走沙盒：同样的调用链落在本机沙盒目录", "界面明示演示模式，功能仍可完整跑通", "双端单测都跑沙盒通道，不触真实网络"] }
+  ]
+}

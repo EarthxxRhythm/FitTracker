@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "FitTracker · 系统构成",
+    "locale": "zh-CN",
+    "output": "docs/diagrams/01-architecture.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/EarthxxRhythm/FitTracker",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "139b7735266f8aee81a0d79f11296a43d2480d88"
+    }
+  },
+  "components": [
+    { "id": "user", "type": "external", "label": "用户", "sublabel": "手机 · 简体中文", "pos": [30, 300], "size": [116, 60] },
+    { "id": "harmony", "type": "frontend", "label": "HarmonyOS App", "sublabel": "ArkTS / ArkUI · Stage", "pos": [200, 160], "size": [176, 72], "sources": [{ "path": "apps/harmony/entry/src/main/ets/app/AppRoutes.ets", "line": 5 }, { "path": "apps/harmony/entry/src/main/ets/common/services/AuthService.ets", "line": 21 }, { "path": "apps/harmony/entry/src/main/ets/shared/services/CloudSyncService.ets", "line": 92 }] },
+    { "id": "hstore", "type": "database", "label": "preferences", "sublabel": "会话 / 计划 / 训练记录", "pos": [218, 50], "size": [140, 56], "sources": [{ "path": "apps/harmony/entry/src/main/ets/common/services/WorkoutSessionService.ets", "line": 227 }] },
+    { "id": "android", "type": "frontend", "label": "Android App", "sublabel": "Kotlin / Compose", "pos": [200, 440], "size": [176, 72], "sources": [{ "path": "apps/android/app/src/main/java/com/fittracker/app/data/auth/AuthService.kt" }, { "path": "apps/android/app/src/main/java/com/fittracker/app/data/sync/SyncOrchestrator.kt", "line": 97 }] },
+    { "id": "astore", "type": "database", "label": "DataStore", "sublabel": "同键名语义对齐", "pos": [218, 560], "size": [140, 56], "sources": [{ "path": "apps/android/app/src/main/java/com/fittracker/app/data/persist/AppStores.kt", "line": 20, "end_line": 35 }] },
+    { "id": "caddy", "type": "security", "label": "Caddy 入口", "sublabel": "HTTPS :443", "pos": [460, 300], "size": [148, 64], "sources": [{ "path": "server/deploy/Caddyfile", "line": 24, "end_line": 33 }] },
+    { "id": "gateway", "type": "cloud", "label": "API 网关", "sublabel": "Envoy :8000", "pos": [700, 300], "size": [148, 64], "sources": [{ "path": "server/deploy/Caddyfile", "line": 16, "end_line": 17 }] },
+    { "id": "gotrue", "type": "security", "label": "GoTrue 认证", "sublabel": "/auth/v1 · JWT", "pos": [920, 190], "size": [148, 64], "sources": [{ "path": "apps/harmony/entry/src/main/ets/common/services/auth/SupabaseAuthProvider.ets", "line": 133 }, { "path": "apps/harmony/entry/src/main/ets/common/services/SupabaseHttp.ets", "line": 44 }] },
+    { "id": "postgrest", "type": "backend", "label": "PostgREST", "sublabel": "RLS 行级隔离", "pos": [920, 420], "size": [148, 64], "sources": [{ "path": "apps/harmony/entry/src/main/ets/common/services/SupabaseHttp.ets", "line": 53 }, { "path": "server/supabase/migrations/20261004000000_snapshots.sql", "line": 17, "end_line": 33 }] },
+    { "id": "pg", "type": "database", "label": "Postgres 快照库", "sublabel": "一行一用户", "pos": [920, 580], "size": [148, 64], "sources": [{ "path": "server/supabase/migrations/20261004000000_snapshots.sql", "line": 10, "end_line": 16 }, { "path": "apps/harmony/entry/src/main/ets/shared/services/SupabaseCloudSnapshotStore.ets", "line": 359 }] },
+    { "id": "smshook", "type": "backend", "label": "sms-hook 服务", "sublabel": ":8787 · 验签", "pos": [920, 30], "size": [148, 56], "sources": [{ "path": "server/deploy/Caddyfile", "line": 25, "end_line": 29 }] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "用户设备 · 两套原生实现各自持有本机数据", "wraps": ["harmony", "hstore", "android", "astore"], "pad": 24 },
+    { "kind": "security-group", "label": "自托管 Supabase · 栈内端口只绑回环", "wraps": ["gateway", "gotrue", "postgrest", "pg", "smshook"], "pad": 20 }
+  ],
+  "connections": [
+    { "id": "user-harmony", "from": "user", "to": "harmony" },
+    { "id": "user-android", "from": "user", "to": "android" },
+    { "id": "harmony-store", "from": "harmony", "to": "hstore" },
+    { "id": "android-store", "from": "android", "to": "astore" },
+    { "id": "harmony-cloud", "from": "harmony", "to": "caddy", "label": "HTTPS", "variant": "emphasis" },
+    { "id": "android-cloud", "from": "android", "to": "caddy", "label": "HTTPS", "variant": "emphasis" },
+    { "id": "caddy-gateway", "from": "caddy", "to": "gateway" },
+    { "id": "gateway-auth", "from": "gateway", "to": "gotrue" },
+    { "id": "gateway-rest", "from": "gateway", "to": "postgrest" },
+    { "id": "rest-snapshot", "from": "postgrest", "to": "pg", "label": "整包快照" },
+    { "id": "gotrue-sms", "from": "gotrue", "to": "smshook", "label": "SMS Hook", "variant": "dashed" },
+    { "id": "caddy-sms", "from": "caddy", "to": "smshook", "label": "/sms-hook*", "variant": "dashed" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "一份契约，两套实现", "items": ["备份包 JSON 两端同结构：鸿蒙导出的包应能被 Android 导入", "改数据结构先改 contracts/README.md，再同步两端实现", "训练、计划、回顾共用同一份整包快照，登录后整包上传"] },
+    { "dot": "emerald", "title": "双端同构与降级", "items": ["两端各自实现认证门面与同步决策，云端行为保持一致", "探测不到 supabase.json 时降级沙盒：认证与快照都落在本机沙盒目录", "Android 单测走 Robolectric，不依赖设备"] },
+    { "dot": "rose", "title": "自托管后端的边界", "items": ["Caddy 独占 80/443 并自动签发证书，其后端口全部只绑 127.0.0.1", "snapshots 表开启 RLS：本人行的 select / insert / update 策略，无 delete 策略", "GoTrue 下发短信验证码时回调 sms-hook，由阿里云通道送出"] }
+  ]
+}

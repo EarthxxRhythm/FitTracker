@@ -1,0 +1,43 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "FitTracker · 提交前必须走完的门禁",
+    "locale": "zh-CN",
+    "output": "docs/diagrams/04-quality-gates.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/EarthxxRhythm/FitTracker",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "139b7735266f8aee81a0d79f11296a43d2480d88"
+    }
+  },
+  "lanes": [
+    { "id": "gates", "label": "本地门禁 · check-gates" },
+    { "id": "exceptions", "label": "失败出口", "variant": "exception" }
+  ],
+  "mainPath": ["content", "pages", "style", "docs", "parity", "arkts"],
+  "nodes": [
+    { "id": "content", "lane": "gates", "col": 0, "type": "security", "label": "内容构建", "sublabel": "content build", "tag": "JSONL → 常量", "sources": [{ "path": "apps/harmony/tools/check-gates.mjs", "line": 83 }] },
+    { "id": "pages", "lane": "gates", "col": 1, "type": "security", "label": "页面注册", "sublabel": "main page check", "sources": [{ "path": "apps/harmony/tools/check-gates.mjs", "line": 89 }] },
+    { "id": "style", "lane": "gates", "col": 2, "type": "security", "label": "行尾与空白", "sublabel": "git diff --check", "sources": [{ "path": "apps/harmony/tools/check-gates.mjs", "line": 95 }] },
+    { "id": "docs", "lane": "gates", "col": 3, "type": "security", "label": "文档与口径", "sublabel": "dead-refs 等三项", "sources": [{ "path": "apps/harmony/tools/check-gates.mjs", "line": 101, "end_line": 113 }] },
+    { "id": "parity", "lane": "gates", "col": 4, "type": "security", "label": "对等与代码规则", "sublabel": "parity · rules", "sources": [{ "path": "apps/harmony/tools/check-gates.mjs", "line": 119, "end_line": 125 }] },
+    { "id": "arkts", "lane": "gates", "col": 5, "type": "backend", "label": "ArkTS 编译", "sublabel": "devecocli build", "tag": "真实编译", "sources": [{ "path": "apps/harmony/tools/check-gates.mjs", "line": 165 }] },
+    { "id": "stop", "lane": "exceptions", "col": 3, "type": "security", "label": "停门", "sublabel": "任一红即停" }
+  ],
+  "edges": [
+    { "id": "e1", "from": "content", "to": "pages", "role": "main" },
+    { "id": "e2", "from": "pages", "to": "style", "role": "main" },
+    { "id": "e3", "from": "style", "to": "docs", "role": "main" },
+    { "id": "e4", "from": "docs", "to": "parity", "role": "main" },
+    { "id": "e5", "from": "parity", "to": "arkts", "label": "全绿才进编译", "role": "main", "variant": "emphasis" },
+    { "id": "e6", "from": "docs", "to": "stop", "label": "红", "role": "error", "variant": "security", "route": "drop", "fromSide": "bottom", "toSide": "top" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "门禁是一串而不是一把", "items": ["八个检查按顺序跑，第一个失败就抛错，不会跑完再汇总", "每个检查都带修法提示：改哪、为什么红", "顺序刻意设计：内容坏了，后面的页面与规则检查没有意义"] },
+    { "dot": "amber", "title": "CI 覆盖不到的那一段", "items": ["GitHub Actions 只跑 check-gates --skip-build 与 Android 单测", "HarmonyOS 编译需要 DevEco Studio 与华为账号授权，公共 runner 装不了", "所以涉及鸿蒙的 PR 要求在本地跑一次 devecocli build 并附输出"] },
+    { "dot": "rose", "title": "这些检查在防什么", "items": ["内容构建：动作条目少一条、枚举写错，当场失败", "页面注册：注册了不存在的页面，或一页两个 @Entry", "文档死链：文档里指向仓库内已不存在路径的断言", "双端对等：新屏只做了一端却没登记为已知不对称"] }
+  ]
+}

@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: '22'
 
-      - name: 七条门禁（内容构建 / 页面注册 / 空白 / 死链 / 规范注册表 / 双端对等 / 代码规则）
+      - name: 八条门禁（内容构建 / 页面注册 / 空白 / 死链 / 规范注册表 / 术语口径 / 双端对等 / 代码规则）
         working-directory: apps/harmony
         run: node tools/check-gates.mjs --skip-build
 

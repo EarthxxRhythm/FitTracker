@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "FitTracker · 一份内容源，两端动作库",
+    "locale": "zh-CN",
+    "output": "docs/diagrams/03-content-pipeline.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/EarthxxRhythm/FitTracker",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "139b7735266f8aee81a0d79f11296a43d2480d88"
+    }
+  },
+  "stages": [
+    { "label": "内容源" },
+    { "label": "构建与派生" },
+    { "label": "端内产物" },
+    { "label": "端内加载" }
+  ],
+  "nodes": [
+    { "id": "refs", "type": "database", "label": "引用表", "sublabel": "装备 / 肌群 / 清单", "stage": 0, "row": 0, "tag": "JSONL", "sources": [{ "path": "apps/harmony/content/exercises/equipment.zh-CN.jsonl" }] },
+    { "id": "exercises", "type": "database", "label": "动作内容源", "sublabel": "exercises.jsonl", "stage": 0, "row": 1, "tag": "权威", "sources": [{ "path": "apps/harmony/content/exercises/exercises.zh-CN.jsonl" }] },
+    { "id": "builder", "type": "backend", "label": "build-content", "sublabel": "解析 + 覆盖率校验", "stage": 1, "row": 0, "tag": "必过", "sources": [{ "path": "apps/harmony/tools/content/build-content.mjs" }] },
+    { "id": "syncer", "type": "backend", "label": "sync-android", "sublabel": "补 nameEn 后落盘", "stage": 1, "row": 2, "tag": "根级脚本", "sources": [{ "path": "tools/sync-content-to-android.mjs", "line": 45 }] },
+    { "id": "arkts", "type": "backend", "label": "ArkTS 常量", "sublabel": "生成的 .ets", "stage": 2, "row": 0, "tag": "生成" },
+    { "id": "asset", "type": "database", "label": "资产 JSON", "sublabel": "APK 内置", "stage": 2, "row": 2, "tag": "生成" },
+    { "id": "datasource_h", "type": "frontend", "label": "鸿蒙数据源", "sublabel": "动作库直接读", "stage": 3, "row": 0, "sources": [{ "path": "apps/harmony/entry/src/main/ets/shared/services/JsonlSeedContentDataSource.ets" }] },
+    { "id": "repo_a", "type": "frontend", "label": "内容仓库", "sublabel": "动作库直接读", "stage": 3, "row": 2, "sources": [{ "path": "apps/android/app/src/main/java/com/fittracker/app/data/service/ContentRepository.kt" }] }
+  ],
+  "flows": [
+    { "id": "refs-to-builder", "from": "refs", "to": "builder", "label": "引用校验", "variant": "default", "route": "straight" },
+    { "id": "exercises-to-builder", "from": "exercises", "to": "builder", "label": "逐行解析", "variant": "emphasis" },
+    { "id": "exercises-to-syncer", "from": "exercises", "to": "syncer", "label": "同一份源", "variant": "emphasis" },
+    { "id": "builder-to-arkts", "from": "builder", "to": "arkts", "label": "生成常量", "variant": "emphasis" },
+    { "id": "syncer-to-asset", "from": "syncer", "to": "asset", "label": "写资产", "variant": "emphasis" },
+    { "id": "arkts-to-datasource", "from": "arkts", "to": "datasource_h", "label": "编译期内联", "variant": "default" },
+    { "id": "asset-to-repo", "from": "asset", "to": "repo_a", "label": "打包读取", "variant": "default" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "只有一份权威内容", "items": ["鸿蒙端 content/exercises 下的 JSONL 是唯一真源，手改产物会被下一次构建覆盖", "build-content 逐条校验难度、目标、肌群、装备的枚举与覆盖率", "动作数量低于下限直接构建失败，不会静默少动作"] },
+    { "dot": "amber", "title": "两端不是同一份字节", "items": ["鸿蒙拿的是生成的 ArkTS 常量，Android 拿的是打包资产 JSON", "Android 模型多一个 nameEn 英文展示名，同步脚本按 id 保留并补全", "少了 nameEn 会让英文界面回落中文，所以不能简单覆盖"] },
+    { "dot": "emerald", "title": "漂移是被显式修复过的", "items": ["曾出现鸿蒙已扩到 102 条、Android 仍停在 50 条旧快照的漂移", "现在由根级同步脚本负责对齐，并有配套回归测试", "内容源的改动要在同一次提交里跑通构建与同步"] }
+  ]
+}

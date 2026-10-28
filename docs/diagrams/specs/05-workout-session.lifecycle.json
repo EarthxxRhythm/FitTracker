@@ -1,0 +1,45 @@
+{
+  "schema_version": 2,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "FitTracker · 一次训练的会话生命周期",
+    "locale": "zh-CN",
+    "output": "docs/diagrams/05-workout-session.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/EarthxxRhythm/FitTracker",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "139b7735266f8aee81a0d79f11296a43d2480d88"
+    }
+  },
+  "lanes": [
+    { "id": "main", "label": "会话主链" },
+    { "id": "resume", "label": "中断与恢复" },
+    { "id": "terminal", "label": "终点" }
+  ],
+  "states": [
+    { "id": "preview", "type": "start", "label": "训练预览", "sublabel": "今日计划动作", "lane": "main", "col": 0, "step": "01", "sources": [{ "path": "apps/harmony/entry/src/main/ets/features/pencil/pages/PencilPreviewPage.ets" }] },
+    { "id": "active", "type": "active", "label": "训练进行中", "sublabel": "组次录入", "lane": "main", "col": 1, "step": "02", "tag": "切动作保留分组", "sources": [{ "path": "apps/harmony/entry/src/main/ets/features/pencil/components/ActiveContent.ets" }] },
+    { "id": "resting", "type": "waiting", "label": "组间间歇", "sublabel": "计时中", "lane": "main", "col": 2, "step": "03", "tag": "可跳过" },
+    { "id": "done", "type": "success", "label": "完成摘要", "sublabel": "训练量 / 估算 1RM", "lane": "main", "col": 3, "step": "04" },
+    { "id": "reviewed", "type": "neutral", "label": "归档进回顾", "sublabel": "历史与趋势", "lane": "main", "col": 4, "step": "05", "sources": [{ "path": "apps/harmony/entry/src/main/ets/shared/services/ReviewService.ets" }] },
+    { "id": "draft", "type": "waiting", "label": "草稿已落盘", "sublabel": "退出不清数据", "lane": "resume", "col": 1, "tag": "workout_draft", "sources": [{ "path": "apps/harmony/entry/src/main/ets/common/services/WorkoutDraftService.ets", "line": 41 }] },
+    { "id": "aborted", "type": "failure", "label": "放弃本次", "sublabel": "不写历史", "lane": "terminal", "col": 1, "tag": "terminal" }
+  ],
+  "transitions": [
+    { "from": "preview", "to": "active", "label": "开始训练" },
+    { "from": "active", "to": "resting", "label": "完成一组" },
+    { "from": "resting", "to": "active", "label": "下一组" },
+    { "from": "active", "to": "done", "label": "结束训练", "variant": "emphasis" },
+    { "from": "done", "to": "reviewed", "label": "落库" },
+    { "from": "active", "to": "draft", "label": "退出 / 切后台", "variant": "dashed" },
+    { "from": "draft", "to": "active", "label": "冷启动恢复", "variant": "dashed" },
+    { "from": "active", "to": "aborted", "label": "放弃", "variant": "security" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "主链是一次单调推进", "items": ["预览只读今日计划，不改数据", "进行中才产生组次记录，切动作不清空已录分组", "完成摘要与回顾都读同一份已落库的会话"] },
+    { "dot": "amber", "title": "中断不是失败", "items": ["中途退出把草稿写进 preferences，键名 workout_draft", "冷启动读到草稿可直接回到进行中", "草稿与历史会话是两套存储，恢复不会伪造一条记录"] },
+    { "dot": "rose", "title": "终点只有两个", "items": ["完成 → 落库 → 归档进回顾，是唯一写入历史的路径", "放弃不写历史，避免污染周趋势与 PR 统计", "组间间歇是可跳过的等待态，不改变会话状态"] }
+  ]
+}
