@@ -12,7 +12,7 @@ robolectric = "4.16"
 datastore = "1.2.1"
 kotlinxSerialization = "1.11.0"
 coil = "2.7.0"
-appcompat = "1.7.0"
+appcompat = "1.8.0"
 work = "2.10.0"
 # 微信 Android OpenSDK（Maven Central: com.tencent.mm.opensdk:wechat-sdk-android）。
 # ⚠ 锁定版本而非 `+` 动态版本——动态版本会让构建不可复现（同一 commit 在不同时间
