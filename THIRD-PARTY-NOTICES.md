@@ -47,7 +47,7 @@ HarmonyOS SDK 本身（`@kit.*`、ArkUI、ArkTS 编译器）由 DevEco Studio �
 | JUnit 4 | 4.13.2 | EPL-1.0 |
 | Robolectric | 4.16 | Apache-2.0 |
 
-## 四、服务端（可选组件，位于 `server/`）
+## 四、服务端组件（位于 `server/`）
 
 | 组件 | 许可 |
 |---|---|

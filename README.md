@@ -49,7 +49,7 @@ FitTracker/
 │   └── android/          Android 应用（Kotlin / Compose，单 app 模块）
 ├── contracts/            ★ 跨端数据契约（快照字段与语义的真源，两端必须逐条一致）
 ├── content/              动作内容源（JSONL，两端由脚本同步派生）
-├── server/               可选：自托管 Supabase 栈 + Edge Functions + Caddy 部署资产
+├── server/               自托管 Supabase 栈 + Edge Functions + Caddy 部署资产
 ├── docs/                 设计与工程文档（见 docs/README.md）
 ├── tools/                根级同步与设备冒烟脚本
 └── AGENTS.md             工程约束（改代码前必读）
@@ -118,10 +118,6 @@ cd apps/android
 ```
 
 **第三方 SDK 说明**：QQ 登录依赖 `app/libs/open_sdk_3.5.19_r9483ffc7_lite.jar`（仓库内已包含）。替换方式与原版许可说明见 [`app/libs/README.md`](apps/android/app/libs/README.md) 与 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。微信登录走 Maven 依赖，无需额外操作。
-
-### 三、服务端（可选）
-
-只有想用自托管后端时才需要。完整部署手册见 [`server/deploy/README.md`](server/deploy/README.md)，环境变量模板见 [`server/deploy/.env.template`](server/deploy/.env.template)（全部为占位符，不含真实密钥）。
 
 ## 质量门禁
 
