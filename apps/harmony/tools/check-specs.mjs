@@ -208,7 +208,10 @@ export function checkRegistryConsistency(rows, readFile, today = new Date(), bas
   const findings = []
 
   for (const row of rows) {
-    const absPath = resolve(baseDir, row.path)
+    // 注册表里的路径沿用 Windows 反斜杠写法（`docs\process\x.md`）。POSIX 上反斜杠不是
+    // 路径分隔符，直接 resolve 会把它当成文件名的一部分，导致 CI（ubuntu）把 27 条登记
+    // 全判成「文件不存在」而本地（Windows）全绿。此处统一归一化为正斜杠后再解析。
+    const absPath = resolve(baseDir, row.path.replace(/\\/g, '/'))
     const level = normalizeLevel(row.level)
     if (level === null) {
       findings.push(`第 ${row.line} 行：层级「${row.level}」不是 L1/L2/L3`)
