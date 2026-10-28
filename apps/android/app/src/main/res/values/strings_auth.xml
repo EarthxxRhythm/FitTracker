@@ -23,7 +23,7 @@
     <string name="auth_welcome_subtitle">记录每一次训练，读懂身体反馈。\n用更聪明的方式，持续变强。</string>
     <string name="auth_welcome_visual_caption">CONSISTENCY > INTENSITY</string>
     <string name="auth_welcome_cta">开始使用</string>
-    <string name="auth_welcome_foot">本地记录 · 无需注册 · 随时开始</string>
+    <string name="auth_welcome_foot">按组记录 · 趋势回顾 · 随时开始</string>
 
     <!-- 登录屏抬头（原型 screen-login 帧） -->
     <string name="auth_login_eyebrow">WELCOME BACK</string>

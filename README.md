@@ -72,7 +72,7 @@ devecocli build --modules entry@ohosTest --product default   # 构建测试 HAP
 hdc install -r entry/build/default/outputs/default/entry-default-signed.hap
 ```
 
-**没有云端配置也能跑。** 缺少 `supabase.json` 时应用自动进入沙盒演示模式，所有界面与本地功能完整可用。要接真实云端，按 [`server/deploy/README.md`](server/deploy/README.md) 部署后端，再把 `supabase.json`（`url` + `publishableKey`，不入库）放进 `apps/harmony/entry/src/main/resources/rawfile/`。
+缺少 `supabase.json` 时应用进入沙盒演示模式（所有「云端」读写都在本机沙盒内完成），用于本地开发调试。要接真实云端，按 [`server/deploy/README.md`](server/deploy/README.md) 部署后端，再把 `supabase.json`（`url` + `publishableKey`，不入库）放进 `apps/harmony/entry/src/main/resources/rawfile/`。
 
 签名材料放在工作区外（`~/.ohos/config/`），由 `build-profile.json5` 的 `app.signingConfigs` 引用，**不入库**。
 

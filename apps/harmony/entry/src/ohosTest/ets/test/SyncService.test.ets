@@ -205,6 +205,28 @@ export default function syncServiceTest(): void {
       expect(ContentRepository.getContentSourceInfo().sourceId).assertEqual('jsonl_seed')
     })
 
+    it('treats same-version package with mismatched content as up to date instead of failing', 0, async () => {
+      // 产品语义契约：shouldApplyBundledPackage 只比较 packageVersion，版本不高于本地即视为
+      // 已是最新——这是避免每次冷启动重复导入的幂等保护，不做内容自检。
+      // 因此「同版本但内容被改写」不会被发现（既不导入也不记 sync_failed）。
+      // 若要检测这种场景，需在 shouldApplyBundledPackage 增加 checksum 比对，属产品决策，当前不做。
+      const mismatchedExercises: ExerciseContent[] = createVersionedExercises(2)
+      SyncService.setBundledPackageForTesting(
+        createManifest(1, 'full', BUNDLED_CONTENT_SYNC_MANIFEST.packageVersion, mismatchedExercises.length),
+        BUNDLED_CONTENT_SYNC_MUSCLES,
+        BUNDLED_CONTENT_SYNC_EQUIPMENT,
+        mismatchedExercises
+      )
+
+      const status = await SyncService.applyBundledPackageIfNeeded(getTestContext())
+      const metadata: ContentSyncMetadata = await SyncService.readMetadata(getTestContext())
+
+      expect(status.status).assertEqual('up_to_date')
+      expect(metadata.status).assertEqual('up_to_date')
+      expect(metadata.failureReason).assertEqual('')
+      expect(status.activeSourceId).assertEqual('jsonl_seed')
+    })
+
     it('imports a higher bundled package version and persists applied metadata', 0, async () => {
       const upgradedVersion: number = BUNDLED_CONTENT_SYNC_MANIFEST.packageVersion + 1
       const upgradedExercises: ExerciseContent[] = createVersionedExercises(upgradedVersion)

@@ -17,7 +17,7 @@
     <string name="auth_welcome_subtitle">Log every workout and read your body\'s signals.\nGet stronger, the smarter way.</string>
     <string name="auth_welcome_visual_caption">CONSISTENCY > INTENSITY</string>
     <string name="auth_welcome_cta">Get started</string>
-    <string name="auth_welcome_foot">Local records · No sign-up · Start anytime</string>
+    <string name="auth_welcome_foot">Set logging · Trend review · Start anytime</string>
 
     <string name="auth_login_eyebrow">WELCOME BACK</string>
     <string name="auth_login_title">Welcome back</string>

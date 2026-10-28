@@ -60,7 +60,7 @@ Sign-in and cloud sync are the only network behaviors in the current version, an
 - Cloud database: after signing in, the app uploads a full snapshot of your training data (goals, plans, workout records, user profile — see Section 2) to the Supabase cloud database for cross-device restore. Uploads occur automatically on successful sign-in, on a cold start while signed in, and on workout completion.
 - Sandbox fallback: when Supabase credentials are not configured (for example, a local development build), the app automatically enters demo mode, in which all "cloud" reads and writes are completed inside a sandbox on your device and no network request is made.
 
-Exercise demo assets (GIFs and images) are bundled with the installation package and read from local storage at runtime; they are not downloaded over the network. Without signing in, workout logging, exercise library browsing and review are fully available offline.
+Exercise demo assets (GIFs and images) are bundled with the installation package and read from local storage at runtime; they are not downloaded over the network. The app stays on the sign-in screen until you sign in; the main interface is not reachable without an account.
 
 6. About the switches on the Settings screen (stated accurately)
 
