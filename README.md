@@ -34,7 +34,7 @@ FitTracker 把这套闭环接起来：逐组录入次数与重量 → 按 Epley 
 | **训练回顾** | 历史训练、周趋势、动作 PR 下钻、肌肉分布、进阶洞察 |
 | **动作库** | 列表 / 筛选 / 收藏 / 详情，内置动作演示 GIF |
 | **身体数据** | 体重、体脂等趋势记录 |
-| **账号与云同步** | 两端同源：自建服务器（自托管 Supabase，`106.55.37.80`）上的认证服务与整包快照同步；**登录为强制前置**。未配置云端凭据时**自动降级为沙盒演示模式**，功能可跑通 |
+| **账号与云同步** | 两端同源：共用同一套自建服务（自托管 Supabase）的认证与整包快照同步；**登录为强制前置**。未配置云端凭据时进入沙盒演示模式，界面与流程可完整走通 |
 | **训练强度** | Epley 公式估算 1RM，训练量、连续天数统计 |
 | **设置** | 单位、语言、周开始日、各类开关 |
 
@@ -47,7 +47,7 @@ FitTracker/
 ├── apps/
 │   ├── harmony/          HarmonyOS 应用（ArkTS / ArkUI，Stage 模型）
 │   └── android/          Android 应用（Kotlin / Compose，单 app 模块）
-├── contracts/            ★ 跨端数据契约（备份包 JSON 真源，两端必须逐条一致）
+├── contracts/            ★ 跨端数据契约（快照字段与语义的真源，两端必须逐条一致）
 ├── content/              动作内容源（JSONL，两端由脚本同步派生）
 ├── server/               可选：自托管 Supabase 栈 + Edge Functions + Caddy 部署资产
 ├── docs/                 设计与工程文档（见 docs/README.md）
@@ -55,7 +55,7 @@ FitTracker/
 └── AGENTS.md             工程约束（改代码前必读）
 ```
 
-**关键设计：契约层统一、单一后端。** 两端共用同一套自建服务（自托管 Supabase，`106.55.37.80`），「备份包 JSON」是同一份结构——鸿蒙导出的备份应能被 Android 导入，反之亦然。改契约前先改 `contracts/README.md`，再同步两端实现。
+**关键设计：契约层统一、单一后端。** 两端共用同一套自建服务（自托管 Supabase），快照的字段、类型与语义由 `contracts/` 定义，两端实现必须逐条一致。改契约前先改 `contracts/README.md`，再同步两端实现——否则一端升级、另一端的解析会直接失败。
 
 ### 图集
 
@@ -69,9 +69,20 @@ FitTracker/
 | 04 | 质量门禁 | 八个检查的顺序、任一红即停的出口，以及 CI 覆盖不到的编译段 | [HTML](docs/diagrams/04-quality-gates.html) |
 | 05 | 训练会话生命周期 | 预览 → 进行中 → 完成摘要，含草稿恢复与放弃两条支线 | [HTML](docs/diagrams/05-workout-session.html) |
 
+**02 · 登录与云同步** —— 登录拿 token、拉远端快照、三值判定后 upsert
+
 <img src="docs/diagrams/02-cloud-sync.png" width="840" alt="登录与整包云同步时序">
+
+**03 · 内容管线** —— 一份 JSONL 源如何派生鸿蒙 ArkTS 常量与 Android 资产 JSON
+
 <img src="docs/diagrams/03-content-pipeline.png" width="840" alt="动作内容管线">
+
+**04 · 质量门禁** —— 八个检查的顺序、任一红即停，以及 CI 覆盖不到的编译段
+
 <img src="docs/diagrams/04-quality-gates.png" width="840" alt="提交前质量门禁流水线">
+
+**05 · 训练会话生命周期** —— 预览 → 进行中 → 摘要，含草稿恢复与放弃两条支线
+
 <img src="docs/diagrams/05-workout-session.png" width="840" alt="训练会话生命周期">
 
 ## 快速开始
@@ -178,7 +189,7 @@ flowchart LR
 
 ## 已知限制
 
-- **云同步需自备配置**：两端共用同一自建后端（自托管 Supabase，`106.55.37.80`），需要 `supabase.json`（HarmonyOS）与对应的服务端地址配置（Android）。未配置时走沙盒演示模式，数据只在本机。
+- **云同步需自备配置**：两端共用同一自建后端（自托管 Supabase），需要 `supabase.json`（HarmonyOS）与对应的服务端配置（Android）。未配置时进入沙盒演示模式，「云端」读写在本机沙盒内完成。
 - **微信 / QQ 登录需要开放平台资质**：各平台对移动应用审核有门槛，仓库内的集成代码不代表凭据可用。
 - **界面仅简体中文**：`zh_CN` / `en_US` 资源目录已就绪，界面文案仍以代码内中文为主。
 - **仅支持 phone**：不响应平板 / 折叠屏专有布局。
