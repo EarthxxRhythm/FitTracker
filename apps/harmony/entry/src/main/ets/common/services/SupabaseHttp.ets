@@ -55,7 +55,7 @@ export class SupabaseHttp {
 
   /**
    * `{url}/functions/v1/{path}`；未配置返回空串。
-   * 自托管栈的 Edge Functions 经 Caddy 暴露在 `/functions/v1/*`（与官方托管端点同形）。
+   * 自托管 Supabase 栈的 Edge Functions 经 Caddy 暴露在 `/functions/v1/*`（与官方托管端点同形）。
    */
   static functionsUrl(path: string): string {
     const config: SupabaseRuntimeConfig | null = SupabaseConfig.get()

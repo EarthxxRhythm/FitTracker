@@ -7,11 +7,9 @@ import { ColorTokens, MediaTokens, MotionTokens } from '../common/styles/DesignT
  * 此前各写一份几乎相同的分支，其中只有列表卡做了 onError 回退，训练执行页与详情页
  * 加载失败就是一块空白方框；四处也都没有加载态，GIF 首帧解码前卡片会「跳」一下。
  *
- * 两套素材的容器差异由 photoStyle 承载：
- * - 实拍（rawfile/exercise-gifs-photo/）：全彩矩形实景、无白底，须靠圆角收敛，
- *   否则在深色页上是一块亮矩形；
- * - 线稿（rawfile/exercise-gifs-onpage/）：页底色已烘进图里，圆角对其无感，套圆角
- *   反而会在四角露出浅边，故不加。
+ * 素材已收敛为 free-exercise-db 实拍单一来源（rawfile/exercise-gifs-photo/）：全彩矩形
+ * 实景、无白底，须靠圆角收敛，否则在深色页上是一块亮矩形。旧线稿套系因授权问题移除，
+ * 其圆角豁免分支已无素材可作用，photoStyle 保留只是为了消费端的迁移成本。
  *
  * 尺寸有两种形态，用 fixedSize 区分（0 = 流体）：
  * - 流体（fixedSize = 0）：宽度撑满、按 aspect 定高 —— 列表卡与详情封面用；
@@ -23,11 +21,11 @@ import { ColorTokens, MediaTokens, MotionTokens } from '../common/styles/DesignT
 export struct ExerciseDemoImage {
   /** rawfile 相对路径，如 exercise-gifs-photo/romanian-deadlift.gif。 */
   @Prop source: string = ''
-  /** true = 实拍素材（加圆角收敛），false = 线稿素材（底色已烘，不加圆角）。 */
-  @Prop photoStyle: boolean = false
-  /** 实拍素材的圆角半径；线稿素材忽略此值。 */
+  /** true = 实拍素材（加圆角收敛）。素材已收敛为实拍单一来源，消费端恒定传 true。 */
+  @Prop photoStyle: boolean = true
+  /** 实拍素材的圆角半径。 */
   @Prop radius: number = MediaTokens.RADIUS_GRID
-  /** 图片适配方式。线稿在正方形容器里用 Contain，实拍用 Cover。 */
+  /** 图片适配方式：列表卡用 Cover，sheet/详情用 Contain。 */
   @Prop fit: ImageFit = ImageFit.Cover
   /** 流体形态的宽高比。 */
   @Prop aspect: number = MediaTokens.ASPECT_CARD

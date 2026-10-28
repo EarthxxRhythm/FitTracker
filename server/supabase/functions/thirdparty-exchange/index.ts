@@ -18,7 +18,7 @@
  *
  * ⚠ 未实测项（部署前必须验证，见 docs/cloud/supabase-sync-setup.md）：
  *  1. `/admin/generate_link` 的响应字段名 `properties.hashed_token`（GoTrue 官方契约，
- *     但本自托管栈版本未实测）。若字段名有差异，改 normalizeTokenHash 一处即可。
+ *     但本自托管 Supabase 栈版本未实测）。若字段名有差异，改 normalizeTokenHash 一处即可。
  *  2. 伪邮箱域 `thirdparty.fittracker.app` 是否被本栈的 GoTrue 接受
  *     （手机号伪邮箱 phone.fittracker.app 已在用，但域名不同需独立验证）。
  *  3. `/auth/v1/admin/users` 的幂等语义（本实现先查后建，规避重复建号）。

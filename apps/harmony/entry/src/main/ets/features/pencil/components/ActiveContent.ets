@@ -22,7 +22,7 @@ import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 import {
   ActiveExerciseRecordGroup,
   ActiveSetRecord,
-  buildRecordGroups
+  buildCurrentRecordGroups
 } from './ActiveSetRecordModel'
 
 interface ActiveWorkoutRouteParams {
@@ -35,7 +35,7 @@ interface InitialSetValues {
 }
 
 // 组记录按动作分组（见 ActiveSetRecordModel）：分组键是 plannedExerciseId，
-// 不再是一条贯穿全场的扁平列表。
+// 且记录区只显示「当前动作」那一组——切到下一个动作后，上一动作的组不留在列表里。
 
 // 进度条段数不固定：段数 = 本次训练总组数（跨动作求和，见 ActiveWorkoutService.totalTargetSets），
 // 由 @State targetSets 驱动。此前这里是硬编码的 6 段常量，结束判据也压在它上面——
@@ -116,6 +116,7 @@ export struct ActiveContent {
   /** 本次训练总组数（跨动作求和）：进度条段数、组号文案与收尾判据都以它为准。 */
   @State private targetSets: number = 0
   @State private showModal: boolean = false
+  /** 当前动作的组记录（0 或 1 个分组）：页面只显示正在练的动作，历史动作不进列表。 */
   @State private recordGroups: ActiveExerciseRecordGroup[] = []
   @State private celebrating: boolean = false
   @State private elapsedSeconds: number = 0
@@ -272,6 +273,8 @@ export struct ActiveContent {
     this.exerciseIndex = this.findCurrentExerciseIndex(state)
     this.targetSets = ActiveWorkoutService.totalTargetSets(state)
     this.completed = state.completedSets
+    // 记录区只持有当前动作的分组；从预览新建的 state 通常还没有完成组，此处为空数组。
+    this.recordGroups = buildCurrentRecordGroups(state.exercises)
     // 重量/次数必须有可落库的初值：组条目初建时是空文本（解析出 0），而
     // ActiveWorkoutService 只把 weight>0 && reps>0 的组判为已完成——沿用 0 时
     // 「完成本组」写不进进度，训练会卡在同一组反复覆盖。故回落到重量下限与目标次数。
@@ -423,7 +426,8 @@ export struct ActiveContent {
     this.activeState = nextState
     // 记录从刚更新的 activeState 派生（与落库同源），不再增量追加 UI 状态：
     // 设备实测连做 4 组时增量赋值会被吞、分组只显示 1 组，而 activeState 里 4 组都在。
-    this.recordGroups = buildRecordGroups(nextState.exercises)
+    // 只取当前动作的分组：动作录满切到下一个后，记录区随之切到新动作（从空态开始）。
+    this.recordGroups = buildCurrentRecordGroups(nextState.exercises)
     const justDoneIndex: number = this.completed
     this.getUIContext().animateTo({ duration: MotionTokens.DURATION_MARKER, curve: MotionTokens.EASE_MOTION }, () => {
       this.completed += 1
@@ -646,8 +650,8 @@ export struct ActiveContent {
   @Builder
   private demoCard() {
     Stack({ alignContent: Alignment.TopStart }) {
-      // 卡面不设底色：素材白底已由 build-exercise-gifs-onpage.py 合成成页面底色（不透明），
-      // 图与页面无缝，不出现白色面板。
+      // 卡面不设底色：素材已收敛为实拍单一来源，由 demoVisual 的圆角容器承载，
+      // 图与卡片边界一致，不出现白色面板。
       Column()
         .width('100%')
         .height('100%')
@@ -705,9 +709,8 @@ export struct ActiveContent {
 
   @Builder
   private demoVisual() {
-    // 动作演示内嵌 GIF，两套素材并存：
-    // - 线稿素材（rawfile/exercise-gifs-onpage）：页底色已烘进图里，图与页面无缝，用 Contain；
-    // - 实拍素材（rawfile/exercise-gifs-photo）：全彩矩形实景、无白底，须 Cover + 圆角收敛。
+    // 动作演示内嵌 GIF：素材已收敛为 free-exercise-db 实拍单一来源
+    // （rawfile/exercise-gifs-photo），全彩矩形实景、无白底，须 Cover + 圆角收敛。
     // 容器为正方形且按 DEMO_MEDIA_SIZE 定尺寸居中——容器高度变化不会放大素材。
     // 占位 / 淡入 / 失败回退由 ExerciseDemoImage 统一承担（此前这里两者皆无：
     // 加载失败就是一块空白方框，首帧解码前卡片会跳一下）。

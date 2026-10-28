@@ -4,6 +4,9 @@
  * 训练页的记录不能是一条贯穿全场的扁平列表：每个动作单独成组，组号在动作内从 1 起。
  * 否则做完第二个动作后，第 5、6 条记录和第 1、2 条长得一模一样，用户无从判断哪些组属于哪个动作。
  *
+ * 页面实际渲染的是「当前动作」这一组（buildCurrentRecordGroups）：训练页同一时刻只聚焦
+ * 正在练的动作，上一动作的记录不再与当前动作的组混排在同一条列表里。
+ *
  * 分组键用 plannedExerciseId（计划内的动作实例 id），不用动作名：同一动作在一天里
  * 出现两次时名字相同但归属不同，按名字合并会把两组记录混在一起。
  *
@@ -51,7 +54,7 @@ function parsePositiveNumber(text: string): number {
 }
 
 /**
- * 从活跃训练态派生分组记录。
+ * 从活跃训练态派生分组记录（全部动作）。
  *
  * 只收「已录完的正式组」（isComplete 且非热身），组号用条目下标 +1——与
  * ActiveWorkoutService 的完成判定同口径，因此页面显示的组数永远等于会话落库的组数。
@@ -60,29 +63,74 @@ function parsePositiveNumber(text: string): number {
 export function buildRecordGroups(exercises: ActiveWorkoutExercise[]): ActiveExerciseRecordGroup[] {
   const groups: ActiveExerciseRecordGroup[] = []
   for (let index = 0; index < exercises.length; index++) {
-    const exercise: ActiveWorkoutExercise = exercises[index]
-    const sets: ActiveSetRecord[] = []
-    for (let setIndex = 0; setIndex < exercise.sets.length; setIndex++) {
-      const entry: ActiveWorkoutSetEntry = exercise.sets[setIndex]
-      if (!entry.isComplete || entry.isWarmup) {
-        continue
-      }
-      sets.push(createActiveSetRecord(
-        setIndex + 1,
-        parsePositiveNumber(entry.weightText),
-        parsePositiveNumber(entry.repsText)
-      ))
-    }
-    if (sets.length > 0) {
-      const group: ActiveExerciseRecordGroup = {
-        plannedExerciseId: exercise.plannedExerciseId,
-        exerciseName: exercise.name,
-        sets: sets
-      }
+    const group: ActiveExerciseRecordGroup | undefined = buildExerciseRecordGroup(exercises[index])
+    if (group !== undefined) {
       groups.push(group)
     }
   }
   return groups
+}
+
+/**
+ * 只派生「当前动作」的记录分组（0 或 1 个）。
+ *
+ * 训练页的记录区显示当前动作的记录：切到下一个动作后，上一动作的组不再留在列表里，
+ * 组号与页面上「第 N 组」（动作内序号）始终属于同一个动作。
+ * 当前动作还没有已完成的正式组时返回空数组，由页面显示空态提示。
+ */
+export function buildCurrentRecordGroups(exercises: ActiveWorkoutExercise[]): ActiveExerciseRecordGroup[] {
+  const groups: ActiveExerciseRecordGroup[] = []
+  const currentIndex: number = findCurrentExerciseIndex(exercises)
+  if (currentIndex < 0) {
+    return groups
+  }
+  const group: ActiveExerciseRecordGroup | undefined = buildExerciseRecordGroup(exercises[currentIndex])
+  if (group !== undefined) {
+    groups.push(group)
+  }
+  return groups
+}
+
+/**
+ * 当前动作在 exercises 中的下标：首个未录满的动作。
+ *
+ * 与 ActiveWorkoutService.nextExercise 同口径——「完成本组」写的就是这个动作的下一组，
+ * 因此记录区显示的动作永远等于用户正在填的那个动作。全部录满时取最后一个动作；
+ * 没有动作返回 -1。
+ */
+function findCurrentExerciseIndex(exercises: ActiveWorkoutExercise[]): number {
+  for (let index = 0; index < exercises.length; index++) {
+    const exercise: ActiveWorkoutExercise = exercises[index]
+    if (exercise.completedSets < exercise.targetSets) {
+      return index
+    }
+  }
+  return exercises.length - 1
+}
+
+/** 单个动作的记录分组；该动作没有已完成的正式组时返回 undefined。 */
+function buildExerciseRecordGroup(exercise: ActiveWorkoutExercise): ActiveExerciseRecordGroup | undefined {
+  const sets: ActiveSetRecord[] = []
+  for (let setIndex = 0; setIndex < exercise.sets.length; setIndex++) {
+    const entry: ActiveWorkoutSetEntry = exercise.sets[setIndex]
+    if (!entry.isComplete || entry.isWarmup) {
+      continue
+    }
+    sets.push(createActiveSetRecord(
+      setIndex + 1,
+      parsePositiveNumber(entry.weightText),
+      parsePositiveNumber(entry.repsText)
+    ))
+  }
+  if (sets.length === 0) {
+    return undefined
+  }
+  const group: ActiveExerciseRecordGroup = {
+    plannedExerciseId: exercise.plannedExerciseId,
+    exerciseName: exercise.name,
+    sets: sets
+  }
+  return group
 }
 
 /** 全场已记录组数（跨分组求和），用于和总组数比对是否收尾。 */

@@ -3,7 +3,7 @@
  *
  * 统一入口：探测云环境（cloud / sandbox）并转发到对应 AuthProvider；
  * 登录/注册成功后自动写入 SessionManager 会话快照，供启动分流与 UI 展示。
- * supabase.json（自建服务器配套配置）就绪时云端分支自动切换为 SupabaseAuthProvider，调用面不变。
+ * supabase.json（自托管 Supabase 配套配置）就绪时云端分支自动切换为 SupabaseAuthProvider，调用面不变。
  */
 import { Context } from '@kit.AbilityKit'
 import { preferences } from '@kit.ArkData'

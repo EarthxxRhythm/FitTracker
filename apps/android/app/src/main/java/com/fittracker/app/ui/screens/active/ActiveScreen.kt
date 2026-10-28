@@ -87,7 +87,6 @@ import com.fittracker.app.data.service.UserProfileService
 import com.fittracker.app.data.service.WeightUnit
 import com.fittracker.app.data.service.WeightUtils
 import com.fittracker.app.data.service.WorkoutDraftService
-import com.fittracker.app.data.service.WorkoutDraftSnapshot
 import com.fittracker.app.data.service.WorkoutRepository
 import com.fittracker.app.notifications.checkAndNotifyAchievement
 import com.fittracker.app.data.service.hasWorkoutDraftProgress
@@ -149,6 +148,8 @@ fun ActiveScreen(
     val view = LocalView.current
 
     var elapsed by remember { mutableIntStateOf(0) }
+    // 记录区只显示「当前动作」的已完成组（见 FtActiveModel.currentRecords）：
+    // 数据源是 workout（唯一真源），不在这里增量累加，避免展示与落库漂移。
     var records by remember { mutableStateOf<List<FtSetRecord>>(emptyList()) }
     var modalOpen by remember { mutableStateOf(false) }
     var weight by remember { mutableIntStateOf(FtActiveModel.WEIGHT_INIT) }
@@ -166,7 +167,8 @@ fun ActiveScreen(
     // 「体重单位」（设置页）：重量基准值始终为 kg，仅输入与展示按单位换算。
     var weightUnit by remember { mutableStateOf(WeightUnit.KG) }
 
-    val completed = records.size
+    // 全场进度取活跃训练态（跨动作求和）——records 只含当前动作，不能当全局计数用。
+    val completed = workout?.completedSets ?: 0
     val progressLabel = FtActiveModel.progressLabel(completed, target)
     val submitLabel = FtActiveModel.submitLabel(completed, target)
 
@@ -195,14 +197,17 @@ fun ActiveScreen(
             startedAt = draft.startedAt
             elapsed = ((System.currentTimeMillis() - draft.startedAt) / 1000).toInt().coerceAtLeast(0)
             target = if (draft.totalTargetSets > 0) draft.totalTargetSets else FtActiveModel.TARGET
-            records = draft.completedRecords()
-            workout = draftToActiveState(draft)
+            val state = draftToActiveState(draft)
+            workout = state
+            // 记录只取当前动作：上一动作已录满时，记录区从新动作（空态）开始。
+            records = FtActiveModel.currentRecords(state.exercises)
         } else {
             val summary = loadTodayWorkoutPreview(store)
             startedAt = System.currentTimeMillis()
             target = summary.exercises.sumOf { it.targetSets }.takeIf { it > 0 } ?: FtActiveModel.TARGET
             val state = ActiveWorkoutService.createState(summary)
             workout = state
+            records = FtActiveModel.currentRecords(state.exercises)
             WorkoutDraftService.saveDraft(store, activeStateToDraft(state, startedAt))
         }
     }
@@ -228,10 +233,27 @@ fun ActiveScreen(
 
     fun completeSet() {
         if (!FtActiveModel.submitEnabled(completed, target)) return
+        val state = workout ?: return
         // 输入框 `weight` 是显示单位下的整数；记录与草稿一律存 kg 基准。
         val weightKg = Math.round(WeightUtils.displayIntToKg(weight, weightUnit)).toInt()
-        val next = records + FtSetRecord(weightKg, reps)
-        records = next
+        val origin = if (startedAt > 0L) startedAt else System.currentTimeMillis()
+        // 唯一写入口：目标动作与组下标都由活跃训练态推导（首个未录满动作的下一组），
+        // 第一个动作录满后自动落到下一个动作的第 1 组。同步推进，记录区与进度条同帧更新。
+        val progressed = ActiveWorkoutService.createStateWithProgress(
+            state,
+            ActiveWorkoutService.updateSetEntry(
+                exercises = state.exercises,
+                plannedExerciseId = nextPlannedExerciseId(state),
+                setIndex = nextSetIndex(state),
+                weightText = weightKg.toString(),
+                repsText = reps.toString(),
+            ),
+        )
+        workout = progressed
+        // 记录从刚更新的活跃训练态派生（与落库同源），且只取当前动作：
+        // 当前动作录满切到下一个后，记录区随之切到新动作（从空态开始）。
+        records = FtActiveModel.currentRecords(progressed.exercises)
+        val finished = progressed.completedSets >= target
         // 设置项「声音与震动」（计划 A4）：记录推进成功即给一次短促触觉反馈。
         // 音效素材缺失，本期仅震动（计划非目标表）；开关关 → 不响不动。
         if (soundVibrationOn) Haptics.confirm(context)
@@ -239,45 +261,28 @@ fun ActiveScreen(
         playCelebration()
         scope.launch {
             delay(360) // 原型 L850：`setTimeout(…, 360)` 后才 `renderSets(true)`
-            justDoneIndex = next.size - 1
+            justDoneIndex = progressed.completedSets - 1
             delay(FtMotion.DURATION_SEG_POP.toLong())
             justDoneIndex = null
         }
-        // 训练域接线：写入活跃训练态 → 自动保存草稿（对齐鸿蒙 active 页的进行中持久化）；
+        // 训练域接线：自动保存草稿（对齐鸿蒙 active 页的进行中持久化）；
         // 集满目标则收尾——`createCompletedSession` 产物经 `WorkoutRepository.saveSession`
         // 落 SESSIONS 库，随后清草稿。
         scope.launch {
-            val origin = if (startedAt > 0L) startedAt else System.currentTimeMillis()
-            val state = workout
-            if (state != null) {
-                val progressed = ActiveWorkoutService.createStateWithProgress(
-                    state,
-                    ActiveWorkoutService.updateSetEntry(
-                        exercises = state.exercises,
-                        plannedExerciseId = nextPlannedExerciseId(state),
-                        setIndex = nextSetIndex(state),
-                        weightText = weightKg.toString(),
-                        repsText = reps.toString(),
-                    ),
+            WorkoutDraftService.saveDraft(store, activeStateToDraft(progressed, origin))
+            if (finished) {
+                val endedAt = System.currentTimeMillis()
+                val session = ActiveWorkoutService.createCompletedSession(
+                    sessionId = "session_$endedAt",
+                    state = progressed,
+                    startedAt = origin,
+                    endedAt = endedAt,
+                    completedSets = progressed.completedSets,
                 )
-                workout = progressed
-                WorkoutDraftService.saveDraft(store, activeStateToDraft(progressed, origin))
-                if (next.size >= target) {
-                    val endedAt = System.currentTimeMillis()
-                    val session = ActiveWorkoutService.createCompletedSession(
-                        sessionId = "session_$endedAt",
-                        state = progressed,
-                        startedAt = origin,
-                        endedAt = endedAt,
-                        completedSets = progressed.completedSets,
-                    )
-                    WorkoutRepository.saveSession(store, session)
-                    WorkoutDraftService.clearDraft(store)
-                    // 成就提醒（A6）：保存后检查连续训练里程碑——内部全静默，不阻塞训练流程
-                    checkAndNotifyAchievement(store, context)
-                }
-            }
-            if (next.size >= target) {
+                WorkoutRepository.saveSession(store, session)
+                WorkoutDraftService.clearDraft(store)
+                // 成就提醒（A6）：保存后检查连续训练里程碑——内部全静默，不阻塞训练流程
+                checkAndNotifyAchievement(store, context)
                 // ft-stage.js `watchFinish`：完成本组后 950ms，若标签已是「训练完成」则跳 complete
                 delay(950)
                 onNavigate("complete")
@@ -748,8 +753,10 @@ private fun BenchPressVisual(modifier: Modifier = Modifier) {
 // ── 已完成组列表 ────────────────────────────────────────────────
 
 /**
- * `.set-count` / `.set-list` L298-331：已完成组逐条列出，条间 10px；
- * 无记录时回退到 `.set-empty`（本屏首屏即 2 条，该分支不可达，保留以对齐原型结构）。
+ * `.set-count` / `.set-list` L298-331：已完成组逐条列出，条间 10px。
+ *
+ * 只列「当前动作」的组（见 [FtActiveModel.currentRecords]）：切到下一个动作后列表重新开始，
+ * 组号是动作内序号。当前动作还没有完成组时回退到 `.set-empty` 空态。
  */
 @Composable
 private fun SetList(records: List<FtSetRecord>, weightUnit: WeightUnit) {
@@ -772,8 +779,8 @@ private fun SetList(records: List<FtSetRecord>, weightUnit: WeightUnit) {
                 )
             }
         } else {
-            records.forEachIndexed { i, record ->
-                SetRecordRow(index = i, record = record, weightUnit = weightUnit)
+            records.forEach { record ->
+                SetRecordRow(record = record, weightUnit = weightUnit)
             }
         }
     }
@@ -781,7 +788,7 @@ private fun SetList(records: List<FtSetRecord>, weightUnit: WeightUnit) {
 
 /** `.set-record` L312-322：`recordIn .18s` 入场（透明上移 6px → 不透明归位）。 */
 @Composable
-private fun SetRecordRow(index: Int, record: FtSetRecord, weightUnit: WeightUnit) {
+private fun SetRecordRow(record: FtSetRecord, weightUnit: WeightUnit) {
     var appeared by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { appeared = true }
     val progress by animateFloatAsState(
@@ -806,7 +813,7 @@ private fun SetRecordRow(index: Int, record: FtSetRecord, weightUnit: WeightUnit
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
-            text = stringResource(R.string.active_set_index, index + 1),
+            text = stringResource(R.string.active_set_index, record.setNumber),
             style = FtType.natural(13f),
             color = FtColor.white70,
         )
@@ -1409,25 +1416,3 @@ private fun nextPlannedExerciseId(state: ActiveWorkoutState): String =
 
 /** [nextExercise] 命中动作的下一组序号（`completedSets` 即下一个待填组下标）。 */
 private fun nextSetIndex(state: ActiveWorkoutState): Int = nextExercise(state)?.completedSets ?: 0
-
-/**
- * 草稿里已完成的组 → 视觉记录（active 屏的 `FtSetRecord` 列表）。
- * 重量/次数以文本形式存于草稿，按整数字面解析（不可解析按 0，与原型数字步进口径一致）。
- */
-private fun WorkoutDraftSnapshot.completedRecords(): List<FtSetRecord> {
-    val result = mutableListOf<FtSetRecord>()
-    for (exercise in exercises) {
-        for (set in exercise.sets) {
-            if (!set.isComplete) {
-                continue
-            }
-            result.add(
-                FtSetRecord(
-                    weight = set.weightText.toIntOrNull() ?: 0,
-                    reps = set.repsText.toIntOrNull() ?: 0,
-                ),
-            )
-        }
-    }
-    return result
-}

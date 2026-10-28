@@ -10,7 +10,7 @@
  *  - setModeForTesting('sandbox')：测试注入；ohosTest 经 AuthSyncTestGate 统一调用，
  *    确保测试始终走沙盒、不触真实网络。
  *
- * 2026-10-28：后端定稿为自建服务器（自托管 Supabase），华为 AGC 后端与 cloudCommon
+ * 2026-10-28：后端定稿为自托管 Supabase，华为 AGC 后端与 cloudCommon
  * 云数据库链路已整体移除（原 AgcAuthProvider / AgcCloudSnapshotStore 一并删除）。
  */
 import { Context } from '@kit.AbilityKit'

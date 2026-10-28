@@ -4,17 +4,14 @@
  *
  * ## 为什么需要这个脚本
  *
- * 鸿蒙端的动作演示素材分两套：自制线稿（23 个，已烘页底色）与 free-exercise-db 实拍照
- * 合成的实拍素材（59 个）。Android 端此前只有 23 个线稿 GIF，内容库扩充到 102 条动作后，
- * 其余动作在动作库/训练/详情三处都只能落占位块。
- *
- * 手动拷贝 59 个二进制 + 手抄 169 条中文名映射必然漂移（改一边忘另一边），故做成脚本：
- * 以鸿蒙 `ExerciseGifCatalog.ets` 的 `EXERCISE_PHOTO_GIF_GROUPS` 为唯一权威源，
- * 一次性产出「素材文件 + Kotlin 映射」两样东西。
+ * 鸿蒙端的动作演示素材唯一来源是 free-exercise-db 实拍照合成的实拍素材（101 个）。
+ * 旧线稿套系（23 个）已因授权问题从两端移除，其映射同时停用；Android 端此前手抄映射
+ * 必然漂移，故做成脚本：以鸿蒙 `ExerciseGifCatalog.ets` 的 `EXERCISE_PHOTO_GIF_GROUPS`
+ * 为唯一权威源，一次性产出「素材文件 + Kotlin 映射」两样东西。
  *
  * ## 产出
  *
- *   1. apps/android/app/src/main/assets/exercise-gifs-photo/<gifId>.gif  （59 个）
+ *   1. apps/android/app/src/main/assets/exercise-gifs-photo/<gifId>.gif  （101 个）
  *   2. apps/android/.../ui/screens/library/PhotoGifCatalog.kt          （生成文件，勿手改）
  *
  * ## 用法（从仓库根执行）
@@ -27,8 +24,8 @@
  *
  * ## 设计取舍
  *
- * - **不改 Android 的线稿素材与解析优先级**：线稿组的 23 个 id/名称仍先命中，
- *   保证「杠铃划船」「腿弯举」这类两组同有的动作在老端上显示不变（与鸿蒙同规则）。
+ * - **两端解析规则一致**：都只查实拍组，未命中回退默认素材。线稿层已整体停用，
+ *   不再参与解析（否则会截走本可用的实拍素材）。
  * - **映射按中文名**：Android 内容库的 exerciseId 是 `ex_xxx`，与素材文件名（kebab）
  *   是两套命名空间；其既有解析就是「id 命中 → 中文名命中 → 别名命中」，此处沿用。
  * - **生成 Kotlin 而非 JSON**：Android 运行时读 assets 需要 IO 与解析成本，而其既有
@@ -97,9 +94,8 @@ package com.fittracker.app.ui.screens.library
 /**
  * 实拍风格动作演示素材（free-exercise-db 实拍照合成）的「中文名 -> GIF 文件名」映射。
  *
- * 与线稿素材（[FtLibraryModel.GIF_ASSET_DIR]，23 个）的分工：
- * 线稿优先解析，本表只兜底线稿未覆盖的动作——故「杠铃划船」「腿弯举」这类
- * 两组同有的名字仍显示线稿素材，老动作观感不变。
+ * 这是 Android 端唯一的一层素材映射：旧线稿层已随授权清理整体停用，
+ * [FtLibraryModel.gifAssetFor] 只查本表，未命中回退占位块。
  *
  * 共 ${groups.length} 个素材 / ${entries.length} 个中文名（含别名）。
  */

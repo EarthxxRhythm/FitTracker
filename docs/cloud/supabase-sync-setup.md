@@ -133,7 +133,7 @@ qq.appId=<QQ互联 AppID>
    ```
    `--no-verify-jwt` 必需：端侧在未登录状态下调用本函数，不带 Supabase JWT；
    函数自身以 service_role 访问 Admin API。
-   若走自托管栈容器路径，参照 `server/deploy/README.md` 的 sms-hook 模式（Dockerfile + Caddy 反代）。
+   若走自托管 Supabase 栈容器路径，参照 `server/deploy/README.md` 的 sms-hook 模式（Dockerfile + Caddy 反代）。
 
 ### 6.4 验证步骤
 

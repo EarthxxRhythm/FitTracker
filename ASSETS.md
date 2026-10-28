@@ -43,25 +43,34 @@
 | 版权/许可 | **Unlicense（公共领域）**，可自由使用、修改、再分发 |
 | 来源 | `https://github.com/yuhonas/free-exercise-db` |
 | 生成脚本 | `apps/harmony/tools/content/build-exercise-gifs-photo.mjs`（2 张照片 → 三段乒乓 GIF） |
-| 映射表 | `apps/harmony/tools/content/exercise-photo-sources.json`（59 条，逐条核对） |
-| 位置 | `rawfile/exercise-gifs-photo/`（59）、`apps/android/app/src/main/assets/exercise-gifs-photo/`（59，由 `tools/sync-exercise-gifs-to-android.mjs` 同步） |
+| 映射表 | `apps/harmony/tools/content/exercise-photo-sources.json`（101 条，逐条核对） |
+| 位置 | `rawfile/exercise-gifs-photo/`（101）、`apps/android/app/src/main/assets/exercise-gifs-photo/`（101，由 `tools/sync-exercise-gifs-to-android.mjs` 同步） |
 | 署名要求 | Unlicense 不强制署名，但本项目仍在 THIRD-PARTY-NOTICES.md 登记来源 |
 
-### 1.3 已知降级与补全路径
+### 1.3 覆盖范围与唯一缺口
 
-线稿套系覆盖的 22 个动作（深蹲、杠铃卧推、硬拉、引体向上、平板支撑等）目前**没有演示图**，
-消费端 `ExerciseDemoImage` 会降级为占位图标（哑铃 SVG + 占位底色），不会报错或出现破图。
+内容库 102 个动作中，**101 个有演示素材**；唯一缺口是「鸟狗式」（`ex_bird_dog`）——
+free-exercise-db 经 id/name 检索零命中，源库确实没有该动作。其卡片与训练执行页
+由 `ExerciseDemoImage` 降级为占位图标（哑铃 SVG + 占位底色），不会报错或出现破图。
 
-**补全方式**（需要能访问 `raw.githubusercontent.com` 或自备源 JSON）：
+`ExerciseGifCatalog` 的解析规则与 Android 端 `PhotoGifCatalog` 一致：只查实拍组，
+未命中回退 `DEFAULT_EXERCISE_GIF_ID`（`barbell-deadlift`）。旧的「线稿优先」解析已停用，
+否则它会截走本可用的实拍素材（`barbell-row`/`leg-curl` 等文件已随授权清理移除）。
+
+**新增或替换素材的流程**（需要能访问 `raw.githubusercontent.com` 或自备源 JSON）：
 
 ```bash
 cd apps/harmony
-node tools/content/build-exercise-gifs-photo.mjs --input ./fedb.json \
-  --only squat,barbell-bench-press,barbell-row,pull-up,push-up,plank,lunge,leg-press,...
+# 1. 在 tools/content/exercise-photo-sources.json 增加 { exerciseId, nameZh, fedbId }，逐条核对语义
+# 2. 生成素材（--only 接 exerciseId）
+node tools/content/build-exercise-gifs-photo.mjs --input ./fedb.json --only ex_bird_dog
+# 3. 在 ExerciseGifCatalog.ets 的 EXERCISE_PHOTO_GIF_GROUPS 增加同名 gifId 条目
+# 4. 同步到 Android 并重生成 PhotoGifCatalog.kt（从仓库根执行）
+node tools/sync-exercise-gifs-to-android.mjs
 ```
 
-生成同名 `<gifId>.gif` 到 photo 目录后，`ExerciseGifCatalog` 的 23 条映射会自动复活，
-无需改动任何代码（映射数据保留在 `EXERCISE_GIF_GROUPS`）。
+数据一致性由 `tools/content/exercise-photo-sources.test.mjs` 与 ohosTest 的
+`ExerciseGifCatalog.test.ets` 双重守护：映射表、素材文件、catalog 表三者必须一一对应。
 
 ## 二、应用图标与矢量图形
 

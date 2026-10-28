@@ -93,7 +93,7 @@ fun createCloudSnapshot(
  *
  * 实现的「供应商」对应：
  * - 本地沙盒文件（[LocalSandboxSnapshotStore]）——云端配置缺失 / 测试环境；
- * - 自建服务器快照（源 `SupabaseCloudSnapshotStore.ets`）——发布路径
+ * - 自托管 Supabase 快照（源 `SupabaseCloudSnapshotStore.ets`）——发布路径
  *   Supabase 实现（同为 `CloudSnapshotStore`）。
  */
 interface CloudSnapshotStore {

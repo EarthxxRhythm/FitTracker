@@ -1,6 +1,6 @@
 # FitTracker · 菲特
 
-**双端健身训练记录应用。** HarmonyOS（ArkTS / ArkUI）与 Android（Kotlin / Jetpack Compose）各自原生实现，共用一个跨端数据契约；数据保存在本机，登录后自动同步到自建服务器。
+**双端健身训练记录应用。** HarmonyOS（ArkTS / ArkUI）与 Android（Kotlin / Jetpack Compose）各自原生实现，共用一个跨端数据契约；数据保存在本机，登录后自动同步到自托管 Supabase。
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-2ea44f)](LICENSE)
 [![HarmonyOS](https://img.shields.io/badge/HarmonyOS-6.0.2%20(22)-000000)](apps/harmony)
@@ -21,7 +21,7 @@
 
 训练记录的价值在于能回头看：这周练了几次、深蹲力量有没有涨、哪个肌群一直被落下。纸质本和备忘录记得下数字，但算不出趋势，也拼不出肌肉分布。
 
-FitTracker 把这套闭环接起来：逐组录入次数与重量 → 按 Epley 公式估算 1RM → 汇总成周趋势、动作个人纪录、肌肉分布与进阶洞察。HarmonyOS 与 Android 两端各自原生实现，数据用同一份契约描述，登录后自动同步到自建服务器，换设备不必重新开始。
+FitTracker 把这套闭环接起来：逐组录入次数与重量 → 按 Epley 公式估算 1RM → 汇总成周趋势、动作个人纪录、肌肉分布与进阶洞察。HarmonyOS 与 Android 两端各自原生实现，数据用同一份契约描述，登录后自动同步到自托管 Supabase，换设备不必重新开始。
 
 它同时也是个相对完整的双端工程样本：两套原生 UI、一份跨端数据契约、可自托管的后端、八条代码门禁，以及一套能跑的脚本化回归。仓库保留了完整的演进历史与工程约定文档——这些机制都还在用。
 
@@ -34,7 +34,7 @@ FitTracker 把这套闭环接起来：逐组录入次数与重量 → 按 Epley 
 | **训练回顾** | 历史训练、周趋势、动作 PR 下钻、肌肉分布、进阶洞察 |
 | **动作库** | 列表 / 筛选 / 收藏 / 详情，内置动作演示 GIF |
 | **身体数据** | 体重、体脂等趋势记录 |
-| **账号与云同步** | 两端同源：共用同一套自建服务（自托管 Supabase）的认证与整包快照同步；**登录为强制前置**。未配置云端凭据时进入沙盒演示模式，界面与流程可完整走通 |
+| **账号与云同步** | 两端同源：共用同一套自托管 Supabase 的认证与整包快照同步；**登录为强制前置**。未配置云端凭据时进入沙盒演示模式，界面与流程可完整走通 |
 | **训练强度** | Epley 公式估算 1RM，训练量、连续天数统计 |
 | **设置** | 单位、语言、周开始日、各类开关 |
 
@@ -55,7 +55,7 @@ FitTracker/
 └── AGENTS.md             工程约束（改代码前必读）
 ```
 
-**关键设计：契约层统一、单一后端。** 两端共用同一套自建服务（自托管 Supabase），快照的字段、类型与语义由 `contracts/` 定义，两端实现必须逐条一致。改契约前先改 `contracts/README.md`，再同步两端实现——否则一端升级、另一端的解析会直接失败。
+**关键设计：契约层统一、单一后端。** 两端共用同一套自托管 Supabase，快照的字段、类型与语义由 `contracts/` 定义，两端实现必须逐条一致。改契约前先改 `contracts/README.md`，再同步两端实现——否则一端升级、另一端的解析会直接失败。
 
 ### 图集
 
@@ -180,8 +180,8 @@ flowchart LR
 | [contracts/README.md](contracts/README.md) | 跨端数据契约（改数据结构的起点） |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | 提交格式、门禁、双端同步要求 |
 | [docs/release/release-build-runbook.md](docs/release/release-build-runbook.md) | 构建与发布工程面 |
-| [server/deploy/README.md](server/deploy/README.md) | 自建后端部署手册（现行） |
-| [docs/cloud/cloud-setup.md](docs/cloud/cloud-setup.md) | AGC 云服务配置手册（历史方案，已改自建服务器） |
+| [server/deploy/README.md](server/deploy/README.md) | 自托管 Supabase 部署手册（现行） |
+| [docs/cloud/cloud-setup.md](docs/cloud/cloud-setup.md) | AGC 云服务配置手册（历史方案，已改自托管 Supabase） |
 | [docs/CHANGELOG.md](docs/CHANGELOG.md) | 版本说明 |
 | [docs/legal/](docs/legal/) | 隐私政策与用户协议 |
 | [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) | 第三方组件与许可 |
@@ -189,7 +189,7 @@ flowchart LR
 
 ## 已知限制
 
-- **云同步需自备配置**：两端共用同一自建后端（自托管 Supabase），需要 `supabase.json`（HarmonyOS）与对应的服务端配置（Android）。未配置时进入沙盒演示模式，「云端」读写在本机沙盒内完成。
+- **云同步需自备配置**：两端共用同一套自托管 Supabase，需要 `supabase.json`（HarmonyOS）与对应的服务端配置（Android）。未配置时进入沙盒演示模式，「云端」读写在本机沙盒内完成。
 - **微信 / QQ 登录需要开放平台资质**：各平台对移动应用审核有门槛，仓库内的集成代码不代表凭据可用。
 - **界面仅简体中文**：`zh_CN` / `en_US` 资源目录已就绪，界面文案仍以代码内中文为主。
 - **仅支持 phone**：不响应平板 / 折叠屏专有布局。

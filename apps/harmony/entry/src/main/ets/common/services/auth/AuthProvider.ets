@@ -3,7 +3,7 @@
  *
  * 实现：
  *  - SandboxAuthProvider：本地沙盒（云端配置缺失 / 测试环境时降级使用）
- *  - SupabaseAuthProvider：自建服务器认证服务（supabase.json 就绪后接入）
+ *  - SupabaseAuthProvider：自托管 Supabase 认证服务（supabase.json 就绪后接入）
  *
  * 所有方法返回 Promise 以对齐云端异步语义；沙盒实现内部为同步逻辑。
  */

@@ -1,5 +1,5 @@
 /**
- * FitTracker · 自托管栈的 GoTrue「Send SMS Hook」接收端（独立容器版）
+ * FitTracker · 自托管 Supabase 栈的 GoTrue「Send SMS Hook」接收端（独立容器版）
  *
  * 链路：自托管 GoTrue 需要发验证码短信 → POST 本服务（standardwebhooks 签名）
  *       → 验签 → 解析 { user.phone, sms.otp } → **立即应答 200** → 后台调阿里云 SendSmsVerifyCode。

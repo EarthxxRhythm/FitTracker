@@ -4,7 +4,7 @@
  * 载荷为整包 JSON（用户数据聚合信封），每个用户一条快照。
  * 实现：
  *  - LocalSandboxSnapshotStore：本机文件模拟云端存储（云端配置缺失 / 测试环境）
- *  - SupabaseCloudSnapshotStore：自建服务器（Supabase）快照读写，见 SupabaseCloudSnapshotStore.ets
+ *  - SupabaseCloudSnapshotStore：自托管 Supabase（Supabase）快照读写，见 SupabaseCloudSnapshotStore.ets
  */
 import { Context } from '@kit.AbilityKit'
 import { fileIo } from '@kit.CoreFileKit'

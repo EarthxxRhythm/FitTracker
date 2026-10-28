@@ -144,7 +144,7 @@ QQ 互联是否接受个人主体，同样**未从公开文档确证**。与微�
 | `QQ_APP_KEY` | QQ 互联的 AppKey |
 | `HUAWEI_CLIENT_ID` | AGC 项目设置 → 常规 |
 | `HUAWEI_CLIENT_SECRET` | AGC 项目设置 → 常规 |
-| `SUPABASE_SERVICE_ROLE_KEY` | 自托管栈的 `.env`（`server/deploy/README.md` 有说明） |
+| `SUPABASE_SERVICE_ROLE_KEY` | 自托管 Supabase 栈的 `.env`（`server/deploy/README.md` 有说明） |
 
 客户端配置（非密钥，可入库的模板）：`apps/harmony/AppScope/resources/rawfile/` 下新增第三方配置需与 `supabase.example.json` 同模式（模板入库、真值 gitignore）。
 

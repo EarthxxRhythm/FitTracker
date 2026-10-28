@@ -109,7 +109,7 @@ npx supabase secrets set --env-file server/deploy/thirdparty.env --project-ref <
 
 ### 2.3 SUPABASE_SERVICE_ROLE_KEY（A 类）
 
-**入口**：自托管栈，服务器上
+**入口**：自托管 Supabase 栈，服务器上
 
 ```bash
 cd /opt/supabase/docker

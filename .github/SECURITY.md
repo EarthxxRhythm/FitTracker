@@ -44,7 +44,7 @@
 | 按内容扫描 git 全历史（`git log -S`），确认从未入库 | ✅ 2026-10-28 |
 | 泄露时的唯一止损手段：下架 QQ 登录入口 | — |
 
-同理，`SUPABASE_SERVICE_ROLE_KEY` 一旦泄露可轮换，但两个平台（自托管栈、Edge Function）都要同步改，属于"能换但麻烦"的一类。
+同理，`SUPABASE_SERVICE_ROLE_KEY` 一旦泄露可轮换，但两个平台（自托管 Supabase 栈、Edge Function）都要同步改，属于"能换但麻烦"的一类。
 
 **报告这类问题请直接走私密渠道**，不要开公开 issue。
 

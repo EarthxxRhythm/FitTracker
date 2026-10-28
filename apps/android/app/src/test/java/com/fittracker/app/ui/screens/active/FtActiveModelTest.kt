@@ -1,6 +1,8 @@
 package com.fittracker.app.ui.screens.active
 
 import com.fittracker.app.R
+import com.fittracker.app.data.service.ActiveWorkoutExercise
+import com.fittracker.app.data.service.ActiveWorkoutSetEntry
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -111,8 +113,98 @@ class FtActiveModelTest {
     @Test
     fun `首屏预置两条记录且目标为六组`() {
         assertEquals(6, FtActiveModel.TARGET)
-        assertEquals(listOf(FtSetRecord(30, 10), FtSetRecord(32, 9)), FtActiveModel.INITIAL_RECORDS)
+        assertEquals(
+            listOf(FtSetRecord(1, 30, 10), FtSetRecord(2, 32, 9)),
+            FtActiveModel.INITIAL_RECORDS,
+        )
     }
+
+    // ── 当前动作的记录（训练页记录按动作分开） ──────────────────
+
+    @Test
+    fun `空训练态没有记录`() {
+        assertEquals(emptyList<FtSetRecord>(), FtActiveModel.currentRecords(emptyList()))
+    }
+
+    @Test
+    fun `只返回当前动作的记录，组号从 1 起`() {
+        val finished = exercise(
+            "planned_1_1", "杠铃深蹲",
+            listOf(set(0, "40", "10", complete = true), set(1, "40", "10", complete = true)),
+        )
+        val current = exercise(
+            "planned_1_2", "罗马尼亚硬拉",
+            listOf(set(0, "60", "8", complete = true), set(1, "", "", complete = false)),
+        )
+
+        assertEquals(
+            listOf(FtSetRecord(1, 60, 8)),
+            FtActiveModel.currentRecords(listOf(finished, current)),
+        )
+    }
+
+    @Test
+    fun `当前动作还没有完成组时返回空`() {
+        val finished = exercise("planned_1_1", "杠铃深蹲", listOf(set(0, "40", "10", complete = true)))
+        val fresh = exercise("planned_1_2", "罗马尼亚硬拉", listOf(set(0, "", "", complete = false)))
+
+        assertEquals(emptyList<FtSetRecord>(), FtActiveModel.currentRecords(listOf(finished, fresh)))
+    }
+
+    @Test
+    fun `热身组不计入但组号保留动作内序号`() {
+        val current = exercise(
+            "planned_1_1", "杠铃深蹲",
+            listOf(
+                set(0, "20", "15", complete = true, warmup = true),
+                set(1, "40", "10", complete = true),
+            ),
+        )
+
+        assertEquals(listOf(FtSetRecord(2, 40, 10)), FtActiveModel.currentRecords(listOf(current)))
+    }
+
+    @Test
+    fun `全部录满时取最后一个动作`() {
+        val first = exercise("planned_1_1", "杠铃深蹲", listOf(set(0, "40", "10", complete = true)))
+        val last = exercise("planned_1_2", "罗马尼亚硬拉", listOf(set(0, "60", "8", complete = true)))
+
+        assertEquals(
+            listOf(FtSetRecord(1, 60, 8)),
+            FtActiveModel.currentRecords(listOf(first, last)),
+        )
+    }
+
+    private fun set(
+        index: Int,
+        weight: String,
+        reps: String,
+        complete: Boolean,
+        warmup: Boolean = false,
+    ): ActiveWorkoutSetEntry = ActiveWorkoutSetEntry(
+        setIndex = index,
+        weightText = weight,
+        repsText = reps,
+        estimatedOneRepMax = 0.0,
+        oneRepMaxText = "",
+        isWarmup = warmup,
+        isComplete = complete,
+    )
+
+    private fun exercise(
+        plannedExerciseId: String,
+        name: String,
+        sets: List<ActiveWorkoutSetEntry>,
+    ): ActiveWorkoutExercise = ActiveWorkoutExercise(
+        plannedExerciseId = plannedExerciseId,
+        exerciseId = "ex_$plannedExerciseId",
+        name = name,
+        targetSets = sets.size,
+        targetReps = "8-12",
+        intensityNote = "",
+        completedSets = sets.count { it.isComplete && !it.isWarmup },
+        sets = sets,
+    )
 
     // ── 彩带几何（原型 spawnConfetti，L779-796） ───────────────
 

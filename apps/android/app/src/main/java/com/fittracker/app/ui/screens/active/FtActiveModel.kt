@@ -2,12 +2,17 @@ package com.fittracker.app.ui.screens.active
 
 import androidx.annotation.StringRes
 import com.fittracker.app.R
+import com.fittracker.app.data.service.ActiveWorkoutExercise
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.sin
 
-/** 一条已完成的组记录（原型 `records` 数组的条目，L694-697）。 */
-data class FtSetRecord(val weight: Int, val reps: Int)
+/**
+ * 一条已完成的组记录（原型 `records` 数组的条目，L694-697）。
+ *
+ * [setNumber] 是「动作内」组号（1 起）——记录按动作分开，组号不从全场累计。
+ */
+data class FtSetRecord(val setNumber: Int, val weight: Int, val reps: Int)
 
 /** 进度条单格的角色（原型 `updateProgress` 的 `done` / `current` / 无，L748-762）。 */
 enum class FtSegRole { Done, Current, Plain }
@@ -54,7 +59,8 @@ object FtActiveModel {
     const val TARGET = 6
 
     /** 首屏预置记录（L694-697）：2/6，故首个可见进度格是 `.current`。 */
-    val INITIAL_RECORDS: List<FtSetRecord> = listOf(FtSetRecord(30, 10), FtSetRecord(32, 9))
+    val INITIAL_RECORDS: List<FtSetRecord> =
+        listOf(FtSetRecord(1, 30, 10), FtSetRecord(2, 32, 9))
 
     /** 重量步进：`data-increment="1" data-min="20" data-max="200"`。 */
     const val WEIGHT_MIN = 20
@@ -107,6 +113,35 @@ object FtActiveModel {
 
     /** `renderSets` 的按钮可用性（L732：`btnSubmit.disabled = completed >= target`）。 */
     fun submitEnabled(completed: Int, target: Int = TARGET): Boolean = completed < target
+
+    /**
+     * 当前动作的已完成正式组 → 视觉记录（组号为动作内序号，从 1 起）。
+     *
+     * 训练页的记录按动作分开、只显示当前动作：切到下一个动作后，上一动作的组不再显示，
+     * 组号与页面上「第 N 组」始终属于同一个动作。
+     *
+     * 当前动作的口径与 `ActiveWorkoutService` 的写入口径一致——首个未录满的动作，
+     * 全部录满取末个；无动作返回空列表。只收已录完的正式组（跳过未完成与热身），
+     * 重量/次数按草稿里的整数字面解析（不可解析按 0）。
+     */
+    fun currentRecords(exercises: List<ActiveWorkoutExercise>): List<FtSetRecord> {
+        val current = exercises.firstOrNull { it.completedSets < it.targetSets }
+            ?: exercises.lastOrNull()
+            ?: return emptyList()
+        val result = mutableListOf<FtSetRecord>()
+        for (index in current.sets.indices) {
+            val set = current.sets[index]
+            if (!set.isComplete || set.isWarmup) continue
+            result.add(
+                FtSetRecord(
+                    setNumber = index + 1,
+                    weight = set.weightText.toIntOrNull() ?: 0,
+                    reps = set.repsText.toIntOrNull() ?: 0,
+                ),
+            )
+        }
+        return result
+    }
 
     /**
      * 步进按钮的取值（L864-880）：
