@@ -41,7 +41,7 @@
 
 > ⚠ 这是**唯一需要改代码的地方**，且该文件**入库**。AppID 非密钥，可入库。
 
-### ② 鸿蒙：`apps/harmony/AppScope/resources/rawfile/thirdparty.json`（需新建）
+### ② 鸿蒙：`apps/harmony/AppScope/resources/rawfile/` 下的 `thirdparty.json`（需本地新建；仓库中不再存在该文件）
 
 该文件**不入库**（`.gitignore:62` 已有 `**/thirdparty.json` 规则，实测生效）。
 
