@@ -1,6 +1,13 @@
 # Supabase 云同步配置手册（自托管后端）
 
-> 用途：记录鸿蒙端「数据同步」接入自托管 Supabase（PostgREST）的配置与验证流程；与 AGC 手册（`docs/cloud/cloud-setup.md`）并列，两端后端由 `CloudEnvironment.getBackend()` 统一仲裁。
+> **层级**：L2 展开
+> **最后核对**：2026-10-28
+> **上位文档**：`AGENTS.md`（L1，冲突以 L1 为准）
+> **状态**：现行
+> **路径基准**：文中 `server\…`、`apps\…`、`docs\…` 相对仓库根
+> **适用端**：双端
+
+> 用途：记录鸿蒙端「云同步」接入自托管 Supabase（PostgREST）的配置与验证流程。本文是**现行**后端手册；AGC 手册（`docs/cloud/cloud-setup.md`，已被取代）仅作历史参考。`CloudEnvironment.getBackend()` 现为 supabase / sandbox 二态仲裁，无 agc 分支。
 > 端侧实现：`apps/harmony/entry/src/main/ets/shared/services/SupabaseCloudSnapshotStore.ets`（快照存储）；认证侧 `apps/harmony/entry/src/main/ets/common/services/auth/SupabaseAuthProvider.ets`（含 access token 自动刷新）。
 > 状态：2026-10-13 首次落地——编译门禁与契约测试（`apps/harmony/entry/src/ohosTest/ets/test/SupabaseCloudSnapshotStore.test.ets`）已就位；设备端到端按 §4 执行。
 
@@ -25,7 +32,7 @@ RLS：仅本人可 select / insert / update（策略条件 `auth.uid() = user_id
 
 ## 2. 端侧：放置运行时凭据
 
-把真实 `supabase.json` 放入 `AppScope/resources/rawfile/`（与 AGC 凭据同级）。字段形状见模板 `AppScope/resources/rawfile/supabase.example.json`：
+把真实 `supabase.json` 放入 `AppScope/resources/rawfile/`（与 `thirdparty.json` 同级）。字段形状见模板 `AppScope/resources/rawfile/supabase.example.json`：
 
 ```json
 {
@@ -41,9 +48,9 @@ RLS：仅本人可 select / insert / update（策略条件 `auth.uid() = user_id
 
 `apps/harmony/entry/src/main/ets/common/services/CloudEnvironment.ets` 的 `getBackend()` 是单一真源：
 
-> 测试强制 sandbox > **Supabase 显式配置**（supabase.json 探测通过）> AGC 探测 > 沙盒兜底
+> 测试强制 sandbox > **Supabase 显式配置**（supabase.json 探测通过）> 沙盒兜底
 
-Supabase 与 AGC 配置同时存在时，以 Supabase 为准（显式配置优先于自动探测）。同步链路由 `apps/harmony/entry/src/main/ets/shared/services/CloudSyncService.ets` 的 `resolveStore()` 按该优先级选择快照存储。
+AGC 分支已从代码删除（2026-10-28），不存在「Supabase 与 AGC 同时配置」的情形；配置缺失即落沙盒。同步链路由 `apps/harmony/entry/src/main/ets/shared/services/CloudSyncService.ets` 的 `resolveStore()` 按该优先级选择快照存储。
 
 ## 4. 验证步骤
 
@@ -71,7 +78,7 @@ Supabase 与 AGC 配置同时存在时，以 Supabase 为准（显式配置优�
 | 表不存在（404） | 未执行 §1 迁移 → 执行后重试 |
 | token 过期后同步失败 | 端侧自动刷新（`ensureFreshAccessToken`）；若刷新被 4xx 拒绝会清会话 → 重新登录 |
 
-> 相关：契约测试 `apps/harmony/entry/src/ohosTest/ets/test/SupabaseCloudSnapshotStore.test.ets`；全门禁 `apps/harmony/tools/check-gates.mjs`；AGC 并行手册 `docs/cloud/cloud-setup.md`。
+> 相关：契约测试 `apps/harmony/entry/src/ohosTest/ets/test/SupabaseCloudSnapshotStore.test.ets`；全门禁 `apps/harmony/tools/check-gates.mjs`；历史 AGC 手册 `docs/cloud/cloud-setup.md`（已被取代）。
 
 ---
 

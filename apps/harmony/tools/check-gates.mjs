@@ -110,6 +110,12 @@ function main() {
       help: '注册表与规范文档头部不一致。修法：文件不存在改注册表路径；缺头部补 6 行（层级/最后核对/上位文档/状态/路径基准/适用端）；状态不一致统一两处。'
     },
     {
+      name: 'glossary',
+      command: 'node',
+      args: ['tools/check-glossary.mjs'],
+      help: '按 [GL-xx] 定位：GL-01 术语（复盘→回顾）GL-02 云后端事实（AGC 不得作后端）GL-03 凭据文件名（supabase.json）GL-04 必须登记。现行层改真文；历史材料同行补失效措辞；规则依据见 docs/glossary.md §3/§5。'
+    },
+    {
       name: 'dual-platform parity',
       command: 'node',
       args: ['tools/check-parity.mjs'],
