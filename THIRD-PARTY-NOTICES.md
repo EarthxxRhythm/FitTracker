@@ -26,7 +26,6 @@
 
 | 组件 | 版本 | 许可 |
 |---|---|---|
-| `@hw-agconnect/auth` | ^1.1.0 | 华为 AppGallery Connect SDK 许可 |
 | `@tencent/wechat_open_sdk` | ^1.0.23 | 腾讯微信 OpenSDK 许可 |
 | `@tencent/qq-open-sdk` | ^1.0.4 | 腾讯 QQ 互联 SDK 许可 |
 | `@ohos/hypium`（测试） | 1.0.25 | Apache-2.0 |

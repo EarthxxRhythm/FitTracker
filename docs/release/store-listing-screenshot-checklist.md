@@ -32,7 +32,7 @@
 
 ## 三、截图内容清单
 
-按用户旅程顺序拍摄，覆盖"目标—计划—执行—复盘"完整闭环。
+按用户旅程顺序拍摄，覆盖"目标—计划—执行—回顾"完整闭环。
 
 | # | 文件名建议 | 对应页面 | 应呈现状态 | 说明要点 |
 | --- | --- | --- | --- | --- |
@@ -41,7 +41,7 @@
 | 3 | `03-preview.png` | `features/pencil/pages/PencilPreviewPage` | 训练预览，动作清单完整 | 说明"训练前预览" |
 | 4 | `04-active.png` | `features/pencil/pages/PencilActivePage` | 训练执行中，有组次/计时 | 说明"边练边记录" |
 | 5 | `05-summary.png` | `features/workout/pages/WorkoutCompletePage` | 训练完成摘要 | 说明"自动汇总" |
-| 6 | `06-review.png` | `features/pencil/pages/PencilReviewPage` | 复盘页，趋势/统计有数据 | 说明"数据驱动复盘" |
+| 6 | `06-review.png` | `features/pencil/pages/PencilReviewPage` | 回顾页，趋势/统计有数据 | 说明"数据驱动回顾" |
 | 7 | `07-exercise.png` | `features/exercise/pages/ExerciseLibraryPage` | 动作库列表，网格有内容 | 说明"动作库" |
 | 8 | `08-profile.png` | `features/pencil/pages/PencilProfilePage` | 我的页，成就/统计有数据 | 备选收尾图 |
 

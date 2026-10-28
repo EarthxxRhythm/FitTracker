@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -47,7 +49,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.semantics.contentDescription
@@ -57,6 +59,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.fittracker.app.R
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
@@ -74,6 +77,7 @@ import com.fittracker.app.ui.theme.FtColor
 import com.fittracker.app.ui.theme.FtMotion
 import com.fittracker.app.ui.theme.FtShape
 import com.fittracker.app.ui.theme.FtType
+import java.io.File
 import java.util.Calendar
 
 /**
@@ -139,7 +143,7 @@ fun ProfileScreen(
         targetValue = if (entered) 1f else 0f,
         animationSpec = tween(
             FtMotion.DURATION_ENTER,
-            delayMillis = FtMotion.DURATION_STAGGER,
+            delayMillis = FtMotion.DURATION_STAGGER * 2,
             easing = FtMotion.EASE_ENTER,
         ),
         label = "profile-week-in",
@@ -148,7 +152,7 @@ fun ProfileScreen(
         targetValue = if (entered) 1f else 0f,
         animationSpec = tween(
             FtMotion.DURATION_ENTER,
-            delayMillis = FtMotion.DURATION_STAGGER * 2,
+            delayMillis = FtMotion.DURATION_STAGGER * 3,
             easing = FtMotion.EASE_ENTER,
         ),
         label = "profile-ach-in",
@@ -157,7 +161,7 @@ fun ProfileScreen(
         targetValue = if (entered) 1f else 0f,
         animationSpec = tween(
             FtMotion.DURATION_ENTER,
-            delayMillis = FtMotion.DURATION_STAGGER * 3,
+            delayMillis = FtMotion.DURATION_STAGGER * 4,
             easing = FtMotion.EASE_ENTER,
         ),
         label = "profile-shortcut-in",
@@ -179,9 +183,16 @@ fun ProfileScreen(
             name = name,
             avatarInitial = avatarInitial,
             avatarKey = avatarKey,
+            avatarImagePath = vm.avatarImagePath,
+            // 首帧 VM 尚未装载时回落「未设置目标」，避免副标题闪空。
+            subtitle = vm.goalSubtitle.ifEmpty { stringResource(R.string.profile_sub_none) },
             onNavigate = onNavigate,
             modifier = Modifier.enterFromBelow(headIn),
         )
+        // 训练经验徽标：未填时整枚隐藏、不占位（与鸿蒙个人页同口径）。
+        if (vm.experienceLabel.isNotEmpty()) {
+            ExperienceBadge(label = vm.experienceLabel, modifier = Modifier.enterFromBelow(headIn))
+        }
         WeekOverviewCard(
             value = weekValue,
             sessions = weekSessions,
@@ -215,6 +226,8 @@ private fun ProfileHead(
     name: String,
     avatarInitial: String,
     avatarKey: String,
+    avatarImagePath: String,
+    subtitle: String,
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -238,19 +251,31 @@ private fun ProfileHead(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // `.avatar` L240-253：52×52、50% 圆、色键底色 + 同色系描边、前景同色系高亮
-            Box(
-                modifier = Modifier
-                    .requiredSize(52.dp)
-                    .clip(CircleShape)
-                    .background(tint.bg)
-                    .border(1.dp, tint.border, CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = avatarInitial,
-                    style = FtType.natural(22f, 700, FtType.num), // 原型 font-num 22px/700（L248-250）
-                    color = tint.fg,
+            if (avatarImagePath.isNotEmpty()) {
+                AsyncImage(
+                    model = File(avatarImagePath),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .requiredSize(52.dp)
+                        .clip(CircleShape)
+                        .border(1.dp, tint.border, CircleShape),
                 )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .requiredSize(52.dp)
+                        .clip(CircleShape)
+                        .background(tint.bg)
+                        .border(1.dp, tint.border, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = avatarInitial,
+                        style = FtType.natural(22f, 700, FtType.num), // 原型 font-num 22px/700（L248-250）
+                        color = tint.fg,
+                    )
+                }
             }
 
             Column(modifier = Modifier.weight(1f)) { // `.p-id { flex: 1 1 auto }`（L255）
@@ -264,7 +289,7 @@ private fun ProfileHead(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = stringResource(FtProfileModel.SUB_NONE_RES),
+                    text = subtitle,
                     modifier = Modifier.padding(top = 4.dp), // `.p-sub { margin-top: 4px }`（L257）
                     style = FtType.natural(12.5f), // 12.5px，原型未声明 line-height
                     color = FtColor.white62,
@@ -279,12 +304,34 @@ private fun ProfileHead(
     }
 }
 
+/** 训练经验徽标（只读）：11.5sp 文字胶囊，与鸿蒙 `ProfileContent` 的经验徽标同规格。 */
+@Composable
+private fun ExperienceBadge(label: String, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .clip(FtShape.pill)
+            .background(ExperienceBadgeFill)
+            .border(1.dp, FtColor.line10, FtShape.pill)
+            .padding(horizontal = 10.dp, vertical = 5.dp),
+    ) {
+        Text(
+            text = label,
+            style = FtType.natural(11.5f),
+            color = FtColor.white54,
+        )
+    }
+}
+
 /** 资料编辑入口（设计侧新增）：32dp 文字胶囊，按压 `scale(.96)` 与设置钮同语汇。 */
 @Composable
 private fun EditChip(onClick: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val scale = if (pressed) PRESS_SCALE_SETTINGS else 1f
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) PRESS_SCALE_SETTINGS else 1f,
+        animationSpec = tween(FtMotion.DURATION_PRESS, easing = FtMotion.EASE_MOTION),
+        label = "profile-header-settings-press-scale",
+    )
     Box(
         modifier = Modifier
             .height(32.dp)
@@ -315,7 +362,11 @@ private fun EditChip(onClick: () -> Unit) {
 private fun SettingsButton(onClick: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val scale = if (pressed) PRESS_SCALE_SETTINGS else 1f // `.p-settings:active { transform: scale(.96) }`（L278）
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) PRESS_SCALE_SETTINGS else 1f,
+        animationSpec = tween(FtMotion.DURATION_PRESS, easing = FtMotion.EASE_MOTION),
+        label = "profile-settings-press-scale",
+    )
     // `.p-settings` 的 `aria-label`——`.semantics` 非 Composable 作用域，先在屏内取用
     val a11yLabel = stringResource(FtProfileModel.SETTINGS_A11Y_RES)
 
@@ -616,7 +667,11 @@ private fun ShortcutButton(
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val scale = if (pressed) PRESS_SCALE_SHORTCUT else 1f // `.shortcut:active { transform: scale(.98) }`（L443）
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) PRESS_SCALE_SHORTCUT else 1f,
+        animationSpec = tween(FtMotion.DURATION_PRESS, easing = FtMotion.EASE_MOTION),
+        label = "profile-shortcut-press-scale",
+    )
 
     Row(
         modifier = modifier
@@ -871,6 +926,9 @@ private const val PRESS_SCALE_SHORTCUT = 0.98f
 
 /** 资料编辑入口底 `rgba(255,255,255,.047)`（同快捷入口语汇）→ `0x0CFFFFFF`。 */
 private val EditChipFill = Color(0x0CFFFFFF)
+
+/** 训练经验徽标底 `rgba(255,255,255,.05)`（与鸿蒙 `WHITE_A05` 同值）。 */
+private val ExperienceBadgeFill = Color(0x0CFFFFFF)
 
 /** 头部「头像 + 身份」可点击区域的圆角（与卡片语汇一致）。 */
 private val ProfileHeadShape = RoundedCornerShape(16.dp)

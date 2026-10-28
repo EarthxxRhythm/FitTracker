@@ -1,5 +1,6 @@
 ﻿/** HomeContent - 首页 Tab 界面体（供 PencilAppShell 与独立注册页复用）。 */
 import { MotionTokens } from '../../../common/styles/DesignTokens'
+import { DuTokens } from '../../../common/styles/DuTokens'
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
 import { HomeState, HomeWeekDayItem } from './states/HomeState'
@@ -16,6 +17,11 @@ export struct HomeContent {
   private static readonly NUMBER_FONT_FAMILY: string = 'Inter'
   @State private primaryPressed: boolean = false
   @State private topInsetVp: number = 0
+  // 入场错峰：三块分别在 0 / 40 / 80ms 启动，各 320ms 上浮淡入。
+  // 与 Android `HomeScreen.kt:114-135` 的 DURATION_ENTER / DURATION_STAGGER 同节奏。
+  @State private headIn: number = 0
+  @State private todayIn: number = 0
+  @State private weekIn: number = 0
 
   async aboutToAppear(): Promise<void> {
     await this.resolveTopInset()
@@ -23,6 +29,28 @@ export struct HomeContent {
     if (context !== null) {
       await this.state.refresh(context)
     }
+    this.playEntrance()
+  }
+
+  /**
+   * 三块错峰上浮淡入。
+   *
+   * 用 `animateTo` 自带的 `delay` 而不是 `setTimeout`——后者要额外维护 timer 的生命周期
+   * （项目约定「销毁时清理 timer/listener」），延迟进场这种一次性动效没必要引入清理负担。
+   */
+  private playEntrance(): void {
+    const enter: number = MotionTokens.DURATION_ENTER
+    const stagger: number = MotionTokens.DURATION_STAGGER
+    // EASE_ENTER 是 CSS cubic-bezier 字符串（MotionTokens 底部的 string 版），animateTo 直接接受
+    this.getUIContext().animateTo({ duration: enter, delay: 0, curve: MotionTokens.EASE_ENTER }, () => {
+      this.headIn = 1
+    })
+    this.getUIContext().animateTo({ duration: enter, delay: stagger, curve: MotionTokens.EASE_ENTER }, () => {
+      this.todayIn = 1
+    })
+    this.getUIContext().animateTo({ duration: enter, delay: stagger * 2, curve: MotionTokens.EASE_ENTER }, () => {
+      this.weekIn = 1
+    })
   }
 
   private contextOrNull(): Context | null {
@@ -79,12 +107,25 @@ export struct HomeContent {
                 .fontColor(PrototypeTokens.TEXT_HI)
                 .width('100%')
             }
+            .width('100%')
+            .opacity(this.headIn)
+            .translate({ y: (1 - this.headIn) * 8 })
             Row()
               .height(19)
-            this.todayCard()
+            Column() {
+              this.todayCard()
+            }
+            .width('100%')
+            .opacity(this.todayIn)
+            .translate({ y: (1 - this.todayIn) * 8 })
             Row()
               .height(16)
-            this.weekPanel()
+            Column() {
+              this.weekPanel()
+            }
+            .width('100%')
+            .opacity(this.weekIn)
+            .translate({ y: (1 - this.weekIn) * 8 })
           }
           .width('100%')
           .padding({
@@ -258,7 +299,12 @@ export struct HomeContent {
             this.primaryPressed = false
           }
         })
-        .scale({ x: this.primaryPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.primaryPressed ? MotionTokens.PRESS_PRIMARY : 1 })
+        // Duolingo 硬边厚底：按下时厚边收平 + 整体下沉，替代缩放按压
+        .border({
+          width: { bottom: this.primaryPressed ? 0 : DuTokens.PRESS_DEPTH },
+          color: { bottom: PrototypeTokens.ACCENT_DEEP }
+        })
+        .translate({ y: this.primaryPressed ? DuTokens.PRESS_SHIFT : 0 })
         .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
         .padding(0)
         .onClick(() => {

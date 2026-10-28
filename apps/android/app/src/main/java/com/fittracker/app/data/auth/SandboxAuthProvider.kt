@@ -10,7 +10,7 @@ import kotlinx.serialization.encodeToString
 /**
  * 沙盒认证实现——逐方法移植自鸿蒙 `entry/src/main/ets/common/services/auth/SandboxAuthProvider.ets`。
  *
- * 用途：AGC 云服务未配置 / 测试环境时的降级实现，保证注册 / 登录 / 退出全链路可用
+ * 用途：云端配置缺失 / 测试环境时的降级实现，保证注册 / 登录 / 退出全链路可用
  * （源 `SandboxAuthProvider.ets:1` 文件头注释）。
  *
  * 持久化模型（与源的映射）：
@@ -377,7 +377,7 @@ import kotlinx.serialization.encodeToString
 /**
  * 沙盒认证实现——逐方法移植自鸿蒙 `entry/src/main/ets/common/services/auth/SandboxAuthProvider.ets`。
  *
- * 用途：AGC 云服务未配置 / 测试环境时的降级实现，保证注册 / 登录 / 退出全链路可用
+ * 用途：云端配置缺失 / 测试环境时的降级实现，保证注册 / 登录 / 退出全链路可用
  * （源 `SandboxAuthProvider.ets:1` 文件头注释）。
  *
  * 持久化模型（与源的映射）：

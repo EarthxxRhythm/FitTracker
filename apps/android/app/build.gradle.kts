@@ -52,6 +52,9 @@ android {
         applicationId = "com.earthrhythm.fittracker"
         minSdk = 24
         targetSdk = 37
+        // 真机 instrumentation 入口：让「点击热力格打开弹层」这类用户级路径在真实 Runtime 上跑一遍。
+        // Compose 语义动作在 app 进程内派发，不依赖系统触摸注入（ColorOS 会静默丢弃 adb input tap）。
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         versionCode = 1
         versionName = "0.1.0"
 
@@ -164,6 +167,10 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.work.testing)
     testImplementation(libs.androidx.ui.test.junit4)
+    // 真机 instrumentation（connectedDebugAndroidTest）：同一套 Compose 语义断言，跑在设备 Runtime 上
+    // BOM 需单独进 androidTest 配置，否则 ui-test-junit4 解析不到版本
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.ui.test.junit4)
 
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)

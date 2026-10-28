@@ -1,7 +1,6 @@
 package com.fittracker.app.ui.screens.legal
 
 import android.content.Context
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -42,11 +41,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.fittracker.app.R
+import com.fittracker.app.data.service.currentLanguageTag
 import com.fittracker.app.ui.components.clickableNoRipple
 import com.fittracker.app.ui.theme.FtColor
 import com.fittracker.app.ui.theme.FtMotion
 import com.fittracker.app.ui.theme.FtType
-import java.util.Locale
 
 /**
  * 法律文档屏（隐私政策 / 用户协议；规格源：鸿蒙 `features/settings/pages/LegalDocPage.ets`）。
@@ -69,7 +68,7 @@ fun LegalDocScreen(
 ) {
     val context = LocalContext.current
     // 语言标签参与 key：per-app locale（AppCompat）优先，未设置时回落系统语言（与
-    // `ContentRepository.currentLanguageTag()` 同口径）。语言切换会因 AppCompat 重建
+    // `LocaleUtil.currentLanguageTag()` 同口径）。语言切换会因 AppCompat 重建
     // Activity 而重进本屏，此处作为 key 只是把依赖显式化。
     val languageTag = currentLanguageTag()
     var docText by remember(kind, languageTag) { mutableStateOf("") }
@@ -116,16 +115,6 @@ fun LegalDocScreen(
             }
         }
     }
-}
-
-/**
- * 当前语言标签——应用级 per-app locale（`AppCompatDelegate`，设置页语言分段）优先；
- * 未设置时回落系统 [Locale.getDefault]。与 `ContentRepository.currentLanguageTag()` 同口径。
- */
-private fun currentLanguageTag(): String {
-    val appLocales = AppCompatDelegate.getApplicationLocales()
-    val tag = if (appLocales.isEmpty) "" else appLocales.toLanguageTags()
-    return tag.ifBlank { Locale.getDefault().language }
 }
 
 /** 读取 `assets/` 下的文本；文件不存在或读取失败返回 `null`（调用方据此回退 / 展示空态）。 */

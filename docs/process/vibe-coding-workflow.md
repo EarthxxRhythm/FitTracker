@@ -1,7 +1,7 @@
 # FitTracker Vibe Coding 工作流
 
 > **层级**：L1 权威（`docs\process\` 下的流程唯一权威，见本文 §2）
-> **最后核对**：2026-10-27
+> **最后核对**：2026-10-28
 > **上位文档**：无，本文为流程顶层；工程约束仍以仓库根 `AGENTS.md` 为准
 > **状态**：现行
 > **路径基准**：同本文 §2——`tools\…`、`entry\…`、`AppScope\…` 相对 `apps\harmony\`，`docs\…` 相对仓库根
@@ -37,7 +37,12 @@
 - 并行内容线：`docs/process/tasks.content-plan.json`
 - 并行回归线：`docs/process/tasks.regression-flow.json`
 - `tasks.phase2.json`、`tasks.next.json`、`tasks.json` 仅作为历史阶段记录，不再作为默认接力入口
-- `docs/process/tasks.legacy.json` 仅作归档，不作为自动接力任务源
+- `docs/process/tasks.legacy.json` 仅作归档，不作为自动接力任务源（2026-10-28 起冻结，语义停在 1.0.0）
+
+**任务源语义与校准**见 `docs/process/tasks.README.md`：
+
+- `passes` 是**接力翻牌标志**，不是「功能是否实现」；判断实现看代码与测试。
+- 2026-10-28 已按「自托管 Supabase + 登录强制 + 同步恒定自动」校准：回归线 1-9 条按现认证模型重写，内容线/训练线只修描述漂移，`passes` 未动。
 
 ## 3. 核心原则
 

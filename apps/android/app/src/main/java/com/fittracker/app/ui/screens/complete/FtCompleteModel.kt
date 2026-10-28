@@ -64,7 +64,7 @@ object FtCompleteModel {
 
     // ── 整体 RPE 采集（逐字对齐鸿蒙 `WorkoutCompletePage.ets` 的 `rpeCard`） ──
     //
-    // 采集口径：逐组采集成本高，故按「次」采集整体努力程度（1–10）。这是复盘页
+    // 采集口径：逐组采集成本高，故按「次」采集整体努力程度（1–10）。这是回顾页
     // 「努力程度」柱状图（`FtReviewModel.effortLevels` 读 `sessionRpe`）的唯一真数据来源。
 
     /** RPE 卡标题：「本次训练强度」。 */

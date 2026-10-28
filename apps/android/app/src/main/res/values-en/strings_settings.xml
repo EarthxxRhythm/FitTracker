@@ -8,7 +8,7 @@
     <!-- Top bar / footer -->
     <string name="settings_title">Settings</string>
     <string name="settings_a11y_back">Back to profile</string>
-    <string name="settings_foot_note">FitTracker is local-first: workout and body data stay on this device by default.</string>
+    <string name="settings_foot_note">Workout and body data stay on this device; sync runs automatically after sign-in.</string>
 
     <!-- Section headers -->
     <string name="settings_section_general">General</string>
@@ -17,6 +17,7 @@
     <string name="settings_section_about_meta">FitTracker</string>
 
     <!-- Row labels -->
+    <string name="settings_row_profile">Profile</string>
     <string name="settings_row_weight_unit">Weight unit</string>
     <string name="settings_row_language">Language</string>
     <string name="settings_row_week_start">Week starts on</string>

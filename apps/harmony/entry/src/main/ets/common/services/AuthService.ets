@@ -3,12 +3,11 @@
  *
  * 统一入口：探测云环境（cloud / sandbox）并转发到对应 AuthProvider；
  * 登录/注册成功后自动写入 SessionManager 会话快照，供启动分流与 UI 展示。
- * AGC 配置（agconnect-services.json）就绪时云端分支自动切换为 AgcAuthProvider，调用面不变。
+ * supabase.json（自建服务器配套配置）就绪时云端分支自动切换为 SupabaseAuthProvider，调用面不变。
  */
 import { Context } from '@kit.AbilityKit'
 import { preferences } from '@kit.ArkData'
 import { AuthProvider } from './auth/AuthProvider'
-import AgcAuthProvider from './auth/AgcAuthProvider'
 import SandboxAuthProvider from './auth/SandboxAuthProvider'
 import SupabaseAuthProvider from './auth/SupabaseAuthProvider'
 import CloudEnvironment, { CloudBackend } from './CloudEnvironment'
@@ -23,14 +22,14 @@ class AuthService {
   private provider: AuthProvider | null = null
   private testingProvider: AuthProvider | null = null
 
-  /** 当前生效的认证提供方标识（'sandbox' | 'agc'）。 */
+  /** 当前生效的认证提供方标识（'sandbox' | 'supabase'）。 */
   getActiveProviderId(): string {
     return this.resolveProvider().getProviderId()
   }
 
-  /** 是否运行在 AGC 云认证模式。 */
+  /** 是否运行在云端（Supabase）认证模式。 */
   isCloudMode(): boolean {
-    return this.getActiveProviderId() === 'agc'
+    return this.getActiveProviderId() !== 'sandbox'
   }
 
   /** 测试注入：替换提供方；传 null 恢复默认解析。 */
@@ -79,8 +78,8 @@ class AuthService {
    * 第三方登录（两段式）。
    *
    * @param thirdPartyId 通道标识：'huawei' | 'wechat' | 'qq'
-   * @param authCode 端侧 SDK 授权码；空串 = 由 Provider 自行拉起授权（仅 AGC hwid 适用）。
-   *                 默认值保留，使既有单参调用（测试与 AGC 路径）不受影响。
+   * @param authCode 端侧 SDK 授权码；空串 = 由 Provider 自行拉起授权（仅华为账号通道适用）。
+   *                 默认值保留，使既有单参调用不受影响。
    *
    * 登录成功后自动写入 SessionManager 会话快照，与手机 / 邮箱链路同构。
    */
@@ -99,7 +98,7 @@ class AuthService {
     await SessionManager.clearToken(context)
   }
 
-  /** 供 DeviceSeedService / 测试：在沙盒模式直接播种账号并建立会话快照（AGC 实现不支持时返回 null）。 */
+  /** 供 DeviceSeedService / 测试：在沙盒模式直接播种账号并建立会话快照（云端实现不支持时返回 null）。 */
   async seedSandboxSession(context: Context, phone: string, nickname: string): Promise<void> {
     await CloudEnvironment.initialize(context)
     const provider: AuthProvider = this.resolveProvider()
@@ -141,10 +140,6 @@ class AuthService {
     if (backend === 'supabase') {
       // 自托管 Supabase 配置就绪（rawfile supabase.json 探测通过）时认证走该后端
       return SupabaseAuthProvider
-    }
-    if (backend === 'agc') {
-      // Wave 5 接线：AGC 配置就绪时认证走云端（agconnect-services.json 探测通过）
-      return AgcAuthProvider
     }
     if (this.provider === null) {
       this.provider = SandboxAuthProvider

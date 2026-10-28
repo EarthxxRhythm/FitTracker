@@ -5,9 +5,13 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
+import com.fittracker.app.data.service.Experience
 import com.fittracker.app.data.service.Gender
+import com.fittracker.app.data.service.ProfileExtras
+import com.fittracker.app.data.service.ProfileExtrasService
 import com.fittracker.app.data.service.UserProfile
 import com.fittracker.app.data.service.UserProfileService
+import com.fittracker.app.data.service.WeightUnit
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -66,6 +70,15 @@ class ProfileEditLogicTest {
     }
 
     @Test
+    fun `训练经验未知值归一为未填`() {
+        assertEquals(Experience.UNSPECIFIED, UserProfileService.normalizeExperience("veteran"))
+        assertEquals(Experience.UNSPECIFIED, UserProfileService.normalizeExperience(""))
+        assertEquals(Experience.BEGINNER, UserProfileService.normalizeExperience("beginner"))
+        assertEquals(Experience.INTERMEDIATE, UserProfileService.normalizeExperience("intermediate"))
+        assertEquals(Experience.ADVANCED, UserProfileService.normalizeExperience("advanced"))
+    }
+
+    @Test
     fun `保存后 loadProfile 逐字段读回`() = runBlocking {
         val context: Context = ApplicationProvider.getApplicationContext()
         val store = JsonStore(context.appDataStore)
@@ -79,6 +92,7 @@ class ProfileEditLogicTest {
                 heightCm = 178,
                 gender = Gender.MALE,
                 birthYear = 1995,
+                experience = Experience.ADVANCED,
             ),
         )
 
@@ -88,6 +102,63 @@ class ProfileEditLogicTest {
         assertEquals(178, loaded.heightCm)
         assertEquals(Gender.MALE, loaded.gender)
         assertEquals(1995, loaded.birthYear)
+        assertEquals(Experience.ADVANCED, loaded.experience)
         assertEquals("保存不应留下错误码", "", UserProfileService.getLastPersistenceError())
+    }
+
+    @Test
+    fun `名片字段保存后逐字段读回_清空回落空值`() = runBlocking {
+        val context: Context = ApplicationProvider.getApplicationContext()
+        val store = JsonStore(context.appDataStore)
+        ProfileExtrasService.clearExtras(store)
+
+        ProfileExtrasService.saveExtras(
+            store,
+            ProfileExtras(
+                region = "上海",
+                tickle = "拍了拍你的训练计划",
+                whatsUp = "今天也要练完最后一组",
+                gymAddress = "楼下那家",
+            ),
+        )
+        assertEquals("保存不应留下错误码", "", ProfileExtrasService.getLastPersistenceError())
+
+        val loaded = ProfileExtrasService.loadExtras(store)
+        assertEquals("上海", loaded.region)
+        assertEquals("拍了拍你的训练计划", loaded.tickle)
+        assertEquals("今天也要练完最后一组", loaded.whatsUp)
+        assertEquals("楼下那家", loaded.gymAddress)
+
+        ProfileExtrasService.clearExtras(store)
+        assertEquals("清空后应回落空值", ProfileExtras(), ProfileExtrasService.loadExtras(store))
+    }
+
+    @Test
+    fun `名片字段限长与体重单位切换`() {
+        val vm = newViewModel()
+        vm.onRegionChange("一".repeat(30))
+        assertEquals("地区限 24 字", 24, vm.region.length)
+        vm.onTickleChange("二".repeat(25))
+        assertEquals("拍一拍限 20 字", 20, vm.tickle.length)
+        vm.onWhatsUpChange("三".repeat(45))
+        assertEquals("个性签名限 40 字", 40, vm.whatsUp.length)
+        vm.onGymAddressChange("四".repeat(45))
+        assertEquals("常用健身房限 40 字", 40, vm.gymAddress.length)
+
+        assertEquals(WeightUnit.KG, vm.weightUnit)
+        vm.onWeightUnitChange(WeightUnit.LBS)
+        assertEquals(WeightUnit.LBS, vm.weightUnit)
+    }
+
+    @Test
+    fun `档案号与手机号脱敏_与鸿蒙同口径`() {
+        assertEquals("131******05", maskPhone("13112345605"))
+        assertEquals("短号码原样返回", "1380", maskPhone("1380"))
+        assertEquals("空账号不派生档案号", "", profileAccountIdOf(""))
+
+        val first = profileAccountIdOf("13800000000")
+        assertEquals("同一账号派生稳定", first, profileAccountIdOf("13800000000"))
+        assertTrue("前缀应为 FT", first.startsWith("FT"))
+        assertEquals("尾号应有 8 位", 8, first.removePrefix("FT").length)
     }
 }

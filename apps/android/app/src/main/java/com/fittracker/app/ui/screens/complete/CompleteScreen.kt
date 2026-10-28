@@ -2,6 +2,7 @@ package com.fittracker.app.ui.screens.complete
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -54,6 +55,7 @@ import com.fittracker.app.R
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.sync.SyncOrchestrator
 import com.fittracker.app.data.persist.appDataStore
+import com.fittracker.app.data.service.AvatarImageService
 import com.fittracker.app.data.service.SettingsService
 import com.fittracker.app.data.service.WeekStart
 import com.fittracker.app.data.service.WeekWindow
@@ -120,7 +122,7 @@ fun CompleteScreen(
         mutableStateOf(FtCompleteModel.STREAK_DAYS.map { it.copy(active = false) })
     }
     // 本次训练整体 RPE（1–10）：0 = 未评价。落库写入 `WorkoutSession.sessionRpe`。
-    // 这是复盘页「努力程度」柱状图的唯一真数据来源（逐组采集成本高，故按次）。
+    // 这是回顾页「努力程度」柱状图的唯一真数据来源（逐组采集成本高，故按次）。
     var sessionRpe by remember { mutableIntStateOf(0) }
     // 最近一次已保存会话的 id（写回 RPE 用）；空串 = 尚未读到。
     var latestSessionId by remember { mutableStateOf("") }
@@ -153,7 +155,11 @@ fun CompleteScreen(
     // 训练完成后静默同步（源 `requestBackgroundSync`；自动同步开启时生效，失败不抛出。
     // 隐私政策第五节「训练完成」上行时机的实现点）
     LaunchedEffect(Unit) {
-        SyncOrchestrator.requestBackgroundSync(store, SyncOrchestrator.forFilesDir(context.filesDir))
+        SyncOrchestrator.requestBackgroundSync(
+            store,
+            SyncOrchestrator.forFilesDir(context.filesDir),
+            AvatarImageService.resolveDir(context),
+        )
     }
 
     Box(
@@ -479,7 +485,12 @@ private fun ContinueButton(onClick: () -> Unit) {
     val shape = RoundedCornerShape(18.dp)
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val scale = if (pressed) FtMotion.PRESS_SCALE_CTA else 1f
+    // 裸值直送 graphicsLayer 是硬切（视觉上没有按压反馈），走 animateFloatAsState
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) FtMotion.PRESS_SCALE_CTA else 1f,
+        animationSpec = tween(FtMotion.DURATION_PRESS, easing = FtMotion.EASE_MOTION),
+        label = "complete-continue-press-scale",
+    )
     val continueA11y = stringResource(R.string.complete_a11y_continue)
 
     Box(

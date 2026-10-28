@@ -71,6 +71,26 @@ object TrainingPlanRepository {
     /** 源 `:280` `getPlanCount`。 */
     fun getPlanCount(): Int = PresetPlans.count()
 
+    /**
+     * 「我的计划」→ 其来源预置 id（对齐鸿蒙 `TrainingPlanService.getPresetIdForPlan`）。
+     *
+     * **为什么需要**：落盘副本是启用当刻的克隆，`id` 是 `user_plan_<毫秒>` 而非预置 id，
+     * 于是「当前是否已是这个计划组」无法用 id 直比。此处按**计划名**回查预置表——
+     * 名字是双端既有契约（克隆保留 `preset.name`，内容库也按名匹配）。
+     *
+     * 未命中（自定义计划 / 预置改名后的旧副本）返回空串，调用方按「非当前」处理。
+     */
+    fun getPresetIdForPlan(plan: UserPlan?): String {
+        if (plan == null) {
+            return ""
+        }
+        val preset: PresetPlan = PresetPlans.getAll().firstOrNull { it.name == plan.name } ?: return ""
+        return preset.id
+    }
+
+    /** 当前计划对应的预置 id（无当前计划 / 自定义计划 → 空串）。 */
+    suspend fun getCurrentPresetId(store: JsonStore): String = getPresetIdForPlan(getCurrentPlan(store))
+
     // --- 源 :284-326：启用计划（克隆预置 / 自定义 → 我的计划） ----------------
 
     /**
@@ -112,17 +132,26 @@ object TrainingPlanRepository {
     }
 
     /**
-     * 源 `:320` `enableUserPlan`——追加克隆到我的计划，并把当前指针指向新计划。
+     * 源 `:320` `enableUserPlan`——把克隆设为**唯一**当前计划。
      *
-     * 源返回 `UserPlan | null`，但实现分支恒返回新计划（源码无 `null` 出口），
-     * 本侧收窄为**非空** [UserPlan]。
+     * **修复（真机实测「计划组切换功能没用」的根因之一）**：源实现是
+     * `myPlans.add(nextPlan)` 后整块回写，即**每次切换都追加一份完整克隆**
+     * （单份 2~3 KB）。鸿蒙侧因此撞上 preferences 单值上限（≈8 KB）后写入抛错、
+     * 被空 `catch` 吞掉——UI 照旧弹「已切换」，计划页却还是旧计划。安卓侧虽然
+     * DataStore 没有该上限，但同一实现会让 `my_plans` 与备份包无限膨胀，且
+     * 备份导入端 (`UserDataBackupService`) 会把这些僵尸副本一并回灌。
+     *
+     * 现语义：**切换 = 整块替换为这一份计划**（保留一份可读计划，备份/导出/播种
+     * 照旧工作），旧计划副本随之清除——历史膨胀在下次切换时自愈。
+     *
+     * 返回 `null` 表示落盘失败（源签名 `UserPlan | null` 的 null 出口在此**恢复**）：
+     * 调用方据此提示失败，不再谎报成功。
      */
-    suspend fun enableUserPlan(store: JsonStore, userPlan: UserPlan): UserPlan {
-        val myPlans: MutableList<UserPlan> = getMyPlans(store).toMutableList() // :321
+    suspend fun enableUserPlan(store: JsonStore, userPlan: UserPlan): UserPlan? {
         val nextPlan: UserPlan = copyUserPlan(userPlan) // :322
-        myPlans.add(nextPlan) // :323
-        replaceMyPlans(store, myPlans, nextPlan.id) // :324
-        return nextPlan
+        // 单活动计划：不再 `myPlans.add(...)` 追加克隆（源 :321-323 的追加语义已改）
+        val persisted: Boolean = replaceMyPlans(store, listOf(nextPlan), nextPlan.id) // :324
+        return if (persisted) nextPlan else null
     }
 
     // --- 源 :328-411：我的计划 / 当前指针读写 --------------------------------
@@ -181,23 +210,29 @@ object TrainingPlanRepository {
      * 源 `:368` `replaceMyPlans`——整块替换我的计划 + 当前指针。
      *
      * 指针回退逻辑（源 `:370-373`）：若给定 `currentPlanId` 不在新列表中，
-     * 回退为新列表首个 id；新列表为空则回退为 `''`。写入异常静默吞掉（源 `:382-383`）。
+     * 回退为新列表首个 id；新列表为空则回退为 `''`。
+     *
+     * **修复**：源把写入异常静默吞掉（`:382-383`），失败与成功对调用方不可区分——
+     * 这是「UI 弹成功、数据没落地」的另一半根因。现改为**返回落盘结果**，
+     * 并只在写入成功后更新内存回落缓存（避免读库异常时缓存谎报新值）。
+     *
+     * @return `true` = 两个键均写入成功；`false` = 写入抛错（内存缓存保持旧值）。
      */
-    suspend fun replaceMyPlans(store: JsonStore, plans: List<UserPlan>, currentPlanId: String) {
-        val nextPlans: List<UserPlan> = copyUserPlans(plans) // :369
+    suspend fun replaceMyPlans(store: JsonStore, plans: List<UserPlan>, currentPlanId: String): Boolean {
+        val nextPlans: List<UserPlan> = dedupeById(copyUserPlans(plans)) // :369
         var nextCurrentPlanId: String = currentPlanId // :370
         if (!containsPlanId(nextPlans, nextCurrentPlanId)) { // :371
             nextCurrentPlanId = if (nextPlans.isNotEmpty()) nextPlans[0].id else "" // :372
         }
 
-        localPlans = copyUserPlans(nextPlans) // :375
-        localCurrentPlanId = nextCurrentPlanId // :376
-
-        try {
+        return try {
             store.writeString(STORE_KEY, JsonCodec.json.encodeToString(nextPlans)) // :380
             store.writeString(CURRENT_PLAN_KEY, nextCurrentPlanId) // :381
+            localPlans = copyUserPlans(nextPlans) // :375
+            localCurrentPlanId = nextCurrentPlanId // :376
+            true
         } catch (error: Exception) {
-            // 源 :382-383：吞掉持久化异常（缓存已更新，UI 不因此崩溃）。
+            false // 源 :382-383 的静默吞掉已改：失败必须可被上层识别
         }
     }
 
@@ -276,6 +311,25 @@ object TrainingPlanRepository {
     /** 源 `:441` `containsPlanId`。 */
     private fun containsPlanId(plans: List<UserPlan>, planId: String): Boolean =
         plans.any { it.id == planId } // :442-448
+
+    /**
+     * 按 id 去重（保序，保留首次出现）。
+     *
+     * 历史数据里可能残留同一 id 的重复副本（旧 `enableUserPlan` 的追加写入 + 备份导入
+     * 合并都可能产生）；落盘前收敛，避免读端 `firstOrNull { it.id == currentId }` 命中哪份
+     * 全凭顺序。**不按名字去重**：名字相同但 id 不同的两份是用户真实数据（克隆与导入件），
+     * 由启用/删除路径显式处理。
+     */
+    private fun dedupeById(plans: List<UserPlan>): List<UserPlan> {
+        val seen: MutableSet<String> = mutableSetOf()
+        val result: MutableList<UserPlan> = mutableListOf()
+        plans.forEach { plan ->
+            if (seen.add(plan.id)) {
+                result.add(plan)
+            }
+        }
+        return result
+    }
 
     /** 源 `:450` `createUserPlan`——id = `user_plan_<时间戳>`，`enabledAt` = 时间戳。 */
     private fun createUserPlan(

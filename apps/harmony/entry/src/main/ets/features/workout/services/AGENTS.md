@@ -1,22 +1,22 @@
-# Workout Feature Services - Knowledge Base
+# 训练功能服务 目录约束
 
 > **层级**：L2 展开
-> **最后核对**：2026-10-27
+> **最后核对**：2026-10-28
 > **上位文档**：仓库根 `AGENTS.md`（L1）
 > **状态**：现行
 > **路径基准**：文中路径相对 `apps\harmony\entry\src\main\ets\`
 > **适用端**：仅鸿蒙
 
-## OVERVIEW
+## 职责
 
-`features/workout/services/` is reserved for workout-flow orchestration that is too specific to live in `shared/services/`, especially compatibility bridges between the legacy persistence model and the current workout pages.
+`features/workout/services/` 只用于承载过于专属于训练流程、不宜放进 `shared/services/` 的编排，尤其是旧持久化模型与当前训练页之间的兼容桥。
 
-## OWNERSHIP
+## 归属
 
-- `WorkoutSessionPersistenceBridgeService.ets`: syncs `WorkoutRepository` state with `common/services/WorkoutSessionService`
-- `WorkoutSessionEditService.ets`: workout summary editing helpers scoped to the workout feature
+- `WorkoutSessionPersistenceBridgeService.ets`：把 `WorkoutRepository` 状态与 `common/services/WorkoutSessionService` 同步
+- `WorkoutSessionEditService.ets`：训练摘要编辑辅助，作用域限于训练功能
 
-## ANTI-PATTERNS
+## 反模式
 
-- Do not duplicate plan, review, or content lookup logic here.
-- Do not add generic repositories here when they are used by multiple features.
+- 不要在此重复训练计划、回顾或内容查找逻辑。
+- 多功能共用的通用仓储不要加在本目录。

@@ -1,6 +1,6 @@
 FitTracker User Agreement
 
-Last updated: 2026-10-03 (corresponding to app version 0.1.0)
+Last updated: 2026-10-28 (Android edition; the version number shown in Settings within the app is authoritative)
 
 Please read this agreement carefully before using FitTracker ("the App"). By downloading, installing or using the app, you are deemed to have read, understood and agreed to all of its terms.
 
@@ -10,14 +10,14 @@ This agreement is the arrangement between you and the developer of the app regar
 
 2. Description of the service
 
-The app is a local-first fitness training log tool. The current version provides:
+The app is a fitness training log tool. The current version provides:
 
 - Training goal setup and personalized plan generation suggestions;
 - Browsing, previewing and executing training plans (set timing and logging);
 - Workout summaries and history review;
 - Exercise library browsing and exercise key-point viewing;
 - Body data logging;
-- Local data backup and restore.
+- A cross-platform (HarmonyOS / Android) JSON backup package format and system backup callbacks.
 
 By default, the app's data is stored only on your own device (see the privacy policy for details). The app is not a medical service, is not a medical diagnostic tool, and does not provide medical advice.
 

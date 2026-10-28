@@ -1,5 +1,7 @@
 package com.fittracker.app.ui.components
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -121,7 +123,12 @@ private fun RowScope.FtCenterTab(
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val scale = if (pressed) FtMotion.PRESS_SCALE_TAB_CENTER else 1f
+    // 裸值直送 graphicsLayer 是硬切（视觉上等于没有按压反馈），走 animateFloatAsState
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) FtMotion.PRESS_SCALE_TAB_CENTER else 1f,
+        animationSpec = tween(FtMotion.DURATION_PRESS, easing = FtMotion.EASE_MOTION),
+        label = "tab-center-press-scale",
+    )
     Box(
         modifier = Modifier
             .height(56.dp)

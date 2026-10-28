@@ -4,6 +4,7 @@ import { AppRoutes } from '../../../app/AppRoutes'
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
 import { ProfileState, AchievementRow } from './states/ProfileState'
+import { avatarTintOf } from './AvatarTint'
 import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 
 @Component
@@ -48,8 +49,24 @@ export struct ProfileContent {
   build() {
     Column({ space: 16 }) {
       this.buildProfileHeader()
+      Row() {
+        this.buildEditChip()
+        Blank()
+        // 训练经验：未填时整枚隐藏，不占位。
+        if (this.state.experienceLabel.length > 0) {
+          Text(this.state.experienceLabel)
+            .fontFamily('Noto Sans SC')
+            .fontSize(11.5)
+            .fontColor(PrototypeTokens.WHITE_A54)
+            .padding({ left: 10, right: 10, top: 5, bottom: 5 })
+            .backgroundColor(PrototypeTokens.WHITE_A05)
+            .borderRadius(999)
+            .border({ width: 1, color: PrototypeTokens.WHITE_A08 })
+        }
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.Start)
       this.buildWeeklyOverview()
-      this.buildStreak()
       this.buildAchievements()
       this.buildShortcuts()
     }
@@ -69,42 +86,63 @@ export struct ProfileContent {
     })
   }
 
+  /** 进入个人资料编辑页（头像/昵称区与「编辑」胶囊共用）。 */
+  private openProfileEdit(): void {
+    this.getUIContext().getRouter().pushUrl({ url: AppRoutes.PROFILE_EDIT })
+  }
+
   @Builder
   private buildProfileHeader() {
     Row({ space: 12 }) {
-      Stack() {
-        Column()
-          .width(52)
-          .height(52)
-          .borderRadius(26)
-          .backgroundColor(PrototypeTokens.ACCENT_A10)
-          .border({ width: 1, color: PrototypeTokens.ACCENT_A30 })
-        Text(this.state.avatarLetter)
-          .fontFamily('Inter')
-          .fontSize(22)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(PrototypeTokens.ACCENT)
-      }
-      .width(52)
-      .height(52)
-      Column({ space: 4 }) {
-        Text(this.state.nickname)
-          .fontFamily('Inter')
-          .fontSize(21)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(PrototypeTokens.TEXT_HI)
-          .lineHeight(25.2)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-        Text(this.state.goalSubtitle)
-          .fontFamily('Inter')
-          .fontSize(12.5)
-          .fontColor(PrototypeTokens.WHITE_A62)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      // 头像 + 昵称 + 目标副标题整块可点：与安卓 `ProfileScreen` 的头部入口一致。
+      Row({ space: 12 }) {
+        Stack() {
+          if (this.state.avatarImagePath.length > 0) {
+            Image(this.state.avatarImagePath)
+              .width(52)
+              .height(52)
+              .borderRadius(26)
+              .objectFit(ImageFit.Cover)
+          } else {
+            Column()
+              .width(52)
+              .height(52)
+              .borderRadius(26)
+              .backgroundColor(avatarTintOf(this.state.avatarKey).fill)
+              .border({ width: 1, color: avatarTintOf(this.state.avatarKey).border })
+            Text(this.state.avatarLetter)
+              .fontFamily('Inter')
+              .fontSize(22)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(avatarTintOf(this.state.avatarKey).text)
+          }
+        }
+        .width(52)
+        .height(52)
+        Column({ space: 4 }) {
+          Text(this.state.nickname)
+            .fontFamily('Inter')
+            .fontSize(21)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(PrototypeTokens.TEXT_HI)
+            .lineHeight(25.2)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+          Text(this.state.goalSubtitle)
+            .fontFamily('Inter')
+            .fontSize(12.5)
+            .fontColor(PrototypeTokens.WHITE_A62)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
       }
       .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start)
+      .alignItems(VerticalAlign.Center)
+      .onClick(() => {
+        this.openProfileEdit()
+      })
       Stack() {
         Column()
           .width(44)
@@ -134,6 +172,25 @@ export struct ProfileContent {
     .width('100%')
     .padding({ top: 0, bottom: 0 })
     .alignItems(VerticalAlign.Center)
+  }
+
+  /** 「编辑」胶囊：与头部可点区域同入口，给用户明确的编辑提示。 */
+  @Builder
+  private buildEditChip() {
+    Row({ space: 5 }) {
+      Text('编辑资料')
+        .fontFamily('Noto Sans SC')
+        .fontSize(12.5)
+        .fontWeight(FontWeight.Medium)
+        .fontColor(PrototypeTokens.WHITE_A70)
+    }
+    .padding({ left: 12, right: 12, top: 7, bottom: 7 })
+    .backgroundColor(PrototypeTokens.WHITE_A05)
+    .borderRadius(999)
+    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
+    .onClick(() => {
+      this.openProfileEdit()
+    })
   }
 
   @Builder
@@ -230,58 +287,6 @@ export struct ProfileContent {
     }
     .layoutWeight(1)
     .alignItems(HorizontalAlign.Start)
-  }
-
-  @Builder
-  private buildStreak() {
-    Column({ space: 0 }) {
-      Row() {
-        Text('\u8bad\u7ec3\u8fde\u7eed\u8bb0\u5f55')
-          .fontFamily('Inter')
-          .fontSize(17)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(PrototypeTokens.TEXT_HI)
-        Text(this.state.streakLabel())
-          .fontFamily('Inter')
-          .fontSize(12)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(PrototypeTokens.ACCENT)
-      }
-      .width('100%')
-      .justifyContent(FlexAlign.SpaceBetween)
-      .alignItems(VerticalAlign.Bottom)
-      .margin({ bottom: 14 })
-      Row({ space: 7 }) {
-        ForEach(this.state.weekDayLabels, (label: string, index: number) => {
-          this.buildStreakDay(label, this.state.weekActiveFlags[index] === true)
-        }, (label: string, index: number) => index.toString() + label)
-      }
-      .width('100%')
-    }
-    .width('100%')
-    .padding(16)
-    .backgroundColor(PrototypeTokens.WHITE_A03)
-    .borderRadius(22)
-    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
-  }
-
-  @Builder
-  private buildStreakDay(label: string, active: boolean) {
-    Column({ space: 6 }) {
-      Column()
-        .width(28)
-        .height(28)
-        .borderRadius(14)
-        .backgroundColor(active ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A08)
-        .border({ width: 1, color: active ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A08 })
-      Text(label)
-        .fontFamily('Inter')
-        .fontSize(10.5)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(active ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A62)
-    }
-    .layoutWeight(1)
-    .alignItems(HorizontalAlign.Center)
   }
 
   @Builder

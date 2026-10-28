@@ -5,9 +5,9 @@ import com.fittracker.app.data.model.estimateOneRepMax
 import kotlin.math.roundToInt
 
 /**
- * 训练复盘计算——逐函数移植自鸿蒙 `shared/services/ReviewService.ets`。
+ * 训练回顾计算——逐函数移植自鸿蒙 `shared/services/ReviewService.ets`。
  *
- * 纯函数、无状态单例；供 `ReviewDashboardService`（复盘面板）与
+ * 纯函数、无状态单例；供 `ReviewDashboardService`（回顾面板）与
  * `WorkoutSummaryService`（训练摘要）复用，是完成率/训练量统一口径的唯一来源。
  */
 object ReviewService {

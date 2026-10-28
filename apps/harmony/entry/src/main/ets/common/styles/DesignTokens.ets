@@ -127,7 +127,7 @@ export class ColorTokens {
    * 表单字段错误态三色（输入框描边 / 填充 / 提示文字）。
    *
    * 用于「字段校验失败时输入框转红 + 字段名位置显示红色错误提示」这一统一交互，
-   * 登录页、注册页、身体数据体重输入、复盘目标输入共用，避免各组件各自声明魔法值。
+   * 登录页、注册页、身体数据体重输入、回顾目标输入共用，避免各组件各自声明魔法值。
    */
   static readonly FIELD_ERROR_BORDER: string = '#FFFF5A52'
   static readonly FIELD_ERROR_FILL: string = '#14FF5A52'
@@ -377,6 +377,11 @@ export class MotionTokens {
   static readonly DURATION_CORE: number = 460
   static readonly DELAY_CORE: number = 60
   static readonly DURATION_SEG_POP: number = 460
+  // 段 pop 拆两段（与 Android `DURATION_SEG_POP*40/100` / `*60/100` 同构）：
+  // 放大 184 + 回落 276 = 总 460ms。此前把总时长同时用作单程时长，
+  // 实际放大 460 再回缩 460，总长 920ms——同一交互双端观感差一倍。
+  static readonly DURATION_SEG_POP_UP: number = 184
+  static readonly DURATION_SEG_POP_DOWN: number = 276
 
   // Confetti
   static readonly DURATION_CONFETTI_FLY: number = 1100
@@ -400,12 +405,54 @@ export class MotionTokens {
   static readonly EASE_FLY: ICurve = curves.cubicBezierCurve(0.16, 0.7, 0.3, 1)
   static readonly EASE_FALL: ICurve = curves.cubicBezierCurve(0.2, 0.55, 0.35, 1)
 
+  /**
+   * 过冲曲线（Duolingo 的 back-out）：`cubic-bezier(0.34, 1.56, 0.64, 1)`。
+   * 控制点 y 上界 1.56 → 约 +6% 过冲，但仍是「定时」曲线，`duration` 照常生效。
+   * 用于「弹一下再落定」的解锁/达成反馈（段 pop、数值跳动）。
+   *
+   * 待验证假设：ArkUI 是否允许 `cubicBezierCurve` 的 y > 1 并真实渲染过冲。
+   * 若被裁剪成普通 ease，段 pop 会退化为无过冲——届时改用它
+   * `curves.springMotion(0.35, 0.62)`（物理弹簧，duration 不生效）。
+   */
+  static readonly EASE_BACK_OUT: ICurve = curves.cubicBezierCurve(0.34, 1.56, 0.64, 1)
+
+  /**
+   * 通用 ease-out，取自 **Duolingo Web 端实测**：`cubic-bezier(0.22, 1, 0.36, 1)`
+   * （designlang 从 duolingo.com 逐条抓取 CSS 得到）。与项目既有 `EASE_MOTION`
+   * `(.2, .7, .2, 1)` 相比：起手更干脆、收尾更缓。
+   */
+  static readonly EASE_OUT_DUO: ICurve = curves.cubicBezierCurve(0.22, 1, 0.36, 1)
+
+  /**
+   * 物理弹簧（`springMotion`）。**注意**：按 ArkUI 官方《弹簧曲线》指南，
+   * 该类曲线的 `duration` 参数**不生效**，时长由物理参数与属性变化量自动计算；
+   * 因此不要塞进需要精确时序的编舞里，只用于可中断场景（按压回弹、拖拽松手回位）。
+   *
+   * **参数为项目自定**——Duolingo 未公开其弹簧数值（只有 "ease-out spring" 这类
+   * 形容词）。dampingFraction < 1 才有回弹，值越小越弹。
+   */
+  static readonly SPRING_PRESS: ICurve = curves.springMotion(0.28, 0.85)
+  static readonly SPRING_SETTLE: ICurve = curves.springMotion(0.40, 0.90)
+
+  // ── 入场语汇（与 Android `FtMotion.DURATION_ENTER / DURATION_STAGGER / EASE_ENTER` 同值）──
+  // 卡片按块错峰上浮淡入。此前 Harmony 缺这组 token，首页/个人页是硬切，而 Android 有节奏。
+  static readonly DURATION_ENTER: number = 320
+  static readonly DURATION_STAGGER: number = 40
+  // 曲线复用文件底部既有的 `EASE_ENTER`（string 版，值同为 cubic-bezier(0.2, 0.8, 0.2, 1)）。
+  // 不再定义 ICurve 版本——同名会触发 ArkTS 的 Duplicate identifier。
+
   // 全模态弹出转场（训练预览页）：中心缩放的起始比例
   static readonly MODAL_POP_SCALE: number = 0.92
   // 弹出转场时长——比 sheet 面板语汇（DURATION_PANEL/OVERLAY）更短更利落，
   // 故单独取值，不动共享 token，避免连带改到动作库/身体数据的 sheet。
   static readonly DURATION_MODAL_POP: number = 200
   static readonly DURATION_MODAL_SCRIM: number = 160
+
+  // Duolingo 硬边厚底（按钮形态语汇）：底部实心厚度与按下下沉量（vp）。
+  // 用 border 分边宽实现——ArkUI 的 shadow 无法表达零模糊硬边（radius 最小 12）。
+  // 厚底颜色取按压深阶 ColorTokens.PRIMARY_PRESSED / PrototypeTokens.ACCENT_DEEP。
+  static readonly PRESS_DEPTH: number = 4
+  static readonly PRESS_SHIFT: number = 2
 
   // Press scale factors
   static readonly PRESS_PRIMARY: number = 0.985

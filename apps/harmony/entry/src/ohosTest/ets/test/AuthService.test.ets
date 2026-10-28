@@ -1,7 +1,7 @@
 /**
  * AuthService 门面测试（ohosTest，带 Context）
  *
- * 覆盖：provider 解析（无 AGC 配置 → sandbox）、验证码登录全链路与会话快照持久化、
+ * 覆盖：provider 解析（无 supabase.json → sandbox）、验证码登录全链路与会话快照持久化、
  * 邮箱注册/登录、退出清理、DeviceSeed 播种入口。
  *
  * 稳定性说明：hypium 1.0.25 的 Spec.run / SuiteService.runHookFunc 对 async 用例与
@@ -38,7 +38,7 @@ export default function authServiceTest(): void {
       await acquireAuthSyncGate()
       try {
 
-      // 1) provider 解析（无 AGC 配置 → sandbox）
+      // 1) provider 解析（无 supabase.json → sandbox）
       await resetState(context)
       expect(AuthService.getActiveProviderId()).assertEqual('sandbox')
       expect(AuthService.isCloudMode()).assertFalse()

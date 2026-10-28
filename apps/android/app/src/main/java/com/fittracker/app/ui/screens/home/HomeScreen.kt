@@ -36,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -65,6 +66,7 @@ import com.fittracker.app.ui.components.FtDumbbellIcon
 import com.fittracker.app.ui.components.FtTargetIcon
 import com.fittracker.app.ui.components.clickableNoRipple
 import com.fittracker.app.ui.screens.plan.dayFocusMuscles
+import com.fittracker.app.ui.theme.DuTokens
 import com.fittracker.app.ui.theme.FtColor
 import com.fittracker.app.ui.theme.FtMotion
 import com.fittracker.app.ui.theme.FtShape
@@ -524,20 +526,42 @@ private fun CtaButton(
     val shape = RoundedCornerShape(20.dp)
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val scale = if (pressed) FtMotion.PRESS_SCALE_CTA else 1f
+    // 只有无描边的实心主按钮用 Duolingo 硬边厚底；次要/ghost 保留原型的 scale 按压
+    val usesPressDepth = borderColor == null
+    val scale by animateFloatAsState(
+        targetValue = if (!usesPressDepth && pressed) FtMotion.PRESS_SCALE_CTA else 1f,
+        animationSpec = tween(FtMotion.DURATION_PRESS, easing = FtMotion.EASE_MOTION),
+        label = "home-cta-press-scale",
+    )
+    val depth = if (usesPressDepth && !pressed) DuTokens.PRESS_DEPTH else 0.dp
+    val shift = if (usesPressDepth && pressed) DuTokens.PRESS_SHIFT else 0.dp
     Box(
         modifier = modifier
             .fillMaxWidth()
             // 自适应：用 minHeight 而非 height —— 系统字号放大（≤1.3×）时按钮需能随之长高，
             // 定高会把文字裁掉。参考态下两者等价（单行文字高度小于 40dp）。
             .defaultMinSize(minHeight = 40.dp)
-            // 按压反馈：`scale(.985)`（原型 `.today .btn-primary:active`）。
+            // 按压反馈：主按钮走厚底收平 + 下沉，次要按钮走 `scale(.985)`
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
+                translationY = shift.toPx()
             }
             .clip(shape)
             .background(bg)
+            // 硬边厚底（零模糊）：画在按钮面之上，由 clip 收进圆角
+            .drawBehind {
+                if (depth.value > 0f) {
+                    val thickness = depth.toPx()
+                    drawRect(
+                        color = FtColor.accentDeep,
+                        topLeft = Offset(0f, size.height - thickness),
+                        size = Size(size.width, thickness),
+                    )
+                }
+            }
+            // 内容避让厚底，按钮总高不变
+            .padding(bottom = depth)
             .then(if (borderColor != null) Modifier.border(1.dp, borderColor, shape) else Modifier)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center,

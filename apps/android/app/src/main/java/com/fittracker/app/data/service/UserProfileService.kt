@@ -54,7 +54,30 @@ data class UserProfile(
     val gender: Gender = Gender.UNSPECIFIED,
     /** 出生年份；0 表示未填写。 */
     val birthYear: Int = 0,
+    /** 训练经验；[Experience.UNSPECIFIED] 表示未填写。 */
+    val experience: Experience = Experience.UNSPECIFIED,
+    /** 头像图片的本机沙箱绝对路径；空串表示未设置（回落色键 + 昵称首字）。 */
+    val avatarImagePath: String = "",
 )
+
+/**
+ * 训练经验——对应源 `UserProfileService.ets` 的 `export type Experience = '' | 'beginner' | …`；
+ * [id] 即落盘字符串，空串表示未填写。
+ */
+@Serializable
+enum class Experience(val id: String) {
+    @SerialName("")
+    UNSPECIFIED(""),
+
+    @SerialName("beginner")
+    BEGINNER("beginner"),
+
+    @SerialName("intermediate")
+    INTERMEDIATE("intermediate"),
+
+    @SerialName("advanced")
+    ADVANCED("advanced"),
+}
 
 /**
  * 用户个人资料持久化服务——逐方法移植自鸿蒙 `common/services/UserProfileService.ets`。
@@ -166,6 +189,8 @@ object UserProfileService {
         heightCm = 0,
         gender = Gender.UNSPECIFIED,
         birthYear = 0,
+        experience = Experience.UNSPECIFIED,
+        avatarImagePath = "",
     )
 
     /**
@@ -220,6 +245,14 @@ object UserProfileService {
         return if (value < 1900 || value > currentYear) 0 else value
     }
 
+    /** 训练经验归一：仅三个枚举值有效，其余为 [Experience.UNSPECIFIED]。 */
+    fun normalizeExperience(value: String): Experience = when (value) {
+        Experience.BEGINNER.id -> Experience.BEGINNER
+        Experience.INTERMEDIATE.id -> Experience.INTERMEDIATE
+        Experience.ADVANCED.id -> Experience.ADVANCED
+        else -> Experience.UNSPECIFIED
+    }
+
     // --- 内部：整块 JSON 读写 ------------------------------------------------
 
     /** 静默读回当前资料（缺键/解析失败回落默认），**不触碰** [lastPersistenceError]——供读-改-写用。 */
@@ -240,6 +273,8 @@ object UserProfileService {
             heightCm = normalizeHeightCm(wire.heightCm),
             gender = normalizeGender(wire.gender),
             birthYear = normalizeBirthYear(wire.birthYear),
+            experience = normalizeExperience(wire.experience),
+            avatarImagePath = wire.avatarImagePath,
         )
     } catch (error: Exception) {
         getDefaultProfile()
@@ -263,4 +298,6 @@ private data class UserProfileWire(
     val heightCm: Int = 0,
     val gender: String = "",
     val birthYear: Int = 0,
+    val experience: String = "",
+    val avatarImagePath: String = "",
 )

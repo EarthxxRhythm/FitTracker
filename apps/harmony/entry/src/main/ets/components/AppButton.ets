@@ -1,6 +1,24 @@
 /**
  * AppButton —— 通用按钮组件
  * 功能 #26
+ *
+ * ── Duolingo 皮肤元素（C1 档）──────────────────────────────────
+ * 主操作（type='primary'）采用 Duolingo 的**硬边厚底 + 按下位移**反馈：
+ *   常态：底部 4vp 实心深绿厚边（`DuTokens.PRESS_DEPTH`），无模糊光晕；
+ *   按下：厚边收平至 0，整体下沉 2vp（`DuTokens.PRESS_SHIFT`），松开回弹。
+ * 这与原型的 `transform: scale(.985)` 是**两种不同语汇**——Duolingo 的按钮
+ * 靠"被按进面板"传达物理感，不靠缩放。故 `primary` 不再叠加 scale（避免
+ * 位移与缩放在同一帧叠加导致观感发虚）；`secondary` / `ghost` / `quiet`
+ * 没有厚底，保留 scale 按压。
+ *
+ * **为什么用 `border` 而不是 `shadow`**：ArkUI 的 `.shadow({radius})` 无法表达
+ * 4vp 无模糊硬边（`ShadowTokens` 的 radius 最小也有 12），而 Duolingo 原版就是
+ * CSS `border-bottom: 4px solid`。故主操作同时取消模糊阴影——厚边本身提供浮起感。
+ *
+ * **配色保持原型基线**：厚底取同色系深阶 `ColorTokens.PRIMARY_PRESSED`
+ * （`#45C9A1`），与按钮面 `ColorTokens.PRIMARY`（`#50ECA7`）配对。
+ * Duolingo 的「可按的 3D 按钮」本质是**形态**，亮绿只是它的配色选型；
+ * 本项目已有经 13 屏原型对齐验证的配色基线，故只借形态、不动配色。
  */
 import {
   ColorTokens,
@@ -12,6 +30,7 @@ import {
   SpacingTokens,
   TouchTokens
 } from '../common/styles/DesignTokens'
+import { DuTokens } from '../common/styles/DuTokens'
 
 @Component
 export struct AppButton {
@@ -86,6 +105,14 @@ export struct AppButton {
     return ColorTokens.PRIMARY
   }
 
+  /**
+   * 是否走 Duolingo 硬边厚底语汇：只有主操作、且未禁用/加载时。
+   * 禁用态用 `PRIMARY_DISABLED` 平色，不需要厚度；加载态不应有可按的错觉。
+   */
+  private usesPressDepth(): boolean {
+    return this.type === 'primary' && !this.disabled && !this.loading
+  }
+
   private getBackgroundColor(): string {
     if (this.type === 'primary') {
       if (this.disabled) {
@@ -126,17 +153,16 @@ export struct AppButton {
       return ColorTokens.CTA_SECONDARY_BORDER
     }
     if (this.type === 'primary') {
-      return ColorTokens.ACCENT_DEEP
+      // 主操作的外框与厚底同色系，用原型的强调色深阶
+      return ColorTokens.PRIMARY_PRESSED
     }
     return ColorTokens.BORDER_DEFAULT
   }
 
   private getShadow(): ShadowConfig {
-    if (this.type === 'primary' && !this.disabled) {
-      if (this.buttonSize === 'hero') {
-        return ShadowTokens.CTA
-      }
-      return ShadowTokens.ACCENT
+    // 主操作有硬边厚底，模糊光晕会同时出现"硬边 + 软影"两套深度线索，故取消。
+    if (this.usesPressDepth()) {
+      return ShadowTokens.NONE
     }
     if (this.type === 'quiet' && !this.disabled) {
       return ShadowTokens.SM
@@ -145,6 +171,22 @@ export struct AppButton {
       return ShadowTokens.SM
     }
     return ShadowTokens.NONE
+  }
+
+  /** 底部厚边的当前厚度：按下时收平为 0，其余时间为主体厚度 */
+  private getBottomWidth(): number {
+    if (this.usesPressDepth()) {
+      return this.pressed ? 0 : DuTokens.PRESS_DEPTH
+    }
+    return this.getBorderWidth()
+  }
+
+  /** 底部厚边的颜色：主操作用深绿，其余沿用统一描边色 */
+  private getBottomColor(): string {
+    if (this.usesPressDepth()) {
+      return ColorTokens.PRIMARY_PRESSED
+    }
+    return this.getBorderColor()
   }
 
   build() {
@@ -168,15 +210,27 @@ export struct AppButton {
     .padding({ left: this.getHorizontalPadding(), right: this.getHorizontalPadding() })
     .backgroundColor(this.getBackgroundColor())
     .border({
-      width: this.getBorderWidth(),
-      color: this.getBorderColor()
+      width: {
+        top: this.getBorderWidth(),
+        right: this.getBorderWidth(),
+        bottom: this.getBottomWidth(),
+        left: this.getBorderWidth()
+      },
+      color: {
+        top: this.getBorderColor(),
+        right: this.getBorderColor(),
+        bottom: this.getBottomColor(),
+        left: this.getBorderColor()
+      }
     })
     .borderRadius(this.buttonSize === 'hero' ? RadiusTokens.CONTROL : RadiusTokens.MD)
     .shadow(this.getShadow())
     .constraintSize({ minHeight: TouchTokens.MIN_TARGET })
+    // 按下位移：只在有厚底时启用，与厚边收平在同一帧完成，形成"按进面板"
+    .translate({ y: this.usesPressDepth() && this.pressed ? DuTokens.PRESS_SHIFT : 0 })
     .scale({
-      x: this.pressed && !this.disabled ? MotionTokens.PRESS_PRIMARY : 1,
-      y: this.pressed && !this.disabled ? MotionTokens.PRESS_PRIMARY : 1
+      x: this.usesPressDepth() ? 1 : (this.pressed && !this.disabled ? MotionTokens.PRESS_PRIMARY : 1),
+      y: this.usesPressDepth() ? 1 : (this.pressed && !this.disabled ? MotionTokens.PRESS_PRIMARY : 1)
     })
     .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
     .onTouch((event: TouchEvent) => {

@@ -7,6 +7,7 @@ import com.fittracker.app.data.cloud.SupabaseConfig
 import com.fittracker.app.data.persist.JsonCodec
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.StoreNames
+import com.fittracker.app.data.service.AvatarImageService
 import com.fittracker.app.data.service.UserProfileService
 import com.fittracker.app.data.service.WeightUnit
 import com.fittracker.app.data.service.backup.UserDataBackupService
@@ -24,10 +25,10 @@ import kotlinx.serialization.encodeToString
  * 与源的映射差异（安卓化）：
  * - 源单例 + `context` 首参 → [store] 注入 + [sandboxDir] 参数（生产用
  *   [forFilesDir]`(context.filesDir)` 构造）。
- * - 源 `resolveStore`：AGC（未就绪 → `null` 显式失败，不跨存储降级）→ 本地沙盒；
+ * - 源 `resolveStore`：Supabase（未就绪 → `null` 显式失败，不跨存储降级）→ 本地沙盒；
  *   安卓侧同构：测试注入 > **Supabase（已配置）** > 本地沙盒；两者都无 → `null`。
  *   注意 Supabase 分支下"云服务未就绪"几乎不会触发（publishable key 恒可用），
- *   失败改由 pull/push 的 `null` / `false` 表达——与源 AGC 判定的语义差保留在报告中。
+ *   失败改由 pull/push 的 `null` / `false` 表达——与源云端判定的语义差保留在报告中。
  * - 源 `SessionManager.getSession(context)` → [AuthService.currentSession]（两 provider 通用）。
  * - 源 `resolveDeviceTag()` 固定 `'local-device'` → [CloudSyncService.DEVICE_TAG]。
  */
@@ -91,8 +92,9 @@ object SyncOrchestrator {
      *
      * @param sandboxDir 本地沙盒目录（Supabase 未配置时的回落存储；`null` 且未配置 →
      *   走「云服务未就绪」显式失败路径，不静默）。
+     * @param avatarDir 头像目录（下行时写远端头像用；`null` 则跳过头像落位，其余数据照常恢复）。
      */
-    suspend fun syncNow(store: JsonStore, sandboxDir: File? = null): SyncResult {
+    suspend fun syncNow(store: JsonStore, sandboxDir: File? = null, avatarDir: File? = null): SyncResult {
         if (syncInProgress) { // 源 :147-149
             return SyncResult(success = false, action = "skipped", message = "同步进行中", syncedAt = System.currentTimeMillis())
         }
@@ -178,7 +180,7 @@ object SyncOrchestrator {
                         )
                         return SyncResult(success = false, action = action.id, message = "云端快照缺失，请稍后重试", syncedAt = now)
                     }
-                    val applied: Boolean = applyRemotePayload(store, remote.payloadJson) // 源 :199
+                    val applied: Boolean = applyRemotePayload(store, remote.payloadJson, avatarDir) // 源 :199
                     if (!applied) { // 源 :200-203
                         writeMeta(
                             store,
@@ -232,18 +234,18 @@ object SyncOrchestrator {
     }
 
     /** 源 `:224` `onSignIn`——登录成功钩子：云端有数据则恢复、为空则认领上传；失败不阻塞登录流程。 */
-    suspend fun onSignIn(store: JsonStore, sandboxDir: File? = null) {
+    suspend fun onSignIn(store: JsonStore, sandboxDir: File? = null, avatarDir: File? = null) {
         try {
-            syncNow(store, sandboxDir)
+            syncNow(store, sandboxDir, avatarDir)
         } catch (error: Exception) {
             // 登录流程不因同步失败中断（源 :226-228）
         }
     }
 
     /** 源 `:233` `requestBackgroundSync`——启动后 / 训练完成后静默同步；同步恒定自动执行，失败不抛出。 */
-    suspend fun requestBackgroundSync(store: JsonStore, sandboxDir: File? = null) {
+    suspend fun requestBackgroundSync(store: JsonStore, sandboxDir: File? = null, avatarDir: File? = null) {
         try {
-            syncNow(store, sandboxDir)
+            syncNow(store, sandboxDir, avatarDir)
         } catch (error: Exception) {
             // 静默路径：状态由 syncNow 内部记录（源 :238-240）
         }
@@ -260,7 +262,7 @@ object SyncOrchestrator {
      * 源 `:262` `applyRemotePayload`——解析信封 → 导入备份包（[UserDataBackupService.importPackage]）
      * → 回写用户资料；任一步失败返回 `false`（源 catch 语义）。
      */
-    private suspend fun applyRemotePayload(store: JsonStore, payloadJson: String): Boolean = try {
+    private suspend fun applyRemotePayload(store: JsonStore, payloadJson: String, avatarDir: File?): Boolean = try {
         val envelope: CloudPayloadEnvelope = JsonCodec.json.decodeFromString(payloadJson) // 源 :264
         if (envelope.backupJson.isEmpty()) { // 源 :265-267
             false
@@ -268,6 +270,8 @@ object SyncOrchestrator {
             val importResult = UserDataBackupService.importPackage(store, envelope.backupJson) // 源 :268
             if (envelope.nickname.isNotEmpty()) { // 源 :269
                 val local = UserProfileService.loadProfile(store)
+                // 头像：新信封带去 base64 时与远端对齐；旧信封（null）保留本地头像。
+                val avatarImagePath = resolveRemoteAvatarPath(envelope, local.avatarImagePath, avatarDir)
                 UserProfileService.saveProfile(
                     store,
                     local.copy(
@@ -280,6 +284,11 @@ object SyncOrchestrator {
                             ?.let { UserProfileService.normalizeGender(it) }
                             ?: local.gender,
                         birthYear = envelope.birthYear ?: local.birthYear,
+                        // 训练经验同理：旧信封无此字段（null）时保留本地值。
+                        experience = envelope.experience
+                            ?.let { UserProfileService.normalizeExperience(it) }
+                            ?: local.experience,
+                        avatarImagePath = avatarImagePath,
                     ),
                 )
             }
@@ -287,6 +296,37 @@ object SyncOrchestrator {
         }
     } catch (error: Exception) { // 源 :278-280
         false
+    }
+
+    /**
+     * 下行头像落位：远端与本地内容一致时保留本地文件（不重写）；远端为空则清掉本地图；
+     * 旧信封（字段缺失）保留本地值。写盘失败不阻断整包恢复——保留本地头像，下次同步再对齐。
+     */
+    private suspend fun resolveRemoteAvatarPath(
+        envelope: CloudPayloadEnvelope,
+        localPath: String,
+        avatarDir: File?,
+    ): String {
+        val remoteImage: String = envelope.avatarImage ?: return localPath
+        val remoteHash: String = if (remoteImage.isEmpty()) "" else LocalSnapshotStore.djb2Hex(remoteImage)
+        val localImage: String = AvatarImageService.readAsBase64(localPath)
+        val localHash: String = if (localImage.isEmpty()) "" else LocalSnapshotStore.djb2Hex(localImage)
+        if (remoteHash == localHash) {
+            return localPath
+        }
+        if (remoteImage.isEmpty()) {
+            AvatarImageService.remove(localPath)
+            return ""
+        }
+        if (avatarDir == null) {
+            return localPath
+        }
+        val newPath: String = AvatarImageService.writeFromBase64(avatarDir, remoteImage)
+        if (newPath.isEmpty()) {
+            return localPath
+        }
+        AvatarImageService.remove(localPath)
+        return newPath
     }
 
     /**

@@ -19,7 +19,7 @@
 
     <!-- 空态 / 回退（`PlanContent.applyEmptyState`） -->
     <string name="plan_fallback_name">训练计划</string>
-    <string name="plan_empty_meta">完成目标设置后自动生成训练计划</string>
+    <string name="plan_empty_meta">到「计划」页选择并启用一套计划后即可开始训练</string>
 
     <!-- 当前计划摘要卡（`.master-card`）。`%1$s` 目标人群 · `%2$d` 天数 · `%3$s` 每周频次 -->
     <string name="plan_meta_format">%1$s · %2$d 练分化 · %3$s</string>

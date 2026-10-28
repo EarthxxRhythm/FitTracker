@@ -227,8 +227,10 @@ export default function syncServiceTest(): void {
 
     it('records sync failure when package import self-check fails', 0, async () => {
       const upgradedExercises: ExerciseContent[] = createVersionedExercises(2)
+      // 清单版本必须高于本地版本（JSONL 为 3），否则 shouldApplyBundledPackage 直接判 up_to_date，
+      // 根本不会进入导入自检——期望的 content_version_mismatch 也就无从产生。
       SyncService.setBundledPackageForTesting(
-        createManifest(1, 'full', 3, upgradedExercises.length),
+        createManifest(1, 'full', 4, upgradedExercises.length),
         BUNDLED_CONTENT_SYNC_MUSCLES,
         BUNDLED_CONTENT_SYNC_EQUIPMENT,
         upgradedExercises

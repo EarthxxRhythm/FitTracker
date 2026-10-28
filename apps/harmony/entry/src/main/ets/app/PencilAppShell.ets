@@ -1,4 +1,4 @@
-﻿/** PencilAppShell —— 统一持有底部 Tab 与常驻内容视口。功能 #27 */
+/** PencilAppShell —— 统一持有底部 Tab 与常驻内容视口。功能 #27 */
 import { BottomTabBar } from '../components/BottomTabBar'
 import { HomeContent } from '../features/pencil/components/HomeContent'
 import { PlanContent } from '../features/pencil/components/PlanContent'
@@ -29,7 +29,7 @@ export struct PencilAppShell {
   @State private homeState: HomeState = new HomeState()
   @State private planState: PlanState = new PlanState()
   @State private profileState: ProfileState = new ProfileState()
-  /** 切到「回顾」Tab 时 bump——体重/会话更新后复盘页需重读（Tab 常驻同因）。 */
+  /** 切到「回顾」Tab 时 bump——体重/会话更新后回顾页需重读（Tab 常驻同因）。 */
   @State private reviewReloadToken: number = 0
   // 训练预览的全模态开关。
   @State private showPreview: boolean = false
@@ -53,22 +53,21 @@ export struct PencilAppShell {
     if (context === undefined) {
       return
     }
-    if (this.currentTab === PencilTabKey.HOME) {
-      this.homeState.invalidate()
-      this.homeState.refresh(context)
-      return
-    }
-    if (this.currentTab === PencilTabKey.PLAN) {
-      this.planState.invalidate()
-      this.planState.refresh(context)
-      return
-    }
+    // 「首页」和「计划」两个 Tab 都读 getCurrentPlan（计划组里切换后必须一起刷新）。
+    // 旧实现按 currentTab 只刷一个：用户从「计划组」切完计划回到另一个 Tab 时，
+    // 那个 Tab 仍是旧计划，看起来就像「切换没生效」。
+    this.homeState.invalidate()
+    this.planState.invalidate()
+    this.homeState.refresh(context)
+    this.planState.refresh(context)
     if (this.currentTab === PencilTabKey.REVIEW) {
       this.reviewReloadToken += 1
       return
     }
-    this.profileState.invalidate()
-    this.profileState.refresh(context)
+    if (this.currentTab === PencilTabKey.PROFILE) {
+      this.profileState.invalidate()
+      this.profileState.refresh(context)
+    }
   }
 
   // 训练预览覆盖层打开时，系统返回键先关闭它，不退出页面。
@@ -90,11 +89,29 @@ export struct PencilAppShell {
 
   // Tab 切换不带内容区转场：按需求直接切换（「训练」按钮打开的预览弹层动效保留）。
   private handleTabChanged(): void {
+    const context: Context | undefined = this.getUIContext().getHostContext()
+    if (this.currentTab === PencilTabKey.HOME) {
+      this.homeState.invalidate()
+      if (context !== undefined) {
+        this.homeState.refresh(context)
+      }
+    }
     if (this.currentTab === PencilTabKey.PLAN) {
+      // 只 invalidate 不 refresh 时，脏标记只能等 *Content 的 onVisibleAreaChange 触发；
+      // 从常驻 Tab 切回来并不总会抛该回调，计划就会停在旧值。这里直接置脏 + 立即重读。
       this.planState.invalidate()
+      if (context !== undefined) {
+        this.planState.refresh(context)
+      }
     }
     if (this.currentTab === PencilTabKey.REVIEW) {
       this.reviewReloadToken += 1
+    }
+    if (this.currentTab === PencilTabKey.PROFILE) {
+      this.profileState.invalidate()
+      if (context !== undefined) {
+        this.profileState.refresh(context)
+      }
     }
   }
 
@@ -189,7 +206,7 @@ export struct PencilAppShell {
       .height('100%')
 
       if (this.showPreview) {
-        // 训练预览「中心缩放弹出」：遮罩淡入 + 内容 0.92 → 1 缩放淡入（关闭时反向）。
+        // 训练预览「缩放弹出」：遮罩淡入 + 内容 0.92 → 1 缩放淡入（关闭时反向）。
         Column()
           .width('100%')
           .height('100%')
@@ -210,7 +227,14 @@ export struct PencilAppShell {
         .width('100%')
         .height('100%')
         .transition(
-          TransitionEffect.scale({ x: MotionTokens.MODAL_POP_SCALE, y: MotionTokens.MODAL_POP_SCALE })
+          // 缩放锚点钉在底边中点：贴底的「开始训练」按钮在转场全程位置不动，
+          // 只有面板上半部向内收拢——旧的中心锚点会让按钮从内缩位置跳到落定位。
+          TransitionEffect.scale({
+            x: MotionTokens.MODAL_POP_SCALE,
+            y: MotionTokens.MODAL_POP_SCALE,
+            centerX: '50%',
+            centerY: '100%'
+          })
             .combine(TransitionEffect.OPACITY)
             .animation({ duration: MotionTokens.DURATION_MODAL_POP, curve: MotionTokens.EASE_PANEL })
         )

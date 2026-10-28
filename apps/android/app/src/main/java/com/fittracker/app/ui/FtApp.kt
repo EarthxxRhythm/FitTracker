@@ -89,11 +89,14 @@ fun FtApp() {
         val contentSettle = remember { Animatable(1f) }
 
         LaunchedEffect(currentId) {
-            // chrome 复位与 Tab 动效共用一次订阅：非 Tab 帧（settings / active / login…）
-            // 不该继承任何收起状态。
-            if (!onTab) {
-                chrome.updateCollapsed(false)
-            }
+            // chrome 复位与 Tab 动效共用一次订阅：**任何**帧切换都复位。
+            //
+            // 旧实现只在「离开 Tab 帧」时复位，漏掉了 Tab↔Tab：在回顾页下滑收起后
+            // 切到 home / plan，底栏继续保持收起；而 `<review>` 的 `rememberScrollState`
+            // 会把中途位置一起恢复，切回来时头部与底栏双双隐藏，且没有滚动事件能把
+            // 它复位（见 ReviewScreen 的 `observeChromeOnScroll`）。用户看到的就是
+            // 「回顾页没回顶就切回来，上下直接没了」。
+            chrome.updateCollapsed(false)
 
             val from = previousTabId
             previousTabId = currentId

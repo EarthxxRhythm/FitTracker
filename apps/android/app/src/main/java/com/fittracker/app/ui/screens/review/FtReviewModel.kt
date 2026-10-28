@@ -104,6 +104,16 @@ data class EffortView(
  */
 data class MuscleDetail(@StringRes val textRes: Int, val arg: Int? = null)
 
+/**
+ * 肌群结论的部位索引（与 `MUSCLE_IDS` 同序）。
+ *
+ * 无训练量时 [maxIndex] = -1；只有一处有训练量（或最高与最低同部位）时 [minIndex] = -1。
+ * 文案由 UI 层按语言拼装（`review_muscle_summary_*`），纯函数不持 Context。
+ */
+data class MuscleSummary(val maxIndex: Int, val minIndex: Int) {
+    val hasData: Boolean get() = maxIndex >= 0
+}
+
 /** 月历标题参数（模板 `review_month_label`：`%1$d 年 %2$d 月`）。 */
 data class MonthLabel(val year: Int, val month: Int)
 
@@ -310,7 +320,7 @@ object FtReviewModel {
     /** 概览徽标：本周尚无训练（或整体无会话）——不显示涨跌。 */
     const val BADGE_IDLE = "待积累"
     /** 概览徽标：本周有训练但上周无基线，无法算涨跌。 */
-    const val BADGE_FIRST = "首次复盘"
+    const val BADGE_FIRST = "首次回顾"
     /** 概览徽标：完成率与上周持平。 */
     const val BADGE_FLAT = "— 持平"
 
@@ -394,29 +404,23 @@ object FtReviewModel {
     @StringRes
     fun muscleLabelRes(id: String): Int? = MUSCLE_LABEL_RES[id]
 
-    private val LEVELS: Map<MuscleMode, Map<String, Int>> = mapOf(
-        MuscleMode.BALANCE to mapOf(
-            "chest" to 4, "quadriceps" to 4, "gluteal" to 3, "hamstring" to 3, "deltoids" to 3,
-            "biceps" to 3, "triceps" to 3, "upper-back" to 3, "abs" to 3, "obliques" to 2,
-            "lower-back" to 2, "serratus" to 2, "forearm" to 2, "trapezius" to 2, "calves" to 2,
-            "adductors" to 1, "hip-flexors" to 1, "tibialis" to 1,
-        ),
-        MuscleMode.FATIGUE to mapOf(
-            "chest" to 2, "quadriceps" to 4, "gluteal" to 4, "hamstring" to 3, "upper-back" to 3,
-            "deltoids" to 2, "biceps" to 2, "triceps" to 2, "calves" to 1, "abs" to 1,
-            "obliques" to 1, "lower-back" to 1, "serratus" to 1, "forearm" to 1, "trapezius" to 1,
-            "adductors" to 1, "hip-flexors" to 1, "tibialis" to 1,
-        ),
-        MuscleMode.STRENGTH to mapOf(
-            "chest" to 4, "quadriceps" to 4, "gluteal" to 3, "hamstring" to 3, "upper-back" to 3,
-            "deltoids" to 3, "biceps" to 2, "triceps" to 2, "abs" to 2, "calves" to 2,
-            "obliques" to 1, "lower-back" to 1, "serratus" to 1, "forearm" to 1, "trapezius" to 1,
-            "adductors" to 1, "hip-flexors" to 1, "tibialis" to 1,
-        ),
-    )
+    /**
+     * 18 个部位的显示名资源（与 [MUSCLE_IDS] 同序）。
+     *
+     * 供 UI 层拼肌群结论文案：资源 ID 在此集中，`stringResource` 由 Composable 调用，
+     * 纯函数层不持 Context，中英切换随之生效。
+     */
+    val MUSCLE_LABEL_RES_LIST: List<Int> = MUSCLE_IDS.map { MUSCLE_LABEL_RES.getValue(it) }
 
-    /** 原型 `LEVELS[mode][k] || 0`——未列出的肌肉取 0。 */
-    fun muscleLevel(mode: MuscleMode, id: String): Int = LEVELS[mode]?.get(id) ?: 0
+    /**
+     * 按部位 id 取真实等级（[muscleLevels] 的输出，与 [MUSCLE_IDS] 同序）。
+     *
+     * 未知 id 或等级表缺失/越界时回落 0（与原型「未列出的肌肉取 0」同语义）。
+     */
+    fun muscleLevel(levels: List<Int>, id: String): Int {
+        val index = MUSCLE_IDS.indexOf(id)
+        return if (index >= 0) levels.getOrElse(index) { 0 } else 0
+    }
 
     // ── 真实派生（Wave 2）：肌群训练量与努力程度 ─────────────────────
     //
@@ -487,10 +491,12 @@ object FtReviewModel {
             .filter { it > 0 }
 
     /**
-     * 肌群结论文案（按真实最高/最低训练量部位拼装）；无数据返回空态文案。
-     * 口径与鸿蒙 `ReviewInsightsService.createMuscleSummary` 一致。
+     * 肌群结论的部位索引（最高训练量部位 / 最低非零部位）。
+     *
+     * 口径与鸿蒙 `ReviewInsightsService.createMuscleSummary` 一致（只取非零最低）。
+     * 文案不在此拼装——中英差异由 UI 层的 `review_muscle_summary_*` 资源承载。
      */
-    fun muscleSummary(volume: List<Int>, labels: List<String>): String {
+    fun muscleSummary(volume: List<Int>): MuscleSummary {
         var maxIndex = -1
         var minIndex = -1
         var maxValue = 0
@@ -505,23 +511,13 @@ object FtReviewModel {
                 minIndex = index
             }
         }
-        if (maxIndex < 0) return "完成训练后，这里会显示肌群训练分布。"
-        val maxLabel = labels.getOrElse(maxIndex) { "" }
-        if (minIndex < 0 || minIndex == maxIndex) return "${maxLabel}训练量最高。"
-        val minLabel = labels.getOrElse(minIndex) { "" }
-        return "${maxLabel}训练量最高，${minLabel}最少。"
+        return MuscleSummary(maxIndex, minIndex)
     }
 
     private val MM_META_RES = mapOf(
         MuscleMode.BALANCE to R.string.review_muscle_meta_balance,
         MuscleMode.FATIGUE to R.string.review_muscle_meta_fatigue,
         MuscleMode.STRENGTH to R.string.review_muscle_meta_strength,
-    )
-
-    private val MM_NOTE_RES = mapOf(
-        MuscleMode.BALANCE to R.string.review_muscle_note_balance,
-        MuscleMode.FATIGUE to R.string.review_muscle_note_fatigue,
-        MuscleMode.STRENGTH to R.string.review_muscle_note_strength,
     )
 
     private val MM_LABEL_RES = mapOf(
@@ -548,29 +544,39 @@ object FtReviewModel {
     fun mmMetaRes(mode: MuscleMode): Int = MM_META_RES.getValue(mode)
 
     @StringRes
-    fun mmNoteRes(mode: MuscleMode): Int = MM_NOTE_RES.getValue(mode)
-
-    @StringRes
     fun mmLabelRes(mode: MuscleMode): Int = MM_LABEL_RES.getValue(mode)
 
     /**
-     * 点选后的详情行取值（原型 `selectMuscle`）——文案走资源；等级**按下标直接取**
-     * （不是从 1 开始），UI 层以 [MuscleDetail.textRes]（+ 可选 [MuscleDetail.arg]）插值。
+     * 点选后的详情行取值（原型 `selectMuscle`）——文案走资源，数值取自真实训练量。
+     *
+     * - BALANCE：该部位的**真实组数**（[volume]，与 [muscleLevels] 同序），不再用 `level * 10 + 8` 估算；
+     * - FATIGUE / STRENGTH：1–4 档映射到 4 条档位词（索引 `level - 1`），0 档（无训练量）→「—」。
+     *   索引口径与鸿蒙 `muscleStatWord(level, words)` 一致；旧实现用 `level` 直接取，导致 4 档反而落到「—」。
      */
-    fun muscleDetail(mode: MuscleMode, id: String): MuscleDetail {
-        val lvl = muscleLevel(mode, id)
+    fun muscleDetail(
+        levels: List<Int>,
+        volume: List<Int>,
+        mode: MuscleMode,
+        id: String,
+    ): MuscleDetail {
+        val index = MUSCLE_IDS.indexOf(id)
+        val lvl = muscleLevel(levels, id)
         return when (mode) {
-            MuscleMode.BALANCE -> MuscleDetail(R.string.review_muscle_detail_sets, lvl * 10 + 8)
+            MuscleMode.BALANCE -> MuscleDetail(
+                R.string.review_muscle_detail_sets,
+                if (index >= 0) volume.getOrElse(index) { 0 } else 0,
+            )
+
             MuscleMode.FATIGUE ->
-                MuscleDetail(MM_RECOVERY_RES.getOrNull(lvl) ?: R.string.review_muscle_detail_none)
+                MuscleDetail(MM_RECOVERY_RES.getOrNull(lvl - 1) ?: R.string.review_muscle_detail_none)
 
             MuscleMode.STRENGTH ->
-                MuscleDetail(MM_STRENGTH_RES.getOrNull(lvl) ?: R.string.review_muscle_detail_none)
+                MuscleDetail(MM_STRENGTH_RES.getOrNull(lvl - 1) ?: R.string.review_muscle_detail_none)
         }
     }
 
-    /** 详情行进度条的填充宽度百分比（原型 `fill.style.width = lvl * 25 + '%'`）。 */
-    fun muscleDetailPercent(mode: MuscleMode, id: String): Int = muscleLevel(mode, id) * 25
+    /** 详情行进度条的填充宽度百分比（`level * 25`；等级已来自真实训练量）。 */
+    fun muscleDetailPercent(levels: List<Int>, id: String): Int = muscleLevel(levels, id) * 25
 
     // ── 肌肉地图图例（L1284-1300） ───────────────────────────────
 
@@ -855,7 +861,7 @@ object FtReviewModel {
      * 概览卡徽标：本周完成率相对上周的涨跌。
      *
      * 口径与鸿蒙 `ReviewContent.badgeText` 一致：无会话 / 本周未练 → `待积累`；上周无数据
-     * （无对比基线）→ `首次复盘`；否则 `↑ +N%` / `↓ -N%` / `— 持平`。原型写死的
+     * （无对比基线）→ `首次回顾`；否则 `↑ +N%` / `↓ -N%` / `— 持平`。原型写死的
      * `↑ +18%` / `↑ +12%` 不再出现。
      */
     fun badgeText(sessions: List<WorkoutSession>, nowMillis: Long, weekStart: WeekStart): String {

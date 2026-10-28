@@ -9,6 +9,10 @@ import com.fittracker.app.data.cloud.SupabaseSessionStore
 import com.fittracker.app.data.persist.JsonCodec
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.StoreNames
+import com.fittracker.app.data.service.AvatarImageService
+import com.fittracker.app.data.service.Experience
+import com.fittracker.app.data.service.UserProfile
+import com.fittracker.app.data.service.UserProfileService
 import com.fittracker.app.data.service.backup.UserDataBackupService
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
@@ -132,7 +136,12 @@ class SyncOrchestratorTest {
     }
 
     /** 远端信封 JSON（backupJson 由本地空库导出——保证结构合法）。 */
-    private suspend fun envelopeJson(store: JsonStore, nickname: String = "远端昵称"): String {
+    private suspend fun envelopeJson(
+        store: JsonStore,
+        nickname: String = "远端昵称",
+        experience: String? = null,
+        avatarImage: String? = null,
+    ): String {
         val backupJson = UserDataBackupService.exportPackage(store)
         return JsonCodec.json.encodeToString(
             CloudPayloadEnvelope(
@@ -141,6 +150,10 @@ class SyncOrchestratorTest {
                 nickname = nickname,
                 avatar = "",
                 weightUnit = "kg",
+                experience = experience,
+                avatarImage = avatarImage,
+                avatarImageHash = if (avatarImage == null) null else
+                    if (avatarImage.isEmpty()) "" else LocalSnapshotStore.djb2Hex(avatarImage),
             ),
         )
     }
@@ -279,6 +292,130 @@ class SyncOrchestratorTest {
         assertTrue(result.success)
         assertEquals("push", result.action)
         assertNotNull(fake.pushed)
+    }
+
+    @Test
+    fun `下行恢复_信封训练经验覆盖本地`() = runBlocking {
+        val store = createStore()
+        loginSession(store)
+        UserProfileService.saveProfile(store, UserProfile(nickname = "本地昵称", experience = Experience.BEGINNER))
+        val (_, hash) = localPayloadHash(store)
+        store.writeString(
+            StoreNames.SYNC,
+            JsonCodec.json.encodeToString(
+                SyncMeta(userId = "u-1", lastSyncedHash = hash, lastSyncAt = 1_000, lastStatus = "synced", lastError = ""),
+            ),
+        )
+        val fake = FakeCloudStore(
+            remote = createCloudSnapshot(
+                "u-1",
+                envelopeJson(store, nickname = "远端昵称", experience = "advanced"),
+                updatedAt = 2_000,
+                deviceTag = "d",
+                schemaVersion = 1,
+            ),
+        )
+        SyncOrchestrator.setStoreForTesting(fake)
+
+        val result = SyncOrchestrator.syncNow(store)
+
+        assertEquals("pull", result.action)
+        assertEquals(Experience.ADVANCED, UserProfileService.loadProfile(store).experience)
+    }
+
+    @Test
+    fun `下行恢复_旧信封无训练经验_保留本地值`() = runBlocking {
+        val store = createStore()
+        loginSession(store)
+        UserProfileService.saveProfile(store, UserProfile(nickname = "本地昵称", experience = Experience.INTERMEDIATE))
+        val (_, hash) = localPayloadHash(store)
+        store.writeString(
+            StoreNames.SYNC,
+            JsonCodec.json.encodeToString(
+                SyncMeta(userId = "u-1", lastSyncedHash = hash, lastSyncAt = 1_000, lastStatus = "synced", lastError = ""),
+            ),
+        )
+        // 旧端信封：无 experience 字段 → 不得用默认值覆盖本地已填值。
+        val fake = FakeCloudStore(
+            remote = createCloudSnapshot(
+                "u-1",
+                envelopeJson(store, nickname = "远端昵称"),
+                updatedAt = 2_000,
+                deviceTag = "d",
+                schemaVersion = 1,
+            ),
+        )
+        SyncOrchestrator.setStoreForTesting(fake)
+
+        val result = SyncOrchestrator.syncNow(store)
+
+        assertEquals("pull", result.action)
+        assertEquals(Experience.INTERMEDIATE, UserProfileService.loadProfile(store).experience)
+    }
+
+    @Test
+    fun `下行恢复_远端头像落盘并更新路径`() = runBlocking {
+        val store = createStore()
+        loginSession(store)
+        val (_, hash) = localPayloadHash(store)
+        store.writeString(
+            StoreNames.SYNC,
+            JsonCodec.json.encodeToString(
+                SyncMeta(userId = "u-1", lastSyncedHash = hash, lastSyncAt = 1_000, lastStatus = "synced", lastError = ""),
+            ),
+        )
+        val avatarDir = File(tempFolder.root, "avatars")
+        val avatarBytes = ByteArray(48) { index -> (index + 1).toByte() }
+        val base64 = java.util.Base64.getEncoder().encodeToString(avatarBytes)
+        val fake = FakeCloudStore(
+            remote = createCloudSnapshot(
+                "u-1",
+                envelopeJson(store, avatarImage = base64),
+                updatedAt = 2_000,
+                deviceTag = "d",
+                schemaVersion = 1,
+            ),
+        )
+        SyncOrchestrator.setStoreForTesting(fake)
+
+        val result = SyncOrchestrator.syncNow(store, avatarDir = avatarDir)
+
+        assertEquals("pull", result.action)
+        val savedPath = UserProfileService.loadProfile(store).avatarImagePath
+        assertTrue("应写入沙箱文件", savedPath.isNotEmpty() && File(savedPath).isFile)
+        assertEquals(base64, AvatarImageService.readAsBase64(savedPath))
+    }
+
+    @Test
+    fun `下行恢复_旧信封无头像_保留本地路径`() = runBlocking {
+        val store = createStore()
+        loginSession(store)
+        val localAvatar = File(tempFolder.root, "local_avatar.jpg").apply {
+            writeBytes(ByteArray(16) { 5 })
+        }
+        UserProfileService.saveProfile(store, UserProfile(avatarImagePath = localAvatar.absolutePath))
+        val (_, hash) = localPayloadHash(store)
+        store.writeString(
+            StoreNames.SYNC,
+            JsonCodec.json.encodeToString(
+                SyncMeta(userId = "u-1", lastSyncedHash = hash, lastSyncAt = 1_000, lastStatus = "synced", lastError = ""),
+            ),
+        )
+        val fake = FakeCloudStore(
+            remote = createCloudSnapshot(
+                "u-1",
+                envelopeJson(store, nickname = "远端昵称"),
+                updatedAt = 2_000,
+                deviceTag = "d",
+                schemaVersion = 1,
+            ),
+        )
+        SyncOrchestrator.setStoreForTesting(fake)
+
+        val result = SyncOrchestrator.syncNow(store, avatarDir = File(tempFolder.root, "avatars"))
+
+        assertEquals("pull", result.action)
+        assertEquals(localAvatar.absolutePath, UserProfileService.loadProfile(store).avatarImagePath)
     }
 
     @Test

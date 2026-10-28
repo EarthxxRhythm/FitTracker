@@ -15,6 +15,11 @@
 # 端口暴露：Caddy 以 host 网络直接占宿主 80/443。
 #   127.0.0.1:8000 是 Supabase 栈 API 网关（Envoy，compose 默认 0.0.0.0 绑定——
 #   须按 README「Wave 2」用 override 文件限制为仅回环）；127.0.0.1:8787 是 sms-hook 服务（已绑回环）。
+#
+# 8443 临时入口已于 2026-10-28 退役：双端凭据切回 443 并重新打包后关闭，本模板即当前运行态。
+#
+# ⚠ 单文件 bind mount 陷阱（实测记录 ⑬）：`sed -i` 改宿主机 Caddyfile 会换 inode，容器仍挂旧文件，
+#   `caddy reload` 返回成功但配置未变。改完必须 `docker restart fittracker-caddy`。
 
 api.example.com {
 	# GoTrue Send SMS Hook 回调用（standardwebhooks 签名由 sms-hook 服务自身验签）

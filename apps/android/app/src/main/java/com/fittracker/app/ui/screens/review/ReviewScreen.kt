@@ -66,6 +66,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -88,6 +89,7 @@ import com.fittracker.app.data.service.currentLanguageTag
 import com.fittracker.app.data.service.WorkoutRepository
 import com.fittracker.app.data.service.WorkoutSessionService
 import com.fittracker.app.data.service.stats.PersonalRecordService
+import com.fittracker.app.ui.FtChromeState
 import com.fittracker.app.ui.LocalFtChrome
 import com.fittracker.app.ui.components.clickableNoRipple
 import com.fittracker.app.ui.theme.FtColor
@@ -139,7 +141,7 @@ fun ReviewScreen(
     var selectedDay by remember { mutableStateOf<Int?>(null) }
 
     // ── 数据态（由 [ReviewViewModel] 持有）──
-    // 复盘派生数据取自本地会话仓储与体重记录服务；`viewModel()` 取 NavBackStackEntry 作用域实例，
+    // 回顾派生数据取自本地会话仓储与体重记录服务；`viewModel()` 取 NavBackStackEntry 作用域实例，
     // tab 切换取回同一实例、装载只跑一次。数据态与装载已迁入 VM，这里只读。
     LaunchedEffect(Unit) { vm.load() }
 
@@ -165,6 +167,15 @@ fun ReviewScreen(
     val weightDeltaValue = vm.weightDeltaValue
     val effortLevels = vm.effortLevels
     val muscleVolume = vm.muscleVolume
+    // 真实训练量 → 18 部位 1–4 级（地图着色 / 详情进度条的唯一数据源）。
+    // 空库时 VM 给 emptyList，这里归一为全 0，消费方据此渲染灰图 + 空态文案。
+    val muscleLevels = remember(muscleVolume) {
+        if (muscleVolume.size == FtReviewModel.MUSCLE_IDS.size) {
+            FtReviewModel.muscleLevels(muscleVolume)
+        } else {
+            List(FtReviewModel.MUSCLE_IDS.size) { 0 }
+        }
+    }
     val reviewSessions = vm.reviewSessions
     val reviewWeekStart = vm.reviewWeekStart
     val reviewNow = vm.reviewNow
@@ -195,24 +206,8 @@ fun ReviewScreen(
     val goalLineY = FtReviewModel.goalLineY(goal, chartLoKg, chartHiKg)
 
     val scrollState = rememberScrollState()
-
-    // ── 滚动驱动 chrome 收起 ────────────────────────────────────────────────
-    // 采用「方向 + 阈值」而不是逐像素跟随：头部高度会随收起而变化，逐像素方案在高度
-    // 收缩的那一帧容易被新的 scroll 值反推，来回抖动。阈值让一次上滑就稳定进入浏览态，
-    // 下滑或回顶即恢复。
     val chrome = LocalFtChrome.current
-    LaunchedEffect(scrollState) {
-        var last = 0
-        snapshotFlow { scrollState.value }.collect { value ->
-            val dy = value - last
-            when {
-                value <= 4 -> chrome.updateCollapsed(false)
-                dy > 6 && value > 24 -> chrome.updateCollapsed(true)
-                dy < -6 -> chrome.updateCollapsed(false)
-            }
-            last = value
-        }
-    }
+    LaunchedEffect(scrollState) { observeChromeOnScroll(scrollState, chrome) }
 
     Box(
         modifier = modifier
@@ -228,6 +223,8 @@ fun ReviewScreen(
                 data = data,
                 headText = if (scale == ReviewScale.WEEK) weekHeadText else monthHeadText,
                 badgeText = badgeText,
+                planName = vm.currentPlanName,
+                planSessionCount = vm.currentPlanSessionCount,
             )
             StatsRow(stats = data.stats)
             ActivityCard(
@@ -245,6 +242,8 @@ fun ReviewScreen(
             MuscleMapCard(
                 mode = muscleMode,
                 selected = selectedMuscle,
+                levels = muscleLevels,
+                volume = muscleVolume,
                 onMode = { muscleMode = it; selectedMuscle = null },
                 onSelect = { selectedMuscle = it },
             )
@@ -276,12 +275,41 @@ fun ReviewScreen(
             val summary = FtReviewModel.daySummary(reviewSessions, day, reviewNow, reviewWeekStart)
             DayDetailModal(
                 summary = summary,
+                month = monthOf(reviewNow),
                 weekdayLabel = weekdayLabelOf(day, reviewNow),
                 onDismiss = { selectedDay = null },
             )
         }
     }
 }
+
+/**
+ * 滚动驱动 chrome 收起：订阅 [scrollState]，按「方向 + 阈值」写入 [chrome] 的收起态。
+ *
+ * 采用方向/阈值而不是逐像素跟随：头部高度会随收起而变化，逐像素方案在高度收缩的那一帧
+ * 容易被新的 scroll 值反推，来回抖动。阈值让一次上滑就稳定进入浏览态，下滑或回顶即恢复。
+ *
+ * **首帧基准取当前滚动值**，不能从 0 起算：本屏是 Tab 一级路由，离开组合时
+ * `rememberScrollState` 会保存位置、切回时恢复到中途。若从 0 起算，这次「状态恢复」
+ * 会被读成一次大幅下滑（`dy = value - 0` 远超阈值），刚切回就把头部与底栏重新收起——
+ * 用户看到的是「回顾页没回顶就切 tab 回来，上下直接隐藏」。
+ */
+internal suspend fun observeChromeOnScroll(scrollState: ScrollState, chrome: FtChromeState) {
+    var last = scrollState.value
+    snapshotFlow { scrollState.value }.collect { value ->
+        val dy = value - last
+        when {
+            value <= 4 -> chrome.updateCollapsed(false)
+            dy > 6 && value > 24 -> chrome.updateCollapsed(true)
+            dy < -6 -> chrome.updateCollapsed(false)
+        }
+        last = value
+    }
+}
+
+/** `reviewNow` 所在月份（1 基），与月历渲染同源，避免跨月时标题与格子漂移。 */
+private fun monthOf(nowMillis: Long): Int =
+    java.util.Calendar.getInstance().apply { timeInMillis = nowMillis }.get(java.util.Calendar.MONTH) + 1
 
 /** 某天对应的中文星期（如 `周六`），与鸿蒙侧详情标题一致。 */
 private fun weekdayLabelOf(day: Int, nowMillis: Long): String {
@@ -474,7 +502,13 @@ private fun SegmentedPill(
 
 /** `.overview`（L434-475）：本周概览，`min-height: 145.1px`。 */
 @Composable
-private fun OverviewCard(data: ReviewScaleData, headText: String, badgeText: String) {
+private fun OverviewCard(
+    data: ReviewScaleData,
+    headText: String,
+    badgeText: String,
+    planName: String? = null,
+    planSessionCount: Int = 0,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -518,6 +552,20 @@ private fun OverviewCard(data: ReviewScaleData, headText: String, badgeText: Str
             style = FtType.natural(11.8f).copy(lineHeight = 15.9.sp),
             color = FtColor.white48,
         )
+        // 计划归属：会话里的 planId 一直存在但此前无人读取，回顾因此看不到「练的是哪个计划」。
+        if (!planName.isNullOrEmpty()) {
+            Text(
+                text = if (planSessionCount > 0) {
+                    stringResource(R.string.review_plan_affiliation_count, planName, planSessionCount)
+                } else {
+                    stringResource(R.string.review_plan_affiliation, planName)
+                },
+                style = FtType.natural(11.8f, 600),
+                color = FtColor.accent,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 
@@ -777,6 +825,8 @@ private fun MonthCellView(cell: MonthCell, onSelectDay: (Int) -> Unit, modifier:
 private fun MuscleMapCard(
     mode: MuscleMode,
     selected: String?,
+    levels: List<Int>,
+    volume: List<Int>,
     onMode: (MuscleMode) -> Unit,
     onSelect: (String) -> Unit,
 ) {
@@ -794,21 +844,42 @@ private fun MuscleMapCard(
         )
         BodyMapView(
             mode = mode,
+            levels = levels,
             selected = selected,
             onSelect = onSelect,
             modifier = Modifier.padding(top = 14.dp), // `.bodymap { margin-top: 14px }`
         )
         MuscleLegend(mode = mode, modifier = Modifier.padding(top = 12.dp))
         if (selected != null) {
-            MuscleDetailRow(mode = mode, id = selected)
+            MuscleDetailRow(mode = mode, id = selected, levels = levels, volume = volume)
         }
         Text(
-            text = stringResource(FtReviewModel.mmNoteRes(mode)),
+            text = muscleNoteText(volume),
             modifier = Modifier.padding(top = 10.dp),
             style = FtType.natural(12f).copy(lineHeight = 17.4.sp), // 1.45 × 12px
             color = FtReviewColors.label3,
         )
     }
+}
+
+/**
+ * 肌群结论一句话：无训练量 → 空态提示；单一部位 → 最高；多部位 → 最高 + 最少。
+ *
+ * 索引由 `FtReviewModel.muscleSummary` 计算，文案走 `review_muscle_summary_*` 资源（中/英）。
+ */
+@Composable
+private fun muscleNoteText(volume: List<Int>): String {
+    val summary = FtReviewModel.muscleSummary(volume)
+    if (!summary.hasData) {
+        return stringResource(R.string.review_muscle_summary_empty)
+    }
+    val labels = FtReviewModel.MUSCLE_LABEL_RES_LIST.map { stringResource(it) }
+    val maxLabel = labels.getOrElse(summary.maxIndex) { "" }
+    if (summary.minIndex < 0 || summary.minIndex == summary.maxIndex) {
+        return stringResource(R.string.review_muscle_summary_max, maxLabel)
+    }
+    val minLabel = labels.getOrElse(summary.minIndex) { "" }
+    return stringResource(R.string.review_muscle_summary_max_min, maxLabel, minLabel)
 }
 
 /** `.hm-legend`（L1007-1015，图例方块为 `--surface-2` 底 + 等级色）。 */
@@ -844,7 +915,7 @@ private fun MuscleLegend(mode: MuscleMode, modifier: Modifier = Modifier) {
 
 /** `.mrow`（L1021-1032）：点选后的名称 + 进度条 + 取值。 */
 @Composable
-private fun MuscleDetailRow(mode: MuscleMode, id: String) {
+private fun MuscleDetailRow(mode: MuscleMode, id: String, levels: List<Int>, volume: List<Int>) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -868,13 +939,13 @@ private fun MuscleDetailRow(mode: MuscleMode, id: String) {
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(FtReviewModel.muscleDetailPercent(mode, id) / 100f)
+                    .fillMaxWidth(FtReviewModel.muscleDetailPercent(levels, id) / 100f)
                     .fillMaxHeight()
                     .clip(RoundedCornerShape(3.dp))
                     .background(FtReviewColors.acc),
             )
         }
-        val detail = FtReviewModel.muscleDetail(mode, id)
+        val detail = FtReviewModel.muscleDetail(levels, volume, mode, id)
         Text(
             text = detail.arg?.let { stringResource(detail.textRes, it) } ?: stringResource(detail.textRes),
             modifier = Modifier.widthIn(min = 52.dp),
@@ -1304,9 +1375,17 @@ private fun GoalModal(initial: Double, onDismiss: () -> Unit, onSave: (Double) -
 
 /**
  * 月历热力格「当天详情」弹层：遮罩 + 居中面板，字段与鸿蒙侧 `ReviewContent.dayDetailModal` 同构。
+ *
+ * [month] 是 1 基月份——标题资源 `review_day_detail_title` 的槽位是「月 / 日 / 周几」三参，
+ * 少传月份会让 `%d` 吃到星期字符串，组合期抛 `IllegalFormatConversionException`（点热力格即闪退）。
  */
 @Composable
-private fun DayDetailModal(summary: DaySummary, weekdayLabel: String, onDismiss: () -> Unit) {
+internal fun DayDetailModal(
+    summary: DaySummary,
+    month: Int,
+    weekdayLabel: String,
+    onDismiss: () -> Unit,
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -1326,7 +1405,7 @@ private fun DayDetailModal(summary: DaySummary, weekdayLabel: String, onDismiss:
                 .padding(20.dp),
         ) {
             Text(
-                text = stringResource(R.string.review_day_detail_title, summary.day, weekdayLabel),
+                text = stringResource(R.string.review_day_detail_title, month, summary.day, weekdayLabel),
                 style = FtType.natural(16f, 700),
                 color = FtColor.txtHi,
             )

@@ -2,6 +2,7 @@ package com.fittracker.app.data.sync
 
 import com.fittracker.app.data.persist.JsonCodec
 import com.fittracker.app.data.persist.JsonStore
+import com.fittracker.app.data.service.AvatarImageService
 import com.fittracker.app.data.service.UserProfileService
 import com.fittracker.app.data.service.backup.UserDataBackupService
 import kotlinx.serialization.Serializable
@@ -27,7 +28,7 @@ import java.net.URLEncoder
  * 1. [LocalSnapshotStore]——把本地数据聚成整包 JSON 信封（复用 [UserDataBackupService.exportPackage]，
  *    其内部即 [UserDataBackupService.createPackage]），并对载荷做**规范化 + djb2 摘要**。同一次同步的
  *    「本地 hash / 云端 hash / 基线 hash」三值均经此算得（源 `syncNow` `:157` / `:175`）。
- * 2. [LocalSandboxSnapshotStore]——以本机文件模拟云端「每用户一条快照」（AGC 未配置 / 测试环境），
+ * 2. [LocalSandboxSnapshotStore]——以本机文件模拟云端「每用户一条快照」（云端配置缺失 / 测试环境），
  *    即源 `CloudSnapshotStore.ets:48` 的移植，实现 [CloudSnapshotStore] 契约。
  *
  * 与源的**注入式差异**（Wave 3 既定纪律，沿用 [UserDataBackupService]）：源各方法首参
@@ -50,6 +51,18 @@ data class CloudPayloadEnvelope(
     val heightCm: Int? = null,
     val gender: String? = null,
     val birthYear: Int? = null,
+    /** 训练经验；旧信封无此字段时为 null（下行保留本地值）。 */
+    val experience: String? = null,
+    /**
+     * 头像图片（压缩后 JPEG 的 base64，约 8～20KB）；空串表示无图。
+     * 旧信封无此字段时为 null（下行保留本地头像）。
+     */
+    val avatarImage: String? = null,
+    /**
+     * 头像内容摘要（[avatarImage] 的 djb2）：只把摘要纳入变更检测视图，
+     * 避免整段 base64 进入 canonical 串；同图在任何设备上摘要一致，不会因本机路径不同而抖动。
+     */
+    val avatarImageHash: String? = null,
 )
 
 /**
@@ -72,6 +85,8 @@ object LocalSnapshotStore {
     suspend fun buildLocalPayload(store: JsonStore): String {
         val backupJson: String = UserDataBackupService.exportPackage(store) // 源 :250（createPackage 于其中）
         val profile: ProfileLike = loadProfile(store) // 源 :251
+        // 头像：文件读不到（尚未设置 / 已被清理）按无图处理。
+        val avatarImage: String = AvatarImageService.readAsBase64(profile.avatarImagePath)
         val envelope: CloudPayloadEnvelope = CloudPayloadEnvelope( // 源 :252-255
             schemaVersion = ENVELOPE_SCHEMA_VERSION, // 源 :253
             backupJson = backupJson, // 源 :254
@@ -81,6 +96,9 @@ object LocalSnapshotStore {
             heightCm = profile.heightCm,
             gender = profile.gender,
             birthYear = profile.birthYear,
+            experience = profile.experience,
+            avatarImage = avatarImage,
+            avatarImageHash = if (avatarImage.isEmpty()) "" else djb2Hex(avatarImage),
         )
         return JsonCodec.json.encodeToString(CloudPayloadEnvelope.serializer(), envelope) // 源 :256
     }
@@ -106,6 +124,8 @@ object LocalSnapshotStore {
             heightCm = profile.heightCm,
             gender = profile.gender.id,
             birthYear = profile.birthYear,
+            experience = profile.experience.id,
+            avatarImagePath = profile.avatarImagePath,
         )
     }
 
@@ -121,11 +141,16 @@ object LocalSnapshotStore {
      */
     fun hashPayload(payload: String): String {
         val canonical: String = normalizePayloadForHash(payload) // 源 :289
+        return djb2Hex(canonical) + "_" + canonical.length.toString(16) // 源 :294
+    }
+
+    /** djb2 十六进制摘要（非安全用途）。头像内容摘要与整包 hash 共用同一算法。 */
+    fun djb2Hex(text: String): String {
         var hashValue: Int = 5381 // 源 :290
-        for (index in canonical.indices) { // 源 :291
-            hashValue = (hashValue shl 5) + hashValue + canonical[index].code // 源 :292
+        for (index in text.indices) { // 源 :291
+            hashValue = (hashValue shl 5) + hashValue + text[index].code // 源 :292
         }
-        return hashValue.toUInt().toString(16) + "_" + canonical.length.toString(16) // 源 :294
+        return hashValue.toUInt().toString(16)
     }
 
     /**
@@ -166,6 +191,10 @@ object LocalSnapshotStore {
             put("heightCm", envelope["heightCm"] ?: JsonNull)
             put("gender", envelope["gender"] ?: JsonNull)
             put("birthYear", envelope["birthYear"] ?: JsonNull)
+            // 训练经验：不入此视图则其变化不改变 hash，同步变更检测对该字段失明。
+            put("experience", envelope["experience"] ?: JsonNull)
+            // 头像只纳入内容摘要：整段 base64 进 canonical 既冗长，也易因本机路径/重编码差异误判。
+            put("avatarImageHash", envelope["avatarImageHash"] ?: JsonNull)
         }
         JsonCodec.json.encodeToString(JsonObject.serializer(), view) // 源 :318
     } catch (error: Exception) {
@@ -180,6 +209,8 @@ object LocalSnapshotStore {
         val heightCm: Int,
         val gender: String,
         val birthYear: Int,
+        val experience: String,
+        val avatarImagePath: String,
     )
 }
 

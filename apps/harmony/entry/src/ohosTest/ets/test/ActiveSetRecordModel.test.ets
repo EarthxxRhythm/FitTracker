@@ -1,100 +1,137 @@
 import { describe, it, expect } from '@ohos/hypium'
 import {
   ActiveExerciseRecordGroup,
-  ActiveSetRecord,
-  appendSetRecord,
-  countRecordedSets,
-  createActiveSetRecord
+  buildRecordGroups,
+  countRecordedSets
 } from '../../../main/ets/features/pencil/components/ActiveSetRecordModel'
+import {
+  ActiveWorkoutExercise,
+  ActiveWorkoutSetEntry
+} from '../../../main/ets/shared/services/ActiveWorkoutService'
 
 /**
  * ActiveSetRecordModel 纯函数契约测试。
  *
  * 覆盖「训练记录按动作分开」的核心不变量：
- * 同一动作累加到同一分组、切换动作后新建分组、同名但不同 plannedExerciseId 不合并、
- * 追加不修改原数组。分组键若退化成动作名，会把同一天出现两次的同一动作混成一组。
+ * 只收已录完的正式组、组号在动作内从 1 起、跨动作各自成组、热身组不计入、
+ * 没有完成组的动作不产生空分组。
+ *
+ * 诞生背景：增量维护 UI 状态的写法在设备上连做 4 组只显示 1 组（activeState 里 4 组都在），
+ * 改为从 activeState 派生后，展示与落库同源。
  */
+
+function mkSet(setIndex: number, weightText: string, repsText: string,
+  isComplete: boolean, isWarmup: boolean): ActiveWorkoutSetEntry {
+  const entry: ActiveWorkoutSetEntry = {
+    setIndex: setIndex,
+    weightText: weightText,
+    repsText: repsText,
+    estimatedOneRepMax: 0,
+    oneRepMaxText: '',
+    isWarmup: isWarmup,
+    isComplete: isComplete
+  }
+  return entry
+}
+
+function mkExercise(plannedExerciseId: string, name: string,
+  sets: ActiveWorkoutSetEntry[]): ActiveWorkoutExercise {
+  const exercise: ActiveWorkoutExercise = {
+    plannedExerciseId: plannedExerciseId,
+    exerciseId: 'ex_' + plannedExerciseId,
+    name: name,
+    targetSets: sets.length,
+    targetReps: '8-12',
+    intensityNote: '',
+    completedSets: 0,
+    sets: sets
+  }
+  return exercise
+}
+
 export default function activeSetRecordModelTest(): void {
   describe('ActiveSetRecordModel', () => {
-    it('空列表追加一组后得到单个分组', 0, () => {
-      const empty: ActiveExerciseRecordGroup[] = []
-      const groups: ActiveExerciseRecordGroup[] = appendSetRecord(empty, 'planned_1_1', '杠铃平板卧推', 1, 40, 10)
+    it('空训练态返回空分组', 0, () => {
+      const groups: ActiveExerciseRecordGroup[] = buildRecordGroups([])
+      expect(groups.length).assertEqual(0)
+      expect(countRecordedSets(groups)).assertEqual(0)
+    })
+
+    it('只收已录完的正式组，组号从 1 起', 0, () => {
+      const sets: ActiveWorkoutSetEntry[] = [
+        mkSet(0, '40', '10', true, false),
+        mkSet(1, '42', '8', true, false),
+        mkSet(2, '', '', false, false)
+      ]
+      const groups: ActiveExerciseRecordGroup[] = buildRecordGroups([mkExercise('planned_1_1', '杠铃平板卧推', sets)])
 
       expect(groups.length).assertEqual(1)
       expect(groups[0].plannedExerciseId).assertEqual('planned_1_1')
       expect(groups[0].exerciseName).assertEqual('杠铃平板卧推')
-      expect(groups[0].sets.length).assertEqual(1)
-      expect(groups[0].sets[0].setNumber).assertEqual(1)
-      expect(groups[0].sets[0].weight).assertEqual(40)
-      expect(groups[0].sets[0].reps).assertEqual(10)
-    })
-
-    it('同一动作的第二组并入同一分组且组号递增', 0, () => {
-      let groups: ActiveExerciseRecordGroup[] = []
-      groups = appendSetRecord(groups, 'planned_1_1', '杠铃平板卧推', 1, 40, 10)
-      groups = appendSetRecord(groups, 'planned_1_1', '杠铃平板卧推', 2, 42, 8)
-
-      expect(groups.length).assertEqual(1)
       expect(groups[0].sets.length).assertEqual(2)
       expect(groups[0].sets[0].setNumber).assertEqual(1)
+      expect(groups[0].sets[0].weight).assertEqual(40)
       expect(groups[0].sets[1].setNumber).assertEqual(2)
-      expect(groups[0].sets[1].weight).assertEqual(42)
       expect(groups[0].sets[1].reps).assertEqual(8)
     })
 
-    it('切到下一个动作时新建分组，组号从 1 重新计数', 0, () => {
-      let groups: ActiveExerciseRecordGroup[] = []
-      groups = appendSetRecord(groups, 'planned_1_1', '杠铃平板卧推', 1, 40, 10)
-      groups = appendSetRecord(groups, 'planned_1_1', '杠铃平板卧推', 2, 40, 10)
-      groups = appendSetRecord(groups, 'planned_1_2', '哑铃推举', 1, 16, 12)
+    it('连做多组全部计入（回归：曾只显示 1 组）', 0, () => {
+      const sets: ActiveWorkoutSetEntry[] = [
+        mkSet(0, '20', '8', true, false),
+        mkSet(1, '20', '8', true, false),
+        mkSet(2, '20', '8', true, false),
+        mkSet(3, '20', '8', true, false)
+      ]
+      const groups: ActiveExerciseRecordGroup[] = buildRecordGroups([mkExercise('planned_1_1', '杠铃深蹲', sets)])
+
+      expect(groups.length).assertEqual(1)
+      expect(groups[0].sets.length).assertEqual(4)
+      expect(countRecordedSets(groups)).assertEqual(4)
+      expect(groups[0].sets[3].setNumber).assertEqual(4)
+    })
+
+    it('跨动作各自成组，组号从 1 重新计数', 0, () => {
+      const first: ActiveWorkoutExercise = mkExercise('planned_1_1', '杠铃深蹲', [
+        mkSet(0, '40', '10', true, false),
+        mkSet(1, '40', '10', true, false)
+      ])
+      const second: ActiveWorkoutExercise = mkExercise('planned_1_2', '罗马尼亚硬拉', [
+        mkSet(0, '60', '8', true, false)
+      ])
+      const groups: ActiveExerciseRecordGroup[] = buildRecordGroups([first, second])
 
       expect(groups.length).assertEqual(2)
-      expect(groups[0].exerciseName).assertEqual('杠铃平板卧推')
+      expect(groups[0].exerciseName).assertEqual('杠铃深蹲')
       expect(groups[0].sets.length).assertEqual(2)
-      expect(groups[1].exerciseName).assertEqual('哑铃推举')
+      expect(groups[1].exerciseName).assertEqual('罗马尼亚硬拉')
       expect(groups[1].sets.length).assertEqual(1)
       expect(groups[1].sets[0].setNumber).assertEqual(1)
       expect(countRecordedSets(groups)).assertEqual(3)
     })
 
-    it('同名但 plannedExerciseId 不同不合并', 0, () => {
-      let groups: ActiveExerciseRecordGroup[] = []
-      groups = appendSetRecord(groups, 'planned_1_1', '杠铃平板卧推', 1, 40, 10)
-      groups = appendSetRecord(groups, 'planned_2_1', '杠铃平板卧推', 1, 60, 6)
+    it('热身组不计入记录', 0, () => {
+      const sets: ActiveWorkoutSetEntry[] = [
+        mkSet(0, '20', '15', true, true),
+        mkSet(1, '40', '10', true, false)
+      ]
+      const groups: ActiveExerciseRecordGroup[] = buildRecordGroups([mkExercise('planned_1_1', '杠铃深蹲', sets)])
 
-      expect(groups.length).assertEqual(2)
-      expect(groups[0].plannedExerciseId).assertEqual('planned_1_1')
-      expect(groups[1].plannedExerciseId).assertEqual('planned_2_1')
-      expect(countRecordedSets(groups)).assertEqual(2)
+      expect(groups[0].sets.length).assertEqual(1)
+      expect(groups[0].sets[0].setNumber).assertEqual(2)
+      expect(groups[0].sets[0].weight).assertEqual(40)
     })
 
-    it('追加不修改传入的原数组与组内 sets', 0, () => {
-      const firstSet: ActiveSetRecord = createActiveSetRecord(1, 40, 10)
-      const originalSets: ActiveSetRecord[] = [firstSet]
-      const originalGroup: ActiveExerciseRecordGroup = {
-        plannedExerciseId: 'planned_1_1',
-        exerciseName: '杠铃平板卧推',
-        sets: originalSets
-      }
-      const original: ActiveExerciseRecordGroup[] = [originalGroup]
-
-      const next: ActiveExerciseRecordGroup[] = appendSetRecord(original, 'planned_1_1', '杠铃平板卧推', 2, 40, 10)
-
-      expect(original.length).assertEqual(1)
-      expect(originalSets.length).assertEqual(1)
-      expect(original[0].sets.length).assertEqual(1)
-      expect(next.length).assertEqual(1)
-      expect(next[0].sets.length).assertEqual(2)
-    })
-
-    it('动作名为空时保留分组已有名称', 0, () => {
-      let groups: ActiveExerciseRecordGroup[] = []
-      groups = appendSetRecord(groups, 'planned_1_1', '杠铃平板卧推', 1, 40, 10)
-      groups = appendSetRecord(groups, 'planned_1_1', '', 2, 40, 10)
+    it('尚无完成组的动作不产生空分组', 0, () => {
+      const done: ActiveWorkoutExercise = mkExercise('planned_1_1', '杠铃深蹲', [
+        mkSet(0, '40', '10', true, false)
+      ])
+      const pending: ActiveWorkoutExercise = mkExercise('planned_1_2', '罗马尼亚硬拉', [
+        mkSet(0, '', '', false, false)
+      ])
+      const groups: ActiveExerciseRecordGroup[] = buildRecordGroups([done, pending])
 
       expect(groups.length).assertEqual(1)
-      expect(groups[0].exerciseName).assertEqual('杠铃平板卧推')
-      expect(groups[0].sets.length).assertEqual(2)
+      expect(groups[0].plannedExerciseId).assertEqual('planned_1_1')
     })
   })
 }

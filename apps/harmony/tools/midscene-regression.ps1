@@ -1,4 +1,4 @@
-﻿param(
+param(
   [string]$DeviceId = "",
   [string]$BundleName = "com.earthrhythm.fittracker",
   [string]$AbilityName = "EntryAbility",
@@ -80,7 +80,7 @@ function Write-RegressionSummary {
     $summaryLines += "- 无"
   }
   $summaryLines += '- 查看 `docs/ui/模拟器视觉回归说明.md` 的失败排查表。'
-  $summaryLines += '- 如需复盘节点详情，打开当前运行目录下 `report/` 的最新 HTML 报告。'
+  $summaryLines += '- 如需回顾节点详情，打开当前运行目录下 `report/` 的最新 HTML 报告。'
 
   Set-Content -Path $RunSummaryPath -Value $summaryLines -Encoding utf8
 }

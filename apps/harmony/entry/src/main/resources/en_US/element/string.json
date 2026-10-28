@@ -106,7 +106,7 @@
     },
     {
       "name": "settings_footer",
-      "value": "FitTracker is local-first: workout and body data stay on this device by default; sync runs automatically after sign-in."
+      "value": "Workout and body data stay on this device; sync runs automatically after sign-in."
     },
     {
       "name": "settings_toast_saved",

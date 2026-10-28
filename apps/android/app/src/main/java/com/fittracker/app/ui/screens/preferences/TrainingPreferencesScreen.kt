@@ -2,6 +2,7 @@ package com.fittracker.app.ui.screens.preferences
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -375,7 +376,11 @@ private fun PrefChip(label: String, selected: Boolean, onClick: () -> Unit) {
 private fun SaveButton(onClick: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val scale = if (pressed) FtMotion.PRESS_SCALE_CTA else 1f // `.save-btn:active { transform: scale(.985) }`（L263）
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) FtMotion.PRESS_SCALE_CTA else 1f, // `.save-btn:active { transform: scale(.985) }`（L263）
+        animationSpec = tween(FtMotion.DURATION_PRESS, easing = FtMotion.EASE_MOTION),
+        label = "training-preferences-save-press-scale",
+    )
 
     Box(
         modifier = Modifier

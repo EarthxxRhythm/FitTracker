@@ -35,6 +35,17 @@
     <string name="plangroup_rhythm_legs">腿</string>
     <!-- 原型 `week` 里的 `'休'`：走 `.pgd-rhythm-cell.rest` 样式（见 `FtPlanGroupDetail.REST_INDEX`） -->
     <string name="plangroup_rhythm_rest">休</string>
+    <!-- 该训练日已练过（由会话按 planId/dayId 聚合得出） -->
+    <string name="plangroup_rhythm_done">已完成</string>
+
+    <!-- 真实训练进度（会话按 planId 聚合） -->
+    <string name="plangroup_progress_none">尚未开始训练</string>
+    <!-- `%1$d` 训练次数 -->
+    <string name="plangroup_progress_count">已练 %1$d 次</string>
+    <!-- `%1$d` 训练次数 · `%2$s` 最近训练日期 -->
+    <string name="plangroup_progress_count_last">已练 %1$d 次 · 最近 %2$s</string>
+    <!-- 训练日面板头部：该日完成次数 `%1$d` -->
+    <string name="plangroup_day_session_count">已练 %1$d 次</string>
 
     <!-- 星期标签（原型 `DOW`，OD 新版 L512） -->
     <string name="plangroup_dow_mon">一</string>
@@ -92,13 +103,15 @@
 
     <!-- 底部 CTA（`.pgd-cta`，OD 新版 L299-321） -->
     <string name="plangroup_cta_use">使用此计划</string>
-    <!-- 置灰态文案（1600ms 后复原，原型 L585-591） -->
+    <!-- 当前计划文案（真实落盘并回读校验通过后置灰，不再自动复原） -->
     <string name="plangroup_cta_used">已切换到此计划</string>
 
     <!-- 浮层（`.pgd-toast`，OD 新版 L324-342）：`%1$s` 动作名 -->
     <string name="plangroup_toast_exercise">原型：查看「%1$s」详情</string>
     <!-- `%1$s` 计划名（`plangroup_name`） -->
     <string name="plangroup_toast_switched">已切换到「%1$s」</string>
+    <!-- 启用落盘失败（诚实失败提示，不谎报成功） -->
+    <string name="plangroup_toast_switch_failed">切换未完成，请重试</string>
 
     <string name="plangroup_not_found">未找到该计划</string>
 </resources>

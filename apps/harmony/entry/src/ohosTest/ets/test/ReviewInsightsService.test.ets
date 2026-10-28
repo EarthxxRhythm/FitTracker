@@ -188,12 +188,12 @@ export default function reviewInsightsServiceTest(): void {
     })
 
     it('muscle_volume_按组数聚合到身体部位', 0, () => {
-      // 一次训练含 2 组胸部动作（每条 set 计 1）→ chest + serratus 各 +2。
+      // 夹具每次训练含 1 组胸部动作（createSession.sets 单条，每条 set 计 1）→ chest + serratus 各 +1。
       const sessions = [createSession('s1', Date.now())]
       const volume = ReviewInsightsService.createMuscleVolume(sessions, () => ['muscle_chest'], 8)
       // chest 是 bodyPartKeys 第 3 项（index 2），serratus 第 5 项（index 4）。
-      expect(volume[2]).assertEqual(2)
-      expect(volume[4]).assertEqual(2)
+      expect(volume[2]).assertEqual(1)
+      expect(volume[4]).assertEqual(1)
     })
 
     it('muscle_levels_归一为四级且无数据全零', 0, () => {

@@ -151,7 +151,7 @@ object ActiveWorkoutService {
      * - `totalSets` 用**实算** [countCompletedSets]（忽略入参，源即如此——入参 `completedSets`
      *   为遗留形参，保留以对齐签名）；
      * - 会话仅收录 `isComplete` 的组（[createWorkoutSets]），热身组计入 `sets` 但不计入 `totalVolume`；
-     * - `notes` = `completed_sets={n};target_sets={m}`（复盘解析依赖此前缀）。
+     * - `notes` = `completed_sets={n};target_sets={m}`（回顾解析依赖此前缀）。
      *
      * 会话构造复用 [WorkoutRepository.createSession]（对应源 `TrainingModels.createWorkoutSession`）。
      */

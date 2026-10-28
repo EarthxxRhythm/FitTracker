@@ -10,12 +10,15 @@
  */
 import { Context } from '@kit.AbilityKit'
 import { StateBase } from './StateBase'
-import UserProfileService, { UserProfile, WeightUnit } from '../../../../common/services/UserProfileService'
+import UserProfileService, { UserProfile, WeightUnit, Experience } from '../../../../common/services/UserProfileService'
+import AvatarImageService from '../../../../common/services/AvatarImageService'
 import { kgToDisplay, weightUnitLabel } from '../../../../common/utils/WeightUtils'
 import WorkoutSessionService, { WeeklyStats } from '../../../../common/services/WorkoutSessionService'
 import SettingsService, { AppSettings } from '../../../../common/services/SettingsService'
+import SessionManager, { SessionSnapshot } from '../../../../common/services/SessionManager'
 import { resolveWeekStart, WeekStart } from '../../../../common/utils/WeekUtils'
-import { computeStreakCount, computeWeekActiveFlagsFrom } from '../../../../common/utils/StreakUtils'
+import { computeStreakCount } from '../../../../common/utils/StreakUtils'
+import { goalTypeLabel } from '../../../../common/utils/GoalLabels'
 import PersonalRecordService, { ExercisePersonalRecordDetail } from '../../../../shared/services/PersonalRecordService'
 import WorkoutSessionPersistenceBridgeService from '../../../workout/services/WorkoutSessionPersistenceBridgeService'
 import { WorkoutSession } from '../../../../shared/models/TrainingModels'
@@ -35,19 +38,22 @@ export class ProfileState extends StateBase {
   /** 展示单位（来自「设置 · 体重单位」）；成就卡样例重量的基准值仍为 kg。 */
   displayUnit: WeightUnit = 'kg'
   achievementRows: AchievementRow[] = []
+  /** \u5934\u50cf\u9996\u5b57\uff1a\u6635\u79f0\uff08\u6216\u767b\u5f55\u540d\uff09\u9996\u5b57\u7b26\uff1b\u65e0\u6635\u79f0\u65f6\u4e3a\u300c\u2014\u300d\u3002 */
   avatarLetter: string = '\u2014'
+  /** \u5934\u50cf\u8272\u952e\uff08`UserProfile.avatar`\uff09\uff0c\u4f9b\u4e2a\u4eba\u9875\u5934\u50cf\u7740\u8272\u3002 */
+  avatarKey: string = ''
+  /** \u5934\u50cf\u56fe\u7247\u6c99\u7bb1\u8def\u5f84\uff1b\u7a7a\u4e32 = \u672a\u8bbe\u7f6e\uff08\u56de\u843d\u8272\u952e + \u9996\u5b57\uff09\u3002 */
+  avatarImagePath: string = ''
   nickname: string = '\u2014'
   goalSubtitle: string = '\u672a\u8bbe\u7f6e\u76ee\u6807'
+  /** \u8bad\u7ec3\u7ecf\u9a8c\u4e2d\u6587\u6807\u7b7e\uff08\u65b0\u624b/\u8fdb\u9636/\u9ad8\u9636\uff09\uff1b\u672a\u586b\u4e3a\u7a7a\u4e32\uff0c\u4e2a\u4eba\u9875\u4e0d\u5c55\u793a\u3002 */
+  experienceLabel: string = ''
   weekRangeText: string = ''
   weekDurationText: string = '0'
   weekCountText: string = '0'
-  /** 连续训练天数（真实派生）；0 = 尚未开始。 */
+  /** 连续训练天数（真实派生）；0 = 尚未开始。仅成就卡「稳定输出」消费。 */
   streakCount: number = 0
-  /** 本周打卡标记（跟随「设置 · 周开始日」）。 */
-  weekActiveFlags: boolean[] = [false, false, false, false, false, false, false]
-  /** 打卡格的星期标签序（随周开始日重排）。 */
-  weekDayLabels: string[] = ['一', '二', '三', '四', '五', '六', '日']
-  /** 「设置 · 周开始日」（打卡格与连续记录的周口径）。 */
+  /** 「设置 · 周开始日」——仅用于周区间文案口径。 */
   weekStartKey: WeekStart = 'monday'
   /** 个人记录明细（真实 PR，供成就卡派生）。 */
   personalRecordDetails: ExercisePersonalRecordDetail[] = []
@@ -79,16 +85,28 @@ export class ProfileState extends StateBase {
     } catch (error) {
       // Settings read failed: keep the monday-based week range computed above.
     }
+    // 会话：仅用于昵称三级回落的第二级；失败按未登录处理。
+    let session: SessionSnapshot | null = null
+    try {
+      session = await SessionManager.getSession(context)
+    } catch (error) {
+      session = null
+    }
     try {
       const profile: UserProfile = await UserProfileService.loadProfile(context)
       // 成就卡里的样例重量按「设置 · 体重单位」换算展示（基准值仍是 kg）。
       this.displayUnit = profile.weightUnit
-      this.avatarLetter = profile.avatar.trim().length > 0
-        ? profile.avatar.trim().charAt(0)
-        : '\u2014'
-      this.nickname = profile.nickname.trim().length > 0
-        ? profile.nickname.trim()
-        : '\u2014'
+      this.avatarKey = profile.avatar.trim()
+      // 文件已被系统清理时不展示失效路径，回到色键 + 首字。
+      this.avatarImagePath = AvatarImageService.exists(profile.avatarImagePath) ? profile.avatarImagePath : ''
+      this.experienceLabel = this.experienceTextOf(profile.experience)
+      // \u6635\u79f0\u4e09\u7ea7\u56de\u843d\uff1a\u672c\u5730\u8d44\u6599 \u2192 \u767b\u5f55\u4f1a\u8bdd\u663e\u793a\u540d \u2192 \u5360\u4f4d\uff08\u5bf9\u9f50\u5b89\u5353 ProfileViewModel\uff09\u3002
+      let displayName: string = profile.nickname.trim()
+      if (displayName.length === 0 && session !== null) {
+        displayName = session.displayName.trim()
+      }
+      this.nickname = displayName.length > 0 ? displayName : '\u2014'
+      this.avatarLetter = displayName.length > 0 ? displayName.charAt(0) : '\u2014'
     } catch (error) {
       // Profile read failed: keep the neutral placeholder.
     }
@@ -96,7 +114,7 @@ export class ProfileState extends StateBase {
       const goal: UserGoal | undefined = await GoalRepository.loadGoal(context)
       if (goal !== undefined && goal.createdAt > 0) {
         const dayCount: number = this.computeGoalDayCount(goal.createdAt)
-        this.goalSubtitle = '\u589e\u808c\u7b2c ' + dayCount.toString() + ' \u5929 \u00b7 \u4fdd\u6301\u8282\u594f'
+        this.goalSubtitle = goalTypeLabel(goal.goalType) + '\u7b2c ' + dayCount.toString() + ' \u5929 \u00b7 \u4fdd\u6301\u8282\u594f'
       } else {
         this.goalSubtitle = '\u672a\u8bbe\u7f6e\u76ee\u6807'
       }
@@ -110,14 +128,12 @@ export class ProfileState extends StateBase {
     } catch (error) {
       // Weekly stats read failed: keep the neutral placeholder.
     }
-    // 连续记录与本周打卡：由真实训练日期派生（与完成页同一实现）。
+    // 连续训练天数：由真实训练日期派生（成就卡「稳定输出」消费）。
     try {
       const trainingDates: string[] = await WorkoutSessionService.getTrainingDates(context)
       this.streakCount = computeStreakCount(trainingDates)
-      this.applyWeekFlags(trainingDates, this.weekStartKey)
     } catch (error) {
       this.streakCount = 0
-      this.weekActiveFlags = [false, false, false, false, false, false, false]
     }
     // 个人记录：取真实会话派生（供成就卡）；失败保持空（成就卡渲染空态）。
     try {
@@ -132,23 +148,18 @@ export class ProfileState extends StateBase {
 
   // ── 派生（从 ProfileContent 迁入） ────────────────────────────────────────
 
-  /** 按周开始日重排打卡格：周日首时标签序与标记都随之旋转。 */
-  private applyWeekFlags(trainingDates: string[], weekStart: WeekStart): void {
-    const flags: boolean[] = computeWeekActiveFlagsFrom(weekStart, trainingDates)
-    if (weekStart === 'sunday') {
-      this.weekDayLabels = ['日', '一', '二', '三', '四', '五', '六']
-    } else {
-      this.weekDayLabels = ['一', '二', '三', '四', '五', '六', '日']
+  /** 训练经验 → 中文标签；未填返回空串（个人页据此隐藏该行）。 */
+  private experienceTextOf(value: Experience): string {
+    if (value === 'beginner') {
+      return '新手'
     }
-    this.weekActiveFlags = flags
-  }
-
-  /** 连续记录标题右侧文案：有训练显示「连续 N 天」，无则「尚未开始」。 */
-  streakLabel(): string {
-    if (this.streakCount <= 0) {
-      return '\u5c1a\u672a\u5f00\u59cb'
+    if (value === 'intermediate') {
+      return '进阶'
     }
-    return '\u8fde\u7eed ' + this.streakCount.toString() + ' \u5929'
+    if (value === 'advanced') {
+      return '高阶'
+    }
+    return ''
   }
 
   private computeWeekRangeText(weekStart: WeekStart): string {

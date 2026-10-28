@@ -10,16 +10,26 @@
 //   3) ` 反引号（行内代码标记）→ 去除
 //   4) 表格分隔行（| --- | --- |）→ 整行删除
 //
-// 用法：node tools/convert-legal-docs.mjs
+// 用法：node tools/convert-legal-docs.mjs（任意 cwd 均可）
 // 输出：每个目标的路径 + 行数 + 字节数（stdout），供转换对账。
+//
+// 2026-10-27 monorepo 重组修正：源文档在仓库根 `docs/`、目标在工程内 `entry/`，两者不再同前缀，
+// 故改为按脚本位置解析（原先按 cwd 取相对路径，在 apps/harmony 下会找不到 docs/legal）。
 import { readFileSync, writeFileSync, mkdirSync, statSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+// tools/ → apps/harmony → apps → 仓库根
+const harmonyRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const repoRoot = resolve(harmonyRoot, '..', '..')
+const legalOutDir = join(harmonyRoot, 'entry/src/main/resources/rawfile/legal')
 
 const jobs = [
-  ['docs/legal/privacy-policy.md', 'entry/src/main/resources/rawfile/legal/privacy-policy.txt'],
-  ['docs/legal/user-agreement.md', 'entry/src/main/resources/rawfile/legal/user-agreement.txt']
+  [join(repoRoot, 'docs/legal/privacy-policy.md'), join(legalOutDir, 'privacy-policy.txt')],
+  [join(repoRoot, 'docs/legal/user-agreement.md'), join(legalOutDir, 'user-agreement.txt')]
 ]
 
-mkdirSync('entry/src/main/resources/rawfile/legal', { recursive: true })
+mkdirSync(legalOutDir, { recursive: true })
 
 for (const [src, dst] of jobs) {
   const text = readFileSync(src, 'utf8')

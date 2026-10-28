@@ -116,6 +116,7 @@ internal object FtBodyPaths {
 @Composable
 internal fun BodyMapView(
     mode: MuscleMode,
+    levels: List<Int>,
     selected: String?,
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -130,7 +131,13 @@ internal fun BodyMapView(
         listOf("front", "back").forEach { key ->
             val view = views[key]
             if (view != null) {
-                BodyViewCanvas(view = view, mode = mode, selected = selected, onSelect = onSelect)
+                BodyViewCanvas(
+                    view = view,
+                    mode = mode,
+                    levels = levels,
+                    selected = selected,
+                    onSelect = onSelect,
+                )
             }
         }
     }
@@ -140,6 +147,7 @@ internal fun BodyMapView(
 private fun RowScope.BodyViewCanvas(
     view: BodyView,
     mode: MuscleMode,
+    levels: List<Int>,
     selected: String?,
     onSelect: (String) -> Unit,
 ) {
@@ -167,7 +175,7 @@ private fun RowScope.BodyViewCanvas(
                 val isSel = muscle.id == selected
                 drawPath(
                     muscle.path,
-                    FtReviewColors.muscleFill(mode, FtReviewModel.muscleLevel(mode, muscle.id)),
+                    FtReviewColors.muscleFill(mode, FtReviewModel.muscleLevel(levels, muscle.id)),
                 )
                 drawPath(
                     muscle.path,

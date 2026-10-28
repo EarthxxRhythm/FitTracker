@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,7 +40,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -49,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fittracker.app.R
 import com.fittracker.app.data.model.ExerciseContent
 import com.fittracker.app.data.model.PresetPlan
@@ -60,6 +61,7 @@ import com.fittracker.app.ui.theme.FtColor
 import com.fittracker.app.ui.theme.FtShape
 import com.fittracker.app.ui.theme.FtType
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * 计划组详细页（原型 `fittracker-plan-group-detail.html` 的 `screen-plan-group-detail` 帧，
@@ -74,9 +76,12 @@ import kotlinx.coroutines.delay
  * `.pgd-cta-bar`/`.pgd-cta` L299-321 · `.pgd-toast` L324-342。
  *
  * 交互（OD 最新版 L493-593）：天页签切换是**纯前端状态**（不跳路由，L564）；
- * 动作行点击弹浮层（L575）；「使用此计划」置灰 1600ms 后复原（L585-591）；
- * 返回键被 `window.FT_APP.routes`（L611）改写成导航到 `plans`；Android 侧走 [onBack]
- * （优先出栈，直达无栈可退时按 PARENT 表回退 `plans`）。
+ * 动作行点击弹浮层（L575）；「使用此计划」**真实启用并落盘**（原型 L585-591 的置灰只是
+ * 反馈动画，不是启用的替代品）；返回键被 `window.FT_APP.routes`（L611）改写成导航到
+ * `plans`；Android 侧走 [onBack]（优先出栈，直达无栈可退时按 PARENT 表回退 `plans`）。
+ *
+ * 启用链路见 [PlanGroupViewModel]：CTA 点击 → `enablePlan` 落盘 → 回读校验 → 成功/失败文案。
+ * 本屏不再自持 toast / 置灰状态，避免「弹了成功但没写入」的旧缺陷复现。
  */
 @Composable
 fun PlanGroupScreen(
@@ -84,12 +89,11 @@ fun PlanGroupScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
     planId: String = "",
+    vm: PlanGroupViewModel = viewModel(),
 ) {
-    val context = LocalContext.current
     val resources = LocalResources.current
+    val scope = rememberCoroutineScope()
     var currentDay by remember { mutableIntStateOf(0) }
-    var useDisabled by remember { mutableStateOf(false) }
-    var toast by remember { mutableStateOf<String?>(null) }
 
     // 真实数据源取数（对齐鸿蒙 `PlanGroupDetailContent.ets:89-90` 的
     // `TrainingPlanService.getPresetPlanById(planId)`）。planId 缺失或未命中 → null
@@ -102,11 +106,44 @@ fun PlanGroupScreen(
         plan?.let { buildGroupDetail(it) }
     }
 
+    // 当前计划判定：进入本屏（含从 planGroup 详情返回后重进）时按落盘指针回读
+    LaunchedEffect(planId) { vm.load(planId) }
+
+    // 进度文案：会话按 planId 聚合（此前计划组完全看不到这层数据）。
+    val progress = vm.progress
+    val progressText: String = remember(progress, resources) {
+        when {
+            progress.totalSessions <= 0 -> resources.getString(R.string.plangroup_progress_none)
+            progress.lastTrainedAt <= 0L -> resources.getString(
+                R.string.plangroup_progress_count,
+                progress.totalSessions,
+            )
+            else -> resources.getString(
+                R.string.plangroup_progress_count_last,
+                progress.totalSessions,
+                formatLastTrainedDate(progress.lastTrainedAt),
+            )
+        }
+    }
+    // 7 格节奏里每格对应的训练日是否练过（同一格覆盖多个训练日时，任一练过即标记）。
+    val trainedWeekFlags: List<Boolean> = remember(plan, progress) {
+        buildTrainedWeekFlags(plan, vm::isDayTrained)
+    }
+
     // 原型 `showToast` 的 `setTimeout(…, 1800)`（L452）
-    LaunchedEffect(toast) {
-        if (toast != null) {
+    LaunchedEffect(vm.toast) {
+        if (vm.toast != null) {
             delay(1800)
-            toast = null
+            vm.dismissToast()
+        }
+    }
+
+    // 切换成功 → 稍作停顿让 toast 可见，再返回计划组列表；
+    // 列表页重载后顶部「当前计划」卡立即反映这次切换（对齐鸿蒙「启用后 back」）。
+    LaunchedEffect(vm.switchedTick) {
+        if (vm.switchedTick > 0) {
+            delay(900)
+            onBack()
         }
     }
 
@@ -165,8 +202,17 @@ fun PlanGroupScreen(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp), // `.pgd-content` gap: 16px
                 ) {
-                    SummaryCard(name = detail.name, desc = detail.desc, tags = detail.tags)
-                    RhythmSection(cells = detail.weekCells)
+                    SummaryCard(
+                        name = detail.name,
+                        desc = detail.desc,
+                        tags = detail.tags,
+                        progressText = progressText,
+                        hasProgress = vm.progress.totalSessions > 0,
+                    )
+                    RhythmSection(
+                        cells = detail.weekCells,
+                        trainedFlags = trainedWeekFlags,
+                    )
                     DayTabs(
                         days = detail.days,
                         currentDay = currentDay,
@@ -174,41 +220,33 @@ fun PlanGroupScreen(
                     )
                     DayPanel(
                         day = detail.days[currentDay],
+                        daySessionCount = vm.sessionCountForDay(planDayId(currentDay)),
                         onExercise = { name ->
-                            toast = resources.getString(R.string.plangroup_toast_exercise, name)
+                            vm.showToast(resources.getString(R.string.plangroup_toast_exercise, name))
                         },
                     )
                 }
             }
 
             CtaBar(
-                disabled = useDisabled,
+                inUse = vm.isCurrent,
+                enabled = !vm.busy && !vm.isCurrent,
                 onClick = {
-                    useDisabled = true
-                    toast = resources.getString(
-                        R.string.plangroup_toast_switched,
-                        detail.name,
-                    )
+                    // 真正启用：落盘 → 回读校验 → 提示（见 [PlanGroupViewModel.usePlan]）
+                    scope.launch { vm.usePlan(planId, detail.name) }
                 },
             )
         }
 
         // `.pgd-toast` 定位在 `.appshell` 内（bottom 88），与本屏同坐标系，故屏内实现
         ScreenToast(
-            message = toast,
+            message = vm.toast,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 88.dp),
         )
     }
 
-    // 原型「使用此计划」的 1600ms 复原（L579）
-    LaunchedEffect(useDisabled) {
-        if (useDisabled) {
-            delay(1600)
-            useDisabled = false
-        }
-    }
 }
 
 /** `.pgd-top` L137-144：52/12/10 内边距、44px 返回键、居中标题、右侧同宽占位。 */
@@ -250,7 +288,7 @@ private fun TopBar(title: String, onBack: () -> Unit) {
 
 /** `.pgd-summary` L172-193（OD 新版）：中性灰阶——石墨底 + 中性描边 + 顶部内高光，不参与强调色预算。 */
 @Composable
-private fun SummaryCard(name: String, desc: String, tags: List<String>) {
+private fun SummaryCard(name: String, desc: String, tags: List<String>, progressText: String, hasProgress: Boolean) {
     val shape = RoundedCornerShape(22.dp)
     Box(
         modifier = Modifier
@@ -306,13 +344,20 @@ private fun SummaryCard(name: String, desc: String, tags: List<String>) {
                     }
                 }
             }
+            // 真实训练进度：会话按 planId 聚合，此前计划组完全看不到这层数据。
+            Text(
+                text = progressText,
+                modifier = Modifier.padding(top = 12.dp),
+                style = FtType.natural(12f, 600),
+                color = if (hasProgress) FtColor.accent else FtColor.white54,
+            )
         }
     }
 }
 
 /** `.pgd-rhythm` L196-219：7 列等宽格 + 星期一~日标签。 */
 @Composable
-private fun RhythmSection(cells: List<FtWeekCell>) {
+private fun RhythmSection(cells: List<FtWeekCell>, trainedFlags: List<Boolean>) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp), // `.pgd-rhythm` gap: 10px
@@ -333,6 +378,7 @@ private fun RhythmSection(cells: List<FtWeekCell>) {
                     dow = stringResource(dowRes),
                     label = cell?.label ?: stringResource(R.string.plangroup_rhythm_rest),
                     rest = cell?.rest ?: true,
+                    trained = trainedFlags.getOrNull(index) ?: false,
                     modifier = Modifier.weight(1f), // grid-template-columns: repeat(7, 1fr)
                 )
             }
@@ -345,6 +391,7 @@ private fun RhythmDay(
     dow: String,
     label: String,
     rest: Boolean,
+    trained: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -386,11 +433,21 @@ private fun RhythmDay(
                 ),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = label,
-                style = FtType.natural(12f, 700),
-                color = if (rest) FtColor.white40 else FtColor.onAccent, // #07100B
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = label,
+                    style = FtType.natural(12f, 700),
+                    color = if (rest) FtColor.white40 else FtColor.onAccent, // #07100B
+                )
+                // 该训练日已练过：格内加「已完成」，让计划组能看到真实进度。
+                if (trained) {
+                    Text(
+                        text = stringResource(R.string.plangroup_rhythm_done),
+                        style = FtType.natural(8.5f, 600),
+                        color = if (rest) FtColor.white40 else FtColor.onAccent,
+                    )
+                }
+            }
         }
     }
 }
@@ -459,6 +516,7 @@ private fun DayTabs(
 @Composable
 private fun DayPanel(
     day: FtGroupDay,
+    daySessionCount: Int,
     onExercise: (String) -> Unit,
 ) {
     Column(
@@ -476,9 +534,20 @@ private fun DayPanel(
             )
             Text(
                 text = day.focus,
+                modifier = Modifier.weight(1f),
                 style = FtType.natural(12f),
                 color = FtColor.white54,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
+            // 该训练日已练次数（会话按 planId + dayId 聚合）；未练过时不显示。
+            if (daySessionCount > 0) {
+                Text(
+                    text = stringResource(R.string.plangroup_day_session_count, daySessionCount),
+                    style = FtType.natural(11f, 600),
+                    color = FtColor.accent,
+                )
+            }
         }
         Column(
             modifier = Modifier.fillMaxWidth(),
@@ -589,10 +658,17 @@ private fun GroupExerciseRow(
     }
 }
 
-/** `.pgd-cta-bar` L299-321：底部固定主按钮，「使用中」置灰并换文案。 */
+/**
+ * `.pgd-cta-bar` L299-321：底部固定主按钮。
+ *
+ * [inUse] 决定文案（「使用此计划」/「已切换到此计划」）；[enabled] 决定可点性——
+ * 已是当前计划或启用请求进行中时不可点。二者分离：请求进行中不把文案切到「已切换」，
+ * 落盘校验通过后才切。
+ */
 @Composable
 private fun CtaBar(
-    disabled: Boolean,
+    inUse: Boolean,
+    enabled: Boolean,
     onClick: () -> Unit,
 ) {
     Column(
@@ -607,13 +683,13 @@ private fun CtaBar(
                 .height(52.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(FtColor.accent)
-                .clickableNoRipple(enabled = !disabled, onClick = onClick),
+                .clickableNoRipple(enabled = enabled, onClick = onClick),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
         ) {
             CheckIcon(modifier = Modifier.size(16.dp), color = FtColor.onAccent)
             Text(
-                text = stringResource(if (disabled) R.string.plangroup_cta_used else R.string.plangroup_cta_use),
+                text = stringResource(if (inUse) R.string.plangroup_cta_used else R.string.plangroup_cta_use),
                 modifier = Modifier.padding(start = 7.dp),
                 style = FtType.natural(15f, 700).copy(letterSpacing = 0.15.sp), // .01em × 15px
                 color = FtColor.onAccent,
@@ -806,6 +882,41 @@ private fun buildWeekCells(plan: PresetPlan): List<FtWeekCell> {
         result.add(FtWeekCell(label = label ?: "休", rest = label == null))
     }
     return result
+}
+
+/**
+ * 训练日 id 口径：与 `WorkoutPreviewService` / `HomePlanService` 一致，
+ * 会话里落库的就是 `current_plan_day_<序号>`（序号从 1 起）。`TrainingDay` 本身不带 id。
+ */
+private fun planDayId(dayIndex: Int): String = "current_plan_day_" + (dayIndex + 1)
+
+/**
+ * 7 格节奏里每格对应的训练日是否已完成过（对齐鸿蒙 `buildTrainedWeekFlags`）。
+ *
+ * 同一格可能覆盖多个训练日，任一练过即标记；`dayOfWeek` 缺省时按序分配（同 [buildWeekCells]）。
+ */
+private fun buildTrainedWeekFlags(plan: PresetPlan?, isDayTrained: (String) -> Boolean): List<Boolean> {
+    if (plan == null) return List(7) { false }
+    return (0 until 7).map { index ->
+        val dayNum = if (index == 6) 0 else index + 1
+        plan.days.withIndex().any { (dayIndex, day) ->
+            val week = day.dayOfWeek
+            val covered = if (week == null) dayIndex == index else week.contains(dayNum)
+            covered && isDayTrained(planDayId(dayIndex))
+        }
+    }
+}
+
+/**
+ * 最近训练日期文案：走系统本地化月日格式（中文「10月25日」、英文「Oct 25」），
+ * 不在代码里硬编码中文日期模板（项目要求所有用户可见文案走资源/本地化）。
+ */
+private fun formatLastTrainedDate(timestamp: Long): String {
+    val formatter = java.text.DateFormat.getDateInstance(
+        java.text.DateFormat.MEDIUM,
+        java.util.Locale.getDefault(),
+    )
+    return formatter.format(java.util.Date(timestamp))
 }
 
 /**

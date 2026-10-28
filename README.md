@@ -1,6 +1,6 @@
 # FitTracker · 菲特
 
-**双端健身训练记录应用。** HarmonyOS（ArkTS / ArkUI）与 Android（Kotlin / Jetpack Compose）各自原生实现，共用一个跨端数据契约；数据本地优先，登录后可选用云端整包快照同步。
+**双端健身训练记录应用。** HarmonyOS（ArkTS / ArkUI）与 Android（Kotlin / Jetpack Compose）各自原生实现，共用一个跨端数据契约；数据保存在本机，登录后自动同步云端整包快照。
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-2ea44f)](LICENSE)
 [![HarmonyOS](https://img.shields.io/badge/HarmonyOS-6.0.2%20(22)-000000)](apps/harmony)
@@ -10,7 +10,7 @@
 <p>
 <img src="docs/screenshots/01-home.jpg" width="200" alt="首页">
 <img src="docs/screenshots/02-training.jpg" width="200" alt="训练">
-<img src="docs/screenshots/04-review.jpg" width="200" alt="复盘">
+<img src="docs/screenshots/04-review.jpg" width="200" alt="回顾">
 <img src="docs/screenshots/05-plans.jpg" width="200" alt="计划">
 <img src="docs/screenshots/06-library.jpg" width="200" alt="动作库">
 </p>
@@ -19,7 +19,7 @@
 
 ## 这个项目解决什么
 
-市面上的健身 App 大多要求先注册账号，数据放在别人的服务器上，导出功能形同虚设。FitTracker 反过来做：**装上就能用，数据先落在自己设备上**；想跨设备再登录开云同步，而且同步的是**整包可读 JSON 快照**——导出的备份能直接导入另一台设备，甚至能在 HarmonyOS 与 Android 之间互导（见 `contracts/`）。
+市面上的健身 App 大多要求先注册账号，数据放在别人的服务器上。FitTracker 同样要求账号，但方向相反：**数据始终落在你自己设备上**，登录后的云同步只是**整包可读 JSON 快照**——备份包结构两端一致，可在 HarmonyOS 与 Android 之间互导（见 `contracts/`）。
 
 它同时也是个相对完整的双端工程样本：两套原生 UI、同一份数据契约、可自托管后端、七条代码门禁，以及一套真正在跑的本地回归脚本。仓库里保留了完整的演进历史和工程约定文档，因为这些东西都还活着。
 
@@ -29,11 +29,11 @@
 |---|---|
 | **训练流** | 训练预览 → 执行（组次录入、组间计时、切动作保留分组）→ 完成摘要 |
 | **训练计划** | 按分化数成套的预置计划组（如三分化），可启用落库；首页直接呈现「今日训练」 |
-| **训练复盘** | 历史训练、周趋势、动作 PR 下钻、肌肉分布、进阶洞察 |
+| **训练回顾** | 历史训练、周趋势、动作 PR 下钻、肌肉分布、进阶洞察 |
 | **动作库** | 列表 / 筛选 / 收藏 / 详情，内置动作演示 GIF |
 | **身体数据** | 体重、体脂等趋势记录 |
-| **账号与云同步** | HarmonyOS 走 AGC 认证 + 云数据库；Android 走 Supabase 认证 + 自托管栈。未配置云端时**自动降级为沙盒演示模式**，功能可跑通 |
-| **备份与恢复** | 本地 JSON 整包导出 / 导入，承接系统备份回调 |
+| **账号与云同步** | 两端同源：自建服务器（自托管 Supabase，`106.55.37.80`）上的认证服务与整包快照同步；**登录为强制前置**。未配置云端凭据时**自动降级为沙盒演示模式**，功能可跑通 |
+| **备份与恢复** | 备份包格式（跨端可读 JSON）与系统备份回调已就绪；**应用内导出 / 导入 UI 尚未接线** |
 | **训练强度** | Epley 公式估算 1RM，训练量、连续天数统计 |
 | **设置** | 单位、语言、周开始日、各类开关 |
 
@@ -52,7 +52,7 @@ FitTracker/
 └── AGENTS.md             工程约束（改代码前必读）
 ```
 
-**关键设计：契约层统一、供应商实现分家。** 两端云端后端不同源（华为 AGC vs 自托管 Supabase），但「备份包 JSON」是同一份结构——鸿蒙导出的备份应能被 Android 导入，反之亦然。改契约前先改 `contracts/README.md`，再同步两端实现。
+**关键设计：契约层统一、单一后端。** 两端共用同一套自建服务（自托管 Supabase，`106.55.37.80`），「备份包 JSON」是同一份结构——鸿蒙导出的备份应能被 Android 导入，反之亦然。改契约前先改 `contracts/README.md`，再同步两端实现。
 
 ## 快速开始
 
@@ -72,7 +72,7 @@ devecocli build --modules entry@ohosTest --product default   # 构建测试 HAP
 hdc install -r entry/build/default/outputs/default/entry-default-signed.hap
 ```
 
-**没有 AGC 配置也能跑。** 缺少 `agconnect-services.json` 时应用自动进入沙盒演示模式，所有界面与本地功能完整可用。要接真实云端，按 [`docs/cloud/cloud-setup.md`](docs/cloud/cloud-setup.md) 配置 AGC。
+**没有云端配置也能跑。** 缺少 `supabase.json` 时应用自动进入沙盒演示模式，所有界面与本地功能完整可用。要接真实云端，按 [`server/deploy/README.md`](server/deploy/README.md) 部署后端，再把 `supabase.json`（`url` + `publishableKey`，不入库）放进 `apps/harmony/entry/src/main/resources/rawfile/`。
 
 签名材料放在工作区外（`~/.ohos/config/`），由 `build-profile.json5` 的 `app.signingConfigs` 引用，**不入库**。
 
@@ -129,7 +129,7 @@ flowchart LR
   L -- 登录成功 --> Shell
   S -- 已登录 --> Shell
   subgraph Shell[PencilAppShell · 底部四 Tab]
-    Home[首页] --- Plan[计划] --- Review[复盘] --- Profile[个人]
+    Home[首页] --- Plan[计划] --- Review[回顾] --- Profile[个人]
   end
   Home --> P[训练预览] --> A[训练执行] --> C[完成摘要]
   Home --> Lib[动作库 → 动作详情]
@@ -149,7 +149,8 @@ flowchart LR
 | [contracts/README.md](contracts/README.md) | 跨端数据契约（改数据结构的起点） |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | 提交格式、门禁、双端同步要求 |
 | [docs/release/release-build-runbook.md](docs/release/release-build-runbook.md) | 构建与发布工程面 |
-| [docs/cloud/cloud-setup.md](docs/cloud/cloud-setup.md) | AGC 云服务配置手册 |
+| [server/deploy/README.md](server/deploy/README.md) | 自建后端部署手册（现行） |
+| [docs/cloud/cloud-setup.md](docs/cloud/cloud-setup.md) | AGC 云服务配置手册（历史方案，已改自建服务器） |
 | [docs/CHANGELOG.md](docs/CHANGELOG.md) | 版本说明 |
 | [docs/legal/](docs/legal/) | 隐私政策与用户协议 |
 | [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) | 第三方组件与许可 |
@@ -157,7 +158,7 @@ flowchart LR
 
 ## 已知限制
 
-- **云同步需自备配置**：HarmonyOS 需 AGC 项目配置，Android 需自托管 Supabase 或自有项目。未配置时走沙盒演示模式，数据只在本机。
+- **云同步需自备配置**：两端共用同一自建后端（自托管 Supabase，`106.55.37.80`），需要 `supabase.json`（HarmonyOS）与对应的服务端地址配置（Android）。未配置时走沙盒演示模式，数据只在本机。
 - **微信 / QQ 登录需要开放平台资质**：各平台对移动应用审核有门槛，仓库内的集成代码不代表凭据可用。
 - **界面仅简体中文**：`zh_CN` / `en_US` 资源目录已就绪，界面文案仍以代码内中文为主。
 - **仅支持 phone**：不响应平板 / 折叠屏专有布局。

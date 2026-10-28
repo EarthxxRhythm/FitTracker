@@ -8,6 +8,7 @@ import { Context } from '@kit.AbilityKit'
 import AuthService from '../../common/services/AuthService'
 import SessionManager from '../../common/services/SessionManager'
 import TrainingPlanService from '../../common/services/TrainingPlanService'
+import ProfileExtrasService from '../../common/services/ProfileExtrasService'
 import UserProfileService from '../../common/services/UserProfileService'
 import WorkoutDraftService from '../../common/services/WorkoutDraftService'
 import WorkoutSessionPersistenceBridgeService from '../../features/workout/services/WorkoutSessionPersistenceBridgeService'
@@ -64,6 +65,7 @@ class AccountDataLifecycle {
     await WorkoutSessionPersistenceBridgeService.replacePersistedSessions(context, [])
     await WorkoutDraftService.clearDraft(context)
     await UserProfileService.clearProfile(context)
+    await ProfileExtrasService.clearExtras(context)
   }
 }
 

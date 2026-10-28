@@ -17,10 +17,10 @@ import kotlinx.serialization.Serializable
  *   [CloudSyncService.hasPendingChanges]（源 `:133`）、[CloudSyncService.isAccountChanged]（源
  *   `:159`）、[CloudSyncService.baselineFor]（源 `:159-160`）、[CloudSyncService.isValidMeta]（源 `:390`）。
  * 「本地整包构建 + 变更检测 hash」落在 [LocalSnapshotStore]（源 `buildLocalPayload` `:249` /
- * `hashPayload` `:288`）。源架构中的 `syncNow`（编排）/ `resolveStore`（AGC ↔ 本地沙盒选择）/
+ * `hashPayload` `:288`）。源架构中的 `syncNow`（编排）/ `resolveStore`（Supabase ↔ 本地沙盒选择）/
  * 元数据落盘属后续 Wave——本文件仅暴露其可独立验证的决策面。
  *
- * 权威模型（源文件头注释）：本地优先 + 云同步；冲突按「服务端接收时间最近写入为准」
+ * 权威模型（源文件头注释）：本地存储 + 云同步；冲突按「服务端接收时间最近写入为准」
  * （云端 `updatedAt` 较新时下行）。
  */
 
@@ -92,8 +92,8 @@ fun createCloudSnapshot(
  * 云快照存储抽象（源 `CloudSnapshotStore.ets:40`）。
  *
  * 实现的「供应商」对应：
- * - 本地沙盒文件（[LocalSandboxSnapshotStore]）——AGC 未配置 / 测试环境；
- * - AGC 云数据库（源 `AgcCloudSnapshotStore.ets`）——发布路径，安卓侧待后续 Wave 接入
+ * - 本地沙盒文件（[LocalSandboxSnapshotStore]）——云端配置缺失 / 测试环境；
+ * - 自建服务器快照（源 `SupabaseCloudSnapshotStore.ets`）——发布路径
  *   Supabase 实现（同为 `CloudSnapshotStore`）。
  */
 interface CloudSnapshotStore {

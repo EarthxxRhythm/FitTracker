@@ -6,7 +6,7 @@
 
 ## 0. 为什么需要这份契约
 
-两端共用同一份产品数据（目标 / 计划 / 训练记录），但**后端实现不同源**：
+两端共用同一份产品数据（目标 / 计划 / 训练记录），且**后端同源**——同一套自托管 Supabase（华为 AGC 后端的双端链路已于 2026-10-28 整体移除）：
 
 | | 鸿蒙 | Android |
 |---|---|---|
@@ -37,7 +37,7 @@
 
 `WorkoutSession` 关键字段：`sessionId`（**合并键**）、`planId`、`dayId`、`startedAt`、`endedAt`、
 `durationSeconds`、`totalSets`、`totalVolume`、`fatigueScore`、`notes`、`sets: List<WorkoutSet>`。
-注意 `notes` 可能内嵌 `target_sets=` / `completed_sets=` 前缀，复盘解析依赖，**不可清理**。
+注意 `notes` 可能内嵌 `target_sets=` / `completed_sets=` 前缀，回顾解析依赖，**不可清理**。
 
 ## 2. 云信封 `CloudPayloadEnvelope`
 
@@ -134,8 +134,8 @@ RLS 三策略 `auth.uid() = user_id`（select / insert / update；**刻意不建
 
 ## 7. 已知未收敛项
 
-- **两端后端同源**（自托管 Supabase）：共用一套 Postgres 与 RLS 策略。但两端仍各自维护本地快照缓存，同一账号在两端登录时以云端为准、本地滞后写入需靠同步收敛。
-  是否统一云端是独立决策，不在本契约范围内。
+- **两端后端同源**（自托管 Supabase）：共用同一张 `public.snapshots`（`user_id` uuid 主键 / `payload` jsonb / `updated_at` timestamptz）与同一套 RLS 策略；两端以同一 `user_id` 读写同一条记录，**跨端数据经同一账号即可见**，跨端迁移不再需要手动导出 / 导入备份包。
+  两端仍各自维护本地快照缓存，同一账号在两端登录时以云端为准、本地滞后写入靠同步收敛（决策规则见 §4）。
 - **同一条训练记录两端都改**：按 §5 规则由导入包版本胜出，本端那次修改被替换。
   当前 Android 侧 `WorkoutRepository.updateSession` 无生产调用方（记录只增不改），故实际不会触发。
 - **hash 跨端不一致**（见 §4）：接受多余一次上行，不追求字节级一致。

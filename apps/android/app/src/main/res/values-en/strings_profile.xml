@@ -14,6 +14,7 @@
     <string name="profile_sample_sub">Bulking · day 42 · keeping the pace</string>
     <string name="profile_name_none">—</string>
     <string name="profile_sub_none">No goal set</string>
+    <string name="profile_sub_goal">%1$s · Day %2$d · Keep the momentum</string>
     <string name="profile_a11y_settings">Settings</string>
     <!-- Profile edit entry (design addition) -->
     <string name="profile_edit_entry">Edit</string>
@@ -21,6 +22,9 @@
     <string name="profile_edit_back">Back</string>
     <string name="profile_edit_avatar_section">Avatar</string>
     <string name="profile_edit_avatar_hint">The avatar shows your nickname initial; pick a color</string>
+    <string name="profile_edit_avatar_pick">Choose photo</string>
+    <string name="profile_edit_avatar_remove">Remove photo</string>
+    <string name="profile_edit_avatar_failed">Couldn\'t read that image. Please try again.</string>
     <string name="profile_edit_nickname_section">Nickname</string>
     <string name="profile_edit_nickname_placeholder">Enter nickname</string>
     <string name="profile_edit_body_section">Body profile</string>
@@ -31,9 +35,34 @@
     <string name="profile_edit_gender_female">Female</string>
     <string name="profile_edit_gender_unset">Not set</string>
     <string name="profile_edit_birth_year">Birth year</string>
+    <string name="profile_edit_experience">Training experience</string>
     <string name="profile_edit_save">Save</string>
     <string name="profile_edit_saved">Saved</string>
+    <string name="profile_edit_save_failed">Couldn\'t save. Please try again.</string>
     <string name="profile_edit_nickname_too_long">Nickname must be 20 characters or fewer</string>
+    <string name="profile_edit_social_section">Social</string>
+    <string name="profile_edit_preference_section">Preferences</string>
+    <string name="profile_edit_weight_unit">Weight unit</string>
+    <string name="profile_edit_weight_unit_kg">kg</string>
+    <string name="profile_edit_weight_unit_lbs">lbs</string>
+    <string name="profile_edit_region">Region</string>
+    <string name="profile_edit_region_placeholder">e.g. Shanghai</string>
+    <string name="profile_edit_tickle">Nudge</string>
+    <string name="profile_edit_tickle_placeholder">e.g. nudged your training plan</string>
+    <string name="profile_edit_whats_up">Status</string>
+    <string name="profile_edit_whats_up_placeholder">Say something</string>
+    <string name="profile_edit_gym">Usual gym</string>
+    <string name="profile_edit_gym_placeholder">e.g. the one downstairs</string>
+    <string name="profile_edit_account_section">Account</string>
+    <string name="profile_edit_phone">Phone</string>
+    <string name="profile_edit_account_id">Profile ID</string>
+    <string name="profile_edit_unset">Not set</string>
+    <string name="profile_edit_account_hint">Account details come from your login and cannot be edited here</string>
+    <!-- Training experience (read-only badge on profile, three-way choice in the editor) -->
+    <string name="profile_experience_unset">Not set</string>
+    <string name="profile_experience_beginner">Beginner</string>
+    <string name="profile_experience_intermediate">Intermediate</string>
+    <string name="profile_experience_advanced">Advanced</string>
 
     <!-- This week card -->
     <string name="profile_week_title">Weekly overview</string>

@@ -136,6 +136,18 @@ replay_pid*.log
 # 合成后的 GIF 入库，源图可重新下载，不入库）
 apps/harmony/.cache/
 
+# agent 运行时证据与临时目录（2026-10-28：此前未被任何规则覆盖，
+# 单次 git add -A 会引入约 70MB 构建/测试产物）
+**/.rivet-ev/
+**/.rivet-tmp/
+
+# 设备测试输出：根目录规则 `/test_run/` 不覆盖子工程同名目录
+**/test_run/
+
+# 构建残留的「0」目录（hvigor / gradle 产物）
+/0/
+apps/harmony/0/
+
 # 开源合规：素材授权尚待确认时的本地隔离目录（见 ASSETS.md）
 **/assets/nonfree/
 

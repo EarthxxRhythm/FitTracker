@@ -176,7 +176,7 @@ python tools\compare-motion-frames.py                                           
 
 ## 6. 与当前主线的边界
 
-- **主线**：`features\pencil\`（登录、首页、计划、训练、复盘、个人页）+ `features\welcome\`、
+- **主线**：`features\pencil\`（登录、首页、计划、训练、回顾、个人页）+ `features\welcome\`、
   `features\onboarding\`、`features\exercise\`、`features\body\`、`features\settings\`、
   `features\workout\`。
 - **不要**重建历史壳、不要复活已归档页面、不要把已归档页面加回主路由。

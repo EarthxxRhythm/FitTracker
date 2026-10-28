@@ -134,7 +134,10 @@ export default function planEngineTest(): void {
       expect(plan.days.length).assertEqual(1)
       expect(plan.days[0].focusMuscleIds[0]).assertEqual('muscle_chest')
       expect(plan.days[0].exercises.length).assertLarger(0)
-      expect(plan.days[0].exercises[0].exerciseId).assertEqual('ex_push_up')
+      // 不锁定具体动作顺序：两种数据源下上斜/标准俯卧撑的先后不同；此处验证评分给出的
+      // 首选仍是「目标+器械+肌群+难度」精确匹配的徒手胸部动作。
+      const picked: string = plan.days[0].exercises[0].exerciseId
+      expect(picked === 'ex_push_up' || picked === 'ex_incline_push_up').assertTrue()
       expect(plan.days[0].exercises[0].selectionNote).assertEqual('精确匹配：目标、器械、肌群和难度均匹配。')
     })
 

@@ -7,7 +7,7 @@
  *  - isConfigured() / get()：同步读探测结果，供 CloudEnvironment.getBackend() 判据使用。
  *  - setForTesting(config)：测试注入，绕过 rawfile 探测。
  *
- * 与 AGC 的对应关系：agconnect-services.json 之于 AGC，等价于 supabase.json 之于 Supabase
+ * 与已移除的华为 AGC 方案的对应关系：agconnect-services.json 之于 AGC，等价于 supabase.json 之于 Supabase
  * ——两者都是「rawfile 中的运行时凭据文件，不入库」，探测方式与 CloudEnvironment.detectAndInitAgc
  * 同构（getRawFileContentSync + try/catch 回落）。
  */

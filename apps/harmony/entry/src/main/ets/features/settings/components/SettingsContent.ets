@@ -6,7 +6,7 @@ import { i18n } from '@kit.LocalizationKit'
 import { AppRoutes } from '../../../app/AppRoutes'
 import UserProfileService, { UserProfile } from '../../../common/services/UserProfileService'
 import AccountDataLifecycle, { SignOutPreview } from '../../../shared/services/AccountDataLifecycle'
-import SettingsService, { AppSettings, SettingsToggleKey } from '../../../common/services/SettingsService'
+import SettingsService, { AppSettings, SettingsToggleKey, resolveEffectiveAppLanguage } from '../../../common/services/SettingsService'
 import WorkoutReminderService from '../../../common/services/WorkoutReminderService'
 import AppNotificationService from '../../../common/services/AppNotificationService'
 import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
@@ -68,7 +68,10 @@ export struct SettingsContent {
       const profile: UserProfile = await UserProfileService.loadProfile(context)
       this.applySegSelection('weight', profile.weightUnit === 'lbs' ? 1 : 0)
       const settings: AppSettings = await SettingsService.loadSettings(context)
-      this.applySegSelection('language', settings.language === 'en-US' ? 1 : 0)
+      // 语言选中态取「实际生效语言」（应用级偏好 → 系统语言），不取存储值：存储记录的是
+      // 用户显式选择过的语言，从未选择时恒为默认中文——直接回显会让系统英文环境出现
+      // 「界面英文、设置项勾着简体中文」。口径同 Android currentLanguageTag()。
+      this.applySegSelection('language', resolveEffectiveAppLanguage() === 'en-US' ? 1 : 0)
       this.applySegSelection('weekStart', settings.weekStart === 'sunday' ? 1 : 0)
       this.applyToggleRows(settings)
     } catch (e) {
@@ -496,6 +499,10 @@ export struct SettingsContent {
   private generalCard() {
     Column() {
       this.sectionTitle($r('app.string.settings_section_general'), '')
+      // 「个人资料」入口：个人页头部与编辑胶囊之外的第三个入口，方便从设置直达。
+      this.chevronRow($r('app.string.settings_row_profile'), null, true, () => {
+        this.getUIContext().getRouter().pushUrl({ url: AppRoutes.PROFILE_EDIT })
+      })
       ForEach(this.segRows, (row: SegRowDef, index: number) => {
         Row() {
           Text(row.label)
@@ -527,7 +534,7 @@ export struct SettingsContent {
         }
         .width('100%')
         .padding({ top: 15, bottom: 15, left: 2, right: 2 })
-        .border({ width: { top: index === 0 ? 0 : 1 }, color: PrototypeTokens.WHITE_A06 })
+        .border({ width: { top: 1 }, color: PrototypeTokens.WHITE_A06 })
       }, (row: SegRowDef) => row.key + ':' + row.selected.toString())
       ForEach(this.switchRows, (row: SwitchRow, index: number) => {
         if (index < 4) {

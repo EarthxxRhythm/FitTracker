@@ -64,9 +64,11 @@ import com.fittracker.app.data.service.SettingsService
 import com.fittracker.app.data.service.UserProfileService
 import com.fittracker.app.data.service.WeekStart
 import com.fittracker.app.data.service.WeightUnit
+import com.fittracker.app.data.service.currentSettingsLanguage
 import com.fittracker.app.data.sync.SyncOrchestrator
 import com.fittracker.app.notifications.ReminderScheduler
 import com.fittracker.app.ui.components.clickableNoRipple
+import com.fittracker.app.ui.screens.profile.FtProfileModel
 import com.fittracker.app.ui.theme.FtColor
 import com.fittracker.app.ui.theme.FtShape
 import com.fittracker.app.ui.theme.FtType
@@ -133,14 +135,10 @@ fun SettingsScreen(
     LaunchedEffect(Unit) {
         weightUnit = UserProfileService.loadProfile(store).weightUnit
         settings = SettingsService.loadSettings(store)
-        // 语言真源对齐：AppCompat per-app locale（可能经系统设置页修改）优先于本地存储回显
-        val appLocales = AppCompatDelegate.getApplicationLocales()
-        if (!appLocales.isEmpty) {
-            val tag = appLocales.toLanguageTags()
-            settings = settings.copy(
-                language = if (tag.startsWith("en")) SettingsLanguage.EN else SettingsLanguage.ZH,
-            )
-        }
+        // 语言真源对齐：生效语言（per-app locale → 系统 Locale）优先于本地存储回显。
+        // 存储值代表「用户显式选择」，从未选择时恒为默认中文——系统英文环境下会显示
+        // 「界面英文、设置项勾着简体中文」，故选中态一律走 currentSettingsLanguage()。
+        settings = settings.copy(language = currentSettingsLanguage())
     }
 
     // 原型 `showToast` 的 `setTimeout(…, 1900)`（L488-495）
@@ -273,6 +271,8 @@ fun SettingsScreen(
             )
             // 隐私说明 → 打开隐私政策页（对齐鸿蒙 pushUrl(LEGAL_DOC)；先例 LoginScreen.kt:229-230）
             FtSettingsModel.ACTION_PRIVACY -> onNavigate("legal?kind=privacy")
+            // 个人资料 → 资料编辑页（对齐鸿蒙设置页「个人资料」行）
+            FtSettingsModel.ACTION_PROFILE -> onNavigate(FtProfileModel.EDIT_ROUTE)
         }
     }
 

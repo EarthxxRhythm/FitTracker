@@ -13,7 +13,9 @@ import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
 import com.fittracker.app.data.service.BodyRecordService
 import com.fittracker.app.data.service.ContentRepository
+import com.fittracker.app.data.service.PlanProgressService
 import com.fittracker.app.data.service.SettingsService
+import com.fittracker.app.data.service.TrainingPlanRepository
 import com.fittracker.app.data.service.UserProfileService
 import com.fittracker.app.data.service.WeekStart
 import com.fittracker.app.data.service.WeekWindow
@@ -27,7 +29,7 @@ import com.fittracker.app.data.service.stats.PersonalRecordService
 import kotlinx.coroutines.launch
 
 /**
- * 复盘页（「回顾」Tab）的状态持有者。
+ * 回顾页（「回顾」Tab）的状态持有者。
  *
  * 数据态与装载从 [ReviewScreen] 迁入——`viewModel()` 取 NavBackStackEntry 作用域实例，
  * tab 切换（`saveState=true`）取回同一实例，首帧即真数据、装载只跑一次。
@@ -101,8 +103,16 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
     var reviewNow by mutableStateOf(0L)
         private set
 
+    /** 当前启用的计划名；null = 尚未启用计划。回顾此前完全不感知计划归属。 */
+    var currentPlanName by mutableStateOf<String?>(null)
+        private set
+
+    /** 当前计划下的训练次数（按 `session.planId` 聚合）；无计划时为 0。 */
+    var currentPlanSessionCount by mutableStateOf(0)
+        private set
+
     /**
-     * 装载复盘数据。逐行等价迁移自原 `ReviewScreen.kt:198-292` 的 `LaunchedEffect(Unit)`。
+     * 装载回顾数据。逐行等价迁移自原 `ReviewScreen.kt:198-292` 的 `LaunchedEffect(Unit)`。
      */
     suspend fun load() {
         val res = getApplication<Application>().resources
@@ -121,6 +131,23 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         reviewSessions = sessions
         reviewWeekStart = weekStart
         reviewNow = now
+        // 计划归属：会话里的 planId 一直存在但此前无人读取，回顾因此看不到「练的是哪个计划」。
+        // 与计划组详情共用 PlanProgressService 的聚合口径。
+        val currentPlan = TrainingPlanRepository.getCurrentPlan(store)
+        if (currentPlan == null) {
+            currentPlanName = null
+            currentPlanSessionCount = 0
+        } else {
+            currentPlanName = currentPlan.name
+            // 会话里落的是 `UserPlan.id`（`user_plan_<时间戳>`）；预置 id 一并纳入匹配，
+            // 否则按预置 id 聚合会全部落空。
+            val presetId = TrainingPlanRepository.getPresetIdForPlan(currentPlan)
+            val ids = mutableListOf(currentPlan.id)
+            if (presetId.isNotEmpty()) ids.add(presetId)
+            currentPlanSessionCount = PlanProgressService
+                .createSummaryForIds(sessions, presetId, ids)
+                .totalSessions
+        }
         // 概览徽标与月度汇总：无会话即空态（徽标「待积累」、月度统计 null → `--`）。
         badgeText = FtReviewModel.badgeText(sessions, now, weekStart)
         monthStats = FtReviewModel.monthlyStats(sessions, now)
