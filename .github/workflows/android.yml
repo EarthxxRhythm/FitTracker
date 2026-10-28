@@ -34,7 +34,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: 安装 Android SDK Platform
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: 补齐 compileSdk 所需平台
         run: sdkmanager "platforms;android-37" || echo "platform 37 已预装或不可用，交由 Gradle 自行解析"
