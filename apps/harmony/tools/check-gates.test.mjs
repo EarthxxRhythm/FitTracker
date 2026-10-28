@@ -13,7 +13,32 @@ import { resolveDevecoCliInvocation } from './check-gates.mjs'
 //
 // 这些测试固定的是「解析出的调用方式必须真的能跑通」，而不是某一种具体解析策略。
 
-test('devecocli 调用方式可解析，且 --version 真实可执行', () => {
+/**
+ * devecocli 是否真实可用。
+ *
+ * CI 跑在 ubuntu runner 上，没有 DevEco Studio 与 HarmonyOS SDK，devecocli 不可能存在。
+ * 这条测试固定的是「解析出的调用方式必须真的能跑通」——没有可执行的 CLI 就没有判据，
+ * 应 skip 而非 fail（与 check-auth-spacing 在 design 缺失时的处理一致）。
+ */
+function devecoCliAvailable() {
+  const invocation = resolveDevecoCliInvocation()
+  if (!invocation || !invocation.command) {
+    return false
+  }
+  const probe = spawnSync(
+    invocation.command,
+    [...(invocation.prefixArgs || []), '--version'],
+    { encoding: 'utf8', shell: invocation.useShell === true }
+  )
+  return probe.status === 0
+}
+
+const DEVECO_AVAILABLE = devecoCliAvailable()
+
+test(
+  'devecocli 调用方式可解析，且 --version 真实可执行',
+  { skip: DEVECO_AVAILABLE ? false : 'devecocli 不可用（CI 无 DevEco CLI），无判据可比' },
+  () => {
   const invocation = resolveDevecoCliInvocation()
   assert.ok(invocation, '应解析出调用方式')
   assert.ok(invocation.command, '调用方式必须含 command')
@@ -26,7 +51,8 @@ test('devecocli 调用方式可解析，且 --version 真实可执行', () => {
 
   assert.equal(probe.status, 0, `--version 应以 exit 0 结束，实际 stderr=${probe.stderr}`)
   assert.match(String(probe.stdout).trim(), /\d+\.\d+/, '应输出版本号')
-})
+  }
+)
 
 test('解析结果必须自洽：直接调 cli.js 时不得再启用 shell', () => {
   const invocation = resolveDevecoCliInvocation()
