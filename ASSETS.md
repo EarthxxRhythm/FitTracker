@@ -44,14 +44,32 @@
 | 来源 | `https://github.com/yuhonas/free-exercise-db` |
 | 生成脚本 | `apps/harmony/tools/content/build-exercise-gifs-photo.mjs`（2 张照片 → 三段乒乓 GIF） |
 | 映射表 | `apps/harmony/tools/content/exercise-photo-sources.json`（101 条，逐条核对） |
-| 位置 | `rawfile/exercise-gifs-photo/`（101）、`apps/android/app/src/main/assets/exercise-gifs-photo/`（101，由 `tools/sync-exercise-gifs-to-android.mjs` 同步） |
+| 位置 | `rawfile/exercise-gifs-photo/`（98）、`apps/android/app/src/main/assets/exercise-gifs-photo/`（98，由 `tools/sync-exercise-gifs-to-android.mjs` 同步） |
 | 署名要求 | Unlicense 不强制署名，但本项目仍在 THIRD-PARTY-NOTICES.md 登记来源 |
 
-### 1.3 覆盖范围与唯一缺口
+### 1.3 覆盖范围与缺口
 
-内容库 102 个动作中，**101 个有演示素材**；唯一缺口是「鸟狗式」（`ex_bird_dog`）——
-free-exercise-db 经 id/name 检索零命中，源库确实没有该动作。其卡片与训练执行页
-由 `ExerciseDemoImage` 降级为占位图标（哑铃 SVG + 占位底色），不会报错或出现破图。
+内容库 102 个动作，映射表登记 101 条（「鸟狗式」`ex_bird_dog` 经 id/name 检索在
+free-exercise-db 零命中，源库确实没有该动作，故不登记）。
+
+**已生成 98 个素材**，两端一致。仍有 3 条映射记录了 `fedbId` 但尚未生成 GIF：
+
+| gifId | 源库 id | 状态 |
+|---|---|---|
+| `dumbbell-flyes` | `Dumbbell_Flyes` | 待生成 |
+| `crunches` | `Crunches` | 待生成 |
+| `hanging-leg-raise` | `Hanging_Leg_Raise` | 待生成 |
+
+补生成需要能访问 `raw.githubusercontent.com` 或自备源 JSON：
+
+```bash
+cd apps/harmony
+node tools/content/build-exercise-gifs-photo.mjs --input ./fedb.json --only dumbbell-flyes,crunches,hanging-leg-raise
+node ../../tools/sync-exercise-gifs-to-android.mjs
+```
+
+这 3 个动作在补生成前，卡片与训练执行页由 `ExerciseDemoImage` 降级为占位图标
+（哑铃 SVG + 占位底色），不会报错或出现破图。
 
 `ExerciseGifCatalog` 的解析规则与 Android 端 `PhotoGifCatalog` 一致：只查实拍组，
 未命中回退 `DEFAULT_EXERCISE_GIF_ID`（`barbell-deadlift`）。旧的「线稿优先」解析已停用，
