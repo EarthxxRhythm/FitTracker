@@ -2,6 +2,7 @@ package com.fittracker.app.ui.screens
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -18,6 +19,7 @@ import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
 import com.fittracker.app.data.service.AvatarImageService
 import com.fittracker.app.data.sync.SyncOrchestrator
+import com.fittracker.app.nav.FtCanvasKind
 import com.fittracker.app.nav.FtRoute
 import com.fittracker.app.ui.components.FtCanvas
 import com.fittracker.app.ui.screens.active.ActiveScreen
@@ -76,7 +78,17 @@ fun FtScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    // Direct 屏（1:1 布局）消费 ime insets：键盘弹起时内容区随之收缩（等效 adjustResize），
+    // 录入面板里的输入框才抬得到键盘上方——此前全应用从未消费 ime（contentWindowInsets 被
+    // 有意清零），底部 sheet 会被键盘整块盖住且滚动也救不回来。
+    // Scaled 屏不能这么做：FtCanvas 按可用高度算 fitScale，压缩高度会让整屏等比缩小。
+    val imeInsetPadding: Modifier =
+        if (route.canvas == FtCanvasKind.Direct) Modifier.imePadding() else Modifier
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .then(imeInsetPadding),
+    ) {
         FtCanvas(kind = route.canvas, designW = route.designW, designH = route.designH) {
             when (route.id) {
                 "welcome" -> WelcomeScreen(onStart = { onNavigate("login") })
