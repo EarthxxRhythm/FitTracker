@@ -22,27 +22,20 @@
 -enable-filename-obfuscation
 -enable-export-obfuscation
 
-# ---- AGC / Cloud Foundation Kit 兼容（release 混淆） ----
-# 1) SyncSnapshot 为云数据库对象映射类：字段名须与 AGC 控制台导出的 schema.json
-#    一致，数据库 SDK 按名称读写字段（官方《混淆保留选项》场景 5：数据库相关字段
-#    需手动保留）；naturalbase_ClassName 为 SDK 约定的对象类名接口。
-# 2) 传给 @hw-agconnect/auth（预编译 HAR）的入参属性名被 SDK 按名读取，
-#    跨模块边界属性保守保留。
+# ---- 云端快照 JSON 边界（release 混淆） ----
+# 2026-10-28：华为 AGC 链路与 @hw-agconnect/auth 依赖已整体移除，原 AGC 专属保留项
+# （naturalbase_ClassName / credentialInfo / autoCreateUser / verifyCodeType / action）
+# 一并删除；以下为自建 Supabase 快照信封与请求体的字段名白名单。
 # JSON 序列化场景审计（2026-10 发布收尾）：枚举审计已完成，白名单补充见下文
 # 「JSON 序列化/解析边界」分组；release 包实测记录见 docs/release/release-build-runbook.md §12。
 -keep-property-name
 
-# -- Wave 5 既有：SyncSnapshot 数据库字段 + AGC auth 入参 --
-naturalbase_ClassName
+# -- SyncSnapshot 信封字段（服务端按名读写） --
 userId
 payloadJson
 updatedAt
 deviceTag
 schemaVersion
-credentialInfo
-autoCreateUser
-verifyCodeType
-action
 lang
 sendInterval
 kind

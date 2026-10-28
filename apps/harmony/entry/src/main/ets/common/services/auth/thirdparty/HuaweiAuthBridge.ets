@@ -1,9 +1,9 @@
 /**
  * HuaweiAuthBridge —— 华为账号登录桥（Supabase 后端下的华为账号通道）。
  *
- * 为何需要它：AGC 后端下华为账号走 hwid 凭据（AgcAuthProvider）已可用；但本项目身份落点
- * 为自托管 Supabase，而 SupabaseAuthProvider 对华为账号同样返回「当前云端不支持第三方登录」。
- * 故 Supabase 后端下需要一条独立的华为授权链路，走 Account Kit 拿 authorizationCode。
+ * 为何需要它：本项目身份落点在自建服务器（自托管 Supabase），而 SupabaseAuthProvider 对
+ * 华为账号返回「当前云端不支持第三方登录」。故需一条独立的华为授权链路，走 Account Kit
+ * 拿 authorizationCode 后交由服务端换取账号标识。
  *
  * 依赖：@kit.AccountKit（HarmonyOS 系统能力，无需第三方 har、无需净增权限）
  * 文档（本地官方库 + SDK 类型实证）：

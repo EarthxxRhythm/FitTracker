@@ -34,6 +34,14 @@ object StoreNames {
     /** 用户资料。 */
     const val PROFILE = "fit_tracker_profile"
 
+    /**
+     * 名片类附加字段（地区 / 拍一拍 / 个性签名 / 常用健身房，整块 JSON）。
+     *
+     * 与鸿蒙 `ProfileExtrasService`（`fit_tracker_profile_extras`）同语义、同键名；
+     * 这些字段**不进云快照信封**，仅本机保存。
+     */
+    const val PROFILE_EXTRAS = "fit_tracker_profile_extras"
+
     /** 云同步基线（hash / 时间戳）。 */
     const val SYNC = "fit_tracker_sync"
 
@@ -71,7 +79,7 @@ object StoreNames {
 
     val ALL: List<String> = listOf(
         GOAL, PLANS, CURRENT_PLAN_ID, SESSIONS, ACTIVE_WORKOUT,
-        PROFILE, SYNC, SANDBOX_AUTH, CONTENT, SESSION, CLOUD_SESSION,
+        PROFILE, PROFILE_EXTRAS, SYNC, SANDBOX_AUTH, CONTENT, SESSION, CLOUD_SESSION,
         PLAN_STATE, SETTINGS, BODY_RECORDS, TRAINING_PREFERENCES, BODY_MEASUREMENTS,
     )
 }

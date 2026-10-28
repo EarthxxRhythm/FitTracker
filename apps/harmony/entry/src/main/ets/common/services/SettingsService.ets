@@ -9,6 +9,7 @@
  * 默认值与设置页原型（fittracker-settings.html）及现有 UI 初值一致。
  */
 import { preferences } from '@kit.ArkData'
+import { i18n } from '@kit.LocalizationKit'
 import { WeekStart } from '../utils/WeekUtils'
 
 const STORE_NAME = 'fit_tracker_settings'
@@ -23,12 +24,12 @@ const KEY_ANONYMOUS = 'anonymous'
  * 体重目标（kg）；`0` = 用户从未设置。
  *
  * 归本 store 而不归 `UserProfileService`：单位是随云同步 envelope 流转的档案字段，而目标体重
- * 只是复盘页的展示辅助值——纳入 envelope 需同步改备份包与 `normalizePayloadForHash` 白名单，
+ * 只是回顾页的展示辅助值——纳入 envelope 需同步改备份包与 `normalizePayloadForHash` 白名单，
  * 收益不抵风险（已在计划「同步失明陷阱」条目标注）。故仅本地持久化，换设备需重设。
  */
 const KEY_WEIGHT_GOAL = 'weight_goal_kg'
 
-/** 目标体重合法区间（kg）——与复盘页目标弹窗的越界校验同口径。 */
+/** 目标体重合法区间（kg）——与回顾页目标弹窗的越界校验同口径。 */
 const WEIGHT_GOAL_MIN_KG = 30
 const WEIGHT_GOAL_MAX_KG = 200
 
@@ -43,7 +44,7 @@ export interface AppSettings {
   sound: boolean
   keepOn: boolean
   anonymous: boolean
-  /** 复盘页体重目标（kg）；`0` = 未设置（不画目标线）。 */
+  /** 回顾页体重目标（kg）；`0` = 未设置（不画目标线）。 */
   weightGoalKg: number
 }
 
@@ -56,6 +57,38 @@ const DEFAULT_SETTINGS: AppSettings = {
   keepOn: true,
   anonymous: false,
   weightGoalKg: 0
+}
+
+/**
+ * 把 BCP-47 语言标签归一为应用支持的语言。
+ *
+ * 只判语言前缀：应用仅提供 `zh_CN` / `en_US` 两套资源，`zh-Hant`、`fr` 等不匹配任何限定目录，
+ * 最终都回落到 base 资源（简体中文），归 `zh-CN` 才与界面实际渲染一致。
+ */
+export function toAppLanguage(tag: string): AppLanguage {
+  if (tag.toLowerCase().startsWith('en')) {
+    return 'en-US'
+  }
+  return 'zh-CN'
+}
+
+/**
+ * 当前实际生效的应用语言——设置页语言选中态的唯一真源。
+ *
+ * 优先级与 Android `currentLanguageTag()` 同口径：应用级语言偏好 → 系统语言。
+ * 不能用 `loadSettings().language` 回显：该字段是「用户显式选择过的语言」，从未选择时恒为默认
+ * `zh-CN`，而界面语言此时跟随系统——系统英文就会出现「界面英文、设置项却勾着简体中文」。
+ */
+export function resolveEffectiveAppLanguage(): AppLanguage {
+  try {
+    const preferred: string = i18n.System.getAppPreferredLanguage()
+    if (preferred.length > 0) {
+      return toAppLanguage(preferred)
+    }
+    return toAppLanguage(i18n.System.getSystemLanguage())
+  } catch (e) {
+    return 'zh-CN'
+  }
 }
 
 class SettingsService {
@@ -127,7 +160,7 @@ class SettingsService {
   }
 
   /**
-   * 持久化复盘页体重目标（kg）；传 `0` 表示清除目标。
+   * 持久化回顾页体重目标（kg）；传 `0` 表示清除目标。
    *
    * 越界值不写入（`normalizeGoalKg` 归零），避免把越界值带进下次启动的展示态。
    */

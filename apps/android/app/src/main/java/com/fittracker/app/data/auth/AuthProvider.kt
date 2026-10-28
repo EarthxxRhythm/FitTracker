@@ -64,7 +64,7 @@ data class VerifyCodeResult(
  * 认证后端抽象——源 `auth/AuthProvider.ets:13` `abstract class AuthProvider`。
  *
  * 实现：`SandboxAuthProvider`（本地沙盒，源 `auth/SandboxAuthProvider.ets`）。
- * 源另有 `AgcAuthProvider`（AGC 云认证）——本波未移植（无云依赖）。
+ * 源侧云端认证由 `SupabaseAuthProvider` 承担（原华为 AGC 链路已于 2026-10-28 移除）。
  *
  * 所有可能失败的方法返回 [Result]；成功值即会话快照。
  */

@@ -31,6 +31,9 @@ class PlansViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * 装载当前计划。逐行等价迁移自原 `PlansScreen.kt:96-108` 的 `LaunchedEffect(Unit)`。
      * 公开 `suspend`（同其他屏：runBlocking 可驱动）。
+     *
+     * **修复**：无当前计划时回置 `null`——原实现只在 `current != null` 时赋值，
+     * 计划被移除/切走后本页停留旧卡片文案，重进也不刷新。
      */
     suspend fun load() {
         val res = getApplication<Application>().resources
@@ -44,6 +47,9 @@ class PlansViewModel(application: Application) : AndroidViewModel(application) {
                 current.days.size,
                 current.weeklyFrequency,
             )
+        } else {
+            currentName = null
+            currentMeta = null
         }
     }
 }

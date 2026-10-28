@@ -26,7 +26,7 @@ actor "用户" as user
 rectangle 菲特 {
   usecase "登录 / 注册" as uc1
   usecase "今日训练" as uc2
-  usecase "训练复盘" as uc3
+  usecase "训练回顾" as uc3
   usecase "动作库" as uc4
   usecase "身体数据" as uc5
   usecase "云同步" as uc6

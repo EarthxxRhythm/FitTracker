@@ -26,7 +26,7 @@ data class WorkoutSummaryExerciseRecord(
     val dateText: String,
 )
 
-/** 训练后复盘摘要（源 `WorkoutSummaryService.ets:13` `WorkoutSummary`）。 */
+/** 训练后回顾摘要（源 `WorkoutSummaryService.ets:13` `WorkoutSummary`）。 */
 data class WorkoutSummary(
     val hasSession: Boolean,
     val sessionId: String,
@@ -45,7 +45,7 @@ data class WorkoutSummary(
 /**
  * 训练摘要服务——逐函数移植自鸿蒙 `shared/services/WorkoutSummaryService.ets`。
  *
- * Feature #11（训练摘要复盘）。无状态单例：完成率/训练量统一走 `ReviewService`
+ * Feature #11（训练摘要回顾）。无状态单例：完成率/训练量统一走 `ReviewService`
  * （源 `:49` / `:56` 复用 `ReviewService.calculateCompletionRate` / `calculateVolume`），
  * 单动作最佳 1RM 复用 `TrainingModels.kt` 的唯一实现点 `estimateOneRepMax`。
  *

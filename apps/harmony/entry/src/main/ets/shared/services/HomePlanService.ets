@@ -214,6 +214,19 @@ class HomePlanService {
     return plan.days[index]
   }
 
+  /**
+   * 目标生成计划的日循环种子：目标创建至今的第几天（≥1）。
+   * 首页/计划 Tab/训练预览必须共用这一份口径——历史上预览用「年内第几天」、
+   * 首页用「目标创建至今」，同一个今日训练日两处算出不同的天，动作清单各说各话。
+   */
+  createDaySeedFromGoal(goalCreatedAt: number, now: number): number {
+    const dayCount: number = Math.floor((now - goalCreatedAt) / 86400000) + 1
+    if (dayCount < 1) {
+      return 1
+    }
+    return dayCount
+  }
+
   getExerciseNames(exercises: PlannedExercise[]): string[] {
     const names: string[] = []
     for (let index = 0; index < exercises.length; index++) {

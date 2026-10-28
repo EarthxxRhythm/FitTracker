@@ -23,6 +23,11 @@
 
     <!-- 概览卡抬头：`本周 · <周范围>` / `本月 · <M>月`（真实路径，模板由 UI 层插值） -->
     <string name="review_head_week">本周 · %1$s</string>
+
+    <!-- 概览卡的计划归属（会话按 planId 聚合）；`%1$s` 计划名 -->
+    <string name="review_plan_affiliation">当前计划：%1$s</string>
+    <!-- `%1$s` 计划名 · `%2$d` 该计划下训练次数 -->
+    <string name="review_plan_affiliation_count">当前计划：%1$s · 已练 %2$d 次</string>
     <string name="review_head_month">本月 · %1$d月</string>
     <!-- 原型静止态样例（空库 / 未接线时的首帧初值） -->
     <string name="review_head_week_sample">本周 · 6月 7–13日</string>
@@ -73,14 +78,14 @@
     <string name="review_muscle_mode_balance">平衡</string>
     <string name="review_muscle_mode_fatigue">疲劳</string>
     <string name="review_muscle_mode_strength">力量</string>
-    <!-- 卡标题右侧 meta（`MM_META`） -->
-    <string name="review_muscle_meta_balance">近 30 天 · 训练量</string>
+    <!-- 卡标题右侧 meta（`MM_META`）。balance 的计算窗口 = 最近 8 次训练（同 `ReviewViewModel` 实参） -->
+    <string name="review_muscle_meta_balance">近 8 次训练 · 训练量</string>
     <string name="review_muscle_meta_fatigue">当前恢复状态</string>
     <string name="review_muscle_meta_strength">力量与最佳成绩</string>
-    <!-- 卡底注记（`MM_NOTE`） -->
-    <string name="review_muscle_note_balance">胸部训练量最高，核心最少。</string>
-    <string name="review_muscle_note_fatigue">腿部与臀部疲劳度较高，建议优先恢复。</string>
-    <string name="review_muscle_note_strength">胸部与腿部力量最强，核心相对薄弱。</string>
+    <!-- 卡底结论：由真实训练量最高/最低部位拼装（`FtReviewModel.muscleSummary` + 本组资源） -->
+    <string name="review_muscle_summary_empty">完成训练后，这里会显示肌群训练分布。</string>
+    <string name="review_muscle_summary_max">%1$s训练量最高。</string>
+    <string name="review_muscle_summary_max_min">%1$s训练量最高，%2$s最少。</string>
 
     <!-- 肌肉中文名（原型 `LABELS`，L1612-1627，18 组） -->
     <string name="review_muscle_trapezius">斜方肌</string>
@@ -103,7 +108,7 @@
     <string name="review_muscle_tibialis">胫骨</string>
 
     <!-- 点选肌肉后的详情行取值（原型 `selectMuscle`，L1680-1704） -->
-    <!-- `%1$d` 组数（平衡模式：`等级 × 10 + 8`） -->
+    <!-- `%1$d` 组数（平衡模式：该部位真实组数，来自最近 8 次训练） -->
     <string name="review_muscle_detail_sets">%1$d 组</string>
     <!-- 疲劳模式按等级取下标（`已恢复` / `恢复中` / `略疲劳` / `疲劳`） -->
     <string name="review_muscle_recovery_0">已恢复</string>

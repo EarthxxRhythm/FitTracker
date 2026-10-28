@@ -117,30 +117,37 @@ struct PencilSplashPage {
   async aboutToAppear(): Promise<void> {
     this.loadDesignFonts()
     const context = this.contextOrNull()
-    if (context !== null) {
-      // 测试模式（`--ps testMode=sandbox`，仅 debug 包）：跳过真实登录验证，整体切沙盒模式
-      const testMode: string = await LaunchRequestStore.consumePendingTestMode(context)
-      if (testMode === 'sandbox' && this.isDebuggablePackage()) {
-        CloudEnvironment.setModeForTesting(testMode)
+    try {
+      if (context !== null) {
+        // 测试模式（`--ps testMode=sandbox`，仅 debug 包）：跳过真实登录验证，整体切沙盒模式
+        const testMode: string = await LaunchRequestStore.consumePendingTestMode(context)
+        if (testMode === 'sandbox' && this.isDebuggablePackage()) {
+          CloudEnvironment.setModeForTesting(testMode)
+        }
+        const seedKey: string = await LaunchRequestStore.consumePendingDebugSeedKey(context)
+        if (seedKey.length > 0) {
+          await DeviceSeedService.applyNamedSeed(context, seedKey)
+        }
       }
-      const seedKey: string = await LaunchRequestStore.consumePendingDebugSeedKey(context)
-      if (seedKey.length > 0) {
-        await DeviceSeedService.applyNamedSeed(context, seedKey)
+      // 强制登录门槛（PRD 3.1）：未登录 → 登录页；已登录按目标状态分流主壳/目标设置。
+      if (context !== null) {
+        await this.useSafeWindowLayout(context)
+        const hasValidSession: boolean = await SessionManager.isLoggedIn(context)
+        const hasGoal: boolean = hasValidSession ? await GoalRepository.hasSavedGoal(context) : false
+        this.getUIContext().getRouter().replaceUrl({
+          url: StartupDecision.getInitialRoute(hasValidSession, hasGoal)
+        })
+        return
       }
+      setTimeout(() => {
+        this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.WELCOME })
+      }, 700)
+    } catch (error) {
+      // 启动链任一环节失败都必须完成一次路由，否则启动页会永久停留（白屏）。
+      // 登录态无法确认时按「未登录」处理落到登录页：登录页的 aboutToAppear 会重新初始化
+      // 云环境、并按需续跑被中断的第三方登录（resumeThirdPartyIfPending）。
+      this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.LOGIN })
     }
-    // 强制登录门槛（PRD 3.1）：未登录 → 登录页；已登录按目标状态分流主壳/目标设置。
-    if (context !== null) {
-      await this.useSafeWindowLayout(context)
-      const hasValidSession: boolean = await SessionManager.isLoggedIn(context)
-      const hasGoal: boolean = hasValidSession ? await GoalRepository.hasSavedGoal(context) : false
-      this.getUIContext().getRouter().replaceUrl({
-        url: StartupDecision.getInitialRoute(hasValidSession, hasGoal)
-      })
-      return
-    }
-    setTimeout(() => {
-      this.getUIContext().getRouter().replaceUrl({ url: AppRoutes.WELCOME })
-    }, 700)
   }
 
   build() {

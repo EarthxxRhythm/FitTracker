@@ -22,7 +22,7 @@ import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 import {
   ActiveExerciseRecordGroup,
   ActiveSetRecord,
-  appendSetRecord
+  buildRecordGroups
 } from './ActiveSetRecordModel'
 
 interface ActiveWorkoutRouteParams {
@@ -419,16 +419,12 @@ export struct ActiveContent {
     // 所以第一个动作录满后，本次记录会自动落到下一个动作的第 1 组。
     const weightText: string = this.weight.toString()
     const repsText: string = this.reps.toString()
-    // 记录归属必须在推进前解析：recordSet 之后 nextExercise 已指向下一个动作，
-    // 那时再取会把这一组挂到错误的动作分组上。
-    const recordingExercise: ActiveWorkoutExercise | undefined = ActiveWorkoutService.nextExercise(this.activeState)
     const nextState: ActiveWorkoutState = ActiveWorkoutService.recordSet(this.activeState, weightText, repsText)
     this.activeState = nextState
-    const nextGroups: ActiveExerciseRecordGroup[] = this.appendRecordGroup(recordingExercise)
+    // 记录从刚更新的 activeState 派生（与落库同源），不再增量追加 UI 状态：
+    // 设备实测连做 4 组时增量赋值会被吞、分组只显示 1 组，而 activeState 里 4 组都在。
+    this.recordGroups = buildRecordGroups(nextState.exercises)
     const justDoneIndex: number = this.completed
-    this.getUIContext().animateTo({ duration: MotionTokens.DURATION_RECORD, curve: MotionTokens.EASE_MOTION }, () => {
-      this.recordGroups = nextGroups
-    })
     this.getUIContext().animateTo({ duration: MotionTokens.DURATION_MARKER, curve: MotionTokens.EASE_MOTION }, () => {
       this.completed += 1
     })
@@ -463,26 +459,6 @@ export struct ActiveContent {
     }
   }
 
-  /**
-   * 把本组记录并入其所属动作的分组。
-   *
-   * [exercise] 必须取自 recordSet 之前的状态快照——该快照的 completedSets 不含本组，
-   * 因此 +1 即本组在动作内的序号（组号从 1 起，切动作后重新计数）。
-   */
-  private appendRecordGroup(exercise: ActiveWorkoutExercise | undefined): ActiveExerciseRecordGroup[] {
-    if (exercise === undefined) {
-      return this.recordGroups
-    }
-    return appendSetRecord(
-      this.recordGroups,
-      exercise.plannedExerciseId,
-      exercise.name,
-      exercise.completedSets + 1,
-      this.weight,
-      this.reps
-    )
-  }
-
   /** 把 state 推导出的当前动作同步到展示态（名称 / 演示素材 / 角标序号）。 */
   private applyCurrentExercise(state: ActiveWorkoutState): void {
     this.exerciseName = state.currentExerciseName
@@ -496,7 +472,7 @@ export struct ActiveContent {
    *
    * 走 [ActiveWorkoutService.createCompletedSession] 构建——planId / dayId 取自进入训练时解析的
    * 真实计划上下文，动作 id 取自各动作的真实 exerciseId（此前写死 'active_plan'/'active_day'/
-   * 'bench_press'，会让复盘与 PR 统计失去真实归属）。
+   * 'bench_press'，会让回顾与 PR 统计失去真实归属）。
    *
    * 用户的组记录（weight / reps）写回 state 对应动作的组条目后再构建，保证落库的组数据是实测值。
    */
@@ -1124,7 +1100,7 @@ export struct ActiveContent {
     }
     .layoutWeight(1)
     .padding(12)
-    .backgroundColor('#06FFFFFF')
+    .backgroundColor(PrototypeTokens.WHITE_A06)
     .borderRadius(17)
     .border({ width: 1, color: PrototypeTokens.WHITE_A06 })
   }

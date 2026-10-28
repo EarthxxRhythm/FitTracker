@@ -5,6 +5,10 @@ import ActiveWorkoutService, { ActiveWorkoutExercise, ActiveWorkoutState } from 
 import PlanEngine from '../../../main/ets/shared/services/PlanEngine'
 import WorkoutPreviewService, { WorkoutPreviewSummary } from '../../../main/ets/shared/services/WorkoutPreviewService'
 import WorkoutRepository from '../../../main/ets/shared/services/WorkoutRepository'
+import {
+  ActiveExerciseRecordGroup,
+  buildRecordGroups
+} from '../../../main/ets/features/pencil/components/ActiveSetRecordModel'
 
 export default function activeWorkoutServiceTest(): void {
   describe('ActiveWorkoutService', () => {
@@ -314,6 +318,42 @@ export default function activeWorkoutServiceTest(): void {
         expect(state.currentExerciseSetProgress).assertEqual('0/' + second.targetSets.toString() + ' 正式组')
         expect(ActiveWorkoutService.nextPlannedExerciseId(state)).assertEqual(second.plannedExerciseId)
         expect(ActiveWorkoutService.nextSetIndex(state)).assertEqual(0)
+      }
+    })
+
+    it('recordSet 连续做满一个动作后分组记录条数等于目标组数（训练页 UI 路径回归）', 0, () => {
+      // 设备实测：训练页连做 4 组后分组只显示 1 条，而顶栏组计数正常增长。
+      // 此用例复刻页面调用序列——反复把 recordSet 结果写回同一变量，再用
+      // buildRecordGroups 派生——用于判定问题出在服务层还是展示层。
+      const presetPlan: PresetPlan | undefined = TrainingPlanService.getPresetPlanById('preset_upper_lower')
+      expect(presetPlan !== undefined).assertTrue()
+      if (presetPlan !== undefined) {
+        const currentPlan: UserPlan = {
+          id: presetPlan.id,
+          name: presetPlan.name,
+          coverColor: presetPlan.coverColor,
+          targetAudience: presetPlan.targetAudience,
+          weeklyFrequency: presetPlan.weeklyFrequency,
+          description: presetPlan.description,
+          days: presetPlan.days,
+          enabledAt: 103
+        }
+        const preview: WorkoutPreviewSummary = WorkoutPreviewService.createPreviewForCurrentPlan(
+          currentPlan,
+          'current_plan_day_1',
+          '周一',
+          currentPlan.days[0]
+        )
+        let state: ActiveWorkoutState = ActiveWorkoutService.createState(preview)
+        const firstExercise: ActiveWorkoutExercise = state.exercises[0]
+        for (let index = 0; index < firstExercise.targetSets; index++) {
+          state = ActiveWorkoutService.recordSet(state, '20', '8')
+        }
+
+        expect(state.exercises[0].completedSets).assertEqual(firstExercise.targetSets)
+        const groups: ActiveExerciseRecordGroup[] = buildRecordGroups(state.exercises)
+        expect(groups.length >= 1).assertTrue()
+        expect(groups[0].sets.length).assertEqual(firstExercise.targetSets)
       }
     })
 

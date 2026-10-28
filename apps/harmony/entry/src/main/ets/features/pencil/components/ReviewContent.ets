@@ -1,4 +1,4 @@
-/** ReviewContent - 复盘 Tab 界面体（供 PencilAppShell 与独立注册页复用）。 */
+/** ReviewContent - 回顾 Tab 界面体（供 PencilAppShell 与独立注册页复用）。 */
 
 import { LengthMetricsUnit } from '@kit.ArkUI'
 import { MotionTokens, ColorTokens } from '../../../common/styles/DesignTokens'
@@ -10,6 +10,8 @@ import SettingsService, { AppSettings } from '../../../common/services/SettingsS
 import UserProfileService, { UserProfile, WeightUnit } from '../../../common/services/UserProfileService'
 import { kgToDisplay, displayToKg, weightUnitLabel } from '../../../common/utils/WeightUtils'
 import BodyRecordService from '../../../shared/services/BodyRecordService'
+import TrainingPlanService, { UserPlan } from '../../../common/services/TrainingPlanService'
+import PlanProgressService, { PlanProgressSummary } from '../../../shared/services/PlanProgressService'
 import ContentRepository from '../../../shared/services/ContentRepository'
 import { ExerciseContent } from '../../../shared/models/TrainingModels'
 import PersonalRecordService, { ExercisePersonalRecordDetail } from '../../../shared/services/PersonalRecordService'
@@ -864,6 +866,10 @@ export struct ReviewContent {
   @State private monthLabel: string = ''
   @State private monthBadge: string = ''
   @State private weekRangeText: string = ''
+  /** 当前启用的计划名；空串 = 尚未启用计划。回顾此前完全不感知计划归属。 */
+  @State private currentPlanName: string = ''
+  /** 当前计划下的训练次数（按 `session.planId` 聚合）；无计划时为 0。 */
+  @State private currentPlanSessionCount: number = 0
   @State private trainDays: number[] = []
   @State private calendarDays: number[] = []
   @State private todayDay: number = -1
@@ -973,6 +979,7 @@ export struct ReviewContent {
         (exerciseId: string) => this.primaryMusclesOf(exerciseId),
         8
       )
+      await this.loadPlanAffiliation(context, sessions)
     } catch (error) {
       this.applyEmptyState()
     }
@@ -994,6 +1001,38 @@ export struct ReviewContent {
   }
 
   /** 读回体重记录：填充当前体重、「较上月」差值与折线点；无记录时保持空态。 */
+  /**
+   * 加载当前计划归属与本计划训练次数。
+   *
+   * 回顾此前完全不感知计划：会话里的 `planId` 一直存在但没人读。这里补上「这些训练
+   * 属于哪个计划、该计划下练了几次」，与计划组详情用同一套 `PlanProgressService` 口径。
+   * 读取失败保持空态（不显示计划行），不影响回顾其余内容。
+   */
+  private async loadPlanAffiliation(context: Context, sessions: WorkoutSession[]): Promise<void> {
+    try {
+      const current: UserPlan | null = await TrainingPlanService.getCurrentPlan(context)
+      if (current === null) {
+        this.currentPlanName = ''
+        this.currentPlanSessionCount = 0
+        return
+      }
+      this.currentPlanName = current.name
+      // 会话里落的是 `UserPlan.id`（`user_plan_<时间戳>`）；预置 id 一并纳入匹配，
+      // 否则按预置 id 聚合会全部落空。
+      const ids: string[] = [current.id]
+      const presetId: string = TrainingPlanService.getPresetIdForPlan(current)
+      if (presetId.length > 0) {
+        ids.push(presetId)
+      }
+      const progress: PlanProgressSummary =
+        PlanProgressService.createSummaryForIds(sessions, presetId, ids)
+      this.currentPlanSessionCount = progress.totalSessions
+    } catch (error) {
+      this.currentPlanName = ''
+      this.currentPlanSessionCount = 0
+    }
+  }
+
   private async loadBodyWeight(context: Context, now: number): Promise<void> {
     const records: WeightRecord[] = await BodyRecordService.loadRecords(context)
     if (records.length === 0) {
@@ -1319,7 +1358,7 @@ export struct ReviewContent {
       return '待积累'
     }
     if (!this.summary.trendSummary.hasTrend) {
-      return '首次复盘'
+      return '首次回顾'
     }
     const delta: number = this.summary.trendSummary.recentCompletionRate -
       this.summary.trendSummary.previousCompletionRate
@@ -1334,7 +1373,7 @@ export struct ReviewContent {
 
   private headlineText(): string {
     if (!this.summary.hasSessions) {
-      return '完成一次训练，开始你的复盘。'
+      return '完成一次训练，开始你的回顾。'
     }
     if (this.summary.trendSummary.hasTrend) {
       return this.summary.trendSummary.summaryText
@@ -1450,7 +1489,7 @@ export struct ReviewContent {
     if (this.muscleMode === 'strength') {
       return '力量与最佳成绩'
     }
-    return '近 30 天 · 训练量'
+    return '近 8 次训练 · 训练量'
   }
 
   /**
@@ -1482,10 +1521,15 @@ export struct ReviewContent {
   }
 
   private muscleDetailValue(): string {
-    const level: number = this.muscleLevel(this.selectedMuscleKey)
+    const index: number = this.staticIndex(MM_MUSCLE_KEYS, this.selectedMuscleKey)
     if (this.muscleMode === 'balance') {
-      return (level * 10 + 8).toString() + ' 组'
+      // 真实组数（与 Android 同口径）：最近 8 次训练里该部位累计的组数，不再 level*10+8 估算
+      if (index < 0 || index >= this.muscleVolume.length) {
+        return '0 组'
+      }
+      return this.muscleVolume[index].toString() + ' 组'
     }
+    const level: number = this.muscleLevel(this.selectedMuscleKey)
     if (this.muscleMode === 'fatigue') {
       return this.muscleStatWord(level, MM_FATIGUE_WORDS)
     }
@@ -1572,7 +1616,7 @@ export struct ReviewContent {
     return '较上月 ' + this.signedWeightSampleText(this.bodyWeightDeltaKg)
   }
 
-  /** 体重变化数值（显示单位、带符号、不含单位标签）——复盘统计第三格使用。 */
+  /** 体重变化数值（显示单位、带符号、不含单位标签）——回顾统计第三格使用。 */
   private weightDeltaValueText(): string {
     const value: number = Math.round(kgToDisplay(this.bodyWeightDeltaKg, this.displayUnit) * 10) / 10
     if (value > 0) {
@@ -1961,6 +2005,25 @@ export struct ReviewContent {
         .lineHeight(15.9)
         .fontColor(PrototypeTokens.WHITE_A48)
         .width('100%')
+
+      // 计划归属：会话里的 planId 一直存在但此前无人读取，回顾因此看不到「练的是哪个计划」。
+      if (this.currentPlanName.length > 0) {
+        Row({ space: 6 }) {
+          Image($rawfile('pencil-lucide-dumbbell.svg'))
+            .width(13)
+            .height(13)
+            .fillColor(PrototypeTokens.ACCENT)
+          Text('当前计划：' + this.currentPlanName +
+            (this.currentPlanSessionCount > 0 ? ' · 已练 ' + this.currentPlanSessionCount.toString() + ' 次' : ''))
+            .fontFamily('Noto Sans SC')
+            .fontSize(11.8)
+            .fontColor(PrototypeTokens.ACCENT)
+            .layoutWeight(1)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
+        .width('100%')
+      }
     }
     .width('100%')
     .constraintSize({ minHeight: 145.1 })
@@ -2265,6 +2328,10 @@ export struct ReviewContent {
         .width('100%')
         .height('100%')
         .backgroundColor('#9E040608')
+        .transition(
+          TransitionEffect.OPACITY
+            .animation({ duration: MotionTokens.DURATION_MODAL_SCRIM, curve: MotionTokens.EASE_MOTION })
+        )
         .onClick(() => {
           this.showDayDetail = false
         })
@@ -2311,6 +2378,12 @@ export struct ReviewContent {
       .backgroundColor(PrototypeTokens.BG_INK_WELCOME)
       .borderRadius(22)
       .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
+      // 与体重目标弹层同一套进出场语汇（遮罩 160ms + 卡片 200ms 缩放落位）
+      .transition(
+        TransitionEffect.OPACITY
+          .combine(TransitionEffect.scale({ x: 0.96, y: 0.96 }))
+          .animation({ duration: MotionTokens.DURATION_MODAL_POP, curve: MotionTokens.EASE_PANEL })
+      )
     }
     .width('100%')
     .height('100%')
@@ -2717,6 +2790,10 @@ export struct ReviewContent {
         .width('100%')
         .height('100%')
         .backgroundColor('#9E040608')
+        .transition(
+          TransitionEffect.OPACITY
+            .animation({ duration: MotionTokens.DURATION_MODAL_SCRIM, curve: MotionTokens.EASE_MOTION })
+        )
         .onClick(() => {
           this.closeGoalModal()
         })
@@ -2805,6 +2882,13 @@ export struct ReviewContent {
       .backgroundColor(PrototypeTokens.BG_INK_WELCOME)
       .borderRadius(22)
       .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
+      // 弹层进场：遮罩先淡入（160ms），卡片 200ms 从 0.96 缩放到 1 落位。
+      // 此前这里是条件挂载的硬切——打开/关闭都是瞬间出现与消失。
+      .transition(
+        TransitionEffect.OPACITY
+          .combine(TransitionEffect.scale({ x: 0.96, y: 0.96 }))
+          .animation({ duration: MotionTokens.DURATION_MODAL_POP, curve: MotionTokens.EASE_PANEL })
+      )
     }
     .width('100%')
     .height('100%')

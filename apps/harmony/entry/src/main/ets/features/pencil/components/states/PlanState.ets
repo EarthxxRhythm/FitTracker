@@ -20,8 +20,9 @@ import {
   buildPlanDayItemsFromUserPlan,
   createPlanDayItem,
   createPlanExerciseItem,
-  positionBadge
+  relativeDayBadge
 } from '../PlanTabModel'
+import HomePlanService from '../../../../shared/services/HomePlanService'
 import {
   ExerciseContent,
   PlanDay,
@@ -29,13 +30,14 @@ import {
   TrainingPlan,
   UserGoal
 } from '../../../../shared/models/TrainingModels'
+import { goalTypeLabel } from '../../../../common/utils/GoalLabels'
 
 @Observed
 export class PlanState extends StateBase {
   planDays: PlanDayItem[] = []
   planName: string = '训练计划'
-  goalMeta: string = '尚未设置目标'
-  planMeta: string = '完成目标设置后自动生成训练计划'
+  goalMeta: string = '尚未启用计划'
+  planMeta: string = '到「计划」页选择并启用一套计划后即可开始训练'
   weeklyProgress: string = '本周 0 / 0 天'
   progressPercent: number = 0
   /** 单次时长（分钟）；预置计划无此字段时沿用目标设置里的值，未设目标为 45 兜底。 */
@@ -82,9 +84,9 @@ export class PlanState extends StateBase {
       }
       const plan: TrainingPlan = PlanEngine.generatePlan(goal)
       this.sessionMinutes = goal.sessionMinutes
-      this.planDays = this.buildPlanDayItems(plan)
+      this.planDays = this.buildPlanDayItems(plan, goal)
       this.planName = plan.name.length > 0 ? plan.name : '训练计划'
-      this.goalMeta = this.goalTypeLabel(goal.goalType) + ' · ' + plan.days.length.toString() + ' 练分化'
+      this.goalMeta = goalTypeLabel(goal.goalType) + ' · ' + plan.days.length.toString() + ' 练分化'
       this.planMeta = this.goalMeta + ' · ' + plan.cycleWeeks.toString() + ' 周推进'
       await this.loadWeeklyProgress(context, plan.days.length)
     } catch (error) {
@@ -115,27 +117,34 @@ export class PlanState extends StateBase {
   private applyEmptyState(): void {
     this.planDays = []
     this.planName = '训练计划'
-    this.goalMeta = '尚未设置目标'
-    this.planMeta = '完成目标设置后自动生成训练计划'
+    this.goalMeta = '尚未启用计划'
+    this.planMeta = '到「计划」页选择并启用一套计划后即可开始训练'
     this.weeklyProgress = '本周 0 / 0 天'
     this.progressPercent = 0
   }
 
   // ── 派生（从 PlanContent 迁入） ──────────────────────────────────────────
 
-  private buildPlanDayItems(plan: TrainingPlan): PlanDayItem[] {
+  private buildPlanDayItems(plan: TrainingPlan, goal: UserGoal): PlanDayItem[] {
+    // 「今日」卡与首页/训练预览同口径：按目标创建至今的天数在循环日中定位今天，
+    // 而不是恒把第 1 天当今日（历史上 deck 首卡标「今日」但预览选的是另一天）。
+    const daySeed: number = HomePlanService.createDaySeedFromGoal(goal.createdAt, Date.now())
+    const todayIndex: number = plan.days.length === 0
+      ? -1
+      : (daySeed - 1) % plan.days.length
     const items: PlanDayItem[] = []
     for (let index = 0; index < plan.days.length; index++) {
       const day: PlanDay = plan.days[index]
       const focusName: string = this.focusMuscleName(day)
       const title: string = focusName.length > 0 ? focusName + '日' : day.title
+      const distance: number = (index - todayIndex + plan.days.length) % plan.days.length
       items.push(createPlanDayItem(
         this.shortMuscleLabel(focusName),
         title,
         focusName + ' · 训练',
         this.sessionMinutes.toString() + ' 分钟',
-        positionBadge(index),
-        index === 0,
+        relativeDayBadge(distance, index),
+        index === todayIndex,
         this.buildExerciseItems(day.exercises, focusName)
       ))
     }
@@ -189,21 +198,5 @@ export class PlanState extends StateBase {
       return '臂'
     }
     return focusName
-  }
-
-  private goalTypeLabel(goalType: string): string {
-    if (goalType === 'hypertrophy') {
-      return '增肌'
-    }
-    if (goalType === 'strength') {
-      return '力量'
-    }
-    if (goalType === 'fat_loss') {
-      return '减脂'
-    }
-    if (goalType === 'posture') {
-      return '体态'
-    }
-    return goalType
   }
 }

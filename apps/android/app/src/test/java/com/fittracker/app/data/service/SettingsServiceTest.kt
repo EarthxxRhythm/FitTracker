@@ -183,14 +183,14 @@ class SettingsServiceTest {
         assertEquals(FtSettings(), SettingsService.loadSettings(store))
     }
 
-    // --- 复盘页体重目标（saveWeightGoal / normalizeWeightGoalKg） --------------
+    // --- 回顾页体重目标（saveWeightGoal / normalizeWeightGoalKg） --------------
 
     @Test
     fun `体重目标跨存取持久化且不被单字段写清除`() = runBlocking {
         val store = createStore()
         SettingsService.saveWeightGoal(store, 65.5)
 
-        // 目标必须跨会话存在——否则每次进复盘页都回到「未设置」，等于假数据。
+        // 目标必须跨会话存在——否则每次进回顾页都回到「未设置」，等于假数据。
         assertEquals(65.5, SettingsService.loadSettings(store).weightGoalKg, 1e-6)
         assertEquals("", SettingsService.getLastPersistenceError())
 
@@ -306,10 +306,11 @@ class SettingsServiceTest {
         val expectations = listOf(
             R.string.settings_title to "设置",
             R.string.settings_a11y_back to "返回个人页",
-            R.string.settings_foot_note to "FitTracker 本地优先，训练数据与身体数据默认仅保存在本机。",
+            R.string.settings_foot_note to "训练数据与身体数据保存在本机；登录后自动同步。",
             R.string.settings_section_general to "通用",
             R.string.settings_section_data_privacy to "数据与隐私",
             R.string.settings_section_about to "关于",
+            R.string.settings_row_profile to "个人资料",
             R.string.settings_row_weight_unit to "体重单位",
             R.string.settings_row_language to "语言",
             R.string.settings_row_week_start to "周开始日",

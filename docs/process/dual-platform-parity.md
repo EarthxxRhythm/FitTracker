@@ -1,7 +1,7 @@
 # 双端对等规范
 
 > **层级**：L2 展开
-> **最后核对**：2026-10-27
+> **最后核对**：2026-10-28
 > **上位文档**：`AGENTS.md`（冲突以 L1 为准）
 > **状态**：现行（3 项待裁决，见「已知不对称」）
 > **路径基准**：两端路径均相对仓库根
@@ -71,9 +71,11 @@
 | SDK | `minSdk = 24` / `targetSdk = 37` / `compileSdk = 37` | — |
 | 微信 AppID 字段 | `wechat.appId`（local.properties）↔ 鸿蒙 `thirdparty.json` 的 `wechatAppId` | 「语义一致（同一开放平台应用的同一 AppID）」 |
 | QQ AppID 字段 | `qq.appId`（local.properties）↔ 鸿蒙 `thirdparty.json` 的 `qqAppId` | QQ 回调 scheme 经 `manifestPlaceholders` 注入，不硬编码进 manifest |
-| 云端配置 | `supabase.url` / `supabase.publishableKey`（local.properties）↔ 鸿蒙 `agconnect-services.json` | 两者均不入库（`.gitignore`） |
+| 云端配置 | 安卓 `local.properties` 的 `supabase.url` / `supabase.publishableKey` → `BuildConfig.SUPABASE_URL` / `BuildConfig.SUPABASE_PUBLISHABLE_KEY`（`apps\android\app\build.gradle.kts`）↔ 鸿蒙 `AppScope\resources\rawfile\supabase.json` 的 `url` / `publishableKey`（`SupabaseConfig.ets`） | 两端指向同一自托管 Supabase 项目，凭据字段同名同义；配置均不入库（`.gitignore`） |
 
 `check-parity.mjs` 校验 `applicationId` 与鸿蒙 `bundleName` 一致，不一致即红。
+
+云端凭据链路（2026-10-28 复验）：安卓 `local.properties` → Gradle `buildConfigField` → `BuildConfig.SUPABASE_URL` / `BuildConfig.SUPABASE_PUBLISHABLE_KEY`；鸿蒙 `AppScope\resources\rawfile\supabase.json` → `SupabaseConfig`。两端读同一个自托管 Supabase 项目，缺配置即各自降级为沙盒（见 `docs\process\auth-verification.md`）。
 
 ## 改动时的同步要求
 

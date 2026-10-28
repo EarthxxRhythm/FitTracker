@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalResources
 import com.fittracker.app.data.auth.AuthService
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
+import com.fittracker.app.data.service.AvatarImageService
 import com.fittracker.app.data.sync.SyncOrchestrator
 import com.fittracker.app.nav.FtRoute
 import com.fittracker.app.ui.components.FtCanvas
@@ -104,7 +105,7 @@ fun FtScreen(
                                 toast = AuthToastState.next(toast, resources.getString(AUTH_LOGIN_SUCCESS_TOAST))
                                 // 登录成功钩子（源 CloudSyncService.onSignIn）：后台首次同步、不阻塞跳转
                                 launch {
-                                    SyncOrchestrator.onSignIn(store, SyncOrchestrator.forFilesDir(context.filesDir))
+                                    SyncOrchestrator.onSignIn(store, SyncOrchestrator.forFilesDir(context.filesDir), AvatarImageService.resolveDir(context))
                                 }
                                 // 原型交互壳 `ft-stage.js` 的 afterAuth：提交成功后 900ms 跳首页
                                 delay(900)
@@ -119,7 +120,7 @@ fun FtScreen(
                         toast = AuthToastState.next(toast, resources.getString(AUTH_LOGIN_SUCCESS_TOAST))
                         scope.launch {
                             launch {
-                                SyncOrchestrator.onSignIn(store, SyncOrchestrator.forFilesDir(context.filesDir))
+                                SyncOrchestrator.onSignIn(store, SyncOrchestrator.forFilesDir(context.filesDir), AvatarImageService.resolveDir(context))
                             }
                             delay(900)
                             onNavigate("home")
@@ -139,7 +140,7 @@ fun FtScreen(
                                 toast = AuthToastState.next(toast, resources.getString(AUTH_REGISTER_SUCCESS_TOAST))
                                 // 注册成功即登录（沙盒语义 / Supabase 直通）——同样触发首次同步
                                 launch {
-                                    SyncOrchestrator.onSignIn(store, SyncOrchestrator.forFilesDir(context.filesDir))
+                                    SyncOrchestrator.onSignIn(store, SyncOrchestrator.forFilesDir(context.filesDir), AvatarImageService.resolveDir(context))
                                 }
                                 delay(900)
                                 onNavigate("home")

@@ -389,7 +389,10 @@ export struct PlanContent {
     .scale({ x: this.scaleFor(this.rel(index)), y: this.scaleFor(this.rel(index)) })
     .opacity(this.opacityFor(this.rel(index)))
     .zIndex(this.zFor(this.rel(index)))
-    .animation({ duration: MotionTokens.DURATION_MARKER, curve: MotionTokens.EASE_MOTION })
+    // 卡片位移/旋转/缩放回位走物理弹簧：拖拽中 rel 每帧都在变，springMotion 会停掉
+    // 上一条动画并继承其当前速度（ArkUI 弹簧曲线指南的既定行为），松手瞬间不会
+    // 「顿一下再走」。注意 springMotion 的 duration 参数不生效，时长由物理参数决定。
+    .animation({ curve: MotionTokens.SPRING_SETTLE })
   }
 }
 

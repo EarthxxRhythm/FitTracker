@@ -132,6 +132,9 @@ object FtSettingsModel {
     /** 行 `data-action="privacy"`（L458）。隐私说明行点击改为**导航** `legal?kind=privacy`（对齐鸿蒙），不再 toast。 */
     const val ACTION_PRIVACY = "privacy"
 
+    /** 个人资料入口（设计侧新增，对齐鸿蒙设置页）：导航 `profileEdit`。 */
+    const val ACTION_PROFILE = "profile"
+
     /** 「版本」行的稳定键——值由 [sections] 以 `BuildConfig.VERSION_NAME` 注入。 */
     const val KEY_VERSION = "version"
 
@@ -160,6 +163,12 @@ object FtSettingsModel {
         FtSettingsSection(
             titleRes = R.string.settings_section_general, // `.sub-sec-title`（L385）
             rows = listOf(
+                // 个人资料入口（设计侧新增，对齐鸿蒙设置页 generalCard 顶部）
+                FtSettingRow(
+                    labelRes = R.string.settings_row_profile,
+                    trailing = FtSettingTrailing.Link,
+                    action = ACTION_PROFILE,
+                ),
                 // `.sr-label` L388 + `.seg` L389-392（`千克` active L390 / `磅` L391）
                 FtSettingRow(
                     labelRes = R.string.settings_row_weight_unit,

@@ -202,7 +202,7 @@ class SupabaseAuthProvider extends AuthProvider {
 
   /**
    * 邮箱注册：POST /auth/v1/signup {email, password, data:{nickname}}。
-   * 注：code 参数保留于抽象签名（沙盒/AGC 语义），Supabase 侧由服务端的邮箱确认策略承担，
+   * 注：code 参数保留于抽象签名（沙盒/华为通道语义），Supabase 侧由服务端的邮箱确认策略承担，
    * 故不随请求上行——与 Android 实现一致。
    */
   async registerWithEmail(email: string, password: string, code: string, nickname: string): Promise<AuthResult> {

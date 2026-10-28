@@ -151,7 +151,9 @@ class DeviceSeedService {
       weightUnit: 'kg',
       heightCm: 0,
       gender: '',
-      birthYear: 0
+      birthYear: 0,
+      experience: '',
+      avatarImagePath: ''
     }
     await UserProfileService.saveProfile(context, demoProfile)
     await GoalRepository.saveGoal(

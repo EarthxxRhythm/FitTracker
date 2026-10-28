@@ -7,7 +7,7 @@
 | 目录 | 内容 |
 | --- | --- |
 | `docs/release/` | 构建与发布：release runbook、上架截图清单、云调试自动化 |
-| `docs/cloud/` | 云与数据：AGC 配置手册、内容库 schema/同步、内容导入说明、动作视频库方案 |
+| `docs/cloud/` | 云与数据：Supabase 后端配置（现行，`supabase-sync-setup.md`）、内容库 schema/同步、内容导入说明、动作视频库方案；另含历史 AGC 手册（已被取代，仅作排错参考） |
 | `docs/ui/` | UI 与视觉验收：验收清单与记录模板、评审包、视觉回归说明 |
 | `docs/prototype/` | 原型还原：1:1 还原规则、动效与发散还原工作流、ArkUI 迁移提示词 |
 | `docs/process/` | 工程流程与协作：开发工作流（唯一权威 `vibe-coding-workflow.md`）、团队角色路由、任务队列 |
@@ -53,7 +53,7 @@
 
 - `docs/release/release-build-runbook.md` —— 构建/发布工程面的真实状态、命令、缺口与接入点；第 9 节记录 bundleName 变更对本地数据沙箱的影响与迁移路径
 - `docs/CHANGELOG.md` —— 版本说明与更新日志
-- `docs/cloud/cloud-setup.md` —— AGC 云服务配置手册（认证服务 / 云数据库 / 证书指纹；配置记录 + 排错速查）
-- `docs/legal/privacy-policy.md` —— 隐私政策（数据默认留在本机；登录后可选的云同步数据范围、退出与清除）
+- `docs/cloud/cloud-setup.md` —— **已被取代（历史）**：2026-10-28 后端改定为自托管 Supabase 后作废的 AGC 云服务配置手册（认证服务 / 云数据库 / 证书指纹；配置记录 + 排错速查），仅作排错参考
+- `docs/legal/privacy-policy.md` —— 隐私政策（数据默认留在本机；登录后自动同步的数据范围、退出与清除）
 - `docs/legal/user-agreement.md` —— 用户协议
 - `docs/release/store-listing-screenshot-checklist.md` —— 应用市场上架截图清单（release 包实拍）

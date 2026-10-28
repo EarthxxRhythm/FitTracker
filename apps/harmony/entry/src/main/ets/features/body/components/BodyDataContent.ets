@@ -1,5 +1,6 @@
 /** BodyDataContent —— 身体数据二级页界面体（对应 body-data.html · screen-body-data，390 直绘）。 */
 import { ColorTokens, MotionTokens } from '../../../common/styles/DesignTokens'
+import { MotionIntent } from '../../../common/styles/MotionIntent'
 import { window } from '@kit.ArkUI'
 import UserProfileService, { UserProfile, WeightUnit, Gender } from '../../../common/services/UserProfileService'
 import SettingsService, { AppSettings } from '../../../common/services/SettingsService'
@@ -1045,7 +1046,7 @@ export struct BodyDataContent {
         .width('100%')
         .height('100%')
         .backgroundColor(PrototypeTokens.BLACK_A50)
-        .transition(TransitionEffect.OPACITY.animation({ duration: MotionTokens.DURATION_OVERLAY, curve: MotionTokens.EASE_MOTION }))
+        .transition(TransitionEffect.OPACITY.animation({ duration: MotionIntent.scrimDuration(), curve: MotionIntent.scrimCurve() }))
       }
     }
     .width('100%')

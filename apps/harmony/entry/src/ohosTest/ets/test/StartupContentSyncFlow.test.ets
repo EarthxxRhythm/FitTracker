@@ -167,8 +167,9 @@ export default function startupContentSyncFlowTest(): void {
       await StartupContentSyncService.prepareContent(getTestContext())
 
       const upgradedExercises: ExerciseContent[] = createVersionedExercises(2)
+      // 版本必须高于本地（首次导入后为 3），否则会被判 up_to_date 而不进入自检。
       SyncService.setBundledPackageForTesting(
-        createManifest(3, upgradedExercises.length),
+        createManifest(4, upgradedExercises.length),
         BUNDLED_CONTENT_SYNC_MUSCLES,
         BUNDLED_CONTENT_SYNC_EQUIPMENT,
         upgradedExercises
@@ -188,7 +189,7 @@ export default function startupContentSyncFlowTest(): void {
 
     it('falls back to JSONL when startup has no database and bundled imports fail', 0, async () => {
       const upgradedExercises: ExerciseContent[] = createVersionedExercises(2)
-      const mismatchedManifest: ContentSyncManifest = createManifest(3, upgradedExercises.length)
+      const mismatchedManifest: ContentSyncManifest = createManifest(4, upgradedExercises.length)
       SyncService.setBundledPackageForTesting(
         mismatchedManifest,
         BUNDLED_CONTENT_SYNC_MUSCLES,

@@ -21,6 +21,7 @@ import {
   dayFocusMuscles,
   daySubtitle,
   positionBadge,
+  relativeDayBadge,
   shortDayTag
 } from '../main/ets/features/pencil/components/PlanTabModel'
 
@@ -63,9 +64,10 @@ function mkDay(dayLabel: string, exercises: ExerciseRef[]): TrainingDay {
 export default function planTabModelTest() {
   describe('PlanTabModel — 预置计划日卡映射', () => {
 
-    it('三分化：日卡与训练日一一对应，首日标记今日', 0, () => {
+    it('三分化：日卡与训练日一一对应，「今日」按真实星期落位', 0, () => {
       const plan: UserPlan = buildCurrentPlan('preset_ppl')
-      const items: PlanDayItem[] = buildPlanDayItemsFromUserPlan(plan)
+      // 固定注入周一：胸肩三头[1,4]=今日、背后束二头[2,5]=明日、腿[3,6]=后天。
+      const items: PlanDayItem[] = buildPlanDayItemsFromUserPlan(plan, 1)
 
       expect(items.length).assertEqual(plan.days.length)
       expect(items.length).assertEqual(3)
@@ -79,9 +81,22 @@ export default function planTabModelTest() {
       expect(items[2].badge).assertEqual('后天')
     })
 
+    it('「今日」徽标随注入星期移动，而不是恒标首卡', 0, () => {
+      const plan: UserPlan = buildCurrentPlan('preset_ppl')
+      // 注入周二：「今日」必须落在背后束二头（[2,5]）；胸肩三头覆盖[1,4]，
+      // 最近的周四是 2 天后 →「后天」；腿[3,6] 最近周三是 1 天后 →「明日」。
+      const items: PlanDayItem[] = buildPlanDayItemsFromUserPlan(plan, 2)
+
+      expect(items[0].badge).assertEqual('后天')
+      expect(items[0].today).assertFalse()
+      expect(items[1].badge).assertEqual('今日')
+      expect(items[1].today).assertTrue()
+      expect(items[2].badge).assertEqual('明日')
+    })
+
     it('预置计划动作按名称/肌群/组次/次数映射到日卡', 0, () => {
       const plan: UserPlan = buildCurrentPlan('preset_ppl')
-      const items: PlanDayItem[] = buildPlanDayItemsFromUserPlan(plan)
+      const items: PlanDayItem[] = buildPlanDayItemsFromUserPlan(plan, 1)
       const day: TrainingDay = plan.days[0]
       const first: ExerciseRef = day.exercises[0]
 
@@ -92,17 +107,41 @@ export default function planTabModelTest() {
       expect(items[0].exercises[0].reps).assertEqual(first.reps)
     })
 
-    it('五分化：周内日标签取首字，第五天徽标为「第 5 天」', 0, () => {
+    it('五分化：周内日标签取首字，第五天徽标为「4 天后」', 0, () => {
       const plan: UserPlan = buildCurrentPlan('preset_bro_split')
-      const items: PlanDayItem[] = buildPlanDayItemsFromUserPlan(plan)
+      const items: PlanDayItem[] = buildPlanDayItemsFromUserPlan(plan, 1)
 
       expect(items.length).assertEqual(5)
       expect(items[0].title).assertEqual('周一 胸部')
       expect(items[0].tag).assertEqual('胸')
       expect(items[4].title).assertEqual('周五 手臂')
       expect(items[4].tag).assertEqual('手')
-      expect(items[4].badge).assertEqual('第 5 天')
+      expect(items[4].badge).assertEqual('4 天后')
       expect(items[4].today).assertFalse()
+    })
+
+    it('无星期信息的计划回退按位置标今日', 0, () => {
+      const plan: UserPlan = buildCurrentPlan('preset_ppl')
+      const days: TrainingDay[] = [
+        mkDay('上肢A', [mkExercise('a', '胸部', 3, '8')]),
+        mkDay('下肢A', [mkExercise('b', '腿部', 3, '8')])
+      ]
+      const noWeekdayPlan: UserPlan = {
+        id: plan.id,
+        name: plan.name,
+        coverColor: plan.coverColor,
+        targetAudience: plan.targetAudience,
+        weeklyFrequency: plan.weeklyFrequency,
+        description: plan.description,
+        days: days,
+        enabledAt: 1
+      }
+      const items: PlanDayItem[] = buildPlanDayItemsFromUserPlan(noWeekdayPlan, 3)
+
+      expect(items[0].badge).assertEqual('今日')
+      expect(items[0].today).assertTrue()
+      expect(items[1].badge).assertEqual('明日')
+      expect(items[1].today).assertFalse()
     })
 
     it('预置计划日卡不带单次时长（副标题不留空尾段）', 0, () => {
@@ -147,6 +186,15 @@ export default function planTabModelTest() {
       expect(positionBadge(1)).assertEqual('明日')
       expect(positionBadge(2)).assertEqual('后天')
       expect(positionBadge(3)).assertEqual('第 4 天')
+    })
+
+    it('relativeDayBadge：按距今天数取相对日徽标，未知距离回退位置徽标', 0, () => {
+      expect(relativeDayBadge(0, 0)).assertEqual('今日')
+      expect(relativeDayBadge(1, 1)).assertEqual('明日')
+      expect(relativeDayBadge(2, 2)).assertEqual('后天')
+      expect(relativeDayBadge(3, 3)).assertEqual('3 天后')
+      expect(relativeDayBadge(6, 6)).assertEqual('6 天后')
+      expect(relativeDayBadge(-1, 2)).assertEqual('后天')
     })
   })
 }

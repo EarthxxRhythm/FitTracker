@@ -36,7 +36,7 @@ let lastProbeError: string = ''
 let sandboxModeForced: boolean = false
 
 /**
- * 测试环境强制沙盒模式：rawfile 中即使存在 agconnect-services.json（AGC 真配置，
+ * 测试环境强制沙盒模式：rawfile 中即使存在 supabase.json（真实云端配置，
  * Wave 5 已放入），测试也一律走沙盒认证 / 本地沙盒快照存储，不触真实云网络。
  * 由 ensureWarmup / acquireAuthSyncGate 自动调用（幂等）。
  */

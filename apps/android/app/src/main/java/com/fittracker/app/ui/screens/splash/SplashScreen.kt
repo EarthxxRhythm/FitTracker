@@ -31,6 +31,7 @@ import com.fittracker.app.R
 import com.fittracker.app.data.auth.AuthService
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
+import com.fittracker.app.data.service.AvatarImageService
 import com.fittracker.app.data.sync.SyncOrchestrator
 import com.fittracker.app.ui.components.FtBrandMark
 import com.fittracker.app.ui.theme.FtType
@@ -66,7 +67,11 @@ fun SplashScreen(
         if (loggedIn) {
             // 冷启动已登录：后台静默同步（源 `requestBackgroundSync`——自动同步开启时生效，
             // 失败不抛出；隐私政策第五节「冷启动已登录」上行时机的实现点）
-            SyncOrchestrator.requestBackgroundSync(store, SyncOrchestrator.forFilesDir(context.filesDir))
+            SyncOrchestrator.requestBackgroundSync(
+                store,
+                SyncOrchestrator.forFilesDir(context.filesDir),
+                AvatarImageService.resolveDir(context),
+            )
         }
         onNavigate(if (loggedIn) "home" else "login")
     }

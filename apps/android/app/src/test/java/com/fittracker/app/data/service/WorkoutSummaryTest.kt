@@ -9,7 +9,7 @@ import org.junit.Test
 import java.util.Calendar
 
 /**
- * Wave 3b 训练摘要 / 复盘洞察服务契约测试。
+ * Wave 3b 训练摘要 / 回顾洞察服务契约测试。
  *
  * 被测：`WorkoutSummaryService`（源 `shared/services/WorkoutSummaryService.ets`）与
  * `ReviewInsightsService`（源 `shared/services/ReviewInsightsService.ets`，行号见各断言注释）。

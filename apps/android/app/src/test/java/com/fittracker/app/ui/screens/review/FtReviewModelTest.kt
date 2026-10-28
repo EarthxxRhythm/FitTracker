@@ -188,13 +188,10 @@ class FtReviewModelTest {
     // ── 肌肉地图常量（原型 L1612-1627） ─────────────────────────
 
     @Test
-    fun `肌肉地图三档模式的 meta note 与标签指向原型资源`() {
+    fun `肌肉地图三档模式的 meta 与标签指向原型资源`() {
         assertEquals(R.string.review_muscle_meta_balance, FtReviewModel.mmMetaRes(MuscleMode.BALANCE))
         assertEquals(R.string.review_muscle_meta_fatigue, FtReviewModel.mmMetaRes(MuscleMode.FATIGUE))
         assertEquals(R.string.review_muscle_meta_strength, FtReviewModel.mmMetaRes(MuscleMode.STRENGTH))
-        assertEquals(R.string.review_muscle_note_balance, FtReviewModel.mmNoteRes(MuscleMode.BALANCE))
-        assertEquals(R.string.review_muscle_note_fatigue, FtReviewModel.mmNoteRes(MuscleMode.FATIGUE))
-        assertEquals(R.string.review_muscle_note_strength, FtReviewModel.mmNoteRes(MuscleMode.STRENGTH))
         assertEquals(R.string.review_muscle_mode_balance, FtReviewModel.mmLabelRes(MuscleMode.BALANCE))
         assertEquals(R.string.review_muscle_mode_fatigue, FtReviewModel.mmLabelRes(MuscleMode.FATIGUE))
         assertEquals(R.string.review_muscle_mode_strength, FtReviewModel.mmLabelRes(MuscleMode.STRENGTH))
@@ -203,18 +200,20 @@ class FtReviewModelTest {
     }
 
     @Test
-    fun `肌肉等级表按模式取值且范围 0 到 4`() {
-        assertEquals(4, FtReviewModel.muscleLevel(MuscleMode.BALANCE, "chest"))
-        assertEquals(4, FtReviewModel.muscleLevel(MuscleMode.BALANCE, "quadriceps"))
-        assertEquals(1, FtReviewModel.muscleLevel(MuscleMode.BALANCE, "tibialis"))
-        assertEquals(2, FtReviewModel.muscleLevel(MuscleMode.FATIGUE, "chest"))
-        assertEquals(4, FtReviewModel.muscleLevel(MuscleMode.FATIGUE, "gluteal"))
-        // 未列出的肌肉取 0（原型 `LEVELS[mmCurrent][k] || 0`）
-        assertEquals(0, FtReviewModel.muscleLevel(MuscleMode.BALANCE, "not-a-muscle"))
-        for (mode in MuscleMode.entries) {
-            for (k in FtReviewModel.MUSCLE_IDS) {
-                assertTrue("$mode/$k 超界", FtReviewModel.muscleLevel(mode, k) in 0..4)
-            }
+    fun `肌群等级按真实等级表取值且未知回落 0`() {
+        val levels = MutableList(FtReviewModel.MUSCLE_IDS.size) { 0 }
+        levels[FtReviewModel.MUSCLE_IDS.indexOf("chest")] = 4
+        levels[FtReviewModel.MUSCLE_IDS.indexOf("quadriceps")] = 2
+        levels[FtReviewModel.MUSCLE_IDS.indexOf("tibialis")] = 1
+        assertEquals(4, FtReviewModel.muscleLevel(levels, "chest"))
+        assertEquals(2, FtReviewModel.muscleLevel(levels, "quadriceps"))
+        assertEquals(1, FtReviewModel.muscleLevel(levels, "tibialis"))
+        assertEquals(0, FtReviewModel.muscleLevel(levels, "deltoids"))
+        // 未收录的 id、空等级表都回落 0（原型「未列出的肌肉取 0」的同语义）
+        assertEquals(0, FtReviewModel.muscleLevel(levels, "not-a-muscle"))
+        assertEquals(0, FtReviewModel.muscleLevel(emptyList(), "chest"))
+        for (id in FtReviewModel.MUSCLE_IDS) {
+            assertTrue("$id 超界", FtReviewModel.muscleLevel(levels, id) in 0..4)
         }
     }
 
@@ -243,20 +242,55 @@ class FtReviewModelTest {
         assertEquals(18, FtReviewModel.MUSCLE_IDS.size)
     }
 
-    /** 点选肌肉后详情行的取值（原型 selectMuscle，L1680-1704）。 */
+    /** 点选肌肉后详情行的取值（真实训练量派生，档位词口径同鸿蒙 `muscleStatWord`）。 */
     @Test
-    fun `点选肌肉的详情资源与参数按模式换算`() {
-        // 平衡模式：组数 = 等级 × 10 + 8
-        assertEquals(MuscleDetail(R.string.review_muscle_detail_sets, 48), FtReviewModel.muscleDetail(MuscleMode.BALANCE, "chest"))
-        assertEquals(MuscleDetail(R.string.review_muscle_detail_sets, 18), FtReviewModel.muscleDetail(MuscleMode.BALANCE, "tibialis"))
-        // 文案数组**按等级直接取下标**（不是从 1 开始）：lvl 2 → 索引 2
-        assertEquals(MuscleDetail(R.string.review_muscle_recovery_2), FtReviewModel.muscleDetail(MuscleMode.FATIGUE, "chest"))
-        assertEquals(MuscleDetail(R.string.review_muscle_recovery_1), FtReviewModel.muscleDetail(MuscleMode.FATIGUE, "calves"))
-        assertEquals(MuscleDetail(R.string.review_muscle_strength_1), FtReviewModel.muscleDetail(MuscleMode.STRENGTH, "tibialis"))
-        // lvl=4 越出四元素文案表，回落 `—`（原型 `[...][lvl] || '—'`）
-        assertEquals(MuscleDetail(R.string.review_muscle_detail_none), FtReviewModel.muscleDetail(MuscleMode.STRENGTH, "chest"))
-        // 索引 0 分支：等级表里没有 lvl=0 的肌肉，只有未知 id 能走到（原型 `|| 0`）
-        assertEquals(MuscleDetail(R.string.review_muscle_recovery_0), FtReviewModel.muscleDetail(MuscleMode.FATIGUE, "unknown"))
+    fun `点选肌肉的详情取真实组数并按下标映射档位词`() {
+        val levels = MutableList(FtReviewModel.MUSCLE_IDS.size) { 0 }
+        levels[FtReviewModel.MUSCLE_IDS.indexOf("chest")] = 4
+        levels[FtReviewModel.MUSCLE_IDS.indexOf("quadriceps")] = 2
+        levels[FtReviewModel.MUSCLE_IDS.indexOf("tibialis")] = 1
+        val volume = MutableList(FtReviewModel.MUSCLE_IDS.size) { 0 }
+        volume[FtReviewModel.MUSCLE_IDS.indexOf("chest")] = 17
+        volume[FtReviewModel.MUSCLE_IDS.indexOf("quadriceps")] = 9
+
+        // 平衡模式：显示该部位真实组数（不再 等级×10+8）
+        assertEquals(
+            MuscleDetail(R.string.review_muscle_detail_sets, 17),
+            FtReviewModel.muscleDetail(levels, volume, MuscleMode.BALANCE, "chest"),
+        )
+        assertEquals(
+            MuscleDetail(R.string.review_muscle_detail_sets, 9),
+            FtReviewModel.muscleDetail(levels, volume, MuscleMode.BALANCE, "quadriceps"),
+        )
+        assertEquals(
+            MuscleDetail(R.string.review_muscle_detail_sets, 0),
+            FtReviewModel.muscleDetail(levels, volume, MuscleMode.BALANCE, "tibialis"),
+        )
+        // 档位词按 level-1 取：4 档 → 「疲劳」/「强」；2 档 → 第 2 条；1 档 → 第 1 条
+        assertEquals(
+            MuscleDetail(R.string.review_muscle_recovery_3),
+            FtReviewModel.muscleDetail(levels, volume, MuscleMode.FATIGUE, "chest"),
+        )
+        assertEquals(
+            MuscleDetail(R.string.review_muscle_recovery_1),
+            FtReviewModel.muscleDetail(levels, volume, MuscleMode.FATIGUE, "quadriceps"),
+        )
+        assertEquals(
+            MuscleDetail(R.string.review_muscle_strength_0),
+            FtReviewModel.muscleDetail(levels, volume, MuscleMode.STRENGTH, "tibialis"),
+        )
+        // 0 档（无训练量）与未知 id → 「—」
+        assertEquals(
+            MuscleDetail(R.string.review_muscle_detail_none),
+            FtReviewModel.muscleDetail(levels, volume, MuscleMode.STRENGTH, "deltoids"),
+        )
+        assertEquals(
+            MuscleDetail(R.string.review_muscle_detail_none),
+            FtReviewModel.muscleDetail(levels, volume, MuscleMode.FATIGUE, "unknown"),
+        )
+        // 进度条仍按等级 × 25
+        assertEquals(100, FtReviewModel.muscleDetailPercent(levels, "chest"))
+        assertEquals(0, FtReviewModel.muscleDetailPercent(levels, "deltoids"))
     }
 
     // ── 估算 1RM（原型 L1352-1375） ──────────────────────────────
@@ -547,15 +581,32 @@ class FtReviewModelTest {
     }
 
     @Test
-    fun `肌群结论_按最高最低部位成文`() {
-        val labels = List(18) { "部位$it" }
+    fun `肌群结论返回最高与最低部位索引`() {
         val volume = MutableList(18) { 0 }
         volume[2] = 50
         volume[5] = 5
-        assertEquals("部位2训练量最高，部位5最少。", FtReviewModel.muscleSummary(volume, labels))
+        assertEquals(MuscleSummary(2, 5), FtReviewModel.muscleSummary(volume))
+        // 只有一处有训练量：最高即最低，UI 层用 minIndex == maxIndex 判定成「单一部位」文案
+        val single = MutableList(18) { 0 }
+        single[2] = 12
+        assertEquals(MuscleSummary(2, 2), FtReviewModel.muscleSummary(single))
+        // 无训练量：maxIndex = -1，hasData = false（UI 走空态文案）
+        val empty = FtReviewModel.muscleSummary(List(18) { 0 })
+        assertEquals(MuscleSummary(-1, -1), empty)
+        assertTrue(!empty.hasData)
+    }
+
+    @Test
+    fun `肌群级别_全部相同训练量时同为四级`() {
+        // 等级是相对量（相对最大值的分档），全相同 → 全 4；注释不得再声称「取中位 2」
+        assertEquals(List(18) { 4 }, FtReviewModel.muscleLevels(List(18) { 2 }))
+    }
+
+    @Test
+    fun `肌群详情_空等级表与空训练量回落 0`() {
         assertEquals(
-            "完成训练后，这里会显示肌群训练分布。",
-            FtReviewModel.muscleSummary(List(18) { 0 }, labels),
+            MuscleDetail(R.string.review_muscle_detail_sets, 0),
+            FtReviewModel.muscleDetail(emptyList(), emptyList(), MuscleMode.BALANCE, "chest"),
         )
     }
 
@@ -680,7 +731,7 @@ class FtReviewModelTest {
     }
 
     @Test
-    fun `概览徽标本周有训练但上周无基线时为首次复盘`() {
+    fun `概览徽标本周有训练但上周无基线时为首次回顾`() {
         val now = day(2026, 6, 10) // 周三
         val thisWeek = session(day(2026, 6, 8), durationSeconds = 1800, volumeSets = listOf(40.0 to 10))
         assertEquals(

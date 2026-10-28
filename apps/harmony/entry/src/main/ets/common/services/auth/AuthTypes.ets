@@ -1,7 +1,7 @@
 /**
  * AuthTypes —— 认证域公共类型与工厂函数。
  *
- * 供 AuthService 门面、AuthProvider 实现（Sandbox / AGC）与页面层共用。
+ * 供 AuthService 门面、AuthProvider 实现（Sandbox / Supabase）与页面层共用。
  * ArkTS 严格模式：显式类型 + 工厂函数构造（不依赖对象字面量推断）。
  */
 

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * TrainingPlanService —— 训练计划服务
  *
  * 功能 #7: 提供 4 套按分化数成套的预置训练计划数据（二/三/四/五分化），每套包含训练日及动作清单
@@ -6,6 +6,7 @@
  * 预置计划为只读模板，启用时通过克隆生成用户计划
  */
 import { preferences } from '@kit.ArkData'
+import { util } from '@kit.ArkTS'
 import GoalRepository from '../../shared/services/GoalRepository'
 import PlanEngine from '../../shared/services/PlanEngine'
 import ContentRepository from '../../shared/services/ContentRepository'
@@ -40,6 +41,15 @@ export interface UserPlan extends PresetPlan {
 const STORE_NAME = 'fit_tracker_plans'
 const KEY_MY_PLANS = 'my_plans'
 const KEY_CURRENT_PLAN_ID = 'current_plan_id'
+
+/**
+ * preferences 单个字符串值的上限是 8192 字节（超限时 put/flush 抛错）。
+ * my_plans 存的是完整计划的 JSON，一套预置计划约 1.8-2.4 KB，旧实现每次「使用此计划」
+ * 都往数组里 push 一份新副本，切换 4 次就把这个值顶到 8 KB 附近，再切换就写不进去——
+ * 表现正是「计划组切换功能没用」（toast 说成功，重启后仍是旧计划）。
+ * 这里留出安全余量，写入前主动裁剪，保证指针一定能落地。
+ */
+const MAX_MY_PLANS_JSON_BYTES = 7000
 
 // ============================================================
 // Builder functions — ensure all object literals have explicit types
@@ -261,6 +271,55 @@ function getDayNumberFromLabel(label: string): number {
   return -1
 }
 
+/**
+ * 今天对应的训练日索引（计划 tab / 计划组详情 / 训练预览共用这一份口径）：
+ * 先按 dayOfWeek 匹配，缺失时按 dayLabel 中的「周X」兜底；无匹配返回 -1（休息日）。
+ */
+export function resolveTodayTrainingIndex(days: TrainingDay[], todayWeekday: number): number {
+  for (let index = 0; index < days.length; index++) {
+    const weekdays: number[] | undefined = days[index].dayOfWeek
+    if (weekdays !== undefined && weekdays.length > 0 && weekdays.indexOf(todayWeekday) >= 0) {
+      return index
+    }
+  }
+  for (let index = 0; index < days.length; index++) {
+    if (getDayNumberFromLabel(days[index].dayLabel) === todayWeekday) {
+      return index
+    }
+  }
+  return -1
+}
+
+/**
+ * 某训练日距今天最近一次是几天后（0=今天，1..6）；该日既无 dayOfWeek 也无法从
+ * dayLabel 解析出星期时返回 -1（调用方回退到按位置的徽标）。
+ */
+export function resolveDayDistance(day: TrainingDay, todayWeekday: number): number {
+  const weekdays: number[] = []
+  if (day.dayOfWeek !== undefined) {
+    for (let index = 0; index < day.dayOfWeek.length; index++) {
+      weekdays.push(day.dayOfWeek[index])
+    }
+  }
+  if (weekdays.length === 0) {
+    const labelWeekday: number = getDayNumberFromLabel(day.dayLabel)
+    if (labelWeekday >= 0) {
+      weekdays.push(labelWeekday)
+    }
+  }
+  if (weekdays.length === 0) {
+    return -1
+  }
+  let best: number = 7
+  for (let index = 0; index < weekdays.length; index++) {
+    const distance: number = (weekdays[index] - todayWeekday + 7) % 7
+    if (distance < best) {
+      best = distance
+    }
+  }
+  return best
+}
+
 // ============================================================
 // Service class
 // ============================================================
@@ -279,6 +338,33 @@ class TrainingPlanService {
 
   getPlanCount(): number {
     return PRESET_PLANS.length
+  }
+
+  /**
+   * 反查某个用户计划对应的预置计划 id；自定义计划返回空串。
+   *
+   * 判断「当前计划是不是这一套」必须按身份（预置 id）而不是显示名：
+   * 同名计划可能存有多份历史副本，用 name 比较会把「已在使用」标到别的计划组上。
+   */
+  getPresetIdForPlan(plan: UserPlan): string {
+    if (this.getPresetPlanById(plan.id) !== undefined) {
+      return plan.id
+    }
+    for (let index = 0; index < PRESET_PLANS.length; index++) {
+      if (PRESET_PLANS[index].name === plan.name) {
+        return PRESET_PLANS[index].id
+      }
+    }
+    return ''
+  }
+
+  /** 当前计划的预置 id（无当前计划或自定义计划返回空串）。 */
+  async getCurrentPresetId(context: Context): Promise<string> {
+    const current: UserPlan | null = await this.getCurrentPlan(context)
+    if (current === null) {
+      return ''
+    }
+    return this.getPresetIdForPlan(current)
   }
 
   async enablePlan(context: Context, presetId: string): Promise<UserPlan | null> {
@@ -317,10 +403,18 @@ class TrainingPlanService {
     return this.enableUserPlan(context, userPlan)
   }
 
+  /**
+   * 启用（切换）一份计划。
+   *
+   * 语义是「单活动计划」：my_plans 里只保留刚启用的这一份。
+   * 旧实现是 `myPlans.push(nextPlan)` —— 每切换一次就多一份完整计划副本，
+   * 把 my_plans 的 JSON 顶到 preferences 8 KB 上限之后写入静默失败，切换就「没用」了。
+   * 应用里没有「我的计划」多份管理界面（removeMyPlan 无 UI 调用方），
+   * 保留历史副本没有消费方，只保留当前计划即可。
+   */
   async enableUserPlan(context: Context, userPlan: UserPlan): Promise<UserPlan | null> {
-    const myPlans = await this.getMyPlans(context)
     const nextPlan: UserPlan = this.copyUserPlan(userPlan)
-    myPlans.push(nextPlan)
+    const myPlans: UserPlan[] = [nextPlan]
     await this.replaceMyPlans(context, myPlans, nextPlan.id)
     return nextPlan
   }
@@ -342,6 +436,12 @@ class TrainingPlanService {
       const currentId = await this.getCurrentPlanId(context)
       if (!currentId) {
         return null
+      }
+      // 指针也可以直接是预置 id（例如从备份包恢复当前计划时）——按预置定义即时重建，
+      // 不必依赖 my_plans 里存着那份完整副本。
+      const presetCurrent: PresetPlan | undefined = this.getPresetPlanById(currentId)
+      if (presetCurrent !== undefined) {
+        return this.createUserPlanFromPreset(presetCurrent)
       }
       const myPlans = await this.getMyPlans(context)
       const currentPlan: UserPlan | undefined = myPlans.find(p => p.id === currentId)
@@ -366,9 +466,10 @@ class TrainingPlanService {
   }
 
   async replaceMyPlans(context: Context, plans: UserPlan[], currentPlanId: string): Promise<void> {
-    const nextPlans: UserPlan[] = this.copyUserPlans(plans)
+    const nextPlans: UserPlan[] = this.trimToStorageBudget(this.copyUserPlans(plans))
     let nextCurrentPlanId: string = currentPlanId
-    if (!this.containsPlanId(nextPlans, nextCurrentPlanId)) {
+    // 预置 id 也是合法指针（等价于「用这套预置计划」），不要被下面的兜底改写掉。
+    if (!this.containsPlanId(nextPlans, nextCurrentPlanId) && this.getPresetPlanById(nextCurrentPlanId) === undefined) {
       nextCurrentPlanId = nextPlans.length > 0 ? nextPlans[0].id : ''
     }
 
@@ -376,12 +477,74 @@ class TrainingPlanService {
     this.localCurrentPlanId = nextCurrentPlanId
 
     try {
-      const prefs = await preferences.getPreferences(context, STORE_NAME)
-      await prefs.put(KEY_MY_PLANS, JSON.stringify(nextPlans))
-      await prefs.put(KEY_CURRENT_PLAN_ID, nextCurrentPlanId)
-      await prefs.flush()
+      await this.writePlans(context, nextPlans, nextCurrentPlanId)
     } catch (e) {
+      // 一次降级重试：宁可丢掉历史副本，也要保证「当前计划指针 + 当前计划」能落盘。
+      const minimalPlans: UserPlan[] = this.keepOnlyCurrentPlan(nextPlans, nextCurrentPlanId)
+      try {
+        await this.writePlans(context, minimalPlans, nextCurrentPlanId)
+      } catch (retryError) {
+        // 两次都失败时保留内存态（localPlans/localCurrentPlanId），本次会话内仍能读到新计划。
+      }
     }
+  }
+
+  private async writePlans(context: Context, plans: UserPlan[], currentPlanId: string): Promise<void> {
+    const prefs = await preferences.getPreferences(context, STORE_NAME)
+    await prefs.put(KEY_MY_PLANS, JSON.stringify(plans))
+    await prefs.put(KEY_CURRENT_PLAN_ID, currentPlanId)
+    await prefs.flush()
+  }
+
+  /**
+   * 写入前裁剪 my_plans：先按名称去重（保留最新一份），再按 preferences 单值上限收敛。
+   *
+   * 这里同时兜住老数据：历史版本每次切换都 push 一份副本，设备上可能已经堆了
+   * 4-8 KB 的同名副本，靠这一次写入把数组收敛回 1-2 份，恢复可写状态。
+   */
+  private trimToStorageBudget(source: UserPlan[]): UserPlan[] {
+    const deduped: UserPlan[] = []
+    for (let index = 0; index < source.length; index++) {
+      const plan: UserPlan = source[index]
+      let replaced: boolean = false
+      for (let kept = 0; kept < deduped.length; kept++) {
+        if (deduped[kept].name === plan.name) {
+          deduped[kept] = plan
+          replaced = true
+          break
+        }
+      }
+      if (!replaced) {
+        deduped.push(plan)
+      }
+    }
+
+    while (deduped.length > 1 && this.jsonByteLength(deduped) > MAX_MY_PLANS_JSON_BYTES) {
+      deduped.shift()
+    }
+    return deduped
+  }
+
+  private jsonByteLength(plans: UserPlan[]): number {
+    const text: string = JSON.stringify(plans)
+    try {
+      const encoder: util.TextEncoder = new util.TextEncoder()
+      return encoder.encodeInto(text).length
+    } catch (e) {
+      // 极端环境下退化为字符数估算（中文按 3 字节放大）。
+      return text.length * 3
+    }
+  }
+
+  private keepOnlyCurrentPlan(plans: UserPlan[], currentPlanId: string): UserPlan[] {
+    const kept: UserPlan[] = []
+    for (let index = 0; index < plans.length; index++) {
+      if (plans[index].id === currentPlanId) {
+        kept.push(plans[index])
+        break
+      }
+    }
+    return kept
   }
 
   async setCurrentPlan(context: Context, planId: string): Promise<void> {
@@ -411,22 +574,11 @@ class TrainingPlanService {
   }
 
   getTodayTraining(plan: UserPlan): TrainingDay | null {
-    const today = new Date().getDay() // 0=Sun, 1=Mon ... 6=Sat
-    for (let day of plan.days) {
-      if (day.dayOfWeek && day.dayOfWeek.length > 0) {
-        if (day.dayOfWeek.includes(today)) {
-          return day
-        }
-      }
+    const index: number = resolveTodayTrainingIndex(plan.days, new Date().getDay())
+    if (index < 0) {
+      return null
     }
-    // Fallback: try matching from dayLabel
-    for (let day of plan.days) {
-      const dayNum = getDayNumberFromLabel(day.dayLabel)
-      if (dayNum === today) {
-        return day
-      }
-    }
-    return null
+    return plan.days[index]
   }
 
   isTrainingDay(plan: UserPlan): boolean {
@@ -445,6 +597,21 @@ class TrainingPlanService {
       }
     }
     return false
+  }
+
+  /** 由预置定义即时重建用户计划（id 用预置 id，保证多次读取稳定）。 */
+  private createUserPlanFromPreset(preset: PresetPlan): UserPlan {
+    const plan: UserPlan = {
+      id: preset.id,
+      name: preset.name,
+      coverColor: preset.coverColor,
+      targetAudience: preset.targetAudience,
+      weeklyFrequency: preset.weeklyFrequency,
+      description: preset.description,
+      days: this.copyTrainingDays(preset.days),
+      enabledAt: 0
+    }
+    return plan
   }
 
   private createUserPlan(

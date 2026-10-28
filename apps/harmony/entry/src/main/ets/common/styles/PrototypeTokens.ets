@@ -95,7 +95,7 @@ export class PrototypeTokens {
   static readonly STAT_BG: string = '#14181E'
   /** `--streak-bg` / `--streak-surface` 连续天数卡底 */
   static readonly STREAK_BG: string = '#171C23'
-  /** `--surface-stat` 复盘统计面 */
+  /** `--surface-stat` 回顾统计面 */
   static readonly SURFACE_STAT: string = '#171D24'
   /** `--complete-bg` / `--canvas` 完成页底 */
   static readonly COMPLETE_BG: string = '#07100F'

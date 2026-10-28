@@ -35,7 +35,7 @@ data class ReviewWeeklyTrendItem(
 )
 
 /**
- * 复盘洞察服务——逐函数移植自鸿蒙 `shared/services/ReviewInsightsService.ets`。
+ * 回顾洞察服务——逐函数移植自鸿蒙 `shared/services/ReviewInsightsService.ets`。
  *
  * Function #14（最近训练筛选 + 周趋势详情）。无状态单例，复用 `ReviewService`（完成率/训练量）
  * 与 `WorkoutSummaryService.formatDuration`（时长文案），最近记录模型 `ReviewRecentSessionRecord`

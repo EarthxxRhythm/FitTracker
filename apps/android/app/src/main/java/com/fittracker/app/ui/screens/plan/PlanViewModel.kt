@@ -98,10 +98,13 @@ class PlanViewModel(application: Application) : AndroidViewModel(application) {
         val current = TrainingPlanRepository.getCurrentPlan(store)
         if (current != null) {
             planId = current.id
-            // 动作清单以「计划组」的预设计划为准（同名匹配）：落盘副本是启用当刻的克隆，
+            // 动作清单以「计划组」的预设计划为准：落盘副本是启用当刻的克隆，
             // 预设模板更新后两份会漂移——设备实测同名「三分化 · 谭成义」计划组详情 5 个动作、
             // 计划页只有 3 个（日标签还停在旧版「拉」）。两处必须同源。
-            val preset = TrainingPlanRepository.getAllPresetPlans().firstOrNull { it.name == current.name }
+            // 身份解析收口到仓储（`getPresetIdForPlan`，按计划名回查预置表），
+            // 与计划组详情页的 isCurrent 判定共用同一真源，避免两套匹配口径再漂移。
+            val presetId: String = TrainingPlanRepository.getPresetIdForPlan(current)
+            val preset = if (presetId.isEmpty()) null else TrainingPlanRepository.getPresetPlanById(presetId)
             days = if (preset != null) ftPlanDaysFromPreset(preset) else ftPlanDaysFromUserPlan(current)
             planName = current.name.ifEmpty { res.getString(R.string.plan_fallback_name) }
             planMeta = res.getString(

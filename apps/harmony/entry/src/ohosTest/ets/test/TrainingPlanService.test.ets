@@ -1,4 +1,4 @@
-﻿/**
+/**
  * TrainingPlanService 单元测试
  * 覆盖 4 个预设分化计划结构、getTodayTraining、getTodayLabel、isTrainingDay
  *
@@ -255,6 +255,47 @@ export default function trainingPlanServiceTest(): void {
           expect(currentPlan.name).assertEqual(enabledPlan.name)
           expect(currentPlan.days.length).assertEqual(3)
           expect(currentPlan.id === 'preset_ppl').assertFalse()
+        }
+
+        await trainingPlanService.replaceMyPlans(getTestContext(), [], '')
+      })
+
+      // 回归：计划组切换无效。
+      // 旧实现每次启用都 push 一份完整计划副本，my_plans 的 JSON 随切换次数线性膨胀，
+      // 顶到 preferences 单值 8 KB 上限后 put/flush 抛错被吞，切换静默失效。
+      it('switches between preset groups repeatedly and keeps one current plan', 0, async () => {
+        await trainingPlanService.replaceMyPlans(getTestContext(), [], '')
+
+        const first: UserPlan | null = await trainingPlanService.enablePlan(getTestContext(), 'preset_upper_lower')
+        const second: UserPlan | null = await trainingPlanService.enablePlan(getTestContext(), 'preset_bro_split')
+        const third: UserPlan | null = await trainingPlanService.enablePlan(getTestContext(), 'preset_ppl')
+
+        const current: UserPlan | null = await trainingPlanService.getCurrentPlan(getTestContext())
+        const myPlans: UserPlan[] = await trainingPlanService.getMyPlans(getTestContext())
+        const presetId: string = await trainingPlanService.getCurrentPresetId(getTestContext())
+
+        expect(first !== null && second !== null && third !== null).assertTrue()
+        expect(presetId).assertEqual('preset_ppl')
+        if (current !== null && third !== null) {
+          expect(current.id).assertEqual(third.id)
+          expect(current.name).assertEqual('三分化 · 谭成义')
+          expect(current.days.length).assertEqual(3)
+        }
+        // 单活动计划：不再累积历史副本，存的值始终只有一份计划的体量。
+        expect(myPlans.length).assertEqual(1)
+        expect(JSON.stringify(myPlans).length < 4096).assertTrue()
+
+        await trainingPlanService.replaceMyPlans(getTestContext(), [], '')
+      })
+
+      it('resolves preset identity instead of comparing display names', 0, async () => {
+        await trainingPlanService.enablePlan(getTestContext(), 'preset_split_4')
+        const current: UserPlan | null = await trainingPlanService.getCurrentPlan(getTestContext())
+
+        expect(current !== null).assertTrue()
+        if (current !== null) {
+          expect(trainingPlanService.getPresetIdForPlan(current)).assertEqual('preset_split_4')
+          expect(trainingPlanService.getPresetIdForPlan(current) === 'preset_ppl').assertFalse()
         }
 
         await trainingPlanService.replaceMyPlans(getTestContext(), [], '')

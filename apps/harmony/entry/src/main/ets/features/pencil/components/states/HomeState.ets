@@ -93,7 +93,8 @@ export class HomeState extends StateBase {
       this.weeklyPlannedDays = summary.weeklyDays
     } else if (goal !== undefined) {
       const plan: TrainingPlan = PlanEngine.generatePlan(goal)
-      const daySeed: number = this.createDaySeed(goal.createdAt, now)
+      // 与训练预览同口径的目标日种子（createDaySeedFromGoal），保证两处的「今日训练」是同一天。
+      const daySeed: number = HomePlanService.createDaySeedFromGoal(goal.createdAt, now)
       const summary: HomePlanSummary = HomePlanService.createSummary(goal, plan, daySeed)
       const todayDay: PlanDay | undefined = HomePlanService.pickTodayDay(plan, daySeed)
       this.todayTitle = summary.todayTitle
@@ -159,14 +160,6 @@ export class HomeState extends StateBase {
       return this.todayDurationMinutes.toString()
     }
     return this.todayMuscleGroupCount.toString()
-  }
-
-  private createDaySeed(goalCreatedAt: number, now: number): number {
-    const dayCount: number = Math.floor((now - goalCreatedAt) / 86400000) + 1
-    if (dayCount < 1) {
-      return 1
-    }
-    return dayCount
   }
 
   private createProgressPercent(completed: number, planned: number): number {

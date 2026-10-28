@@ -13,6 +13,7 @@ import TrainingPlanService, { UserPlan } from '../../../common/services/Training
 import { WorkoutPreviewExercise, WorkoutPreviewSummary } from '../../../shared/services/WorkoutPreviewService'
 import GoalRepository from '../../../shared/services/GoalRepository'
 import PlanEngine from '../../../shared/services/PlanEngine'
+import HomePlanService from '../../../shared/services/HomePlanService'
 import WorkoutPreviewService from '../../../shared/services/WorkoutPreviewService'
 import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 
@@ -50,17 +51,6 @@ export struct PencilPreviewContent {
       return null
     }
     return hostContext as Context
-  }
-
-  private resolveDaySeed(): number {
-    const now: Date = new Date()
-    const startOfYear: Date = new Date(now.getFullYear(), 0, 0)
-    const millisPerDay: number = 24 * 60 * 60 * 1000
-    const dayOfYear: number = Math.floor((now.getTime() - startOfYear.getTime()) / millisPerDay)
-    if (dayOfYear < 1) {
-      return 1
-    }
-    return dayOfYear
   }
 
   private resolveDayBadge(dayId: string): string {
@@ -109,7 +99,7 @@ export struct PencilPreviewContent {
     try {
       const context: Context | null = this.getHostContextOrNull()
       if (context === null) {
-        this.emptyMessage = '暂时无法读取训练目标，请稍后重试'
+        this.emptyMessage = '暂时无法读取训练计划，请稍后重试'
         return
       }
       // 数据源优先级与「计划」Tab / 首页一致：① 计划组已启用的预置计划 → ② 目标生成计划。
@@ -125,11 +115,13 @@ export struct PencilPreviewContent {
       } else {
         const goal: UserGoal | undefined = await GoalRepository.loadGoal(context)
         if (goal === undefined) {
-          this.emptyMessage = '尚未设置训练目标，请先完成目标设置'
+          this.emptyMessage = '尚未启用训练计划，请先到「计划」页选择并启用一套计划'
           return
         }
         const plan: TrainingPlan = PlanEngine.generatePlan(goal)
-        const daySeed: number = this.resolveDaySeed()
+        // 与首页同口径的目标日种子：预览历史上用「年内第几天」循环选天，
+        // 首页用「目标创建至今第几天」，同一个今日训练日两处算出不同的动作清单。
+        const daySeed: number = HomePlanService.createDaySeedFromGoal(goal.createdAt, Date.now())
         summary = WorkoutPreviewService.createPreview(plan, daySeed)
       }
       // 当前计划在休息日不返回具体训练日（dayId 为空），此时不显示误导性的「Day 01」。
@@ -249,6 +241,8 @@ export struct PencilPreviewContent {
         .fontSize(11)
         .fontColor(PrototypeTokens.ACCENT)
         .letterSpacing(2)
+        // 数据异步加载前后 badge 可能从 'Day 01' 变为空（休息日），预留行高避免 hero 高度跳变。
+        .constraintSize({ minHeight: 16 })
 
       Text(this.dayTitle)
         .fontFamily('Noto Sans SC')
@@ -256,6 +250,8 @@ export struct PencilPreviewContent {
         .fontWeight(FontWeight.Bold)
         .fontColor(PrototypeTokens.TEXT_HI)
         .margin({ top: 8 })
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
 
       Text(this.daySubtitle)
         .fontFamily('Noto Sans SC')
@@ -263,6 +259,10 @@ export struct PencilPreviewContent {
         .fontWeight(FontWeight.Medium)
         .fontColor(PrototypeTokens.WHITE_A54)
         .margin({ top: 8 })
+        // 副标题异步到达，首帧为空串；预留一行高度，防止加载完成后把动作清单区顶高。
+        .constraintSize({ minHeight: 20 })
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
 
       Stack({ alignContent: Alignment.Center }) {
         Image($rawfile('pencil-lucide-activity.svg'))
@@ -383,7 +383,12 @@ export struct PencilPreviewContent {
             this.ctaPressed = false
           }
         })
-        .scale({ x: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1 })
+        // Duolingo 硬边厚底：按下收平 + 下沉，替代缩放按压
+        .border({
+          width: { bottom: this.ctaPressed ? 0 : MotionTokens.PRESS_DEPTH },
+          color: { bottom: PrototypeTokens.ACCENT_DEEP }
+        })
+        .translate({ y: this.ctaPressed ? MotionTokens.PRESS_SHIFT : 0 })
         .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
     }
     .width('100%')

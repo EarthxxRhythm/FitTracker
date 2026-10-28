@@ -3,9 +3,10 @@
 > 本目录是「app 后端从 supabase.com 搬到自己服务器」的可复现资产。
 > 完整实施计划见 `.rivet/plans/fittracker-后端自建服务器部署-自托管-supabase-数据迁移.md`。
 >
-> **当前部署状态（2026-10-10 实测）**：服务器 `106.55.37.80`（腾讯云 Lighthouse，Ubuntu 24.04 / 4C4G）
-> 全套栈 + sms-hook + Caddy 已上线运行；`https://api.earthrhythm.cloud` 外网 HTTPS 验证通过
-> （匿名 401 / 带 key 200 / 证书 Let's Encrypt）。数据迁移与本机 app 切流待执行。
+> **当前部署状态（2026-10-28 实测）**：服务器 `106.55.37.80`（腾讯云 Lighthouse，Ubuntu 24.04 / 4C4G）
+> 13 个容器 + sms-hook + Caddy 稳定运行；`https://api.earthrhythm.cloud` **仅 443 单入口**外网验证通过
+> （匿名 401 / 带 key 200 / Let's Encrypt 证书 2027-01-08 到期），临时入口 `:8443` 已于同日退役。
+> 数据迁移已于 10-11 完成（快照级），双端切流完成，线上主账号在用（`auth.users` 4 / `public.snapshots` 2）。
 
 ## 架构一览
 
@@ -26,7 +27,7 @@ Android App ──HTTPS──> Caddy(自动 TLS, --network host) ──┬──
 | `/opt/fittracker/backup/` | 每日 pg_dump 备份 + `daily.sh`（cron 03:30） |
 | `/opt/fittracker/migrate/` | 迁移脚本与（未来的）dump 文件 |
 | `/opt/fittracker/studio-password.txt` | Supabase Studio 管理密码（600） |
-| `/opt/fittracker/deploy-src/` | 本目录在服务器上的副本（保持同步） |
+| `/opt/fittracker/deploy-src/` | 本目录（部署资产/模板）在服务器上的副本；其中 `Caddyfile` 保留 `api.example.com` 占位符，**不是**运行时配置——运行时在 `/opt/fittracker/caddy/Caddyfile`（域名已替换、无注释） |
 
 ## 文件说明
 
@@ -133,6 +134,15 @@ sg docker -c 'cd /opt/supabase/docker && docker compose up -d auth'
 
 ### Wave 5 · 数据迁移
 
+> **⚠ 本 Wave 已失效（2026-10-28 核实）**：旧项目 `ixzozsqaprtquwxzhdsm.supabase.co` 已被删除，
+> `db.ixzozsqaprtquwxzhdsm.supabase.co` 与 `ixzozsqaprtquwxzhdsm.supabase.co` 在本机与服务器两侧
+> 均返回 `Non-existent domain`，源端已不可达。本流程仅作历史存档。
+>
+> 实际执行的是**快照级手工迁移**（10-11）：当时旧库仅 1 条快照（1 计划 / 2 次训练 / `preset_ppl`），
+> 已并入线上主账号 `5f54f358-197b-4ab0-957f-43f6c9d05271`，其现存快照 7 条 session 的前两条
+> 即旧数据（`session_1791545625627`、`session_1791545860849`，10-08 训练）。现存副本归档于
+> `/opt/fittracker/migrate/archive/`（权限 600）。
+
 ```bash
 # 导出（在能连旧库的机器上，需 Node/npx）
 cd <本目录>/migrate
@@ -188,7 +198,7 @@ sg docker -c 'docker compose pull && docker compose up -d'
 - 密钥轮换：`utils/generate-keys.sh --update-env` / `utils/add-new-auth-keys.sh --update-env` → `docker compose up -d`；
   hook secret 两端（docker-compose.yml ↔ sms-hook.env）同步换。
 - 阿里云 AK 轮换：RAM 控制台「创建 AccessKey」→ 更新 `sms-hook.env` → `docker restart fittracker-sms-hook`。
-- 迁移 dump 文件含全部用户数据，验证后删除或加密留存。
+- 迁移 dump 文件含全部用户数据，验证后删除或加密留存。现存副本已归档至 `/opt/fittracker/migrate/archive/`（权限 600）；`old_db_url.txt`（含已失效库的明文密码）已于 2026-10-28 删除。
 
 ## 实测记录（执行期发现，与初版计划的偏差）
 
@@ -203,3 +213,7 @@ sg docker -c 'docker compose pull && docker compose up -d'
 | ⑦ | swap：平台预置 ~2G 已足够（未按计划再加 4G） | 保留平台配置，稳态观测内存充裕 |
 | ⑧ | GoTrue 短信 OTP 默认有效期仅 **60 秒**，与阿里云模板文案「5分钟内有效」不符（真人/自动化都极易超时） | compose 第 197 行改字面量 `GOTRUE_SMS_OTP_EXP: "300"` 并 `docker compose up -d auth`；实测 OTP 生成后 **120 秒**提交仍返回 200（旧值下 62 秒即 `otp_expired`/403） |
 | ⑨ | 取 OTP 明文做免真机验证：宿主 `lo` 抓不到 sms-hook 流量（Docker 端口映射不经该接口）；`nohup`/`setsid`/`systemd-run` 三种方式的后台 tcpdump 都活不过 ssh 会话结束 | 用 `sudo nsenter -t $(docker inspect -f '{{.State.Pid}}' fittracker-sms-hook) -n tcpdump -i any -s 0 'tcp port 8787' -w /tmp/otp.pcap`，且**抓包与触发必须在同一 ssh 会话内**；必须 `-w` 写盘（stdout 走管道会全缓冲，读不到内容） |
+| ⑩ | 旧 supabase.com 项目 `ixzozsqaprtquwxzhdsm` 在快照级迁移完成后被删除，`db.*` 与 API 域名两侧均 `Non-existent domain` | 迁移判为已完成；`old_db_url.txt` 已删（凭据失效且属敏感信息），快照副本移入 `archive/`（600）；Wave 5 与状态行已同步标注 |
+| ⑪ | `supabase.json` 与 `supabase.json.disabled` 内容完全一致（MD5 `68bfa1a2…`，同一分钟生成），系启停操作残留 | 删除 `.disabled`；`CloudEnvironment.getBackend()` 只判 `supabase.json` 存在性，冗余副本会在后端切换时造成误判 |
+| ⑫ | `:8443` 曾是 443 就绪前的临时入口（Caddy 同站点双监听 `api.earthrhythm.cloud, https://api.earthrhythm.cloud:8443`），双端凭据均写死该端口 | **2026-10-28 已退役**：双端改 443 并重新打包（HAP 37 MB / apk 30 MB，产物内 URL 已核对）；Caddyfile 去除 8443；`ufw delete allow 8443/tcp`。443 复验 health 200 / snapshots 200 / sms-hook 401，8443 外部超时。⚠ 腾讯云控制台防火墙的 8443 规则需在控制台另行删除 |
+| ⑬ | 单文件 bind mount 下 `sed -i` 修改 `/opt/fittracker/caddy/Caddyfile`，容器内 `/etc/caddy/Caddyfile` 仍是旧 inode（MD5 不同）；`caddy reload` 报成功、`caddy validate` 报 Valid，但 8443 继续监听 | 改配置后必须 `docker restart fittracker-caddy` 才对容器生效；`caddy validate` 校验的是容器内旧文件，**不可**作为生效判据。判据应为「宿主与容器 MD5 一致」+「`ss -ltn` 无 8443」 |

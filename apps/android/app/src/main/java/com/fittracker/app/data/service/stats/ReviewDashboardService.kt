@@ -37,7 +37,7 @@ data class ReviewTrendSummary(
     val summaryText: String,
 )
 
-/** 复盘面板汇总（源 `ReviewDashboardService.ets:15` `ReviewDashboardSummary`）。 */
+/** 回顾面板汇总（源 `ReviewDashboardService.ets:15` `ReviewDashboardSummary`）。 */
 data class ReviewDashboardSummary(
     val hasSessions: Boolean,
     val sessionCount: Int,
@@ -76,9 +76,9 @@ data class ReviewPlanRegenerationResult(
 )
 
 /**
- * 复盘面板聚合——逐函数移植自鸿蒙 `shared/services/ReviewDashboardService.ets`。
+ * 回顾面板聚合——逐函数移植自鸿蒙 `shared/services/ReviewDashboardService.ets`。
  *
- * Feature #12（复盘面板 + 下次调整提示）、Feature #14（最近记录 + 历史趋势）。
+ * Feature #12（回顾面板 + 下次调整提示）、Feature #14（最近记录 + 历史趋势）。
  *
  * 完成率阈值：`< 70 → reduce_load`；`>= 95 → increase_load`；否则 `keep_plan`
  * （源 `getAdjustmentHint` `:407`）。趋势窗口 2、最近记录上限 5。

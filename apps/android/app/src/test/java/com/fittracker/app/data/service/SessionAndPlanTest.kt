@@ -238,6 +238,64 @@ class SessionAndPlanTest {
         assertNull(TrainingPlanRepository.getCurrentPlan(store))
     }
 
+    // --- 切换语义回归（真机缺陷「计划组切换功能没用」） -----------------------
+
+    @Test
+    fun `重复启用预置计划_落盘恒为单份当前计划`() = runBlocking {
+        val store = createStore()
+
+        val first: UserPlan = TrainingPlanRepository.enablePlan(store, "preset_ppl")!!
+        val second: UserPlan = TrainingPlanRepository.enablePlan(store, "preset_upper_lower")!!
+
+        // 旧实现每次切换追加一份完整克隆（鸿蒙侧因此撑爆单值上限、写入静默失败）：
+        // 现语义「切换 = 整块替换为这一份」，重复切换后落盘只有当前这一份。
+        TrainingPlanRepository.clearLocal()
+        val plans = TrainingPlanRepository.getMyPlans(store)
+        assertEquals(1, plans.size)
+        assertEquals(second.id, plans[0].id)
+        assertEquals(second.id, TrainingPlanRepository.getCurrentPlanId(store))
+        assertEquals("二分化（上下肢）", TrainingPlanRepository.getCurrentPlan(store)!!.name)
+
+        // 内存缓存与落盘一致（防回落缓存谎报旧值）
+        assertEquals(1, TrainingPlanRepository.getMyPlans(store).size)
+        assertTrue(first.id != second.id)
+    }
+
+    @Test
+    fun `预置身份解析_克隆副本回查到来源预置id`() = runBlocking {
+        val store = createStore()
+
+        // 无当前计划 → 空串
+        assertEquals("", TrainingPlanRepository.getCurrentPresetId(store))
+
+        val enabled: UserPlan = TrainingPlanRepository.enablePlan(store, "preset_split_4")!!
+        // 克隆 id 是 user_plan_<时间戳>，不是预置 id——身份靠计划名回查预置表
+        assertTrue(enabled.id.startsWith("user_plan_"))
+        assertEquals("preset_split_4", TrainingPlanRepository.getPresetIdForPlan(enabled))
+        assertEquals("preset_split_4", TrainingPlanRepository.getCurrentPresetId(store))
+
+        // 自定义计划（名字不在预置表）→ 空串
+        assertEquals(
+            "",
+            TrainingPlanRepository.getPresetIdForPlan(samplePlan("user_plan_custom", "我的自定义计划")),
+        )
+    }
+
+    @Test
+    fun `replaceMyPlans_重复id副本去重保序`() = runBlocking {
+        val store = createStore()
+        val p1 = samplePlan("user_plan_1", "A")
+        val p2 = samplePlan("user_plan_2", "B")
+
+        TrainingPlanRepository.replaceMyPlans(store, listOf(p1, samplePlan("user_plan_1", "A副本"), p2), p2.id)
+        TrainingPlanRepository.clearLocal()
+
+        val plans = TrainingPlanRepository.getMyPlans(store)
+        assertEquals(listOf("user_plan_1", "user_plan_2"), plans.map { it.id })
+        // 保留首次出现（A，而非 A副本）——读端 firstOrNull 命中不再凭顺序碰运气
+        assertEquals("A", plans[0].name)
+    }
+
     // --- WorkoutSessionService ----------------------------------------------
 
     @Test

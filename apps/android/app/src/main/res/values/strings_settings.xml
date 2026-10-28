@@ -14,7 +14,7 @@
     <!-- `.st-back` 的 `aria-label`（原型 L374） -->
     <string name="settings_a11y_back">返回个人页</string>
     <!-- `.st-foot-note`（原型 L465） -->
-    <string name="settings_foot_note">FitTracker 本地优先，训练数据与身体数据默认仅保存在本机。</string>
+    <string name="settings_foot_note">训练数据与身体数据保存在本机；登录后自动同步。</string>
 
     <!-- 分组标题 -->
     <string name="settings_section_general">通用</string>
@@ -24,6 +24,8 @@
     <string name="settings_section_about_meta">FitTracker</string>
 
     <!-- 行标题（`.sr-label`；开关行的 `aria-label` 与行标题逐字相同，复用同一资源） -->
+    <!-- 个人资料入口（与鸿蒙设置页 generalCard 顶部行对齐） -->
+    <string name="settings_row_profile">个人资料</string>
     <string name="settings_row_weight_unit">体重单位</string>
     <string name="settings_row_language">语言</string>
     <string name="settings_row_week_start">周开始日</string>

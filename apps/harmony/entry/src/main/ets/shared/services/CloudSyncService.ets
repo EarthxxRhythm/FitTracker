@@ -16,8 +16,8 @@ import { FitTrackerStores } from '../../app/AppState'
 import CloudEnvironment, { CloudBackend } from '../../common/services/CloudEnvironment'
 import SessionManager from '../../common/services/SessionManager'
 import UserProfileService, { UserProfile } from '../../common/services/UserProfileService'
+import AvatarImageService from '../../common/services/AvatarImageService'
 import UserDataBackupService, { UserDataBackupImportResult, UserDataBackupPackage } from './UserDataBackupService'
-import agcCloudSnapshotStore from './AgcCloudSnapshotStore'
 import supabaseCloudSnapshotStore from './SupabaseCloudSnapshotStore'
 import cloudSnapshotStore, {
   CloudSnapshot,
@@ -28,8 +28,8 @@ import cloudSnapshotStore, {
 
 export type SyncAction = 'push' | 'pull' | 'none' | 'conflict_pull' | 'failed' | 'skipped'
 
-/** 云存储解析判据（独立可测）：测试注入 > Supabase > AGC > 沙盒兜底。 */
-export type SyncStoreKind = 'testing' | 'supabase' | 'agc' | 'sandbox'
+/** 云存储解析判据（独立可测）：测试注入 > Supabase > 沙盒兜底。 */
+export type SyncStoreKind = 'testing' | 'supabase' | 'sandbox'
 
 export function resolveStoreKind(testingInjected: boolean, backend: CloudBackend): SyncStoreKind {
   if (testingInjected) {
@@ -37,9 +37,6 @@ export function resolveStoreKind(testingInjected: boolean, backend: CloudBackend
   }
   if (backend === 'supabase') {
     return 'supabase'
-  }
-  if (backend === 'agc') {
-    return 'agc'
   }
   return 'sandbox'
 }
@@ -78,6 +75,18 @@ interface CloudPayloadEnvelope {
   heightCm: number
   gender: string
   birthYear: number
+  /** 训练经验；旧信封无此字段时为 undefined（下行保留本地值）。 */
+  experience?: string
+  /**
+   * 头像图片（压缩后 JPEG 的 base64，约 8～20KB）；空串表示无图。
+   * 旧信封无此字段时为 undefined（下行保留本地头像）。
+   */
+  avatarImage?: string
+  /**
+   * 头像内容摘要（[avatarImage] 的 djb2）：只把摘要纳入变更检测视图，
+   * 避免整段 base64 进入 canonical 串；同图在任何设备上摘要一致，不会因本机路径不同而抖动。
+   */
+  avatarImageHash?: string
 }
 
 class CloudSyncService {
@@ -248,6 +257,8 @@ class CloudSyncService {
   private async buildLocalPayload(context: Context): Promise<string> {
     const backupJson: string = await UserDataBackupService.exportPackage(context)
     const profile: UserProfile = await UserProfileService.loadProfile(context)
+    // 头像：文件读不到（尚未设置 / 已被清理）按无图处理。
+    const avatarImage: string = await AvatarImageService.readAsBase64(profile.avatarImagePath)
     const envelope: CloudPayloadEnvelope = {
       schemaVersion: ENVELOPE_SCHEMA_VERSION,
       backupJson: backupJson,
@@ -256,7 +267,10 @@ class CloudSyncService {
       weightUnit: profile.weightUnit,
       heightCm: profile.heightCm,
       gender: profile.gender,
-      birthYear: profile.birthYear
+      birthYear: profile.birthYear,
+      experience: profile.experience,
+      avatarImage: avatarImage,
+      avatarImageHash: avatarImage.length > 0 ? this.djb2Hex(avatarImage) : ''
     }
     return JSON.stringify(envelope)
   }
@@ -275,13 +289,21 @@ class CloudSyncService {
         const heightCm: number = typeof envelope.heightCm === 'number' ? envelope.heightCm : local.heightCm
         const gender: string = typeof envelope.gender === 'string' ? envelope.gender : local.gender
         const birthYear: number = typeof envelope.birthYear === 'number' ? envelope.birthYear : local.birthYear
+        // 训练经验：旧信封无此字段时同样保留本地值。
+        const experience: string = typeof envelope.experience === 'string' ? envelope.experience : local.experience
+        // 头像：新信封带去 base64 时与远端对齐；旧信封（无此字段）保留本地头像。
+        const avatarImagePath: string = await this.resolveRemoteAvatarPath(context, envelope, local.avatarImagePath)
         const profile: UserProfile = {
           nickname: envelope.nickname,
           avatar: typeof envelope.avatar === 'string' ? envelope.avatar : '',
           weightUnit: unit === 'lbs' ? 'lbs' : 'kg',
           heightCm: heightCm,
           gender: gender === 'male' || gender === 'female' ? gender : '',
-          birthYear: birthYear
+          birthYear: birthYear,
+          experience: experience === 'beginner' || experience === 'intermediate' || experience === 'advanced'
+            ? experience
+            : '',
+          avatarImagePath: avatarImagePath
         }
         await UserProfileService.saveProfile(context, profile)
       }
@@ -297,11 +319,48 @@ class CloudSyncService {
    */
   private hashPayload(payload: string): string {
     const canonical: string = this.normalizePayloadForHash(payload)
+    return this.djb2Hex(canonical) + '_' + canonical.length.toString(16)
+  }
+
+  /** djb2 十六进制摘要（非安全用途）。头像内容摘要与整包 hash 共用同一算法。 */
+  private djb2Hex(text: string): string {
     let hashValue: number = 5381
-    for (let index = 0; index < canonical.length; index++) {
-      hashValue = ((hashValue << 5) + hashValue + canonical.charCodeAt(index)) | 0
+    for (let index = 0; index < text.length; index++) {
+      hashValue = ((hashValue << 5) + hashValue + text.charCodeAt(index)) | 0
     }
-    return (hashValue >>> 0).toString(16) + '_' + canonical.length.toString(16)
+    return (hashValue >>> 0).toString(16)
+  }
+
+  /**
+   * 下行头像落位：远端与本地内容一致时保留本地文件（不重写）；
+   * 远端为空则清掉本地图；旧信封（字段缺失）与原逻辑一致，保留本地值。
+   */
+  private async resolveRemoteAvatarPath(
+    context: Context,
+    envelope: CloudPayloadEnvelope,
+    localPath: string
+  ): Promise<string> {
+    if (typeof envelope.avatarImage !== 'string') {
+      return localPath
+    }
+    const remoteImage: string = envelope.avatarImage
+    const remoteHash: string = remoteImage.length > 0 ? this.djb2Hex(remoteImage) : ''
+    const localImage: string = await AvatarImageService.readAsBase64(localPath)
+    const localHash: string = localImage.length > 0 ? this.djb2Hex(localImage) : ''
+    if (remoteHash === localHash) {
+      return localPath
+    }
+    if (remoteImage.length === 0) {
+      await AvatarImageService.remove(localPath)
+      return ''
+    }
+    const newPath: string = await AvatarImageService.writeFromBase64(context, remoteImage)
+    if (newPath.length === 0) {
+      // 写盘失败不阻断整包恢复：保留本地头像，下次同步再对齐。
+      return localPath
+    }
+    await AvatarImageService.remove(localPath)
+    return newPath
   }
 
   private normalizePayloadForHash(payload: string): string {
@@ -326,7 +385,10 @@ class CloudSyncService {
         weightUnit: envelope.weightUnit,
         heightCm: envelope.heightCm,
         gender: envelope.gender,
-        birthYear: envelope.birthYear
+        birthYear: envelope.birthYear,
+        experience: envelope.experience,
+        // 头像只纳入内容摘要：整段 base64 进 canonical 既冗长，也易因本机路径/重编码差异误判。
+        avatarImageHash: envelope.avatarImageHash
       }
       return JSON.stringify(view)
     } catch (error) {
@@ -335,26 +397,21 @@ class CloudSyncService {
   }
 
   /**
-   * 解析云存储：测试注入 > Supabase（就绪判据 = 配置存在，不回退沙盒） > AGC 云数据库
-   * （需 cloudCommon 就绪；未就绪返回 null 走显式失败路径，不跨存储降级以免数据分裂）
+   * 解析云存储：测试注入 > Supabase（就绪判据 = 配置存在，不回退沙盒）
    * > 本地沙盒存储。
    */
   private async resolveStore(context: Context): Promise<CloudSnapshotStore | null> {
     if (this.testingStore !== null) {
       return this.testingStore
     }
-    // 幂等补齐 AGC 初始化：登录态重启的新进程不经过登录页，若不在此调用，
-    // isAgcConfigured() 恒为 false，同步会被静默降级到本地沙盒（发布走查发现）。
+    // 幂等补齐云环境探测：登录态重启的新进程不经过登录页，若不在此调用，
+    // Supabase 配置判定恒为未配置，同步会被静默降级到本地沙盒。
     await CloudEnvironment.initialize(context)
     const kind: SyncStoreKind = resolveStoreKind(false, CloudEnvironment.getBackend())
     if (kind === 'supabase') {
       // Supabase 就绪判据 = 配置存在（不走 cloudCommon，见 CloudEnvironment 注释）；
       // token 缺失不回退沙盒——由 store 内 isConfigured 与 401 语义表达（对齐 Android）。
       return supabaseCloudSnapshotStore
-    }
-    if (kind === 'agc') {
-      const ready: boolean = await CloudEnvironment.ensureCloudDatabaseReady()
-      return ready ? agcCloudSnapshotStore : null
     }
     return cloudSnapshotStore
   }

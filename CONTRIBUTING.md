@@ -92,7 +92,7 @@
 | 无法上 CI 的部分 | 鸿蒙构建、真机回归。PR 里附本地命令与输出摘要即可 |
 | 数据契约改动 | 先改 `contracts/README.md`，再同步两端；两端实现必须同一次 PR 到齐 |
 | 新增第三方依赖或资源 | 同一次提交更新 `THIRD-PARTY-NOTICES.md` 或 `ASSETS.md` |
-| 密钥与本地配置 | 绝不入库：`.env`、`agconnect-services.json`、`local.properties`、签名材料 |
+| 密钥与本地配置 | 绝不入库：`.env`、`supabase.json`、`local.properties`、`thirdparty.json`、签名材料（`agconnect-services.json` 为已移除的 AGC 残留，同样不入库） |
 | 行为准则 | [.github/CODE_OF_CONDUCT.md](.github/CODE_OF_CONDUCT.md) |
 | 安全问题 | 走私密渠道，见 [.github/SECURITY.md](.github/SECURITY.md)，不要开公开 issue |
 | 响应时间 | 个人维护，issue 一般 3 个工作日内首次回应 |

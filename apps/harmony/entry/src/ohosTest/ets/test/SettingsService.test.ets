@@ -3,8 +3,9 @@
  * 覆盖设置项持久化的 roundtrip、默认值、单键更新隔离与清空复位。
  */
 import { abilityDelegatorRegistry } from '@kit.TestKit'
+import { i18n } from '@kit.LocalizationKit'
 import { describe, beforeEach, afterEach, it, expect } from '@ohos/hypium'
-import SettingsService, { AppSettings } from '../../../main/ets/common/services/SettingsService'
+import SettingsService, { AppSettings, resolveEffectiveAppLanguage, toAppLanguage } from '../../../main/ets/common/services/SettingsService'
 
 function getTestContext(): Context {
   const appContext: Context = abilityDelegatorRegistry.getAbilityDelegator().getAppContext()
@@ -30,7 +31,7 @@ export default function settingsServiceTest(): void {
       expect(settings.sound).assertEqual(true)
       expect(settings.keepOn).assertEqual(true)
       expect(settings.anonymous).assertEqual(false)
-      // 体重目标：从未设置 → 0（复盘页据此渲染「设置目标」空态，不显示样例 68）。
+      // 体重目标：从未设置 → 0（回顾页据此渲染「设置目标」空态，不显示样例 68）。
       expect(settings.weightGoalKg).assertEqual(0)
     })
 
@@ -71,7 +72,7 @@ export default function settingsServiceTest(): void {
     it('persists weight goal across reloads', 0, async () => {
       await SettingsService.saveWeightGoal(getTestContext(), 65.5)
       const settings: AppSettings = await SettingsService.loadSettings(getTestContext())
-      // 目标必须跨会话存在——否则每次进复盘页都回到「未设置」，等于假数据。
+      // 目标必须跨会话存在——否则每次进回顾页都回到「未设置」，等于假数据。
       expect(settings.weightGoalKg).assertEqual(65.5)
       expect(SettingsService.getLastPersistenceError()).assertEqual('')
     })
@@ -90,6 +91,32 @@ export default function settingsServiceTest(): void {
       const settings: AppSettings = await SettingsService.loadSettings(getTestContext())
       expect(settings.weightGoalKg).assertEqual(70)
       expect(settings.sound).assertEqual(false)
+    })
+
+    it('maps language tags to supported app languages', 0, () => {
+      // 与 Android settingsLanguageFor 同口径：只判 en 前缀，其余落回中文资源
+      // （应用只有 zh_CN / en_US 两套资源，zh-Hant、fr 都渲染中文）。
+      expect(toAppLanguage('en')).assertEqual('en-US')
+      expect(toAppLanguage('en-US')).assertEqual('en-US')
+      expect(toAppLanguage('EN-GB')).assertEqual('en-US')
+      expect(toAppLanguage('zh')).assertEqual('zh-CN')
+      expect(toAppLanguage('zh-Hans')).assertEqual('zh-CN')
+      expect(toAppLanguage('zh-Hant')).assertEqual('zh-CN')
+      expect(toAppLanguage('fr')).assertEqual('zh-CN')
+      expect(toAppLanguage('')).assertEqual('zh-CN')
+    })
+
+    it('resolves effective language from app preference, not persisted value', 0, async () => {
+      // 缺陷判据：存储为中文、但应用级偏好已是英文时，设置页必须显示英文。
+      // 直接读 loadSettings().language 会得到 zh-CN——正是「英文界面勾简体中文」的成因。
+      await SettingsService.saveLanguage(getTestContext(), 'zh-CN')
+      const original: string = i18n.System.getAppPreferredLanguage()
+      try {
+        i18n.System.setAppPreferredLanguage('en-US')
+        expect(resolveEffectiveAppLanguage()).assertEqual('en-US')
+      } finally {
+        i18n.System.setAppPreferredLanguage(original.length > 0 ? original : 'zh-Hans')
+      }
     })
   })
 }

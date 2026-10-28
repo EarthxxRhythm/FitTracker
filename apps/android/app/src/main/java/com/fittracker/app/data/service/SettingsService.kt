@@ -16,7 +16,7 @@ private const val DEFAULT_LANGUAGE_ID: String = "zh"
 /** 缺省周开始日 id（原型 `settings.html:404` `周一` 为 active）。 */
 private const val DEFAULT_WEEK_START_ID: String = "monday"
 
-/** 体重目标合法区间（kg）——与复盘页目标弹窗的越界校验同口径（对齐鸿蒙 `SettingsService`）。 */
+/** 体重目标合法区间（kg）——与回顾页目标弹窗的越界校验同口径（对齐鸿蒙 `SettingsService`）。 */
 private const val WEIGHT_GOAL_MIN_KG: Double = 30.0
 private const val WEIGHT_GOAL_MAX_KG: Double = 200.0
 
@@ -62,10 +62,10 @@ data class FtSettings(
     val keepScreenOn: Boolean = true,
     val anonymousData: Boolean = false,
     /**
-     * 复盘页体重目标（kg）；`0.0` = 用户从未设置。
+     * 回顾页体重目标（kg）；`0.0` = 用户从未设置。
      *
      * 归本模型而不归 `UserProfileService`：单位是随云同步 envelope 流转的档案字段，而目标体重
-     * 只是复盘页的展示辅助值——纳入 envelope 需同步改备份包与 `LocalSnapshotStore` 的 hash
+     * 只是回顾页的展示辅助值——纳入 envelope 需同步改备份包与 `LocalSnapshotStore` 的 hash
      * 视图白名单。故仅本地持久化（与鸿蒙 `SettingsService.weightGoalKg` 同口径）。
      */
     val weightGoalKg: Double = 0.0,

@@ -3,8 +3,11 @@ package com.fittracker.app.data.sync
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.fittracker.app.data.persist.JsonCodec
 import com.fittracker.app.data.persist.JsonStore
+import com.fittracker.app.data.service.Experience
 import com.fittracker.app.data.service.GoalRepository
 import com.fittracker.app.data.service.TrainingPlanRepository
+import com.fittracker.app.data.service.UserProfile
+import com.fittracker.app.data.service.UserProfileService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -185,6 +188,8 @@ class CloudSyncTest {
         exportedAt: Long,
         nickname: String = "小明",
         schemaVersion: Int = ENVELOPE_SCHEMA_VERSION,
+        experience: String? = null,
+        avatarImage: String? = null,
     ): String {
         val backup: String = JsonCodec.json.encodeToString(JsonObject.serializer(), buildJsonObject {
             put("schemaVersion", 1)
@@ -201,6 +206,14 @@ class CloudSyncTest {
             put("nickname", nickname)
             put("avatar", "")
             put("weightUnit", "kg")
+            // null → 不写该键，模拟旧信封（新端读到缺省字段为 null）。
+            if (experience != null) {
+                put("experience", experience)
+            }
+            if (avatarImage != null) {
+                put("avatarImage", avatarImage)
+                put("avatarImageHash", if (avatarImage.isEmpty()) "" else LocalSnapshotStore.djb2Hex(avatarImage))
+            }
         })
     }
 
@@ -223,6 +236,30 @@ class CloudSyncTest {
         assertNotEquals(
             LocalSnapshotStore.hashPayload(envelopeJson(1_000L, nickname = "小明")),
             LocalSnapshotStore.hashPayload(envelopeJson(1_000L, nickname = "小红")),
+        )
+    }
+
+    @Test
+    fun `hash changes when training experience changes`() { // 经验未入 hash 视图则同步对它失明
+        assertNotEquals(
+            LocalSnapshotStore.hashPayload(envelopeJson(1_000L, experience = "beginner")),
+            LocalSnapshotStore.hashPayload(envelopeJson(1_000L, experience = "advanced")),
+        )
+    }
+
+    @Test
+    fun `hash changes when avatar image changes`() { // 头像摘要入视图；整段 base64 不入
+        assertNotEquals(
+            LocalSnapshotStore.hashPayload(envelopeJson(1_000L, avatarImage = "AAAA")),
+            LocalSnapshotStore.hashPayload(envelopeJson(1_000L, avatarImage = "BBBB")),
+        )
+    }
+
+    @Test
+    fun `legacy envelope without avatar differs from explicit empty`() { // 未知 vs 明确无图
+        assertNotEquals(
+            LocalSnapshotStore.hashPayload(envelopeJson(1_000L)),
+            LocalSnapshotStore.hashPayload(envelopeJson(1_000L, avatarImage = "")),
         )
     }
 
@@ -275,6 +312,41 @@ class CloudSyncTest {
     fun `parseEnvelope rejects malformed payload`() {
         assertNull(LocalSnapshotStore.parseEnvelope("nope"))
         assertNull(LocalSnapshotStore.parseEnvelope("{\"schemaVersion\":1}")) // 缺 backupJson
+    }
+
+    @Test
+    fun `envelope carries training experience from profile`() = runBlocking {
+        val store = createStore()
+        UserProfileService.saveProfile(store, UserProfile(experience = Experience.ADVANCED))
+        val envelope = LocalSnapshotStore.readCurrentEnvelope(store)
+        assertEquals("advanced", envelope?.experience)
+    }
+
+    @Test
+    fun `legacy envelope without experience parses as null`() { // 旧端信封 → 下行保留本地值
+        assertNull(LocalSnapshotStore.parseEnvelope(envelopeJson(1_000L))?.experience)
+    }
+
+    @Test
+    fun `envelope carries avatar image base64 and hash from profile file`() = runBlocking {
+        val store = createStore()
+        val avatarFile = File(tempFolder.root, "avatar_test.jpg").apply {
+            writeBytes(ByteArray(32) { index -> index.toByte() })
+        }
+        UserProfileService.saveProfile(store, UserProfile(avatarImagePath = avatarFile.absolutePath))
+
+        val envelope = LocalSnapshotStore.readCurrentEnvelope(store)
+
+        val expectedBase64 = java.util.Base64.getEncoder().encodeToString(avatarFile.readBytes())
+        assertEquals(expectedBase64, envelope?.avatarImage)
+        assertEquals(LocalSnapshotStore.djb2Hex(expectedBase64), envelope?.avatarImageHash)
+    }
+
+    @Test
+    fun `legacy envelope without avatar parses avatar fields as null`() {
+        val envelope = LocalSnapshotStore.parseEnvelope(envelopeJson(1_000L))
+        assertNull(envelope?.avatarImage)
+        assertNull(envelope?.avatarImageHash)
     }
 
     private fun kotlinx.serialization.json.JsonElement.jsonObjectOrNull(): JsonObject? =

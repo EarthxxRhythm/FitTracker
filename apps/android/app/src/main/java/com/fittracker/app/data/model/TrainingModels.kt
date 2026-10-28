@@ -124,7 +124,7 @@ data class WorkoutSet(
 /**
  * 训练会话（`TrainingModels.ets:88`）。
  *
- * `notes` 可能内嵌 `target_sets=` / `completed_sets=` 前缀（复盘解析依赖），不可清理。
+ * `notes` 可能内嵌 `target_sets=` / `completed_sets=` 前缀（回顾解析依赖），不可清理。
  */
 @Serializable
 data class WorkoutSession(

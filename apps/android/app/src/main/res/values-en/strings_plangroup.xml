@@ -22,6 +22,12 @@
     <string name="plangroup_rhythm_pull">Pull</string>
     <string name="plangroup_rhythm_legs">Legs</string>
     <string name="plangroup_rhythm_rest">Rest</string>
+    <string name="plangroup_rhythm_done">Done</string>
+
+    <string name="plangroup_progress_none">Not started yet</string>
+    <string name="plangroup_progress_count">%1$d sessions done</string>
+    <string name="plangroup_progress_count_last">%1$d sessions · last %2$s</string>
+    <string name="plangroup_day_session_count">%1$d sessions done</string>
 
     <!-- Weekday labels -->
     <string name="plangroup_dow_mon">Mon</string>
@@ -84,6 +90,7 @@
     <!-- Toast -->
     <string name="plangroup_toast_exercise">Prototype: view “%1$s” details</string>
     <string name="plangroup_toast_switched">Switched to “%1$s”</string>
+    <string name="plangroup_toast_switch_failed">Switch didn\'t finish — try again</string>
     <string name="plangroup_not_found">Plan not found</string>
 
 </resources>

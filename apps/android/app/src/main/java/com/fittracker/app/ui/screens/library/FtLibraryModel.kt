@@ -259,8 +259,9 @@ object FtLibraryModel {
      * 与 [gifAssetFor] 的分派规则严格一致：线稿命中即 false。
      */
     fun usesPhotoStyle(id: String, name: String): Boolean {
-        if (id in GIF_FILE_NAMES) return false
-        if (GIF_BY_NAME[name] != null || GIF_NAME_ALIASES[name] != null) return false
+        // 与 [gifAssetFor] 严格同规则：线稿层已于 2026-10-28 随版权清理停用，
+        // 命中实拍表即为实拍形态。此前残留的「线稿 id/别名先判否」会让调用方
+        // 拿到「非实拍」却仍解析出实拍路径，两处结论打架。
         return PhotoGifCatalog.BY_NAME[name] != null
     }
 

@@ -194,11 +194,15 @@ export default function contentRepositoryTest(): void {
         'muscle_chest',
         'intermediate'
       )
-      expect(rows.length).assertEqual(1)
+      // 筛选按「主肌群或次动肌群命中」判定（ContentRepository.matchesLibraryFilter）：
+      // 除杠铃卧推外，坐姿杠铃推举的次动肌群含胸部，故命中 2 条。
+      expect(rows.length).assertEqual(2)
       expect(rows[0].exerciseId).assertEqual('ex_barbell_bench_press')
       expect(rows[0].equipmentIds[0]).assertEqual('eq_barbell')
       expect(rows[0].primaryMuscleId).assertEqual('muscle_chest')
       expect(rows[0].difficulty).assertEqual('intermediate')
+      expect(rows[1].exerciseId).assertEqual('ex_seated_barbell_shoulder_press')
+      expect(rows[1].difficulty).assertEqual('intermediate')
     })
 
     it('filters candidate exercises by goal equipment muscle and difficulty', 0, () => {
@@ -210,7 +214,13 @@ export default function contentRepositoryTest(): void {
         []
       )
       expect(candidates.length).assertLarger(0)
-      expect(candidates[0].exerciseId).assertEqual('ex_push_up')
+      // 不锁定候选顺序：JSONL 种子与导入库两种数据源下，上斜/标准俯卧撑的先后不同。
+      // 本用例验证筛选条件生效（徒手、初级、胸部），排序由 PlanEngine 评分用例覆盖。
+      const firstId: string = candidates[0].exerciseId
+      expect(firstId === 'ex_push_up' || firstId === 'ex_incline_push_up').assertTrue()
+      expect(candidates[0].difficulty).assertEqual('beginner')
+      expect(hasValue(candidates[0].equipmentIds, 'eq_bodyweight')).assertTrue()
+      expect(candidates[0].primaryMuscleIds[0]).assertEqual('muscle_chest')
     })
 
     it('reads machine strength candidates from local JSONL content', 0, () => {
@@ -241,7 +251,9 @@ export default function contentRepositoryTest(): void {
       const plan = PlanEngine.generatePlan(goal)
       expect(plan.days.length).assertEqual(1)
       expect(plan.days[0].exercises.length).assertLarger(0)
-      expect(plan.days[0].exercises[0].exerciseId).assertEqual('ex_push_up')
+      // 同上：不锁定具体动作顺序，验证首选为徒手胸部初级动作。
+      const pickedId: string = plan.days[0].exercises[0].exerciseId
+      expect(pickedId === 'ex_push_up' || pickedId === 'ex_incline_push_up').assertTrue()
     })
   })
 }

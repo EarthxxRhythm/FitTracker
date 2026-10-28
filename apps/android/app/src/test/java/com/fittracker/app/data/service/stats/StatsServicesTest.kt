@@ -18,7 +18,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * 统计/复盘派生服务族契约测试（Wave 3）。
+ * 统计/回顾派生服务族契约测试（Wave 3）。
  *
  * 期望值来源：鸿蒙 `shared/services/` 下 `ReviewService.ets` /
  * `ReviewDashboardService.ets` / `StatsDashboardService.ets` /

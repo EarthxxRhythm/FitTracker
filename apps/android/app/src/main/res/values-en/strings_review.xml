@@ -15,6 +15,9 @@
 
     <!-- Overview head: `This week · <range>` / `This month · <N>` -->
     <string name="review_head_week">This week · %1$s</string>
+
+    <string name="review_plan_affiliation">Current plan: %1$s</string>
+    <string name="review_plan_affiliation_count">Current plan: %1$s · %2$d sessions</string>
     <string name="review_head_month">This month · %1$d</string>
     <string name="review_head_week_sample">This week · Jun 7–13</string>
     <string name="review_head_month_sample">This month · Jun</string>
@@ -59,12 +62,13 @@
     <string name="review_muscle_mode_balance">Balance</string>
     <string name="review_muscle_mode_fatigue">Fatigue</string>
     <string name="review_muscle_mode_strength">Strength</string>
-    <string name="review_muscle_meta_balance">Last 30 days · volume</string>
+    <string name="review_muscle_meta_balance">Last 8 workouts · volume</string>
     <string name="review_muscle_meta_fatigue">Current recovery</string>
     <string name="review_muscle_meta_strength">Strength &amp; best lifts</string>
-    <string name="review_muscle_note_balance">Chest has the most volume, core the least.</string>
-    <string name="review_muscle_note_fatigue">Legs and glutes are the most fatigued — prioritize recovery.</string>
-    <string name="review_muscle_note_strength">Chest and legs are strongest; core lags behind.</string>
+    <!-- Bottom summary line, assembled from real highest/lowest-volume parts. -->
+    <string name="review_muscle_summary_empty">Finish a workout to see your muscle distribution here.</string>
+    <string name="review_muscle_summary_max">Most volume: %1$s.</string>
+    <string name="review_muscle_summary_max_min">Most volume: %1$s; least: %2$s.</string>
 
     <!-- Muscle labels (18 groups) -->
     <string name="review_muscle_trapezius">Trapezius</string>

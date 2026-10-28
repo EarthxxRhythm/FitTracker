@@ -935,6 +935,11 @@ private fun DetailSheet(
                         iconSize = 36.dp,
                         fill = SheetMediaFill,
                         contentDescription = stringResource(R.string.library_a11y_demo_gif, exercise.name),
+                        // 原型 `.lib-sheet-media img { object-fit: contain }`（L404）：
+                        // 素材均为 180×180 方图，容器是 16:9；Crop 会裁掉约 44% 的高度，
+                        // 演示图看不全。Compose 无 Contain，contain 语义对应 Fit；
+                        // 鸿蒙端同为 ImageFit.Contain，同 ActiveScreen 的演示图口径。
+                        contentScale = ContentScale.Fit,
                     )
                     Box(
                         modifier = Modifier

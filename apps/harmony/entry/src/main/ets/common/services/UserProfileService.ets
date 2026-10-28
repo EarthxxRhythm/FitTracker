@@ -14,11 +14,18 @@ const KEY_WEIGHT_UNIT = 'weight_unit'
 const KEY_HEIGHT_CM = 'height_cm'
 const KEY_GENDER = 'gender'
 const KEY_BIRTH_YEAR = 'birth_year'
+// 训练经验：仅用于展示与后续计划推荐；未填为空串。
+const KEY_EXPERIENCE = 'experience'
+// 头像图片：本机沙箱绝对路径（跨设备经云快照信封的 base64 字段恢复）；空串表示未设置。
+const KEY_AVATAR_IMAGE_PATH = 'avatar_image_path'
 
 export type WeightUnit = 'kg' | 'lbs'
 
 /** 生理性别——仅用于基础代谢公式（Mifflin-St Jeor）的性别常数；未填为空串。 */
 export type Gender = '' | 'male' | 'female'
+
+/** 训练经验；未填为空串。 */
+export type Experience = '' | 'beginner' | 'intermediate' | 'advanced'
 
 export interface UserProfile {
   nickname: string
@@ -30,6 +37,10 @@ export interface UserProfile {
   gender: Gender
   /** 出生年份；0 表示未填写。 */
   birthYear: number
+  /** 训练经验；空串表示未填写。 */
+  experience: Experience
+  /** 头像图片的本机沙箱路径；空串表示未设置（回落色键 + 昵称首字）。 */
+  avatarImagePath: string
 }
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -38,7 +49,9 @@ const DEFAULT_PROFILE: UserProfile = {
   weightUnit: 'kg',
   heightCm: 0,
   gender: '',
-  birthYear: 0
+  birthYear: 0,
+  experience: '',
+  avatarImagePath: ''
 }
 
 class UserProfileService {
@@ -58,13 +71,17 @@ class UserProfileService {
       const heightCm = await prefs.get(KEY_HEIGHT_CM, 0) as number
       const gender = await prefs.get(KEY_GENDER, '') as string
       const birthYear = await prefs.get(KEY_BIRTH_YEAR, 0) as number
+      const experience = await prefs.get(KEY_EXPERIENCE, '') as string
+      const avatarImagePath = await prefs.get(KEY_AVATAR_IMAGE_PATH, '') as string
       return {
         nickname: nickname || '',
         avatar: avatar || '',
         weightUnit: this.normalizeWeightUnit(weightUnit),
         heightCm: this.normalizeHeightCm(heightCm),
         gender: this.normalizeGender(gender),
-        birthYear: this.normalizeBirthYear(birthYear)
+        birthYear: this.normalizeBirthYear(birthYear),
+        experience: this.normalizeExperience(experience),
+        avatarImagePath: avatarImagePath || ''
       }
     } catch (error) {
       this.lastPersistenceError = 'load_profile_failed'
@@ -93,6 +110,8 @@ class UserProfileService {
       await prefs.put(KEY_HEIGHT_CM, this.normalizeHeightCm(profile.heightCm))
       await prefs.put(KEY_GENDER, this.normalizeGender(profile.gender))
       await prefs.put(KEY_BIRTH_YEAR, this.normalizeBirthYear(profile.birthYear))
+      await prefs.put(KEY_EXPERIENCE, this.normalizeExperience(profile.experience))
+      await prefs.put(KEY_AVATAR_IMAGE_PATH, profile.avatarImagePath)
       await prefs.flush()
     } catch (error) {
       this.lastPersistenceError = 'save_profile_failed'
@@ -142,7 +161,9 @@ class UserProfileService {
       weightUnit: DEFAULT_PROFILE.weightUnit,
       heightCm: DEFAULT_PROFILE.heightCm,
       gender: DEFAULT_PROFILE.gender,
-      birthYear: DEFAULT_PROFILE.birthYear
+      birthYear: DEFAULT_PROFILE.birthYear,
+      experience: DEFAULT_PROFILE.experience,
+      avatarImagePath: DEFAULT_PROFILE.avatarImagePath
     }
   }
 
@@ -156,6 +177,8 @@ class UserProfileService {
       await prefs.delete(KEY_HEIGHT_CM)
       await prefs.delete(KEY_GENDER)
       await prefs.delete(KEY_BIRTH_YEAR)
+      await prefs.delete(KEY_EXPERIENCE)
+      await prefs.delete(KEY_AVATAR_IMAGE_PATH)
       await prefs.flush()
     } catch (error) {
       this.lastPersistenceError = 'clear_profile_failed'
@@ -192,6 +215,14 @@ class UserProfileService {
       return 0
     }
     return Math.floor(value)
+  }
+
+  /** 训练经验归一：仅三个枚举值有效，其余为空串（未填写）。 */
+  private normalizeExperience(value: string): Experience {
+    if (value === 'beginner' || value === 'intermediate' || value === 'advanced') {
+      return value
+    }
+    return ''
   }
 }
 

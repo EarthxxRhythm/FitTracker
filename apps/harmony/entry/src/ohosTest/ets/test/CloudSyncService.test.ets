@@ -185,10 +185,6 @@ export default function cloudSyncServiceTest(): void {
       expect(resolveStoreKind(false, 'supabase')).assertEqual('supabase')
     })
 
-    it('resolves agc when the backend is agc', 0, () => {
-      expect(resolveStoreKind(false, 'agc')).assertEqual('agc')
-    })
-
     it('falls back to sandbox otherwise', 0, () => {
       expect(resolveStoreKind(false, 'sandbox')).assertEqual('sandbox')
     })

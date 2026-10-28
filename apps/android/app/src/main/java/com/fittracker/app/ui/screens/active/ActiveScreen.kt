@@ -97,6 +97,7 @@ import com.fittracker.app.ui.screens.library.FtLibraryModel
 import com.fittracker.app.ui.screens.workout.activeStateToDraft
 import com.fittracker.app.ui.screens.workout.draftToActiveState
 import com.fittracker.app.ui.screens.workout.loadTodayWorkoutPreview
+import com.fittracker.app.ui.theme.DuTokens
 import com.fittracker.app.ui.theme.FtColor
 import com.fittracker.app.ui.theme.FtMotion
 import com.fittracker.app.ui.theme.FtShape
@@ -856,23 +857,35 @@ private fun PrimaryButton(
     val shape = RoundedCornerShape(16.dp)
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed && enabled) FtMotion.PRESS_SCALE_CTA else 1f,
-        animationSpec = tween(FtMotion.DURATION_PRESS),
-    )
+    // Duolingo 硬边厚底：主按钮只用「厚底收平 + 下沉」，不参与缩放。
+    // 此前用 `usesPressDepth = enabled` 去门控 scale：enabled 为真时门恒真、为假时
+    // 条件里的 enabled 又为假，两个分支都取 1f——是条死分支，直接删掉更清楚。
+    val depth = if (enabled && !pressed) DuTokens.PRESS_DEPTH else 0.dp
+    val shift = if (enabled && pressed) DuTokens.PRESS_SHIFT else 0.dp
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(50.dp)
             .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
+                translationY = shift.toPx()
             }
-            // `box-shadow: 0 10px 22px rgba(0,0,0,.24)`（:disabled 时去掉，L356）
-            .then(if (enabled) Modifier.shadow(10.dp, shape) else Modifier)
+            // 有硬边厚底时不再叠模糊阴影——硬边 + 软影两套深度线索同时出现会显脏
             .clip(shape)
             .background(if (enabled) FtColor.accent else FtColor.glass6)
+            // 硬边厚底（零模糊）：画在按钮面之上，由 clip 收进圆角
+            .drawBehind {
+                if (depth.value > 0f) {
+                    val thickness = depth.toPx()
+                    drawRect(
+                        color = FtColor.accentDeep,
+                        topLeft = Offset(0f, size.height - thickness),
+                        size = Size(size.width, thickness),
+                    )
+                }
+            }
+            // 内容避让厚底，按钮总高不变
+            .padding(bottom = depth)
             .clickable(
                 interactionSource = interaction,
                 indication = null,

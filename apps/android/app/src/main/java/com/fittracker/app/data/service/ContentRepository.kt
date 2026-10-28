@@ -1,13 +1,11 @@
 package com.fittracker.app.data.service
 
 import android.content.Context
-import androidx.appcompat.app.AppCompatDelegate
 import com.fittracker.app.data.model.EquipmentItem
 import com.fittracker.app.data.model.ExerciseContent
 import com.fittracker.app.data.model.MuscleGroup
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import java.util.Locale
 
 /**
  * 内容库资产（`assets/exercise-content.json`）的顶层 schema。
@@ -95,18 +93,6 @@ object ContentRepository {
     fun exercises(): List<ExerciseContent> = orderedExercises
 
     /**
-     * 当前语言标签——应用级 per-app locale（`AppCompatDelegate`，设置页语言分段）
-     * 优先；未设置时回落系统 `Locale.getDefault()`。
-     *
-     * 载入内容库时**不**缓存语言（展示名按调用时语言解析），这样切语言后无需重新装载。
-     */
-    fun currentLanguageTag(): String {
-        val appLocales = AppCompatDelegate.getApplicationLocales()
-        val tag = if (appLocales.isEmpty) "" else appLocales.toLanguageTags()
-        return tag.ifBlank { Locale.getDefault().language }
-    }
-
-    /**
      * 肌群展示名（纯函数，便于单测）：[languageTag] 以 `zh` 开头取 [MuscleGroup.nameZh]，
      * 否则取 [MuscleGroup.nameEn]（为空则回落中文——兼容旧数据 / 旧互通包）。
      */
@@ -122,6 +108,8 @@ object ContentRepository {
     /**
      * 肌群展示名（**按当前语言**）；未知 id 回退为 id 本身
      * （对齐 `ContentRepository.ets:250` 的 `getMuscleName`）。
+     *
+     * 语言不缓存（每次调用走 `LocaleUtil.currentLanguageTag()`）：切语言后无需重新装载内容库。
      */
     fun getMuscleName(id: String): String =
         muscleIndex[id]?.let { muscleDisplayName(it, currentLanguageTag()) } ?: id

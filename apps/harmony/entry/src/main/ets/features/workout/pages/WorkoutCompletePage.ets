@@ -196,7 +196,7 @@ export struct WorkoutCompletePage {
   /**
    * 记录本次训练的整体努力程度（RPE 1–10），写回最近一次会话。
    *
-   * 这是复盘页「努力程度」柱状图的唯一真实来源——逐组 RPE 采集成本高，故按次采集。
+   * 这是回顾页「努力程度」柱状图的唯一真实来源——逐组 RPE 采集成本高，故按次采集。
    */
   private async selectSessionRpe(value: number): Promise<void> {
     if (this.sessionRpe === value) {
@@ -309,7 +309,12 @@ export struct WorkoutCompletePage {
                 this.ctaPressed = false
               }
             })
-            .scale({ x: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1 })
+            // Duolingo 硬边厚底：按下收平 + 下沉，替代缩放按压
+            .border({
+              width: { bottom: this.ctaPressed ? 0 : MotionTokens.PRESS_DEPTH },
+              color: { bottom: PrototypeTokens.ACCENT_DEEP }
+            })
+            .translate({ y: this.ctaPressed ? MotionTokens.PRESS_SHIFT : 0 })
             .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
             .onClick(() => {
               this.returnHome()
@@ -360,7 +365,7 @@ export struct WorkoutCompletePage {
   /**
    * 本次训练整体努力程度（RPE 1–10）采集卡。
    *
-   * 这是复盘页「努力程度」柱状图的唯一真数据来源（逐组采集成本高，故按次）。
+   * 这是回顾页「努力程度」柱状图的唯一真数据来源（逐组采集成本高，故按次）。
    */
   @Builder
   private rpeCard() {

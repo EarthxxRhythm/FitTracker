@@ -28,7 +28,9 @@ export default function userProfileServiceTest(): void {
         weightUnit: 'lbs',
         heightCm: 178,
         gender: 'male',
-        birthYear: 1995
+        birthYear: 1995,
+        experience: 'advanced',
+        avatarImagePath: '/data/test/avatars/avatar_1.jpg'
       }
 
       await UserProfileService.saveProfile(getTestContext(), savedProfile)
@@ -40,6 +42,8 @@ export default function userProfileServiceTest(): void {
       expect(reloadedProfile.heightCm).assertEqual(178)
       expect(reloadedProfile.gender).assertEqual('male')
       expect(reloadedProfile.birthYear).assertEqual(1995)
+      expect(reloadedProfile.experience).assertEqual('advanced')
+      expect(reloadedProfile.avatarImagePath).assertEqual('/data/test/avatars/avatar_1.jpg')
       expect(UserProfileService.getLastPersistenceError()).assertEqual('')
     })
 
@@ -50,7 +54,9 @@ export default function userProfileServiceTest(): void {
         weightUnit: 'kg',
         heightCm: 165,
         gender: 'female',
-        birthYear: 2000
+        birthYear: 2000,
+        experience: 'beginner',
+        avatarImagePath: '/data/test/avatars/avatar_2.jpg'
       }
 
       await UserProfileService.saveProfile(getTestContext(), savedProfile)
@@ -64,6 +70,8 @@ export default function userProfileServiceTest(): void {
       expect(reloadedProfile.heightCm).assertEqual(0)
       expect(reloadedProfile.gender).assertEqual('')
       expect(reloadedProfile.birthYear).assertEqual(0)
+      expect(reloadedProfile.experience).assertEqual('')
+      expect(reloadedProfile.avatarImagePath).assertEqual('')
     })
   })
 }

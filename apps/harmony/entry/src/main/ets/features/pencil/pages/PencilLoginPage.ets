@@ -784,7 +784,12 @@ struct PencilLoginPage {
                     this.ctaPressed = false
                   }
                 })
-                .scale({ x: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1, y: this.ctaPressed ? MotionTokens.PRESS_PRIMARY : 1 })
+                // Duolingo 硬边厚底：按下收平 + 下沉，替代缩放按压
+                .border({
+                  width: { bottom: this.ctaPressed ? 0 : MotionTokens.PRESS_DEPTH },
+                  color: { bottom: PrototypeTokens.ACCENT_DEEP }
+                })
+                .translate({ y: this.ctaPressed ? MotionTokens.PRESS_SHIFT : 0 })
                 .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
 
               this.buildAuthDivider()

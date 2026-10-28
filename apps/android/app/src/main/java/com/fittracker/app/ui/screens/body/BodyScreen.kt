@@ -915,7 +915,12 @@ private fun RecordButton(onClick: () -> Unit) {
     val shape = RoundedCornerShape(17.dp)
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val scale = if (pressed) 0.98f else 1f
+    // 裸值直送 graphicsLayer 是硬切（视觉上没有按压反馈），走 animateFloatAsState
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.98f else 1f,
+        animationSpec = tween(FtMotion.DURATION_PRESS, easing = FtMotion.EASE_MOTION),
+        label = "body-cta-press-scale",
+    )
 
     Box(
         modifier = Modifier
