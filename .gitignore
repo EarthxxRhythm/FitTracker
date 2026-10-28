@@ -145,8 +145,8 @@ apps/harmony/.cache/
 **/test_run/
 
 # 构建残留的「0」目录（hvigor / gradle 产物）
-/0/
-apps/harmony/0/
+/0
+apps/harmony/0
 
 # 开源合规：素材授权尚待确认时的本地隔离目录（见 ASSETS.md）
 **/assets/nonfree/
