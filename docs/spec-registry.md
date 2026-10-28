@@ -42,7 +42,12 @@
 | L2 | `docs\process\test-environments.md` | 鸿蒙 DevEco 模拟器 + 安卓 MuMu 模拟器的连法与取图 | 双端 | 现行 | 是 | `check-specs`（头部） |
 | L2 | `docs\process\auth-verification.md` | 登录验证优先级：自部署栈 → 沙盒降级 → 显式跳过 | 双端 | 现行 | 是 | `check-specs`（头部） |
 | L2 | `docs\process\agent-team-fittracker-overlay.md` | 多 agent 协作适配层 | 双端 | 现行 | 否 | `check-specs`（头部） |
+| L2 | `docs\glossary.md` | 口径单一真源：事实口径表、术语标准词、口径分层规则、语言与文案口径 + GL 闸门 | 双端 | 现行 | 是 | `check-specs`（头部）+ `check-glossary` |
+| L2 | `docs\cloud\supabase-sync-setup.md` | 自托管 Supabase 配置：快照表迁移、端侧字段映射、验证步骤 | 双端 | 现行 | 是 | `check-specs`（头部） |
+| L2 | `apps\android\AGENTS.md` | 安卓端工程约束：端结构、Supabase 注入链路、与双端对等的关系 | 仅安卓 | 现行 | 否 | `check-specs`（头部） |
 | L3 | `docs\process\harmonyos-default.md` | 官方 ArkTS 语法约束摘录 | 仅鸿蒙 | 现行 | 否 | `check-specs`（头部） |
+| L3 | `docs\cloud\cloud-setup.md` | 历史 AGC 云服务配置手册（2026-10-28 后端改定为自托管 Supabase 后作废，仅作排错参考） | 仅鸿蒙 | 已被取代 | 是 | `check-specs`（仅存在） |
+| L3 | `docs\release\release-build-runbook.md` | 发布工程面事实：构建/签名/证书、AGC 平台侧操作、bundleName 变更影响 | 双端 | 现行 | 是 | `check-specs`（仅存在） |
 | L3 | `docs\process\pi-agent-parallel-restore.md` | pi 宿主多 agent 并行还原的安装与派工说明 | 双端 | 现行 | 是 | `check-specs`（仅存在） |
 | L3 | `docs\process\qq-appid-landing-checklist.md` | QQ AppID / AppKey 落位清单（待人工提供凭据） | 双端 | 部分失效 | 是 | `check-specs`（仅存在） |
 | L3 | `docs\process\regression-flow-status.md` | 认证链路回归覆盖现状（状态记录，非规范） | 仅鸿蒙 | 现行 | 是 | `check-specs`（仅存在） |
