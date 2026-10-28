@@ -187,15 +187,6 @@ flowchart LR
 | [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) | 第三方组件与许可 |
 | [ASSETS.md](ASSETS.md) | 非代码资源来源与授权 |
 
-## 已知限制
-
-- **云同步需自备配置**：两端共用同一套自托管 Supabase，需要 `supabase.json`（HarmonyOS）与对应的服务端配置（Android）。未配置时进入沙盒演示模式，「云端」读写在本机沙盒内完成。
-- **微信 / QQ 登录需要开放平台资质**：各平台对移动应用审核有门槛，仓库内的集成代码不代表凭据可用。
-- **界面仅简体中文**：`zh_CN` / `en_US` 资源目录已就绪，界面文案仍以代码内中文为主。
-- **仅支持 phone**：不响应平板 / 折叠屏专有布局。
-- **动作演示素材**：原「线稿」套系为 Gym Visual 商业素材、授权链条不成立，2026-10-28 已从仓库移除；现统一使用 `free-exercise-db`（Unlicense）实拍素材，已生成 101 个、两端一致。内容库 102 个动作中仅「鸟狗式」在源库无对应动作，降级为占位图标。详见 [ASSETS.md](ASSETS.md)。
-- **`bundleName` 决定应用私有沙箱路径**：改身份会让旧数据在新包下不可见，升级前先导出备份。
-
 ## 贡献
 
 欢迎 issue 与 PR。动手前请读 [CONTRIBUTING.md](CONTRIBUTING.md)：
