@@ -71,7 +71,7 @@
 
 | # | route | Level 1（主导区域） | Level 2（上下文） | Level 3（次级入口） | 唯一主 CTA |
 |---|---|---|---|---|---|
-| 1 | welcome | `w-headline`「把训练，变成看得见的进步。」 | `w-sub` 说明 + `w-visual` 视觉 | `w-foot`「本地记录 · 无需注册 · 随时开始」 | **开始使用**（`.btn-primary`） |
+| 1 | welcome | `w-headline`「把训练，变成看得见的进步。」 | `w-sub` 说明 + `w-visual` 视觉 | `w-foot`「按组记录 · 趋势回顾 · 随时开始」 | **开始使用**（`.btn-primary`） |
 | 2 | home | `card-today` 今日训练卡（含 `cta-start`） | `card-week` 本周节奏 | `cta-preview` 查看预览 | **开始训练**（`cta-start`） |
 | 3 | login | `auth-form` 表单区 | `auth-head` 欢迎回来 + 说明 | `auth-social` 微信/Apple + `auth-switch` 去注册 | **登录**（`cta-login`） |
 | 4 | register | `auth-form` 表单区 | `auth-head` 创建账号 + 说明 | `auth-switch` 去登录 | **注册**（注册按钮） |
