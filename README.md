@@ -38,7 +38,9 @@
 
 ## 架构
 
-```
+![系统构成：两端 App、本机存储与自托管后端](docs/diagrams/01-architecture.png)
+
+```text
 FitTracker/
 ├── apps/
 │   ├── harmony/          HarmonyOS 应用（ArkTS / ArkUI，Stage 模型）
@@ -52,6 +54,23 @@ FitTracker/
 ```
 
 **关键设计：契约层统一、单一后端。** 两端共用同一套自建服务（自托管 Supabase，`106.55.37.80`），「备份包 JSON」是同一份结构——鸿蒙导出的备份应能被 Android 导入，反之亦然。改契约前先改 `contracts/README.md`，再同步两端实现。
+
+### 图集
+
+五张图分别回答「由什么组成」「登录后怎么同步」「内容从哪来」「提交前怎么守门」「一次训练怎么走」。每张都由仓库代码取证生成，点开 HTML 可以切浅色/深色、缩放、导出图片。
+
+| # | 图 | 讲什么 | 交互版 |
+|---|---|---|---|
+| 01 | 系统构成 | 两套原生 App、各自的本机存储、自托管 Supabase 的内部拓扑与信任边界 | [HTML](docs/diagrams/01-architecture.html) |
+| 02 | 登录与云同步 | 登录 → JWT → 本地/远端/基线三值判定 → 整包快照 upsert 的完整时序 | [HTML](docs/diagrams/02-cloud-sync.html) |
+| 03 | 内容管线 | 一份 JSONL 内容源如何分别派生鸿蒙的 ArkTS 常量与 Android 的资产 JSON | [HTML](docs/diagrams/03-content-pipeline.html) |
+| 04 | 质量门禁 | 八个检查的顺序、任一红即停的出口，以及 CI 覆盖不到的编译段 | [HTML](docs/diagrams/04-quality-gates.html) |
+| 05 | 训练会话生命周期 | 预览 → 进行中 → 完成摘要，含草稿恢复与放弃两条支线 | [HTML](docs/diagrams/05-workout-session.html) |
+
+<img src="docs/diagrams/02-cloud-sync.png" width="840" alt="登录与整包云同步时序">
+<img src="docs/diagrams/03-content-pipeline.png" width="840" alt="动作内容管线">
+<img src="docs/diagrams/04-quality-gates.png" width="840" alt="提交前质量门禁流水线">
+<img src="docs/diagrams/05-workout-session.png" width="840" alt="训练会话生命周期">
 
 ## 快速开始
 
