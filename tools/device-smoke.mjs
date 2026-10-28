@@ -176,9 +176,25 @@ function writeSummary(rows, outPath) {
 
 async function main() {
   const flags = {};
-  for (let i = 0; i < process.argv.length; i += 1) {
+  // 支持 `--key value` 与 `--key=value` 两种写法。
+  // 旧实现一律写 true，导致 `--harmony-wait 180` 被算成 Number(true) === 1：
+  // 等待退化成 1 秒，而模拟器 boot 要 50–60s，脚本必然报「无可用鸿蒙设备」。
+  for (let i = 2; i < process.argv.length; i += 1) {
     const token = process.argv[i];
-    if (token.startsWith('--')) flags[token.slice(2)] = true;
+    if (!token.startsWith('--')) continue;
+    const key = token.slice(2);
+    const eq = key.indexOf('=');
+    if (eq > 0) {
+      flags[key.slice(0, eq)] = key.slice(eq + 1);
+      continue;
+    }
+    const next = process.argv[i + 1];
+    if (next !== undefined && !next.startsWith('--')) {
+      flags[key] = next;
+      i += 1;
+    } else {
+      flags[key] = true;
+    }
   }
   const log = (msg) => console.log(`[device-smoke] ${msg}`);
 
