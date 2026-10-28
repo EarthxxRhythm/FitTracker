@@ -33,11 +33,9 @@ jobs:
       - name: 配置 Gradle 缓存
         uses: gradle/actions/setup-gradle@v4
 
-      - name: 安装 Android SDK Platform
-        uses: android-actions/setup-android@v3
-
-      - name: 补齐 compileSdk 所需平台
-        run: sdkmanager "platforms;android-37" || echo "platform 37 已预装或不可用，交由 Gradle 自行解析"
+      # 不引入 android-actions/setup-android：ubuntu runner 已自带 Android SDK 与 cmdline-tools，
+      # 该 action 会因预装 sdkmanager 版本不匹配在 --licenses 步骤 exit 1（2026-10-28 实测）。
+      # ANDROID_HOME 由 runner 预设，AGP 能自行定位；缺 platform 时由 AGP 自动下载。
 
       - name: 单元测试
         working-directory: apps/android
