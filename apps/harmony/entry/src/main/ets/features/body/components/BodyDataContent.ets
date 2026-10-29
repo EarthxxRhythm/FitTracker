@@ -21,6 +21,19 @@ import BodyMeasurementService from '../../../shared/services/BodyMeasurementServ
 import { WeightRecord, BodyTrend, BodyMeasurement, MEASUREMENT_UNSET } from '../../../shared/models/BodyModels'
 import { WeekStart } from '../../../common/utils/WeekUtils'
 import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
+import { SegmentedPill, SegmentedPillItem, createSegmentedPillItem } from '../../../components/SegmentedPill'
+
+/** 页签项表（模块级常量：组件按 items 逐项测宽，build 内新建数组会让测量失效）。 */
+const SHEET_TAB_ITEMS: SegmentedPillItem[] = [
+  createSegmentedPillItem('weight', '体重'),
+  createSegmentedPillItem('measure', '围度与体成分'),
+  createSegmentedPillItem('profile', '身体档案')
+]
+const TREND_PERIOD_ITEMS: SegmentedPillItem[] = [
+  createSegmentedPillItem('week', '周'),
+  createSegmentedPillItem('month', '月'),
+  createSegmentedPillItem('year', '年')
+]
 
 interface BodyMetricTile {
   label: string
@@ -650,23 +663,6 @@ export struct BodyDataContent {
   }
 
   @Builder
-  private sheetTabButton(label: string, key: string) {
-    Button(label)
-      .height(30)
-      .padding({ left: 12, right: 12 })
-      .fontFamily('Noto Sans SC')
-      .fontSize(12)
-      .fontWeight(FontWeight.Bold)
-      .fontColor(this.sheetTab === key ? PrototypeTokens.TEXT_ON_ACCENT : PrototypeTokens.WHITE_A62)
-      .backgroundColor(this.sheetTab === key ? PrototypeTokens.ACCENT : Color.Transparent)
-      .borderRadius(9)
-      .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: MotionTokens.EASE_MOTION })
-      .onClick(() => {
-        this.switchSheetTab(key)
-      })
-  }
-
-  @Builder
   private measureField(label: string, value: string, unit: string, onChange: (value: string) => void) {
     Row() {
       Text(label)
@@ -862,10 +858,24 @@ export struct BodyDataContent {
               .textAlign(TextAlign.Center)
               .width('100%')
               .margin({ top: 5 })
-            Row({ space: 8 }) {
-              this.sheetTabButton('体重', 'weight')
-              this.sheetTabButton('围度与体成分', 'measure')
-              this.sheetTabButton('身体档案', 'profile')
+            Row() {
+              SegmentedPill({
+                items: SHEET_TAB_ITEMS,
+                selectedKey: this.sheetTab,
+                itemHeight: 30,
+                itemPadH: 12,
+                itemFontSize: 12,
+                selectedWeight: 700,
+                fillWidth: false,
+                itemGap: 8,
+                itemRadius: 9,
+                trackRadius: 9,
+                track: 'none',
+                inactiveColor: PrototypeTokens.WHITE_A62,
+                onSelect: (key: string) => {
+                  this.switchSheetTab(key)
+                }
+              })
             }
             .width('100%')
             .justifyContent(FlexAlign.Center)
@@ -1310,15 +1320,23 @@ export struct BodyDataContent {
             .fontColor(PrototypeTokens.WHITE_A54)
             .margin({ top: 3 })
         }
-        Row({ space: 2 }) {
-          this.periodButton('周', 'week')
-          this.periodButton('月', 'month')
-          this.periodButton('年', 'year')
-        }
-        .padding(3)
-        .backgroundColor(PrototypeTokens.WHITE_A06)
-        .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
-        .borderRadius(12)
+        SegmentedPill({
+          items: TREND_PERIOD_ITEMS,
+          selectedKey: this.period,
+          itemHeight: 30,
+          itemFontSize: 12.5,
+          selectedWeight: 700,
+          fillWidth: false,
+          itemGap: 2,
+          itemRadius: 9,
+          trackRadius: 12,
+          track: 'fill',
+          trackFillColor: PrototypeTokens.WHITE_A06,
+          inactiveColor: PrototypeTokens.WHITE_A62,
+          onSelect: (key: string) => {
+            this.selectPeriod(key)
+          }
+        })
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -1337,23 +1355,6 @@ export struct BodyDataContent {
     .backgroundColor(PrototypeTokens.WHITE_A03)
     .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
     .borderRadius(22)
-  }
-
-  @Builder
-  private periodButton(label: string, key: string) {
-    Button(label)
-      .height(30)
-      .padding({ left: 14, right: 14 })
-      .fontFamily('Noto Sans SC')
-      .fontSize(12.5)
-      .fontWeight(FontWeight.Bold)
-      .fontColor(this.period === key ? PrototypeTokens.TEXT_ON_ACCENT : PrototypeTokens.WHITE_A62)
-      .backgroundColor(this.period === key ? PrototypeTokens.ACCENT : Color.Transparent)
-      .borderRadius(9)
-      .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: MotionTokens.EASE_MOTION })
-      .onClick(() => {
-        this.selectPeriod(key)
-      })
   }
 
   @Builder

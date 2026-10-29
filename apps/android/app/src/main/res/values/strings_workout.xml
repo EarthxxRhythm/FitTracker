@@ -12,9 +12,8 @@
 -->
 <resources>
 
-    <!-- 顶栏 / 无障碍（原型 `.pv-icon-btn` 的 aria-label，L437 / L444） -->
-    <string name="workout_a11y_back">返回首页</string>
-    <string name="workout_a11y_more">更多选项</string>
+    <!-- 顶栏 / 无障碍（右上角纯线条关闭键，无障碍文案） -->
+    <string name="workout_a11y_close">关闭预览</string>
 
     <!-- hero -->
     <string name="workout_title">训练预览</string>
@@ -37,7 +36,5 @@
     <string name="workout_note">确认动作与重量后开始训练</string>
     <string name="workout_cta_start">开始训练</string>
 
-    <!-- 浮层（`.pv-toast`，原型 `showToast`） -->
-    <string name="workout_toast_more_options">更多选项（原型）</string>
 
 </resources>

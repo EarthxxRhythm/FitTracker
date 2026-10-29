@@ -174,10 +174,11 @@ fun ProfileScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .background(FtColor.ink0) // `.appshell` 底 var(--ink-0) = #0B0F13（L206）
-            // `.profile-content { padding: 53px 16px 30px }`（L228）
-            .padding(start = 16.dp, end = 16.dp, top = 44.dp, bottom = 14.dp), // 压缩进单屏：53/30 → 44/14
-        // `.profile-content { gap: 16px }`（L231）
-        verticalArrangement = Arrangement.spacedBy(10.dp), // 压缩：16 → 10
+            // 与鸿蒙 ProfileContent.ets:75 对齐：53/30。
+            // 安卓是 edge-to-edge，内容从屏幕物理顶端起算，故直接写 53；鸿蒙那边是 53 - topInset。
+            .padding(start = 16.dp, end = 16.dp, top = 53.dp, bottom = 30.dp),
+        // 与鸿蒙 `Column({ space: 16 })` 对齐。
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         ProfileHead(
             name = name,
@@ -189,9 +190,18 @@ fun ProfileScreen(
             onNavigate = onNavigate,
             modifier = Modifier.enterFromBelow(headIn),
         )
-        // 训练经验徽标：未填时整枚隐藏、不占位（与鸿蒙个人页同口径）。
-        if (vm.experienceLabel.isNotEmpty()) {
-            ExperienceBadge(label = vm.experienceLabel, modifier = Modifier.enterFromBelow(headIn))
+        // 与鸿蒙 ProfileContent.ets:52-68 对齐：编辑胶囊独占一行、经验徽标在同一行右侧。
+        // 安卓原先把编辑胶囊放在头部行内、经验徽标另起一块，导致首卡起点比鸿蒙高约 53。
+        Row(
+            modifier = Modifier.fillMaxWidth().enterFromBelow(headIn),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            EditChip(onClick = { onNavigate(FtProfileModel.EDIT_ROUTE) })
+            Spacer(modifier = Modifier.weight(1f))
+            // 训练经验徽标：未填时整枚隐藏、不占位（与鸿蒙个人页同口径）。
+            if (vm.experienceLabel.isNotEmpty()) {
+                ExperienceBadge(label = vm.experienceLabel)
+            }
         }
         WeekOverviewCard(
             value = weekValue,
@@ -299,7 +309,6 @@ private fun ProfileHead(
             }
         }
 
-        EditChip(onClick = { onNavigate(FtProfileModel.EDIT_ROUTE) })
         SettingsButton(onClick = { onNavigate(FtProfileModel.SETTINGS_ROUTE) })
     }
 }
@@ -322,7 +331,7 @@ private fun ExperienceBadge(label: String, modifier: Modifier = Modifier) {
     }
 }
 
-/** 资料编辑入口（设计侧新增）：32dp 文字胶囊，按压 `scale(.96)` 与设置钮同语汇。 */
+/** 资料编辑入口（设计侧新增）：高度由内边距派生，按压 `scale(.96)` 与设置钮同语汇。 */
 @Composable
 private fun EditChip(onClick: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
@@ -334,7 +343,7 @@ private fun EditChip(onClick: () -> Unit) {
     )
     Box(
         modifier = Modifier
-            .height(32.dp)
+            // 与鸿蒙 ProfileContent.ets 对齐：去掉固定高 32，改由上下内边距 7 派生（约 31）。
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
@@ -343,12 +352,12 @@ private fun EditChip(onClick: () -> Unit) {
             .background(EditChipFill)
             .border(1.dp, FtColor.line10, FtShape.pill)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick)
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = 12.dp, vertical = 7.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = stringResource(R.string.profile_edit_entry),
-            style = FtType.natural(12f, 600),
+            style = FtType.natural(12.5f, 500), // 与鸿蒙对齐：12.5 / Medium
             color = FtColor.white70,
         )
     }
@@ -409,7 +418,7 @@ private fun WeekOverviewCard(
             .clip(FocusShape)
             .background(CardFill) // 末尾覆盖层 L1229-1232：rgba(255,255,255,.031)
             .border(1.dp, FtColor.line10, FocusShape)
-            .padding(14.dp), // `.card.focus { padding: 18px }`（L291）——压缩 18 → 14
+            .padding(18.dp), // 与鸿蒙 ProfileContent.ets 对齐：18
         // 弹性撑满：卡片被拉伸时多出的高度摊到内部各组之间，而不是堆在卡片末尾。
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -417,7 +426,7 @@ private fun WeekOverviewCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 10.dp), // `margin-bottom: 14px`（L299）——压缩 14 → 10
+                .padding(bottom = 14.dp), // 与鸿蒙对齐：14
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
@@ -469,7 +478,7 @@ private fun WeekOverviewCard(
         // `.focus-divider { height:1px; background:var(--hairline); margin:15px 0 13px }`（L338-342）
         Box(
             modifier = Modifier
-                .padding(top = 10.dp, bottom = 9.dp) // `margin: 15px 0 13px`（L341）——压缩 15/13 → 10/9
+                .padding(top = 15.dp, bottom = 13.dp) // 与鸿蒙对齐：15/13
                 .fillMaxWidth()
                 .height(1.dp) // `height: 1px`（L339）
                 .background(FtColor.hairline),
@@ -502,19 +511,27 @@ private fun FocusMetric(metric: FtProfileMetric, modifier: Modifier = Modifier) 
             style = FtType.natural(10.5f), // `.fm-label` 10.5px，未声明 line-height（L351）
             color = FtColor.white62,
         )
-        Text(
-            text = metric.value,
-            color = FtColor.txtHi,
-            fontFamily = FtType.num, // 原型 font-num（L353）
-            fontSize = 20.sp,
-            lineHeight = 20.sp, // line-height: 1（L356）
-            fontWeight = FontWeight.Bold,
-        )
-        Text(
-            text = stringResource(metric.unitRes),
-            style = FtType.natural(10.5f), // `.fm-unit` 10.5px，未声明 line-height（L359）
-            color = FtColor.white62,
-        )
+        // 与鸿蒙 ProfileContent.ets:273-285 对齐：单位与数值同行（原实现单位独占一行，
+        // 反而比鸿蒙这一块高约 17）。
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = metric.value,
+                color = FtColor.txtHi,
+                fontFamily = FtType.num, // 原型 font-num（L353）
+                fontSize = 20.sp,
+                lineHeight = 20.sp, // line-height: 1（L356）
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = stringResource(metric.unitRes),
+                style = FtType.natural(10.5f), // `.fm-unit` 10.5px，未声明 line-height（L359）
+                lineHeight = 12.sp, // 与鸿蒙对齐：显式行高 12
+                color = FtColor.white62,
+            )
+        }
     }
 }
 
@@ -533,13 +550,13 @@ private fun AchievementsCard(
             .clip(FtShape.panel)
             .background(CardFill)
             .border(1.dp, FtColor.line10, FtShape.panel)
-            .padding(12.dp), // 压缩：16 → 12
+            .padding(16.dp), // 与鸿蒙 ProfileContent.ets 对齐：16
         // 弹性撑满：多出的高度摊到标题与各成就行之间。
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
             text = stringResource(FtProfileModel.ACHIEVEMENTS_TITLE_RES),
-            modifier = Modifier.padding(bottom = 8.dp), // `.achievements-title { margin-bottom: 12px }`（L390）——压缩 12 → 8
+            modifier = Modifier.padding(bottom = 12.dp), // 与鸿蒙对齐：12
             color = FtColor.txtHi,
             fontSize = 17.sp,
             lineHeight = 20.4.sp, // `.card-title` line-height: 1.2（L306）
@@ -569,7 +586,7 @@ private fun AchievementsCard(
                 achievement = achievement,
                 weightUnit = weightUnit,
                 // `.achievement { padding: 7px 0 }`（L395）；后继项 `padding-top: 11px`（L400）
-                modifier = Modifier.padding(top = if (index == 0) 5.dp else 8.dp, bottom = 5.dp), // 压缩：7/11/7 → 5/8/5
+                modifier = Modifier.padding(top = 7.dp, bottom = 7.dp), // 与鸿蒙对齐：首行与后续行统一 7/7
             )
         }
     }

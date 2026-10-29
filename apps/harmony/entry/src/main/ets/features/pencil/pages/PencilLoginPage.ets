@@ -13,8 +13,15 @@ import { ColorTokens, MotionTokens } from '../../../common/styles/DesignTokens'
 import { currentCanvasScale } from '../../../common/utils/CanvasScale'
 import { shakeField } from '../../../common/utils/FieldShake'
 import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
+import { SegmentedPill, SegmentedPillItem, createSegmentedPillItem } from '../../../components/SegmentedPill'
 
 const COUNTDOWN_SECONDS: number = 60
+
+/** 登录模式切换的项表（模块级常量：组件按 items 逐项测宽，build 内新建数组会让测量失效）。 */
+const LOGIN_MODE_ITEMS: SegmentedPillItem[] = [
+  createSegmentedPillItem('phone', '手机验证码'),
+  createSegmentedPillItem('email', '邮箱密码')
+]
 
 /** 字段错误态配色——统一取自 DesignTokens，与注册/体重/目标输入共用同一套。 */
 const FIELD_ERROR_BORDER: string = ColorTokens.FIELD_ERROR_BORDER
@@ -359,36 +366,25 @@ struct PencilLoginPage {
     }
   }
 
+  /** 手机验证码 / 邮箱密码：填充胶囊，选中块平移过来（原实现是两块底色瞬间互换）。 */
   @Builder
   private buildModeSwitch() {
-    Row({ space: 2 }) {
-      this.buildModeButton('手机验证码', 'phone')
-      this.buildModeButton('邮箱密码', 'email')
-    }
-    .width('100%')
-    .height(44)
-    .padding(3)
-    .backgroundColor(PrototypeTokens.WHITE_A06)
-    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
-    .borderRadius(14)
-  }
-
-  @Builder
-  private buildModeButton(label: string, modeKey: string) {
-    Text(label)
-      .layoutWeight(1)
-      .height('100%')
-      .textAlign(TextAlign.Center)
-      .fontFamily('Noto Sans SC')
-      .fontSize(13.5)
-      .fontWeight(FontWeight.Bold)
-      .fontColor(this.loginMode === modeKey ? PrototypeTokens.TEXT_ON_ACCENT : PrototypeTokens.WHITE_A62)
-      .backgroundColor(this.loginMode === modeKey ? PrototypeTokens.ACCENT : Color.Transparent)
-      .borderRadius(11)
-      .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: MotionTokens.EASE_MOTION })
-      .onClick(() => {
-        if (this.loginMode !== modeKey) {
-          this.loginMode = modeKey
+    SegmentedPill({
+      items: LOGIN_MODE_ITEMS,
+      selectedKey: this.loginMode,
+      itemHeight: 38,
+      itemFontSize: 13.5,
+      selectedWeight: 700,
+      fillWidth: true,
+      itemGap: 2,
+      itemRadius: 11,
+      trackRadius: 14,
+      track: 'fill',
+      trackFillColor: PrototypeTokens.WHITE_A06,
+      inactiveColor: PrototypeTokens.WHITE_A62,
+      onSelect: (key: string) => {
+        if (this.loginMode !== key) {
+          this.loginMode = key
           this.message = ''
           this.hint = ''
           this.phoneError = ''
@@ -396,7 +392,8 @@ struct PencilLoginPage {
           this.emailError = ''
           this.passwordError = ''
         }
-      })
+      }
+    })
   }
 
   /** 触发某字段的左右抖动（校验失败时调用）。 */

@@ -10,6 +10,21 @@ import WorkoutSummaryService, { WorkoutSummary } from '../../../shared/services/
 import CloudSyncService from '../../../shared/services/CloudSyncService'
 import { WorkoutSession } from '../../../shared/models/TrainingModels'
 import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
+import { SegmentedPill, SegmentedPillItem, createSegmentedPillItem } from '../../../components/SegmentedPill'
+
+/** RPE 1–10 档位表（模块级常量：组件按 items 逐项测宽，build 内新建数组会让测量失效）。 */
+const RPE_ITEMS: SegmentedPillItem[] = [
+  createSegmentedPillItem('1', '1'),
+  createSegmentedPillItem('2', '2'),
+  createSegmentedPillItem('3', '3'),
+  createSegmentedPillItem('4', '4'),
+  createSegmentedPillItem('5', '5'),
+  createSegmentedPillItem('6', '6'),
+  createSegmentedPillItem('7', '7'),
+  createSegmentedPillItem('8', '8'),
+  createSegmentedPillItem('9', '9'),
+  createSegmentedPillItem('10', '10')
+]
 
 const STREAK_DAYS: string[] = ['一', '二', '三', '四', '五', '六', '日']
 
@@ -392,25 +407,27 @@ export struct WorkoutCompletePage {
         .fontColor(PrototypeTokens.WHITE_A54)
         .width('100%')
 
-      Row({ space: 4 }) {
-        ForEach(this.rpeOptions, (value: number) => {
-          Text(value.toString())
-            .fontFamily('HarmonyOS Sans')
-            .fontSize(13)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(this.sessionRpe === value ? PrototypeTokens.TEXT_ON_ACCENT : PrototypeTokens.WHITE_A70)
-            .textAlign(TextAlign.Center)
-            .layoutWeight(1)
-            .height(34)
-            .borderRadius(10)
-            .backgroundColor(this.sessionRpe === value ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A08)
-            .border({ width: 1, color: this.sessionRpe === value ? PrototypeTokens.TRANSPARENT : PrototypeTokens.WHITE_A08 })
-            .onClick(() => {
-              this.selectSessionRpe(value)
-            })
-        }, (value: number) => value.toString())
-      }
-      .width('100%')
+      SegmentedPill({
+        items: RPE_ITEMS,
+        // 未评价（sessionRpe = 0）时 selectedKey 为空串 → 组件找不到索引 → 滑块不渲染，
+        // 不会误高亮第 1 档。
+        selectedKey: this.sessionRpe > 0 ? this.sessionRpe.toString() : '',
+        itemHeight: 34,
+        itemFontSize: 13,
+        selectedWeight: 700,
+        fillWidth: true,
+        itemGap: 4,
+        itemRadius: 10,
+        trackRadius: 10,
+        track: 'none',
+        inactiveColor: PrototypeTokens.WHITE_A70,
+        showBaseCells: true,
+        baseCellFill: PrototypeTokens.WHITE_A08,
+        baseCellBorder: PrototypeTokens.WHITE_A08,
+        onSelect: (key: string) => {
+          this.selectSessionRpe(parseInt(key))
+        }
+      })
     }
     .width('100%')
     .padding(16)
@@ -420,9 +437,6 @@ export struct WorkoutCompletePage {
     .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
     .opacity(this.streakOpacity)
   }
-
-  /** RPE 可选项（1–10）。 */
-  private readonly rpeOptions: number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
   @Builder
   private completionHero() {

@@ -87,6 +87,8 @@ import com.fittracker.app.data.service.UserProfileService
 import com.fittracker.app.data.service.WeekStart
 import com.fittracker.app.data.service.currentLanguageTag
 import com.fittracker.app.data.service.WeightUnit
+import com.fittracker.app.ui.components.FtSegmentedPill
+import com.fittracker.app.ui.components.SegContainer
 import com.fittracker.app.ui.components.clickableNoRipple
 import com.fittracker.app.ui.theme.FtColor
 import com.fittracker.app.ui.theme.FtMotion
@@ -710,42 +712,25 @@ private fun TrendCard(period: TrendPeriod, onPeriod: (TrendPeriod) -> Unit, seri
     }
 }
 
-/** `.seg`（L178-181）：圆角 12 的分段控件，选中项翡翠底。 */
+/** `.seg`（L178-181）：圆角 12 的分段控件，选中项翡翠底 + 滑动块。 */
 @Composable
 private fun PeriodSeg(period: TrendPeriod, onPeriod: (TrendPeriod) -> Unit) {
-    val shape = RoundedCornerShape(12.dp)
-    // `stringResource` 不能在 `semantics { }`（非 @Composable lambda）内调用——先取值。
-    val rangeDesc = stringResource(FtBodyModel.A11Y_TREND_RANGE_RES)
-    Row(
-        modifier = Modifier
-            // 原型 `.seg` 的 aria-label（L380）
-            .semantics { contentDescription = rangeDesc }
-            .clip(shape)
-            .background(SegFill) // rgba(255,255,255,.06)
-            .border(1.dp, FtColor.line10, shape)
-            .padding(3.dp), // `.seg { padding: 3px }`
-        horizontalArrangement = Arrangement.spacedBy(2.dp), // `.seg { gap: 2px }`
-    ) {
-        TrendPeriod.entries.forEach { item ->
-            val active = item == period
-            Box(
-                modifier = Modifier
-                    .height(30.dp) // `.seg button { height: 30px }`（L179）
-                    .clip(RoundedCornerShape(9.dp)) // border-radius: 9px
-                    .background(if (active) FtColor.accent else Color.Transparent)
-                    .clickableNoRipple { onPeriod(item) }
-                    .padding(horizontal = 14.dp), // `.seg button { padding: 0 14px }`
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = stringResource(item.labelRes),
-                    style = FtType.natural(12.5f, 600), // 12.5px / 600（L179）
-                    color = if (active) FtColor.onAccent else FtColor.white62,
-                    maxLines = 1,
-                )
-            }
-        }
-    }
+    FtSegmentedPill(
+        // 原型 `.seg` 的 aria-label（L380）挂在 track 容器上，与原实现一致。
+        contentDescription = stringResource(FtBodyModel.A11Y_TREND_RANGE_RES),
+        labels = TrendPeriod.entries.map { stringResource(it.labelRes) },
+        selectedIndex = TrendPeriod.entries.indexOf(period),
+        onSelect = { onPeriod(TrendPeriod.entries[it]) },
+        buttonHeight = 30.dp, // `.seg button { height: 30px }`（L179）
+        buttonPadH = 14.dp, // `.seg button { padding: 0 14px }`
+        buttonFontSize = 12.5.sp, // 12.5px（L179）
+        buttonFontWeight = FontWeight.SemiBold, // 600
+        itemGap = 2.dp, // `.seg { gap: 2px }`
+        itemRadius = 9.dp, // border-radius: 9px
+        trackRadius = 12.dp,
+        trackFill = SegFill, // rgba(255,255,255,.06)
+        container = SegContainer.Full,
+    )
 }
 
 /**

@@ -158,7 +158,11 @@ const PART_MUSCLES: PartMusclesEntry[] = [
   { part: '核心', muscles: ['腹直肌'] }
 ]
 
-const EQUIPMENT_ORDER: string[] = ['杠铃', '哑铃', '器械', '弹力带', '自重']
+/**
+ * 器械分组不再用写死清单：内容库真实器械名是杠铃 / 哑铃 / 绳索 / 固定器械 / 徒手 / 弹力带 / 壶铃，
+ * 旧的「器械」「自重」是原型样例名，与实际数据对不上会整组不显示。分组口径与 Android 端
+ * `groupExercises` 一致：按动作的**首个**器械归类，分组顺序取过滤结果中的首次出现序。
+ */
 
 function getMusclesForPart(part: string): string[] {
   for (let index = 0; index < PART_MUSCLES.length; index++) {
@@ -323,12 +327,37 @@ export struct ExerciseLibraryPage {
     return result
   }
 
+  /**
+   * 动作的归类器械名：`equipmentText` 在多器械时是「A / B」拼接，取第一段与 Android 端
+   * `equipmentIds.firstOrNull()` 同口径，避免多器械动作在两个分组重复出现。
+   */
+  private primaryEquipmentOf(item: ExerciseItem): string {
+    const separatorIndex: number = item.equipment.indexOf(' / ')
+    if (separatorIndex < 0) {
+      return item.equipment
+    }
+    return item.equipment.substring(0, separatorIndex)
+  }
+
   private groupItems(equipment: string): ExerciseItem[] {
     const filtered: ExerciseItem[] = this.filteredExercises()
     const result: ExerciseItem[] = []
     for (let index = 0; index < filtered.length; index++) {
-      if (filtered[index].equipment === equipment) {
+      if (this.primaryEquipmentOf(filtered[index]) === equipment) {
         result.push(filtered[index])
+      }
+    }
+    return result
+  }
+
+  /** 器械分组顺序：取过滤结果的首次出现序，与 Android 端分组口径一致。 */
+  private equipmentGroups(): string[] {
+    const filtered: ExerciseItem[] = this.filteredExercises()
+    const result: string[] = []
+    for (let index = 0; index < filtered.length; index++) {
+      const equipment: string = this.primaryEquipmentOf(filtered[index])
+      if (result.indexOf(equipment) < 0) {
+        result.push(equipment)
       }
     }
     return result
@@ -492,10 +521,8 @@ export struct ExerciseLibraryPage {
               this.buildMuscleChips()
             }
 
-            ForEach(EQUIPMENT_ORDER, (equipment: string) => {
-              if (this.groupItems(equipment).length > 0) {
-                this.buildGroupSection(equipment)
-              }
+            ForEach(this.equipmentGroups(), (equipment: string) => {
+              this.buildGroupSection(equipment)
             }, (equipment: string) => equipment)
 
             if (this.filteredExercises().length === 0) {

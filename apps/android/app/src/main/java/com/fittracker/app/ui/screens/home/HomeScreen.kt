@@ -39,12 +39,15 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -71,6 +74,7 @@ import com.fittracker.app.ui.theme.FtColor
 import com.fittracker.app.ui.theme.FtMotion
 import com.fittracker.app.ui.theme.FtShape
 import com.fittracker.app.ui.theme.FtType
+import kotlin.math.roundToInt
 
 /**
  * 首页（原型 `fittracker-welcome-home.html` 的 `screen-home` 帧）。
@@ -142,8 +146,12 @@ fun HomeScreen(
             // 富余高度留在页面底部，不再用 weight 把空白塞进卡片内部。
             .verticalScroll(rememberScrollState())
             .background(FtColor.ink0) // 原型 .appshell 背景 var(--ink-0)（L174/L177）
-            .padding(start = 16.dp, end = 16.dp, top = 44.dp, bottom = 20.dp), // 压缩进单屏：53/36 → 44/20
-        verticalArrangement = Arrangement.spacedBy(10.dp), // 卡片间距（原由各自 padding 承担）
+            // 与鸿蒙 HomeContent.ets 对齐：顶部 53、底部 36。
+            // 安卓是 edge-to-edge（FtApp 的 contentWindowInsets = WindowInsets(0)），内容从屏幕物理
+            // 顶端起算，故直接写 53；鸿蒙窗口非全屏、页面区已在状态栏下，那边用的是 53 - topInset。
+            .padding(start = 16.dp, end = 16.dp, top = 53.dp, bottom = 36.dp),
+        // 块间距两端不同（head→今日 19、今日→周卡 16），已下沉到各块自身的 top padding，
+        // 不能用统一的 Arrangement.spacedBy 表达。
     ) {
         HomeHead(
             dateText = dateText,
@@ -158,15 +166,15 @@ fun HomeScreen(
             durationMinutes = todayDurationMinutes,
             muscleGroupCount = todayMuscleGroupCount,
             progressPercent = weeklyProgressPercent,
-            onStart = { onNavigate("active") },
+            onStart = { onNavigate("start-workout") },
             onPreview = { onNavigate("workout") },
-            modifier = Modifier.enterFromBelow(todayIn),
+            modifier = Modifier.padding(top = 19.dp).enterFromBelow(todayIn),
         )
         WeekCard(
             days = weekDays,
             trainedCount = weeklyTrainedCount,
             plannedDays = weeklyPlannedDays,
-            modifier = Modifier.enterFromBelow(weekIn),
+            modifier = Modifier.padding(top = 16.dp).enterFromBelow(weekIn),
         )
     }
 }
@@ -174,7 +182,7 @@ fun HomeScreen(
 /** `.home-head` L358-370：日期 12.7px/500，问候 36.3px/700，两者间隔 5.4px。 */
 @Composable
 private fun HomeHead(dateText: String, greeting: String, modifier: Modifier = Modifier) {
-    // 间距由外层 `Arrangement.spacedBy(10.dp)` 统一提供，此处不再叠加 bottom padding。
+    // 与今日卡的 19dp 间距由 TodayCard 的 top padding 提供，此处不再叠加。
     Column(modifier = modifier) {
         Text(
             text = dateText,
@@ -222,7 +230,7 @@ private fun TodayCard(
             .clip(FtShape.panelLg)
             .background(CardFill)
             .border(1.dp, FtColor.line10, FtShape.panelLg)
-            .padding(start = 18.dp, end = 18.dp, top = 14.dp, bottom = 12.dp), // 压缩：20/18 → 14/12
+            .padding(start = 18.dp, end = 18.dp, top = 19.dp, bottom = 18.dp), // 与鸿蒙 HomeContent.ets 对齐：19/18
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -237,15 +245,15 @@ private fun TodayCard(
             )
             TodayRing(
                 percent = progressPercent / 100f,
-                valueText = stringResource(R.string.home_ring_percent, progressPercent),
                 capText = stringResource(R.string.home_ring_caption),
+                modifier = Modifier.padding(top = 4.dp), // 与鸿蒙对齐：环上距 4
             )
         }
 
         // `.today-divider` L455-459
         Box(
             modifier = Modifier
-                .padding(top = 12.dp, bottom = 10.dp) // 压缩：18/16 → 12/10
+                .padding(top = 18.dp, bottom = 16.dp) // 与鸿蒙对齐：18/16
                 .fillMaxWidth()
                 .height(1.dp)
                 .drawBehind {
@@ -268,7 +276,7 @@ private fun TodayCard(
         CtaButton(
             text = stringResource(R.string.home_action_start),
             onClick = onStart,
-            modifier = Modifier.padding(top = 10.dp), // 压缩：16 → 10
+            modifier = Modifier.padding(top = 16.dp), // 与鸿蒙对齐：16
             bg = FtColor.accent,
             fg = FtColor.onAccent2,
             weight = 700,
@@ -321,14 +329,22 @@ private fun TodayIdentity(title: String, muscleText: String, statusText: String,
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(7.dp),
         ) {
-            // 原型 `.day::before`：6px 圆点 + 3px accent-12 光环
+            // 与鸿蒙对齐：12dp 容器内是 6dp 实心点 + 3dp 光环（外径 12）。
+            // 原实现是 6dp 盒内画 3dp 内描边，外径只有 6dp。
             Box(
                 modifier = Modifier
-                    .size(6.dp)
+                    .size(12.dp)
                     .clip(CircleShape)
-                    .background(FtColor.accent)
-                    .border(3.dp, FtColor.accent12, CircleShape),
-            )
+                    .background(FtColor.accent12),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(FtColor.accent),
+                )
+            }
             Text(
                 text = statusText,
                 color = FtColor.white54,
@@ -367,41 +383,84 @@ private fun RecommendChip() {
 /**
  * `.today-ring` L422-453：96×96。
  *
- * 外环是 `conic-gradient(accent 0→50.4deg, rgba(255,255,255,.12) 50.4deg→360deg)`
- * 经径向遮罩抠成的 7px 环带。Compose 用 [Brush.sweepGradient] 等价表达：
- * 50.4/360 = 0.14；CSS conic 从 12 点起算，Compose sweep 从 3 点起算，故整体 rotate(-90°)。
- * 原型另有 `drop-shadow(0 0 9px rgba(80,236,167,.28))`，此处以较宽的半透明描边近似。
+ * 外环在原型里是 `conic-gradient(accent 0→50.4deg, rgba(255,255,255,.12) 50.4deg→360deg)`
+ * 经径向遮罩抠成的 7px 环带。这里改用分层 `drawArc`：玻璃包边 → 轨道 → 远晕 → 近晕 → 主弧。
+ * 原实现用 [Brush.sweepGradient] 给整圈着色，而端帽属 `Stroke` 参数、与 Brush 路径互斥，
+ * 弧端只能平切；分层 drawArc + [StrokeCap.Round] 才拿得到圆头（鸿蒙侧同样因此改为自绘）。
+ * CSS conic 从 12 点起算、Compose 弧从 3 点起算，故整体 rotate(-90°)。
+ * 原型另有 `drop-shadow(0 0 9px rgba(80,236,167,.28))`，以双层半透明弧衰减近似。
  */
 @Composable
 private fun TodayRing(
     percent: Float,
-    valueText: String,
     capText: String,
+    modifier: Modifier = Modifier,
 ) {
-    Box(modifier = Modifier.size(96.dp)) {
+    // 环与中心数字的同一个驱动值：曲线（EASE_ENTER）、时长（DURATION_RING_FILL）、
+    // 错峰（DURATION_STAGGER）均与鸿蒙 HomeContent.playRingFill 同值。
+    // 数字由 fill 求得，不再接受调用方传入的静态文案——否则两条动画各走各的曲线。
+    var fillStarted by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { fillStarted = true }
+    val fill by animateFloatAsState(
+        targetValue = if (fillStarted) percent else 0f,
+        animationSpec = tween(
+            durationMillis = FtMotion.DURATION_RING_FILL,
+            delayMillis = FtMotion.DURATION_STAGGER,
+            easing = FtMotion.EASE_ENTER,
+        ),
+        label = "home-ring-fill",
+    )
+    val pct = (fill * 100f).roundToInt()
+    // 读数拆成「整数 + %」两个 Text，TalkBack 需要整句；资源键因此保留给无障碍文案
+    val ringA11y = stringResource(R.string.home_ring_percent, pct)
+    Box(modifier = modifier.size(RingTokens.SIZE.dp).semantics { contentDescription = ringA11y }) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val strokeW = 7.dp.toPx()
+            val strokeW = RingTokens.STROKE.dp.toPx()
             val radius = (size.minDimension - strokeW) / 2f
             val center = Offset(size.width / 2f, size.height / 2f)
+            val done = fill >= RingTokens.DONE_ARC
             rotate(-90f, pivot = center) {
-                // 光晕近似
-                drawCircle(
-                    color = RingGlow,
-                    radius = radius,
-                    center = center,
-                    style = Stroke(strokeW * 2.4f),
+                // 玻璃包边：环带内外各 1dp 极淡轮廓，制造「玻璃管」观感
+                drawArc(
+                    color = FtColor.ringGlass,
+                    startAngle = 0f,
+                    sweepAngle = 360f,
+                    useCenter = false,
+                    style = Stroke(RingTokens.GLASS_WIDTH.dp.toPx(), cap = StrokeCap.Round),
                 )
-                drawCircle(
-                    brush = Brush.sweepGradient(
-                        0f to FtColor.accent,
-                        percent to FtColor.accent,
-                        percent to RingTrack,
-                        1f to RingTrack,
-                    ),
-                    radius = radius,
-                    center = center,
-                    style = Stroke(strokeW),
+                // 未完成轨道；达成后淡出，让闭环本身更亮
+                drawArc(
+                    color = if (done) FtColor.ringTrackDone else FtColor.ringTrack,
+                    startAngle = 0f,
+                    sweepAngle = 360f,
+                    useCenter = false,
+                    style = Stroke(strokeW, cap = StrokeCap.Round),
                 )
+                if (fill >= RingTokens.MIN_ARC) {
+                    val sweep = 360f * fill
+                    // 远晕 / 近晕：两层更宽的半透明弧衰减，替代 blur（两端同构、无 GPU 滤镜依赖）
+                    drawArc(
+                        color = if (done) FtColor.ringGlowFarDone else FtColor.ringGlowFar,
+                        startAngle = 0f,
+                        sweepAngle = sweep,
+                        useCenter = false,
+                        style = Stroke(RingTokens.GLOW_FAR_WIDTH.dp.toPx(), cap = StrokeCap.Round),
+                    )
+                    drawArc(
+                        color = if (done) FtColor.ringGlowNearDone else FtColor.ringGlowNear,
+                        startAngle = 0f,
+                        sweepAngle = sweep,
+                        useCenter = false,
+                        style = Stroke(RingTokens.GLOW_NEAR_WIDTH.dp.toPx(), cap = StrokeCap.Round),
+                    )
+                    drawArc(
+                        color = FtColor.accent,
+                        startAngle = 0f,
+                        sweepAngle = sweep,
+                        useCenter = false,
+                        style = Stroke(strokeW, cap = StrokeCap.Round),
+                    )
+                }
             }
         }
         Box(
@@ -409,23 +468,41 @@ private fun TodayRing(
                 .padding(9.dp)
                 .fillMaxSize()
                 .clip(CircleShape)
-                .background(FtColor.ringInner)
-                .border(1.dp, InnerRingBorder, CircleShape),
+                // 内圈顶部受光：与鸿蒙同口径，用纵向渐变近似原型的径向顶光
+                .background(
+                    Brush.verticalGradient(
+                        0f to Color(0x0FFFFFFF),
+                        0.52f to Color(0x000D1117),
+                        1f to FtColor.ringInner,
+                    )
+                )
+                .border(1.dp, FtColor.ringInnerBorder, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Text(
-                    text = valueText,
-                    color = FtColor.txtHi,
-                    fontFamily = FtType.num,
-                    fontSize = 19.sp,
-                    lineHeight = 19.sp, // line-height 1
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-0.38).sp, // -.02em × 19px
-                )
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = "$pct",
+                        color = FtColor.txtHi,
+                        fontFamily = FtType.num,
+                        fontSize = 19.sp,
+                        lineHeight = 19.sp, // line-height 1
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-0.38).sp, // -.02em × 19px
+                    )
+                    Text(
+                        text = "%",
+                        modifier = Modifier.padding(start = 1.dp, bottom = 1.5.dp),
+                        color = FtColor.txtHi.copy(alpha = 0.72f),
+                        fontFamily = FtType.num,
+                        fontSize = 11.sp,
+                        lineHeight = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
                 Text(
                     text = capText,
                     color = FtColor.white54,
@@ -586,15 +663,16 @@ private fun WeekCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .height(168.dp) // 与鸿蒙对齐：固定 168（16 上下内边距 + 40 标题行 + 18 间距 + 78 日点行）
             .clip(WeekShape)
             .background(CardFill)
             .border(1.dp, FtColor.line10, WeekShape)
-            .padding(12.dp), // 压缩：top 16→10、内 16→12
+            .padding(16.dp), // 与鸿蒙对齐：16
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 12.dp), // 压缩：18 → 12
+                .height(40.dp), // 与鸿蒙对齐：标题行定高 40
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -621,9 +699,11 @@ private fun WeekCard(
             )
         }
 
-        // 卡片已按内容定高：标题行与周视图之间不再保留弹性间隔。
+        // 与鸿蒙对齐：标题行与周视图之间 18（标题行已定高 40）。
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 18.dp),
             horizontalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             days.forEach { day ->
@@ -646,7 +726,7 @@ private fun WeekDay(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier,
+        modifier = modifier.height(78.dp), // 与鸿蒙对齐：14 + 8 + 34 + 8 + 14
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -654,6 +734,7 @@ private fun WeekDay(
             text = label,
             color = FtColor.white62,
             fontSize = 10.sp,
+            lineHeight = 14.sp, // 与鸿蒙对齐：显式行高，避免字体默认行高把列撑高
             fontWeight = FontWeight.SemiBold,
         )
         Box(
@@ -676,6 +757,7 @@ private fun WeekDay(
             text = date.toString(),
             color = FtColor.white54,
             fontSize = 10.sp,
+            lineHeight = 14.sp, // 与鸿蒙对齐：显式行高
             fontWeight = FontWeight.SemiBold,
         )
     }
@@ -732,14 +814,19 @@ private val CardFill = Color(0x08FFFFFF)
 /** `rgba(255,255,255,.031)` 的幽灵按钮底（`.today .btn-ghost`） */
 private val GhostFill = Color(0x08FFFFFF)
 
-/** `rgba(255,255,255,.12)` → round(30.6) = 31 = 0x1F（进度环未完成段） */
-private val RingTrack = Color(0x1FFFFFFF)
-
-/** `rgba(80,236,167,.28)` → round(71.4) = 71 = 0x47（进度环 drop-shadow） */
-private val RingGlow = Color(0x4750ECA7)
-
-/** `rgba(255,255,255,.09)` → round(22.95) = 23 = 0x17（进度环内圈描边） */
-private val InnerRingBorder = Color(0x17FFFFFF)
+// ── 进度环尺寸（与鸿蒙 `RingTokens` 逐值同源） ──
+// 颜色在 `FtColor.ring*`；这里只放绘制几何，避免屏内出现裸数字。
+private object RingTokens {
+    const val SIZE = 96
+    const val STROKE = 7
+    const val GLASS_WIDTH = 9
+    const val GLOW_NEAR_WIDTH = 11
+    const val GLOW_FAR_WIDTH = 16
+    /** 低于该进度不画弧与光晕：圆头端帽在 0 附近会留下一个孤立圆点 */
+    const val MIN_ARC = 0.004f
+    /** 达成态阈值 */
+    const val DONE_ARC = 0.999f
+}
 
 /** `rgba(255,255,255,.13)` → round(33.15) = 33 = 0x21（分隔线中段） */
 private val DividerLine = Color(0x21FFFFFF)

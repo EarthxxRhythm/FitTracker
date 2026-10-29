@@ -42,6 +42,8 @@ import com.fittracker.app.data.cloud.SupabaseAuthProvider
 import com.fittracker.app.data.cloud.SupabaseConfig
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
+import com.fittracker.app.ui.components.FtSegmentedPill
+import com.fittracker.app.ui.components.SegContainer
 import com.fittracker.app.ui.components.clickableNoRipple
 import com.fittracker.app.ui.theme.FtColor
 import com.tencent.mm.opensdk.modelmsg.SendAuth
@@ -307,40 +309,29 @@ private const val COUNTDOWN_SECONDS: Int = 60
  * 模式切换（源 `buildModeSwitch` L245-259 / `buildModeButton` L261-272）：
  * 高 44、内边距 3、底 `#0FFFFFFF` + 描边 `#1AFFFFFF`、圆角 14；选中项绿底黑字 13.5/700、圆角 11。
  */
+/**
+ * 模式切换（源 `buildModeSwitch` L245-259 / `buildModeButton` L261-272）：
+ * 高 44、内边距 3、底 `#0FFFFFFF` + 描边 `#1AFFFFFF`、圆角 14；选中项绿底黑字 13.5/700、圆角 11。
+ *
+ * 选中块由 [FtSegmentedPill] 平移而来（原实现是两块底色瞬间互换，无法表达位移）。
+ */
 @Composable
 private fun LoginModeSwitch(mode: LoginMode, onModeChange: (LoginMode) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(44.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(ModeSwitchFill)
-            .border(1.dp, ModeSwitchBorder, RoundedCornerShape(14.dp))
-            .padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        ModeButton(label = stringResource(R.string.auth_mode_phone), active = mode == LoginMode.Phone) { onModeChange(LoginMode.Phone) }
-        ModeButton(label = stringResource(R.string.auth_mode_email), active = mode == LoginMode.Email) { onModeChange(LoginMode.Email) }
-    }
-}
-
-@Composable
-private fun RowScope.ModeButton(label: String, active: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .weight(1f)
-            .fillMaxHeight()
-            .clip(RoundedCornerShape(11.dp))
-            .background(if (active) FtColor.accent else Color.Transparent)
-            .clickableNoRipple(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label,
-            style = natural(13.5f, 700),
-            color = if (active) FtColor.onAccent else ModeInactiveText,
-        )
-    }
+    FtSegmentedPill(
+        labels = listOf(stringResource(R.string.auth_mode_phone), stringResource(R.string.auth_mode_email)),
+        selectedIndex = mode.ordinal,
+        onSelect = { onModeChange(if (it == 0) LoginMode.Phone else LoginMode.Email) },
+        fillWidth = true,
+        buttonHeight = 38.dp,
+        buttonFontSize = 13.5.sp,
+        buttonFontWeight = FontWeight.Bold,
+        itemGap = 2.dp,
+        itemRadius = 11.dp,
+        trackRadius = 14.dp,
+        trackFill = ModeSwitchFill,
+        inactiveColor = ModeInactiveText,
+        container = SegContainer.Full,
+    )
 }
 
 /**

@@ -67,6 +67,11 @@
     <string name="body_sheet_sub">Every entry feeds into your weight trend</string>
     <string name="body_sheet_cancel">Cancel</string>
     <string name="body_sheet_save">Save</string>
+    <string name="body_gate_confirm">Log &amp; start</string>
+    <string name="body_gate_last">Last</string>
+    <string name="body_gate_goal">Goal</string>
+    <string name="body_gate_no_records">No records</string>
+    <string name="body_gate_saving">Saving…</string>
     <string name="body_sheet_input_a11y">Today\'s weight</string>
     <string name="body_invalid_hint">Enter a valid weight between 0 and 500</string>
 

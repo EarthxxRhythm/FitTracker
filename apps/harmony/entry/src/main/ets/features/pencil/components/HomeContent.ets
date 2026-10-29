@@ -1,5 +1,5 @@
 ﻿/** HomeContent - 首页 Tab 界面体（供 PencilAppShell 与独立注册页复用）。 */
-import { MotionTokens } from '../../../common/styles/DesignTokens'
+import { MotionTokens, RingTokens } from '../../../common/styles/DesignTokens'
 import { DuTokens } from '../../../common/styles/DuTokens'
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
@@ -11,6 +11,9 @@ export struct HomeContent {
   // 由 PencilAppShell 传入：打开训练预览全模态。
   // 独立注册页 PencilHomePage 是立即 replaceUrl 到 AppShell 的薄壳，不传此回调。
   onOpenPreview?: () => void
+  // 由 PencilAppShell 传入：「开始训练」先过体重记录 gate，确认后才开预览。
+  // 与 onOpenPreview 分开，是因为「查看预览」不走 gate（语义是看，不是练）。
+  onStartWorkout?: () => void
   // 状态层：由 PencilAppShell 传入。数据态与装载已迁入 HomeState，此处只留 UI 交互态。
   @ObjectLink state: HomeState
   private static readonly CHINESE_FONT_FAMILY: string = 'Noto Sans SC'
@@ -22,6 +25,13 @@ export struct HomeContent {
   @State private headIn: number = 0
   @State private todayIn: number = 0
   @State private weekIn: number = 0
+  // 环形进度补间的缓动值（0→1）。存「缓动后的完成度」而不是「缓动后的百分比」：
+  // 目标百分比会随 state 刷新变化，显示值 = ringEased × 当前目标，动画结束后自动跟随最新数据。
+  // 环是自绘 Canvas，内容不会随状态自动重画，故用 @Watch 把每帧的缓动值变化接到重绘上。
+  @State @Watch('onRingTick') private ringEased: number = 0
+  private ringTimer: number = -1
+  private ringCtx: CanvasRenderingContext2D =
+    new CanvasRenderingContext2D(new RenderingContextSettings(true))
 
   async aboutToAppear(): Promise<void> {
     await this.resolveTopInset()
@@ -30,6 +40,7 @@ export struct HomeContent {
       await this.state.refresh(context)
     }
     this.playEntrance()
+    this.playRingFill()
   }
 
   /**
@@ -53,6 +64,116 @@ export struct HomeContent {
     })
   }
 
+  /**
+   * 今日卡环形进度：环与中心数字用同一条曲线（EASE_ENTER）在 1200ms 内从 0 走到目标比例。
+   *
+   * 为什么不用 `animateTo`：`Progress.value` / `Text` 的内容是数据驱动的重绘属性，
+   * 不参与属性动画插值（`animateTo` 只会把闭包前后的状态当两个离散快照）。
+   * 因此这里逐帧求缓动值——环与数字读同一个 `ringEased`，「同步」由结构保证，而非两条动画的巧合。
+   * 节奏与 Android `TodayRing` 的 `animateFloatAsState(DURATION_RING_FILL, EASE_ENTER)` 同值。
+   */
+  private playRingFill(): void {
+    this.stopRingFill()
+    const target: number = this.state.weeklyProgressPercent
+    if (target <= 0) {
+      // 无进度可画：直接置完成态（显示值仍是 0），不必空跑 1.2s 计时器。
+      this.ringEased = 1
+      return
+    }
+    const duration: number = MotionTokens.DURATION_RING_FILL
+    // 与卡片入场同一错峰：等今日卡开始落位后再起画，避免环在卡片还透明时就画完。
+    const delay: number = MotionTokens.DURATION_STAGGER
+    const curve: ICurve = MotionTokens.EASE_ENTER_CURVE
+    const startedAt: number = Date.now()
+    this.ringEased = 0
+    this.ringTimer = setInterval(() => {
+      const elapsed: number = Date.now() - startedAt - delay
+      if (elapsed <= 0) {
+        return
+      }
+      const progress: number = elapsed >= duration ? 1 : elapsed / duration
+      this.ringEased = curve.interpolate(progress)
+      if (progress >= 1) {
+        this.stopRingFill()
+      }
+    }, 16)
+  }
+
+  private stopRingFill(): void {
+    if (this.ringTimer !== -1) {
+      clearInterval(this.ringTimer)
+      this.ringTimer = -1
+    }
+  }
+
+  /** 环的每帧重绘入口：`ringEased` 变化即重画（Canvas 内容不会随状态自动更新）。 */
+  private onRingTick(): void {
+    this.drawRing()
+  }
+
+  /**
+   * 环的分层绘制：玻璃包边 → 轨道 → 远晕 → 近晕 → 主弧。
+   *
+   * 全部读同一个 `fill`（`ringEased × 目标 / 100`），与中心数字同源——
+   * 圆头弧的扫过角度与数字因此天然对应，不依赖两套动画的状态对齐。
+   * 光晕用两层更宽的半透明圆弧衰减，而不是 blur：无 GPU 滤镜依赖，安卓侧可同构。
+   */
+  private drawRing(): void {
+    const ctx: CanvasRenderingContext2D = this.ringCtx
+    const size: number = RingTokens.SIZE
+    const strokeW: number = RingTokens.STROKE
+    const c: number = size / 2
+    const r: number = (size - strokeW) / 2
+    const raw: number = this.ringEased * this.state.weeklyProgressPercent / 100
+    const fill: number = raw > 1 ? 1 : raw
+    const done: boolean = fill >= RingTokens.DONE_ARC
+    const start: number = -Math.PI / 2
+    const full: number = Math.PI * 2
+    ctx.clearRect(0, 0, size, size)
+    ctx.lineCap = 'round'
+    // 玻璃包边：环带内外各 1vp 极淡轮廓
+    ctx.beginPath()
+    ctx.arc(c, c, r, 0, full)
+    ctx.lineWidth = RingTokens.GLASS_WIDTH
+    ctx.strokeStyle = RingTokens.GLASS
+    ctx.stroke()
+    // 未完成轨道；达成后淡出，让闭环本身更亮
+    ctx.beginPath()
+    ctx.arc(c, c, r, 0, full)
+    ctx.lineWidth = strokeW
+    ctx.strokeStyle = done ? RingTokens.TRACK_DONE : RingTokens.TRACK
+    ctx.stroke()
+    if (fill < RingTokens.MIN_ARC) {
+      // 圆头端帽在 0 附近会留下一个孤立圆点，低于阈值不画弧也不画光晕
+      return
+    }
+    const end: number = start + full * fill
+    ctx.beginPath()
+    ctx.arc(c, c, r, start, end)
+    ctx.lineWidth = RingTokens.GLOW_FAR_WIDTH
+    ctx.strokeStyle = done ? RingTokens.GLOW_FAR_DONE : RingTokens.GLOW_FAR
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.arc(c, c, r, start, end)
+    ctx.lineWidth = RingTokens.GLOW_NEAR_WIDTH
+    ctx.strokeStyle = done ? RingTokens.GLOW_NEAR_DONE : RingTokens.GLOW_NEAR
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.arc(c, c, r, start, end)
+    ctx.lineWidth = strokeW
+    ctx.strokeStyle = PrototypeTokens.ACCENT
+    ctx.stroke()
+  }
+
+  /** 中心数字的整数部分：与环共用同一个缓动值，取整显示。 */
+  private ringIntegerText(): string {
+    return Math.round(this.ringEased * this.state.weeklyProgressPercent).toString()
+  }
+
+  aboutToDisappear(): void {
+    this.stopRingFill()
+  }
+
   private contextOrNull(): Context | null {
     const host = this.getUIContext().getHostContext()
     return host === undefined || host === null ? null : host as Context
@@ -63,6 +184,15 @@ export struct HomeContent {
     if (this.onOpenPreview !== undefined) {
       this.onOpenPreview()
     }
+  }
+
+  /** 开始训练：交给壳层的体重 gate。未注入 onStartWorkout 时回落为直接开预览。 */
+  private startWorkout(): void {
+    if (this.onStartWorkout !== undefined) {
+      this.onStartWorkout()
+      return
+    }
+    this.openPreview()
   }
 
   private async resolveTopInset(): Promise<void> {
@@ -221,15 +351,18 @@ export struct HomeContent {
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
         Stack({ alignContent: Alignment.Center }) {
-          // 原型 .today-ring .outer 的 `filter: drop-shadow(0 0 9px rgba(80,236,167,.28))`：
-          // 浏览器实测渲染不出可见光晕（环外沿起 12vp 内的像素恒等于卡片背景色 15,28,27）；
-          // 而 ArkUI 的 .shadow() 会沿 96×96 矩形边界铺出方形光框。两者都不做，只保留环本身。
-          Progress({ value: this.state.weeklyProgressPercent, total: 100, type: ProgressType.Ring })
-            .width(96)
-            .height(96)
-            .color(PrototypeTokens.ACCENT)
-            .backgroundColor('rgba(255,255,255,0.12)')
-            .style({ strokeWidth: 7, enableSmoothEffect: true })
+          // 原型 .today-ring .outer 的 `filter: drop-shadow(...)` 在浏览器实测渲染不出可见光晕
+          // （环外沿起 12vp 内像素恒等于卡片底色），而 ArkUI `.shadow()` 会沿 96×96 矩形铺出方形光框——
+          // 两者都不做，光晕改由自绘的双层半透明圆弧表达。
+          // 环为自绘 Canvas：`ProgressType.Ring` 的 style 不含 `strokeRadius`（圆头端帽），
+          // 平切端头正是这个环原先最显眼的廉价感来源；自绘后包边 / 光晕 / 圆头弧都由同一个 fill 求出。
+          // Canvas 内容不随状态自动重画：首帧由 onReady 画，之后由 `@Watch('onRingTick')` 逐帧重绘。
+          Canvas(this.ringCtx)
+            .width(RingTokens.SIZE)
+            .height(RingTokens.SIZE)
+            .onReady(() => {
+              this.drawRing()
+            })
           Column()
             .width(78)
             .height(78)
@@ -244,15 +377,26 @@ export struct HomeContent {
                 [PrototypeTokens.BG_RING_INNER, 1]
               ]
             })
-            .border({ width: 1, color: '#17FFFFFF' })
+            .border({ width: 1, color: RingTokens.INNER_BORDER })
             .shadow({ radius: 16, color: 'rgba(0,0,0,0.32)', offsetX: 0, offsetY: 6 })
           Column({ space: 2 }) {
-            Text(this.state.weeklyProgressPercent.toString() + '%')
-              .fontFamily(HomeContent.NUMBER_FONT_FAMILY)
-              .fontSize(19)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(PrototypeTokens.TEXT_HI)
-              .letterSpacing(-0.38)
+            // 读数分两级：整数保持 19sp Bold 承担读数，`%` 降到 11sp 半透明，不再和数字抢同一层级
+            Row({ space: 1 }) {
+              Text(this.ringIntegerText())
+                .fontFamily(HomeContent.NUMBER_FONT_FAMILY)
+                .fontSize(19)
+                .fontWeight(FontWeight.Bold)
+                .fontColor(PrototypeTokens.TEXT_HI)
+                .letterSpacing(-0.38)
+              Text('%')
+                .fontFamily(HomeContent.NUMBER_FONT_FAMILY)
+                .fontSize(11)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(PrototypeTokens.TEXT_HI)
+                .opacity(0.72)
+                .margin({ bottom: 1.5 })
+            }
+            .alignItems(VerticalAlign.Bottom)
             Text('\u672c\u5468\u8fdb\u5ea6')
               .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
               .fontSize(9.5)
@@ -308,7 +452,7 @@ export struct HomeContent {
         .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
         .padding(0)
         .onClick(() => {
-          this.openPreview()
+          this.startWorkout()
         })
       Row()
         .height(8)

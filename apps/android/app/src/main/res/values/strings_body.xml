@@ -85,6 +85,13 @@
     <string name="body_sheet_sub">每次记录都会被纳入体重趋势</string>
     <string name="body_sheet_cancel">取消</string>
     <string name="body_sheet_save">保存</string>
+    <!-- 首页「开始训练」前置体重弹窗的主按钮（居中弹窗，其余文案复用上面三条） -->
+    <string name="body_gate_confirm">记录并开始</string>
+    <!-- 弹窗上下文行（标签弱、数值强），以及落盘中的等待态 -->
+    <string name="body_gate_last">上一次</string>
+    <string name="body_gate_goal">目标</string>
+    <string name="body_gate_no_records">暂无记录</string>
+    <string name="body_gate_saving">记录中…</string>
     <!-- `<input ... aria-label="今日体重">`（L435） -->
     <string name="body_sheet_input_a11y">今日体重</string>
     <!-- 校验失败提示（L548） -->

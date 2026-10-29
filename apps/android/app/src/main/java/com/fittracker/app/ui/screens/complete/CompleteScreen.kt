@@ -63,6 +63,8 @@ import com.fittracker.app.data.service.currentLanguageTag
 import com.fittracker.app.data.service.WorkoutRepository
 import com.fittracker.app.data.service.WorkoutSessionService
 import com.fittracker.app.data.service.WorkoutSummaryService
+import com.fittracker.app.ui.components.FtSegmentedPill
+import com.fittracker.app.ui.components.SegContainer
 import com.fittracker.app.ui.theme.FtColor
 import com.fittracker.app.ui.theme.FtMotion
 import com.fittracker.app.ui.theme.FtShape
@@ -381,52 +383,33 @@ private fun RpeCard(
             color = FtColor.white54,
             fontSize = 11.sp,
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            FtCompleteModel.RPE_OPTIONS.forEach { option ->
-                RpeOptionCell(
-                    option = option,
-                    selected = value == option,
-                    onClick = { onSelect(option) },
-                    modifier = Modifier.weight(1f),
-                )
-            }
+        // 逐项 a11y 在 composable 作用域预先算好（`stringResource` 不能进非 composable lambda）
+        val rpeA11y = FtCompleteModel.RPE_OPTIONS.map { option ->
+            stringResource(
+                FtCompleteModel.RPE_A11Y_OPTION_RES,
+                option,
+                stringResource(
+                    if (value == option) FtCompleteModel.RPE_A11Y_SELECTED_RES
+                    else FtCompleteModel.RPE_A11Y_UNSELECTED_RES,
+                ),
+            )
         }
-    }
-}
-
-/** RPE 单档格子：`.rpe-option` 的 `height 34` / `radius 10` / 13sp Bold，选中走翡翠。 */
-@Composable
-private fun RpeOptionCell(
-    option: Int,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val a11y = stringResource(
-        FtCompleteModel.RPE_A11Y_OPTION_RES,
-        option,
-        stringResource(
-            if (selected) FtCompleteModel.RPE_A11Y_SELECTED_RES
-            else FtCompleteModel.RPE_A11Y_UNSELECTED_RES,
-        ),
-    )
-    Box(
-        modifier = modifier
-            .height(34.dp)
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (selected) FtColor.accent else FtColor.glass8)
-            .semantics { contentDescription = a11y }
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = option.toString(),
-            color = if (selected) FtColor.onAccent else FtColor.white70,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold,
+        FtSegmentedPill(
+            labels = FtCompleteModel.RPE_OPTIONS.map { it.toString() },
+            // 未评价（value = 0）时 indexOf 返回 -1 → 滑块整体不渲染，不会误高亮第 1 档。
+            selectedIndex = FtCompleteModel.RPE_OPTIONS.indexOf(value),
+            onSelect = { index -> onSelect(FtCompleteModel.RPE_OPTIONS[index]) },
+            fillWidth = true,
+            buttonHeight = 34.dp,
+            buttonFontSize = 13.sp,
+            buttonFontWeight = FontWeight.Bold,
+            itemGap = 4.dp,
+            itemRadius = 10.dp,
+            trackRadius = 10.dp,
+            itemBackground = FtColor.glass8,
+            itemContentDescription = { index -> rpeA11y[index] },
+            inactiveColor = FtColor.white70,
+            container = SegContainer.None,
         )
     }
 }
