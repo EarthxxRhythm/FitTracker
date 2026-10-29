@@ -1257,6 +1257,10 @@ private fun SetRecordRow(record: FtSetRecord, weightUnit: WeightUnit) {
 private const val HOLD_DURATION_MS: Long = 1200L
 private const val HOLD_TICK_MS: Long = 16L
 
+// 进度超过该比例即视为「已进入长按」：此后松开只取消，不算一次点击（≈180ms）。
+// 不区分的话，按住 0.6s 后放弃松开会被当成单击，弹窗会意外弹出来（真机实测过）。
+private const val HOLD_ENGAGE_PROGRESS: Float = 0.15f
+
 // ── 底部提交栏 ──────────────────────────────────────────────────
 
 /** `.wo-dock` / `.wo-btn-primary` L333-360：18 内边距、底部分隔线、50 高的主按钮。 */
@@ -1342,6 +1346,7 @@ private fun PrimaryButton(
     val shift = if (enabled && pressed) DuTokens.PRESS_SHIFT else 0.dp
     val scope = rememberCoroutineScope()
     var holdTriggered by remember { mutableStateOf(false) }
+    var holdEngaged by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -1381,21 +1386,30 @@ private fun PrimaryButton(
                             onTap()
                         } else {
                             holdTriggered = false
+                            holdEngaged = false
                             val job = scope.launch {
                                 var elapsedMs = 0L
                                 while (elapsedMs < HOLD_DURATION_MS) {
                                     delay(HOLD_TICK_MS)
                                     elapsedMs += HOLD_TICK_MS
-                                    onHoldProgress((elapsedMs.toFloat() / HOLD_DURATION_MS).coerceIn(0f, 1f))
+                                    val ratio = (elapsedMs.toFloat() / HOLD_DURATION_MS).coerceIn(0f, 1f)
+                                    if (ratio >= HOLD_ENGAGE_PROGRESS) holdEngaged = true
+                                    onHoldProgress(ratio)
                                 }
                                 holdTriggered = true
                                 endHold()
                             }
-                            tryAwaitRelease()
-                            pressed = false
-                            job.cancel()
-                            if (!holdTriggered) onTap()
-                            onHoldProgress(0f)
+                            try {
+                                tryAwaitRelease()
+                            } finally {
+                                // 手势被取消（手指滑出按钮 / 系统打断）也必须复位：
+                                // 否则进度会永久卡在按住态、提示行停在「松开取消」（真机踩过）
+                                pressed = false
+                                job.cancel()
+                                onHoldProgress(0f)
+                            }
+                            // 未触发完成、但已越过长按判定线 → 属于「按住后放弃」，不弹窗
+                            if (!holdTriggered && !holdEngaged) onTap()
                         }
                     },
                 )

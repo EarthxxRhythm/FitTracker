@@ -56,6 +56,9 @@ const SET_PILL_EVEN_MAX: number = 6
 // 长按「完成」提前结束：按住多久算数、进度推进的步长（16ms ≈ 一帧）。
 const HOLD_DURATION_MS: number = 1200
 const HOLD_TICK_MS: number = 16
+// 进度超过该比例即视为「已进入长按」：此后松开只取消，不算一次点击（≈180ms）。
+// 不区分的话，按住 0.6s 后放弃松开会被当成单击，弹窗会意外弹出来（真机实测过）。
+const HOLD_ENGAGE_PROGRESS: number = 0.15
 
 // 动作演示卡（容器）高度。原型 .demo-card 为 230，此处有意加高以留出更多版面；
 // 标题条固定在距底 56 处，与原型同口径。
@@ -146,6 +149,8 @@ export struct ActiveContent {
   @State private holding: boolean = false
   private holdTimer: number = -1
   private holdTriggered: boolean = false
+  /** 已越过「长按判定线」——松开时据此区分「点击」与「按住后放弃」。 */
+  private holdEngaged: boolean = false
   private celebrateTimer: number = -1
   private clockTimer: number = -1
   private pulseTimer: number = -1
@@ -639,10 +644,14 @@ export struct ActiveContent {
     }
     this.holding = true
     this.holdTriggered = false
+    this.holdEngaged = false
     this.holdProgress = 0
     this.stopHoldTimer()
     this.holdTimer = setInterval(() => {
       this.holdProgress += HOLD_TICK_MS / HOLD_DURATION_MS
+      if (this.holdProgress >= HOLD_ENGAGE_PROGRESS) {
+        this.holdEngaged = true
+      }
       if (this.holdProgress >= 1) {
         this.holdProgress = 1
         this.holdTriggered = true
@@ -1209,11 +1218,14 @@ export struct ActiveContent {
             this.startHold()
           } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
             this.submitPressed = false
-            // 先读后复位：长按触发后松开会同时走到这里，必须抑掉那次「单击」
+            // 先读后复位：长按触发后松开会同时走到这里，必须抑掉那次「单击」。
+            // holdEngaged 再区分「快速点击」与「按住后放弃」——后者也不该弹窗。
             const triggered: boolean = this.holdTriggered
+            const engaged: boolean = this.holdEngaged
             this.holdTriggered = false
+            this.holdEngaged = false
             this.cancelHold()
-            if (!triggered) {
+            if (!triggered && !engaged) {
               this.openModal()
             }
           }
