@@ -59,7 +59,7 @@ test('RT-01 红：常量指向未注册的页面', function () {
   assert.match(findings[0].message, /未注册到 main_pages.json/)
 })
 
-test('RT-01 豁免：PencilPreviewPage 不报（bindContentCover 全模态，非路由页）', function () {
+test('RT-01 豁免：PencilPreviewPage 不报（壳内覆盖层，非路由页）', function () {
   const pages = parseMainPages('{"src":["features/pencil/pages/PencilHomePage"]}')
   const constants = parseRouteConstants(ROUTES)
 

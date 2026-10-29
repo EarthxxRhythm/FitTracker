@@ -39,7 +39,7 @@
 | 17 | `features\settings\pages\PencilSettingsPage` | `settings\SettingsScreen` | ✅ |
 | 18 | `features\settings\pages\LegalDocPage` | `legal\LegalDocScreen` | ✅ |
 | 19 | `app\PencilAppShell`（应用壳，非内容页） | `FtApp.kt`（根，非 screen 目录） | ⚠️ 见已知不对称 1 |
-| — | `features\pencil\pages\PencilPreviewPage`（**非注册页**） | `workout\WorkoutPreviewScreen`（独立路由） | ⚠️ 见已知不对称 2 |
+| — | `features\pencil\pages\PencilPreviewPage`（**非注册页**，壳内条件渲染） | `workout\WorkoutPreviewScreen`（主流程为壳内覆盖层；路由保留作深链落地页） | ⚠️ 见已知不对称 2 |
 | — | **（无对应）** | `preferences\TrainingPreferencesScreen` | ⚠️ 见待裁决 1 |
 
 ## 已知不对称（豁免表）
@@ -48,8 +48,8 @@
 
 | # | 项 | 不对称内容 | 理由 | 复核方式 |
 |---|---|---|---|---|
-| 1 | 应用壳 | 鸿蒙 `app\PencilAppShell.ets` vs 安卓 `FtApp.kt` | 各自框架的根壳写法不同（ArkUI `bindContentCover` vs Compose NavHost） | 两端启动链路人工核对：冷启动 → 主壳 → 四 Tab |
-| 2 | 训练预览 | 鸿蒙 `bindContentCover` 全模态 vs 安卓独立路由 | 框架能力差异 | 交互一致性人工核对：从首页进入预览 → 返回后状态保持 |
+| 1 | 应用壳 | 鸿蒙 `app\PencilAppShell.ets` vs 安卓 `FtApp.kt` | 各自框架的根壳写法不同（ArkUI 常驻 `Stack` + 条件渲染覆盖层 vs Compose `Box` + `AnimatedVisibility` 覆盖 `NavHost`） | 两端启动链路人工核对：冷启动 → 主壳 → 四 Tab |
+| 2 | 训练预览 | 两端主流程都是壳内覆盖层（底栏保持在位、当前 Tab 不变）；差异只剩安卓**额外**把 `workout` 注册成路由，仅供深链 `fittracker://workout` 整屏落地 | 深链能力此前已存在，删路由会让 `FtRoutesTest` / `FtNavTransitionsTest` 与既有深链失效；本轮只改主流程入口，不动路由表 | 交互一致性人工核对：从「计划」Tab 点中央训练键 → 底栏在位、返回后仍是「计划」；预览 → 开始训练 → 系统返回直接回壳层。深链核对：`adb shell am start -a android.intent.action.VIEW -d "fittracker://workout"` 仍落到整屏预览 |
 | 3 | 训练偏好 | 安卓 `preferences\TrainingPreferencesScreen` 为独立屏，鸿蒙侧**无对应物** | 2026-10-27 实测：`grep '训练偏好\|TrainingPreference\|trainingPreference'` 于 `apps\harmony\entry\src\main\ets` **零命中**——不是内嵌在设置页，是尚未实现 | 鸿蒙侧重现该能力后从本表移除；在此之前安卓侧训练偏好改动**不需要**双端同步 |
 
 ## 裁决记录（Wave 3 已落定）
@@ -84,6 +84,9 @@
 3. **新增屏**：两端同时建，或在本文件的对等清单里登记为「单端独有」并给理由。
 4. **合规文档**：字段进同步链路后，隐私政策两份副本（`docs\legal\privacy-policy.md` + `rawfile\legal\privacy-policy.txt`）都要改。
 5. **视觉 token**：两端各自维护（鸿蒙 `DesignTokens.ets` / 安卓 `ui\theme\DuTokens.kt`），改配色要两端一起改。
+6. **共享 UI 组件**：分段控件是双端同构的共享实现——鸿蒙 `components\SegmentedPill.ets` ↔ 安卓 `ui\components\FtSegmentedPill.kt`，几何计算另拆在同路径的 `SegmentGeometry.ets` / `FtSegmentGeometry.kt`（`resolveEven` / `resolveMeasured` 同公式、同边界约定：不可确定即返回零矩形并隐藏滑块）。动效 token `DURATION_SEG_SLIDE` 两端同值 220ms、同一 `EASE_PANEL` 曲线。**改任一侧必须同步另一侧。**
+
+   当前调用点（2026-10-28 收敛）：回顾页周/月、肌肉模式、RIR-RPE；登录页模式切换；身体数据页签与趋势周期；训练完成页 RPE 1–10（唯一启用「每项常底」`showBaseCells` 的刻度选择器，未评价时必须无滑块）。
 
 ## 本文的验证边界
 

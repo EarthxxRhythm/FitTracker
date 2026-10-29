@@ -52,7 +52,7 @@
 | **首页** | 主页、Home | 主壳第一个 Tab | `PencilHomePage` / `home\HomeScreen` |
 | **训练计划** | 方案、计划方案 | 一组按天编排的动作安排 | `TrainingPlanService` / `PlanEngine` |
 | **计划组** | 计划分组、计划集 | 多个计划的容器 | `PencilPlanGroupDetailPage` / `plangroup\PlanGroupScreen` |
-| **训练预览** | 预览页、开始前预览 | 开始训练前的覆盖层（鸿蒙为全模态，不是路由页） | `PencilPreviewContent` |
+| **训练预览** | 预览页、开始前预览 | 开始训练前的覆盖层，两端都不是主流程要推入的路由页：鸿蒙 `PencilAppShell` 条件渲染、安卓 `FtApp` 覆盖层（安卓另保留 `workout` 路由作深链落地页） | `PencilPreviewContent` / `WorkoutPreviewScreen` |
 | **训练执行** | 训练中、进行中 | 逐组记录的一屏 | `PencilActivePage` / `active\ActiveScreen` |
 | **训练组 / 次数 / 重量** | 组、rep、kg 混写 | 计数的三个基本量 | `AGENTS.md` 项目概览 |
 | **动作库** | 内容库 | 动作条目集合（用户视角） | `ExerciseLibraryPage` / `library\LibraryScreen` |

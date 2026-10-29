@@ -37,13 +37,13 @@
 2. 注册到 `entry\src\main\resources\base\profile\main_pages.json` 的 `src` 数组
 3. 在 `app\AppRoutes.ets` 加 `static readonly NAME: string = '<同一路径>'`
 
-**豁免怎么写**：不是路由页的（如 `bindContentCover` 全模态），在 `check-code-rules.mjs` 的 `EXEMPTIONS` 里加一条，`reason` 与 `ref` 必填：
+**豁免怎么写**：不是路由页的（如由壳内条件渲染的覆盖层），在 `check-code-rules.mjs` 的 `EXEMPTIONS` 里加一条，`reason` 与 `ref` 必填：
 
 ```js
 {
   rule: 'RT-01',
   target: 'features/pencil/pages/PencilPreviewPage',
-  reason: '训练预览由 PencilAppShell 的 bindContentCover 全模态承载，不是路由页',
+  reason: '训练预览由 PencilAppShell.build() 条件渲染成壳内覆盖层（非 bindContentCover），不是路由页',
   ref: 'app/AppRoutes.ets:17-20'
 }
 ```

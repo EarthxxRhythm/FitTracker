@@ -38,7 +38,7 @@ export const EXEMPTIONS = [
   {
     rule: 'RT-01',
     target: 'features/pencil/pages/PencilPreviewPage',
-    reason: '训练预览由 PencilAppShell 的 bindContentCover 全模态承载，不是路由页',
+    reason: '训练预览由 PencilAppShell.build() 条件渲染成壳内覆盖层（非 bindContentCover），不是路由页',
     ref: 'app/AppRoutes.ets:17-20'
   },
   {
