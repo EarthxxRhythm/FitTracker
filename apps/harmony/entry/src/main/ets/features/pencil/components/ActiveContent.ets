@@ -848,7 +848,9 @@ export struct ActiveContent {
           autoCancel: true,
           mask: true,
           radius: 16,
-          width: 240
+          // 180：够放 9 个中文字（内容库最长「保加利亚分腿蹲」7 字），
+          // 与安卓 ActiveScreen.kt 的 menuWidth 同值。
+          width: 180
         })
         this.topTimer()
       }
