@@ -285,4 +285,48 @@ class WorkoutDraftAndActiveTest {
         assertEquals("训练量排除热身", 480.0, session.totalVolume, 0.0)
         assertEquals(120, session.durationSeconds)
     }
+
+    // --- 提前结束动作（长按「完成」） ---------------------------------------
+
+    @Test
+    fun `提前结束动作收缩到已完成组数并重算总组数`() {
+        val state = ActiveWorkoutService.createState(samplePreview())
+        val before: ActiveWorkoutExercise = state.exercises[0]
+        // 做 1 组后提前结束
+        val oneSet = ActiveWorkoutService.recordSetFor(state, "pe-1", "40", "10")
+        val ended = ActiveWorkoutService.endExercise(oneSet, "pe-1")
+        val after: ActiveWorkoutExercise = ended.exercises[0]
+
+        assertEquals("目标收缩到已完成组数", 1, after.targetSets)
+        assertEquals(1, after.completedSets)
+        assertEquals("未被完成的空组被裁掉", 1, after.sets.size)
+        assertTrue(after.sets[0].isComplete)
+        // 其它动作不受影响
+        assertEquals(before.targetSets, state.exercises[0].targetSets)
+        assertEquals(state.exercises[1].targetSets, ended.exercises[1].targetSets)
+        // 总组数按新的 targetSets 求和
+        assertEquals(ended.exercises.sumOf { it.targetSets }, ended.totalTargetSets)
+    }
+
+    @Test
+    fun `提前结束已录满动作返回同一实例`() {
+        var state = ActiveWorkoutService.createState(samplePreview())
+        val target: Int = state.exercises[0].targetSets
+        repeat(target) { state = ActiveWorkoutService.recordSetFor(state, "pe-1", "40", "10") }
+        val afterEnd = ActiveWorkoutService.endExercise(state, "pe-1")
+        assertTrue("已录满时原样返回同一引用", afterEnd === state)
+    }
+
+    @Test
+    fun `一组未做就提前结束，该动作不再处于未录满状态`() {
+        val state = ActiveWorkoutService.createState(samplePreview())
+        val ended = ActiveWorkoutService.endExercise(state, "pe-1")
+        assertEquals(0, ended.exercises[0].targetSets)
+        assertEquals(0, ended.exercises[0].sets.size)
+        assertEquals(
+            "结束的动作 completedSets 追平 targetSets",
+            ended.exercises[0].targetSets,
+            ended.exercises[0].completedSets,
+        )
+    }
 }

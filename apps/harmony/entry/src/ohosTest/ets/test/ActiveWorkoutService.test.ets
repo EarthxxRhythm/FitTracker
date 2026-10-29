@@ -506,5 +506,73 @@ export default function activeWorkoutServiceTest(): void {
       }
       expect(ActiveWorkoutService.nextEmptySetIndex(emptySets)).assertEqual(-1)
     })
+
+    it('endExercise 把动作收缩到已完成的组数，其它动作不受影响', 0, () => {
+      const initial: ActiveWorkoutState = createPresetActiveState(107)
+      const first: ActiveWorkoutExercise = initial.exercises[0]
+      expect(first.targetSets >= 2).assertTrue()
+      if (first.targetSets >= 2) {
+        // 先做 1 组，再提前结束 → 收缩到 1 组
+        const afterOne: ActiveWorkoutState =
+          ActiveWorkoutService.recordSetFor(initial, first.plannedExerciseId, '40', '10')
+        const ended: ActiveWorkoutState =
+          ActiveWorkoutService.endExercise(afterOne, first.plannedExerciseId)
+
+        expect(ended.exercises[0].targetSets).assertEqual(1)
+        expect(ended.exercises[0].completedSets).assertEqual(1)
+        expect(ended.exercises[0].sets.length).assertEqual(1)
+        expect(ended.exercises[0].sets[0].isComplete).assertTrue()
+        // 其它动作原样保留
+        expect(ended.exercises[1].targetSets).assertEqual(initial.exercises[1].targetSets)
+        expect(ended.exercises[1].completedSets).assertEqual(0)
+        // 总组数按新的 targetSets 重算
+        let expectedTotal: number = 0
+        for (let index = 0; index < ended.exercises.length; index++) {
+          expectedTotal += ended.exercises[index].targetSets
+        }
+        expect(ended.totalTargetSets).assertEqual(expectedTotal)
+      }
+    })
+
+    it('endExercise 在动作已录满时原样返回同一引用', 0, () => {
+      let state: ActiveWorkoutState = createPresetActiveState(108)
+      const first: ActiveWorkoutExercise = state.exercises[0]
+      for (let index = 0; index < first.targetSets; index++) {
+        state = ActiveWorkoutService.recordSetFor(state, first.plannedExerciseId, '40', '10')
+      }
+      const afterEnd: ActiveWorkoutState =
+        ActiveWorkoutService.endExercise(state, first.plannedExerciseId)
+      // 同一引用 = 没有改写任何字段（调用方据此判定无需结束）
+      expect(afterEnd === state).assertTrue()
+    })
+
+    it('endExercise 允许一组未做就结束，nextExercise 跳过该动作', 0, () => {
+      const initial: ActiveWorkoutState = createPresetActiveState(109)
+      expect(initial.exercises.length >= 2).assertTrue()
+      if (initial.exercises.length >= 2) {
+        const first: ActiveWorkoutExercise = initial.exercises[0]
+        const second: ActiveWorkoutExercise = initial.exercises[1]
+        const ended: ActiveWorkoutState =
+          ActiveWorkoutService.endExercise(initial, first.plannedExerciseId)
+
+        expect(ended.exercises[0].targetSets).assertEqual(0)
+        expect(ended.exercises[0].sets.length).assertEqual(0)
+        const next: ActiveWorkoutExercise | undefined = ActiveWorkoutService.nextExercise(ended)
+        expect(next !== undefined).assertTrue()
+        if (next !== undefined) {
+          expect(next.plannedExerciseId).assertEqual(second.plannedExerciseId)
+        }
+      }
+    })
+
+    it('endExercise 逐个结束后 nextExercise 为空，训练可收尾', 0, () => {
+      let state: ActiveWorkoutState = createPresetActiveState(110)
+      expect(state.exercises.length > 0).assertTrue()
+      for (let index = 0; index < state.exercises.length; index++) {
+        const exercise: ActiveWorkoutExercise = state.exercises[index]
+        state = ActiveWorkoutService.endExercise(state, exercise.plannedExerciseId)
+      }
+      expect(ActiveWorkoutService.nextExercise(state) === undefined).assertTrue()
+    })
   })
 }

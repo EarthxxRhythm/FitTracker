@@ -234,6 +234,75 @@ class ActiveWorkoutService {
     return -1
   }
 
+  /**
+   * 提前结束某个动作：把它收缩到「已完成的组数」。
+   *
+   * 为什么不加 endedEarly 标记：收尾判据（nextExercise）与组胶囊渲染都以
+   * completedSets < targetSets 为口径，收缩 targetSets 让所有下游逻辑零改动地跳过它；
+   * 而 WorkoutSession 只记录实际组数（totalSets），没有计划组数，因此不丢落库信息。
+   *
+   * 已录满时原样返回同一引用——调用方据此判定无需结束。
+   */
+  endExercise(state: ActiveWorkoutState, plannedExerciseId: string): ActiveWorkoutState {
+    const index: number = this.findExerciseIndexById(state.exercises, plannedExerciseId)
+    if (index < 0) {
+      return state
+    }
+    const exercise: ActiveWorkoutExercise = state.exercises[index]
+    if (exercise.completedSets >= exercise.targetSets) {
+      return state
+    }
+    const nextExercises: ActiveWorkoutExercise[] = this.copyActiveExercises(state.exercises)
+    nextExercises[index] = this.copyExerciseEndedEarly(exercise)
+    const base: ActiveWorkoutState = this.withTotalTargetSets(state, this.sumTargetSets(nextExercises))
+    return this.createStateWithProgress(base, nextExercises)
+  }
+
+  /** 收缩：targetSets 对齐 completedSets，sets 裁到已完成部分（未完成的空组直接丢弃）。 */
+  private copyExerciseEndedEarly(exercise: ActiveWorkoutExercise): ActiveWorkoutExercise {
+    const kept: ActiveWorkoutSetEntry[] = []
+    for (let index = 0; index < exercise.sets.length; index++) {
+      if (index < exercise.completedSets) {
+        kept.push(this.copySetEntry(exercise.sets[index]))
+      }
+    }
+    const item: ActiveWorkoutExercise = {
+      plannedExerciseId: exercise.plannedExerciseId,
+      exerciseId: exercise.exerciseId,
+      name: exercise.name,
+      targetSets: exercise.completedSets,
+      targetReps: exercise.targetReps,
+      intensityNote: exercise.intensityNote,
+      completedSets: exercise.completedSets,
+      sets: kept
+    }
+    return item
+  }
+
+  private sumTargetSets(exercises: ActiveWorkoutExercise[]): number {
+    let total: number = 0
+    for (let index = 0; index < exercises.length; index++) {
+      total += exercises[index].targetSets
+    }
+    return total
+  }
+
+  /** 复制 state 并替换 totalTargetSets（createStateWithProgress 不重算该字段）。 */
+  private withTotalTargetSets(state: ActiveWorkoutState, totalTargetSets: number): ActiveWorkoutState {
+    const copy: ActiveWorkoutState = {
+      hasWorkout: state.hasWorkout,
+      planId: state.planId,
+      dayId: state.dayId,
+      title: state.title,
+      totalTargetSets: totalTargetSets,
+      completedSets: state.completedSets,
+      currentExerciseName: state.currentExerciseName,
+      currentExerciseSetProgress: state.currentExerciseSetProgress,
+      exercises: state.exercises
+    }
+    return copy
+  }
+
   countCompletedSets(exercises: ActiveWorkoutExercise[]): number {
     let completedSets: number = 0
     for (let index = 0; index < exercises.length; index++) {

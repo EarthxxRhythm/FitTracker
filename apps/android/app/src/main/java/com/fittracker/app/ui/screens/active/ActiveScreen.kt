@@ -1,6 +1,12 @@
 package com.fittracker.app.ui.screens.active
 
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -33,11 +39,14 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -166,6 +175,10 @@ fun ActiveScreen(
     // 顶部动作切换胶囊选中的动作下标（0 起）。改造前训练页只能停在「首个未录满」动作上，
     // 现在用户可切到任意动作补录；写入、记录区、演示卡、组号都以它为准。
     var selectedIndex by remember { mutableIntStateOf(0) }
+    // 动作切换弹层 / 演示卡翻转角（0 → 90 → -90 → 0）/ 长按进度
+    var showPicker by remember { mutableStateOf(false) }
+    var holdProgress by remember { mutableFloatStateOf(0f) }
+    val flipAngle = remember { Animatable(0f) }
 
     // 设置项消费（计划 A3/A4）：进屏读一次、屏内不再改——「训练中屏幕常亮」与
     // 「声音与震动」共用这一次 loadSettings。
@@ -318,6 +331,57 @@ fun ActiveScreen(
         }
     }
 
+    /** 切到指定动作：卡片先翻到 90°（侧对屏幕时换内容），再转回正面。名称滚动交给 AnimatedContent。 */
+    fun chooseExercise(index: Int) {
+        showPicker = false
+        if (index == selectedIndex) return
+        val state = workout ?: return
+        val exercise = state.exercises.getOrNull(index) ?: return
+        scope.launch {
+            flipAngle.animateTo(90f, tween(120))
+            selectedIndex = index
+            records = FtActiveModel.recordsFor(state.exercises, exercise.plannedExerciseId)
+            flipAngle.snapTo(-90f)
+            flipAngle.animateTo(0f, tween(160))
+        }
+    }
+
+    /** 长按「完成」：提前结束当前动作（收缩到已完成组数），然后前进到下一个未录满动作。 */
+    fun endCurrentExercise() {
+        val state = workout ?: return
+        val target = state.exercises.getOrNull(selectedIndex) ?: return
+        val progressed = ActiveWorkoutService.endExercise(state, target.plannedExerciseId)
+        holdProgress = 0f
+        if (progressed === state) return
+        workout = progressed
+        val nextIndex = FtActiveModel.firstUnfinishedIndex(progressed.exercises)
+        if (nextIndex >= 0) selectedIndex = nextIndex
+        records = progressed.exercises.getOrNull(selectedIndex)
+            ?.let { FtActiveModel.recordsFor(progressed.exercises, it.plannedExerciseId) }
+            .orEmpty()
+        if (soundVibrationOn) Haptics.confirm(context)
+        val origin = if (startedAt > 0L) startedAt else System.currentTimeMillis()
+        scope.launch { WorkoutDraftService.saveDraft(store, activeStateToDraft(progressed, origin)) }
+        if (FtActiveModel.firstUnfinishedIndex(progressed.exercises) < 0) {
+            val endedAt = System.currentTimeMillis()
+            playCelebration()
+            scope.launch {
+                val session = ActiveWorkoutService.createCompletedSession(
+                    sessionId = "session_$endedAt",
+                    state = progressed,
+                    startedAt = origin,
+                    endedAt = endedAt,
+                    completedSets = progressed.completedSets,
+                )
+                WorkoutRepository.saveSession(store, session)
+                WorkoutDraftService.clearDraft(store)
+                checkAndNotifyAchievement(store, context)
+                delay(900)
+                onNavigate("complete")
+            }
+        }
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -330,13 +394,10 @@ fun ActiveScreen(
                 clock = FtActiveModel.formatClock(elapsed),
                 exercises = workout?.exercises.orEmpty(),
                 selectedIndex = selectedIndex,
-                onSelect = { index ->
-                    selectedIndex = index
-                    val exercises = workout?.exercises.orEmpty()
-                    exercises.getOrNull(index)?.let { exercise ->
-                        records = FtActiveModel.recordsFor(exercises, exercise.plannedExerciseId)
-                    }
-                },
+                showPicker = showPicker,
+                onOpenPicker = { showPicker = true },
+                onDismissPicker = { showPicker = false },
+                onSelect = { index -> chooseExercise(index) },
             )
 
             Column(
@@ -351,7 +412,7 @@ fun ActiveScreen(
                         .padding(start = 18.dp, end = 18.dp, top = 16.dp, bottom = 24.dp), // `.wo-content`
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    DemoCard(workout = workout, selectedIndex = selectedIndex)
+                    DemoCard(workout = workout, selectedIndex = selectedIndex, flipAngle = flipAngle.value)
                     SetList(records = records, weightUnit = weightUnit)
                 }
             }
@@ -359,7 +420,16 @@ fun ActiveScreen(
             Dock(
                 label = stringResource(submitLabel.res, *submitLabel.args.toTypedArray()),
                 enabled = selectedCanRecord,
-                onClick = { modalOpen = true },
+                hint = if (selectedCanRecord) {
+                    stringResource(R.string.active_hold_hint)
+                } else {
+                    stringResource(R.string.active_exercise_full)
+                },
+                holdCancelText = stringResource(R.string.active_hold_cancel),
+                holdProgress = holdProgress,
+                onHoldProgress = { holdProgress = it },
+                onTap = { modalOpen = true },
+                onEndExercise = { endCurrentExercise() },
             )
         }
 
@@ -406,6 +476,9 @@ private fun ActiveTop(
     clock: String,
     exercises: List<ActiveWorkoutExercise>,
     selectedIndex: Int,
+    showPicker: Boolean,
+    onOpenPicker: () -> Unit,
+    onDismissPicker: () -> Unit,
     onSelect: (Int) -> Unit,
 ) {
     Column(
@@ -423,13 +496,14 @@ private fun ActiveTop(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CollapseButton()
-            Text(
-                text = exerciseName,
-                style = FtType.natural(20f, 700),
-                color = FtColor.txtHi,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
+            ExerciseSwitcher(
+                exerciseName = exerciseName,
+                exercises = exercises,
+                selectedIndex = selectedIndex,
+                showPicker = showPicker,
+                onOpenPicker = onOpenPicker,
+                onDismissPicker = onDismissPicker,
+                onSelect = onSelect,
                 modifier = Modifier.weight(1f),
             )
             Row(
@@ -452,7 +526,7 @@ private fun ActiveTop(
 
         Box(modifier = Modifier.height(10.dp))
 
-        ExerciseTabs(exercises = exercises, selectedIndex = selectedIndex, onSelect = onSelect)
+        SetPills(exercise = exercises.getOrNull(selectedIndex))
     }
 }
 
@@ -602,6 +676,172 @@ private fun ExercisePill(
     }
 }
 
+/**
+ * 组胶囊行：当前动作每组一个胶囊。
+ *
+ * 从「每动作一个」改成「每组一个」的原因：进度单位是本次动作做了几组，
+ * 动作数与组数无法共用同一排胶囊——动作维度已移到顶栏的动作切换器。
+ */
+@Composable
+private fun SetPills(exercise: ActiveWorkoutExercise?) {
+    val targetSets = exercise?.targetSets ?: 0
+    val completed = exercise?.completedSets ?: 0
+    if (targetSets <= 0) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(26.dp)
+                .clip(FtShape.pill)
+                .border(1.dp, FtColor.line10, FtShape.pill),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = stringResource(R.string.active_exercise_ended),
+                style = FtType.natural(12f),
+                color = FtColor.white40,
+            )
+        }
+        return
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        for (index in 0 until targetSets) {
+            SetPill(
+                setNumber = index + 1,
+                done = index < completed,
+                current = index == completed,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+/** 单个组胶囊：已完成实心 accent + 数字反色、当前组虚线强调、未做灰底。 */
+@Composable
+private fun SetPill(
+    setNumber: Int,
+    done: Boolean,
+    current: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val label = stringResource(R.string.active_set_pill_a11y, setNumber)
+    Box(
+        modifier = modifier
+            .height(26.dp)
+            .clip(FtShape.pill)
+            .background(if (done) FtColor.accent else FtColor.glass6)
+            .then(
+                if (done) {
+                    Modifier
+                } else if (current) {
+                    // Compose 的 Modifier.border 不支持虚线，用 drawBehind 手绘描边
+                    Modifier.drawBehind {
+                        drawRoundRect(
+                            color = FtColor.accent,
+                            topLeft = Offset.Zero,
+                            size = Size(size.width, size.height),
+                            cornerRadius = CornerRadius(size.height / 2f, size.height / 2f),
+                            style = Stroke(
+                                width = 1.2.dp.toPx(),
+                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 4f)),
+                            ),
+                        )
+                    }
+                } else {
+                    Modifier.border(1.dp, FtColor.line10, FtShape.pill)
+                },
+            )
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = setNumber.toString(),
+            style = FtType.natural(12f, 700, FtType.mono),
+            color = if (done) FtColor.ink0 else FtColor.white70,
+        )
+    }
+}
+
+/** 顶栏动作名：点击原地弹出动作列表；名称用 [AnimatedContent] 做上滑替换。 */
+@Composable
+private fun ExerciseSwitcher(
+    exerciseName: String,
+    exercises: List<ActiveWorkoutExercise>,
+    selectedIndex: Int,
+    showPicker: Boolean,
+    onOpenPicker: () -> Unit,
+    onDismissPicker: () -> Unit,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val switchLabel = stringResource(R.string.active_switch_exercise)
+    val interaction = remember { MutableInteractionSource() }
+    Box(modifier = modifier) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(44.dp)
+                .clip(FtShape.pill)
+                .clickable(interactionSource = interaction, indication = null, onClick = onOpenPicker)
+                .semantics { contentDescription = switchLabel },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+        ) {
+            AnimatedContent(
+                targetState = exerciseName,
+                transitionSpec = {
+                    (slideInVertically { it } + fadeIn()) togetherWith
+                        (slideOutVertically { -it } + fadeOut())
+                },
+                label = "exerciseName",
+            ) { name ->
+                Text(
+                    text = name,
+                    style = FtType.natural(20f, 700),
+                    color = FtColor.txtHi,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Canvas(modifier = Modifier.size(14.dp)) {
+                val path = Path().apply {
+                    moveTo(size.width * 0.22f, size.height * 0.36f)
+                    lineTo(size.width * 0.50f, size.height * 0.64f)
+                    lineTo(size.width * 0.78f, size.height * 0.36f)
+                }
+                drawPath(
+                    path = path,
+                    color = FtColor.white60,
+                    style = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
+                )
+            }
+        }
+        DropdownMenu(expanded = showPicker, onDismissRequest = onDismissPicker) {
+            exercises.forEachIndexed { index, exercise ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = exercise.name,
+                            style = FtType.natural(14f),
+                            color = if (index == selectedIndex) FtColor.accent else FtColor.white70,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    trailingIcon = {
+                        if (index == selectedIndex) {
+                            Text(text = "✓", style = FtType.natural(14f, 700), color = FtColor.accent)
+                        }
+                    },
+                    onClick = { onSelect(index) },
+                )
+            }
+        }
+    }
+}
+
 /** `.top-timer .live-dot` L201-206：6px 圆点，`livePulse` 1.6s 循环。 */
 @Composable
 private fun LiveDot() {
@@ -726,7 +966,7 @@ private fun DuoMarker() {
  * 卡底色与描边取样式表末尾的「Card Surface v1」（L538）。
  */
 @Composable
-private fun DemoCard(workout: ActiveWorkoutState?, selectedIndex: Int) {
+private fun DemoCard(workout: ActiveWorkoutState?, selectedIndex: Int, flipAngle: Float) {
     // 当前动作 = 顶部胶囊选中的动作；下标越界/无数据时回退「首个未录满」，再回退末个。
     val exercises = workout?.exercises.orEmpty()
     val currentIndex = if (selectedIndex in exercises.indices) {
@@ -753,7 +993,12 @@ private fun DemoCard(workout: ActiveWorkoutState?, selectedIndex: Int) {
             .height(230.dp)
             .clip(RoundedCornerShape(28.dp))
             .background(DemoCardFill)
-            .border(1.dp, FtColor.line10, RoundedCornerShape(28.dp)),
+            .border(1.dp, FtColor.line10, RoundedCornerShape(28.dp))
+            // 切换动作时沿 Y 轴翻面：中段（侧对屏幕时）换素材
+            .graphicsLayer {
+                rotationY = flipAngle
+                cameraDistance = 12f * density
+            },
     ) {
         // 当前动作有 GIF 素材 → 播放真实动作演示（Coil；素材映射见 FtLibraryModel）；无素材/加载失败 → 回落矢量示意
         ExerciseGif(
@@ -1008,23 +1253,71 @@ private fun SetRecordRow(record: FtSetRecord, weightUnit: WeightUnit) {
     }
 }
 
+// 长按「完成」提前结束：按住多久算数、进度推进步长（16ms ≈ 一帧）
+private const val HOLD_DURATION_MS: Long = 1200L
+private const val HOLD_TICK_MS: Long = 16L
+
 // ── 底部提交栏 ──────────────────────────────────────────────────
 
 /** `.wo-dock` / `.wo-btn-primary` L333-360：18 内边距、底部分隔线、50 高的主按钮。 */
 @Composable
-private fun Dock(label: String, enabled: Boolean, onClick: () -> Unit) {
-    Box(
+private fun Dock(
+    label: String,
+    enabled: Boolean,
+    hint: String,
+    holdCancelText: String,
+    holdProgress: Float,
+    onHoldProgress: (Float) -> Unit,
+    onTap: () -> Unit,
+    onEndExercise: () -> Unit,
+) {
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(DockFill) // rgba(10,13,18,.98)
             // 系统手势区避让：按钮不再贴着底部手势条（2026-10-09 反馈「按钮太靠下」）
             .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 18.dp),
+            .padding(start = 18.dp, end = 18.dp, top = 10.dp, bottom = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        if (holdProgress > 0f) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .clip(FtShape.pill)
+                        .background(FtColor.line10),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(holdProgress.coerceIn(0f, 1f))
+                            .height(3.dp)
+                            .background(FtColor.accent),
+                    )
+                }
+                Text(
+                    text = holdCancelText,
+                    style = FtType.natural(11f),
+                    color = FtColor.accent,
+                )
+            }
+        } else {
+            Text(
+                text = hint,
+                style = FtType.natural(11f),
+                color = FtColor.white40,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+            )
+        }
         PrimaryButton(
             label = label,
             enabled = enabled,
-            onClick = onClick,
+            holdProgress = holdProgress,
+            onHoldProgress = onHoldProgress,
+            onTap = onTap,
+            onEndExercise = onEndExercise,
         )
     }
 }
@@ -1037,16 +1330,18 @@ private fun Dock(label: String, enabled: Boolean, onClick: () -> Unit) {
 private fun PrimaryButton(
     label: String,
     enabled: Boolean,
-    onClick: () -> Unit,
+    onTap: () -> Unit,
+    holdProgress: Float = 0f,
+    onHoldProgress: (Float) -> Unit = {},
+    onEndExercise: (() -> Unit)? = null,
 ) {
     val shape = RoundedCornerShape(16.dp)
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
+    var pressed by remember { mutableStateOf(false) }
     // Duolingo 硬边厚底：主按钮只用「厚底收平 + 下沉」，不参与缩放。
-    // 此前用 `usesPressDepth = enabled` 去门控 scale：enabled 为真时门恒真、为假时
-    // 条件里的 enabled 又为假，两个分支都取 1f——是条死分支，直接删掉更清楚。
     val depth = if (enabled && !pressed) DuTokens.PRESS_DEPTH else 0.dp
     val shift = if (enabled && pressed) DuTokens.PRESS_SHIFT else 0.dp
+    val scope = rememberCoroutineScope()
+    var holdTriggered by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -1071,12 +1366,40 @@ private fun PrimaryButton(
             }
             // 内容避让厚底，按钮总高不变
             .padding(bottom = depth)
-            .clickable(
-                interactionSource = interaction,
-                indication = null,
-                enabled = enabled,
-                onClick = onClick,
-            ),
+            // 长按替代 click：按住累计进度，抬起时若未触发才算单击。
+            // clickable 与 pointerInput 会互相抢手势，这里只保留后者。
+            .pointerInput(enabled) {
+                if (!enabled) return@pointerInput
+                detectTapGestures(
+                    onPress = {
+                        pressed = true
+                        val endHold = onEndExercise
+                        if (endHold == null) {
+                            // 无长按语义（记录弹窗的「完成本组」）：抬起即单击
+                            tryAwaitRelease()
+                            pressed = false
+                            onTap()
+                        } else {
+                            holdTriggered = false
+                            val job = scope.launch {
+                                var elapsedMs = 0L
+                                while (elapsedMs < HOLD_DURATION_MS) {
+                                    delay(HOLD_TICK_MS)
+                                    elapsedMs += HOLD_TICK_MS
+                                    onHoldProgress((elapsedMs.toFloat() / HOLD_DURATION_MS).coerceIn(0f, 1f))
+                                }
+                                holdTriggered = true
+                                endHold()
+                            }
+                            tryAwaitRelease()
+                            pressed = false
+                            job.cancel()
+                            if (!holdTriggered) onTap()
+                            onHoldProgress(0f)
+                        }
+                    },
+                )
+            },
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -1256,7 +1579,7 @@ private fun ModalCard(
             PrimaryButton(
                 label = stringResource(R.string.active_action_complete_set),
                 enabled = true,
-                onClick = onComplete,
+                onTap = onComplete,
             )
         }
     }

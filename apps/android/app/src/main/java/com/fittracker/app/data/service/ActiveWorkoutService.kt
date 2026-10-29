@@ -209,6 +209,31 @@ object ActiveWorkoutService {
     fun nextEmptySetIndex(exercise: ActiveWorkoutExercise): Int =
         exercise.sets.indexOfFirst { !it.isComplete }
 
+    // --- 提前结束动作（长按「完成」的唯一写入口） ---------------------------
+
+    /**
+     * 提前结束某个动作：把它收缩到「已完成的组数」。
+     *
+     * 收缩后仍走同一条重算路径，只是先把 totalTargetSets 按新的 targetSets 重新求和——
+     * 收尾判据与组胶囊都以 completedSets < targetSets 为口径，收缩即可让下游零改动地跳过该动作。
+     * 已录满时返回同一个 state 实例（调用方据此判定无需结束）。
+     */
+    fun endExercise(state: ActiveWorkoutState, plannedExerciseId: String): ActiveWorkoutState {
+        val index: Int = state.exercises.indexOfFirst { it.plannedExerciseId == plannedExerciseId }
+        if (index < 0) return state
+        val exercise: ActiveWorkoutExercise = state.exercises[index]
+        if (exercise.completedSets >= exercise.targetSets) return state
+        val shrunk: ActiveWorkoutExercise = exercise.copy(
+            targetSets = exercise.completedSets,
+            completedSets = exercise.completedSets,
+            sets = exercise.sets.take(exercise.completedSets),
+        )
+        val nextExercises: List<ActiveWorkoutExercise> =
+            state.exercises.toMutableList().also { it[index] = shrunk }
+        val total: Int = nextExercises.sumOf { it.targetSets }
+        return createStateWithProgress(state.copy(totalTargetSets = total), nextExercises)
+    }
+
     // --- 计数 ---------------------------------------------------------------
 
     /** 源 `:120` `countCompletedSets`——所有动作**有效工作组**（`isComplete && !isWarmup`）之和。 */

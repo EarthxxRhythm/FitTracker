@@ -48,15 +48,14 @@ const WEIGHT_MAX_KG: number = 200
 // 目标次数解析不出时的兜底（原型输入框占位为「8–10」）。
 const FALLBACK_REPS: number = 8
 
-// 动作切换胶囊（参考图 .act-pill）：高 30、圆角 999、字号 12。
-const EXERCISE_PILL_HEIGHT: number = 30
-const EXERCISE_PILL_GAP: number = 8
-// 胶囊内进度条：底部内缩 6、条高 2.5——细到不压字，又能读出比例。
-const EXERCISE_PILL_BAR_HEIGHT: number = 2.5
-const EXERCISE_PILL_BAR_INSET: number = 6
-// 动作数不超过该值（含）时等分铺满；超出改为横向滚动。
-// 4 个等分时每个约 74vp，容得下「动作4」三字（12vp × 3 + 内距）。
-const EXERCISE_PILL_EVEN_MAX: number = 4
+// 组胶囊：一个胶囊 = 一组（当前动作的目标组数）。高 26；≤6 组等分铺满，更多按最小宽度横向滚动。
+const SET_PILL_HEIGHT: number = 26
+const SET_PILL_GAP: number = 8
+const SET_PILL_MIN_WIDTH: number = 44
+const SET_PILL_EVEN_MAX: number = 6
+// 长按「完成」提前结束：按住多久算数、进度推进的步长（16ms ≈ 一帧）。
+const HOLD_DURATION_MS: number = 1200
+const HOLD_TICK_MS: number = 16
 
 // 动作演示卡（容器）高度。原型 .demo-card 为 230，此处有意加高以留出更多版面；
 // 标题条固定在距底 56 处，与原型同口径。
@@ -135,6 +134,18 @@ export struct ActiveContent {
   /** 顶部动作切换条选中的动作下标（0 起）；初值 = 首个未录满动作。 */
   @State private selectedExerciseIndex: number = 0
   @State private collapsePressed: boolean = false
+  /** 动作切换弹层开关（点顶栏动作名打开）。 */
+  @State private showExercisePicker: boolean = false
+  /** 名称滚动替换：0 → -28 旧名上滑淡出；28 → 0 新名升入。 */
+  @State private nameShift: number = 0
+  @State private nameOpacity: number = 1
+  /** 演示卡 Y 轴翻转角（0 → 90 → -90 → 0，中段换内容）。 */
+  @State private cardFlipAngle: number = 0
+  /** 长按「完成」的进度 0..1 与按住态。 */
+  @State private holdProgress: number = 0
+  @State private holding: boolean = false
+  private holdTimer: number = -1
+  private holdTriggered: boolean = false
   private celebrateTimer: number = -1
   private clockTimer: number = -1
   private pulseTimer: number = -1
@@ -182,6 +193,10 @@ export struct ActiveContent {
     if (this.celebrateTimer !== -1) {
       clearTimeout(this.celebrateTimer)
       this.celebrateTimer = -1
+    }
+    if (this.holdTimer !== -1) {
+      clearInterval(this.holdTimer)
+      this.holdTimer = -1
     }
     this.releaseKeepScreenOn()
   }
@@ -554,17 +569,144 @@ export struct ActiveContent {
     return !this.selectedCanRecord()
   }
 
-  /** 胶囊进度 0..1（越界夹紧；targetSets 为 0 时返回 0）。 */
-  private exerciseProgress(index: number): number {
-    const exercises: ActiveWorkoutExercise[] = this.activeState.exercises
-    if (index < 0 || index >= exercises.length || exercises[index].targetSets <= 0) {
-      return 0
+  /** 当前动作的组索引（0..targetSets-1）；提前结束后 targetSets 已收缩，自动变短。 */
+  private setIndexes(): number[] {
+    const indexes: number[] = []
+    const exercise: ActiveWorkoutExercise | undefined = this.selectedExercise()
+    const total: number = exercise === undefined ? 0 : exercise.targetSets
+    for (let index = 0; index < total; index++) {
+      indexes.push(index)
     }
-    const ratio: number = exercises[index].completedSets / exercises[index].targetSets
-    if (ratio <= 0) {
-      return 0
+    return indexes
+  }
+
+  /** 该组是否已完成（实心态）。 */
+  private isSetDone(index: number): boolean {
+    const exercise: ActiveWorkoutExercise | undefined = this.selectedExercise()
+    return exercise !== undefined && index < exercise.completedSets
+  }
+
+  /** 该组是否是「正在做的那一组」（虚线强调）。 */
+  private isSetCurrent(index: number): boolean {
+    const exercise: ActiveWorkoutExercise | undefined = this.selectedExercise()
+    return exercise !== undefined && index === exercise.completedSets && index < exercise.targetSets
+  }
+
+  private openExercisePicker(): void {
+    this.showExercisePicker = true
+  }
+
+  /** 弹层里第 index 个动作的显示名。 */
+  private exerciseEntryName(index: number): string {
+    if (index < 0 || index >= this.activeState.exercises.length) {
+      return ''
     }
-    return ratio >= 1 ? 1 : ratio
+    return this.activeState.exercises[index].name
+  }
+
+  /**
+   * 选中某个动作：关闭弹层 → 旧名上滑淡出 + 卡片转到 90° → 换内容 → 名称升入 + 卡片转回。
+   *
+   * 中段的 setTimeout 是切换点：卡片此时正好侧对屏幕，换素材不露馅。
+   */
+  private chooseExercise(index: number): void {
+    this.showExercisePicker = false
+    if (index === this.selectedExerciseIndex) {
+      return
+    }
+    this.getUIContext().animateTo({ duration: 120, curve: MotionTokens.EASE_MOTION }, () => {
+      this.nameShift = -28
+      this.nameOpacity = 0
+      this.cardFlipAngle = 90
+    })
+    setTimeout(() => {
+      this.selectExercise(index)
+      this.nameShift = 28
+      this.cardFlipAngle = -90
+      this.getUIContext().animateTo({ duration: 160, curve: MotionTokens.EASE_MOTION }, () => {
+        this.nameShift = 0
+        this.nameOpacity = 1
+        this.cardFlipAngle = 0
+      })
+    }, 120)
+  }
+
+  // --- 长按「完成」：提前结束当前动作 ---------------------------------------
+
+  private startHold(): void {
+    if (this.selectedIsFull()) {
+      return
+    }
+    this.holding = true
+    this.holdTriggered = false
+    this.holdProgress = 0
+    this.stopHoldTimer()
+    this.holdTimer = setInterval(() => {
+      this.holdProgress += HOLD_TICK_MS / HOLD_DURATION_MS
+      if (this.holdProgress >= 1) {
+        this.holdProgress = 1
+        this.holdTriggered = true
+        this.stopHoldTimer()
+        this.endCurrentExercise()
+      }
+    }, HOLD_TICK_MS)
+  }
+
+  /** 中途松开：停表 + 复位（回落由渲染处的 animation 补出来）。 */
+  private cancelHold(): void {
+    this.stopHoldTimer()
+    this.holding = false
+    this.holdProgress = 0
+  }
+
+  private stopHoldTimer(): void {
+    if (this.holdTimer !== -1) {
+      clearInterval(this.holdTimer)
+      this.holdTimer = -1
+    }
+  }
+
+  /**
+   * 提前结束当前动作：收缩到已完成的组数，然后自动前进到下一个未录满动作。
+   *
+   * 收尾判据与「完成本组」共用 nextExercise——最后一个动作也被结束时直接进庆祝/完成页。
+   */
+  private endCurrentExercise(): void {
+    const target: ActiveWorkoutExercise | undefined = this.selectedExercise()
+    if (target === undefined) {
+      return
+    }
+    const nextState: ActiveWorkoutState =
+      ActiveWorkoutService.endExercise(this.activeState, target.plannedExerciseId)
+    this.holding = false
+    this.holdProgress = 0
+    if (nextState === this.activeState) {
+      return
+    }
+    this.activeState = nextState
+    const nextIndex: number = findUnfinishedExerciseIndex(nextState.exercises)
+    if (nextIndex >= 0) {
+      this.selectedExerciseIndex = nextIndex
+    }
+    this.applyCurrentExercise(nextState)
+    this.completed = nextState.completedSets
+    const selected: ActiveWorkoutExercise | undefined = this.selectedExercise()
+    this.recordGroups = selected === undefined
+      ? []
+      : buildRecordGroupFor(nextState.exercises, selected.plannedExerciseId)
+    if (this.soundEnabled) {
+      HapticFeedbackService.confirm()
+    }
+    if (ActiveWorkoutService.nextExercise(nextState) === undefined) {
+      this.celebrating = true
+      this.finished = true
+      this.saveCompletedSession()
+      this.celebrateTimer = setTimeout(() => {
+        this.celebrating = false
+        this.celebrateTimer = -1
+        this.finish()
+      }, 900)
+    }
   }
 
   /** 动作内组号（1 起，录满停在 targetSets）——替换原来的全场组号。 */
@@ -660,22 +802,52 @@ export struct ActiveContent {
     Column({ space: 10 }) {
       Row() {
         this.collapseButton()
-        Text(this.currentExerciseLabel())
-          .fontFamily('Noto Sans SC')
-          .fontSize(20)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(PrototypeTokens.TEXT_HI)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .layoutWeight(1)
-          .textAlign(TextAlign.Center)
+        Row({ space: 4 }) {
+          Text(this.currentExerciseLabel())
+            .fontFamily('Noto Sans SC')
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(PrototypeTokens.TEXT_HI)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .opacity(this.nameOpacity)
+            .translate({ y: this.nameShift })
+          Path()
+            .width(14)
+            .height(14)
+            .commands('M3 5 L7 9 L11 5')
+            .fill(PrototypeTokens.TRANSPARENT)
+            .stroke(PrototypeTokens.WHITE_A54)
+            .strokeWidth(1.6)
+            .strokeLineCap(LineCapStyle.Round)
+        }
+        .layoutWeight(1)
+        .height(44)
+        .justifyContent(FlexAlign.Center)
+        .accessibilityText('切换动作')
+        .onClick(() => {
+          this.openExercisePicker()
+        })
+        .bindPopup(this.showExercisePicker, {
+          builder: (): void => {
+            this.exercisePickerList()
+          },
+          placement: Placement.Bottom,
+          popupColor: '#13161A',
+          backgroundBlurStyle: BlurStyle.NONE,
+          enableArrow: true,
+          autoCancel: true,
+          mask: true,
+          radius: 16,
+          width: 240
+        })
         this.topTimer()
       }
       .width('100%')
       .height(44)
       .alignItems(VerticalAlign.Center)
 
-      this.exerciseTabs()
+      this.setPills()
     }
     .width('100%')
     .padding({ left: 18, right: 18, top: 10, bottom: 10 })
@@ -745,80 +917,88 @@ export struct ActiveContent {
     }
   }
 
-  /** 动作切换条：不超过 4 个时等分铺满，更多则横向滚动。 */
+  /** 组胶囊行：当前动作每组一个胶囊。≤6 组等分铺满，更多按最小宽度横向滚动。 */
   @Builder
-  private exerciseTabs() {
-    if (this.exerciseTotal > EXERCISE_PILL_EVEN_MAX) {
+  private setPills() {
+    if (this.setIndexes().length === 0) {
+      Text('本动作已结束')
+        .fontFamily('Noto Sans SC')
+        .fontSize(12)
+        .fontColor(PrototypeTokens.WHITE_A40)
+        .width('100%')
+        .height(SET_PILL_HEIGHT)
+        .textAlign(TextAlign.Center)
+        .border({ width: 1, color: PrototypeTokens.WHITE_A10, style: BorderStyle.Dashed })
+        .borderRadius(999)
+    } else {
       Scroll() {
-        Row({ space: EXERCISE_PILL_GAP }) {
-          ForEach(this.exerciseIndexes(), (index: number) => {
-            this.exercisePill(index, false)
-          }, (index: number) => 'pill_' + index.toString())
+        Row({ space: SET_PILL_GAP }) {
+          ForEach(this.setIndexes(), (index: number) => {
+            this.setPill(index)
+          }, (index: number) => 'set_' + index.toString())
         }
       }
       .scrollable(ScrollDirection.Horizontal)
       .scrollBar(BarState.Off)
       .width('100%')
-    } else {
-      Row({ space: EXERCISE_PILL_GAP }) {
-        ForEach(this.exerciseIndexes(), (index: number) => {
-          this.exercisePill(index, true)
-        }, (index: number) => 'pill_' + index.toString())
-      }
-      .width('100%')
     }
   }
 
-  /**
-   * 单个动作胶囊：选中态虚线强调，胶囊内底部细条承载该动作的组进度。
-   *
-   * 进度条放在胶囊内底部而不是用背景按比例填充：填充式会让 12vp 文字压在亮色上，
-   * 选中/未选中的对比反而失效。
-   */
+  /** 单个组胶囊：已完成实心 accent、当前组虚线强调、未做灰底。 */
   @Builder
-  private exercisePill(index: number, even: boolean) {
+  private setPill(index: number) {
     Stack({ alignContent: Alignment.Center }) {
-      Text('动作' + (index + 1).toString())
-        .fontFamily('Noto Sans SC')
+      Text((index + 1).toString())
+        .fontFamily('Geist Mono')
         .fontSize(12)
-        .fontWeight(index === this.selectedExerciseIndex ? FontWeight.Bold : FontWeight.Normal)
-        .fontColor(index === this.selectedExerciseIndex ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A70)
-        .maxLines(1)
-        .width('100%')
-        .height(EXERCISE_PILL_HEIGHT)
-        .textAlign(TextAlign.Center)
-
-      Stack({ alignContent: Alignment.Start }) {
-        Row()
-          .width('100%')
-          .height(EXERCISE_PILL_BAR_HEIGHT)
-          .backgroundColor(PrototypeTokens.WHITE_A08)
-          .borderRadius(999)
-        Row()
-          .width((this.exerciseProgress(index) * 100).toFixed(1) + '%')
-          .height(EXERCISE_PILL_BAR_HEIGHT)
-          .backgroundColor(PrototypeTokens.ACCENT)
-          .borderRadius(999)
-          .animation({ duration: MotionTokens.DURATION_MARKER, curve: MotionTokens.EASE_MOTION })
-      }
-      .width('100%')
-      .padding({ left: EXERCISE_PILL_BAR_INSET, right: EXERCISE_PILL_BAR_INSET })
-      .align(Alignment.Bottom)
-      .margin({ bottom: 5 })
+        .fontWeight(FontWeight.Bold)
+        .fontColor(this.isSetDone(index) ? PrototypeTokens.TEXT_ON_ACCENT : PrototypeTokens.WHITE_A70)
     }
-    .height(EXERCISE_PILL_HEIGHT)
-    .constraintSize({ minWidth: even ? 0 : 84 })
-    .layoutWeight(even ? 1 : 0)
-    .backgroundColor(index === this.selectedExerciseIndex ? PrototypeTokens.ACCENT_A10 : PrototypeTokens.WHITE_A03)
+    .height(SET_PILL_HEIGHT)
+    .constraintSize({ minWidth: SET_PILL_MIN_WIDTH })
+    .layoutWeight(this.setIndexes().length <= SET_PILL_EVEN_MAX ? 1 : 0)
+    .backgroundColor(this.isSetDone(index) ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A03)
     .borderRadius(999)
     .border({
-      width: index === this.selectedExerciseIndex ? 1.2 : 1,
-      color: index === this.selectedExerciseIndex ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A10,
-      style: index === this.selectedExerciseIndex ? BorderStyle.Dashed : BorderStyle.Solid
+      width: this.isSetDone(index) ? 0 : 1,
+      color: this.isSetCurrent(index) ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A10,
+      style: this.isSetCurrent(index) ? BorderStyle.Dashed : BorderStyle.Solid
     })
-    .onClick(() => {
-      this.selectExercise(index)
-    })
+    .animation({ duration: MotionTokens.DURATION_MARKER, curve: MotionTokens.EASE_MOTION })
+  }
+
+  /** 动作切换弹层内容：当前项右侧带对勾。 */
+  @Builder
+  private exercisePickerList() {
+    Column() {
+      ForEach(this.exerciseIndexes(), (index: number) => {
+        Row() {
+          Text(this.exerciseEntryName(index))
+            .fontFamily('Noto Sans SC')
+            .fontSize(14)
+            .fontColor(index === this.selectedExerciseIndex ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A70)
+            .layoutWeight(1)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+          if (index === this.selectedExerciseIndex) {
+            Text('✓')
+              .fontFamily('HarmonyOS Sans')
+              .fontSize(14)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(PrototypeTokens.ACCENT)
+          }
+        }
+        .width('100%')
+        .height(44)
+        .padding({ left: 14, right: 14 })
+        .backgroundColor(index === this.selectedExerciseIndex ? PrototypeTokens.ACCENT_A10 : PrototypeTokens.TRANSPARENT)
+        .onClick(() => {
+          this.chooseExercise(index)
+        })
+      }, (index: number) => 'picker_' + index.toString())
+    }
+    .width('100%')
+    .padding({ top: 6, bottom: 6 })
   }
 
   @Builder
@@ -879,6 +1059,8 @@ export struct ActiveContent {
     .borderRadius(28)
     .border({ width: 1, color: PrototypeTokens.WHITE_A08 })
     .clip(true)
+    // 切换动作时沿 Y 轴翻面：0 → 90 → -90 → 0，中段（侧对屏幕时）替换素材
+    .rotate({ y: 1, angle: this.cardFlipAngle, centerX: '50%', centerY: '50%' })
   }
 
   @Builder
@@ -979,8 +1161,37 @@ export struct ActiveContent {
 
   @Builder
   private dock() {
-    Column() {
-      Button(this.selectedIsFull() ? '已完成' : '提交')
+    Column({ space: 8 }) {
+      if (this.holding) {
+        Column({ space: 4 }) {
+          Row() {
+            Row()
+              .width((this.holdProgress * 100).toFixed(1) + '%')
+              .height(3)
+              .borderRadius(999)
+              .backgroundColor(PrototypeTokens.ACCENT)
+          }
+          .width('100%')
+          .height(3)
+          .borderRadius(999)
+          .backgroundColor(PrototypeTokens.WHITE_A10)
+          .animation({ duration: HOLD_TICK_MS, curve: Curve.Linear })
+          Text('松开取消 · 继续按住结束本动作')
+            .fontFamily('Noto Sans SC')
+            .fontSize(11)
+            .fontColor(PrototypeTokens.ACCENT)
+        }
+        .width('100%')
+      } else {
+        Text(this.selectedIsFull() ? '本动作已完成' : '长按「完成」提前结束本动作')
+          .fontFamily('Noto Sans SC')
+          .fontSize(11)
+          .fontColor(PrototypeTokens.WHITE_A40)
+          .width('100%')
+          .textAlign(TextAlign.Center)
+      }
+
+      Button(this.selectedIsFull() ? '已完成' : '完成')
         .width('100%')
         .height(50)
         .padding(0)
@@ -995,23 +1206,29 @@ export struct ActiveContent {
         .onTouch((event: TouchEvent) => {
           if (event.type === TouchType.Down) {
             this.submitPressed = true
+            this.startHold()
           } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
             this.submitPressed = false
+            // 先读后复位：长按触发后松开会同时走到这里，必须抑掉那次「单击」
+            const triggered: boolean = this.holdTriggered
+            this.holdTriggered = false
+            this.cancelHold()
+            if (!triggered) {
+              this.openModal()
+            }
           }
         })
-        // Duolingo 硬边厚底：按下收平 + 整体下沉，替代缩放按压
+        // 硬边厚底：按下收平 + 整体下沉，替代缩放按压
         .border({
           width: { bottom: this.submitPressed ? 0 : DuTokens.PRESS_DEPTH },
           color: { bottom: PrototypeTokens.ACCENT_DEEP }
         })
         .translate({ y: this.submitPressed ? DuTokens.PRESS_SHIFT : 0 })
         .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
-        .onClick(() => {
-          this.openModal()
-        })
+        // 不再用 .onClick：长按完成后松开会同时触发 click，导致结束动作后又弹窗
     }
     .width('100%')
-    .padding({ left: 18, right: 18, top: 12, bottom: 18 })
+    .padding({ left: 18, right: 18, top: 10, bottom: 18 })
     // 原型 .wo-dock: rgba(10,13,18,.98)（同族笔误，原为 #0A0D12FA）
     .backgroundColor('#FA0A0D12')
     .border({ width: { top: 1 }, color: PrototypeTokens.WHITE_A06 })

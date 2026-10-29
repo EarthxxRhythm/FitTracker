@@ -32,7 +32,7 @@ class FtActiveStringsTest {
             R.string.active_progress_done to "训练完成 · 全部 %1\$d 组",
             R.string.active_elapsed_label to "总时长",
             R.string.active_a11y_progress to "训练组数进度",
-            R.string.active_submit to "提交",
+            R.string.active_submit to "完成",
             R.string.active_submit_done to "已完成",
             R.string.active_demo_label to "动作",
             R.string.active_fallback_exercise to "杠铃卧推",
@@ -54,6 +54,14 @@ class FtActiveStringsTest {
             R.string.active_action_complete_set to "完成本组",
             R.string.active_celebrate_title to "本组完成",
             R.string.active_celebrate_subtitle to "做得很好",
+            // 产品要求（2026-10-29）：主按钮文案由「提交」改为「完成」，并新增长按提前结束的提示文案。
+            // 以下几条不再逐字对齐原型——需求变更优先于原型基线。
+            R.string.active_hold_hint to "长按「完成」提前结束本动作",
+            R.string.active_hold_cancel to "松开取消 · 继续按住结束本动作",
+            R.string.active_exercise_full to "本动作已完成",
+            R.string.active_exercise_ended to "本动作已结束",
+            R.string.active_set_pill_a11y to "第 %1\$d 组",
+            R.string.active_switch_exercise to "切换动作",
         )
 
         expectations.forEach { (id, expected) ->

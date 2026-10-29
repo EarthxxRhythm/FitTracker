@@ -14,8 +14,14 @@
     <string name="active_a11y_progress">Set progress</string>
 
     <!-- Submit button -->
-    <string name="active_submit">Submit</string>
+    <string name="active_submit">Done</string>
     <string name="active_submit_done">Completed</string>
+    <string name="active_hold_hint">Hold "Done" to end this exercise early</string>
+    <string name="active_hold_cancel">Release to cancel · keep holding to finish</string>
+    <string name="active_exercise_full">Exercise complete</string>
+    <string name="active_exercise_ended">Exercise ended</string>
+    <string name="active_set_pill_a11y">Set %1$d</string>
+    <string name="active_switch_exercise">Switch exercise</string>
 
     <!-- Demo card -->
     <string name="active_demo_label">Move</string>
