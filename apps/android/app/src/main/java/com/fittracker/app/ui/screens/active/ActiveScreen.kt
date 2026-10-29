@@ -778,9 +778,10 @@ private fun ExerciseSwitcher(
     // 列表要在动作名**下方**居中：DropdownMenu 默认锦在父容器左上角，
     // 而这一格是 weight(1f) 铺满剩余的，不补偏移就会跑到屏幕左侧。
     BoxWithConstraints(modifier = modifier) {
-        // 180：够放 9 个中文字（内容库最长「保加利亚分腿蹲」7 字），
-        // 比原先的 240 收紧 25%——240 下动作名普遍只占一半，右侧留大片空。
-        val menuWidth = 180.dp
+        // 160：真机（density 476）实测 180dp=536px 时，最宽动作名「哑铃侧平举」文字只有
+        // 165px，右侧仍空出约三分之一。160 按标准字号可放 8 个中文字，覆盖全部实际动作名
+        // （内容库最长「保加利亚分腿蹲」7 字）。
+        val menuWidth = 160.dp
         val menuOffsetX = (maxWidth - menuWidth) / 2
         Row(
             modifier = Modifier
