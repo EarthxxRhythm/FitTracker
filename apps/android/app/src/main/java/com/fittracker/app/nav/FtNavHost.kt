@@ -31,12 +31,36 @@ import com.fittracker.app.ui.screens.plangroup.PlanGroupScreen
 @Composable
 fun FtNavHost(
     navController: NavHostController,
+    onOpenPreview: () -> Unit = {},
+    onStartWorkout: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // 修复（真机启动崩溃 "No NavigationEventDispatcher was provided via LocalNavigationEventDispatcherOwner"）：
     // AppCompat 宿主下 ViewTree 的 owner 不被 navigation-compose 的桥发现 → 显式把 Activity
     // （ComponentActivity 实现 NavigationEventDispatcherOwner）provide 给局部变量；幂等（就近覆盖）。
     val dispatcherOwner = LocalActivity.current as NavigationEventDispatcherOwner
+
+    // 训练预览收敛点：`workout` 不再是主流程要推入的帧，而是壳层之上的一层覆盖
+    // （对齐鸿蒙 `PencilAppShell` 的 `showPreview`）。各屏与 planGroup 的转发都走这里，
+    // 免得每个调用点自己判断。`workout` 路由本身保留给深链 `fittracker://workout`。
+    val navigate: (String) -> Unit = { target ->
+        if (target == "workout") {
+            onOpenPreview()
+        } else if (target == "start-workout") {
+            // 首页「开始训练」不再直进 active：先过体重记录 gate，确认后才开预览
+            // （对齐鸿蒙 HomeContent.startWorkout → PencilAppShell.showWeightGate）。
+            onStartWorkout()
+        } else {
+            navController.navigate(target) {
+                // 从 splash 出发的跳转 = `replaceUrl` 语义（对齐鸿蒙 PencilSplashPage）：
+                // 分流后 splash 出栈，返回键不会回到启动画面。
+                if (navController.currentDestination?.route == "splash") {
+                    popUpTo("splash") { inclusive = true }
+                }
+            }
+        }
+    }
+
     CompositionLocalProvider(LocalNavigationEventDispatcherOwner provides dispatcherOwner) {
     NavHost(
         navController = navController,
@@ -58,15 +82,7 @@ fun FtNavHost(
             ) {
                 FtScreen(
                     route = route,
-                    onNavigate = { target ->
-                        navController.navigate(target) {
-                            // 从 splash 出发的跳转 = `replaceUrl` 语义（对齐鸿蒙 PencilSplashPage）：
-                            // 分流后 splash 出栈，返回键不会回到启动画面。
-                            if (navController.currentDestination?.route == "splash") {
-                                popUpTo("splash") { inclusive = true }
-                            }
-                        }
-                    },
+                    onNavigate = navigate,
                     onBack = { navController.ftBack(route.id) },
                 )
             }
@@ -101,13 +117,7 @@ fun FtNavHost(
         ) { backStackEntry ->
             PlanGroupScreen(
                 planId = backStackEntry.arguments?.getString("planId") ?: "",
-                onNavigate = { target ->
-                    navController.navigate(target) {
-                        if (navController.currentDestination?.route == "splash") {
-                            popUpTo("splash") { inclusive = true }
-                        }
-                    }
-                },
+                onNavigate = navigate,
                 onBack = { navController.ftBack("planGroup") },
             )
         }

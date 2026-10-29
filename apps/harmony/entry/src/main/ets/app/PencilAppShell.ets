@@ -5,13 +5,14 @@ import { PlanContent } from '../features/pencil/components/PlanContent'
 import { ReviewContent } from '../features/pencil/components/ReviewContent'
 import { ProfileContent } from '../features/pencil/components/ProfileContent'
 import { PencilPreviewContent } from '../features/pencil/pages/PencilPreviewPage'
+import { WeightRecordDialog } from '../features/pencil/components/WeightRecordDialog'
 import { PlanState } from '../features/pencil/components/states/PlanState'
 import { ProfileState } from '../features/pencil/components/states/ProfileState'
 import { HomeState } from '../features/pencil/components/states/HomeState'
 import { AppRoutes } from './AppRoutes'
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
-import { MotionTokens } from '../common/styles/DesignTokens'
+import { MotionTokens, SpacingTokens, TouchTokens } from '../common/styles/DesignTokens'
 
 enum PencilTabKey {
   HOME = 'home',
@@ -31,8 +32,18 @@ export struct PencilAppShell {
   @State private profileState: ProfileState = new ProfileState()
   /** 切到「回顾」Tab 时 bump——体重/会话更新后回顾页需重读（Tab 常驻同因）。 */
   @State private reviewReloadToken: number = 0
-  // 训练预览的全模态开关。
+  // 训练预览覆盖层的开关（条件渲染，不是 bindContentCover）。
   @State private showPreview: boolean = false
+  // 「开始训练」前置体重记录弹窗（居中，缩放 + 弹簧进场）。与预览同为壳层覆盖层，
+  // 放在壳层而非首页内：底栏中央训练键也要走同一个 gate。
+  @State private showWeightGate: boolean = false
+  /**
+   * 底栏收起态（由回顾页滚动写入，对齐安卓 `FtChromeState`）。
+   *
+   * 任何 Tab 切换 / 从压栈页返回都必须复位：否则在回顾页滚动收起后切到别的 Tab，
+   * 底栏会一直藏着，且没有滚动事件能把它拉回来。
+   */
+  @State private tabBarCollapsed: boolean = false
 
   async aboutToAppear(): Promise<void> {
     const hostContext: Context | undefined = this.getUIContext().getHostContext()
@@ -53,6 +64,8 @@ export struct PencilAppShell {
     if (context === undefined) {
       return
     }
+    // 与安卓 `FtApp` 的「任何帧切换都 chrome.updateCollapsed(false)」同构。
+    this.tabBarCollapsed = false
     // 「首页」和「计划」两个 Tab 都读 getCurrentPlan（计划组里切换后必须一起刷新）。
     // 旧实现按 currentTab 只刷一个：用户从「计划组」切完计划回到另一个 Tab 时，
     // 那个 Tab 仍是旧计划，看起来就像「切换没生效」。
@@ -71,7 +84,12 @@ export struct PencilAppShell {
   }
 
   // 训练预览覆盖层打开时，系统返回键先关闭它，不退出页面。
+  // 体重 gate 叠在更上层，故先于预览处理。
   onBackPress(): boolean {
+    if (this.showWeightGate) {
+      this.showWeightGate = false
+      return true
+    }
     if (this.showPreview) {
       this.showPreview = false
       return true
@@ -90,6 +108,8 @@ export struct PencilAppShell {
   // Tab 切换不带内容区转场：按需求直接切换（「训练」按钮打开的预览弹层动效保留）。
   private handleTabChanged(): void {
     const context: Context | undefined = this.getUIContext().getHostContext()
+    // Tab 间切换一律复位底栏收起态（同安卓 `FtApp.kt:91-99`）。
+    this.tabBarCollapsed = false
     if (this.currentTab === PencilTabKey.HOME) {
       this.homeState.invalidate()
       if (context !== undefined) {
@@ -147,6 +167,9 @@ export struct PencilAppShell {
       Column() {
         HomeContent({
           state: this.homeState,
+          onStartWorkout: () => {
+            this.showWeightGate = true
+          },
           onOpenPreview: () => {
             this.showPreview = true
           }
@@ -166,7 +189,12 @@ export struct PencilAppShell {
       .zIndex(this.layer(PencilTabKey.PLAN))
 
       Column() {
-        ReviewContent({ reloadToken: this.reviewReloadToken })
+        ReviewContent({
+          reloadToken: this.reviewReloadToken,
+          onChromeCollapsed: (collapsed: boolean) => {
+            this.tabBarCollapsed = collapsed
+          }
+        })
       }
       .width('100%')
       .height('100%')
@@ -195,15 +223,40 @@ export struct PencilAppShell {
         .width('100%')
         .clip(true)
 
-        BottomTabBar({
-          currentKey: $currentTab,
-          workoutAction: () => {
+        // 底栏收起：高度归零 + 裁剪，内容区是 layoutWeight(1) 会自动长高——
+        // 等价于安卓 Scaffold 收缩 `inner`。**不要改用 translate**：平移只改绘制位置，
+        // 内容区不会长高，底部会留一条空白死区。
+        // 高度由 token 组合，不写死 72（BottomTabBar 内部：8 + 56 + 8）。
+        Column() {
+          BottomTabBar({
+            currentKey: $currentTab,
+            workoutAction: () => {
+              // 中央训练键与首页「开始训练」同一入口语义：先记体重再进预览。
+              this.showWeightGate = true
+            }
+          })
+        }
+        .width('100%')
+        // 体重 gate 打开时收起主导航栏：面板贴底，底栏必须让位
+        .height((this.tabBarCollapsed || this.showWeightGate) ? 0 : TouchTokens.TAB_BAR_HEIGHT_HOME + SpacingTokens.SM * 2)
+        .clip(true)
+        .animation({ duration: MotionTokens.DURATION_OVERLAY, curve: MotionTokens.EASE_PANEL })
+      }
+      .width('100%')
+      .height('100%')
+
+      // 体重记录 gate：压在预览覆盖层之下（先记体重，确认后才开预览）。
+      if (this.showWeightGate) {
+        WeightRecordDialog({
+          onCancel: () => {
+            this.showWeightGate = false
+          },
+          onConfirmed: () => {
+            this.showWeightGate = false
             this.showPreview = true
           }
         })
       }
-      .width('100%')
-      .height('100%')
 
       if (this.showPreview) {
         // 训练预览「缩放弹出」：遮罩淡入 + 内容 0.92 → 1 缩放淡入（关闭时反向）。

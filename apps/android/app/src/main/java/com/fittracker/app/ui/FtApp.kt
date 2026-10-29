@@ -1,18 +1,25 @@
 package com.fittracker.app.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -20,14 +27,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigationevent.NavigationEventDispatcher
+import androidx.navigationevent.NavigationEventDispatcherOwner
+import androidx.navigationevent.NavigationEventHandler
+import androidx.navigationevent.NavigationEventInfo
 import com.fittracker.app.nav.FtNavHost
 import com.fittracker.app.nav.FtRoutes
 import com.fittracker.app.nav.navigateToTab
 import com.fittracker.app.ui.components.FtBottomTabBar
+import com.fittracker.app.ui.components.WeightGateDialog
+import com.fittracker.app.ui.screens.workout.WorkoutPreviewScreen
 import com.fittracker.app.ui.theme.FtColor
 import com.fittracker.app.ui.theme.FtMotion
 import com.fittracker.app.ui.theme.FtTheme
@@ -73,6 +88,14 @@ fun FtApp() {
         // 回顾页向下滚动时置 true：底栏滑出、屏内头部收缩。离开任何 Tab 帧时强制复位，
         // 避免「在回顾页收起后进入设置/登录，底栏状态仍残留」。
         val chrome = remember { FtChromeState() }
+
+        // ── 训练预览覆盖层（对齐鸿蒙：中央 Tab 只叠一层，不切帧） ───────────────
+        // 鸿蒙 `PencilAppShell` 里 `showPreview` 只是 `Stack` 上的一个条件分支：底栏不动、
+        // 当前 Tab 不变、不产生返回栈。这里用同样的模型，`workout` 路由仅保留给深链。
+        var showPreview by remember { mutableStateOf(false) }
+    // 首页「开始训练」前置的体重记录弹窗（居中，缩放 + 弹簧进场）。
+    // 与 showPreview 同为壳层状态：底栏中央训练键也要走同一个 gate。
+    var showWeightGate by remember { mutableStateOf(false) }
 
         // ── Tab 切换内容动效（W2-5，对齐原型 `select()`） ──────────────────
         // 原型语义：Tab 壳层**瞬时**换屏（`select()` 直接 classList.toggle，无过渡），
@@ -120,50 +143,160 @@ fun FtApp() {
         }
 
         CompositionLocalProvider(LocalFtChrome provides chrome) {
-            Scaffold(
-                containerColor = FtColor.bg,
-                // 关键：原型画布是**不含系统栏**的 390×844 整屏。
-                // Scaffold 默认会按 systemBars 内缩内容区，导致 FtCanvas 的可用高变小、
-                // fitScale 被算小（实测有效缩放 0.855 vs 原型 0.90698，且整体下移一个状态栏）。
-                // 故显式清零 insets，让内容真正 edge-to-edge。
-                contentWindowInsets = WindowInsets(0),
-                bottomBar = {
-                    // 收起/恢复：底栏整条滑出屏幕并淡出。Scaffold 按测量收缩 `inner` 的下内边距，
-                    // 内容区随之自然长高——不会像 `offset` 那样在底部留一条死区。
-                    AnimatedVisibility(
-                        visible = onTab && !chrome.collapsed,
-                        enter = slideInVertically(
-                            animationSpec = tween(FtMotion.DURATION_CHROME, easing = FtMotion.EASE_PANEL),
-                            initialOffsetY = { it },
-                        ) + fadeIn(tween(FtMotion.DURATION_CHROME)),
-                        exit = slideOutVertically(
-                            animationSpec = tween(FtMotion.DURATION_CHROME, easing = FtMotion.EASE_PANEL),
-                            targetOffsetY = { it },
-                        ) + fadeOut(tween(FtMotion.DURATION_COLOR_FAST)),
-                    ) {
-                        FtBottomTabBar(
-                            currentRouteId = currentId,
-                            onSelect = { navController.navigateToTab(it) },
-                        )
-                    }
-                },
-            ) { inner ->
-                FtNavHost(
-                    navController = navController,
-                    modifier = Modifier
-                        .padding(inner)
-                        // 动效施加在**内容区**（不含底栏），与原型作用于 `#viewport` 同级：
-                        // 底栏不参与位移/缩放，Tab 间也不会出现整屏推入式位移。
-                        .graphicsLayer {
-                            val away = 1f - contentSettle.value // 1f = 未归位（起点），0f = 已归位
-                            translationX = shiftDirection * TAB_SHIFT_DISTANCE_DP.dp.toPx() * away
-                            val scale = 1f - (1f - TAB_SHIFT_MIN_SCALE) * away
-                            scaleX = scale
-                            scaleY = scale
-                            alpha = 1f - (1f - TAB_SHIFT_MIN_ALPHA) * away
+            // 覆盖层必须在 Scaffold **外面**：Scaffold 的 content 受 `.padding(inner)` 与底栏测量约束，
+            // 训练预览要像鸿蒙 `PencilAppShell` 那样整屏盖住底栏，只能挂在它之上。
+            Box(modifier = Modifier.fillMaxSize()) {
+                Scaffold(
+                    containerColor = FtColor.bg,
+                    // 关键：原型画布是**不含系统栏**的 390×844 整屏。
+                    // Scaffold 默认会按 systemBars 内缩内容区，导致 FtCanvas 的可用高变小、
+                    // fitScale 被算小（实测有效缩放 0.855 vs 原型 0.90698，且整体下移一个状态栏）。
+                    // 故显式清零 insets，让内容真正 edge-to-edge。
+                    contentWindowInsets = WindowInsets(0),
+                    bottomBar = {
+                        // 收起/恢复：底栏整条滑出屏幕并淡出。Scaffold 按测量收缩 `inner` 的下内边距，
+                        // 内容区随之自然长高——不会像 `offset` 那样在底部留一条死区。
+                        AnimatedVisibility(
+                            // 体重 gate 打开时收起主导航栏：面板贴底，底栏必须让位
+                            visible = onTab && !chrome.collapsed && !showWeightGate,
+                            enter = slideInVertically(
+                                animationSpec = tween(FtMotion.DURATION_CHROME, easing = FtMotion.EASE_PANEL),
+                                initialOffsetY = { it },
+                            ) + fadeIn(tween(FtMotion.DURATION_CHROME)),
+                            exit = slideOutVertically(
+                                animationSpec = tween(FtMotion.DURATION_CHROME, easing = FtMotion.EASE_PANEL),
+                                targetOffsetY = { it },
+                            ) + fadeOut(tween(FtMotion.DURATION_COLOR_FAST)),
+                        ) {
+                            FtBottomTabBar(
+                                currentRouteId = currentId,
+                                onSelect = { id ->
+                                    // 与鸿蒙 `PencilAppShell` 对齐：中央训练键**不开新帧**，只覆盖预览层。
+                                    // 走 `navigateToTab` 会先 `popUpTo("home")`，把当前 Tab 重置到首页。
+                                    // 中央训练键与首页「开始训练」同一入口语义：先记体重再进预览。
+                                    if (id == "workout") showWeightGate = true
+                                    else navController.navigateToTab(id)
+                                },
+                            )
+                        }
+                    },
+                ) { inner ->
+                    FtNavHost(
+                        navController = navController,
+                        onOpenPreview = { showPreview = true },
+                        onStartWorkout = { showWeightGate = true },
+                        modifier = Modifier
+                            .padding(inner)
+                            // 动效施加在**内容区**（不含底栏），与原型作用于 `#viewport` 同级：
+                            // 底栏不参与位移/缩放，Tab 间也不会出现整屏推入式位移。
+                            .graphicsLayer {
+                                val away = 1f - contentSettle.value // 1f = 未归位（起点），0f = 已归位
+                                translationX = shiftDirection * TAB_SHIFT_DISTANCE_DP.dp.toPx() * away
+                                val scale = 1f - (1f - TAB_SHIFT_MIN_SCALE) * away
+                                scaleX = scale
+                                scaleY = scale
+                                alpha = 1f - (1f - TAB_SHIFT_MIN_ALPHA) * away
+                            },
+                    )
+                }
+
+                // ── 体重记录 gate（居中弹窗，遮罩淡入 + 卡片弹簧缩放） ──────────────
+                // 压在预览覆盖层之下：确认后 showWeightGate=false → showPreview=true。
+                if (showWeightGate) {
+                    WeightGateDialog(
+                        onCancel = { showWeightGate = false },
+                        onConfirmed = {
+                            showWeightGate = false
+                            showPreview = true
                         },
-                )
+                    )
+                }
+
+                // ── 训练预览覆盖层（对齐鸿蒙 PencilAppShell.ets:208-241） ────────────
+                // 遮罩只淡入淡出，面板额外从 0.92 缩放落位、锚点底边中点——两者分开驱动，
+                // 合并成一个 AnimatedVisibility 会让遮罩跟着缩。
+                AnimatedVisibility(
+                    visible = showPreview,
+                    enter = fadeIn(tween(FtMotion.DURATION_COLOR_FAST)),
+                    exit = fadeOut(tween(FtMotion.DURATION_COLOR_FAST)),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = PREVIEW_SCRIM_ALPHA)),
+                    )
+                }
+                AnimatedVisibility(
+                    visible = showPreview,
+                    enter = fadeIn(tween(FtMotion.DURATION_MODAL, easing = FtMotion.EASE_PANEL)) +
+                        scaleIn(
+                            animationSpec = tween(FtMotion.DURATION_MODAL, easing = FtMotion.EASE_PANEL),
+                            initialScale = PREVIEW_ENTER_SCALE,
+                            transformOrigin = PREVIEW_TRANSFORM_ORIGIN,
+                        ),
+                    exit = fadeOut(tween(FtMotion.DURATION_MODAL, easing = FtMotion.EASE_PANEL)) +
+                        scaleOut(
+                            animationSpec = tween(FtMotion.DURATION_MODAL, easing = FtMotion.EASE_PANEL),
+                            targetScale = PREVIEW_ENTER_SCALE,
+                            transformOrigin = PREVIEW_TRANSFORM_ORIGIN,
+                        ),
+                ) {
+                    WorkoutPreviewScreen(
+                        onNavigate = { target ->
+                            // 先关覆盖层再跳转（同鸿蒙 PencilPreviewPage 的 requestClose → pushUrl）：
+                            // 覆盖层压在 Scaffold 之上，不关会盖住训练执行页直到退出动画结束。
+                            showPreview = false
+                            navController.navigate(target)
+                        },
+                        onBack = { showPreview = false },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+
+                // 返回键优先级：覆盖层打开时，返回只关覆盖层，**不能**让底下的 NavHost 回退。
+                //
+                // 实测结论（navigationevent 1.1.2 反编译）：`NavigationEventProcessor` 把
+                // handler 分成两档 —— `PRIORITY_OVERLAY(0)` 先于 `PRIORITY_DEFAULT(1)`；
+                // 同档内后注册先执行。`NavHost` 注册的是默认档，而 compose 的
+                // `NavigationBackHandler` **不暴露 priority 参数**，只能落在默认档，
+                // 于是事件先被 NavHost 吃掉（真机表现：返回键把底层 Tab 从「计划」退回
+                // 「首页」、预览不动；加日志后确认我们的回调一次都没触发）。
+                // 故这里绕开 compose 封装，直接用核心库注册到 overlay 档。
+                if (showPreview || showWeightGate) {
+                    val dispatcherOwner = LocalActivity.current as NavigationEventDispatcherOwner
+                    DisposableEffect(dispatcherOwner) {
+                        val overlayBackHandler = object : NavigationEventHandler<NavigationEventInfo>(
+                            NavigationEventInfo.None,
+                            true,
+                            false,
+                        ) {
+                            override fun onBackCompleted() {
+                                // 体重 gate 叠在预览之上：返回键先关它
+                                if (showWeightGate) showWeightGate = false else showPreview = false
+                            }
+                        }
+                        overlayBackHandler.setInfo(
+                            NavigationEventInfo.None,
+                            listOf(NavigationEventInfo.None),
+                            emptyList(),
+                        )
+                        dispatcherOwner.navigationEventDispatcher.addHandler(
+                            overlayBackHandler,
+                            NavigationEventDispatcher.PRIORITY_OVERLAY,
+                        )
+                        onDispose { overlayBackHandler.remove() }
+                    }
+                }
             }
         }
     }
 }
+
+/** 鸿蒙 `.pv-backdrop { background: rgba(0,0,0,.6) }`。 */
+private const val PREVIEW_SCRIM_ALPHA = 0.6f
+
+/** 鸿蒙面板进场起点 `scale(.92)`。 */
+private const val PREVIEW_ENTER_SCALE = 0.92f
+
+/** 鸿蒙 `transform-origin: 50% 100%` —— 锚点底边中点。 */
+private val PREVIEW_TRANSFORM_ORIGIN = TransformOrigin(0.5f, 1f)

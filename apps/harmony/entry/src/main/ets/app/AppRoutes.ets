@@ -14,9 +14,9 @@ export class AppRoutes {
   static readonly EXERCISE_LIBRARY: string = 'features/exercise/pages/ExerciseLibraryPage'
   static readonly EXERCISE_DETAIL: string = 'features/exercise/pages/ExerciseDetailPage'
   static readonly TRAINING_PLAN_DETAIL: string = 'features/pencil/pages/PencilPlanPage'
-  // 训练预览已改为 PencilAppShell 的 bindContentCover 全模态，不再是路由页（已从
-  // main_pages.json 移除）。此常量保留：HomePlanService.startRoute 与相关测试把它作为
-  // 「开始训练入口」标识引用，无生产代码据此 pushUrl。
+  // 训练预览已改为 PencilAppShell.build() 里的条件渲染覆盖层（不是 bindContentCover），
+  // 不再是路由页（已从 main_pages.json 移除）。此常量保留：HomePlanService.startRoute 与
+  // 相关测试把它作为「开始训练入口」标识引用，无生产代码据此 pushUrl。
   static readonly WORKOUT_PREVIEW: string = 'features/pencil/pages/PencilPreviewPage'
   static readonly ACTIVE_WORKOUT: string = 'features/pencil/pages/PencilActivePage'
   static readonly WORKOUT_COMPLETE: string = 'features/workout/pages/WorkoutCompletePage'
