@@ -47,13 +47,15 @@ HarmonyOS SDK 本身（`@kit.*`、ArkUI、ArkTS 编译器）由 DevEco Studio �
 | JUnit 4 | 4.13.2 | EPL-1.0 |
 | Robolectric | 4.16 | Apache-2.0 |
 
-## 四、服务端组件（位于 `server/`）
+## 四、后端组件（`server/` 自托管栈）
 
-| 组件 | 许可 |
-|---|---|
-| Supabase（自托管部署、CLI、Edge Functions Runtime） | Apache-2.0 |
-| 阿里云短信服务 SDK 调用代码（本仓库自行编写） | Apache-2.0 |
-| Caddy（反向代理配置示例） | Apache-2.0 |
+仓库在 `server/` 内自带后端部署资产，下列组件随仓库分发或由部署脚本引入：
+
+| 组件 | 在仓库中的位置 | 许可 |
+|---|---|---|
+| Supabase（自托管部署、CLI、Edge Functions Runtime） | `server/supabase/`、`server/deploy/` | Apache-2.0 |
+| 阿里云短信服务 SDK 调用代码（本仓库自行编写） | `server/deploy/sms-hook/` | Apache-2.0 |
+| Caddy（反向代理配置示例） | `server/deploy/Caddyfile` | Apache-2.0 |
 
 ## 五、商标
 

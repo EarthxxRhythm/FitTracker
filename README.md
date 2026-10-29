@@ -23,7 +23,7 @@
 
 FitTracker 把这套闭环接起来：逐组录入次数与重量 → 按 Epley 公式估算 1RM → 汇总成周趋势、动作个人纪录、肌肉分布与进阶洞察。HarmonyOS 与 Android 两端各自原生实现，数据用同一份契约描述，登录后自动同步到自托管 Supabase，换设备不必重新开始。
 
-它同时也是个相对完整的双端工程样本：两套原生 UI、一份跨端数据契约、可自托管的后端、八条代码门禁，以及一套能跑的脚本化回归。仓库保留了完整的演进历史与工程约定文档——这些机制都还在用。
+它同时也是个相对完整的双端工程样本：两套原生 UI、一份跨端数据契约、一套随仓库交付的自托管后端、八条代码门禁，以及一套能跑的脚本化回归。仓库保留了完整的演进历史与工程约定文档——这些机制都还在用。
 
 ## 功能
 
@@ -34,7 +34,7 @@ FitTracker 把这套闭环接起来：逐组录入次数与重量 → 按 Epley 
 | **训练回顾** | 历史训练、周趋势、动作 PR 下钻、肌肉分布、进阶洞察 |
 | **动作库** | 列表 / 筛选 / 收藏 / 详情，内置动作演示 GIF |
 | **身体数据** | 体重、体脂等趋势记录 |
-| **账号与云同步** | 两端同源：共用同一套自托管 Supabase 的认证与整包快照同步；**登录为强制前置**。未配置云端凭据时进入沙盒演示模式，界面与流程可完整走通 |
+| **账号与云同步** | 两端同源：共用同一套自托管 Supabase 的认证与整包快照同步，快照按 `user_id` 单行 upsert（RLS 限定本人可读写）；**登录为强制前置**，没有离线模式 |
 | **训练强度** | Epley 公式估算 1RM，训练量、连续天数统计 |
 | **设置** | 单位、语言、周开始日、各类开关 |
 
@@ -49,13 +49,15 @@ FitTracker/
 │   └── android/          Android 应用（Kotlin / Compose，单 app 模块）
 ├── contracts/            ★ 跨端数据契约（快照字段与语义的真源，两端必须逐条一致）
 ├── content/              动作内容源（JSONL，两端由脚本同步派生）
-├── server/               自托管 Supabase 栈 + Edge Functions + Caddy 部署资产
+├── server/               自托管 Supabase 后端：快照迁移与 RLS、短信 hook、Caddy 反代、迁移对账脚本
 ├── docs/                 设计与工程文档（见 docs/README.md）
 ├── tools/                根级同步与设备冒烟脚本
 └── AGENTS.md             工程约束（改代码前必读）
 ```
 
 **关键设计：契约层统一、单一后端。** 两端共用同一套自托管 Supabase，快照的字段、类型与语义由 `contracts/` 定义，两端实现必须逐条一致。改契约前先改 `contracts/README.md`，再同步两端实现——否则一端升级、另一端的解析会直接失败。
+
+后端资产在 `server/`：`server/supabase/migrations/` 是快照表与 RLS 的初始化迁移，`server/deploy/` 是容器部署、短信 hook、Caddy 反代与数据迁移对账脚本；部署步骤见 [`server/deploy/README.md`](server/deploy/README.md)。
 
 ### 图集
 
@@ -103,7 +105,7 @@ devecocli build --modules entry@ohosTest --product default   # 构建测试 HAP
 hdc install -r entry/build/default/outputs/default/entry-default-signed.hap
 ```
 
-缺少 `supabase.json` 时应用进入沙盒演示模式（所有「云端」读写都在本机沙盒内完成），用于本地开发调试。要接真实云端，按 [`server/deploy/README.md`](server/deploy/README.md) 部署后端，再把 `supabase.json`（`url` + `publishableKey`，不入库）放进 `apps/harmony/entry/src/main/resources/rawfile/`。
+云端凭据放在 `apps/harmony/AppScope/resources/rawfile/supabase.json`（模板见同目录 `supabase.example.json`；`url` + `publishableKey`，不入库）。没有该文件时应用以 `sandbox` 后端运行，认证与快照读写都在本机完成——本地开发与自动化测试走的就是这条路径；接真实后端见下文「三、后端」。
 
 签名材料放在工作区外（`~/.ohos/config/`），由 `build-profile.json5` 的 `app.signingConfigs` 引用，**不入库**。
 
@@ -118,6 +120,19 @@ cd apps/android
 ```
 
 **第三方 SDK 说明**：QQ 登录依赖 `app/libs/open_sdk_3.5.19_r9483ffc7_lite.jar`（仓库内已包含）。替换方式与原版许可说明见 [`app/libs/README.md`](apps/android/app/libs/README.md) 与 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。微信登录走 Maven 依赖，无需额外操作。
+
+### 三、后端
+
+后端是自托管 Supabase 栈，资产随仓库放在 `server/`：`server/supabase/migrations/20261004000000_snapshots.sql` 建快照表 `public.snapshots` 与三条 RLS 策略（`auth.uid() = user_id`，刻意不建 delete 策略）；`server/deploy/` 放容器部署 override、短信 hook（`sms-hook/`，含 `deno test` 单测）、Caddy 反代 `Caddyfile`、数据迁移与对账脚本（`migrate/`）。部署与运维步骤见 [`server/deploy/README.md`](server/deploy/README.md)，环境变量清单见 [`server/deploy/.env.template`](server/deploy/.env.template)（全部为占位符，不含真实密钥）。
+
+两端接的是同一套后端，各自只差一份凭据：
+
+| 端 | 凭据位置 | 注入方式 |
+|---|---|---|
+| HarmonyOS | `apps/harmony/AppScope/resources/rawfile/supabase.json` | `SupabaseConfig` 读 rawfile；模板见同目录 `supabase.example.json`，不入库 |
+| Android | `apps/android/local.properties` | Gradle `buildConfigField` → `BuildConfig.SUPABASE_URL` / `BuildConfig.SUPABASE_PUBLISHABLE_KEY` |
+
+本地开发与自动化测试不需要真实后端：`CloudEnvironment` 探测不到凭据时以 `sandbox` 后端运行，认证与快照读写都在本机完成，ohosTest 经 `AuthSyncTestGate` 强制该模式、不触真实网络。
 
 ## 质量门禁
 
@@ -176,7 +191,7 @@ flowchart LR
 | [contracts/README.md](contracts/README.md) | 跨端数据契约（改数据结构的起点） |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | 提交格式、门禁、双端同步要求 |
 | [docs/release/release-build-runbook.md](docs/release/release-build-runbook.md) | 构建与发布工程面 |
-| [server/deploy/README.md](server/deploy/README.md) | 自托管 Supabase 部署手册（现行） |
+| [server/deploy/README.md](server/deploy/README.md) | 自托管 Supabase 后端：容器部署、短信 hook、反代与数据迁移 |
 | [docs/cloud/cloud-setup.md](docs/cloud/cloud-setup.md) | AGC 云服务配置手册（历史方案，已改自托管 Supabase） |
 | [docs/CHANGELOG.md](docs/CHANGELOG.md) | 版本说明 |
 | [docs/legal/](docs/legal/) | 隐私政策与用户协议 |
