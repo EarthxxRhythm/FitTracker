@@ -36,13 +36,21 @@ class ProfileEditLogicTest {
         ProfileEditViewModel(ApplicationProvider.getApplicationContext<Application>())
 
     @Test
-    fun `昵称超过 20 字被拒绝_边界值原样保留`() {
+    fun `昵称超过 20 字被截断_边界值原样保留`() {
         val vm = newViewModel()
         vm.onNicknameChange("一二三四五六七八九十一二三四五六七八九十")
         assertEquals("20 字应原样保留", "一二三四五六七八九十一二三四五六七八九十", vm.nickname)
 
         vm.onNicknameChange("一二三四五六七八九十一二三四五六七八九十一")
-        assertEquals("21 字应被忽略（保持上一次值）", "一二三四五六七八九十一二三四五六七八九十", vm.nickname)
+        assertEquals("21 字应截断到 20（对齐鸿蒙面板 maxLength 口径）", 20, vm.nickname.length)
+    }
+
+    @Test
+    fun `改动后才标记 dirty_未改动时保存等价于返回`() {
+        val vm = newViewModel()
+        assertTrue("初始应为未改动", !vm.dirty)
+        vm.onNicknameChange("阿力")
+        assertTrue("改过昵称后应标记 dirty", vm.dirty)
     }
 
     @Test

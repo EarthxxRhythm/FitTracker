@@ -33,47 +33,66 @@
     <string name="profile_edit_entry">编辑</string>
     <!-- 资料编辑页（设计侧新增） -->
     <string name="profile_edit_title">编辑资料</string>
-    <string name="profile_edit_back">返回</string>
     <string name="profile_edit_avatar_section">头像</string>
-    <string name="profile_edit_avatar_hint">头像显示昵称首字，可选择配色</string>
     <string name="profile_edit_avatar_pick">从相册选择</string>
     <string name="profile_edit_avatar_remove">移除头像</string>
     <string name="profile_edit_avatar_failed">图片读取失败，请重试</string>
-    <string name="profile_edit_nickname_section">昵称</string>
-    <string name="profile_edit_nickname_placeholder">输入昵称</string>
     <string name="profile_edit_body_section">身体档案</string>
     <string name="profile_edit_height">身高</string>
-    <string name="profile_edit_height_unit">厘米</string>
     <string name="profile_edit_gender">性别</string>
     <string name="profile_edit_gender_male">男</string>
     <string name="profile_edit_gender_female">女</string>
-    <string name="profile_edit_gender_unset">未填</string>
-    <string name="profile_edit_birth_year">出生年</string>
+    <string name="profile_edit_birth_year">出生年份</string>
     <string name="profile_edit_experience">训练经验</string>
     <string name="profile_edit_save">保存</string>
-    <string name="profile_edit_saved">已保存</string>
     <string name="profile_edit_save_failed">保存失败，请稍后重试</string>
-    <string name="profile_edit_nickname_too_long">昵称最多 20 个字符</string>
-    <string name="profile_edit_social_section">社交资料</string>
     <string name="profile_edit_preference_section">偏好</string>
     <string name="profile_edit_weight_unit">体重单位</string>
-    <string name="profile_edit_weight_unit_kg">千克</string>
-    <string name="profile_edit_weight_unit_lbs">磅</string>
     <string name="profile_edit_region">地区</string>
-    <string name="profile_edit_region_placeholder">例如：上海</string>
     <string name="profile_edit_tickle">拍一拍</string>
-    <string name="profile_edit_tickle_placeholder">例如：拍了拍你的训练计划</string>
     <string name="profile_edit_whats_up">个性签名</string>
     <string name="profile_edit_whats_up_placeholder">写点想说的</string>
     <string name="profile_edit_gym">常用健身房</string>
-    <string name="profile_edit_gym_placeholder">例如：楼下那家</string>
-    <string name="profile_edit_account_section">账号</string>
     <string name="profile_edit_phone">手机号</string>
     <string name="profile_edit_account_id">档案号</string>
-    <string name="profile_edit_unset">未设置</string>
-    <string name="profile_edit_account_hint">账号信息由登录账号派生，不能在此修改</string>
-    <!-- 训练经验（个人页只读徽标 + 编辑页三选一，两端同值） -->
-    <string name="profile_experience_unset">未填</string>
+
+    <!--
+      资料编辑页对齐鸿蒙 `ProfileEditContent.ets`（2026-10-28）后新增的文案。
+      口径：分组行 → 底部编辑面板；行内只读展示 + chevron，点行才进入编辑面板。
+      中文逐字取自鸿蒙源，不得改写。
+    -->
+    <string name="profile_edit_section_identity">个人资料</string>
+    <string name="profile_edit_section_card">名片</string>
+    <string name="profile_edit_row_name">名字</string>
+    <string name="profile_edit_region_title">所在地区</string>
+    <string name="profile_edit_height_title">身高（厘米）</string>
+    <!-- 行占位（各字段口径不同，不可合并） -->
+    <string name="profile_edit_placeholder_unset">未设置</string>
+    <string name="profile_edit_placeholder_unbound">未绑定</string>
+    <string name="profile_edit_placeholder_not_generated">未生成</string>
+    <string name="profile_edit_placeholder_blank">未填写</string>
+    <!-- 行值 -->
+    <string name="profile_edit_height_value">%1$s cm</string>
+    <string name="profile_edit_weight_unit_kg_full">千克（kg）</string>
+    <string name="profile_edit_weight_unit_lbs_full">磅（lbs）</string>
+    <string name="profile_edit_gender_hidden">不显示</string>
+    <string name="profile_edit_experience_beginner_full">新手（0–6 个月）</string>
+    <string name="profile_edit_experience_intermediate_full">进阶（6 个月–2 年）</string>
+    <string name="profile_edit_experience_advanced_full">高阶（2 年以上）</string>
+    <string name="profile_edit_experience_none">未设置</string>
+    <!-- 底部编辑面板 -->
+    <string name="profile_edit_sheet_cancel">取消</string>
+    <string name="profile_edit_sheet_close">关闭</string>
+    <string name="profile_edit_sheet_confirm">我知道了</string>
+    <string name="profile_edit_sheet_name_title">更改名字</string>
+    <string name="profile_edit_sheet_hint_numeric">只填数字，留空表示不填。</string>
+    <string name="profile_edit_sheet_hint_max">最多 %1$d 个字。</string>
+    <string name="profile_edit_sheet_phone_hint">手机号是登录凭证，绑定与更换请在「账号与安全」中完成；此处仅展示脱敏号码。</string>
+    <string name="profile_edit_sheet_account_hint">档案号由登录账号自动生成，用于扫码识别与云同步定位，不需要手动维护。</string>
+    <string name="profile_edit_saving">保存中…</string>
+    <string name="profile_edit_avatar_reading">读取中…</string>
+    <string name="profile_edit_footer">个人信息仅用于本机展示；昵称、头像、身体档案与训练经验会随云快照同步到同一账号。</string>
+    <!-- 训练经验（个人页只读徽标 + 编辑页面板选项，两端同值） -->
     <string name="profile_experience_beginner">新手</string>
     <string name="profile_experience_intermediate">进阶</string>
     <string name="profile_experience_advanced">高阶</string>
