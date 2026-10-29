@@ -75,6 +75,20 @@ object FtColor {
     val visualB: Color = Color(0xFF141414)
     val ringInner: Color = Color(0xFF111111)
 
+    // ── 首页本周进度环（与鸿蒙 `RingTokens` 逐值同源） ──────────
+    // 环为自绘分层弧：玻璃包边 → 轨道 → 远晕 → 近晕 → 主弧。
+    // 光晕用两层更宽的半透明弧衰减而非 blur，两端可同构、无 GPU 滤镜依赖。
+    val ringTrack: Color = Color(FtColorUtil.rgba(255, 255, 255, 0.12))
+    /** 达成态轨道淡出，让闭环本身更亮 */
+    val ringTrackDone: Color = Color(FtColorUtil.rgba(255, 255, 255, 0.06))
+    val ringGlass: Color = Color(FtColorUtil.rgba(255, 255, 255, 0.05))
+    val ringGlowNear: Color = Color(FtColorUtil.rgba(80, 236, 167, 0.16))
+    val ringGlowFar: Color = Color(FtColorUtil.rgba(80, 236, 167, 0.10))
+    /** 达成态光晕：常态 ×1.4 */
+    val ringGlowNearDone: Color = Color(FtColorUtil.rgba(80, 236, 167, 0.224))
+    val ringGlowFarDone: Color = Color(FtColorUtil.rgba(80, 236, 167, 0.14))
+    val ringInnerBorder: Color = Color(FtColorUtil.rgba(255, 255, 255, 0.11))
+
     // ── 玻璃与描边 ────────────────────────────────────────────
     val hairline: Color = Color(FtColorUtil.rgba(255, 255, 255, 0.06))
     val line10: Color = Color(FtColorUtil.rgba(255, 255, 255, 0.10))

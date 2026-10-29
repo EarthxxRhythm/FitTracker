@@ -146,7 +146,7 @@ private fun RowScope.FtCenterTab(
                 .background(if (active) FtColor.accentDeep else FtColor.accent),
             contentAlignment = Alignment.Center,
         ) {
-            FtDumbbellIcon(
+            FtWorkoutTabIcon(
                 modifier = Modifier.size(24.dp),
                 // 原型 `.tab-center .pill { color: var(--on-accent) }`（L657）——恒深色前景
                 color = FtColor.onAccent,

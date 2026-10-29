@@ -370,6 +370,13 @@ export class MotionTokens {
   static readonly DURATION_COLOR_BASE: number = 180
   static readonly DURATION_OVERLAY: number = 220
   static readonly DURATION_PANEL: number = 280
+  /**
+   * 分段控件选中块滑动（回顾页周/月、肌肉模式、RIR-RPE 等）。
+   * 取 220ms 与 OVERLAY 同值：位移需要「起手即达、收尾缓停」，与淡入淡出同一节奏。
+   * 单列 token 的原因同 `DURATION_CHROME`——与其它 220ms 语汇分开调参，不互相牵连。
+   * 与 Android `FtMotion.DURATION_SEG_SLIDE` 同值，改一侧必须改另一侧。
+   */
+  static readonly DURATION_SEG_SLIDE: number = 220
 
   // Training in-page keyframes
   static readonly DURATION_RECORD: number = 180
@@ -434,12 +441,29 @@ export class MotionTokens {
   static readonly SPRING_PRESS: ICurve = curves.springMotion(0.28, 0.85)
   static readonly SPRING_SETTLE: ICurve = curves.springMotion(0.40, 0.90)
 
+  /**
+   * 居中模态弹窗（首页体重 gate）进场弹簧：response 0.42s / dampingFraction 0.72。
+   * 取 0.72 而非 SPRING_SETTLE 的 0.90——后者接近临界阻尼、几乎无过冲，
+   * 「缩放 + 弹簧弹出」需要肉眼可见的回弹。参数为项目自定（同上方两枚）。
+   */
+  static readonly SPRING_MODAL_IN: ICurve = curves.springMotion(0.42, 0.72)
+  /** 居中模态弹窗进场起始缩放。比全模态的 MODAL_POP_SCALE(0.92) 更收，突出「弹出来」。 */
+  static readonly MODAL_GATE_SCALE: number = 0.86
+
   // ── 入场语汇（与 Android `FtMotion.DURATION_ENTER / DURATION_STAGGER / EASE_ENTER` 同值）──
   // 卡片按块错峰上浮淡入。此前 Harmony 缺这组 token，首页/个人页是硬切，而 Android 有节奏。
   static readonly DURATION_ENTER: number = 320
   static readonly DURATION_STAGGER: number = 40
   // 曲线复用文件底部既有的 `EASE_ENTER`（string 版，值同为 cubic-bezier(0.2, 0.8, 0.2, 1)）。
   // 不再定义 ICurve 版本——同名会触发 ArkTS 的 Duplicate identifier。
+  // 逐帧补间需要 `curve.interpolate(t)` 求缓动值（string 版只能交给 animateTo），
+  // 故另起一名 `EASE_ENTER_CURVE`，两版数值相同，见下方环形进度补间。
+  static readonly EASE_ENTER_CURVE: ICurve = curves.cubicBezierCurve(0.2, 0.8, 0.2, 1)
+
+  // ── 环形进度补间（首页今日卡「本周进度」环 + 中心数字）──
+  // 与 Android `FtMotion.DURATION_RING_FILL` 同值：同一条曲线（EASE_ENTER）、同一时长，
+  // 环的扫过角度与中心数字由同一个缓动值驱动，保证「同步」不是两条独立动画的巧合。
+  static readonly DURATION_RING_FILL: number = 1200
 
   // 全模态弹出转场（训练预览页）：中心缩放的起始比例
   static readonly MODAL_POP_SCALE: number = 0.92
@@ -462,6 +486,11 @@ export class MotionTokens {
   static readonly PRESS_SEGMENT: number = 0.97
   static readonly PRESS_TAB_PILL: number = 0.96
   static readonly PRESS_BACK: number = 0.94
+  /**
+   * 关闭键「×」的按压收起比例。比 `PRESS_BACK`(0.94) 更收——12vp 的线条在 0.94 下
+   * 几乎看不出位移，配合 `SPRING_PRESS` 需要足够行程才能看出「按下—弹回」。
+   */
+  static readonly PRESS_CLOSE: number = 0.86
 
   // 字段错误「左右抖动」——输入框在 X 轴上来回位移，用于校验失败的即时反馈。
   // 规格逐字对应设计给出的 CSS `@keyframes shake`：峰值 10px、10 段 × 50ms（总 500ms）。
@@ -477,6 +506,44 @@ export class MotionTokens {
   static readonly EASE_STANDARD: string = 'cubic-bezier(0.28, 0, 0.22, 1)'
   static readonly EASE_ENTER: string = 'cubic-bezier(0.2, 0.8, 0.2, 1)'
   static readonly EASE_PRESS: string = 'cubic-bezier(0.4, 0.0, 0.2, 1.0)'
+}
+
+/**
+ * 首页「本周进度」环的视觉参数。
+ *
+ * 双端逐值同源：Android 侧颜色在 `FtColor.ring*`、尺寸在其 `HomeScreen.kt` 内的私有 `RingTokens`。
+ *
+ * 为什么环是自绘而不是 `Progress` 组件：`ProgressType.Ring` 的 style 只有
+ * `strokeWidth` / `scaleCount` / `scaleWidth` / `enableSmoothEffect`，
+ * 圆头端帽所需的 `strokeRadius` 仅声明在 `LinearStyleOptions`（SDK `progress.d.ts`）——
+ * 组件路径做不出圆头，而平切端头正是这个环原先最显眼的廉价感来源。
+ */
+export class RingTokens {
+  /** 环控件边长（vp）。半径由 `(SIZE - STROKE) / 2` 导出。 */
+  static readonly SIZE: number = 96
+  /** 主弧与未完成轨道的描边宽 */
+  static readonly STROKE: number = 7
+  /** 玻璃包边：环带内外各 1vp 的极淡轮廓，制造「玻璃管」观感 */
+  static readonly GLASS_WIDTH: number = 9
+  /** 近晕 / 远晕：两层圆弧衰减替代 blur，无 GPU 滤镜依赖，双端可同构 */
+  static readonly GLOW_NEAR_WIDTH: number = 11
+  static readonly GLOW_FAR_WIDTH: number = 16
+
+  static readonly TRACK: string = 'rgba(255,255,255,0.12)'
+  /** 达成态轨道淡出，让闭环本身更亮 */
+  static readonly TRACK_DONE: string = 'rgba(255,255,255,0.06)'
+  static readonly GLASS: string = 'rgba(255,255,255,0.05)'
+  static readonly GLOW_NEAR: string = 'rgba(80,236,167,0.16)'
+  static readonly GLOW_FAR: string = 'rgba(80,236,167,0.10)'
+  /** 达成态光晕：常态 ×1.4（0.16→0.224、0.10→0.14） */
+  static readonly GLOW_NEAR_DONE: string = 'rgba(80,236,167,0.224)'
+  static readonly GLOW_FAR_DONE: string = 'rgba(80,236,167,0.14)'
+  static readonly INNER_BORDER: string = 'rgba(255,255,255,0.11)'
+
+  /** 低于该进度不画弧与光晕：圆头端帽在 0 附近会留下一个孤立圆点 */
+  static readonly MIN_ARC: number = 0.004
+  /** 达成态阈值（浮点比较留出补间收尾余量） */
+  static readonly DONE_ARC: number = 0.999
 }
 
 export class TouchTokens {

@@ -1,7 +1,7 @@
 import { MotionTokens } from './DesignTokens'
 
 /** 按压反馈的语义类别：调用方说「这是哪种按钮」，不自己挑缩放系数。 */
-export type PressKind = 'cta' | 'card' | 'icon' | 'back' | 'chip'
+export type PressKind = 'cta' | 'card' | 'icon' | 'back' | 'close' | 'chip'
 
 /**
  * 动效意图层。
@@ -32,6 +32,9 @@ export class MotionIntent {
     if (kind === 'back') {
       return MotionTokens.PRESS_BACK
     }
+    if (kind === 'close') {
+      return MotionTokens.PRESS_CLOSE
+    }
     return MotionTokens.PRESS_SHORTCUT
   }
 
@@ -41,6 +44,16 @@ export class MotionIntent {
   }
 
   /** 按压曲线 */
+  /**
+   * 按压回弹曲线：物理弹簧。
+   * `SPRING_PRESS` 的既有注释写明它「只用于可中断场景（按压回弹、拖拽松手回位）」——
+   * 本方法就是那条注释等待的消费方。注意 `springMotion` 的 duration 不生效，
+   * 调用方不要传 duration，时长由物理参数决定。
+   */
+  static pressSpringCurve(): ICurve {
+    return MotionTokens.SPRING_PRESS
+  }
+
   static pressCurve(): ICurve {
     return MotionTokens.EASE_MOTION
   }
@@ -64,5 +77,18 @@ export class MotionIntent {
   /** 弹层内容进场曲线 */
   static panelCurve(): ICurve {
     return MotionTokens.EASE_PANEL
+  }
+
+  /**
+   * 居中模态弹窗（首页体重 gate）进场曲线：真物理弹簧。
+   * 注意 `springMotion` 的 duration 不生效，只接受 curve——调用方不要传 duration。
+   */
+  static modalEnterCurve(): ICurve {
+    return MotionTokens.SPRING_MODAL_IN
+  }
+
+  /** 居中模态弹窗进场起始缩放（卡片从该值弹到 1）。 */
+  static modalScaleFrom(): number {
+    return MotionTokens.MODAL_GATE_SCALE
   }
 }

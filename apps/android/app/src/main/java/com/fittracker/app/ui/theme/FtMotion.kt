@@ -17,8 +17,10 @@ object FtMotion {
     const val DURATION_COLOR_FAST = 160     // .16s 色/边框
     const val DURATION_COLOR_BASE = 180     // .18s 色
     const val DURATION_OVERLAY = 220        // .22s backdrop / modal / veil
+    const val DURATION_MODAL = 200          // .2s 全模态面板进场（训练预览覆盖层，对齐鸿蒙 PencilAppShell）
     const val DURATION_PANEL = 280          // .28s ~ .3s sheet
     const val DURATION_CHROME = 220         // 头部/底栏收起（沿用 OVERLAY 语汇，单列便于调参）
+    const val DURATION_SEG_SLIDE = 220      // 分段控件选中块滑动（与鸿蒙 DURATION_SEG_SLIDE 同值）
     const val DURATION_RECORD = 180         // recordIn .18s
     const val DURATION_MARKER = 300         // markerPop .3s
     const val DURATION_PROGRESS = 350       // .goal-fill width .35s（TOKENS §5 建议补入）
@@ -76,6 +78,34 @@ object FtMotion {
     const val DURATION_STAGGER = 40
 
     /**
+     * 首页今日卡环形进度补间：环的扫过角度与中心数字在同一 1200ms 内从 0 走到目标。
+     *
+     * 与鸿蒙 `MotionTokens.DURATION_RING_FILL` 同值，曲线同为 [EASE_ENTER]——
+     * 两端都由「一个缓动后的完成度」同时驱动环和数字，同步不是两条动画的巧合。
+     */
+    const val DURATION_RING_FILL = 1200
+
+    // ── 居中模态弹窗（首页体重 gate）进场弹簧 ──────────────────────────
+    //
+    // 与鸿蒙 `MotionTokens.SPRING_MODAL_IN = curves.springMotion(0.42, 0.72)` 同源：
+    // dampingFraction 0.72 → 有可见过冲；response 0.42s → stiffness = (2π / 0.42)² ≈ 224。
+    /** 进场缩放起点（鸿蒙 `MotionTokens.MODAL_GATE_SCALE` 同值）。 */
+    const val GATE_ENTER_SCALE = 0.86f
+
+    /** 阻尼比：< 1 才有回弹（对齐鸿蒙 springMotion 第二参）。 */
+    const val GATE_SPRING_DAMPING = 0.72f
+
+    /** 刚度：由鸿蒙 response 0.42s 换算 (2π / 0.42)² ≈ 224。 */
+    const val GATE_SPRING_STIFFNESS = 224f
+
+    // ── 体重记录底部面板（对齐鸿蒙 WeightRecordDialog） ──────────────
+    /** 面板自屏外升起（用户指定 0.5s）。 */
+    const val DURATION_PANEL_RAISE = 500
+
+    /** 面板内平滑曲线绘制 / 末端数字滚动（用户指定 1.2s）。 */
+    const val DURATION_CHART_DRAW = 1200
+
+    /**
      * 抖动曲线：CSS `ease-in-out` 的等价贝塞尔 (0.42, 0, 0.58, 1)。
      *
      * 不复用 [EASE_MOTION]——那是按压语汇（更快收束）；抖动需在每段关键帧间隔内缓入缓出。
@@ -88,4 +118,18 @@ object FtMotion {
     const val PRESS_SCALE_CARD = 0.98f
     const val PRESS_SCALE_TAB_CENTER = 0.96f
     const val PRESS_SCALE_ICON_BTN = 0.94f
+
+    /**
+     * 按压回弹弹簧（对齐鸿蒙 `MotionTokens.SPRING_PRESS` = `curves.springMotion(0.28, 0.85)`）。
+     *
+     * response 0.28s → stiffness = (2π / 0.28)² ≈ 504；dampingFraction 0.85 → 轻微过冲。
+     * 与上方 `GATE_SPRING_*` 同一换算式，但取「快而脆」而非 0.42s 的慢弹簧。
+     */
+    const val PRESS_SPRING_DAMPING = 0.85f
+
+    /** 刚度：由鸿蒙 response 0.28s 换算 (2π / 0.28)² ≈ 504。 */
+    const val PRESS_SPRING_STIFFNESS = 504f
+
+    /** 按压收起比例（鸿蒙 `MotionTokens.PRESS_CLOSE` 同值）。比 `PRESS_SCALE_ICON_BTN`(0.94) 更收。 */
+    const val PRESS_CLOSE_SCALE = 0.86f
 }

@@ -4,7 +4,9 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -34,6 +36,35 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.strokeLine(
         strokeWidth = width,
         cap = StrokeCap.Round,
     )
+}
+
+/**
+ * 底栏中央训练键图标（fill 圆角矩形哑铃，24 视框）。
+ *
+ * 几何逐值照搬鸿蒙 `rawfile/pencil-tab-workout.svg`。那边用 fill 而非 stroke，是因为
+ * ArkUI 的 `fillColor` 只替换 fill、对 stroke 无效；安卓同样走 fill，两端在 24dp 下的
+ * 视觉重量才一致——配重片占视框高 9.2/24（38%），比 [FtDumbbellIcon] 的 1.8 描边线稿醒目。
+ *
+ * 左右对称于 x=12：1+23 / 3.6+20.4 / 7.4+16.6 均等于 24；上下对称于 y=12。
+ */
+@Composable
+fun FtWorkoutTabIcon(modifier: Modifier = Modifier, color: Color) {
+    Canvas(modifier = modifier) {
+        val k = size.minDimension / VIEW
+        fun roundedBar(x: Float, y: Float, w: Float, h: Float, r: Float) {
+            drawRoundRect(
+                color = color,
+                topLeft = Offset(x * k, y * k),
+                size = Size(w * k, h * k),
+                cornerRadius = CornerRadius(r * k, r * k),
+            )
+        }
+        roundedBar(1f, 9.6f, 2.2f, 4.8f, 1.1f) // 外片（左）
+        roundedBar(3.6f, 7.4f, 3.6f, 9.2f, 1.8f) // 配重片（左）
+        roundedBar(16.8f, 7.4f, 3.6f, 9.2f, 1.8f) // 配重片（右）
+        roundedBar(20.8f, 9.6f, 2.2f, 4.8f, 1.1f) // 外片（右）
+        roundedBar(7.4f, 10.8f, 9.2f, 2.4f, 1.2f) // 横杠
+    }
 }
 
 /**
