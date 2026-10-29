@@ -1,6 +1,8 @@
 package com.fittracker.app.ui.screens.workout
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -9,6 +11,9 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,13 +36,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -62,7 +67,7 @@ import com.fittracker.app.data.service.WorkoutExerciseDraft
 import com.fittracker.app.data.service.WorkoutPreviewExercise
 import com.fittracker.app.data.service.WorkoutPreviewSummary
 import com.fittracker.app.data.service.WorkoutSetDraft
-import com.fittracker.app.ui.components.clickableNoRipple
+import com.fittracker.app.ui.theme.DuTokens
 import com.fittracker.app.ui.theme.FtColor
 import com.fittracker.app.ui.theme.FtMotion
 import com.fittracker.app.ui.theme.FtShape
@@ -99,14 +104,11 @@ fun WorkoutPreviewScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var toast by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
     val store = remember { JsonStore(context.appDataStore) }
     val scope = rememberCoroutineScope()
     var workout by remember { mutableStateOf<ActiveWorkoutState?>(null) }
     var planName by remember { mutableStateOf("") }
-    // `stringResource` 只能在 @Composable 上下文调用：先解析，供下方非 composable 闭包（onMenu）使用
-    val moreOptionsToast = stringResource(R.string.workout_toast_more_options)
     val fallbackPlanName = stringResource(R.string.workout_fallback_plan_name)
 
     // 训练域接线：进入时读「当前计划 → 今日训练」，编译为活跃训练预览态
@@ -118,25 +120,14 @@ fun WorkoutPreviewScreen(
         workout = ActiveWorkoutService.createState(summary)
     }
 
-    // 原型 `showToast` 的 `setTimeout(…, 1800)`（L537-545）
-    LaunchedEffect(toast) {
-        if (toast != null) {
-            delay(1800)
-            toast = null
-        }
-    }
-
     Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(FtColor.ink0) // `.pv-frame` 底 var(--ink-0)
-                .padding(start = 18.dp, end = 18.dp, top = 56.dp, bottom = 12.dp),
+                .padding(start = 18.dp, end = 18.dp, top = 56.dp, bottom = 25.dp), // 与鸿蒙对齐：底部留白 25
         ) {
-            TopBar(
-                onBack = onBack, // 原型 FT_APP.routes：父屏 home
-                onMenu = { toast = moreOptionsToast },
-            )
+            TopBar(onClose = onBack) // 原型 FT_APP.routes：父屏 home；现在由右上角 × 触发
 
             Text(
                 text = workout?.dayId?.takeIf { it.isNotEmpty() } ?: "Day 01",
@@ -224,33 +215,48 @@ fun WorkoutPreviewScreen(
             )
 
             val ctaShape = RoundedCornerShape(26.dp) // `.pv-btn-primary` border-radius: 26px
+            // 与鸿蒙 `PencilPreviewPage` 对齐：原来的 elevation 阴影换成 Duolingo 硬边厚底。
+            // 外层是全高的深色底（=厚底），内层亮色块在按下时撑满、厚底被压平并整体下移
+            // （鸿蒙：`border.bottom` 4→0 且 `translate y` +2）。
+            val ctaInteraction = remember { MutableInteractionSource() }
+            val ctaPressed by ctaInteraction.collectIsPressedAsState()
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 12.dp)
-                    .shadow(14.dp, ctaShape)
+                    .height(52.dp)
+                    .graphicsLayer {
+                        translationY = if (ctaPressed) DuTokens.PRESS_SHIFT.toPx() else 0f
+                    }
                     .clip(ctaShape)
-                    .background(FtColor.accent)
-                    .clickableNoRipple {
-                        scope.launch {
-                            // 训练域接线：开工前把活跃训练态落草稿（active 屏据此重入恢复）；
-                            // 无计划则清空草稿（active 屏按「无草稿 → 全新训练」降级）。
-                            val state = workout
-                            if (state != null && state.exercises.isNotEmpty()) {
-                                WorkoutDraftService.saveDraft(
-                                    store,
-                                    activeStateToDraft(state, System.currentTimeMillis()),
-                                )
-                            } else {
-                                WorkoutDraftService.clearDraft(store)
+                    .background(FtColor.accentDeep)
+                    .clickable(
+                        interactionSource = ctaInteraction,
+                        indication = null,
+                        onClick = {
+                            scope.launch {
+                                // 训练域接线：开工前把活跃训练态落草稿（active 屏据此重入恢复）；
+                                // 无计划则清空草稿（active 屏按「无草稿 → 全新训练」降级）。
+                                val state = workout
+                                if (state != null && state.exercises.isNotEmpty()) {
+                                    WorkoutDraftService.saveDraft(
+                                        store,
+                                        activeStateToDraft(state, System.currentTimeMillis()),
+                                    )
+                                } else {
+                                    WorkoutDraftService.clearDraft(store)
+                                }
+                                onNavigate("active")
                             }
-                            onNavigate("active")
-                        }
-                    },
-                contentAlignment = Alignment.Center,
+                        },
+                    ),
+                contentAlignment = Alignment.TopCenter,
             ) {
                 Box(
-                    modifier = Modifier.height(52.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(if (ctaPressed) 52.dp else 52.dp - DuTokens.PRESS_DEPTH)
+                        .background(FtColor.accent),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -265,65 +271,77 @@ fun WorkoutPreviewScreen(
             // 真机上系统已有真实手势条，保留会出现双条叠影（2026-10-09 真机验收点名移除）。
         }
 
-        // `.pv-toast`：`.pv-frame` 的绝对定位子元素，bottom 86px、水平居中，
-        // **不随设计空间缩放**（与本屏同坐标系，故屏内实现）。
-        PvToast(
-            message = toast,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 86.dp),
-        )
     }
 }
 
-/** `.pv-topbar` L188-213：左返回 + 标题、右侧更多。按钮 44×44 / 圆角 15。 */
+/** `.pv-topbar` L188-213（2026-10-28 改形）：左标题、右侧纯线条关闭。 */
 @Composable
-private fun TopBar(onBack: () -> Unit, onMenu: () -> Unit) {
+private fun TopBar(onClose: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            IconButton(
-                onClick = onBack,
-                contentDescription = stringResource(R.string.workout_a11y_back), // 原型 `back-home` 的 aria-label（L437）
-            ) { BackArrowIcon(modifier = Modifier.size(21.dp), color = IconTint) }
-            Text(
-                text = stringResource(R.string.workout_title),
-                style = FtType.natural(17f, 600),
-                color = FtColor.txtHi,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        IconButton(
-            onClick = onMenu,
-            contentDescription = stringResource(R.string.workout_a11y_more), // 原型 `preview-menu` 的 aria-label（L444）
-        ) { MoreIcon(modifier = Modifier.size(21.dp), color = IconTint) }
+        Text(
+            text = stringResource(R.string.workout_title),
+            style = FtType.natural(17f, 600),
+            color = FtColor.txtHi,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        CloseButton(onClick = onClose)
     }
 }
 
+/**
+ * 纯线条关闭键：44dp 触摸区（对齐鸿蒙 `.width(44).height(44)`，并撑住顶栏高度），
+ * 视觉是 12dp 画布上的两条对角线（线长 12√2 ≈ 17dp）、1.8dp 圆头、恒定 `IconTint`。
+ * 按压走物理弹簧（与鸿蒙 `SPRING_PRESS` 同源：response 0.28s / damping 0.85），
+ * 不叠任何 tween——按下缩到 0.86，松手带过冲弹回。
+ */
 @Composable
-private fun IconButton(
-    onClick: () -> Unit,
-    contentDescription: String,
-    content: @Composable () -> Unit,
-) {
+private fun CloseButton(onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) FtMotion.PRESS_CLOSE_SCALE else 1f,
+        animationSpec = spring(
+            dampingRatio = FtMotion.PRESS_SPRING_DAMPING,
+            stiffness = FtMotion.PRESS_SPRING_STIFFNESS,
+        ),
+        label = "preview-close-press",
+    )
+    val closeDescription = stringResource(R.string.workout_a11y_close)
     Box(
         modifier = Modifier
             .size(44.dp)
-            .clip(RoundedCornerShape(15.dp))
-            .background(IconButtonFill)
-            .border(1.dp, FtColor.line14, RoundedCornerShape(15.dp))
-            .semantics { this.contentDescription = contentDescription }
-            .clickableNoRipple(onClick = onClick),
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .semantics { contentDescription = closeDescription }
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center,
-        content = { content() },
-    )
+    ) {
+        Canvas(modifier = Modifier.size(12.dp)) {
+            val stroke = 1.8.dp.toPx()
+            drawLine(
+                color = IconTint,
+                start = Offset(0f, 0f),
+                end = Offset(size.width, size.height),
+                strokeWidth = stroke,
+                cap = StrokeCap.Round,
+            )
+            drawLine(
+                color = IconTint,
+                start = Offset(size.width, 0f),
+                end = Offset(0f, size.height),
+                strokeWidth = stroke,
+                cap = StrokeCap.Round,
+            )
+        }
+    }
 }
 
 /** 动作分组（`.pv-group`，L250-259）。 */
@@ -340,7 +358,14 @@ private fun ExerciseGroup(
             style = FtType.natural(12f, 600).copy(letterSpacing = 0.96.sp), // .08em × 12px
             color = FtColor.white54,
         )
-        content()
+        // 行间距 7 只加在**行与行之间**（与鸿蒙 `Column(space 7)` 同构）；
+        // 原实现是每行自带 `padding(top = 7)`，连首行也被顶下去 7。
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(7.dp),
+        ) {
+            content()
+        }
     }
 }
 
@@ -358,13 +383,12 @@ private fun PreviewItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 7.dp) // `.pv-item + .pv-item { margin-top: 7px }`
             .height(52.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(if (current) FtColor.accent10 else ItemFill)
             .border(
                 1.dp,
-                if (current) CurrentBorder else FtColor.line10,
+                if (current) CurrentBorder else ItemBorder,
                 RoundedCornerShape(16.dp),
             )
             .padding(horizontal = 14.dp),
@@ -418,84 +442,9 @@ private fun Emblem(modifier: Modifier = Modifier) {
 
 // ── 图标（路径逐字取自本文件的内联 `<svg>`，L437-447） ──────────────────────
 
-/** 返回箭头（L439-441）：`M15.5 5 8.5 12l7 7`，描边 1.8。 */
-@Composable
-private fun BackArrowIcon(modifier: Modifier = Modifier, color: Color = Color.Unspecified) {
-    Canvas(modifier = modifier) {
-        val k = size.minDimension / 24f
-        val p = Path().apply {
-            moveTo(15.5f * k, 5f * k)
-            lineTo(8.5f * k, 12f * k)
-            lineTo(15.5f * k, 19f * k)
-        }
-        drawPath(p, color, style = Stroke(1.8f * k, cap = StrokeCap.Round, join = StrokeJoin.Round))
-    }
-}
-
-/** 三点菜单（L446-448）：`cx 5/12/19, cy 12, r 1.8` 的实心圆，描边 1.8。 */
-@Composable
-private fun MoreIcon(modifier: Modifier = Modifier, color: Color = Color.Unspecified) {
-    Canvas(modifier = modifier) {
-        val k = size.minDimension / 24f
-        listOf(5f, 12f, 19f).forEach { cx ->
-            drawCircle(color, radius = 1.8f * k, center = Offset(cx * k, 12f * k))
-        }
-    }
-}
-
-/**
- * 轻量反馈浮层（原型 `.pv-toast`，L372-392）。
- *
- * 与 `.auth-toast` 的差异（逐条对齐源码，不复用 auth 的浮层）：底边距画布 86px（非 48）、
- * 内边距 10/16（非 11/17）、**无投影**（`.pv-toast` 未声明 box-shadow）、
- * 入出场位移 10px（`translateY(10px)`）。出入场 `opacity .18s`，
- * 时长取自 [FtMotion.DURATION_COLOR_BASE]。
- */
-@Composable
-private fun PvToast(message: String?, modifier: Modifier = Modifier) {
-    // 退场动画期间 message 已变 null，需留存最后一次文案作为内容
-    var shown by remember { mutableStateOf("") }
-    if (message != null && message != shown) {
-        shown = message
-    }
-
-    // 原型 `translateY(10px)`：入出场位移固定 10px、不随内容高度变化
-    val slideOffset = with(LocalDensity.current) { 10.dp.roundToPx() }
-
-    AnimatedVisibility(
-        visible = message != null,
-        modifier = modifier,
-        enter = fadeIn(tween(FtMotion.DURATION_COLOR_BASE)) +
-            slideInVertically(tween(FtMotion.DURATION_COLOR_BASE)) { slideOffset },
-        exit = fadeOut(tween(FtMotion.DURATION_COLOR_BASE)) +
-            slideOutVertically(tween(FtMotion.DURATION_COLOR_BASE)) { slideOffset },
-    ) {
-        Box(
-            modifier = Modifier
-                .padding(horizontal = 24.dp)
-                .widthIn(max = 320.dp)
-                .clip(FtShape.pill)
-                .background(PvToastFill)
-                .border(1.dp, FtColor.line10, FtShape.pill)
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-        ) {
-            Text(
-                text = shown,
-                color = FtColor.txtHi,
-                fontSize = 13.sp,
-                lineHeight = 18.2.sp, // 1.4 × 13px
-                textAlign = TextAlign.Center,
-            )
-        }
-    }
-}
-
 // ── 屏内色值（原型 `:root` 无对应令牌，按 FtColorUtil 规则就地换算） ──
 //
 // 换算规则 AA = round(alpha × 255)
-
-/** `.pv-icon-btn` 底 `rgba(255,255,255,.031)` → round(7.9) = 8 = 0x08 */
-private val IconButtonFill = Color(0x08FFFFFF)
 
 /** `.pv-icon-btn` 前景 `rgba(255,255,255,.82)` → round(209.1) = 209 = 0xD1 */
 private val IconTint = Color(0xD1FFFFFF)
@@ -506,6 +455,9 @@ private val ItemFill = Color(0x08FFFFFF)
 /** `.pv-item-name` 色 `rgba(255,255,255,.88)` → round(224.4) = 224 = 0xE0 */
 private val ItemNameColor = Color(0xE0FFFFFF)
 
+/** 非当前动作行描边：与鸿蒙 `#0EFFFFFF`（α .055）对齐，原为 `line10`（α .10）。 */
+private val ItemBorder = Color(0x0EFFFFFF)
+
 /** `.pv-item.current` 描边 `rgba(80,236,167,.28)` → round(71.4) = 71 = 0x47 */
 private val CurrentBorder = Color(0x4750ECA7)
 
@@ -513,8 +465,6 @@ private val CurrentBorder = Color(0x4750ECA7)
 private val EmblemRing = Color(0x4D50ECA7)
 
 
-/** `.pv-toast` 底 `rgba(13,17,23,.92)` → round(234.6) = 235 = 0xEB */
-private val PvToastFill = Color(0xEB0D1117)
 
 // ── 训练域接线共享件（workout / active 两屏共用；工单 scope 限定 3 屏文件，故不另建文件） ──
 

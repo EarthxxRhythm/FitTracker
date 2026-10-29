@@ -1,7 +1,11 @@
 /** PencilPreviewContent —— FitTracker 训练预览内容（依据 fittracker-training-preview.html 还原）。
  *
- * 原为 @Entry 路由页 PencilPreviewPage；现改由 PencilAppShell 的 bindContentCover 以
- * 「中心缩放弹出」的全模态形态承载，故去掉 @Entry 并更名为内容组件（文件路径暂沿用）。
+ * 原为 @Entry 路由页 PencilPreviewPage；现由 `PencilAppShell.build()` 在根 `Stack` 内以
+ * `if (this.showPreview)` 条件渲染，作为盖住底栏的覆盖层（「中心缩放弹出」转场由
+ * `TransitionEffect` 声明），故去掉 @Entry 并更名为内容组件（文件路径暂沿用）。
+ *
+ * 不使用 `bindContentCover`：该方案在本 SDK 的设备实测中不可用，改判经过见
+ * `docs/superpowers/specs/2026-09-28-training-preview-modal-pop-design.md`。
  */
 
 import { Context } from '@kit.AbilityKit'
@@ -16,6 +20,7 @@ import PlanEngine from '../../../shared/services/PlanEngine'
 import HomePlanService from '../../../shared/services/HomePlanService'
 import WorkoutPreviewService from '../../../shared/services/WorkoutPreviewService'
 import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
+import { MotionIntent } from '../../../common/styles/MotionIntent'
 
 interface PreviewExerciseItem {
   name: string
@@ -25,8 +30,7 @@ interface PreviewExerciseItem {
 
 @Component
 export struct PencilPreviewContent {
-  @State private backPressed: boolean = false
-  @State private morePressed: boolean = false
+  @State private closePressed: boolean = false
   @State private ctaPressed: boolean = false
   @State private dayBadge: string = 'Day 01'
   @State private dayTitle: string = '训练预览'
@@ -165,68 +169,52 @@ export struct PencilPreviewContent {
   @Builder
   private buildTopBar() {
     Row() {
-      Row({ space: 12 }) {
-        Stack({ alignContent: Alignment.Center }) {
-          // 不用 ArkUI Path——commands 坐标按物理像素解释（width/height 却是 vp），
-          // 21vp 的框里箭头只画在约 6×12px 且偏向左上；改用 SVG 资源随 vp 正确缩放。
-          Image($rawfile('pencil-preview-nav-back.svg'))
-            .width(21)
-            .height(21)
-        }
-        .width(44)
-        .height(44)
-        .borderRadius(15)
-        .backgroundColor(PrototypeTokens.WHITE_A03)
-        .border({ width: 1, color: PrototypeTokens.WHITE_A08 })
-        .onClick(() => {
-          this.requestClose()
-        })
-        .onTouch((event: TouchEvent) => {
-          if (event.type === TouchType.Down) {
-            this.backPressed = true
-          } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-            this.backPressed = false
-          }
-        })
-        .scale({ x: this.backPressed ? MotionTokens.PRESS_ICON : 1, y: this.backPressed ? MotionTokens.PRESS_ICON : 1 })
-        .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
+      Text('训练预览')
+        .fontFamily('Noto Sans SC')
+        .fontSize(17)
+        .fontWeight(600)
+        .fontColor(PrototypeTokens.TEXT_HI)
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .layoutWeight(1)
 
-        Text('训练预览')
-          .fontFamily('Noto Sans SC')
-          .fontSize(17)
-          .fontWeight(600)
-          .fontColor(PrototypeTokens.TEXT_HI)
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .layoutWeight(1)
-      }
-      .alignItems(VerticalAlign.Center)
-      .layoutWeight(1)
-
+      // 关闭：纯线条 ×（无底色、无描边、无圆角块）。两根 17×1.8 细条 ±45° 交叉，
+      // 跨度 = 17/√2 ≈ 12vp；borderRadius = 线宽/2 得到圆头，与 back 箭头 stroke-linecap:round 同形；
+      // 颜色 WHITE_A82 与那支箭头 #FFFFFF@0.82 同值。
+      // 触摸区保留 44×44：顶栏高度原本由两颗 44vp 按钮撑开，补足后标题基线不漂移。
+      // 按压走弹簧（SPRING_PRESS），不传 duration——springMotion 的时长由物理参数决定。
+      // 参数与安卓 WorkoutPreviewScreen 的 CloseButton 逐项对齐。
       Stack({ alignContent: Alignment.Center }) {
-        Row({ space: 3 }) {
-          Circle({ width: 3.6, height: 3.6 }).fill(PrototypeTokens.WHITE_A82)
-          Circle({ width: 3.6, height: 3.6 }).fill(PrototypeTokens.WHITE_A82)
-          Circle({ width: 3.6, height: 3.6 }).fill(PrototypeTokens.WHITE_A82)
-        }
+        Row()
+          .width(17)
+          .height(1.8)
+          .borderRadius(0.9)
+          .backgroundColor(PrototypeTokens.WHITE_A82)
+          .rotate({ angle: 45 })
+        Row()
+          .width(17)
+          .height(1.8)
+          .borderRadius(0.9)
+          .backgroundColor(PrototypeTokens.WHITE_A82)
+          .rotate({ angle: -45 })
       }
       .width(44)
       .height(44)
-      .borderRadius(15)
-      .backgroundColor(PrototypeTokens.WHITE_A03)
-      .border({ width: 1, color: PrototypeTokens.WHITE_A08 })
       .onClick(() => {
-        this.getUIContext().getPromptAction().showToast({ message: '更多选项（原型）' })
+        this.requestClose()
       })
       .onTouch((event: TouchEvent) => {
         if (event.type === TouchType.Down) {
-          this.morePressed = true
+          this.closePressed = true
         } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-          this.morePressed = false
+          this.closePressed = false
         }
       })
-      .scale({ x: this.morePressed ? MotionTokens.PRESS_ICON : 1, y: this.morePressed ? MotionTokens.PRESS_ICON : 1 })
-      .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
+      .scale({
+        x: this.closePressed ? MotionIntent.pressScale('close') : 1,
+        y: this.closePressed ? MotionIntent.pressScale('close') : 1
+      })
+      .animation({ curve: MotionIntent.pressSpringCurve() })
     }
     .width('100%')
     .justifyContent(FlexAlign.SpaceBetween)
