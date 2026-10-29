@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -35,6 +36,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -87,6 +89,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fittracker.app.R
@@ -718,7 +721,7 @@ private fun SetPills(exercise: ActiveWorkoutExercise?) {
     }
 }
 
-/** 单个组胶囊：已完成实心 accent + 数字反色、当前组虚线强调、未做灰底。 */
+/** 单个组胶囊：已完成实心 accent、当前组虚线强调、未做灰底。纯形态，不带数字。 */
 @Composable
 private fun SetPill(
     setNumber: Int,
@@ -753,15 +756,9 @@ private fun SetPill(
                     Modifier.border(1.dp, FtColor.line10, FtShape.pill)
                 },
             )
+            // 不渲染数字后，组号只保留在无障碍描述里
             .semantics { contentDescription = label },
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = setNumber.toString(),
-            style = FtType.natural(12f, 700, FtType.mono),
-            color = if (done) FtColor.ink0 else FtColor.white70,
-        )
-    }
+    )
 }
 
 /** 顶栏动作名：点击原地弹出动作列表；名称用 [AnimatedContent] 做上滑替换。 */
@@ -778,7 +775,11 @@ private fun ExerciseSwitcher(
 ) {
     val switchLabel = stringResource(R.string.active_switch_exercise)
     val interaction = remember { MutableInteractionSource() }
-    Box(modifier = modifier) {
+    // 列表要在动作名**下方**居中：DropdownMenu 默认锦在父容器左上角，
+    // 而这一格是 weight(1f) 铺满剩余的，不补偏移就会跑到屏幕左侧。
+    BoxWithConstraints(modifier = modifier) {
+        val menuWidth = 240.dp
+        val menuOffsetX = (maxWidth - menuWidth) / 2
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -818,7 +819,12 @@ private fun ExerciseSwitcher(
                 )
             }
         }
-        DropdownMenu(expanded = showPicker, onDismissRequest = onDismissPicker) {
+        DropdownMenu(
+            expanded = showPicker,
+            onDismissRequest = onDismissPicker,
+            offset = DpOffset(menuOffsetX, 0.dp),
+            modifier = Modifier.width(menuWidth),
+        ) {
             exercises.forEachIndexed { index, exercise ->
                 DropdownMenuItem(
                     text = {

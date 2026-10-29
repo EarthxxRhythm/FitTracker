@@ -953,27 +953,23 @@ export struct ActiveContent {
     }
   }
 
-  /** 单个组胶囊：已完成实心 accent、当前组虚线强调、未做灰底。 */
+  /** 单个组胶囊：已完成实心 accent、当前组虚线强调、未做灰底。纯形态，不标数字。 */
   @Builder
   private setPill(index: number) {
-    Stack({ alignContent: Alignment.Center }) {
-      Text((index + 1).toString())
-        .fontFamily('Geist Mono')
-        .fontSize(12)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(this.isSetDone(index) ? PrototypeTokens.TEXT_ON_ACCENT : PrototypeTokens.WHITE_A70)
-    }
-    .height(SET_PILL_HEIGHT)
-    .constraintSize({ minWidth: SET_PILL_MIN_WIDTH })
-    .layoutWeight(this.setIndexes().length <= SET_PILL_EVEN_MAX ? 1 : 0)
-    .backgroundColor(this.isSetDone(index) ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A03)
-    .borderRadius(999)
-    .border({
-      width: this.isSetDone(index) ? 0 : 1,
-      color: this.isSetCurrent(index) ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A10,
-      style: this.isSetCurrent(index) ? BorderStyle.Dashed : BorderStyle.Solid
-    })
-    .animation({ duration: MotionTokens.DURATION_MARKER, curve: MotionTokens.EASE_MOTION })
+    Row()
+      .height(SET_PILL_HEIGHT)
+      .constraintSize({ minWidth: SET_PILL_MIN_WIDTH })
+      .layoutWeight(this.setIndexes().length <= SET_PILL_EVEN_MAX ? 1 : 0)
+      .backgroundColor(this.isSetDone(index) ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A03)
+      .borderRadius(999)
+      .border({
+        width: this.isSetDone(index) ? 0 : 1,
+        color: this.isSetCurrent(index) ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A10,
+        style: this.isSetCurrent(index) ? BorderStyle.Dashed : BorderStyle.Solid
+      })
+      // 不渲染数字后，组号只保留在无障碍描述里
+      .accessibilityText('第 ' + (index + 1).toString() + ' 组')
+      .animation({ duration: MotionTokens.DURATION_MARKER, curve: MotionTokens.EASE_MOTION })
   }
 
   /** 动作切换弹层内容：当前项右侧带对勾。 */
