@@ -17,9 +17,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
@@ -47,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
@@ -54,9 +57,12 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -68,8 +74,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import com.fittracker.app.R
@@ -91,6 +104,8 @@ import com.fittracker.app.data.service.WorkoutSessionService
 import com.fittracker.app.data.service.stats.PersonalRecordService
 import com.fittracker.app.ui.FtChromeState
 import com.fittracker.app.ui.LocalFtChrome
+import com.fittracker.app.ui.components.FtSegmentedPill
+import com.fittracker.app.ui.components.SegContainer
 import com.fittracker.app.ui.components.clickableNoRipple
 import com.fittracker.app.ui.theme.FtColor
 import com.fittracker.app.ui.theme.FtMotion
@@ -139,6 +154,8 @@ fun ReviewScreen(
     var effortMetric by remember { mutableStateOf(EffortMetric.RIR) }
     var goalModalOpen by remember { mutableStateOf(false) }
     var selectedDay by remember { mutableStateOf<Int?>(null) }
+    // 气泡锚点：被点日期格的窗口矩形，气泡据此定位并决定朝上还是朝下。
+    var selectedCellBounds by remember { mutableStateOf(Rect.Zero) }
 
     // ── 数据态（由 [ReviewViewModel] 持有）──
     // 回顾派生数据取自本地会话仓储与体重记录服务；`viewModel()` 取 NavBackStackEntry 作用域实例，
@@ -208,6 +225,12 @@ fun ReviewScreen(
     val scrollState = rememberScrollState()
     val chrome = LocalFtChrome.current
     LaunchedEffect(scrollState) { observeChromeOnScroll(scrollState, chrome) }
+    // 气泡锚在日期格上；一滚动锚点就离开原位，直接收起（鸿蒙侧同在 `onScroll` 里关闭）。
+    LaunchedEffect(scrollState) {
+        snapshotFlow { scrollState.isScrollInProgress }.collect { scrolling ->
+            if (scrolling && selectedDay != null) selectedDay = null
+        }
+    }
 
     Box(
         modifier = modifier
@@ -235,7 +258,15 @@ fun ReviewScreen(
                 monthLabel = monthLabel,
                 monthMeta = monthMeta,
                 monthHead = monthHead,
-                onSelectDay = { selectedDay = it },
+                onSelectDay = { day, bounds ->
+                    if (selectedDay == day) {
+                        // 再点同一格 = 收起气泡。
+                        selectedDay = null
+                    } else {
+                        selectedDay = day
+                        selectedCellBounds = bounds
+                    }
+                },
             )
 
             // .openstats 作用域的四张卡（外层 gap 与 .review-stats 同为 16.3，故并列即可）
@@ -273,10 +304,11 @@ fun ReviewScreen(
 
         selectedDay?.let { day ->
             val summary = FtReviewModel.daySummary(reviewSessions, day, reviewNow, reviewWeekStart)
-            DayDetailModal(
+            DayDetailPopup(
                 summary = summary,
                 month = monthOf(reviewNow),
                 weekdayLabel = weekdayLabelOf(day, reviewNow),
+                cellBounds = selectedCellBounds,
                 onDismiss = { selectedDay = null },
             )
         }
@@ -341,56 +373,51 @@ internal fun ReviewScaffold(
     // 顶距改由「状态栏实测高 + 8dp」表达：原型的 52.6dp 是含状态栏的绝对顶距，
     // 在不同状态栏高度下会把正文推得更低；按实测状态栏 + 8dp 可以稳定地把首卡片提上来。
     val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    // 展开态 = 状态栏 + 8 顶距 + 胶囊 50（44 + 3×2 内边距）+ 16.3 与首卡片间距。
+    // 首屏让位高 = 状态栏 + 8 顶距 + 胶囊 50（44 + 3×2 内边距）+ 16.3 与首卡片间距。
     val expandedHeight = statusBarHeight + 8.dp + 50.dp + 16.3.dp
-    val headerHeight by animateDpAsState(
-        targetValue = if (chrome.collapsed) statusBarHeight else expandedHeight,
-        animationSpec = tween(FtMotion.DURATION_CHROME, easing = FtMotion.EASE_PANEL),
-        label = "$tagPrefix-header-height",
-    )
     val headerAlpha by animateFloatAsState(
         targetValue = if (chrome.collapsed) 0f else 1f,
         animationSpec = tween(FtMotion.DURATION_CHROME, easing = FtMotion.EASE_PANEL),
         label = "$tagPrefix-header-alpha",
     )
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        // 可收起头部：向下浏览时高度收缩到状态栏高、胶囊淡出上移；回到顶部恢复。
-        // 工具条仍在滚动区**外**（产品既有要求：卡片滚动时胶囊不动），只是多了收起态。
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(headerHeight)
-                .clipToBounds(),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.3.dp, end = 16.3.dp, top = statusBarHeight + 8.dp, bottom = 16.3.dp)
-                    .graphicsLayer {
-                        alpha = headerAlpha
-                        translationY = -10.dp.toPx() * (1f - headerAlpha)
-                    }
-                    .testTag("$tagPrefix-toolbar"),
-            ) {
-                ScaleToolbar(scale = scale, onScale = onScale, tagPrefix = tagPrefix)
-            }
-        }
-
+    // 胶囊是**浮层**，不是一条固定高度的头部带：滚动区铺满整页、从状态栏下方起算，
+    // 首屏位置由内容自身的内边距让出。滚动时那段内边距随内容滚走，卡片因此能穿到
+    // 胶囊与状态栏下方——顶部不再有一块永远空着的死区。
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
+                .fillMaxSize()
                 .verticalScroll(scrollState), // `.pane-scroll`
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 16.3.dp, end = 16.3.dp, bottom = 36.3.dp),
+                    .padding(
+                        start = 16.3.dp,
+                        end = 16.3.dp,
+                        top = expandedHeight, // 让开胶囊；随内容滚走，不占死区
+                        bottom = 36.3.dp,
+                    ),
                 verticalArrangement = Arrangement.spacedBy(16.3.dp), // `.review-stats` / `.openstats` gap
             ) {
                 content()
             }
+        }
+
+        // 胶囊浮层：只画不拦手势（Column 无 pointerInput，触摸穿透到下面的滚动区）。
+        // 向下浏览时淡出上移，回到顶部恢复。
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.3.dp, end = 16.3.dp, top = statusBarHeight + 8.dp, bottom = 16.3.dp)
+                .graphicsLayer {
+                    alpha = headerAlpha
+                    translationY = -10.dp.toPx() * (1f - headerAlpha)
+                }
+                .testTag("$tagPrefix-toolbar"),
+        ) {
+            ScaleToolbar(scale = scale, onScale = onScale, tagPrefix = tagPrefix)
         }
     }
 }
@@ -403,100 +430,19 @@ private fun ScaleToolbar(scale: ReviewScale, onScale: (ReviewScale) -> Unit, tag
         horizontalArrangement = Arrangement.Center, // 居中（原型 `.review-toolbar` 为 space-between → 靠左）
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SegmentedPill(
+        FtSegmentedPill(
             labels = listOf(stringResource(R.string.review_scale_week), stringResource(R.string.review_scale_month)),
             selectedIndex = if (scale == ReviewScale.WEEK) 0 else 1,
             onSelect = { onScale(if (it == 0) ReviewScale.WEEK else ReviewScale.MONTH) },
             modifier = Modifier.testTag("$tagPrefix-scale-pill"),
-            container = SegContainer.StrokeOnly, // 保留外描边、去灰填充（产品要求）
+            // 胶囊是浮层、内容会从它后面穿过：必须有不透明底，否则滚过的卡片文字会与
+            // 「周 / 月」叠在一起。底取页面同色 ink0——视觉上像挖空，但字不再互相压。
+            container = SegContainer.Full,
+            trackFill = FtColor.ink0,
         )
     }
 }
 
-/**
- * `.seg` / `.seg-btn`（L252-282 与 `.openstats .seg` L962-982）。
- *
- * 两个变体：工具栏里是 `inline-flex`（按内容宽、按钮 44 高 20 内边距），
- * openstats 里是 `width:100%` + 按钮 `flex:1`（36 高 12 内边距）。
- *
- * [container] 控制 `.seg` 容器外观（[SegContainer]）：周/月工具条用 [SegContainer.StrokeOnly]
- * ——保留 1px 外描边、去掉灰填充，让工具条浮于页面（产品要求）；
- * `RIR/RPE`、肌肉地图模式两处仍用默认 [SegContainer.Full]（原型底板）。
- */
-internal enum class SegContainer {
-    /** 原型底板：`.seg` 填充（[SegFill]）+ 1px 描边（`line10`）。 */
-    Full,
-
-    /** 只留 1px 外描边，去掉填充——胶囊浮于页面但仍有轮廓。 */
-    StrokeOnly,
-
-    /** 描边与填充全去掉。 */
-    None,
-}
-
-@Composable
-private fun SegmentedPill(
-    labels: List<String>,
-    selectedIndex: Int,
-    onSelect: (Int) -> Unit,
-    modifier: Modifier = Modifier,
-    fillWidth: Boolean = false,
-    buttonHeight: Dp = 44.dp,
-    buttonPadH: Dp = 20.dp,
-    inactiveColor: Color = FtColor.white62,
-    contentDescription: String? = null,
-    container: SegContainer = SegContainer.Full,
-) {
-    Row(
-        modifier = modifier
-            .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier)
-            .then(
-                if (contentDescription != null) {
-                    Modifier.semantics { this.contentDescription = contentDescription }
-                } else {
-                    Modifier
-                },
-            )
-            .then(
-                when (container) {
-                    SegContainer.Full -> Modifier
-                        .clip(FtShape.pill) // radius 999 + padding 3
-                        .background(SegFill)
-                        .border(1.dp, FtColor.line10, FtShape.pill)
-
-                    SegContainer.StrokeOnly -> Modifier
-                        .clip(FtShape.pill)
-                        .border(1.dp, FtColor.line10, FtShape.pill)
-
-                    SegContainer.None -> Modifier
-                },
-            )
-            .padding(3.dp),
-    ) {
-        labels.forEachIndexed { index, label ->
-            val active = index == selectedIndex
-            Box(
-                modifier = Modifier
-                    .then(if (fillWidth) Modifier.weight(1f) else Modifier)
-                    .height(buttonHeight)
-                    .clip(FtShape.pill)
-                    .background(if (active) FtColor.accent else Color.Transparent)
-                    .clickableNoRipple { onSelect(index) }
-                    .padding(horizontal = buttonPadH),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = label,
-                    fontSize = 13.sp,
-                    fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium, // 600 / 500
-                    color = if (active) FtColor.onAccent else inactiveColor,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                )
-            }
-        }
-    }
-}
 
 // ── 概览卡 / 统计行 ──────────────────────────────────────────────
 
@@ -626,7 +572,7 @@ private fun ActivityCard(
     monthLabel: String,
     monthMeta: String,
     monthHead: List<String>,
-    onSelectDay: (Int) -> Unit,
+    onSelectDay: (Int, Rect) -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -701,7 +647,7 @@ private fun WeekBars(bars: List<WeekBar>) {
 
 /** `.month-cal`（L335-433）：训练日历，7 列网格。 */
 @Composable
-private fun MonthCalendar(cells: List<MonthCell>, label: String, meta: String, head: List<String>, onSelectDay: (Int) -> Unit) {
+private fun MonthCalendar(cells: List<MonthCell>, label: String, meta: String, head: List<String>, onSelectDay: (Int, Rect) -> Unit) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp), // `.month-cal { gap: 10px }`
@@ -783,15 +729,19 @@ private fun MonthCalendar(cells: List<MonthCell>, label: String, meta: String, h
 
 /** `.mcal-cell`（L372-407）：高 34、圆角 9 的日期格。 */
 @Composable
-private fun MonthCellView(cell: MonthCell, onSelectDay: (Int) -> Unit, modifier: Modifier = Modifier) {
+private fun MonthCellView(cell: MonthCell, onSelectDay: (Int, Rect) -> Unit, modifier: Modifier = Modifier) {
     if (cell.day == 0) {
         // `.mcal-space { background: transparent; border: 0 }`
         Box(modifier = modifier.height(34.dp))
         return
     }
+    // 气泡的锚点：格子自身的窗口矩形。选中的那一刻直接随点击回传给 `ReviewScreen`，
+    // 避免气泡层再去反查「当前是哪个格子」（那需要在格子与根层之间再穿一条状态链）。
+    var cellBounds by remember { mutableStateOf(Rect.Zero) }
     Box(
         modifier = modifier
             .height(34.dp)
+            .onGloballyPositioned { cellBounds = it.boundsInWindow() }
             .clip(RoundedCornerShape(9.dp))
             .background(if (cell.level == 0) FtReviewColors.mcalBg else FtReviewColors.mcalFill(cell.level))
             .border(
@@ -799,7 +749,7 @@ private fun MonthCellView(cell: MonthCell, onSelectDay: (Int) -> Unit, modifier:
                 color = if (cell.level == 0) FtReviewColors.mcalBorder else Color.Transparent,
                 shape = RoundedCornerShape(9.dp),
             )
-            .clickableNoRipple { onSelectDay(cell.day) },
+            .clickableNoRipple { onSelectDay(cell.day, cellBounds) },
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -832,8 +782,9 @@ private fun MuscleMapCard(
 ) {
     Card {
         CardTitle(title = stringResource(R.string.review_muscle_title), meta = stringResource(FtReviewModel.mmMetaRes(mode)))
-        SegmentedPill(
+        FtSegmentedPill(
             labels = MuscleMode.entries.map { stringResource(FtReviewModel.mmLabelRes(it)) },
+            trackFill = SegFill,
             selectedIndex = MuscleMode.entries.indexOf(mode),
             onSelect = { onMode(MuscleMode.entries[it]) },
             fillWidth = true,
@@ -1118,8 +1069,9 @@ private fun EffortCard(metric: EffortMetric, rpeValues: List<Int>, onMetric: (Ef
     val view = remember(metric, rpeValues) { FtReviewModel.effortFrom(metric, rpeValues) }
     Card {
         CardTitle(title = stringResource(R.string.review_effort_title), meta = stringResource(R.string.review_effort_meta))
-        SegmentedPill(
+        FtSegmentedPill(
             labels = EffortMetric.entries.map { it.display },
+            trackFill = SegFill,
             selectedIndex = EffortMetric.entries.indexOf(metric),
             onSelect = { onMetric(EffortMetric.entries[it]) },
             fillWidth = true,
@@ -1373,40 +1325,150 @@ private fun GoalModal(initial: Double, onDismiss: () -> Unit, onSave: (Double) -
     }
 }
 
+// ── 月历热力格 · 当天详情气泡 ──────────────────────────────────
+// 尺寸与鸿蒙 `ReviewContent` 的 `bindPopup` 参数逐项对齐：宽 232、圆角 16、箭头 14×7、
+// 面板底 #171717。改一处必须同步另一处，否则双端点热力格的观感会分叉。
+
+private val BubbleWidth = 232.dp
+private val BubbleRadius = 16.dp
+private val BubbleArrowWidth = 14.dp
+private val BubbleArrowHeight = 7.dp
 /**
- * 月历热力格「当天详情」弹层：遮罩 + 居中面板，字段与鸿蒙侧 `ReviewContent.dayDetailModal` 同构。
+ * 气泡面板与箭头的填充色。
+ *
+ * 不能直接用 `FtColor.surface`（#171717）：卡片底本身就是 3.1% 白叠在 `#0F0F0F` 上，
+ * 算出来恰好也是 #171717——气泡会整块融进卡片，箭头完全看不出来（真机实测）。
+ * #232323 仍偏暗（与卡片只差 12 级，箭头要放大才看得出），这里再提一档。
+ * 改色必须同步鸿蒙 `BUBBLE_SURFACE`。
+ */
+private val BubbleFill = Color(0xFF2A2A2A)
+/** 气泡（含箭头）离日期格的间距：箭头 7 + 留白 6。 */
+private val BubbleGap = 13.dp
+/** 气泡离屏幕左右边缘的最小距离。 */
+private val BubbleScreenMargin = 12.dp
+
+/**
+ * 月历热力格「当天详情」气泡：锚在被点的日期格上，箭头指向该格。
+ *
+ * 为什么用 [Popup] 而不是自绘浮层：`dismissOnClickOutside` 天生实现「点外部收起」，
+ * 且不改变页面滚动结构——自绘遮罩会挡住下面 Scroll 的滑动。
+ *
+ * 朝向（朝下 / 朝上）只看格子落在屏幕的哪一半，不依赖气泡高度。这样箭头方向在组合阶段
+ * 就确定，不必「先测量再翻转」地重排一帧；气泡高度只参与 [PopupPositionProvider] 的 y，
+ * 保证整块气泡留在屏内。
  *
  * [month] 是 1 基月份——标题资源 `review_day_detail_title` 的槽位是「月 / 日 / 周几」三参，
  * 少传月份会让 `%d` 吃到星期字符串，组合期抛 `IllegalFormatConversionException`（点热力格即闪退）。
  */
 @Composable
-internal fun DayDetailModal(
+internal fun DayDetailPopup(
     summary: DaySummary,
     month: Int,
     weekdayLabel: String,
+    cellBounds: Rect,
     onDismiss: () -> Unit,
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(ModalBackdrop)
-            .clickableNoRipple(onClick = onDismiss),
-        contentAlignment = Alignment.Center,
+    val density = LocalDensity.current
+    val windowSize = LocalWindowInfo.current.containerSize
+    // 窗口尺寸还没就绪时（首帧）按「气泡在格子下方」处理：箭头方向不会指向错误的一侧。
+    val above = windowSize.height > 0 && cellBounds.center.y > windowSize.height / 2f
+
+    val bubbleWidthPx = with(density) { BubbleWidth.roundToPx() }
+    val marginPx = with(density) { BubbleScreenMargin.roundToPx() }
+    // 气泡水平居中于格子，再夹进屏幕；箭头跟着格子中心走，两端留 12dp 避免压到圆角。
+    val left = (cellBounds.center.x - bubbleWidthPx / 2f)
+        .coerceIn(
+            marginPx.toFloat(),
+            (windowSize.width - bubbleWidthPx - marginPx).toFloat().coerceAtLeast(marginPx.toFloat()),
+        )
+        .toInt()
+    val arrowInsetPx = with(density) { 12.dp.toPx() } + with(density) { BubbleArrowWidth.toPx() } / 2f
+    val arrowCenterPx = (cellBounds.center.x - left)
+        .coerceIn(arrowInsetPx, bubbleWidthPx - arrowInsetPx)
+    val arrowLeft = with(density) { (arrowCenterPx - BubbleArrowWidth.toPx() / 2f).toDp() }
+
+    val gapPx = with(density) { BubbleGap.roundToPx() }
+    val anchorTop = cellBounds.top.toInt()
+    val anchorBottom = cellBounds.bottom.toInt()
+    val positionProvider = remember(left, above, gapPx, anchorTop, anchorBottom) {
+        object : PopupPositionProvider {
+            override fun calculatePosition(
+                anchorBounds: IntRect,
+                windowSize: IntSize,
+                layoutDirection: LayoutDirection,
+                popupContentSize: IntSize,
+            ): IntOffset {
+                val top = if (above) {
+                    anchorTop - popupContentSize.height - gapPx
+                } else {
+                    anchorBottom + gapPx
+                }
+                return IntOffset(left, top)
+            }
+        }
+    }
+
+    Popup(
+        popupPositionProvider = positionProvider,
+        onDismissRequest = onDismiss,
+        properties = PopupProperties(
+            // 必须 focusable：非焦点 popup 收不到外部触摸的完整事件序列，点一下（收起气泡）
+            // 会把半个 down/up 漏给下面的 `Scroll`，真机实测页面会跟着滚一段。
+            // 焦点模式由 popup 自己吞掉外部点击并触发 `onDismissRequest`，页面不会动。
+            focusable = true,
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false,
+        ),
     ) {
+        DayDetailBubble(
+            summary = summary,
+            month = month,
+            weekdayLabel = weekdayLabel,
+            above = above,
+            arrowLeft = arrowLeft,
+        )
+    }
+}
+
+/** 气泡面板 + 指向箭头。箭头与面板同色，拼成一条「指向格子」的尾巴。 */
+@Composable
+internal fun DayDetailBubble(
+    summary: DaySummary,
+    month: Int,
+    weekdayLabel: String,
+    above: Boolean,
+    arrowLeft: Dp,
+) {
+    // 入场：与鸿蒙 `bindPopup` 的 160ms 淡入同值（`FtMotion.DURATION_COLOR_FAST`）。
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { visible = true }
+    val alpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(FtMotion.DURATION_COLOR_FAST),
+        label = "dayDetailBubbleAlpha",
+    )
+
+    Column(
+        modifier = Modifier
+            .width(BubbleWidth)
+            .graphicsLayer { this.alpha = alpha },
+    ) {
+        if (!above) {
+            DayBubbleArrow(left = arrowLeft, pointUp = true)
+        }
         Column(
             modifier = Modifier
-                .widthIn(max = 300.dp)
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .clickableNoRipple(onClick = {})
-                .clip(RoundedCornerShape(22.dp))
-                .background(FtColor.surface) // #10171B
-                .border(1.dp, FtColor.line10, RoundedCornerShape(22.dp))
-                .padding(20.dp),
+                // 不加 `Modifier.shadow`：阴影随面板节点绘制，而箭头是面板之前的兄弟节点，
+                // 24dp 的暗晕会把它整个盖住（真机实测：朝上的箭头完全消失）。
+                // 层次由 `BubbleFill` 比卡片亮一档来立，双端同口径。
+                .clip(RoundedCornerShape(BubbleRadius))
+                .background(BubbleFill)
+                .padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 14.dp),
         ) {
             Text(
                 text = stringResource(R.string.review_day_detail_title, month, summary.day, weekdayLabel),
-                style = FtType.natural(16f, 700),
+                style = FtType.natural(14.5f, 700),
                 color = FtColor.txtHi,
             )
             if (summary.hasSession) {
@@ -1429,23 +1491,40 @@ internal fun DayDetailModal(
             } else {
                 Text(
                     text = stringResource(R.string.review_day_detail_empty),
-                    modifier = Modifier.padding(top = 18.dp),
-                    style = FtType.natural(13f),
+                    modifier = Modifier.padding(top = 8.dp),
+                    style = FtType.natural(12.5f),
                     color = FtColor.white54,
                 )
             }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 18.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
-            ) {
-                ModalButton(
-                    label = stringResource(R.string.review_day_detail_close),
-                    primary = true,
-                    onClick = onDismiss,
-                )
+        }
+        if (above) {
+            DayBubbleArrow(left = arrowLeft, pointUp = false)
+        }
+    }
+}
+
+/**
+ * 气泡指向格子的小三角，宽 14 / 高 7。
+ *
+ * [pointUp] 为 true 时尖朝上（气泡在格子下方）；[left] 是箭头相对气泡左边缘的位移。
+ * 用 `offset` 而不进布局流——箭头本来就要压在面板边界上，不参与 Column 的宽度分配。
+ */
+@Composable
+private fun DayBubbleArrow(left: Dp, pointUp: Boolean) {
+    Box(modifier = Modifier.fillMaxWidth().height(BubbleArrowHeight)) {
+        Canvas(
+            modifier = Modifier
+                .offset(x = left)
+                .size(BubbleArrowWidth, BubbleArrowHeight)
+                .graphicsLayer { rotationZ = if (pointUp) 0f else 180f },
+        ) {
+            val path = Path().apply {
+                moveTo(0f, size.height)
+                lineTo(size.width, size.height)
+                lineTo(size.width / 2f, 0f)
+                close()
             }
+            drawPath(path, BubbleFill)
         }
     }
 }
@@ -1455,12 +1534,12 @@ private fun DayDetailRow(label: String, value: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 14.dp),
+            .padding(top = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(text = label, style = FtType.natural(13f), color = FtColor.white54)
-        Text(text = value, style = FtType.natural(13f, 500), color = FtColor.txtHi)
+        Text(text = label, style = FtType.natural(12.5f), color = FtColor.white54)
+        Text(text = value, style = FtType.natural(12.5f, 500), color = FtColor.txtHi)
     }
 }
 

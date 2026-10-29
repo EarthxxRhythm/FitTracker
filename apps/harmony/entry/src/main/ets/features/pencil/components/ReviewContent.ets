@@ -19,6 +19,7 @@ import { WeightRecord, BodyTrend } from '../../../shared/models/BodyModels'
 import { resolveWeekStart, WeekStart } from '../../../common/utils/WeekUtils'
 import { shakeField } from '../../../common/utils/FieldShake'
 import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
+import { SegmentedPill, SegmentedPillItem, createSegmentedPillItem } from '../../../components/SegmentedPill'
 
 interface ReviewBarItem {
   label: string
@@ -37,6 +38,26 @@ interface OneRmRowItem {
   value: string
 }
 
+/**
+ * 回顾页三个分段控件的项表。
+ *
+ * 模块级常量（不是 build 内新建数组）：`SegmentedPill` 会按 `items` 逐项测量宽度，
+ * 每次 build 换一个新数组会让测量结果失效、滑块位置反复归零。
+ */
+const TIME_SCALE_ITEMS: SegmentedPillItem[] = [
+  createSegmentedPillItem('week', '周'),
+  createSegmentedPillItem('month', '月')
+]
+const MUSCLE_MODE_ITEMS: SegmentedPillItem[] = [
+  createSegmentedPillItem('balance', '平衡'),
+  createSegmentedPillItem('fatigue', '疲劳'),
+  createSegmentedPillItem('strength', '力量')
+]
+const EFFORT_MODE_ITEMS: SegmentedPillItem[] = [
+  createSegmentedPillItem('rir', 'RIR'),
+  createSegmentedPillItem('rpe', 'RPE')
+]
+
 const WEEKDAY_LABELS: string[] = ['一', '二', '三', '四', '五', '六', '日']
 /** 周开始日=周日时，周柱/日历表头从周日排起（首列=周日）。 */
 const WEEKDAY_LABELS_SUNDAY_FIRST: string[] = ['日', '一', '二', '三', '四', '五', '六']
@@ -45,6 +66,22 @@ const WEEKDAY_LABELS_SUNDAY_FIRST: string[] = ['日', '一', '二', '三', '四'
 const EFFORT_BAR_COLUMN_HEIGHT: number = 96
 const EFFORT_BAR_GAP: number = 6
 const EFFORT_BAR_LABEL_HEIGHT: number = 12
+/**
+ * 回顾页固定头部展开高：上 8 + 工具条 50（按钮 44 + 容器 padding 3×2）+ 下 16.3。
+ *
+ * **不含状态栏**——鸿蒙窗口非全屏，页面区已在状态栏之下。安卓 `ReviewScaffold` 用的是
+ * `statusBarHeight + 8 + 50 + 16.3`（它 edge-to-edge），不要把这套公式搬过来。
+ */
+const REVIEW_HEADER_HEIGHT: number = 74.3
+/**
+ * 收起 / 展开的滚动阈值（vp），相对锚点计算，与回调频率无关。
+ *
+ * 收起 24 > 展开 12：留出迟滞区间，避免在阈值附近来回抖。数值不是从安卓照搬的
+ * （安卓 `dy > 6` / `dy < -6` 是「每次 `snapshotFlow` 发射」的差值，鸿蒙回调粒度细得多，
+ * 两端不可比），量级对齐的是安卓「一次上滑就进入浏览态、轻微回撤不打断」的手感。
+ */
+const REVIEW_CHROME_COLLAPSE: number = 24
+const REVIEW_CHROME_EXPAND: number = 12
 const EFFORT_BAR_TRACK_HEIGHT: number =
   EFFORT_BAR_COLUMN_HEIGHT - EFFORT_BAR_GAP - EFFORT_BAR_LABEL_HEIGHT
 
@@ -58,18 +95,56 @@ const BALANCE_FILLS: string[] = ['#3A705E', '#429B77', '#49C48F', PrototypeToken
 const FATIGUE_FILLS: string[] = ['#66644A', PrototypeTokens.GOLD_BRIGHT, '#E5B878', '#F0A48A']
 const STRENGTH_FILLS: string[] = ['#3A705E', '#429B77', '#49C48F', PrototypeTokens.GOLD_BRIGHT]
 const BALANCE_LEGEND: string[] = ['#2F6655', '#3B9572', '#45C18D', PrototypeTokens.ACCENT]
-const FATIGUE_LEGEND: string[] = ['#5B5B42', PrototypeTokens.GOLD_BRIGHT, '#E5B878', '#F0A48A']
+// 疲劳图例 L1 跟翡翠档（安卓 `legendFatigue` 注释：l1 未覆盖，仍取 `legendL1`）。
+const FATIGUE_LEGEND: string[] = ['#2F6655', PrototypeTokens.GOLD_BRIGHT, '#E5B878', '#F0A48A']
 const STRENGTH_LEGEND: string[] = ['#2F6655', '#3B9572', '#45C18D', PrototypeTokens.GOLD_BRIGHT]
 const SILHOUETTE_FILL: string = '#3F454A'
 const BODY_PATH_STROKE: string = '#171D24'
 const MUSCLE_BASE_FILL: string = '#30353B'
 
 const HEATMAP_CELL_BASE: string = '#09FFFFFF'
-const HEATMAP_CELL_L1: string = '#4C5A57'
-const HEATMAP_CELL_L2: string = '#618B7B'
-const HEATMAP_CELL_L3: string = '#63BB95'
+/**
+ * 月历热力格 L1–L3：与安卓 `FtReviewColors.mcalLevels` 对齐——半透明翡翠叠在卡底上，
+ * 原实现是不透明灰绿，和 L4 的翡翠断层明显。
+ */
+const HEATMAP_CELL_L1: string = '#4D68EFB3'
+const HEATMAP_CELL_L2: string = '#8759EDAC'
+const HEATMAP_CELL_L3: string = '#C053ECA9'
 const HEATMAP_CELL_L4: string = PrototypeTokens.ACCENT
 const HEATMAP_LEGEND_BASE: string = PrototypeTokens.WHITE_A05_ALT
+/**
+ * 次级 / 三级文字：与安卓 `FtReviewColors.label2` / `label3` 同值（带一点冷绿的暖白）。
+ *
+ * 屏内原本直接用 `WHITE_A62` / `WHITE_A40`（纯白 α 档）。两者 alpha 相同、RGB 略有差异，
+ * 在鸿蒙冷翠绿底色上暖白更协调——这是安卓侧已经定过的取值，按对齐口径搬过来。
+ */
+const REVIEW_LABEL2: string = '#9EF3FBF7'
+const REVIEW_LABEL3: string = '#66F3FBF7'
+/** 两个弹窗的面板底：与安卓 `FtColor.surface` 对齐（原为 `BG_INK_WELCOME #10171B`）。 */
+const REVIEW_MODAL_SURFACE: string = '#171717'
+/** 目标体重输入框底：与安卓 `FtColor.surfaceStat` 对齐（原为 `#171D24`）。 */
+const REVIEW_INPUT_SURFACE: string = '#1D1D1D'
+
+// ── 月历热力格气泡（Tooltip）────────────────────────────────
+// 数值与安卓 `ReviewScreen.kt` 的 `DayDetailBubble` 逐项对齐：宽 232、圆角 16、箭头 14×7。
+const BUBBLE_WIDTH: number = 232
+const BUBBLE_RADIUS: number = 16
+const BUBBLE_ARROW_WIDTH: number = 14
+const BUBBLE_ARROW_HEIGHT: number = 7
+const BUBBLE_PADDING_H: number = 14
+const BUBBLE_PADDING_TOP: number = 12
+const BUBBLE_PADDING_BOTTOM: number = 14
+const BUBBLE_ROW_GAP: number = 8
+/**
+ * 气泡面板与箭头色。
+ *
+ * 不能沿用弹窗底 `REVIEW_MODAL_SURFACE`（#171717）：月历卡片底本身就是 3.1% 白叠在
+ * 页面底 #0F0F0F 上，算出来恰好也是 #171717——气泡会整块融进卡片，系统画的指向箭头
+ * 完全看不出来（安卓真机实测同因）。#232323 仍偏暗（与卡片只差 12 级），再提一档。
+ * `bindPopup` 的箭头颜色跟随 `popupColor`，改这里等于同时改面板与箭头。
+ * 改色必须同步安卓 `ReviewScreen.BubbleFill`。
+ */
+const BUBBLE_SURFACE: string = '#2A2A2A'
 
 const MM_MUSCLE_LABELS: string[] = [
   '斜方肌', '肩', '胸', '上背', '前锯肌', '二头', '三头', '前臂',
@@ -859,7 +934,6 @@ export struct ReviewContent {
   // 触发重读，避免身体数据/训练会话更新后本页残留旧数据（模式同 PlanContent.reloadToken）。
   @Prop @Watch('onReloadTokenChanged') reloadToken: number = 0
   @State private timeScale: string = 'week'
-  @State private segKey: string = ''
   @State private summary: ReviewDashboardSummary = ReviewDashboardService.createEmptySummary()
   @State private weekBars: ReviewBarItem[] = []
   @State private trendItems: ReviewWeeklyTrendItem[] = []
@@ -909,7 +983,7 @@ export struct ReviewContent {
   @State private calendarLeadDays: number = 0
   /** 按天训练摘要（index = 日），供点击弹层读取。 */
   @State private daySummaries: DaySummaryItem[] = []
-  /** 当天详情弹层可见性。 */
+  /** 热力格「当天详情」气泡是否展开。 */
   @State private showDayDetail: boolean = false
   /** 当前选中的日期（1..31；-1 = 无）。 */
   @State private selectedDay: number = -1
@@ -917,8 +991,34 @@ export struct ReviewContent {
   @State private calendarYear: number = 0
   @State private calendarMonth0: number = 0
   @State private goalPressed: boolean = false
+  /**
+   * 可收起头部是否收起（对齐安卓 `FtChromeState.collapsed`）。
+   *
+   * 只驱动本屏头部；底栏由壳层通过 [onChromeCollapsed] 同步——壳必须在切 Tab /
+   * onPageShow 时复位，否则离开回顾页后底栏会一直藏着。
+   */
+  @State private chromeCollapsed: boolean = false
+  /** 壳层回调：把收起态同步给 `PencilAppShell`（驱动底栏收起）。 */
+  onChromeCollapsed?: (collapsed: boolean) => void
 
   private weekStartKey: WeekStart = 'monday'
+
+  /**
+   * 回顾页滚动控制器——滚动事件里用它的 `currentOffset()` 读**绝对**位移。
+   *
+   * **必须挂 `onScroll`，不能挂 `onDidScroll`**：`Scroll` 的官方文档在「事件」一节明确写
+   * 「不支持滚动组件通用事件中的 onWillScroll、onDidScroll 事件」。挂上去既不报错也
+   * 不触发（真机实测：滚动后头部与底栏都不收），属于静默失效，只看编译发现不了。
+   */
+  private reviewScroller: Scroller = new Scroller()
+  /**
+   * 收起判定的滚动锚点（vp）：展开态记录**最低点**，收起态记录**最高点**。
+   *
+   * 不用「相邻两次回调的差值」——鸿蒙 `onScroll` 的回调频率远高于 Compose 的
+   * `snapshotFlow`，差值口径两端不可比，原因详见 [observeChromeScroll]。
+   */
+  private chromeAnchorY: number = 0
+  private scrollBaselineReady: boolean = false
 
   private mmFrontSettings: RenderingContextSettings = new RenderingContextSettings(true)
   private mmFrontContext: CanvasRenderingContext2D =
@@ -935,9 +1035,77 @@ export struct ReviewContent {
     await this.loadReviewData()
   }
 
-  /** reloadToken 变化（壳切到本 Tab 时 bump）→ 重读。 */
+  /** reloadToken 变化（壳切到本 Tab 时 bump）→ 复位 chrome + 重读。 */
   onReloadTokenChanged(): void {
+    // 本页是常驻 Tab（visibility 切换，不重建）：在回顾页收起头部后切走再切回，
+    // 若不复位就会看到一个既没头部也没底栏、滚动位置还停在中间的页面。
+    // 安卓 `FtApp.kt:91-99` 正是为此在所有帧切换时 `chrome.updateCollapsed(false)`。
+    this.resetChrome()
     this.loadReviewData()
+  }
+
+  /** 头部/底栏回到展开态，并让下一次滚动重新取锚点（否则判定会与真实位移错位）。 */
+  private resetChrome(): void {
+    this.scrollBaselineReady = false
+    this.applyChrome(false)
+  }
+
+  /**
+   * 滚动驱动头部与底栏收起。
+   *
+   * **判定口径必须与安卓不同，这不是抄漏**：安卓 `observeChromeOnScroll` 用的是
+   * `snapshotFlow { scrollState.value }` 的逐次发射差（Compose 一帧最多发一次），
+   * 所以 `dy > 6` 相当于「一帧位移超过 6vp」，快速抛滑时轻松达到。
+   * 鸿蒙 `Scroll.onScroll` 的回调粒度细得多——真机实测每次只有 1.5–2vp
+   * （一帧要发三四条），照搬 `dy > 6` 的结果是**永远不触发**，头部与底栏永不上收。
+   *
+   * 因此改写成与回调频率无关的「迟滞极值」判定，方向语义与安卓一致：
+   * - 展开态：锚点跟随**最低点**，从最低点再向下拉 `REVIEW_CHROME_COLLAPSE` 才收起；
+   * - 收起态：锚点跟随**最高点**，从最高点向上推 `REVIEW_CHROME_EXPAND` 就展开；
+   * - 回顶（`y <= 4`）无条件展开。
+   *
+   * 收起阈值 24 > 展开阈值 12，构成迟滞区间，避免在阈值附近来回抖。
+   */
+  private observeChromeScroll(y: number): void {
+    if (!this.scrollBaselineReady) {
+      this.scrollBaselineReady = true
+      this.chromeAnchorY = y
+      return
+    }
+    // 回顶一律展开，并把锚点落回顶部。
+    if (y <= 4) {
+      this.chromeAnchorY = y
+      this.applyChrome(false)
+      return
+    }
+    if (!this.chromeCollapsed) {
+      // 展开态：锚点只跟着往上走（记录最低点），越过收起阈值才收起。
+      if (y < this.chromeAnchorY) {
+        this.chromeAnchorY = y
+      } else if (y - this.chromeAnchorY > REVIEW_CHROME_COLLAPSE) {
+        this.chromeAnchorY = y
+        this.applyChrome(true)
+      }
+      return
+    }
+    // 收起态：锚点只跟着往下走（记录最高点），回撤到展开阈值就展开。
+    if (y > this.chromeAnchorY) {
+      this.chromeAnchorY = y
+    } else if (this.chromeAnchorY - y > REVIEW_CHROME_EXPAND) {
+      this.chromeAnchorY = y
+      this.applyChrome(false)
+    }
+  }
+
+  /** 写入收起态并同步壳层（只在这里触发回调，避免重复下发）。 */
+  private applyChrome(collapsed: boolean): void {
+    if (collapsed === this.chromeCollapsed) {
+      return
+    }
+    this.chromeCollapsed = collapsed
+    if (this.onChromeCollapsed !== undefined) {
+      this.onChromeCollapsed(collapsed)
+    }
   }
 
   private async loadReviewData(): Promise<void> {
@@ -1061,7 +1229,9 @@ export struct ReviewContent {
   /**
    * 由真实体重序列派生折线坐标：x 均匀铺满绘图区，y 按 min/max 归一。
    *
-   * 绘图区取自本组件既有坐标（x 12–330、y 16–120，见 `drawWeightChart` 的网格与面积基线）。
+   * 绘图区取自本组件既有坐标（x 12–330、y 16–100，见 `drawWeightChart` 的网格与面积基线）。
+   * 上界 100 与安卓 `WEIGHT_PLOT_BOTTOM` 同值：两端折线在同一量程里归一，高度才可比。
+   * 面积基线仍是 120（安卓 `WEIGHT_AREA_BASE_Y`）——填充往网格下缘再延一档，不是绘图区。
    */
   private buildWeightChartPoints(values: number[]): WeightChartPoint[] {
     const points: WeightChartPoint[] = []
@@ -1071,7 +1241,7 @@ export struct ReviewContent {
     const x0: number = 12
     const x1: number = 330
     const yTop: number = 16
-    const yBottom: number = 120
+    const yBottom: number = 100
     let lo: number = values[0]
     let hi: number = values[0]
     for (let index = 0; index < values.length; index++) {
@@ -1665,7 +1835,8 @@ export struct ReviewContent {
       return -1
     }
     const ratio: number = (this.chartHiKg - this.goalWeight) / (this.chartHiKg - this.chartLoKg)
-    return 16 + ratio * 104
+    // 与折线共用 16–100 的量程（跨度 84）。写死 104 会让目标线比真实位置低一档。
+    return 16 + ratio * 84
   }
 
   private openGoalModal(): void {
@@ -1733,15 +1904,12 @@ export struct ReviewContent {
       return
     }
     ctx.clearRect(0, 0, width, height)
-    // 无体重记录 → 只画网格底，不画折线（不再展示原型样例曲线）。
-    const points: WeightChartPoint[] = this.weightChartPoints
-    if (points.length === 0) {
-      return
-    }
     const scaleX: number = width / 342
     const scaleY: number = height / 132
     ctx.save()
     ctx.scale(scaleX, scaleY)
+    // 四条网格线先画，且不受「有无数据」影响：安卓同款——空态图卡保留坐标系，
+    // 否则整块区域是纯空白，看起来像渲染失败。
     ctx.strokeStyle = 'rgba(255,255,255,0.06)'
     ctx.lineWidth = 1
     const gridRows: number[] = [16, 44, 72, 100]
@@ -1750,6 +1918,13 @@ export struct ReviewContent {
       ctx.moveTo(12, gridRows[index])
       ctx.lineTo(330, gridRows[index])
       ctx.stroke()
+    }
+    // 无体重记录 → 只画网格底，不画折线（不再展示原型样例曲线）。
+    const points: WeightChartPoint[] = this.weightChartPoints
+    if (points.length === 0) {
+      // 提前返回前必须 restore，否则 save/restore 栈每次重绘都多压一层。
+      ctx.restore()
+      return
     }
     // 目标线：仅在「已设置目标且在折线量程内」时绘制（见 [goalLineY]）。
     const goalY: number = this.goalLineY()
@@ -1889,30 +2064,57 @@ export struct ReviewContent {
   build() {
     Stack() {
       Column() {
-        Scroll() {
-          Column({ space: 16.3 }) {
-            // 时间尺度切换随内容滚动（原型 .pane-scroll ⊃ .review-content ⊃ .review-stats ⊃ .review-toolbar）。
-            // 左右缩进由本 Column 的 16.3 统一提供，此处归零避免双重内边距；top 16 与本 Column 的 8 合成原 24。
+        // ── 固定头部（对齐安卓 `ReviewScaffold` 的 header） ─────────────────────
+        // 胶囊是**浮层**，不是一条固定高度的头部带：滚动区铺满整页、从页面顶（页面区已在
+        // 状态栏下）起算，首屏位置由内容自身的 top 内边距让出。滚动时这段内边距随内容滚走，
+        // 卡片因此能穿到胶囊与状态栏下方——顶部不再有一块永远空着的死区。
+        // 展开高 74.3 = 上 8 + 工具条 50（44 + 容器 padding 3×2）+ 下 16.3。
+        Stack({ alignContent: Alignment.Top }) {
+          Scroll(this.reviewScroller) {
+            Column({ space: 16.3 }) {
+              this.overviewCard()
+              this.statsRow()
+              this.activityCard()
+              this.muscleMapCard()
+              this.weightGoalCard()
+              this.effortCard()
+              this.oneRmCard()
+            }
+            .width('100%')
+            // 让开胶囊；随内容滚走，不占死区。底部 36.3 与安卓一致。
+            .padding({ left: 16.3, right: 16.3, top: REVIEW_HEADER_HEIGHT, bottom: 36.3 })
+          }
+          .width('100%')
+          .height('100%')
+          .scrollBar(BarState.Off)
+          .edgeEffect(EdgeEffect.None)
+          // `Scroll` 不支持 `onDidScroll`（见 reviewScroller 的注释），用 `onScroll`。
+          .onScroll(() => {
+            this.observeChromeScroll(this.reviewScroller.currentOffset().yOffset)
+            // 兜底：`mask: true` 已经把气泡展开时的手势挡在浮层内，正常滚不到这里；
+            // 真机若因避让/焦点异常漏过一次滚动，气泡也不会赖在已经移位了的格子旁边。
+            if (this.showDayDetail) {
+              this.showDayDetail = false
+            }
+          })
+
+          // 胶囊浮层：`HitTestMode.Transparent` 让手势穿透到下层滚动区，自身仍可点击。
+          // 向下浏览时淡出上移，回到顶部恢复。
+          Column() {
             Column() {
               this.segmentedControl()
             }
             .width('100%')
-            .padding({ left: 0, right: 0, top: 16, bottom: 0 })
-
-            this.overviewCard()
-            this.statsRow()
-            this.activityCard()
-            this.muscleMapCard()
-            this.weightGoalCard()
-            this.effortCard()
-            this.oneRmCard()
+            .padding({ left: 16.3, right: 16.3, top: 8, bottom: 16.3 })
           }
           .width('100%')
-          .padding({ left: 16.3, right: 16.3, top: 8, bottom: 24 })
+          .hitTestBehavior(HitTestMode.Transparent)
+          .opacity(this.chromeCollapsed ? 0 : 1)
+          .translate({ y: this.chromeCollapsed ? -10 : 0 })
+          .animation({ duration: MotionTokens.DURATION_OVERLAY, curve: MotionTokens.EASE_PANEL })
         }
-        .layoutWeight(1)
-        .scrollBar(BarState.Off)
-        .edgeEffect(EdgeEffect.None)
+        .width('100%')
+        .height('100%')
       }
       .width('100%')
       .height('100%')
@@ -1920,55 +2122,38 @@ export struct ReviewContent {
       if (this.showGoalModal) {
         this.goalModal()
       }
-      if (this.showDayDetail) {
-        this.dayDetailModal()
-      }
     }
     .width('100%')
     .height('100%')
     .backgroundColor(PrototypeTokens.BG_INK)
   }
 
+  /** 周 / 月：描边胶囊、无填充、按内容宽。选中块由 `SegmentedPill` 平移而来。 */
   @Builder
   private segmentedControl() {
     Row() {
-      Row() {
-        this.segmentButton('周', 'week')
-        this.segmentButton('月', 'month')
-      }
-      .padding(3)
-      .backgroundColor(PrototypeTokens.WHITE_A05)
-      .borderRadius(999)
-      .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
-    }
-    .width('100%')
-    .justifyContent(FlexAlign.Start)
-  }
-
-  @Builder
-  private segmentButton(label: string, key: string) {
-    Text(label)
-      .fontFamily('Noto Sans SC')
-      .fontSize(13)
-      .fontWeight(this.timeScale === key ? FontWeight.Bold : FontWeight.Medium)
-      .fontColor(this.timeScale === key ? PrototypeTokens.TEXT_ON_ACCENT : PrototypeTokens.WHITE_A62)
-      .height(44)
-      .padding({ left: 20, right: 20 })
-      .textAlign(TextAlign.Center)
-      .backgroundColor(this.timeScale === key ? PrototypeTokens.ACCENT : PrototypeTokens.TRANSPARENT)
-      .borderRadius(999)
-      .onClick(() => {
-        this.timeScale = key
-      })
-      .onTouch((event: TouchEvent) => {
-        if (event.type === TouchType.Down) {
-          this.segKey = key
-        } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-          this.segKey = ''
+      SegmentedPill({
+        items: TIME_SCALE_ITEMS,
+        selectedKey: this.timeScale,
+        itemHeight: 44,
+        itemPadH: 20,
+        itemFontSize: 13,
+        fillWidth: false,
+        itemRadius: 999,
+        trackRadius: 999,
+        track: 'fill',
+        // 胶囊是浮层、内容会从它后面穿过：必须有不透明底，否则滚过的卡片文字会与
+        // 「周 / 月」叠在一起。底取页面同色 BG_INK——视觉上像挖空，但字不再互相压。
+        trackFillColor: PrototypeTokens.BG_INK,
+        inactiveColor: REVIEW_LABEL2,
+        onSelect: (key: string) => {
+          this.timeScale = key
         }
       })
-      .scale({ x: this.segKey === key ? MotionTokens.PRESS_SEGMENT : 1, y: this.segKey === key ? MotionTokens.PRESS_SEGMENT : 1 })
-      .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
+    }
+    .width('100%')
+    // 与安卓对齐：固定在头部内、水平居中（原为滚动区内首项、靠左）。
+    .justifyContent(FlexAlign.Center)
   }
 
   @Builder
@@ -1983,6 +2168,7 @@ export struct ReviewContent {
         Text(this.badgeText())
           .fontFamily('Inter')
           .fontSize(10.9)
+          .lineHeight(10.9) // 与安卓对齐：显式行高
           .fontWeight(FontWeight.Medium)
           .fontColor(PrototypeTokens.ACCENT)
           .padding({ left: 9.1, right: 9.1, top: 5.4, bottom: 5.4 })
@@ -1995,6 +2181,8 @@ export struct ReviewContent {
       Text(this.headlineText())
         .fontFamily('Noto Sans SC')
         .fontSize(20)
+        .lineHeight(22) // 与安卓对齐：1.1 倍行高
+        .letterSpacing(-0.2) // 与安卓对齐：-.01em × 20
         .fontWeight(FontWeight.Bold)
         .fontColor(PrototypeTokens.TEXT_HI)
         .width('100%')
@@ -2056,11 +2244,13 @@ export struct ReviewContent {
         Text(this.statValue(index))
           .fontFamily('Geist Mono')
           .fontSize(21.8)
+          .lineHeight(21.8) // 与安卓对齐：显式行高
           .fontWeight(FontWeight.Bold)
           .fontColor(PrototypeTokens.TEXT_HI)
         Text(unit)
           .fontFamily('Noto Sans SC')
           .fontSize(10.9)
+          .lineHeight(12.5) // 与安卓对齐：显式行高
           .fontColor(PrototypeTokens.ACCENT)
       }
     }
@@ -2102,6 +2292,7 @@ export struct ReviewContent {
               Text(bar.label)
                 .fontFamily('Noto Sans SC')
                 .fontSize(10)
+                .lineHeight(10) // 与安卓对齐：显式行高
                 .fontColor(bar.active ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A54)
             }
             .layoutWeight(1)
@@ -2146,15 +2337,16 @@ export struct ReviewContent {
         .fontFamily('Noto Sans SC')
         .fontSize(11)
         .fontColor(PrototypeTokens.WHITE_A48)
-        .lineHeight(1.55)
+        .lineHeight(17.05) // 与安卓对齐：绝对值 17.05（原写 1.55 倍，等价但看不出目标值）
         .width('100%')
 
-      Row() {
+      Row({ space: 5 }) {
         ForEach(this.resolveWeekdayLabels(), (day: string) => {
           Text(day)
             .fontFamily('Noto Sans SC')
             .fontSize(10)
-            .fontColor(PrototypeTokens.WHITE_A40)
+            .lineHeight(20) // 与安卓对齐：显式行高
+            .fontColor(REVIEW_LABEL3)
             .layoutWeight(1)
             .textAlign(TextAlign.Center)
         }, (day: string) => day)
@@ -2209,8 +2401,48 @@ export struct ReviewContent {
     .borderRadius(9)
     .border({ width: day === this.todayDay ? 1.5 : 1, color: this.calendarCellBorderColor(day) })
     .onClick(() => {
+      // 再点同一格 = 收起；点别的格 = 直接切换到那一格的气泡。
+      if (this.showDayDetail && this.selectedDay === day) {
+        this.showDayDetail = false
+        return
+      }
       this.selectedDay = day
       this.showDayDetail = true
+    })
+    // 气泡提示：锚在被点的日期格上，由系统做避让与指向箭头。
+    // 用 `bindPopup` 而不是自绘浮层——自绘拿不到稳定的锚点坐标，滚动后还会与格子脱位；
+    // 系统 popup 自带「点外部关闭」（`autoCancel`）与上下翻转，行为与安卓 `Popup` 一致。
+    .bindPopup(this.showDayDetail && this.selectedDay === day, {
+      builder: (): void => {
+        this.dayDetailBubble()
+      },
+      placement: Placement.Bottom,
+      popupColor: BUBBLE_SURFACE,
+      // 默认 COMPONENT_ULTRA_THICK 会把纯色底糊成半透明材质；气泡要的是实色面板。
+      backgroundBlurStyle: BlurStyle.NONE,
+      enableArrow: true,
+      // 箭头尺寸与安卓 `DayDetailBubble` 的三角一致。
+      arrowWidth: BUBBLE_ARROW_WIDTH,
+      arrowHeight: BUBBLE_ARROW_HEIGHT,
+      autoCancel: true,
+      // 必须 mask：与安卓 `PopupProperties(focusable = true)` 同口径——气泡展开时不把
+      // 手势漏给下面的 `Scroll`，否则点一下收起会顺带把页面滚一段。遮罩本身是透明的。
+      mask: true,
+      radius: BUBBLE_RADIUS,
+      width: BUBBLE_WIDTH,
+      followTransformOfTarget: true,
+      // 不设 shadow：安卓侧自绘箭头会被面板阴影盖住，两端统一去掉；
+      // 层次靠 `BUBBLE_SURFACE` 比卡片底亮一档来立。
+      transition: TransitionEffect.OPACITY
+        .animation({ duration: MotionTokens.DURATION_MODAL_SCRIM, curve: MotionTokens.EASE_MOTION }),
+      onStateChange: (event: PopupStateChangeParam): void => {
+        // 点外部 / 返回键由系统收起时，把页内状态同步回去，否则下次点同一格会被判成「再点收起」。
+        // 必须带上 `selectedDay === day`：从 A 格切到 B 格时 A 的 popup 也会收到 isVisible=false，
+        // 若不加这个判断，会把刚打开的 B 格气泡一起关掉。
+        if (!event.isVisible && this.selectedDay === day) {
+          this.showDayDetail = false
+        }
+      }
     })
   }
 
@@ -2275,9 +2507,8 @@ export struct ReviewContent {
     if (level >= 3) {
       return PrototypeTokens.TEXT_ON_ACCENT
     }
-    if (level >= 1) {
-      return PrototypeTokens.TEXT_HI
-    }
+    // 与安卓 `FtReviewColors.mcalText` 一致：L0–L2 统一 white70（#B3FFFFFF）。
+    // 原先 L1–L2 用 TEXT_HI（≈纯白），在翡翠底上比安卓糊一档。
     return PrototypeTokens.WHITE_A70
   }
 
@@ -2321,72 +2552,42 @@ export struct ReviewContent {
     return result + ' kg'
   }
 
+  /**
+   * 热力格气泡内容。面板底/圆角/箭头由 `bindPopup` 负责，这里只排文字。
+   *
+   * 不设「关闭」按钮：气泡点外部即收起（`autoCancel`），与安卓 `Popup` 的
+   * `dismissOnClickOutside` 同一条交互。
+   */
   @Builder
-  private dayDetailModal() {
-    Stack({ alignContent: Alignment.Center }) {
-      Column()
+  private dayDetailBubble() {
+    Column() {
+      Text(this.dayDetailTitle())
+        .fontFamily('Noto Sans SC')
+        .fontSize(14.5)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(PrototypeTokens.TEXT_HI)
         .width('100%')
-        .height('100%')
-        .backgroundColor('#9E040608')
-        .transition(
-          TransitionEffect.OPACITY
-            .animation({ duration: MotionTokens.DURATION_MODAL_SCRIM, curve: MotionTokens.EASE_MOTION })
-        )
-        .onClick(() => {
-          this.showDayDetail = false
-        })
-      Column() {
-        Text(this.dayDetailTitle())
+      if (this.selectedDaySummary().hasSession) {
+        this.dayDetailRow('训练时长', this.selectedDaySummary().durationMinutes.toString() + ' 分钟')
+        this.dayDetailRow('动作数', this.selectedDaySummary().exerciseCount.toString() + ' 个')
+        this.dayDetailRow('总组数', this.selectedDaySummary().setCount.toString() + ' 组')
+        this.dayDetailRow('总容量', this.volumeText(this.selectedDaySummary().volumeKg))
+      } else {
+        Text('这天没有训练记录')
           .fontFamily('Noto Sans SC')
-          .fontSize(16)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(PrototypeTokens.TEXT_HI)
+          .fontSize(12.5)
+          .fontColor(PrototypeTokens.WHITE_A54)
+          .margin({ top: BUBBLE_ROW_GAP })
           .width('100%')
-        if (this.selectedDaySummary().hasSession) {
-          this.dayDetailRow('训练时长', this.selectedDaySummary().durationMinutes.toString() + ' 分钟')
-          this.dayDetailRow('动作数', this.selectedDaySummary().exerciseCount.toString() + ' 个')
-          this.dayDetailRow('总组数', this.selectedDaySummary().setCount.toString() + ' 组')
-          this.dayDetailRow('总容量', this.volumeText(this.selectedDaySummary().volumeKg))
-        } else {
-          Text('这天没有训练记录')
-            .fontFamily('Noto Sans SC')
-            .fontSize(13)
-            .fontColor(PrototypeTokens.WHITE_A54)
-            .margin({ top: 18 })
-            .width('100%')
-        }
-        Row() {
-          Text('关闭')
-            .fontFamily('Noto Sans SC')
-            .fontSize(13)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(PrototypeTokens.TEXT_ON_ACCENT)
-            .height(40)
-            .padding({ left: 16, right: 16 })
-            .backgroundColor(PrototypeTokens.ACCENT)
-            .borderRadius(999)
-            .onClick(() => {
-              this.showDayDetail = false
-            })
-        }
-        .width('100%')
-        .justifyContent(FlexAlign.End)
-        .margin({ top: 18 })
       }
-      .width(300)
-      .padding(20)
-      .backgroundColor(PrototypeTokens.BG_INK_WELCOME)
-      .borderRadius(22)
-      .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
-      // 与体重目标弹层同一套进出场语汇（遮罩 160ms + 卡片 200ms 缩放落位）
-      .transition(
-        TransitionEffect.OPACITY
-          .combine(TransitionEffect.scale({ x: 0.96, y: 0.96 }))
-          .animation({ duration: MotionTokens.DURATION_MODAL_POP, curve: MotionTokens.EASE_PANEL })
-      )
     }
     .width('100%')
-    .height('100%')
+    .padding({
+      left: BUBBLE_PADDING_H,
+      right: BUBBLE_PADDING_H,
+      top: BUBBLE_PADDING_TOP,
+      bottom: BUBBLE_PADDING_BOTTOM
+    })
   }
 
   @Builder
@@ -2394,17 +2595,17 @@ export struct ReviewContent {
     Row() {
       Text(label)
         .fontFamily('Noto Sans SC')
-        .fontSize(13)
+        .fontSize(12.5)
         .fontColor(PrototypeTokens.WHITE_A54)
       Text(value)
         .fontFamily('Noto Sans SC')
-        .fontSize(13)
+        .fontSize(12.5)
         .fontWeight(FontWeight.Medium)
         .fontColor(PrototypeTokens.TEXT_HI)
     }
     .width('100%')
     .justifyContent(FlexAlign.SpaceBetween)
-    .margin({ top: 14 })
+    .margin({ top: BUBBLE_ROW_GAP })
   }
 
   @Builder
@@ -2419,23 +2620,26 @@ export struct ReviewContent {
         Text(this.muscleMeta())
           .fontFamily('Noto Sans SC')
           .fontSize(10.9)
-          .fontColor(PrototypeTokens.WHITE_A40)
+          .fontColor(REVIEW_LABEL3)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
       .alignItems(VerticalAlign.Bottom)
       .margin({ bottom: 14 })
 
-      Row() {
-        this.openStatsSegment('平衡', 'balance', 'muscle')
-        this.openStatsSegment('疲劳', 'fatigue', 'muscle')
-        this.openStatsSegment('力量', 'strength', 'muscle')
-      }
-      .width('100%')
-      .padding(3)
-      .backgroundColor(PrototypeTokens.WHITE_A05)
-      .borderRadius(999)
-      .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
+      SegmentedPill({
+        items: MUSCLE_MODE_ITEMS,
+        selectedKey: this.muscleMode,
+        itemHeight: 36,
+        fillWidth: true,
+        itemRadius: 999,
+        trackRadius: 999,
+        track: 'fill',
+        inactiveColor: REVIEW_LABEL2,
+        onSelect: (key: string) => {
+          this.applyOpenStatsSegment('muscle', key)
+        }
+      })
 
       Row({ space: 6 }) {
         Canvas(this.mmFrontContext)
@@ -2488,8 +2692,8 @@ export struct ReviewContent {
       Text(this.muscleNote())
         .fontFamily('Noto Sans SC')
         .fontSize(12)
-        .fontColor(PrototypeTokens.WHITE_A40)
-        .lineHeight(1.45)
+        .fontColor(REVIEW_LABEL3)
+        .lineHeight(17.4) // 与安卓对齐：1.45 × 12px，写成绝对值才看得出目标行高
         .margin({ top: 10 })
         .width('100%')
     }
@@ -2525,38 +2729,14 @@ export struct ReviewContent {
       Text(this.muscleDetailValue())
         .fontFamily('Noto Sans SC')
         .fontSize(12)
-        .fontColor(PrototypeTokens.WHITE_A62)
+        .fontColor(REVIEW_LABEL2)
         .textAlign(TextAlign.End)
         .width(52)
     }
     .width('100%')
     .alignItems(VerticalAlign.Center)
-    .padding({ top: 8, bottom: 8 })
-    .margin({ top: 6 })
-  }
-
-  @Builder
-  private openStatsSegment(label: string, key: string, group: string) {
-    Text(label)
-      .fontFamily('Noto Sans SC')
-      .fontSize(13)
-      .fontWeight(this.segmentActive(group, key) ? FontWeight.Bold : FontWeight.Medium)
-      .fontColor(this.segmentActive(group, key) ? PrototypeTokens.TEXT_ON_ACCENT : PrototypeTokens.WHITE_A62)
-      .height(36)
-      .layoutWeight(1)
-      .textAlign(TextAlign.Center)
-      .backgroundColor(this.segmentActive(group, key) ? PrototypeTokens.ACCENT : PrototypeTokens.TRANSPARENT)
-      .borderRadius(999)
-      .onClick(() => {
-        this.applyOpenStatsSegment(group, key)
-      })
-  }
-
-  private segmentActive(group: string, key: string): boolean {
-    if (group === 'muscle') {
-      return this.muscleMode === key
-    }
-    return this.effortMode === key
+    // 与安卓对齐：上 6 / 下 8（原先外层还叠了 margin top 6，上侧成 14）。
+    .padding({ top: 6, bottom: 8 })
   }
 
   @Builder
@@ -2573,7 +2753,9 @@ export struct ReviewContent {
           : '设置目标')
           .fontFamily('Inter')
           .fontSize(13)
-          .fontWeight(FontWeight.Medium)
+          // 与安卓 `.wg-goal` 一致：`natural(13f, 600)` + `letterSpacing 0.13`（原型 .01em × 13px）。
+          .fontWeight(600)
+          .letterSpacing(0.13)
           .fontColor(PrototypeTokens.ACCENT)
           .height(36)
           .padding({ left: 14, right: 14 })
@@ -2599,7 +2781,8 @@ export struct ReviewContent {
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
       .alignItems(VerticalAlign.Center)
-      .margin({ bottom: 14 })
+      // 与安卓对齐：标题到曲线总间距 6（原为标题底距 14 + Canvas 上距 6 = 20）。
+      .margin({ bottom: 0 })
 
       Canvas(this.wgContext)
         .width('100%')
@@ -2614,7 +2797,7 @@ export struct ReviewContent {
           Text('当前')
             .fontFamily('Noto Sans SC')
             .fontSize(12)
-            .fontColor(PrototypeTokens.WHITE_A40)
+            .fontColor(REVIEW_LABEL3)
           Text(this.weightCardCurrentText())
             .fontFamily('Noto Sans SC')
             .fontSize(17)
@@ -2625,7 +2808,7 @@ export struct ReviewContent {
         Text(this.weightCardDeltaText())
           .fontFamily('Inter')
           .fontSize(12)
-          .fontColor(PrototypeTokens.WHITE_A40)
+          .fontColor(REVIEW_LABEL3)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -2651,27 +2834,31 @@ export struct ReviewContent {
         Text('Effort · RIR / RPE')
           .fontFamily('Noto Sans SC')
           .fontSize(10.9)
-          .fontColor(PrototypeTokens.WHITE_A40)
+          .fontColor(REVIEW_LABEL3)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
       .alignItems(VerticalAlign.Bottom)
       .margin({ bottom: 14 })
 
-      Row() {
-        this.openStatsSegment('RIR', 'rir', 'effort')
-        this.openStatsSegment('RPE', 'rpe', 'effort')
-      }
-      .width('100%')
-      .padding(3)
-      .backgroundColor(PrototypeTokens.WHITE_A05)
-      .borderRadius(999)
-      .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
+      SegmentedPill({
+        items: EFFORT_MODE_ITEMS,
+        selectedKey: this.effortMode,
+        itemHeight: 36,
+        fillWidth: true,
+        itemRadius: 999,
+        trackRadius: 999,
+        track: 'fill',
+        inactiveColor: REVIEW_LABEL2,
+        onSelect: (key: string) => {
+          this.applyOpenStatsSegment('effort', key)
+        }
+      })
 
       Text('RIR 记的是你还剩几次；RPE 用 0–10 表示主观用力，RPE ≈ 10 − RIR。')
         .fontFamily('Noto Sans SC')
         .fontSize(11)
-        .fontColor(PrototypeTokens.WHITE_A40)
+        .fontColor(REVIEW_LABEL3)
         .lineHeight(1.5)
         .margin({ top: 12 })
         .width('100%')
@@ -2682,10 +2869,11 @@ export struct ReviewContent {
           .fontSize(30)
           .fontWeight(FontWeight.Bold)
           .fontColor(PrototypeTokens.TEXT_HI)
+          .letterSpacing(-0.6) // 与安卓对齐：30px 的 −.02em
         Text(this.effortUnitText())
           .fontFamily('Noto Sans SC')
           .fontSize(12)
-          .fontColor(PrototypeTokens.WHITE_A40)
+          .fontColor(REVIEW_LABEL3)
           .margin({ left: 8 })
       }
       .width('100%')
@@ -2703,7 +2891,7 @@ export struct ReviewContent {
             Text((index + 1).toString())
               .fontFamily('Inter')
               .fontSize(9)
-              .fontColor(PrototypeTokens.WHITE_A40)
+              .fontColor(REVIEW_LABEL3)
               .height(EFFORT_BAR_LABEL_HEIGHT)
           }
           .layoutWeight(1)
@@ -2736,7 +2924,7 @@ export struct ReviewContent {
         Text('来自最佳有效组')
           .fontFamily('Noto Sans SC')
           .fontSize(10.9)
-          .fontColor(PrototypeTokens.WHITE_A40)
+          .fontColor(REVIEW_LABEL3)
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -2755,13 +2943,14 @@ export struct ReviewContent {
           Text(item.source)
             .fontFamily('Noto Sans SC')
             .fontSize(11)
-            .fontColor(PrototypeTokens.WHITE_A40)
+            .fontColor(REVIEW_LABEL3)
           Row() {
             Text(this.oneRmDisplayText(item.value))
               .fontFamily('Inter')
               .fontSize(17)
               .fontWeight(FontWeight.Bold)
               .fontColor(PrototypeTokens.TEXT_HI)
+              .letterSpacing(-0.34) // 与安卓对齐：17px 的 −.02em
             Text(weightUnitLabel(this.displayUnit))
               .fontFamily('Noto Sans SC')
               .fontSize(11)
@@ -2834,8 +3023,10 @@ export struct ReviewContent {
             .fontColor(PrototypeTokens.WHITE_A54)
         }
         .margin({ top: 16 })
-        .padding({ left: 14, right: 14 })
-        .backgroundColor(this.goalError.length > 0 ? ColorTokens.FIELD_ERROR_FILL : '#171D24')
+        // 与安卓对齐：输入行净高 48（安卓是 24 行高 + 上下 12 内边距）。
+        // 这里 TextInput 已固定 40，故再补 4+4。
+        .padding({ left: 14, right: 14, top: 4, bottom: 4 })
+        .backgroundColor(this.goalError.length > 0 ? ColorTokens.FIELD_ERROR_FILL : REVIEW_INPUT_SURFACE)
         .borderRadius(14)
         .border({ width: 1, color: this.goalError.length > 0 ? ColorTokens.FIELD_ERROR_BORDER : PrototypeTokens.WHITE_A10 })
         .translate({ x: this.shakeOffset })
@@ -2851,7 +3042,8 @@ export struct ReviewContent {
           Text('取消')
             .fontFamily('Noto Sans SC')
             .fontSize(13)
-            .fontWeight(FontWeight.Medium)
+            // 与安卓 `ModalButton` 一致：`FtType.natural(13f, 600)`，不是 500。
+            .fontWeight(600)
             .fontColor(PrototypeTokens.WHITE_A70)
             .height(40)
             .padding({ left: 16, right: 16 })
@@ -2863,7 +3055,8 @@ export struct ReviewContent {
           Text('保存')
             .fontFamily('Noto Sans SC')
             .fontSize(13)
-            .fontWeight(FontWeight.Medium)
+            // 与安卓 `ModalButton` 一致：`FtType.natural(13f, 600)`，不是 500。
+            .fontWeight(600)
             .fontColor(PrototypeTokens.TEXT_ON_ACCENT)
             .height(40)
             .padding({ left: 16, right: 16 })
@@ -2877,9 +3070,13 @@ export struct ReviewContent {
         .margin({ top: 18 })
         .width('100%')
       }
-      .width(320)
+      // 与安卓对齐：可视面板宽 272 = `widthIn(max 320)` 再内缩左右 24。
+      // 安卓那 24 是画在 `clip/background` 之前的 Modifier padding；ArkUI 的 padding
+      // 不会缩进背景，所以直接把换算结果写成 maxWidth，避免多套一层容器。
+      .width('100%')
+      .constraintSize({ maxWidth: 272 })
       .padding(20)
-      .backgroundColor(PrototypeTokens.BG_INK_WELCOME)
+      .backgroundColor(REVIEW_MODAL_SURFACE)
       .borderRadius(22)
       .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
       // 弹层进场：遮罩先淡入（160ms），卡片 200ms 从 0.96 缩放到 1 落位。
