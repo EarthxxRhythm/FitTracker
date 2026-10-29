@@ -17,6 +17,10 @@
     <string name="active_progress_done">训练完成 · 全部 %1$d 组</string>
     <!-- 顶部计时标签（`.top-timer`） -->
     <string name="active_elapsed_label">总时长</string>
+    <!-- 顶栏收起按钮的无障碍标签 -->
+    <string name="active_collapse">收起训练</string>
+    <!-- 动作切换胶囊文案：`%1$d` 动作序号（1 起） -->
+    <string name="active_exercise_tab">动作%1$d</string>
     <!-- `.duo-bar` 的 `role=progressbar` aria-label -->
     <string name="active_a11y_progress">训练组数进度</string>
 

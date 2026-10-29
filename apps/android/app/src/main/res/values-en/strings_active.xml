@@ -9,6 +9,8 @@
     <string name="active_progress_step">Set %1$d of %2$d</string>
     <string name="active_progress_done">Workout complete · all %1$d sets</string>
     <string name="active_elapsed_label">Elapsed</string>
+    <string name="active_collapse">Collapse workout</string>
+    <string name="active_exercise_tab">Exercise %1$d</string>
     <string name="active_a11y_progress">Set progress</string>
 
     <!-- Submit button -->

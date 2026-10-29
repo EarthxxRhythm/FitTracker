@@ -184,6 +184,56 @@ class ActiveWorkoutService {
     return this.createStateWithProgress(state, updated)
   }
 
+  /**
+   * 记录一组到指定动作（训练页顶部动作切换条的唯一写入口）。
+   *
+   * 与 recordSet 的差别只在目标：recordSet 写「首个未录满动作」，本方法写界面选中的动作。
+   * 目标动作没有空组时原样返回——调用方须先用 nextEmptySetIndex 判定可写，
+   * 否则一组会记到用户没在看的动作上。
+   */
+  recordSetFor(
+    state: ActiveWorkoutState,
+    plannedExerciseId: string,
+    weightText: string,
+    repsText: string
+  ): ActiveWorkoutState {
+    const index: number = this.findExerciseIndexById(state.exercises, plannedExerciseId)
+    if (index < 0) {
+      return state
+    }
+    const setIndex: number = this.nextEmptySetIndex(state.exercises[index])
+    if (setIndex < 0) {
+      return state
+    }
+    const updated: ActiveWorkoutExercise[] = this.updateSetEntry(
+      state.exercises,
+      plannedExerciseId,
+      setIndex,
+      weightText,
+      repsText
+    )
+    return this.createStateWithProgress(state, updated)
+  }
+
+  /** 动作内首个未填组的下标（0 起）；全部填完返回 -1。热身组按「已填」处理——补录不该覆盖它。 */
+  nextEmptySetIndex(exercise: ActiveWorkoutExercise): number {
+    for (let index = 0; index < exercise.sets.length; index++) {
+      if (!exercise.sets[index].isComplete) {
+        return index
+      }
+    }
+    return -1
+  }
+
+  private findExerciseIndexById(exercises: ActiveWorkoutExercise[], plannedExerciseId: string): number {
+    for (let index = 0; index < exercises.length; index++) {
+      if (exercises[index].plannedExerciseId === plannedExerciseId) {
+        return index
+      }
+    }
+    return -1
+  }
+
   countCompletedSets(exercises: ActiveWorkoutExercise[]): number {
     let completedSets: number = 0
     for (let index = 0; index < exercises.length; index++) {

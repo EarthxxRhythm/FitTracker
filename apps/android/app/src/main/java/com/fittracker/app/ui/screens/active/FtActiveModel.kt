@@ -128,9 +128,42 @@ object FtActiveModel {
         val current = exercises.firstOrNull { it.completedSets < it.targetSets }
             ?: exercises.lastOrNull()
             ?: return emptyList()
+        return recordsOf(current)
+    }
+
+    /**
+     * 首个未录满动作的下标；全部录满返回 -1。
+     *
+     * 训练页顶部动作切换胶囊的选中初值用它（与改造前「当前动作」同口径），
+     * 收尾判据也用它的 -1 ——「还有一个动作要做」与「全部做完了」必须能区分。
+     */
+    fun firstUnfinishedIndex(exercises: List<ActiveWorkoutExercise>): Int =
+        exercises.indexOfFirst { it.completedSets < it.targetSets }
+
+    /**
+     * 指定动作的记录（顶部胶囊可以停在任意动作上补录，记录区必须以选中动作为准）。
+     *
+     * 与 [currentRecords] 的差别只在「哪个动作」：那个按首个未录满推导，这个按 id 取。
+     * 动作不存在或还没有已完成正式组时返回空列表（页面显示空态）。
+     */
+    fun recordsFor(exercises: List<ActiveWorkoutExercise>, plannedExerciseId: String): List<FtSetRecord> {
+        val exercise = exercises.firstOrNull { it.plannedExerciseId == plannedExerciseId } ?: return emptyList()
+        return recordsOf(exercise)
+    }
+
+    /** 胶囊内的组进度 0f..1f（越界或 targetSets 为 0 时返回 0f）。 */
+    fun exerciseProgress(exercises: List<ActiveWorkoutExercise>, index: Int): Float {
+        if (index < 0 || index >= exercises.size) return 0f
+        val exercise = exercises[index]
+        if (exercise.targetSets <= 0) return 0f
+        return (exercise.completedSets.toFloat() / exercise.targetSets).coerceIn(0f, 1f)
+    }
+
+    /** 单个动作的已完成正式组 → 视觉记录：只收 `isComplete && !isWarmup`，组号用条目下标 +1。 */
+    private fun recordsOf(exercise: ActiveWorkoutExercise): List<FtSetRecord> {
         val result = mutableListOf<FtSetRecord>()
-        for (index in current.sets.indices) {
-            val set = current.sets[index]
+        for (index in exercise.sets.indices) {
+            val set = exercise.sets[index]
             if (!set.isComplete || set.isWarmup) continue
             result.add(
                 FtSetRecord(

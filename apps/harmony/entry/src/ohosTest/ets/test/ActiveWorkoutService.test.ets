@@ -10,6 +10,49 @@ import {
   buildRecordGroups
 } from '../../../main/ets/features/pencil/components/ActiveSetRecordModel'
 
+/**
+ * 固定前置：预设上/下肢计划的活跃训练态。
+ *
+ * recordSetFor 的用例只关心「写哪个动作」，不需要每次重写一遍计划装配；
+ * 预设取不到时回退到 PlanEngine 生成的计划，保证用例不因资源变动而整体跳过。
+ */
+function createPresetActiveState(enabledAt: number): ActiveWorkoutState {
+  const presetPlan: PresetPlan | undefined = TrainingPlanService.getPresetPlanById('preset_upper_lower')
+  if (presetPlan === undefined) {
+    const equipmentIds: string[] = ['eq_bodyweight']
+    const restrictedMuscleIds: string[] = []
+    const goal: UserGoal = createUserGoal(
+      'goal_preset_fallback',
+      'hypertrophy',
+      'beginner',
+      3,
+      45,
+      equipmentIds,
+      restrictedMuscleIds,
+      100,
+      100
+    )
+    return ActiveWorkoutService.createState(WorkoutPreviewService.createPreview(PlanEngine.generatePlan(goal), 1))
+  }
+  const currentPlan: UserPlan = {
+    id: presetPlan.id,
+    name: presetPlan.name,
+    coverColor: presetPlan.coverColor,
+    targetAudience: presetPlan.targetAudience,
+    weeklyFrequency: presetPlan.weeklyFrequency,
+    description: presetPlan.description,
+    days: presetPlan.days,
+    enabledAt: enabledAt
+  }
+  const preview: WorkoutPreviewSummary = WorkoutPreviewService.createPreviewForCurrentPlan(
+    currentPlan,
+    'current_plan_day_' + enabledAt.toString(),
+    '周一',
+    currentPlan.days[0]
+  )
+  return ActiveWorkoutService.createState(preview)
+}
+
 export default function activeWorkoutServiceTest(): void {
   describe('ActiveWorkoutService', () => {
     it('creates active workout state with current exercise and set progress from preview flow', 0, () => {
@@ -394,6 +437,74 @@ export default function activeWorkoutServiceTest(): void {
       state = ActiveWorkoutService.recordSet(state, '40', '8')
       expect(state.completedSets).assertEqual(expectedTotal)
       expect(ActiveWorkoutService.nextExercise(state) === undefined).assertTrue()
+    })
+
+    it('recordSetFor 写入界面选中的动作，不影响其它动作', 0, () => {
+      // 训练页顶部动作切换胶囊的契约：选哪个动作就写哪个动作。
+      // 若沿用 recordSet（首个未录满动作），用户看着动作 3 记录却写进动作 1，且无任何报错。
+      const initial: ActiveWorkoutState = createPresetActiveState(104)
+      expect(initial.exercises.length >= 2).assertTrue()
+      if (initial.exercises.length >= 2) {
+        const second: ActiveWorkoutExercise = initial.exercises[1]
+        const next: ActiveWorkoutState =
+          ActiveWorkoutService.recordSetFor(initial, second.plannedExerciseId, '60', '8')
+
+        expect(next.exercises[1].sets[0].isComplete).assertTrue()
+        expect(next.exercises[1].sets[0].weightText).assertEqual('60')
+        expect(next.exercises[1].completedSets).assertEqual(1)
+        // 「不写错动作」的判据：第一个动作的组数不受影响
+        expect(next.exercises[0].completedSets).assertEqual(0)
+        expect(next.completedSets).assertEqual(1)
+      }
+    })
+
+    it('recordSetFor 在目标动作已录满时原样返回同一 state 引用', 0, () => {
+      let state: ActiveWorkoutState = createPresetActiveState(105)
+      const first: ActiveWorkoutExercise = state.exercises[0]
+      for (let index = 0; index < first.targetSets; index++) {
+        state = ActiveWorkoutService.recordSetFor(state, first.plannedExerciseId, '40', '10')
+      }
+      expect(state.exercises[0].completedSets).assertEqual(first.targetSets)
+
+      const afterFull: ActiveWorkoutState =
+        ActiveWorkoutService.recordSetFor(state, first.plannedExerciseId, '40', '10')
+      // 同一引用 = 没有写到任何地方（既没覆盖已满动作，也没溢出到别的动作）
+      expect(afterFull === state).assertTrue()
+    })
+
+    it('nextEmptySetIndex 返回动作内首个空组，热身组按已填处理', 0, () => {
+      const state: ActiveWorkoutState = createPresetActiveState(106)
+      const first: ActiveWorkoutExercise = state.exercises[0]
+      expect(first.targetSets >= 2).assertTrue()
+      expect(ActiveWorkoutService.nextEmptySetIndex(first)).assertEqual(0)
+
+      // 跳过第 0 组先填第 1 组：下一个空组仍是 0
+      const skippedExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.updateSetEntry(
+        state.exercises, first.plannedExerciseId, 1, '40', '10')
+      const skipped: ActiveWorkoutState = ActiveWorkoutService.createStateWithProgress(state, skippedExercises)
+      expect(ActiveWorkoutService.nextEmptySetIndex(skipped.exercises[0])).assertEqual(0)
+
+      // 第 0 组已录且标为热身：不该被当成空组覆盖
+      const filledExercises: ActiveWorkoutExercise[] = ActiveWorkoutService.updateSetEntry(
+        state.exercises, first.plannedExerciseId, 0, '20', '15')
+      const warmedExercises: ActiveWorkoutExercise[] =
+        ActiveWorkoutService.updateSetWarmup(filledExercises, first.plannedExerciseId, 0, true)
+      const warmed: ActiveWorkoutState = ActiveWorkoutService.createStateWithProgress(state, warmedExercises)
+      expect(warmed.exercises[0].sets[0].isWarmup).assertTrue()
+      expect(ActiveWorkoutService.nextEmptySetIndex(warmed.exercises[0])).assertEqual(1)
+
+      // 没有组条目 → -1（调用方据此判定不可写）
+      const emptySets: ActiveWorkoutExercise = {
+        plannedExerciseId: 'planned_empty',
+        exerciseId: 'ex_empty',
+        name: '空动作',
+        targetSets: 0,
+        targetReps: '8-12',
+        intensityNote: '',
+        completedSets: 0,
+        sets: []
+      }
+      expect(ActiveWorkoutService.nextEmptySetIndex(emptySets)).assertEqual(-1)
     })
   })
 }

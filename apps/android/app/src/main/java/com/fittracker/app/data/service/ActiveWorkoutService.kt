@@ -179,6 +179,36 @@ object ActiveWorkoutService {
         )
     }
 
+    // --- 指定动作写入（训练页顶部动作切换的唯一写入口） ----------------------
+
+    /**
+     * 记录一组到**指定动作**——顶部动作切换胶囊选中哪个动作，就写哪个动作。
+     *
+     * 与 [updateSetEntry] 的差别在「写哪一组」：这里取该动作内首个未填组。目标动作没有空组时
+     * 原样返回同一个 state（调用方据此判定不可写）。训练页此前一律写「首个未录满动作」，
+     * 用户切到动作 3 记录会静默落到动作 1。
+     */
+    fun recordSetFor(
+        state: ActiveWorkoutState,
+        plannedExerciseId: String,
+        weightText: String,
+        repsText: String,
+    ): ActiveWorkoutState {        val exercise: ActiveWorkoutExercise =
+            state.exercises.firstOrNull { it.plannedExerciseId == plannedExerciseId } ?: return state
+        val setIndex: Int = nextEmptySetIndex(exercise)
+        if (setIndex < 0) {
+            return state
+        }
+        return createStateWithProgress(
+            state,
+            updateSetEntry(state.exercises, plannedExerciseId, setIndex, weightText, repsText),
+        )
+    }
+
+    /** 动作内首个未填组的下标（0 起）；全部填完返回 -1。热身组按「已填」处理——补录不该覆盖它。 */
+    fun nextEmptySetIndex(exercise: ActiveWorkoutExercise): Int =
+        exercise.sets.indexOfFirst { !it.isComplete }
+
     // --- 计数 ---------------------------------------------------------------
 
     /** 源 `:120` `countCompletedSets`——所有动作**有效工作组**（`isComplete && !isWarmup`）之和。 */

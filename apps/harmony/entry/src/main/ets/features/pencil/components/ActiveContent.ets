@@ -22,7 +22,8 @@ import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 import {
   ActiveExerciseRecordGroup,
   ActiveSetRecord,
-  buildCurrentRecordGroups
+  buildRecordGroupFor,
+  findUnfinishedExerciseIndex
 } from './ActiveSetRecordModel'
 
 interface ActiveWorkoutRouteParams {
@@ -47,10 +48,15 @@ const WEIGHT_MAX_KG: number = 200
 // 目标次数解析不出时的兜底（原型输入框占位为「8–10」）。
 const FALLBACK_REPS: number = 8
 
-// 分段进度条胶囊高度。原型 .duo-seg 为 12px；此处有意加高——12vp 时 3vp 的圆点环
-// 要占掉一半高度、绿芯只剩 6vp，显得偏细；加高后环占比接近圆点自身（3/18），
-// 且与当前段 18vp 的圆点 marker 接近齐平。内条与外容器必须同用此值。
-const PROGRESS_SEGMENT_HEIGHT: number = 16
+// 动作切换胶囊（参考图 .act-pill）：高 30、圆角 999、字号 12。
+const EXERCISE_PILL_HEIGHT: number = 30
+const EXERCISE_PILL_GAP: number = 8
+// 胶囊内进度条：底部内缩 6、条高 2.5——细到不压字，又能读出比例。
+const EXERCISE_PILL_BAR_HEIGHT: number = 2.5
+const EXERCISE_PILL_BAR_INSET: number = 6
+// 动作数不超过该值（含）时等分铺满；超出改为横向滚动。
+// 4 个等分时每个约 74vp，容得下「动作4」三字（12vp × 3 + 内距）。
+const EXERCISE_PILL_EVEN_MAX: number = 4
 
 // 动作演示卡（容器）高度。原型 .demo-card 为 230，此处有意加高以留出更多版面；
 // 标题条固定在距底 56 处，与原型同口径。
@@ -126,11 +132,12 @@ export struct ActiveContent {
   @State private minusPressed: boolean = false
   @State private plusPressed: boolean = false
   @State private livePulseLow: boolean = false
-  @State private segPopIndex: number = -1
+  /** 顶部动作切换条选中的动作下标（0 起）；初值 = 首个未录满动作。 */
+  @State private selectedExerciseIndex: number = 0
+  @State private collapsePressed: boolean = false
   private celebrateTimer: number = -1
   private clockTimer: number = -1
   private pulseTimer: number = -1
-  private segPopTimer: number = -1
   private finished: boolean = false
   private win: window.Window | null = null
   private keepScreenOnApplied: boolean = false
@@ -171,10 +178,6 @@ export struct ActiveContent {
     if (this.pulseTimer !== -1) {
       clearInterval(this.pulseTimer)
       this.pulseTimer = -1
-    }
-    if (this.segPopTimer !== -1) {
-      clearTimeout(this.segPopTimer)
-      this.segPopTimer = -1
     }
     if (this.celebrateTimer !== -1) {
       clearTimeout(this.celebrateTimer)
@@ -273,8 +276,14 @@ export struct ActiveContent {
     this.exerciseIndex = this.findCurrentExerciseIndex(state)
     this.targetSets = ActiveWorkoutService.totalTargetSets(state)
     this.completed = state.completedSets
-    // 记录区只持有当前动作的分组；从预览新建的 state 通常还没有完成组，此处为空数组。
-    this.recordGroups = buildCurrentRecordGroups(state.exercises)
+    // 顶部胶囊初值：首个未录满动作（= 改造前「当前动作」的同一口径）；全部录满时停在最后一个动作。
+    const unfinished: number = findUnfinishedExerciseIndex(state.exercises)
+    this.selectedExerciseIndex =
+      unfinished >= 0 ? unfinished : Math.max(state.exercises.length - 1, 0)
+    // 记录区只持有选中动作的分组；从预览新建的 state 通常还没有完成组，此处为空数组。
+    this.recordGroups = this.selectedExerciseIndex < state.exercises.length
+      ? buildRecordGroupFor(state.exercises, state.exercises[this.selectedExerciseIndex].plannedExerciseId)
+      : []
     // 重量/次数必须有可落库的初值：组条目初建时是空文本（解析出 0），而
     // ActiveWorkoutService 只把 weight>0 && reps>0 的组判为已完成——沿用 0 时
     // 「完成本组」写不进进度，训练会卡在同一组反复覆盖。故回落到重量下限与目标次数。
@@ -390,7 +399,8 @@ export struct ActiveContent {
   }
 
   private openModal(): void {
-    if (this.completed < this.targetSets) {
+    // 判据是「选中动作还有空组」，不是全局组数——切到已录满的动作时不该开弹窗
+    if (this.selectedCanRecord()) {
       this.getUIContext().animateTo({ duration: MotionTokens.DURATION_OVERLAY, curve: MotionTokens.EASE_MOTION }, () => {
         this.showModal = true
       })
@@ -415,43 +425,55 @@ export struct ActiveContent {
   }
 
   private completeSet(): void {
-    if (this.finished || this.completed >= this.targetSets) {
+    if (this.finished) {
       return
     }
-    // 唯一写入口：目标动作与组下标都由 state 推导（首个未录满动作的下一组），
-    // 所以第一个动作录满后，本次记录会自动落到下一个动作的第 1 组。
-    const weightText: string = this.weight.toString()
-    const repsText: string = this.reps.toString()
-    const nextState: ActiveWorkoutState = ActiveWorkoutService.recordSet(this.activeState, weightText, repsText)
-    this.activeState = nextState
-    // 记录从刚更新的 activeState 派生（与落库同源），不再增量追加 UI 状态：
-    // 设备实测连做 4 组时增量赋值会被吞、分组只显示 1 组，而 activeState 里 4 组都在。
-    // 只取当前动作的分组：动作录满切到下一个后，记录区随之切到新动作（从空态开始）。
-    this.recordGroups = buildCurrentRecordGroups(nextState.exercises)
-    const justDoneIndex: number = this.completed
-    this.getUIContext().animateTo({ duration: MotionTokens.DURATION_MARKER, curve: MotionTokens.EASE_MOTION }, () => {
-      this.completed += 1
-    })
-    this.segPopIndex = justDoneIndex
-    if (this.segPopTimer !== -1) {
-      clearTimeout(this.segPopTimer)
+    const target: ActiveWorkoutExercise | undefined = this.selectedExercise()
+    // 目标动作由「顶部胶囊选中的动作」决定，不再由 state 推导：
+    // 沿用 recordSet（首个未录满动作）会让用户看着动作 3 却记到动作 1，且无任何可见报错。
+    if (target === undefined || !this.selectedCanRecord()) {
+      return
     }
-    // 放大段只持续 UP 时长；回落到常态由渲染处按 DOWN 时长接管（合计 = DURATION_SEG_POP）
-    this.segPopTimer = setTimeout(() => {
-      this.segPopIndex = -1
-      this.segPopTimer = -1
-    }, MotionTokens.DURATION_SEG_POP_UP)
+    const nextState: ActiveWorkoutState = ActiveWorkoutService.recordSetFor(
+      this.activeState,
+      target.plannedExerciseId,
+      this.weight.toString(),
+      this.reps.toString()
+    )
+    if (nextState === this.activeState) {
+      // 目标动作没有空组：服务原样返回，不落任何写
+      return
+    }
+    this.activeState = nextState
+    // 选中的动作刚录满 → 自动前进到下一个未录满动作（保持「做完自动切下一个」的既有体感）；
+    // 用户跳着补录时不会被拽走。
+    if (target.completedSets + 1 >= target.targetSets) {
+      const nextIndex: number = findUnfinishedExerciseIndex(nextState.exercises)
+      if (nextIndex >= 0) {
+        this.selectedExerciseIndex = nextIndex
+      }
+    }
+    this.applyCurrentExercise(nextState)
+    if (this.selectedExerciseIndex < nextState.exercises.length) {
+      const selected: ActiveWorkoutExercise = nextState.exercises[this.selectedExerciseIndex]
+      // 记录从刚更新的 activeState 派生（与落库同源），且只取选中动作：
+      // 设备实测确认过增量维护 UI 状态会吞组，派生方案让展示与落库永远同源。
+      this.recordGroups = buildRecordGroupFor(nextState.exercises, selected.plannedExerciseId)
+    } else {
+      this.recordGroups = []
+    }
+    this.getUIContext().animateTo({ duration: MotionTokens.DURATION_MARKER, curve: MotionTokens.EASE_MOTION }, () => {
+      this.completed = nextState.completedSets
+    })
     this.showModal = false
     if (this.soundEnabled) {
       HapticFeedbackService.confirm()
     }
-    // 动作卡与角标跟着 state 走：录满当前动作的最后一组后，动作名/演示图/序号立即切到下一个动作。
-    this.applyCurrentExercise(nextState)
-    const isLast: boolean = justDoneIndex + 1 >= this.targetSets
-    if (isLast) {
+    // 收尾判据改为「没有下一个未录满动作」，不再比较全局组号与总组数：
+    // 跳着做时 completed 可能先追平，但那只是跳过的动作还没做。
+    if (ActiveWorkoutService.nextExercise(nextState) === undefined) {
       // 庆祝只在里程碑出现。此前每组都置 celebrating=true 并铺 1.4s 全屏遮罩：
       // 一次训练放 N 次焰火，情绪价值被稀释，还会打断连续记录的输入节奏。
-      // Duolingo 的 guardrail 正是「庆祝要稀缺，不要给每次进度变化都加通用弹跳」。
       this.celebrating = true
       this.finished = true
       this.saveCompletedSession()
@@ -463,12 +485,17 @@ export struct ActiveContent {
     }
   }
 
-  /** 把 state 推导出的当前动作同步到展示态（名称 / 演示素材 / 角标序号）。 */
+  /** 把选中动作同步到展示态（名称 / 演示素材 / 角标序号）。 */
   private applyCurrentExercise(state: ActiveWorkoutState): void {
-    this.exerciseName = state.currentExerciseName
-    this.exerciseGifSource = ExerciseGifCatalog.resolveDemoSource(state.currentExerciseName)
-    this.exerciseUsesPhotoStyle = ExerciseGifCatalog.usesPhotoStyle(state.currentExerciseName)
-    this.exerciseIndex = this.findCurrentExerciseIndex(state)
+    if (this.selectedExerciseIndex < 0 || this.selectedExerciseIndex >= state.exercises.length) {
+      this.exerciseIndex = 1
+      return
+    }
+    const exercise: ActiveWorkoutExercise = state.exercises[this.selectedExerciseIndex]
+    this.exerciseName = exercise.name
+    this.exerciseGifSource = ExerciseGifCatalog.resolveDemoSource(exercise.name)
+    this.exerciseUsesPhotoStyle = ExerciseGifCatalog.usesPhotoStyle(exercise.name)
+    this.exerciseIndex = this.selectedExerciseIndex + 1
   }
 
   /**
@@ -495,41 +522,102 @@ export struct ActiveContent {
     WorkoutRepository.saveSession(session)
   }
 
-  /** 进度条段的索引序列（0..targetSets-1）；段数即本次训练总组数。 */
-  private segmentIndexes(): number[] {
+  /** 动作切换胶囊的索引序列（0..exerciseTotal-1）。 */
+  private exerciseIndexes(): number[] {
     const indexes: number[] = []
-    for (let index = 0; index < this.targetSets; index++) {
+    for (let index = 0; index < this.exerciseTotal; index++) {
       indexes.push(index)
     }
     return indexes
   }
 
-  // 分段进度条：已完成段采用「圆点」的样式——实心 accent + ink-0 粗描边环（形状仍是胶囊），
-  // 整排因此读作一串珠子；未完成/当前段同时抬高填充浓度（「实一点」）。
-  private segmentBackground(index: number): string {
-    if (index < this.completed) {
-      return PrototypeTokens.ACCENT
+  /** 当前选中的动作；下标越界或无训练数据时返回 undefined。 */
+  private selectedExercise(): ActiveWorkoutExercise | undefined {
+    const exercises: ActiveWorkoutExercise[] = this.activeState.exercises
+    if (this.selectedExerciseIndex < 0 || this.selectedExerciseIndex >= exercises.length) {
+      return undefined
     }
-    if (index === this.completed) {
-      return PrototypeTokens.ACCENT_A24
-    }
-    return '#1FFFFFFF'
+    return exercises[this.selectedExerciseIndex]
   }
 
-  private segmentBorder(index: number): string {
-    if (index < this.completed) {
-      // 与 .duo-marker 的 border 同色（ink-0），即圆点那圈深色环
-      return PrototypeTokens.BG_INK
+  /** 选中动作还能不能记一组（有未填的空组）。 */
+  private selectedCanRecord(): boolean {
+    const exercise: ActiveWorkoutExercise | undefined = this.selectedExercise()
+    if (exercise === undefined) {
+      return false
     }
-    if (index === this.completed) {
-      return '#9950ECA7'
-    }
-    return PrototypeTokens.WHITE_A10
+    return exercise.completedSets < exercise.targetSets
   }
 
-  // 已完成段用圆点的 3vp 描边宽度，其余保持 1vp
-  private segmentBorderWidth(index: number): number {
-    return index < this.completed ? 3 : 1
+  /** 选中动作是否已录满（按钮置灰与弹窗关闭的判据）。 */
+  private selectedIsFull(): boolean {
+    return !this.selectedCanRecord()
+  }
+
+  /** 胶囊进度 0..1（越界夹紧；targetSets 为 0 时返回 0）。 */
+  private exerciseProgress(index: number): number {
+    const exercises: ActiveWorkoutExercise[] = this.activeState.exercises
+    if (index < 0 || index >= exercises.length || exercises[index].targetSets <= 0) {
+      return 0
+    }
+    const ratio: number = exercises[index].completedSets / exercises[index].targetSets
+    if (ratio <= 0) {
+      return 0
+    }
+    return ratio >= 1 ? 1 : ratio
+  }
+
+  /** 动作内组号（1 起，录满停在 targetSets）——替换原来的全场组号。 */
+  private selectedSetNumber(): number {
+    const exercise: ActiveWorkoutExercise | undefined = this.selectedExercise()
+    if (exercise === undefined) {
+      return 1
+    }
+    const next: number = exercise.completedSets + 1
+    return next > exercise.targetSets ? exercise.targetSets : next
+  }
+
+  /** 切到指定动作：名称、演示素材、角标、记录区、输入初值一起跟随。 */
+  private selectExercise(index: number): void {
+    if (index === this.selectedExerciseIndex) {
+      return
+    }
+    if (index < 0 || index >= this.activeState.exercises.length) {
+      return
+    }
+    this.selectedExerciseIndex = index
+    const exercise: ActiveWorkoutExercise = this.activeState.exercises[index]
+    this.exerciseName = exercise.name
+    this.exerciseGifSource = ExerciseGifCatalog.resolveDemoSource(exercise.name)
+    this.exerciseUsesPhotoStyle = ExerciseGifCatalog.usesPhotoStyle(exercise.name)
+    this.exerciseIndex = index + 1
+    this.recordGroups = buildRecordGroupFor(this.activeState.exercises, exercise.plannedExerciseId)
+    this.applyExerciseInputDefaults(exercise)
+  }
+
+  /** 输入初值跟随选中动作：取该动作最后一个已完成组；没有则保持当前输入。 */
+  private applyExerciseInputDefaults(exercise: ActiveWorkoutExercise): void {
+    for (let index = exercise.sets.length - 1; index >= 0; index--) {
+      const entry: ActiveWorkoutSetEntry = exercise.sets[index]
+      if (!entry.isComplete) {
+        continue
+      }
+      const weight: number = this.parsePositiveNumber(entry.weightText)
+      const reps: number = this.parsePositiveNumber(entry.repsText)
+      if (weight > 0) {
+        this.weight = weight
+      }
+      if (reps > 0) {
+        this.reps = reps
+      }
+      return
+    }
+  }
+
+  /** 收起训练：与系统返回键同一路径（不新增未保存状态）。 */
+  private collapseWorkout(): void {
+    this.releaseKeepScreenOn()
+    this.getUIContext().getRouter().back()
   }
 
   build() {
@@ -540,7 +628,7 @@ export struct ActiveContent {
         .backgroundColor(PrototypeTokens.BG_INK)
 
       Column() {
-        this.topProgress()
+        this.activeTop()
         Scroll() {
           Column({ space: 14 }) {
             this.demoCard()
@@ -568,83 +656,169 @@ export struct ActiveContent {
   }
 
   @Builder
-  private topProgress() {
+  private activeTop() {
     Column({ space: 10 }) {
       Row() {
-        Text(this.targetSets <= 0
-          ? '暂无训练内容'
-          : (this.completed >= this.targetSets
-            ? '训练完成 · 全部 ' + this.targetSets.toString() + ' 组'
-            : '第 ' + (this.completed + 1).toString() + ' 组 / 共 ' + this.targetSets.toString() + ' 组'))
+        this.collapseButton()
+        Text(this.currentExerciseLabel())
           .fontFamily('Noto Sans SC')
-          .fontSize(12)
-          .fontWeight(600)
-          .fontColor(PrototypeTokens.WHITE_A70)
-        Row({ space: 6 }) {
-          Row()
-            .width(6)
-            .height(6)
-            .borderRadius(3)
-            .backgroundColor(PrototypeTokens.ACCENT)
-            .opacity(this.livePulseLow ? 0.45 : 1)
-            .scale({ x: this.livePulseLow ? 0.78 : 1, y: this.livePulseLow ? 0.78 : 1 })
-            .animation({ duration: MotionTokens.DURATION_PULSE / 2, curve: Curve.EaseInOut })
-          Text('总时长')
-            .fontFamily('Noto Sans SC')
-            .fontSize(12)
-            .fontColor(PrototypeTokens.WHITE_A60)
-          Text(formatClock(this.elapsedSeconds))
-            .fontFamily('Geist Mono')
-            .fontSize(14)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(PrototypeTokens.TEXT_HI)
-        }
-      }
-      .width('100%')
-      .justifyContent(FlexAlign.SpaceBetween)
-
-      Row({ space: 6 }) {
-        ForEach(this.segmentIndexes(), (index: number) => {
-          Stack({ alignContent: Alignment.Center }) {
-            Row()
-              .width('100%')
-              .height(PROGRESS_SEGMENT_HEIGHT)
-              .backgroundColor(this.segmentBackground(index))
-              .borderRadius(999)
-              .border({ width: this.segmentBorderWidth(index), color: this.segmentBorder(index) })
-              .shadow({ radius: index === this.completed ? 2 : 0, color: index === this.completed ? PrototypeTokens.ACCENT_A12 : PrototypeTokens.TRANSPARENT, offsetX: 0, offsetY: 0 })
-              .scale({ x: index === this.segPopIndex ? 1.12 : 1, y: index === this.segPopIndex ? 1.12 : 1 })
-              // 放大用 UP + 过冲曲线（弹一下），回缩用 DOWN + 常规缓动（稳稳落回）
-              .animation({
-                duration: this.segPopIndex >= 0
-                  ? MotionTokens.DURATION_SEG_POP_UP
-                  : MotionTokens.DURATION_SEG_POP_DOWN,
-                curve: this.segPopIndex >= 0
-                  ? MotionTokens.EASE_BACK_OUT
-                  : MotionTokens.EASE_MOTION
-              })
-            if (index === this.completed) {
-              Row()
-                .width(18)
-                .height(18)
-                .backgroundColor(PrototypeTokens.ACCENT)
-                .borderRadius(9)
-                .border({ width: 3, color: PrototypeTokens.BG_INK })
-                .transition(TransitionEffect.scale({ x: 0.4, y: 0.4 }).combine(TransitionEffect.OPACITY))
-            }
-          }
+          .fontSize(20)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(PrototypeTokens.TEXT_HI)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
           .layoutWeight(1)
-          .height(PROGRESS_SEGMENT_HEIGHT)
-        }, (index: number) => index.toString())
+          .textAlign(TextAlign.Center)
+        this.topTimer()
       }
       .width('100%')
+      .height(44)
+      .alignItems(VerticalAlign.Center)
+
+      this.exerciseTabs()
     }
     .width('100%')
-    .padding({ left: 18, right: 18, top: 14, bottom: 12 })
+    .padding({ left: 18, right: 18, top: 10, bottom: 10 })
     // 原型 .wo-top: rgba(10,13,18,.96)。ArkUI 的 8 位色是 #AARRGGBB，
     // 曾误按 #RRGGBBAA 写成 #0A0D12F5（= 4% 透明 + RGB(13,18,245)），顶栏因此比主体偏蓝。
     .backgroundColor(PrototypeTokens.SCRIM_DEEP)
     .border({ width: { bottom: 1 }, color: PrototypeTokens.WHITE_A06 })
+  }
+
+  /**
+   * 收起按钮：纯线条 chevron-down，无底色块、无描边底、无常驻圆底（参考图左上角）。
+   *
+   * 用 Path 直接画折线而不是放 SVG 资源：IconTokens 的注释已写明 Image.fillColor 只换 fill、
+   * 对 stroke 无效——需要随状态变色的线条图标必须自绘。
+   */
+  @Builder
+  private collapseButton() {
+    Stack({ alignContent: Alignment.Center }) {
+      Path()
+        .width(24)
+        .height(24)
+        .commands('M6 9.5 L12 15.5 L18 9.5')
+        .fill(PrototypeTokens.TRANSPARENT)
+        .stroke(PrototypeTokens.ACCENT)
+        .strokeWidth(2.2)
+        .strokeLineCap(LineCapStyle.Round)
+        .strokeLineJoin(LineJoinStyle.Round)
+    }
+    .width(44)
+    .height(44)
+    .scale({ x: this.collapsePressed ? MotionTokens.PRESS_ICON : 1, y: this.collapsePressed ? MotionTokens.PRESS_ICON : 1 })
+    .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
+    .accessibilityText('收起训练')
+    .onTouch((event: TouchEvent) => {
+      if (event.type === TouchType.Down) {
+        this.collapsePressed = true
+      } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        this.collapsePressed = false
+      }
+    })
+    .onClick(() => {
+      this.collapseWorkout()
+    })
+  }
+
+  /** 顶栏右端计时器：呼吸点 +「·总时长」+ 等宽 mm:ss。 */
+  @Builder
+  private topTimer() {
+    Row({ space: 5 }) {
+      Row()
+        .width(6)
+        .height(6)
+        .borderRadius(3)
+        .backgroundColor(PrototypeTokens.ACCENT)
+        .opacity(this.livePulseLow ? 0.45 : 1)
+        .scale({ x: this.livePulseLow ? 0.78 : 1, y: this.livePulseLow ? 0.78 : 1 })
+        .animation({ duration: MotionTokens.DURATION_PULSE / 2, curve: Curve.EaseInOut })
+      Text('·总时长')
+        .fontFamily('Noto Sans SC')
+        .fontSize(11.5)
+        .fontColor(PrototypeTokens.WHITE_A60)
+      Text(formatClock(this.elapsedSeconds))
+        .fontFamily('Geist Mono')
+        .fontSize(14)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(PrototypeTokens.TEXT_HI)
+    }
+  }
+
+  /** 动作切换条：不超过 4 个时等分铺满，更多则横向滚动。 */
+  @Builder
+  private exerciseTabs() {
+    if (this.exerciseTotal > EXERCISE_PILL_EVEN_MAX) {
+      Scroll() {
+        Row({ space: EXERCISE_PILL_GAP }) {
+          ForEach(this.exerciseIndexes(), (index: number) => {
+            this.exercisePill(index, false)
+          }, (index: number) => 'pill_' + index.toString())
+        }
+      }
+      .scrollable(ScrollDirection.Horizontal)
+      .scrollBar(BarState.Off)
+      .width('100%')
+    } else {
+      Row({ space: EXERCISE_PILL_GAP }) {
+        ForEach(this.exerciseIndexes(), (index: number) => {
+          this.exercisePill(index, true)
+        }, (index: number) => 'pill_' + index.toString())
+      }
+      .width('100%')
+    }
+  }
+
+  /**
+   * 单个动作胶囊：选中态虚线强调，胶囊内底部细条承载该动作的组进度。
+   *
+   * 进度条放在胶囊内底部而不是用背景按比例填充：填充式会让 12vp 文字压在亮色上，
+   * 选中/未选中的对比反而失效。
+   */
+  @Builder
+  private exercisePill(index: number, even: boolean) {
+    Stack({ alignContent: Alignment.Center }) {
+      Text('动作' + (index + 1).toString())
+        .fontFamily('Noto Sans SC')
+        .fontSize(12)
+        .fontWeight(index === this.selectedExerciseIndex ? FontWeight.Bold : FontWeight.Normal)
+        .fontColor(index === this.selectedExerciseIndex ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A70)
+        .maxLines(1)
+        .width('100%')
+        .height(EXERCISE_PILL_HEIGHT)
+        .textAlign(TextAlign.Center)
+
+      Stack({ alignContent: Alignment.Start }) {
+        Row()
+          .width('100%')
+          .height(EXERCISE_PILL_BAR_HEIGHT)
+          .backgroundColor(PrototypeTokens.WHITE_A08)
+          .borderRadius(999)
+        Row()
+          .width((this.exerciseProgress(index) * 100).toFixed(1) + '%')
+          .height(EXERCISE_PILL_BAR_HEIGHT)
+          .backgroundColor(PrototypeTokens.ACCENT)
+          .borderRadius(999)
+          .animation({ duration: MotionTokens.DURATION_MARKER, curve: MotionTokens.EASE_MOTION })
+      }
+      .width('100%')
+      .padding({ left: EXERCISE_PILL_BAR_INSET, right: EXERCISE_PILL_BAR_INSET })
+      .align(Alignment.Bottom)
+      .margin({ bottom: 5 })
+    }
+    .height(EXERCISE_PILL_HEIGHT)
+    .constraintSize({ minWidth: even ? 0 : 84 })
+    .layoutWeight(even ? 1 : 0)
+    .backgroundColor(index === this.selectedExerciseIndex ? PrototypeTokens.ACCENT_A10 : PrototypeTokens.WHITE_A03)
+    .borderRadius(999)
+    .border({
+      width: index === this.selectedExerciseIndex ? 1.2 : 1,
+      color: index === this.selectedExerciseIndex ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A10,
+      style: index === this.selectedExerciseIndex ? BorderStyle.Dashed : BorderStyle.Solid
+    })
+    .onClick(() => {
+      this.selectExercise(index)
+    })
   }
 
   @Builder
@@ -683,7 +857,7 @@ export struct ActiveContent {
           .lineHeight(22)
           .fontWeight(FontWeight.Bold)
           .fontColor(PrototypeTokens.TEXT_HI)
-        Text('第 ' + Math.min(this.completed + 1, Math.max(this.targetSets, 1)).toString() + ' 组 · 正式组')
+        Text('第 ' + this.selectedSetNumber().toString() + ' 组 · 正式组')
           .fontFamily('Noto Sans SC')
           .fontSize(12)
           .lineHeight(14)
@@ -806,18 +980,18 @@ export struct ActiveContent {
   @Builder
   private dock() {
     Column() {
-      Button(this.completed >= this.targetSets ? '已完成' : '提交')
+      Button(this.selectedIsFull() ? '已完成' : '提交')
         .width('100%')
         .height(50)
         .padding(0)
         .fontFamily('Noto Sans SC')
         .fontSize(15)
         .fontWeight(FontWeight.Bold)
-        .fontColor(this.completed >= this.targetSets ? PrototypeTokens.WHITE_A40 : PrototypeTokens.TEXT_ON_ACCENT)
-        .backgroundColor(this.completed >= this.targetSets ? PrototypeTokens.WHITE_A06 : PrototypeTokens.ACCENT)
+        .fontColor(this.selectedIsFull() ? PrototypeTokens.WHITE_A40 : PrototypeTokens.TEXT_ON_ACCENT)
+        .backgroundColor(this.selectedIsFull() ? PrototypeTokens.WHITE_A06 : PrototypeTokens.ACCENT)
         .borderRadius(16)
-        .shadow({ radius: this.completed >= this.targetSets ? 0 : 22, color: this.completed >= this.targetSets ? PrototypeTokens.TRANSPARENT : PrototypeTokens.BLACK_A24, offsetX: 0, offsetY: this.completed >= this.targetSets ? 0 : 10 })
-        .enabled(this.completed < this.targetSets)
+        .shadow({ radius: this.selectedIsFull() ? 0 : 22, color: this.selectedIsFull() ? PrototypeTokens.TRANSPARENT : PrototypeTokens.BLACK_A24, offsetX: 0, offsetY: this.selectedIsFull() ? 0 : 10 })
+        .enabled(!this.selectedIsFull())
         .onTouch((event: TouchEvent) => {
           if (event.type === TouchType.Down) {
             this.submitPressed = true
@@ -866,7 +1040,7 @@ export struct ActiveContent {
               .fontSize(22)
               .fontWeight(FontWeight.Bold)
               .fontColor(PrototypeTokens.TEXT_HI)
-            Text(this.currentExerciseLabel() + ' · 第 ' + (this.completed + 1).toString() + ' 组')
+            Text(this.currentExerciseLabel() + ' · 第 ' + this.selectedSetNumber().toString() + ' 组')
               .fontFamily('Noto Sans SC')
               .fontSize(13)
               .fontColor(PrototypeTokens.WHITE_A60)

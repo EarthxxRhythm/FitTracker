@@ -1,5 +1,6 @@
 package com.fittracker.app.ui.screens.active
 
+import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -56,6 +57,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -75,11 +77,13 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fittracker.app.R
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
+import com.fittracker.app.data.service.ActiveWorkoutExercise
 import com.fittracker.app.data.service.ActiveWorkoutService
 import com.fittracker.app.data.service.ActiveWorkoutState
 import com.fittracker.app.data.service.SettingsService
@@ -159,6 +163,9 @@ fun ActiveScreen(
     var target by remember { mutableIntStateOf(FtActiveModel.TARGET) }
     var startedAt by remember { mutableLongStateOf(0L) }
     var workout by remember { mutableStateOf<ActiveWorkoutState?>(null) }
+    // 顶部动作切换胶囊选中的动作下标（0 起）。改造前训练页只能停在「首个未录满」动作上，
+    // 现在用户可切到任意动作补录；写入、记录区、演示卡、组号都以它为准。
+    var selectedIndex by remember { mutableIntStateOf(0) }
 
     // 设置项消费（计划 A3/A4）：进屏读一次、屏内不再改——「训练中屏幕常亮」与
     // 「声音与震动」共用这一次 loadSettings。
@@ -169,8 +176,18 @@ fun ActiveScreen(
 
     // 全场进度取活跃训练态（跨动作求和）——records 只含当前动作，不能当全局计数用。
     val completed = workout?.completedSets ?: 0
-    val progressLabel = FtActiveModel.progressLabel(completed, target)
-    val submitLabel = FtActiveModel.submitLabel(completed, target)
+    // 选中动作：写入、记录区、演示卡、组号全部以它为准（不再是「首个未录满」）。
+    val selectedExercise: ActiveWorkoutExercise? = workout?.let { state ->
+        state.exercises.getOrNull(selectedIndex) ?: state.exercises.lastOrNull()
+    }
+    // 提交按钮/记录弹窗的开关判据：选中动作还有空组（切到已录满的动作时不该能开弹窗）
+    val selectedCanRecord: Boolean =
+        selectedExercise != null && selectedExercise.completedSets < selectedExercise.targetSets
+    val submitLabel: FtLabelRes =
+        if (selectedCanRecord) FtLabelRes(R.string.active_submit) else FtLabelRes(R.string.active_submit_done)
+    // 动作内组号（1 起，录满停在 targetSets）
+    val selectedSetNumber: Int =
+        selectedExercise?.let { (it.completedSets + 1).coerceAtMost(it.targetSets) } ?: 1
 
     LaunchedEffect(Unit) {
         val settings = SettingsService.loadSettings(store)
@@ -199,15 +216,23 @@ fun ActiveScreen(
             target = if (draft.totalTargetSets > 0) draft.totalTargetSets else FtActiveModel.TARGET
             val state = draftToActiveState(draft)
             workout = state
-            // 记录只取当前动作：上一动作已录满时，记录区从新动作（空态）开始。
-            records = FtActiveModel.currentRecords(state.exercises)
+            // 胶囊选中态初值：首个未录满动作（= 改造前的「当前动作」口径）；全部录满停在最后一个。
+            val unfinished = FtActiveModel.firstUnfinishedIndex(state.exercises)
+            selectedIndex = if (unfinished >= 0) unfinished else state.exercises.lastIndex.coerceAtLeast(0)
+            records = state.exercises.getOrNull(selectedIndex)
+                ?.let { FtActiveModel.recordsFor(state.exercises, it.plannedExerciseId) }
+                .orEmpty()
         } else {
             val summary = loadTodayWorkoutPreview(store)
             startedAt = System.currentTimeMillis()
             target = summary.exercises.sumOf { it.targetSets }.takeIf { it > 0 } ?: FtActiveModel.TARGET
             val state = ActiveWorkoutService.createState(summary)
             workout = state
-            records = FtActiveModel.currentRecords(state.exercises)
+            val unfinished = FtActiveModel.firstUnfinishedIndex(state.exercises)
+            selectedIndex = if (unfinished >= 0) unfinished else state.exercises.lastIndex.coerceAtLeast(0)
+            records = state.exercises.getOrNull(selectedIndex)
+                ?.let { FtActiveModel.recordsFor(state.exercises, it.plannedExerciseId) }
+                .orEmpty()
             WorkoutDraftService.saveDraft(store, activeStateToDraft(state, startedAt))
         }
     }
@@ -232,28 +257,31 @@ fun ActiveScreen(
     }
 
     fun completeSet() {
-        if (!FtActiveModel.submitEnabled(completed, target)) return
         val state = workout ?: return
+        // 写入选中的动作（不是「首个未录满动作」）——否则用户看着动作 3 却静默记到动作 1。
+        val targetExercise = state.exercises.getOrNull(selectedIndex) ?: return
         // 输入框 `weight` 是显示单位下的整数；记录与草稿一律存 kg 基准。
         val weightKg = Math.round(WeightUtils.displayIntToKg(weight, weightUnit)).toInt()
         val origin = if (startedAt > 0L) startedAt else System.currentTimeMillis()
-        // 唯一写入口：目标动作与组下标都由活跃训练态推导（首个未录满动作的下一组），
-        // 第一个动作录满后自动落到下一个动作的第 1 组。同步推进，记录区与进度条同帧更新。
-        val progressed = ActiveWorkoutService.createStateWithProgress(
-            state,
-            ActiveWorkoutService.updateSetEntry(
-                exercises = state.exercises,
-                plannedExerciseId = nextPlannedExerciseId(state),
-                setIndex = nextSetIndex(state),
-                weightText = weightKg.toString(),
-                repsText = reps.toString(),
-            ),
+        val progressed = ActiveWorkoutService.recordSetFor(
+            state = state,
+            plannedExerciseId = targetExercise.plannedExerciseId,
+            weightText = weightKg.toString(),
+            repsText = reps.toString(),
         )
+        modalOpen = false
+        if (progressed === state) return // 目标动作已录满：服务原样返回，不落任何写
         workout = progressed
-        // 记录从刚更新的活跃训练态派生（与落库同源），且只取当前动作：
-        // 当前动作录满切到下一个后，记录区随之切到新动作（从空态开始）。
-        records = FtActiveModel.currentRecords(progressed.exercises)
-        val finished = progressed.completedSets >= target
+        // 选中的动作刚录满 → 自动前进到下一个未录满动作（保持既有体感）；跳着补录时不被拽走。
+        if (targetExercise.completedSets + 1 >= targetExercise.targetSets) {
+            val nextIdx = FtActiveModel.firstUnfinishedIndex(progressed.exercises)
+            if (nextIdx >= 0) selectedIndex = nextIdx
+        }
+        records = progressed.exercises.getOrNull(selectedIndex)
+            ?.let { FtActiveModel.recordsFor(progressed.exercises, it.plannedExerciseId) }
+            .orEmpty()
+        // 收尾判据：没有下一个未录满动作（跳着做时 completed 可能先追平，但那只是跳过的动作没做）
+        val finished = FtActiveModel.firstUnfinishedIndex(progressed.exercises) < 0
         // 设置项「声音与震动」（计划 A4）：记录推进成功即给一次短促触觉反馈。
         // 音效素材缺失，本期仅震动（计划非目标表）；开关关 → 不响不动。
         if (soundVibrationOn) Haptics.confirm(context)
@@ -296,12 +324,19 @@ fun ActiveScreen(
             .background(FtColor.ink0), // `.wo-screen` 底 var(--ink-0)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            ProgressTop(
-                label = stringResource(progressLabel.res, *progressLabel.args.toTypedArray()),
+            ActiveTop(
+                exerciseName = selectedExercise?.name
+                    ?: stringResource(R.string.active_fallback_exercise),
                 clock = FtActiveModel.formatClock(elapsed),
-                completed = completed,
-                target = target,
-                justDoneIndex = justDoneIndex,
+                exercises = workout?.exercises.orEmpty(),
+                selectedIndex = selectedIndex,
+                onSelect = { index ->
+                    selectedIndex = index
+                    val exercises = workout?.exercises.orEmpty()
+                    exercises.getOrNull(index)?.let { exercise ->
+                        records = FtActiveModel.recordsFor(exercises, exercise.plannedExerciseId)
+                    }
+                },
             )
 
             Column(
@@ -316,22 +351,23 @@ fun ActiveScreen(
                         .padding(start = 18.dp, end = 18.dp, top = 16.dp, bottom = 24.dp), // `.wo-content`
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    DemoCard(workout = workout)
+                    DemoCard(workout = workout, selectedIndex = selectedIndex)
                     SetList(records = records, weightUnit = weightUnit)
                 }
             }
 
             Dock(
                 label = stringResource(submitLabel.res, *submitLabel.args.toTypedArray()),
-                enabled = FtActiveModel.submitEnabled(completed, target),
+                enabled = selectedCanRecord,
                 onClick = { modalOpen = true },
             )
         }
 
         if (modalOpen) {
             RecordModal(
-                setNumber = completed + 1,
-                exerciseName = workout?.let { nextExercise(it)?.name } ?: stringResource(R.string.active_fallback_exercise), // 当前动作名（原静态「杠铃卧推」）
+                setNumber = selectedSetNumber,
+                exerciseName = selectedExercise?.name
+                    ?: stringResource(R.string.active_fallback_exercise), // 选中动作名
                 weight = weight,
                 reps = reps,
                 weightUnit = weightUnit,
@@ -359,46 +395,51 @@ private enum class CelebratePhase { None, Playing, Fading }
 // ── 顶栏与进度条 ─────────────────────────────────────────────────
 
 /**
- * `.wo-top` L187-206：14/18/12 内边距 + 底部分隔线；上一行是进度文案与计时器，
- * 下一行是 6 段 duolingo 式进度条。
+ * `.wo-top`：收起按钮 + 当前动作名（大字）+ 右端计时器，下方一行动作切换胶囊。
+ *
+ * 与改造前的差别：去掉「第 N 组 / 共 M 组」与全场分格进度条——组号改由演示卡显示（动作内序号），
+ * 全场进度由每个胶囊内的组进度承载。顶部因此只剩一层进度语义，动作维度第一次可见。
  */
 @Composable
-private fun ProgressTop(
-    label: String,
+private fun ActiveTop(
+    exerciseName: String,
     clock: String,
-    completed: Int,
-    target: Int,
-    justDoneIndex: Int?,
+    exercises: List<ActiveWorkoutExercise>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
 ) {
-    val progressA11y = stringResource(R.string.active_a11y_progress)
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(TopFill) // rgba(10,13,18,.96)
-            // 真机 edge-to-edge：内容需避开系统状态栏（原型把状态栏区域画在设备框外，直绘顶到 y=0 会与状态栏重叠）
+            // 真机 edge-to-edge：内容需避开系统状态栏（原型把状态栏区域画在设备框外）
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(start = 18.dp, end = 18.dp, top = 14.dp, bottom = 12.dp),
+            .padding(start = 18.dp, end = 18.dp, top = 10.dp, bottom = 10.dp),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 10.dp), // `.top-row { margin-bottom: 10px }`
+                .height(44.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
+            CollapseButton()
             Text(
-                text = label,
-                style = FtType.natural(12f, 600),
-                color = FtColor.white70,
+                text = exerciseName,
+                style = FtType.natural(20f, 700),
+                color = FtColor.txtHi,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(1f),
             )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp), // `.top-timer { gap: 6px }`
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
             ) {
                 LiveDot()
                 Text(
                     text = stringResource(R.string.active_elapsed_label),
-                    style = FtType.natural(12f),
+                    style = FtType.natural(11.5f),
                     color = FtColor.white60,
                 )
                 Text(
@@ -409,20 +450,153 @@ private fun ProgressTop(
             }
         }
 
+        Box(modifier = Modifier.height(10.dp))
+
+        ExerciseTabs(exercises = exercises, selectedIndex = selectedIndex, onSelect = onSelect)
+    }
+}
+
+/**
+ * 收起按钮：纯线条 chevron-down，无底色块、无描边底、无常驻圆底（参考图左上角）。
+ *
+ * 返回走 `OnBackPressedDispatcher`，与系统返回键同一路径——不引入新的「折叠训练」状态。
+ */
+@Composable
+private fun CollapseButton() {
+    val dispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+    val collapseLabel = stringResource(R.string.active_collapse)
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) FtMotion.PRESS_SCALE_ICON_BTN else 1f,
+        animationSpec = tween(FtMotion.DURATION_PRESS),
+        label = "collapsePress",
+    )
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clip(FtShape.pill)
+            .clickable(interactionSource = interaction, indication = null) { dispatcher?.onBackPressed() }
+            .semantics { contentDescription = collapseLabel },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(modifier = Modifier.size(24.dp)) {
+            val path = Path().apply {
+                moveTo(size.width * 0.25f, size.height * 0.40f)
+                lineTo(size.width * 0.50f, size.height * 0.64f)
+                lineTo(size.width * 0.75f, size.height * 0.40f)
+            }
+            drawPath(
+                path = path,
+                color = FtColor.accent,
+                style = Stroke(width = 2.2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
+            )
+        }
+    }
+}
+
+/**
+ * 动作切换条：本次训练的每个动作一个胶囊，等分铺满。
+ *
+ * 超过 4 个动作时胶囊会变窄，但仍能容下「动作N」三字——比横向滚动少一次手势，
+ * 且训练中只需要「看见有几个动作、现在在第几个」。
+ */
+@Composable
+private fun ExerciseTabs(
+    exercises: List<ActiveWorkoutExercise>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+) {
+    if (exercises.isEmpty()) return
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        exercises.forEachIndexed { index, _ ->
+            ExercisePill(
+                label = stringResource(R.string.active_exercise_tab, index + 1),
+                progress = FtActiveModel.exerciseProgress(exercises, index),
+                selected = index == selectedIndex,
+                modifier = Modifier.weight(1f),
+                onClick = { onSelect(index) },
+            )
+        }
+    }
+}
+
+/**
+ * 单个动作胶囊：选中态用虚线强调，胶囊内底部细条承载该动作的组进度。
+ *
+ * 进度条放在胶囊内底部而不是用背景填充：填充式会让 12sp 文字压在亮色上，
+ * 选中/未选中的对比反而失效。
+ */
+@Composable
+private fun ExercisePill(
+    label: String,
+    progress: Float,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    Box(
+        modifier = modifier
+            .height(30.dp)
+            .clip(FtShape.pill)
+            .background(if (selected) FtColor.accent.copy(alpha = 0.10f) else FtColor.glass8)
+            .then(
+                if (selected) {
+                    // Compose 的 Modifier.border 不支持虚线，用 drawBehind 手绘描边
+                    Modifier.drawBehind {
+                        drawRoundRect(
+                            color = FtColor.accent,
+                            topLeft = Offset.Zero,
+                            size = Size(size.width, size.height),
+                            cornerRadius = CornerRadius(size.height / 2f, size.height / 2f),
+                            style = Stroke(
+                                width = 1.2.dp.toPx(),
+                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 4f)),
+                            ),
+                        )
+                    }
+                } else {
+                    Modifier.border(1.dp, FtColor.line10, FtShape.pill)
+                },
+            )
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = label,
+            style = FtType.natural(12f, if (selected) 700 else 400),
+            color = if (selected) FtColor.accent else FtColor.white70,
+            maxLines = 1,
+        )
         Row(
             modifier = Modifier
+                .align(Alignment.BottomStart)
                 .fillMaxWidth()
-                .semantics { contentDescription = progressA11y }, // 原型 `role=progressbar` 的 aria-label
-            horizontalArrangement = Arrangement.spacedBy(6.dp), // `.duo-bar { gap: 6px }`
+                .padding(start = 6.dp, end = 6.dp, bottom = 5.dp)
+                .height(2.5.dp)
+                .clip(FtShape.pill)
+                .background(FtColor.glass8),
         ) {
-            for (i in 0 until target) {
-                DuoSegment(
-                    role = FtActiveModel.segRole(i, completed, target),
-                    justDone = justDoneIndex == i,
+            val done = progress.coerceIn(0f, 1f)
+            if (done > 0f) {
+                Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .height(12.dp),
+                        .weight(done)
+                        .height(2.5.dp)
+                        .background(FtColor.accent),
                 )
+            }
+            if (done < 1f) {
+                Box(modifier = Modifier.weight(1f - done))
             }
         }
     }
@@ -552,11 +726,15 @@ private fun DuoMarker() {
  * 卡底色与描边取样式表末尾的「Card Surface v1」（L538）。
  */
 @Composable
-private fun DemoCard(workout: ActiveWorkoutState?) {
-    // 当前动作：首个未录满的动作（与 nextExercise 同规则）；首帧/异常态回退原型示意值
+private fun DemoCard(workout: ActiveWorkoutState?, selectedIndex: Int) {
+    // 当前动作 = 顶部胶囊选中的动作；下标越界/无数据时回退「首个未录满」，再回退末个。
     val exercises = workout?.exercises.orEmpty()
-    val currentIndex = exercises.indexOfFirst { it.completedSets < it.targetSets }
-        .let { if (it >= 0) it else exercises.lastIndex.coerceAtLeast(0) }
+    val currentIndex = if (selectedIndex in exercises.indices) {
+        selectedIndex
+    } else {
+        exercises.indexOfFirst { it.completedSets < it.targetSets }
+            .let { if (it >= 0) it else exercises.lastIndex.coerceAtLeast(0) }
+    }
     val current = exercises.getOrNull(currentIndex)
     val demoName = current?.name ?: stringResource(R.string.active_fallback_exercise)
     val demoBadgeIndex = if (workout != null && exercises.isNotEmpty()) {

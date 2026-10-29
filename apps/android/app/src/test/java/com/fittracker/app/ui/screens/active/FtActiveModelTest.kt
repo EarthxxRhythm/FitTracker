@@ -175,6 +175,60 @@ class FtActiveModelTest {
         )
     }
 
+    // ── 顶部动作切换胶囊（选中态口径） ──────────────────────────
+
+    @Test
+    fun `首个未录满动作的下标，全满返回-1`() {
+        val full = exercise("planned_1_1", "杠铃深蹲", listOf(set(0, "40", "10", complete = true)))
+        val partial = exercise(
+            "planned_1_2", "罗马尼亚硬拉",
+            listOf(set(0, "60", "8", complete = true), set(1, "", "", complete = false)),
+        )
+        val untouched = exercise("planned_1_3", "腿弯举", listOf(set(0, "", "", complete = false)))
+
+        assertEquals(1, FtActiveModel.firstUnfinishedIndex(listOf(full, partial, untouched)))
+        assertEquals(0, FtActiveModel.firstUnfinishedIndex(listOf(untouched)))
+        // 全部录满 → -1：调用方据此判定收尾（「还有一个动作要做」与「全部做完了」必须能区分）
+        assertEquals(-1, FtActiveModel.firstUnfinishedIndex(listOf(full, partial.copy(completedSets = 2))))
+        assertEquals(-1, FtActiveModel.firstUnfinishedIndex(emptyList()))
+    }
+
+    @Test
+    fun `按 id 取选中动作的记录，不取首个未录满`() {
+        val finished = exercise("planned_1_1", "杠铃深蹲", listOf(set(0, "40", "10", complete = true)))
+        val selected = exercise(
+            "planned_1_2", "罗马尼亚硬拉",
+            listOf(set(0, "60", "8", complete = true), set(1, "", "", complete = false)),
+        )
+        val other = exercise("planned_1_3", "腿弯举", listOf(set(0, "30", "12", complete = true)))
+        val exercises = listOf(finished, selected, other)
+
+        // 选中的是第二个动作：即使第一个动作已录满、第三个也有记录，只返回第二个的组
+        assertEquals(listOf(FtSetRecord(1, 60, 8)), FtActiveModel.recordsFor(exercises, "planned_1_2"))
+        // 选中的动作还没有完成组 / id 不存在 → 空
+        assertEquals(emptyList<FtSetRecord>(), FtActiveModel.recordsFor(exercises, "planned_1_3_missing"))
+        assertEquals(emptyList<FtSetRecord>(), FtActiveModel.recordsFor(emptyList(), "planned_1_1"))
+    }
+
+    @Test
+    fun `胶囊进度按动作内组数计算并夹紧`() {
+        val half = exercise(
+            "planned_1_1", "杠铃深蹲",
+            listOf(set(0, "40", "10", complete = true), set(1, "", "", complete = false)),
+        )
+        val full = exercise(
+            "planned_1_2", "罗马尼亚硬拉",
+            listOf(set(0, "60", "8", complete = true)),
+        )
+        val exercises = listOf(half, full)
+
+        assertEquals(0.5f, FtActiveModel.exerciseProgress(exercises, 0), 1e-4f)
+        assertEquals(1f, FtActiveModel.exerciseProgress(exercises, 1), 1e-4f)
+        // 越界 → 0（胶囊索引与动作列表不同步时不崩，画 0 长度）
+        assertEquals(0f, FtActiveModel.exerciseProgress(exercises, 2), 1e-4f)
+        assertEquals(0f, FtActiveModel.exerciseProgress(exercises, -1), 1e-4f)
+    }
+
     private fun set(
         index: Int,
         weight: String,

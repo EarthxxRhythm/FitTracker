@@ -109,6 +109,48 @@ function findCurrentExerciseIndex(exercises: ActiveWorkoutExercise[]): number {
 }
 
 /** 单个动作的记录分组；该动作没有已完成的正式组时返回 undefined。 */
+/**
+ * 首个未录满动作的下标；全部录满返回 -1。
+ *
+ * 供训练页初始化胶囊选中态，以及「当前动作刚录满 → 自动前进到下一个动作」使用。
+ * 与 findCurrentExerciseIndex 的差别：后者在全部录满时回落最后一个动作，这里返回 -1
+ * 让调用方能区分「还有一个动作要做」与「全部做完了」。
+ */
+export function findUnfinishedExerciseIndex(exercises: ActiveWorkoutExercise[]): number {
+  for (let index = 0; index < exercises.length; index++) {
+    if (exercises[index].completedSets < exercises[index].targetSets) {
+      return index
+    }
+  }
+  return -1
+}
+
+/**
+ * 按 plannedExerciseId 派生记录分组（0 或 1 个）。
+ *
+ * 训练页顶部有动作切换胶囊后，「当前动作」不再只能由「首个未录满」推导——
+ * 用户可能正停在第三个动作上补录。记录区必须以选中动作为准，否则会显示另一个动作的组。
+ * 该动作还没有已完成的正式组时返回空数组（页面显示空态）。
+ */
+export function buildRecordGroupFor(
+  exercises: ActiveWorkoutExercise[],
+  plannedExerciseId: string
+): ActiveExerciseRecordGroup[] {
+  const groups: ActiveExerciseRecordGroup[] = []
+  for (let index = 0; index < exercises.length; index++) {
+    if (exercises[index].plannedExerciseId !== plannedExerciseId) {
+      continue
+    }
+    const group: ActiveExerciseRecordGroup | undefined = buildExerciseRecordGroup(exercises[index])
+    if (group === undefined) {
+      return groups
+    }
+    groups.push(group)
+    return groups
+  }
+  return groups
+}
+
 function buildExerciseRecordGroup(exercise: ActiveWorkoutExercise): ActiveExerciseRecordGroup | undefined {
   const sets: ActiveSetRecord[] = []
   for (let setIndex = 0; setIndex < exercise.sets.length; setIndex++) {
