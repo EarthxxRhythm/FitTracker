@@ -59,6 +59,10 @@
 | L3 | `docs\ui\ui-sample-spot-check.md` | 抽样检查说明 | 双端 | 现行 | 否 | `check-specs`（仅存在） |
 | L3 | `docs\ui\midscene-regression-report-template.md` | Midscene 回归报告模板 | 双端 | 现行 | 否 | `check-specs`（仅存在） |
 
+| L2 | `loop\README.md` | 六环闭环 agent 体系协议：信封 schema、状态机、门禁断言、断点治理 | 双端 | 现行 | 否 | `check-specs`（头部） |
+| L2 | `loop\agents\` | 六环定制 agent 定义（conductor/req/design/dev/test/release/ops） | 双端 | 现行 | 否 | `check-specs`（仅存在） |
+| L3 | `docs\产品需求文档（PRD）.md` | 历史产品需求（2026-08-19 华为 AGC 方案，已被取代，仅作背景参考） | 双端 | 已被取代 | 是 | `check-specs`（仅存在） |
+
 ## 已删除的规范
 
 | 路径 | 删除日期 | 去因 | 内容去向 |
