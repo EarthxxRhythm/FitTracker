@@ -13,6 +13,7 @@ import { AppRoutes } from './AppRoutes'
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
 import { MotionTokens, SpacingTokens, TouchTokens } from '../common/styles/DesignTokens'
+import { PrototypeTokens } from '../common/styles/PrototypeTokens'
 
 enum PencilTabKey {
   HOME = 'home',
@@ -141,6 +142,30 @@ export struct PencilAppShell {
     }
   }
 
+  /** 续练：不带 preview 参数进训练页，由训练页自己从草稿恢复进度与计时。 */
+  private openActiveWorkout(): void {
+    this.showPreview = false
+    this.getUIContext().getRouter().pushUrl({ url: AppRoutes.ACTIVE_WORKOUT })
+  }
+
+  /** 底栏当前占位高度（收起 / 体重 gate 时为 0，与 build() 里的高度表达式同源）。 */
+  private tabBarHeight(): number {
+    if (this.tabBarCollapsed || this.showWeightGate) {
+      return 0
+    }
+    return TouchTokens.TAB_BAR_HEIGHT_HOME + SpacingTokens.SM * 2
+  }
+
+  /**
+   * 是否显示「训练进行中」悬浮条。
+   *
+   * 判据只有一条：首页状态层从草稿读出的完成组数 > 0。预览/体重 gate 打开时隐藏——
+   * 那两层是覆盖式流程，悬浮条压在上面会遮住它们的底部按钮。
+   */
+  private hasActiveDraft(): boolean {
+    return this.homeState.activeDraftCompletedSets > 0 && !this.showPreview && !this.showWeightGate
+  }
+
   private navigate(route: string): void {
     if (route === AppRoutes.HOME) {
       this.selectTab(PencilTabKey.HOME)
@@ -161,6 +186,76 @@ export struct PencilAppShell {
     this.getUIContext().getRouter().pushUrl({ url: route })
   }
 
+  /**
+   * 「训练进行中」悬浮条。
+   *
+   * 形态选择：胶囊贴底栏上沿、左右各 18 留白，与底栏同宽但不参与布局——
+   * 这样切到计划/回顾/我的 Tab 时它都在，且不会把内容区挤矮（用 Stack 覆盖而非 Column 占位）。
+   * 颜色沿用训练页 dock 的 #FA0A0D12（不透明，避免下面的内容透上来）。
+   */
+  @Builder
+  private resumeWorkoutBar() {
+    Column() {
+      Row({ space: 10 }) {
+        // 呼吸点与训练页顶栏计时点同一个语汇：绿色实心小圆，表示「还在跑」
+        Row()
+          .width(6)
+          .height(6)
+          .borderRadius(3)
+          .backgroundColor(PrototypeTokens.ACCENT)
+        Column({ space: 2 }) {
+          Text('训练进行中')
+            .fontFamily('Noto Sans SC')
+            .fontSize(13)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(PrototypeTokens.TEXT_HI)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+          Text(this.resumeBarCaption())
+            .fontFamily('Noto Sans SC')
+            .fontSize(11)
+            .fontColor(PrototypeTokens.WHITE_A54)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
+
+        Text('继续')
+          .fontFamily('Noto Sans SC')
+          .fontSize(12)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(PrototypeTokens.TEXT_ON_ACCENT)
+          .padding({ left: 14, right: 14, top: 7, bottom: 7 })
+          .backgroundColor(PrototypeTokens.ACCENT)
+          .borderRadius(999)
+      }
+      .width('100%')
+      .height(56)
+      .padding({ left: 14, right: 14 })
+      .backgroundColor('#FA0A0D12')
+      .borderRadius(18)
+      .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
+      .shadow({ radius: 20, color: '#66000000', offsetX: 0, offsetY: 8 })
+      .accessibilityText('继续上次训练，' + this.resumeBarCaption())
+      .onClick(() => {
+        this.openActiveWorkout()
+      })
+    }
+    .width('100%')
+    .padding({ left: 18, right: 18, bottom: 10 })
+  }
+
+  /** 悬浮条副行：「已做 3/12 组 · 32 分钟」；时长为 0 时只报组数。 */
+  private resumeBarCaption(): string {
+    let caption: string = '已做 ' + this.homeState.activeDraftCompletedSets.toString() + '/' +
+      this.homeState.activeDraftTotalSets.toString() + ' 组'
+    if (this.homeState.activeDraftElapsedMinutes > 0) {
+      caption += ' · ' + this.homeState.activeDraftElapsedMinutes.toString() + ' 分钟'
+    }
+    return caption
+  }
+
   @Builder
   private contentViewport() {
     Stack() {
@@ -173,8 +268,7 @@ export struct PencilAppShell {
           // 续练：不带 preview 参数进训练页，训练页会自己从草稿恢复进度与计时。
           // 与「开始训练」分开是因为它不该过体重 gate——gate 是开新一场前的记账。
           onResumeWorkout: () => {
-            this.showPreview = false
-            this.getUIContext().getRouter().pushUrl({ url: AppRoutes.ACTIVE_WORKOUT })
+            this.openActiveWorkout()
           },
           onOpenPreview: () => {
             this.showPreview = true
@@ -250,6 +344,22 @@ export struct PencilAppShell {
       }
       .width('100%')
       .height('100%')
+
+      // 训练进行中的悬浮入口：贴在底栏上方，跨 Tab 常驻。
+      // 与首页卡片内的「继续训练」CTA 不冲突：那个随内容滚动会移出视口，
+      // 而「有一场没做完的训练」是需要持续可见的状态，不能滚走就消失。
+      if (this.hasActiveDraft()) {
+        Column() {
+          this.resumeWorkoutBar()
+          Row()
+            .height(this.tabBarHeight() + 10)
+        }
+        .width('100%')
+        .height('100%')
+        .justifyContent(FlexAlign.End)
+        // 空白区域不拦截触摸：否则整屏内容（含底栏与 Tab 内容）都点不动
+        .hitTestBehavior(HitTestMode.Transparent)
+      }
 
       // 体重记录 gate：压在预览覆盖层之下（先记体重，确认后才开预览）。
       if (this.showWeightGate) {
