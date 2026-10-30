@@ -440,11 +440,10 @@ export struct HomeContent {
       // 接续态：收起训练后回到首页，主 CTA 换成「继续训练」+ 一行进度说明。
       // 用的是同一颗按钮（同样的 accent 底与硬边厚底），不新增第二个视觉语汇。
       if (this.state.activeDraftCompletedSets > 0) {
+        // 只报组数：时长由底栏上方的悬浮胶囊承载（那里用训练页同款 mm:ss），
+        // CTA 在一张卡片里，重复一份时长只会挤掉组数。
         Text('未完成 · 已做 ' + this.state.activeDraftCompletedSets.toString() + '/' +
-          this.state.activeDraftTotalSets.toString() + ' 组' +
-          (this.state.activeDraftElapsedMinutes > 0
-            ? ' · ' + this.state.activeDraftElapsedMinutes.toString() + ' 分钟'
-            : ''))
+          this.state.activeDraftTotalSets.toString() + ' 组')
           .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
           .fontSize(11)
           .fontColor(PrototypeTokens.ACCENT)

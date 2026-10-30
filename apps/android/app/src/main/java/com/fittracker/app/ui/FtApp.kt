@@ -364,7 +364,7 @@ private val RESUME_BAR_TRANSFORM_ORIGIN = TransformOrigin(0.5f, 1f)
 private suspend fun loadResumeDraft(store: JsonStore): ResumeDraftSummary? {
     val draft = WorkoutDraftService.getDraft(store) ?: return null
     if (!hasWorkoutDraftProgress(draft)) return null
-    val minutes = ((System.currentTimeMillis() - draft.startedAt) / 60_000L).toInt().coerceAtLeast(0)
+    val seconds = ((System.currentTimeMillis() - draft.startedAt) / 1_000L).toInt().coerceAtLeast(0)
     // 当前动作 = 首个未录满的动作（全部录满时退到最后一个）——与 ActiveScreen 的选中口径
     // 同一判据，否则胶囊上的动作名会和点进去看到的那个对不上。
     val current = draft.exercises.firstOrNull { it.completedSets < it.targetSets }
@@ -372,7 +372,7 @@ private suspend fun loadResumeDraft(store: JsonStore): ResumeDraftSummary? {
     return ResumeDraftSummary(
         completedSets = draft.completedSets,
         totalSets = draft.totalTargetSets,
-        elapsedMinutes = minutes,
+        elapsedSeconds = seconds,
         exerciseName = current?.name ?: draft.currentExerciseName,
         exerciseCompletedSets = current?.completedSets ?: 0,
         exerciseTargetSets = current?.targetSets ?: 0,

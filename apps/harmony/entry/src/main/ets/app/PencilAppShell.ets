@@ -316,26 +316,35 @@ export struct PencilAppShell {
   }
 
   /**
-   * 副行文案。
+   * 副行：「2 / 4 · 32:15」。
    *
-   * 三种形态互斥：该动作未满 → 「第 N 组 / 共 M 组」；已满 → 「本动作已完成 · 共 M 组」；
-   * 拿不到动作组数（旧草稿）→ 退回全局「已做 N 组」。时长只在非 0 时追加。
+   * 时间沿用训练页右上角那套 mm:ss（与 ActiveContent 的 formatClock 同式）——同一件事
+   * 在两处显示，格式不该分叉。动作已满时给「4 / 4」，第 N 组不会越过总数；
+   * 拿不到动作组数（旧草稿）时退回全局「已做 N 组」。
    */
   private resumeBarCaption(): string {
     const completed: number = this.homeState.activeDraftExerciseCompleted
     const target: number = this.homeState.activeDraftExerciseTarget
     let caption: string = ''
-    if (target > 0 && completed >= target) {
-      caption = '本动作已完成 · 共 ' + target.toString() + ' 组'
-    } else if (target > 0) {
-      caption = '第 ' + (completed + 1).toString() + ' 组 / 共 ' + target.toString() + ' 组'
+    if (target > 0) {
+      const currentSet: number = completed >= target ? target : completed + 1
+      caption = currentSet.toString() + ' / ' + target.toString()
     } else {
       caption = '已做 ' + this.homeState.activeDraftCompletedSets.toString() + ' 组'
     }
-    if (this.homeState.activeDraftElapsedMinutes > 0) {
-      caption += ' · ' + this.homeState.activeDraftElapsedMinutes.toString() + ' 分钟'
+    if (this.homeState.activeDraftElapsedSeconds > 0) {
+      caption += ' · ' + this.formatElapsedClock(this.homeState.activeDraftElapsedSeconds)
     }
     return caption
+  }
+
+  /** 与训练页顶栏同一格式：mm:ss，两位补零（总时长超过 99 分钟时分钟位自然变宽）。 */
+  private formatElapsedClock(totalSeconds: number): string {
+    const minutes: number = Math.floor(totalSeconds / 60)
+    const seconds: number = totalSeconds % 60
+    const mm: string = minutes < 10 ? '0' + minutes.toString() : minutes.toString()
+    const ss: string = seconds < 10 ? '0' + seconds.toString() : seconds.toString()
+    return mm + ':' + ss
   }
 
   /** 点按胶囊：先收束 110ms 再进训练页，让「按下」与「换页」连成一拍。 */

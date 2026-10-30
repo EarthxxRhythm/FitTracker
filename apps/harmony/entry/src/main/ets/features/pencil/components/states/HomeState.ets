@@ -52,7 +52,8 @@ export class HomeState extends StateBase {
   // 四字段默认 0/空 = 无进行中训练，与训练页 persistDraftOnExit 的「零组不落草稿」对齐。
   activeDraftCompletedSets: number = 0
   activeDraftTotalSets: number = 0
-  activeDraftElapsedMinutes: number = 0
+  /** 已训练秒数：胶囊直接用训练页右上角那套 mm:ss 显示，不在这里折成分钟。 */
+  activeDraftElapsedSeconds: number = 0
   activeDraftTitle: string = ''
   // 悬浮胶囊要显示的「当前动作 + 该动作内组数」：取自草稿里首个未录满的动作
   // （与训练页 findUnfinishedExerciseIndex 同口径），不是全部动作的合计。
@@ -254,7 +255,7 @@ export class HomeState extends StateBase {
     }
     this.activeDraftCompletedSets = draft.completedSets
     this.activeDraftTotalSets = draft.totalTargetSets
-    this.activeDraftElapsedMinutes = Math.max(0, Math.floor((now - draft.startedAt) / 60000))
+    this.activeDraftElapsedSeconds = Math.max(0, Math.floor((now - draft.startedAt) / 1000))
     this.activeDraftTitle = draft.planName
     // 当前动作：首个未录满的动作（全部录满时退到最后一个）——与训练页的选中口径一致，
     // 否则胶囊上的动作名会和点进去看到的那个对不上。
@@ -276,7 +277,7 @@ export class HomeState extends StateBase {
   private clearDraftState(): void {
     this.activeDraftCompletedSets = 0
     this.activeDraftTotalSets = 0
-    this.activeDraftElapsedMinutes = 0
+    this.activeDraftElapsedSeconds = 0
     this.activeDraftTitle = ''
     this.activeDraftExerciseName = ''
     this.activeDraftExerciseCompleted = 0

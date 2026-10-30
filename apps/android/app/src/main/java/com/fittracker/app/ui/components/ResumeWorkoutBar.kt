@@ -47,8 +47,8 @@ data class ResumeDraftSummary(
     val completedSets: Int,
     /** 全场目标组数（计数器分母）。 */
     val totalSets: Int,
-    /** 已训练分钟数；0 表示不满一分钟，副行不显示时长段。 */
-    val elapsedMinutes: Int,
+    /** 已训练秒数：胶囊直接用训练页右上角那套 mm:ss 显示，不在这里折成分钟。 */
+    val elapsedSeconds: Int,
     /** 当前动作名（首个未录满动作，与训练页选中口径同源）。 */
     val exerciseName: String,
     /** 当前动作内已完成组数。 */
@@ -211,18 +211,27 @@ private fun ResumeRing(completedSets: Int, totalSets: Int) {
 }
 
 /**
- * 副行文案。
+ * 副行文案：「2 / 4 · 32:15」。
  *
- * 三种形态互斥：该动作未满 → 「第 N 组 / 共 M 组」；已满 → 「本动作已完成 · 共 M 组」；
- * 拿不到动作组数（旧草稿）→ 退回全局「已做 N 组」。时长只在非 0 时追加。
+ * 时间沿用训练页右上角那套 mm:ss（与 ActiveContent 的 formatClock 同式）——同一件事
+ * 在两处显示，格式不该分叉。动作已满时给「4 / 4」，第 N 组不会越过总数；
+ * 拿不到动作组数（旧草稿）时退回全局「已做 N 组」。
  */
 private fun captionOf(summary: ResumeDraftSummary): String {
     val target = summary.exerciseTargetSets
     val completed = summary.exerciseCompletedSets
-    val base = when {
-        target > 0 && completed >= target -> "本动作已完成 · 共 $target 组"
-        target > 0 -> "第 ${completed + 1} 组 / 共 $target 组"
-        else -> "已做 ${summary.completedSets} 组"
+    val base = if (target > 0) {
+        val currentSet = if (completed >= target) target else completed + 1
+        "$currentSet / $target"
+    } else {
+        "已做 ${summary.completedSets} 组"
     }
-    return if (summary.elapsedMinutes > 0) "$base · ${summary.elapsedMinutes} 分钟" else base
+    return if (summary.elapsedSeconds > 0) "$base · ${formatElapsedClock(summary.elapsedSeconds)}" else base
+}
+
+/** 与训练页顶栏同一格式：mm:ss，两位补零。 */
+private fun formatElapsedClock(totalSeconds: Int): String {
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return "%02d:%02d".format(minutes, seconds)
 }
