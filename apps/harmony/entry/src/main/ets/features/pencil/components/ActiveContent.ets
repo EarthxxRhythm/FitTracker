@@ -62,6 +62,11 @@ const HOLD_TICK_MS: number = 16
 // 进度超过该比例即视为「已进入长按」：此后松开只取消，不算一次点击（≈180ms）。
 // 不区分的话，按住 0.6s 后放弃松开会被当成单击，弹窗会意外弹出来（真机实测过）。
 const HOLD_ENGAGE_PROGRESS: number = 0.15
+// 本动作录满后的「完成态停留」：让满格胶囊 + dock 的「已完成」先被看见，再翻到下一个动作。
+// 取 800 而不是 300（DURATION_MARKER）：300 是动画时长量级，读一个状态词需要更久；
+// 也不取 1200（HOLD_DURATION_MS）：那是长按判定阈值，跟可读性无关。
+// 这一段落在天然停顿点（该换器械了），不是被牺牲掉的连续记录节奏。
+const ADVANCE_HOLD_MS: number = 800
 
 // 动作演示卡（容器）高度。原型 .demo-card 为 230，此处有意加高以留出更多版面；
 // 标题条固定在距底 56 处，与原型同口径。
@@ -154,6 +159,10 @@ export struct ActiveContent {
   private holdTriggered: boolean = false
   /** 已越过「长按判定线」——松开时据此区分「点击」与「按住后放弃」。 */
   private holdEngaged: boolean = false
+  /** 挂起的自动前进：-1 表示没有待执行的切换。 */
+  private advanceTimer: number = -1
+  /** 挂起切换的来源动作 id：回调时用它判断用户是否已手动切走。 */
+  private advanceFromId: string = ''
   private celebrateTimer: number = -1
   private clockTimer: number = -1
   private pulseTimer: number = -1
@@ -206,6 +215,7 @@ export struct ActiveContent {
       clearInterval(this.holdTimer)
       this.holdTimer = -1
     }
+    this.cancelAdvance()
     this.releaseKeepScreenOn()
   }
 
@@ -468,12 +478,16 @@ export struct ActiveContent {
       return
     }
     this.activeState = nextState
-    // 选中的动作刚录满 → 自动前进到下一个未录满动作（保持「做完自动切下一个」的既有体感）；
+    // 选中的动作刚录满 → 排一次自动前进（保持「做完自动切下一个」的既有体感）；
     // 用户跳着补录时不会被拽走。
+    //
+    // 这里不再直接改 selectedExerciseIndex：改完之后 applyCurrentExercise 立刻把展示换成新动作，
+    // 而 selectedIsFull()、dock 的「已完成」、胶囊满格全都以 index 为准——
+    // 在同一个同步块里改掉 index，这套完成态连一帧都渲染不出来（真机上就是「瞬间归零」）。
     if (target.completedSets + 1 >= target.targetSets) {
       const nextIndex: number = findUnfinishedExerciseIndex(nextState.exercises)
       if (nextIndex >= 0) {
-        this.selectedExerciseIndex = nextIndex
+        this.scheduleAdvance(target.plannedExerciseId, nextIndex)
       }
     }
     this.applyCurrentExercise(nextState)
@@ -577,6 +591,12 @@ export struct ActiveContent {
     return !this.selectedCanRecord()
   }
 
+  /** 选中动作的目标组数（caption 在录满态报总数用）。 */
+  private exerciseTargetSets(): number {
+    const exercise: ActiveWorkoutExercise | undefined = this.selectedExercise()
+    return exercise === undefined ? 0 : exercise.targetSets
+  }
+
   /** 当前动作的组索引（0..targetSets-1）；提前结束后 targetSets 已收缩，自动变短。 */
   private setIndexes(): number[] {
     const indexes: number[] = []
@@ -617,8 +637,41 @@ export struct ActiveContent {
    *
    * 中段的 setTimeout 是切换点：卡片此时正好侧对屏幕，换素材不露馅。
    */
+  /**
+   * 挂起一次自动前进：停留期满、且用户没有手动切走时，才走 chooseExercise。
+   *
+   * 用 plannedExerciseId 而不是 index 标识来源：提前结束会收缩 targetSets，
+   * index 的可比性不如这条动作的稳定身份。
+   */
+  private scheduleAdvance(fromId: string, targetIndex: number): void {
+    this.cancelAdvance()
+    this.advanceFromId = fromId
+    this.advanceTimer = setTimeout(() => {
+      this.advanceTimer = -1
+      const source: string = this.advanceFromId
+      this.advanceFromId = ''
+      const current: ActiveWorkoutExercise | undefined = this.selectedExercise()
+      // 这段时间里用户自己切走了 → 尊重用户选择，不把他拽回自动前进的目标
+      if (current === undefined || current.plannedExerciseId !== source) {
+        return
+      }
+      this.chooseExercise(targetIndex)
+    }, ADVANCE_HOLD_MS)
+  }
+
+  /** 取消挂起的自动前进（手动切换、离开页面、再次录满时都要先取消）。 */
+  private cancelAdvance(): void {
+    if (this.advanceTimer !== -1) {
+      clearTimeout(this.advanceTimer)
+      this.advanceTimer = -1
+    }
+    this.advanceFromId = ''
+  }
+
   private chooseExercise(index: number): void {
     this.showExercisePicker = false
+    // 手动切换优先于任何挂起的自动前进（含用户点开菜单又选回当前动作）
+    this.cancelAdvance()
     if (index === this.selectedExerciseIndex) {
       return
     }
@@ -1068,7 +1121,11 @@ export struct ActiveContent {
           .lineHeight(22)
           .fontWeight(FontWeight.Bold)
           .fontColor(PrototypeTokens.TEXT_HI)
-        Text('第 ' + this.selectedSetNumber().toString() + ' 组 · 正式组')
+        // 录满时「第 N 组」是错的：第 N 组已经做完，此刻屏上停留的正是完成态。
+        // 换成本动作口径，与 dock 的「本动作已完成」、胶囊满格说同一件事。
+        Text(this.selectedIsFull()
+          ? '本动作完成 · 共 ' + this.exerciseTargetSets().toString() + ' 组'
+          : '第 ' + this.selectedSetNumber().toString() + ' 组 · 正式组')
           .fontFamily('Noto Sans SC')
           .fontSize(12)
           .lineHeight(14)

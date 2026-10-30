@@ -26,6 +26,9 @@ object FtMotion {
     const val DURATION_PROGRESS = 350       // .goal-fill width .35s（TOKENS §5 建议补入）
     const val DURATION_CORE = 460           // coreIn .46s
     const val DURATION_SEG_POP = 460        // segPop .46s
+    // 本动作录满后的完成态停留（与鸿蒙 ADVANCE_HOLD_MS 同值）：让 Dock 的「已完成」与满格胶囊
+    // 先被看见，再翻到下一个动作。不进 DURATION_* 的「动画时长」语汇——它等的是可读性，不是动画。
+    const val DURATION_ADVANCE_HOLD = 800
     const val DURATION_CF_POP = 500         // cf-pop .5s
     const val DURATION_CF_RISE_FAST = 450   // cf-rise .45s
     const val DURATION_CF_RISE_BASE = 500   // cf-rise .5s

@@ -30,6 +30,7 @@
     <string name="active_demo_label">Move</string>
     <string name="active_fallback_exercise">Barbell bench press</string>
     <string name="active_demo_stage">Set %1$d · Working set</string>
+    <string name="active_demo_stage_done">Exercise complete · %1$d sets</string>
     <string name="active_a11y_demo_gif">%1$s demo</string>
     <string name="active_a11y_demo_visual">%1$s demo image</string>
 

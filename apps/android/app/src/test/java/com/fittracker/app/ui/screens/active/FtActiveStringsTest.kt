@@ -37,6 +37,8 @@ class FtActiveStringsTest {
             R.string.active_demo_label to "动作",
             R.string.active_fallback_exercise to "杠铃卧推",
             R.string.active_demo_stage to "第 %1\$d 组 · 正式组",
+            // 录满时的替代文案（与鸿蒙 caption 同口径）
+            R.string.active_demo_stage_done to "本动作完成 · 共 %1\$d 组",
             R.string.active_a11y_demo_gif to "%1\$s 动作演示",
             R.string.active_a11y_demo_visual to "%1\$s 动作演示图",
             R.string.active_empty_sets to "还没有完成组",
@@ -78,6 +80,7 @@ class FtActiveStringsTest {
     @Test
     fun `带参文案插值逐字`() {
         assertEquals("第 3 组 / 共 6 组", context.getString(R.string.active_progress_step, 3, 6))
+        assertEquals("本动作完成 · 共 4 组", context.getString(R.string.active_demo_stage_done, 4))
         assertEquals("训练完成 · 全部 6 组", context.getString(R.string.active_progress_done, 6))
         assertEquals("杠铃卧推 · 第 2 组", context.getString(R.string.active_modal_subtitle, "杠铃卧推", 2))
         assertEquals("减少重量", context.getString(R.string.active_a11y_decrease, "重量"))
@@ -90,6 +93,7 @@ class FtActiveStringsTest {
     @Config(sdk = [34], qualifiers = "en-rUS")
     fun `英文资源在 en 区域生效`() {
         assertEquals("Set 3 of 6", context.getString(R.string.active_progress_step, 3, 6))
+        assertEquals("Exercise complete · 4 sets", context.getString(R.string.active_demo_stage_done, 4))
         assertEquals("Workout complete · all 6 sets", context.getString(R.string.active_progress_done, 6))
         assertEquals("Record set", context.getString(R.string.active_modal_title))
         assertEquals("Decrease Weight", context.getString(R.string.active_a11y_decrease, "Weight"))

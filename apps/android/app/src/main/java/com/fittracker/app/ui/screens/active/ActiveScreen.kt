@@ -175,6 +175,9 @@ fun ActiveScreen(
     var reps by remember { mutableIntStateOf(FtActiveModel.REPS_INIT) }
     var celebrate by remember { mutableStateOf(CelebratePhase.None) }
     var justDoneIndex by remember { mutableStateOf<Int?>(null) }
+    // 挂起的自动前进：录满后先让完成态（Dock 置灰 + 「本动作已完成」）停一拍，
+    // 再由下面的 LaunchedEffect 走与手动切换相同的翻转动画。
+    var pendingAdvance by remember { mutableStateOf<PendingAdvance?>(null) }
     var target by remember { mutableIntStateOf(FtActiveModel.TARGET) }
     var startedAt by remember { mutableLongStateOf(0L) }
     var workout by remember { mutableStateOf<ActiveWorkoutState?>(null) }
@@ -291,10 +294,15 @@ fun ActiveScreen(
         modalOpen = false
         if (progressed === state) return // 目标动作已录满：服务原样返回，不落任何写
         workout = progressed
-        // 选中的动作刚录满 → 自动前进到下一个未录满动作（保持既有体感）；跳着补录时不被拽走。
+        // 选中的动作刚录满 → 挂一次自动前进（保持既有体感）；跳着补录时不被拽走。
+        //
+        // 这里不再直接改 selectedIndex：Dock 的 enabled/hint、胶囊满格全都以它为准，
+        // 在同一帧里改掉，这套完成态连一次重组都渲染不出来（用户看到的就是「瞬间归零」）。
         if (targetExercise.completedSets + 1 >= targetExercise.targetSets) {
             val nextIdx = FtActiveModel.firstUnfinishedIndex(progressed.exercises)
-            if (nextIdx >= 0) selectedIndex = nextIdx
+            if (nextIdx >= 0) {
+                pendingAdvance = PendingAdvance(targetExercise.plannedExerciseId, nextIdx)
+            }
         }
         records = progressed.exercises.getOrNull(selectedIndex)
             ?.let { FtActiveModel.recordsFor(progressed.exercises, it.plannedExerciseId) }
@@ -340,6 +348,8 @@ fun ActiveScreen(
     /** 切到指定动作：卡片先翻到 90°（侧对屏幕时换内容），再转回正面。名称滚动交给 AnimatedContent。 */
     fun chooseExercise(index: Int) {
         showPicker = false
+        // 手动切换优先于任何挂起的自动前进（含用户点开菜单又选回当前动作）
+        pendingAdvance = null
         if (index == selectedIndex) return
         val state = workout ?: return
         val exercise = state.exercises.getOrNull(index) ?: return
@@ -349,6 +359,18 @@ fun ActiveScreen(
             records = FtActiveModel.recordsFor(state.exercises, exercise.plannedExerciseId)
             flipAngle.snapTo(-90f)
             flipAngle.animateTo(0f, tween(160))
+        }
+    }
+
+    // 挂起的自动前进：停留期满且用户没手动切走时才翻页。key 变化会自动取消上一次等待。
+    LaunchedEffect(pendingAdvance) {
+        val pending = pendingAdvance ?: return@LaunchedEffect
+        delay(FtMotion.DURATION_ADVANCE_HOLD.toLong())
+        val source = workout?.exercises?.getOrNull(selectedIndex)
+        pendingAdvance = null
+        // 这段时间里用户自己切走了 → 尊重用户选择，不把他拽回自动前进的目标
+        if (source?.plannedExerciseId == pending.fromExerciseId) {
+            chooseExercise(pending.targetIndex)
         }
     }
 
@@ -1035,7 +1057,13 @@ private fun DemoCard(workout: ActiveWorkoutState?, selectedIndex: Int, flipAngle
         "1 / 4"
     }
     val currentStageNumber = current?.let { (it.completedSets + 1).coerceAtMost(it.targetSets) } ?: 2
-    val demoStage = stringResource(R.string.active_demo_stage, currentStageNumber)
+    // 录满时「第 N 组」是错的：第 N 组已经做完，此刻屏上停留的正是完成态。
+    // 换成本动作口径，与 Dock 的「本动作已完成」、胶囊满格说同一件事。
+    val demoStage = if (current != null && current.completedSets >= current.targetSets) {
+        stringResource(R.string.active_demo_stage_done, current.targetSets)
+    } else {
+        stringResource(R.string.active_demo_stage, currentStageNumber)
+    }
     val demoGif = current?.let { FtLibraryModel.gifAssetFor(it.plannedExerciseId, it.name) }
     val demoVisualA11y = stringResource(R.string.active_a11y_demo_visual, demoName)
 
@@ -1983,3 +2011,11 @@ private fun nextPlannedExerciseId(state: ActiveWorkoutState): String =
 
 /** [nextExercise] 命中动作的下一组序号（`completedSets` 即下一个待填组下标）。 */
 private fun nextSetIndex(state: ActiveWorkoutState): Int = nextExercise(state)?.completedSets ?: 0
+
+/**
+ * 挂起的自动前进：从哪条动作翻到哪个下标。
+ *
+ * 用 `plannedExerciseId` 而不是下标标识来源：提前结束会收缩 `targetSets`，
+ * 下标的可比性不如这条动作的稳定身份。
+ */
+private data class PendingAdvance(val fromExerciseId: String, val targetIndex: Int)

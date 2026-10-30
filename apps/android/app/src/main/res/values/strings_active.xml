@@ -46,6 +46,8 @@
     <string name="active_fallback_exercise">杠铃卧推</string>
     <!-- 当前组号（`.demo-caption` 的阶段；原静态「第 2 组 · 正式组」）：`%1$d` 组序号 -->
     <string name="active_demo_stage">第 %1$d 组 · 正式组</string>
+    <!-- 选中动作录满时的替代文案：`%1$d` 该动作目标组数（与鸿蒙 caption 逐字对齐） -->
+    <string name="active_demo_stage_done">本动作完成 · 共 %1$d 组</string>
     <!-- 动作演示的无障碍描述：`%1$s` 动作名 -->
     <string name="active_a11y_demo_gif">%1$s 动作演示</string>
     <string name="active_a11y_demo_visual">%1$s 动作演示图</string>
