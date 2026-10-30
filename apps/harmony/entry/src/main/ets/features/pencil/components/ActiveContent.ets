@@ -1,5 +1,6 @@
 /** ActiveContent - 训练中界面体（供 PencilActivePage 独立渲染）。 */
 import { AppRoutes } from '../../../app/AppRoutes'
+import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
 import { MediaTokens, MotionTokens } from '../../../common/styles/DesignTokens'
 import { MotionIntent } from '../../../common/styles/MotionIntent'
@@ -13,6 +14,14 @@ import ActiveWorkoutService, {
   ActiveWorkoutSetEntry,
   ActiveWorkoutState
 } from '../../../shared/services/ActiveWorkoutService'
+import WorkoutDraftService, {
+  hasWorkoutDraftProgress,
+  WorkoutDraftSnapshot
+} from '../../../common/services/WorkoutDraftService'
+import {
+  fromWorkoutDraft,
+  toWorkoutDraft
+} from '../../../shared/services/ActiveWorkoutDraftMapper'
 import { WorkoutPreviewSummary } from '../../../shared/services/WorkoutPreviewService'
 import SettingsService, { AppSettings } from '../../../common/services/SettingsService'
 import UserProfileService, { UserProfile, WeightUnit } from '../../../common/services/UserProfileService'
@@ -167,6 +176,8 @@ export struct ActiveContent {
   private clockTimer: number = -1
   private pulseTimer: number = -1
   private finished: boolean = false
+  /** 本次退出是否已落过草稿：chevron 与 aboutToDisappear 两处调用靠它幂等。 */
+  private draftSavedOnExit: boolean = false
   private win: window.Window | null = null
   private keepScreenOnApplied: boolean = false
   private soundEnabled: boolean = true
@@ -187,7 +198,16 @@ export struct ActiveContent {
 
   async aboutToAppear(): Promise<void> {
     await this.applyDisplayUnitPreference()
-    this.applyPreviewState()
+    // 入口分流：带预览参数 = 从预览开始新一场（旧草稿作废）；否则可能是首页「继续训练」。
+    const fromPreview: boolean = this.applyPreviewState()
+    if (fromPreview) {
+      await this.clearStaleDraft()
+    } else {
+      const restored: boolean = await this.restoreDraftIfAny()
+      if (!restored) {
+        this.applyState(this.createEmptyActiveState(), 0)
+      }
+    }
     this.clockTimer = setInterval(() => {
       this.elapsedSeconds += 1
     }, 1000)
@@ -217,6 +237,8 @@ export struct ActiveContent {
     }
     this.cancelAdvance()
     this.releaseKeepScreenOn()
+    // 系统返回键 / 被 pop 时的兜底：chevron 之外的退出路径也要留下草稿
+    this.persistDraftOnExit()
   }
 
   /** 当前输入重量的展示值（显示单位下的整数）。 */
@@ -286,19 +308,35 @@ export struct ActiveContent {
     this.win = null
   }
 
-  private applyPreviewState(): void {
-    let state: ActiveWorkoutState = this.createEmptyActiveState()
+  /**
+   * 从路由参数建立新训练；返回是否拿到了可用预览。
+   *
+   * 拿不到（直接进入本页 / 参数异常）时**不写界面**——交给 restoreDraftIfAny 或空态兜底，
+   * 否则先铺一遍空态再铺草稿，快照上会闪一次 0 组。
+   */
+  private applyPreviewState(): boolean {
     try {
       const params: ActiveWorkoutRouteParams = this.getUIContext().getRouter().getParams() as ActiveWorkoutRouteParams
       if (params.preview !== undefined) {
         const candidate: ActiveWorkoutState = ActiveWorkoutService.createState(params.preview)
         if (candidate.hasWorkout) {
-          state = candidate
+          this.applyState(candidate, 0)
+          return true
         }
       }
     } catch (e) {
-      state = this.createEmptyActiveState()
+      // 参数缺失或格式异常：交给草稿恢复 / 空态兜底
     }
+    return false
+  }
+
+  /**
+   * 把一份训练态铺到界面字段上。预览新建与草稿恢复共用同一段，
+   * 避免两处各写一遍导致「恢复后的记录区口径」与「新建时」漂移。
+   *
+   * [elapsedSeconds] 只有草稿恢复时非 0（草稿存的是绝对起点，见 restoreDraftIfAny）。
+   */
+  private applyState(state: ActiveWorkoutState, elapsedSeconds: number): void {
     // 留存完整 state：保存会话时需回读真实 planId / dayId / 各动作 exerciseId
     //（此前的写死值 'active_plan' / 'active_day' / 'bench_press' 即源于此处丢失）。
     this.activeState = state
@@ -309,6 +347,7 @@ export struct ActiveContent {
     this.exerciseIndex = this.findCurrentExerciseIndex(state)
     this.targetSets = ActiveWorkoutService.totalTargetSets(state)
     this.completed = state.completedSets
+    this.elapsedSeconds = elapsedSeconds
     // 顶部胶囊初值：首个未录满动作（= 改造前「当前动作」的同一口径）；全部录满时停在最后一个动作。
     const unfinished: number = findUnfinishedExerciseIndex(state.exercises)
     this.selectedExerciseIndex =
@@ -323,6 +362,71 @@ export struct ActiveContent {
     const initialValues: InitialSetValues = this.findInitialSetValues(state)
     this.weight = initialValues.weight > 0 ? initialValues.weight : WEIGHT_MIN_KG
     this.reps = initialValues.reps > 0 ? initialValues.reps : this.findTargetRepsValue(state)
+  }
+
+  /**
+   * 草稿恢复：本页在没有预览参数时进入（首页「继续训练」），按上次退出的进度续练。
+   * 返回是否恢复成功。
+   */
+  private async restoreDraftIfAny(): Promise<boolean> {
+    const host: Context | undefined = this.getUIContext().getHostContext()
+    if (host === undefined) {
+      return false
+    }
+    const draft: WorkoutDraftSnapshot | null = await WorkoutDraftService.getDraft(host)
+    if (draft === null || !hasWorkoutDraftProgress(draft)) {
+      return false
+    }
+    const state: ActiveWorkoutState = fromWorkoutDraft(draft)
+    if (!state.hasWorkout) {
+      return false
+    }
+    // 时长接续：草稿存的是绝对起点，隔多久回来都算得准（此前 elapsedSeconds 只从 0 起）。
+    const elapsed: number = Math.max(0, Math.floor((Date.now() - draft.startedAt) / 1000))
+    this.applyState(state, elapsed)
+    return true
+  }
+
+  /**
+   * 落草稿。两个调用点共用：chevron 收起、aboutToDisappear 兜底（系统返回键）。
+   *
+   * 幂等（draftSavedOnExit）；整场做完（finished）与零完成组时不写——
+   * 前者草稿已被 clearStaleDraft 清掉，后者避免首页留下「0/12 组」的空壳接续态。
+   * fire-and-forget：preferences 失败不阻塞退出，Context 来自 UIAbility 不随组件销毁失效。
+   */
+  private persistDraftOnExit(): void {
+    if (this.draftSavedOnExit || this.finished) {
+      return
+    }
+    const host: Context | undefined = this.getUIContext().getHostContext()
+    if (host === undefined) {
+      return
+    }
+    if (ActiveWorkoutService.countCompletedSets(this.activeState.exercises) <= 0) {
+      return
+    }
+    this.draftSavedOnExit = true
+    const now: number = Date.now()
+    const startedAt: number = now - this.elapsedSeconds * 1000
+    // 第三参数（dayLabel 槽位）传入 dayId：草稿结构没有独立的 dayId 字段，
+    // 借用该槽位保持往返无损，fromWorkoutDraft 再取回为 dayId。
+    const snapshot: WorkoutDraftSnapshot = toWorkoutDraft(
+      this.activeState,
+      this.activeState.title,
+      this.activeState.dayId,
+      startedAt,
+      now
+    )
+    WorkoutDraftService.saveDraft(host, snapshot)
+  }
+
+  /** 清掉上一场残留的草稿（新一场开始 / 整场完成时调用）。 */
+  private async clearStaleDraft(): Promise<void> {
+    const host: Context | undefined = this.getUIContext().getHostContext()
+    if (host === undefined) {
+      return
+    }
+    await WorkoutDraftService.clearDraft(host)
   }
 
   private createEmptyActiveState(): ActiveWorkoutState {
@@ -557,6 +661,8 @@ export struct ActiveContent {
       ActiveWorkoutService.countCompletedSets(this.activeState.exercises)
     )
     WorkoutRepository.saveSession(session)
+    // 草稿使命结束：整场已完成，首页不该再出现「继续训练」
+    this.clearStaleDraft()
   }
 
   /** 动作切换胶囊的索引序列（0..exerciseTotal-1）。 */
@@ -821,9 +927,15 @@ export struct ActiveContent {
     }
   }
 
-  /** 收起训练：与系统返回键同一路径（不新增未保存状态）。 */
+  /**
+   * 收起训练：落草稿后返回主壳（首页据此显示「继续训练」）。
+   *
+   * 与系统返回键走同一条退出路径——aboutToDisappear 里也调 persistDraftOnExit 兜底，
+   * 两处靠 draftSavedOnExit 幂等，不会重复写盘。
+   */
   private collapseWorkout(): void {
     this.releaseKeepScreenOn()
+    this.persistDraftOnExit()
     this.getUIContext().getRouter().back()
   }
 

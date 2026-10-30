@@ -170,6 +170,12 @@ export struct PencilAppShell {
           onStartWorkout: () => {
             this.showWeightGate = true
           },
+          // 续练：不带 preview 参数进训练页，训练页会自己从草稿恢复进度与计时。
+          // 与「开始训练」分开是因为它不该过体重 gate——gate 是开新一场前的记账。
+          onResumeWorkout: () => {
+            this.showPreview = false
+            this.getUIContext().getRouter().pushUrl({ url: AppRoutes.ACTIVE_WORKOUT })
+          },
           onOpenPreview: () => {
             this.showPreview = true
           }

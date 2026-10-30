@@ -14,6 +14,9 @@ export struct HomeContent {
   // 由 PencilAppShell 传入：「开始训练」先过体重记录 gate，确认后才开预览。
   // 与 onOpenPreview 分开，是因为「查看预览」不走 gate（语义是看，不是练）。
   onStartWorkout?: () => void
+  // 由 PencilAppShell 传入：「继续训练」直接进训练页（不过预览、不过体重 gate）。
+  // gate 的语义是「开始新一场前先记账」，续练不需要再记一次体重。
+  onResumeWorkout?: () => void
   // 状态层：由 PencilAppShell 传入。数据态与装载已迁入 HomeState，此处只留 UI 交互态。
   @ObjectLink state: HomeState
   private static readonly CHINESE_FONT_FAMILY: string = 'Noto Sans SC'
@@ -193,6 +196,13 @@ export struct HomeContent {
       return
     }
     this.openPreview()
+  }
+
+  /** 继续上次未完成的训练：直接进训练页，由训练页自己从草稿恢复。 */
+  private resumeWorkout(): void {
+    if (this.onResumeWorkout !== undefined) {
+      this.onResumeWorkout()
+    }
   }
 
   private async resolveTopInset(): Promise<void> {
@@ -427,7 +437,22 @@ export struct HomeContent {
       .width('100%')
       Row()
         .height(16)
-      Button('\u5f00\u59cb\u8bad\u7ec3')
+      // 接续态：收起训练后回到首页，主 CTA 换成「继续训练」+ 一行进度说明。
+      // 用的是同一颗按钮（同样的 accent 底与硬边厚底），不新增第二个视觉语汇。
+      if (this.state.activeDraftCompletedSets > 0) {
+        Text('未完成 · 已做 ' + this.state.activeDraftCompletedSets.toString() + '/' +
+          this.state.activeDraftTotalSets.toString() + ' 组' +
+          (this.state.activeDraftElapsedMinutes > 0
+            ? ' · ' + this.state.activeDraftElapsedMinutes.toString() + ' 分钟'
+            : ''))
+          .fontFamily(HomeContent.CHINESE_FONT_FAMILY)
+          .fontSize(11)
+          .fontColor(PrototypeTokens.ACCENT)
+          .width('100%')
+          .textAlign(TextAlign.Center)
+          .margin({ bottom: 6 })
+      }
+      Button(this.state.activeDraftCompletedSets > 0 ? '继续训练' : '\u5f00\u59cb\u8bad\u7ec3')
         .width('100%')
         .height(40)
         .fontSize(13.6)
@@ -452,7 +477,11 @@ export struct HomeContent {
         .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
         .padding(0)
         .onClick(() => {
-          this.startWorkout()
+          if (this.state.activeDraftCompletedSets > 0) {
+            this.resumeWorkout()
+          } else {
+            this.startWorkout()
+          }
         })
       Row()
         .height(8)

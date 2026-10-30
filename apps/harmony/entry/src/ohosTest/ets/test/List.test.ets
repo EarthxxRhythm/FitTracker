@@ -17,6 +17,7 @@ import userDataBackupServiceTest from './UserDataBackupService.test'
 import systemBackupBridgeServiceTest from './SystemBackupBridgeService.test'
 import workoutPreviewServiceTest from './WorkoutPreviewService.test'
 import activeWorkoutServiceTest from './ActiveWorkoutService.test'
+import activeWorkoutDraftMapperTest from './ActiveWorkoutDraftMapper.test'
 import workoutSummaryServiceTest from './WorkoutSummaryService.test'
 import workoutRepositoryTest from './WorkoutRepository.test'
 import workoutSessionEditServiceTest from './WorkoutSessionEditService.test'
@@ -70,6 +71,7 @@ export default function testsuite(): void {
   systemBackupBridgeServiceTest()
   workoutPreviewServiceTest()
   activeWorkoutServiceTest()
+  activeWorkoutDraftMapperTest()
   workoutSummaryServiceTest()
   workoutRepositoryTest()
   workoutSessionEditServiceTest()

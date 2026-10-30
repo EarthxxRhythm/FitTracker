@@ -20,6 +20,10 @@ import PlanEngine from '../../../../shared/services/PlanEngine'
 import HomePlanService, { HomePlanSummary } from '../../../../shared/services/HomePlanService'
 import WorkoutSessionPersistenceBridgeService from '../../../workout/services/WorkoutSessionPersistenceBridgeService'
 import SettingsService, { AppSettings } from '../../../../common/services/SettingsService'
+import WorkoutDraftService, {
+  hasWorkoutDraftProgress,
+  WorkoutDraftSnapshot
+} from '../../../../common/services/WorkoutDraftService'
 
 export interface HomeWeekDayItem {
   label: string
@@ -42,6 +46,13 @@ export class HomeState extends StateBase {
   weeklyTrainedCount: number = 0
   weeklyPlannedDays: number = 0
   weekDays: HomeWeekDayItem[] = []
+
+  // 进行中的训练草稿（首页接续态）：训练页收起后回到首页，主 CTA 变「继续训练」。
+  // 四字段默认 0/空 = 无进行中训练，与训练页 persistDraftOnExit 的「零组不落草稿」对齐。
+  activeDraftCompletedSets: number = 0
+  activeDraftTotalSets: number = 0
+  activeDraftElapsedMinutes: number = 0
+  activeDraftTitle: string = ''
 
   /** 按需装载。[force] 为 true 跳过新鲜度判断（首次 aboutToAppear 用）。 */
   async refresh(context: Context, force: boolean = false): Promise<void> {
@@ -112,6 +123,9 @@ export class HomeState extends StateBase {
     }
 
     const settings: AppSettings = await SettingsService.loadSettings(context)
+    // 草稿读取放在计划/目标都装载完之后：它只影响主 CTA 的文案与副行，不参与计划派生。
+    const draft: WorkoutDraftSnapshot | null = await WorkoutDraftService.getDraft(context)
+    this.applyDraftState(draft, now)
     const sessions: WorkoutSession[] = await WorkoutSessionPersistenceBridgeService.loadPersistedSessions(context)
     const dashboard: StatsDashboardSummary = sessions.length === 0
       ? StatsDashboardService.createEmptySummary(now, settings.weekStart)
@@ -222,5 +236,26 @@ export class HomeState extends StateBase {
     this.todayDurationMinutes = 0
     this.todayMuscleGroupCount = 0
     this.weeklyPlannedDays = 0
+    // 无计划时不应存在「继续训练」：有草稿也只能是历史残留，直接清掉展示态
+    this.clearDraftState()
+  }
+
+  /** 把草稿铺成首页接续态；无草稿或草稿无进度时清零。 */
+  private applyDraftState(draft: WorkoutDraftSnapshot | null, now: number): void {
+    if (draft === null || !hasWorkoutDraftProgress(draft)) {
+      this.clearDraftState()
+      return
+    }
+    this.activeDraftCompletedSets = draft.completedSets
+    this.activeDraftTotalSets = draft.totalTargetSets
+    this.activeDraftElapsedMinutes = Math.max(0, Math.floor((now - draft.startedAt) / 60000))
+    this.activeDraftTitle = draft.planName
+  }
+
+  private clearDraftState(): void {
+    this.activeDraftCompletedSets = 0
+    this.activeDraftTotalSets = 0
+    this.activeDraftElapsedMinutes = 0
+    this.activeDraftTitle = ''
   }
 }

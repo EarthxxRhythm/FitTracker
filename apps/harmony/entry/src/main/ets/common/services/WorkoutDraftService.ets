@@ -15,6 +15,14 @@ export interface WorkoutSetDraft {
 }
 
 export interface WorkoutExerciseDraft {
+  /**
+   * 计划内的稳定动作标识（组记录分组的键）。
+   *
+   * 训练页的分组键用的是 ActiveWorkoutExercise.plannedExerciseId，而本结构最初只有
+   * exerciseId——预置计划里两者恰好相同，自定义计划里可能不同。此字段 2026-10-30 补入：
+   * 旧草稿没有它，读取时由 normalizeWorkoutDraft 回落为 exerciseId。
+   */
+  plannedExerciseId: string
   exerciseId: string
   name: string
   targetMuscle: string
@@ -58,6 +66,7 @@ export function copyWorkoutExerciseDraft(source: WorkoutExerciseDraft): WorkoutE
     sets.push(copyWorkoutSetDraft(source.sets[index]))
   }
   const draft: WorkoutExerciseDraft = {
+    plannedExerciseId: source.plannedExerciseId,
     exerciseId: source.exerciseId,
     name: source.name,
     targetMuscle: source.targetMuscle,
@@ -85,6 +94,19 @@ export function copyWorkoutDraftSnapshot(source: WorkoutDraftSnapshot): WorkoutD
     currentExerciseProgress: source.currentExerciseProgress,
     exercises: exercises,
     updatedAt: source.updatedAt
+  }
+  return snapshot
+}
+
+export function normalizeWorkoutDraft(source: WorkoutDraftSnapshot): WorkoutDraftSnapshot {
+  const snapshot: WorkoutDraftSnapshot = copyWorkoutDraftSnapshot(source)
+  for (let index = 0; index < snapshot.exercises.length; index++) {
+    const exercise: WorkoutExerciseDraft = snapshot.exercises[index]
+    // 旧草稿（plannedExerciseId 缺失）回落为 exerciseId：分组键退化，但组记录仍能归到正确动作。
+    // 不回落的话 buildRecordGroupFor 拿到 undefined，训练页会显示「还没有完成组」。
+    if (exercise.plannedExerciseId === undefined || exercise.plannedExerciseId.length === 0) {
+      exercise.plannedExerciseId = exercise.exerciseId
+    }
   }
   return snapshot
 }
@@ -142,6 +164,11 @@ export function isValidWorkoutDraftSnapshot(source: WorkoutDraftSnapshot): boole
 }
 
 function isValidWorkoutExerciseDraft(source: WorkoutExerciseDraft): boolean {
+  // plannedExerciseId 是后补字段：旧草稿里不存在（undefined），必须放行。
+  // 否则升级后旧草稿整体被判非法，表现为「训练记录莫名消失」，比缺字段更难排查。
+  if (!isOptionalStringValue(source.plannedExerciseId)) {
+    return false
+  }
   if (!isStringValue(source.exerciseId) || !isStringValue(source.name) || !isStringValue(source.targetMuscle)) {
     return false
   }
@@ -169,6 +196,14 @@ function isValidWorkoutSetDraft(source: WorkoutSetDraft): boolean {
 function isStringValue(value: string): boolean {
   if (value === null || value === undefined) {
     return false
+  }
+  return value.toString() === value
+}
+
+/** 后补字段专用：允许缺失（旧结构），但存在时必须是 string。 */
+function isOptionalStringValue(value: string): boolean {
+  if (value === null || value === undefined) {
+    return true
   }
   return value.toString() === value
 }
@@ -221,7 +256,7 @@ class WorkoutDraftService {
       if (!isValidWorkoutDraftSnapshot(parsed)) {
         return null
       }
-      return copyWorkoutDraftSnapshot(parsed)
+      return normalizeWorkoutDraft(parsed)
     } catch (e) {
       return null
     }
