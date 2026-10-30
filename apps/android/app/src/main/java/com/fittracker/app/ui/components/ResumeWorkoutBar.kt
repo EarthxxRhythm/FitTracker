@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +30,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -106,14 +108,10 @@ fun ResumeWorkoutBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        ResumeRing(
-            completedSets = summary.completedSets,
-            totalSets = summary.totalSets,
-        )
-
+        // 左：我在练什么 + 这一动作做到第几组
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(3.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             Text(
                 text = summary.exerciseName.ifEmpty { "训练进行中" },
@@ -124,33 +122,31 @@ fun ResumeWorkoutBar(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = captionOf(summary),
-                color = FtColor.navInactive,
-                fontSize = 11.sp,
+                text = setProgressOf(summary),
+                color = FtColor.accent,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
             )
         }
 
-        // 只留一条极淡的箭头提示「可进入」，不放按钮：整条胶囊本身就是点击区
-        // （与列表行的 › 同一语汇），加按钮会让它读成「卡片 + 两个操作」。
-        Canvas(modifier = Modifier.size(width = 9.dp, height = 14.dp)) {
-            val stroke = 1.6.dp.toPx()
-            drawLine(
-                color = FtColor.navInactive,
-                start = Offset(1.dp.toPx(), 1.dp.toPx()),
-                end = Offset(size.width - 1.dp.toPx(), size.height / 2f),
-                strokeWidth = stroke,
-                cap = StrokeCap.Round,
-            )
-            drawLine(
-                color = FtColor.navInactive,
-                start = Offset(size.width - 1.dp.toPx(), size.height / 2f),
-                end = Offset(1.dp.toPx(), size.height - 1.dp.toPx()),
-                strokeWidth = stroke,
-                cap = StrokeCap.Round,
-            )
-        }
+        // 中：已经练了多久（训练页右上角同口径 mm:ss）。
+        // 固定宽度 + 居中：秒数每跳一次不会把左右两栏推来推去。
+        Text(
+            text = formatElapsedClock(summary.elapsedSeconds),
+            color = FtColor.accent,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            modifier = Modifier.width(88.dp),
+        )
+
+        // 右：整场还剩多少（环给比例、环内数字给精确值）
+        ResumeRing(
+            completedSets = summary.completedSets,
+            totalSets = summary.totalSets,
+        )
     }
 }
 
@@ -165,8 +161,8 @@ private fun ResumeRing(completedSets: Int, totalSets: Int) {
     val total = if (totalSets > 0) totalSets else 1
     val ratio = (completedSets.toFloat() / total.toFloat()).coerceIn(0f, 1f)
 
-    Box(modifier = Modifier.size(44.dp), contentAlignment = Alignment.Center) {
-        Canvas(modifier = Modifier.size(44.dp)) {
+    Box(modifier = Modifier.size(46.dp), contentAlignment = Alignment.Center) {
+        Canvas(modifier = Modifier.size(46.dp)) {
             val strokePx = 3.dp.toPx()
             val inset = strokePx / 2f
             val arcSize = Size(size.width - strokePx, size.height - strokePx)
@@ -194,39 +190,25 @@ private fun ResumeRing(completedSets: Int, totalSets: Int) {
                 )
             }
         }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = completedSets.toString(),
-                color = FtColor.txtHi,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = "/$totalSets",
-                color = FtColor.navInactive,
-                fontSize = 9.sp,
-            )
-        }
+        Text(
+            text = "$completedSets/$totalSets",
+            color = FtColor.accent,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+        )
     }
 }
 
-/**
- * 副行文案：「2 / 4 · 32:15」。
- *
- * 时间沿用训练页右上角那套 mm:ss（与 ActiveContent 的 formatClock 同式）——同一件事
- * 在两处显示，格式不该分叉。动作已满时给「4 / 4」，第 N 组不会越过总数；
- * 拿不到动作组数（旧草稿）时退回全局「已做 N 组」。
- */
-private fun captionOf(summary: ResumeDraftSummary): String {
+/** 左栏第二行：「2 / 4」——第几组 / 本动作共几组；练满时停在 4 / 4。 */
+private fun setProgressOf(summary: ResumeDraftSummary): String {
     val target = summary.exerciseTargetSets
     val completed = summary.exerciseCompletedSets
-    val base = if (target > 0) {
-        val currentSet = if (completed >= target) target else completed + 1
-        "$currentSet / $target"
-    } else {
-        "已做 ${summary.completedSets} 组"
+    if (target <= 0) {
+        // 旧草稿拿不到动作组数：退回全局计数，不显示一个假的 x / 0
+        return "已做 ${summary.completedSets} 组"
     }
-    return if (summary.elapsedSeconds > 0) "$base · ${formatElapsedClock(summary.elapsedSeconds)}" else base
+    val currentSet = if (completed >= target) target else completed + 1
+    return "$currentSet / $target"
 }
 
 /** 与训练页顶栏同一格式：mm:ss，两位补零。 */

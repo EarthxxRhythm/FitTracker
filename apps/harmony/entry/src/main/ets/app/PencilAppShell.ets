@@ -198,11 +198,14 @@ export struct PencilAppShell {
   /**
    * 「训练进行中」悬浮胶囊。
    *
-   * 信息分三层，与训练页的阅读顺序一致（整体 → 当前 → 局部）：
-   *   ① 环内 3/12 —— 全场组数计数器。环的角度给比例、环内数字给精确值；
-   *      只给数字会丢掉「还剩多少」的直觉，只给环会丢掉「到底几组」。
-   *   ② 当前动作名 —— 告诉用户点进去会看到哪个动作（与训练页选中口径同源）。
-   *   ③ 第 2 组 / 共 4 组 · 32 分钟 —— 动作内位置 + 已训练时长。
+   * 三栏，从左到右回答三个问题：
+   *   左 · 我在练什么、这一动作第几组（动作名 + 2 / 4）
+   *   中 · 练了多久（00:40，与训练页右上角同一 mm:ss 口径）
+   *   右 · 整场做到哪儿了（环给比例，环内 3/12 给精确值）
+   *
+   * 环放在右端而不是左端：左边是读数的起点，从动作名开始；整场进度是收口，落在终点。
+   * 三栏宽按内容分配——左栏 flex 吃掉剩余宽度，中栏固定 88、右栏固定 46；
+   * 动作名超长时只压左栏，计时与环不跟着漂。
    *
    * 形态：贴底栏上沿、左右各 18 留白；用 Stack 覆盖不参与布局，切 Tab 时不挤内容区。
    * 底色 RESUME_BAR_SURFACE 不透明——半透明会让下面的 Tab 内容透上来，在深色页上读成脏色。
@@ -211,9 +214,8 @@ export struct PencilAppShell {
   private resumeWorkoutBar() {
     Column() {
       Row({ space: 12 }) {
-        this.resumeRing()
-
-        Column({ space: 3 }) {
+        // 左：我在练什么 + 这一动作做到第几组
+        Column({ space: 4 }) {
           Text(this.resumeExerciseName())
             .fontFamily('Noto Sans SC')
             .fontSize(14)
@@ -221,27 +223,29 @@ export struct PencilAppShell {
             .fontColor(PrototypeTokens.TEXT_HI)
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
-          Text(this.resumeBarCaption())
-            .fontFamily('Noto Sans SC')
-            .fontSize(11)
-            .fontColor(PrototypeTokens.WHITE_A54)
+          Text(this.resumeSetProgress())
+            .fontFamily('Geist Mono')
+            .fontSize(12)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(PrototypeTokens.ACCENT)
             .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
         }
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
 
-        // 只留一条极淡的箭头提示「可进入」，不放按钮：整条胶囊本身就是点击区
-        // （与列表行的 › 同一语汇），加按钮会让它读成「卡片 + 两个操作」。
-        Path()
-          .width(9)
-          .height(14)
-          .commands('M2 2 L7 7 L2 12')
-          .fill(PrototypeTokens.TRANSPARENT)
-          .stroke(PrototypeTokens.WHITE_A40)
-          .strokeWidth(1.6)
-          .strokeLineCap(LineCapStyle.Round)
-          .strokeLineJoin(LineJoinStyle.Round)
+        // 中：已经练了多久（训练页右上角同口径 mm:ss）。
+        // 固定宽度 + 居中：秒数每跳一次不会把左右两栏推来推去。
+        Text(this.resumeElapsedClock())
+          .fontFamily('Geist Mono')
+          .fontSize(22)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(PrototypeTokens.ACCENT)
+          .maxLines(1)
+          .textAlign(TextAlign.Center)
+          .width(88)
+
+        // 右：整场还剩多少（环给比例、环内数字给精确值）
+        this.resumeRing()
       }
       .width('100%')
       .height(68)
@@ -250,7 +254,8 @@ export struct PencilAppShell {
       .borderRadius(20)
       .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
       .shadow({ radius: 24, color: '#7A000000', offsetX: 0, offsetY: 10 })
-      .accessibilityText('继续上次训练：' + this.resumeExerciseName() + '，' + this.resumeBarCaption())
+      .accessibilityText('继续上次训练：' + this.resumeExerciseName() + '，' +
+        this.resumeSetProgress() + '，已训练 ' + this.resumeElapsedClock())
       // 点按收束：胶囊压扁下沉淡出，与随后的页面推入连成一拍。
       // 不是「按了没反应突然换屏」——110ms 足够让眼睛把两次变化接成一次。
       .scale({ x: 1 - 0.03 * this.resumeBarSink, y: 1 - 0.08 * this.resumeBarSink })
@@ -273,7 +278,7 @@ export struct PencilAppShell {
     )
   }
 
-  /** 左侧环形计数器：环角度 = 全场完成比例，环内给精确数字（3 在上、/12 在下）。 */
+  /** 右端环形全场进度：环角度 = 完成比例，环内给精确数字（3/12 单行）。 */
   @Builder
   private resumeRing() {
     Stack({ alignContent: Alignment.Center }) {
@@ -282,26 +287,20 @@ export struct PencilAppShell {
         total: this.resumeRingTotal(),
         type: ProgressType.Ring
       })
-        .width(44)
-        .height(44)
+        .width(46)
+        .height(46)
         .color(PrototypeTokens.ACCENT)
         .backgroundColor(PrototypeTokens.WHITE_A10)
         .style({ strokeWidth: 3 })
-      Column({ space: 0 }) {
-        Text(this.homeState.activeDraftCompletedSets.toString())
-          .fontFamily('Geist Mono')
-          .fontSize(15)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(PrototypeTokens.TEXT_HI)
-        Text('/' + this.homeState.activeDraftTotalSets.toString())
-          .fontFamily('Geist Mono')
-          .fontSize(9)
-          .fontColor(PrototypeTokens.WHITE_A40)
-      }
-      .alignItems(HorizontalAlign.Center)
+      Text(this.homeState.activeDraftCompletedSets.toString() + '/' +
+        this.homeState.activeDraftTotalSets.toString())
+        .fontFamily('Geist Mono')
+        .fontSize(10)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(PrototypeTokens.ACCENT)
     }
-    .width(44)
-    .height(44)
+    .width(46)
+    .height(46)
   }
 
   /** Progress 的 total 不能为 0：无草稿总组数时给 1，环退化为空环而不是报错。 */
@@ -315,27 +314,21 @@ export struct PencilAppShell {
       : '训练进行中'
   }
 
-  /**
-   * 副行：「2 / 4 · 32:15」。
-   *
-   * 时间沿用训练页右上角那套 mm:ss（与 ActiveContent 的 formatClock 同式）——同一件事
-   * 在两处显示，格式不该分叉。动作已满时给「4 / 4」，第 N 组不会越过总数；
-   * 拿不到动作组数（旧草稿）时退回全局「已做 N 组」。
-   */
-  private resumeBarCaption(): string {
+  /** 左栏第二行：「2 / 4」——第几组 / 本动作共几组；练满时停在 4 / 4。 */
+  private resumeSetProgress(): string {
     const completed: number = this.homeState.activeDraftExerciseCompleted
     const target: number = this.homeState.activeDraftExerciseTarget
-    let caption: string = ''
-    if (target > 0) {
-      const currentSet: number = completed >= target ? target : completed + 1
-      caption = currentSet.toString() + ' / ' + target.toString()
-    } else {
-      caption = '已做 ' + this.homeState.activeDraftCompletedSets.toString() + ' 组'
+    if (target <= 0) {
+      // 旧草稿拿不到动作组数：退回全局计数，不显示一个假的 x / 0
+      return '已做 ' + this.homeState.activeDraftCompletedSets.toString() + ' 组'
     }
-    if (this.homeState.activeDraftElapsedSeconds > 0) {
-      caption += ' · ' + this.formatElapsedClock(this.homeState.activeDraftElapsedSeconds)
-    }
-    return caption
+    const currentSet: number = completed >= target ? target : completed + 1
+    return currentSet.toString() + ' / ' + target.toString()
+  }
+
+  /** 中栏：已训练时长，与训练页右上角同一口径（mm:ss）。 */
+  private resumeElapsedClock(): string {
+    return this.formatElapsedClock(this.homeState.activeDraftElapsedSeconds)
   }
 
   /** 与训练页顶栏同一格式：mm:ss，两位补零（总时长超过 99 分钟时分钟位自然变宽）。 */
