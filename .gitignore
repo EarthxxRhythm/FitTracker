@@ -177,6 +177,7 @@ apps/harmony/0
 /loop/cards/
 /loop/autopilot.local.json
 /loop/.autopilot.lock
-/loop/inbox/
+/loop/inbox/*
+!/loop/inbox/README.md
 /loop/outbox/
 /loop/last-run.json
