@@ -33,7 +33,10 @@
     <string name="active_exercise_full">本动作已完成</string>
     <string name="active_exercise_ended">本动作已结束</string>
     <!-- 组胶囊的无障碍描述：`%1$d` 组号 -->
-    <string name="active_set_pill_a11y">第 %1$d 组</string>
+    <string name="active_set_pill_a11y_state">第 %1$d 组，%2$s</string>
+    <string name="active_set_state_done">已完成</string>
+    <string name="active_set_state_current">进行中</string>
+    <string name="active_set_state_todo">未开始</string>
     <!-- 顶栏动作名可点开切换器 -->
     <string name="active_switch_exercise">切换动作</string>
 

@@ -48,11 +48,14 @@ const WEIGHT_MAX_KG: number = 200
 // 目标次数解析不出时的兜底（原型输入框占位为「8–10」）。
 const FALLBACK_REPS: number = 8
 
-// 组胶囊：一个胶囊 = 一组（当前动作的目标组数）。高 26；≤6 组等分铺满，更多按最小宽度横向滚动。
+// 组胶囊：一个胶囊 = 一组（当前动作的目标组数）。高 26，整行等分铺满。
+// 组数多时靠 SET_PILL_MIN_WIDTH 兜底：宽度退到与高度相等（正圆点），不再继续变扁。
 const SET_PILL_HEIGHT: number = 26
 const SET_PILL_GAP: number = 8
-const SET_PILL_MIN_WIDTH: number = 44
-const SET_PILL_EVEN_MAX: number = 6
+// 取 26（= 高度）而不是 44：360dp 屏、左右 18 内边距、间距 8 时，
+// 可用宽 324 只撑得住 6 组每格 47；第 7 组起每格算下来 39，顶穿 44 就溢出，
+// 而 39 以下到 26 这一段仍是「格」的形状，25 以下才退化成细缝——所以下限压在 26。
+const SET_PILL_MIN_WIDTH: number = 26
 // 长按「完成」提前结束：按住多久算数、进度推进的步长（16ms ≈ 一帧）。
 const HOLD_DURATION_MS: number = 1200
 const HOLD_TICK_MS: number = 16
@@ -591,7 +594,7 @@ export struct ActiveContent {
     return exercise !== undefined && index < exercise.completedSets
   }
 
-  /** 该组是否是「正在做的那一组」（虚线强调）。 */
+  /** 该组是否是「正在做的那一组」（实线描边 + 呼吸）。 */
   private isSetCurrent(index: number): boolean {
     const exercise: ActiveWorkoutExercise | undefined = this.selectedExercise()
     return exercise !== undefined && index === exercise.completedSets && index < exercise.targetSets
@@ -928,10 +931,11 @@ export struct ActiveContent {
     }
   }
 
-  /** 组胶囊行：当前动作每组一个胶囊。≤6 组等分铺满，更多按最小宽度横向滚动。 */
+  /** 组胶囊行：当前动作每组一个胶囊，整行等分铺满。 */
   @Builder
   private setPills() {
     if (this.setIndexes().length === 0) {
+      // 不套描边壳：胶囊的语义是「一格一组」，用一个壳装一句话会让这一行读成第 N+1 格。
       Text('本动作已结束')
         .fontFamily('Noto Sans SC')
         .fontSize(12)
@@ -939,39 +943,56 @@ export struct ActiveContent {
         .width('100%')
         .height(SET_PILL_HEIGHT)
         .textAlign(TextAlign.Center)
-        .border({ width: 1, color: PrototypeTokens.WHITE_A10, style: BorderStyle.Dashed })
-        .borderRadius(999)
     } else {
-      Scroll() {
-        Row({ space: SET_PILL_GAP }) {
-          ForEach(this.setIndexes(), (index: number) => {
-            this.setPill(index)
-          }, (index: number) => 'set_' + index.toString())
-        }
+      // 行尾不再放 n/total：组号在演示卡 caption（「第 N 组 · 正式组」）与记录分组头（「n 组」）
+      // 各有一份，胶囊再来一份是第三重编码，还占掉约 30dp——6 组时每格从 54 被压到 47。
+      // 「共几组」本来就能数格数读出来，这个比值不带来新信息。
+      Row({ space: SET_PILL_GAP }) {
+        ForEach(this.setIndexes(), (index: number) => {
+          this.setPill(index)
+        }, (index: number) => 'set_' + index.toString())
       }
-      .scrollable(ScrollDirection.Horizontal)
-      .scrollBar(BarState.Off)
       .width('100%')
     }
   }
 
-  /** 单个组胶囊：已完成实心 accent、当前组虚线强调、未做灰底。纯形态，不标数字。 */
+  /** 单个组胶囊：已完成实心 accent、当前组呼吸描边、未做灰底。纯形态，不标数字。 */
   @Builder
   private setPill(index: number) {
     Row()
       .height(SET_PILL_HEIGHT)
       .constraintSize({ minWidth: SET_PILL_MIN_WIDTH })
-      .layoutWeight(this.setIndexes().length <= SET_PILL_EVEN_MAX ? 1 : 0)
-      .backgroundColor(this.isSetDone(index) ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A03)
+      .layoutWeight(1)
+      // 三态底色：已完成填满 ACCENT、当前组极淡 ACCENT（「下一个待填满的位置」）、未做玻璃灰。
+      // 当前组原先是透明底 + 虚线描边——26 高的细条上虚线只剩一两个 dash，
+      // 读起来像「描边没画好」而不是「进行中」，改实线 + 淡底后层级才立得住。
+      .backgroundColor(
+        this.isSetDone(index)
+          ? PrototypeTokens.ACCENT
+          : (this.isSetCurrent(index) ? PrototypeTokens.ACCENT_A12 : PrototypeTokens.WHITE_A03)
+      )
       .borderRadius(999)
       .border({
-        width: this.isSetDone(index) ? 0 : 1,
-        color: this.isSetCurrent(index) ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A10,
-        style: this.isSetCurrent(index) ? BorderStyle.Dashed : BorderStyle.Solid
+        width: this.isSetDone(index) ? 0 : (this.isSetCurrent(index) ? 1.5 : 1),
+        // 当前组的描边跟着顶栏计时点同一个拍子呼吸（livePulseLow，800ms 半周期）。
+        // 只动描边、不动底色：填充变暗会被读成「这一组的完成度退回去了」。
+        // 同频而不是另起周期，是让两处读成同一个「系统在走」的节拍，不是两团互相盖住的噪音。
+        color: this.isSetCurrent(index)
+          ? (this.livePulseLow ? PrototypeTokens.ACCENT_A45 : PrototypeTokens.ACCENT)
+          : PrototypeTokens.WHITE_A10,
+        style: BorderStyle.Solid
       })
-      // 不渲染数字后，组号只保留在无障碍描述里
-      .accessibilityText('第 ' + (index + 1).toString() + ' 组')
+      // 不渲染数字后，组号与三态都只保留在无障碍描述里
+      .accessibilityText('第 ' + (index + 1).toString() + ' 组，' + this.setPillStateLabel(index))
       .animation({ duration: MotionTokens.DURATION_MARKER, curve: MotionTokens.EASE_MOTION })
+  }
+
+  /** 胶囊的三态状态词：视觉上有三态，读屏也得有三态，否则「第 3 组」分不出做没做。 */
+  private setPillStateLabel(index: number): string {
+    if (this.isSetDone(index)) {
+      return '已完成'
+    }
+    return this.isSetCurrent(index) ? '进行中' : '未开始'
   }
 
   /** 动作切换弹层内容：当前项右侧带对勾。 */

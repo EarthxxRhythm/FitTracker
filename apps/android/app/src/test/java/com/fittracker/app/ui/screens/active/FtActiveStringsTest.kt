@@ -60,7 +60,12 @@ class FtActiveStringsTest {
             R.string.active_hold_cancel to "松开取消 · 继续按住结束本动作",
             R.string.active_exercise_full to "本动作已完成",
             R.string.active_exercise_ended to "本动作已结束",
-            R.string.active_set_pill_a11y to "第 %1\$d 组",
+            // 组胶囊：视觉三态（已完成 / 进行中 / 未开始）也得在无障碍描述里有三态，
+            // 所以从单段「第 N 组」改成带状态词的组合文案。
+            R.string.active_set_pill_a11y_state to "第 %1\$d 组，%2\$s",
+            R.string.active_set_state_done to "已完成",
+            R.string.active_set_state_current to "进行中",
+            R.string.active_set_state_todo to "未开始",
             R.string.active_switch_exercise to "切换动作",
         )
 
@@ -77,6 +82,7 @@ class FtActiveStringsTest {
         assertEquals("杠铃卧推 · 第 2 组", context.getString(R.string.active_modal_subtitle, "杠铃卧推", 2))
         assertEquals("减少重量", context.getString(R.string.active_a11y_decrease, "重量"))
         assertEquals("第 5 组", context.getString(R.string.active_set_index, 5))
+        assertEquals("第 3 组，已完成", context.getString(R.string.active_set_pill_a11y_state, 3, "已完成"))
     }
 
     /** English 资源生效（`values-en/strings_active.xml`）——方法级区域限定符覆盖类级 `zh-rCN`。 */
@@ -87,5 +93,7 @@ class FtActiveStringsTest {
         assertEquals("Workout complete · all 6 sets", context.getString(R.string.active_progress_done, 6))
         assertEquals("Record set", context.getString(R.string.active_modal_title))
         assertEquals("Decrease Weight", context.getString(R.string.active_a11y_decrease, "Weight"))
+        // 英文区域下组合文案的插值形状：`Set %1$d, %2$s` → `Set 3, completed`
+        assertEquals("Set 3, completed", context.getString(R.string.active_set_pill_a11y_state, 3, "completed"))
     }
 }

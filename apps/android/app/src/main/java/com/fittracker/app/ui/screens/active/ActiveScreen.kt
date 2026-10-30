@@ -693,12 +693,11 @@ private fun SetPills(exercise: ActiveWorkoutExercise?) {
     val targetSets = exercise?.targetSets ?: 0
     val completed = exercise?.completedSets ?: 0
     if (targetSets <= 0) {
+        // 不套描边壳：胶囊的语义是「一格一组」，用一个壳装一句话会让这一行读成第 N+1 格。
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(26.dp)
-                .clip(FtShape.pill)
-                .border(1.dp, FtColor.line10, FtShape.pill),
+                .height(26.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -709,18 +708,34 @@ private fun SetPills(exercise: ActiveWorkoutExercise?) {
         }
         return
     }
+    // 当前组的描边跟着顶栏 liveDot 一起呼吸：同一个 1.6s 循环、反向 800ms 半周期、也收到 0.45 暗端。
+    // 只动描边、不动底色——填充变暗会被读成「这一组的完成度退回去了」。
+    val breathe = remember { Animatable(1f) }
+    LaunchedEffect(Unit) {
+        breathe.animateTo(
+            targetValue = 0.45f,
+            animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+                animation = tween(FtMotion.DURATION_PULSE / 2, easing = androidx.compose.animation.core.LinearEasing),
+                repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
+            ),
+        )
+    }
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         for (index in 0 until targetSets) {
             SetPill(
                 setNumber = index + 1,
                 done = index < completed,
                 current = index == completed,
+                currentBorderAlpha = breathe.value,
                 modifier = Modifier.weight(1f),
             )
         }
+        // 行尾不再放 n/total：组号在演示卡 caption 与记录分组头各有一份，胶囊再来一份是
+        // 第三重编码，还白占宽度——「共几组」本来就能数格数读出来。
     }
 }
 
@@ -730,36 +745,40 @@ private fun SetPill(
     setNumber: Int,
     done: Boolean,
     current: Boolean,
+    currentBorderAlpha: Float,
     modifier: Modifier = Modifier,
 ) {
-    val label = stringResource(R.string.active_set_pill_a11y, setNumber)
+    // 视觉上是三态，读屏也得是三态——否则「第 3 组」分不出做没做。
+    val stateLabel = stringResource(
+        when {
+            done -> R.string.active_set_state_done
+            current -> R.string.active_set_state_current
+            else -> R.string.active_set_state_todo
+        },
+    )
+    val label = stringResource(R.string.active_set_pill_a11y_state, setNumber, stateLabel)
     Box(
         modifier = modifier
             .height(26.dp)
             .clip(FtShape.pill)
-            .background(if (done) FtColor.accent else FtColor.glass6)
+            // 三态底色：已完成填满 accent、当前组极淡 accent（「下一个待填满的位置」）、未做玻璃灰。
+            // 当前组原先是透明底 + 虚线描边——26dp 高的细条上虚线只剩一两个 dash，
+            // 读起来像「描边没画好」而不是「进行中」，改实线 + 淡底后层级才立得住。
+            .background(
+                when {
+                    done -> FtColor.accent
+                    current -> FtColor.accent12
+                    else -> FtColor.glass6
+                }
+            )
             .then(
-                if (done) {
-                    Modifier
-                } else if (current) {
-                    // Compose 的 Modifier.border 不支持虚线，用 drawBehind 手绘描边
-                    Modifier.drawBehind {
-                        drawRoundRect(
-                            color = FtColor.accent,
-                            topLeft = Offset.Zero,
-                            size = Size(size.width, size.height),
-                            cornerRadius = CornerRadius(size.height / 2f, size.height / 2f),
-                            style = Stroke(
-                                width = 1.2.dp.toPx(),
-                                pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 4f)),
-                            ),
-                        )
-                    }
-                } else {
-                    Modifier.border(1.dp, FtColor.line10, FtShape.pill)
+                when {
+                    done -> Modifier
+                    current -> Modifier.border(1.5.dp, FtColor.accent.copy(alpha = currentBorderAlpha), FtShape.pill)
+                    else -> Modifier.border(1.dp, FtColor.line10, FtShape.pill)
                 },
             )
-            // 不渲染数字后，组号只保留在无障碍描述里
+            // 不渲染数字后，组号与三态都只保留在无障碍描述里
             .semantics { contentDescription = label },
     )
 }

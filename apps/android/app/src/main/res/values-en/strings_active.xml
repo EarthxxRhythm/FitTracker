@@ -20,7 +20,10 @@
     <string name="active_hold_cancel">Release to cancel · keep holding to finish</string>
     <string name="active_exercise_full">Exercise complete</string>
     <string name="active_exercise_ended">Exercise ended</string>
-    <string name="active_set_pill_a11y">Set %1$d</string>
+    <string name="active_set_pill_a11y_state">Set %1$d, %2$s</string>
+    <string name="active_set_state_done">completed</string>
+    <string name="active_set_state_current">in progress</string>
+    <string name="active_set_state_todo">not started</string>
     <string name="active_switch_exercise">Switch exercise</string>
 
     <!-- Demo card -->
