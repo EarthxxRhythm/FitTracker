@@ -15,6 +15,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -26,9 +27,11 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -40,7 +43,13 @@ import androidx.navigationevent.NavigationEventInfo
 import com.fittracker.app.nav.FtNavHost
 import com.fittracker.app.nav.FtRoutes
 import com.fittracker.app.nav.navigateToTab
+import com.fittracker.app.data.persist.JsonStore
+import com.fittracker.app.data.persist.appDataStore
+import com.fittracker.app.data.service.WorkoutDraftService
+import com.fittracker.app.data.service.hasWorkoutDraftProgress
 import com.fittracker.app.ui.components.FtBottomTabBar
+import com.fittracker.app.ui.components.ResumeDraftSummary
+import com.fittracker.app.ui.components.ResumeWorkoutBar
 import com.fittracker.app.ui.components.WeightGateDialog
 import com.fittracker.app.ui.screens.workout.WorkoutPreviewScreen
 import com.fittracker.app.ui.theme.FtColor
@@ -97,6 +106,13 @@ fun FtApp() {
     // 与 showPreview 同为壳层状态：底栏中央训练键也要走同一个 gate。
     var showWeightGate by remember { mutableStateOf(false) }
 
+        // ── 训练进行中悬浮条（草稿 → 底栏上沿常驻入口） ─────────────────────
+        // 每次路由变化（含从训练页返回）重读一次草稿：训练中记录组不推进这里，
+        // 因为悬浮条只在训练页之外显示；回到主壳时 currentId 必变，够用。
+        val appContext = LocalContext.current
+        val draftStore = remember { JsonStore(appContext.appDataStore) }
+        var resumeDraft by remember { mutableStateOf<ResumeDraftSummary?>(null) }
+
         // ── Tab 切换内容动效（W2-5，对齐原型 `select()`） ──────────────────
         // 原型语义：Tab 壳层**瞬时**换屏（`select()` 直接 classList.toggle，无过渡），
         // 动效只发生在**内容区** `#viewport` —— 先瞬时落到「侧偏 8px / 微缩 .99 /
@@ -120,6 +136,10 @@ fun FtApp() {
             // 它复位（见 ReviewScreen 的 `observeChromeOnScroll`）。用户看到的就是
             // 「回顾页没回顶就切回来，上下直接没了」。
             chrome.updateCollapsed(false)
+
+            // 与 chrome 复位、Tab 动效共用一次订阅：不另起 LaunchedEffect，
+            // 否则每次 Tab 切换会多一次协程与一次读盘。
+            resumeDraft = loadResumeDraft(draftStore)
 
             val from = previousTabId
             previousTabId = currentId
@@ -197,6 +217,21 @@ fun FtApp() {
                                 scaleY = scale
                                 alpha = 1f - (1f - TAB_SHIFT_MIN_ALPHA) * away
                             },
+                    )
+                }
+
+                // ── 训练进行中悬浮条（贴底栏上沿，跨 Tab 常驻） ────────────────────
+                // 与鸿蒙 PencilAppShell.resumeWorkoutBar 同构。预览/体重 gate 打开时隐藏：
+                // 那两层是覆盖式流程，悬浮条压在上面会遮住它们的底部按钮。
+                val draftBar = resumeDraft
+                if (draftBar != null && onTab && !chrome.collapsed && !showWeightGate && !showPreview) {
+                    ResumeWorkoutBar(
+                        summary = draftBar,
+                        onClick = { navController.navigate("active") },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .navigationBarsPadding()
+                            .padding(bottom = BOTTOM_BAR_STACK_HEIGHT_DP.dp + 10.dp),
                     )
                 }
 
@@ -290,6 +325,22 @@ fun FtApp() {
             }
         }
     }
+}
+
+/** 底栏整体占位高度：内容 56 + 上下各 8（`FtBottomTabBar` 的 padding）。 */
+private const val BOTTOM_BAR_STACK_HEIGHT_DP = 72
+
+/**
+ * 读取进行中训练的展示摘要；无草稿或无进度时返回 null。
+ *
+ * 判据用 `hasWorkoutDraftProgress`（与 `ActiveScreen` 恢复草稿同一份实现），
+ * 不用 `completedSets > 0`：否则会出现「首页说有、点进去说没有」。
+ */
+private suspend fun loadResumeDraft(store: JsonStore): ResumeDraftSummary? {
+    val draft = WorkoutDraftService.getDraft(store) ?: return null
+    if (!hasWorkoutDraftProgress(draft)) return null
+    val minutes = ((System.currentTimeMillis() - draft.startedAt) / 60_000L).toInt().coerceAtLeast(0)
+    return ResumeDraftSummary(draft.completedSets, draft.totalTargetSets, minutes)
 }
 
 /** 鸿蒙 `.pv-backdrop { background: rgba(0,0,0,.6) }`。 */
