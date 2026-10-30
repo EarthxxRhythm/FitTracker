@@ -231,14 +231,17 @@ export struct PencilAppShell {
         .layoutWeight(1)
         .alignItems(HorizontalAlign.Start)
 
-        Text('继续')
-          .fontFamily('Noto Sans SC')
-          .fontSize(12)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(PrototypeTokens.TEXT_ON_ACCENT)
-          .padding({ left: 14, right: 14, top: 8, bottom: 8 })
-          .backgroundColor(PrototypeTokens.ACCENT)
-          .borderRadius(999)
+        // 只留一条极淡的箭头提示「可进入」，不放按钮：整条胶囊本身就是点击区
+        // （与列表行的 › 同一语汇），加按钮会让它读成「卡片 + 两个操作」。
+        Path()
+          .width(9)
+          .height(14)
+          .commands('M2 2 L7 7 L2 12')
+          .fill(PrototypeTokens.TRANSPARENT)
+          .stroke(PrototypeTokens.WHITE_A40)
+          .strokeWidth(1.6)
+          .strokeLineCap(LineCapStyle.Round)
+          .strokeLineJoin(LineJoinStyle.Round)
       }
       .width('100%')
       .height(68)

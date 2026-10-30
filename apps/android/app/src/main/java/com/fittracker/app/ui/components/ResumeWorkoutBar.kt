@@ -132,16 +132,25 @@ fun ResumeWorkoutBar(
             )
         }
 
-        Text(
-            text = "继续",
-            color = FtColor.onAccent,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .clip(RoundedCornerShape(999.dp))
-                .background(FtColor.accent)
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-        )
+        // 只留一条极淡的箭头提示「可进入」，不放按钮：整条胶囊本身就是点击区
+        // （与列表行的 › 同一语汇），加按钮会让它读成「卡片 + 两个操作」。
+        Canvas(modifier = Modifier.size(width = 9.dp, height = 14.dp)) {
+            val stroke = 1.6.dp.toPx()
+            drawLine(
+                color = FtColor.navInactive,
+                start = Offset(1.dp.toPx(), 1.dp.toPx()),
+                end = Offset(size.width - 1.dp.toPx(), size.height / 2f),
+                strokeWidth = stroke,
+                cap = StrokeCap.Round,
+            )
+            drawLine(
+                color = FtColor.navInactive,
+                start = Offset(size.width - 1.dp.toPx(), size.height / 2f),
+                end = Offset(1.dp.toPx(), size.height - 1.dp.toPx()),
+                strokeWidth = stroke,
+                cap = StrokeCap.Round,
+            )
+        }
     }
 }
 
