@@ -216,18 +216,33 @@ export struct PencilAppShell {
       Row({ space: 12 }) {
         // 左：我在练什么 + 这一动作做到第几组
         Column({ space: 4 }) {
-          Text(this.resumeExerciseName())
-            .fontFamily('Noto Sans SC')
-            .fontSize(14)
-            .fontWeight(FontWeight.Bold)
-            .fontColor(PrototypeTokens.TEXT_HI)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
+          Row({ space: 6 }) {
+            // 与训练页顶栏计时点同一个绿点（静态版，不呼吸——为一条装饰动画挂常驻 timer
+            // 不划算）：一眼看出这条是「正在进行的训练」，不是一条历史记录。
+            Row()
+              .width(6)
+              .height(6)
+              .borderRadius(3)
+              .backgroundColor(PrototypeTokens.ACCENT)
+            Text(this.resumeExerciseName())
+              .fontFamily('Noto Sans SC')
+              .fontSize(14)
+              .fontWeight(FontWeight.Bold)
+              .fontColor(PrototypeTokens.TEXT_HI)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .layoutWeight(1)
+          }
+          .width('100%')
+          .alignItems(VerticalAlign.Center)
+
+          // 组数降到中性色：accent 只留给「时间在走」和「整场进度」，
+          // 三个数字同色会互相抢注意力（信息有主次，层才立得住）。
           Text(this.resumeSetProgress())
             .fontFamily('Geist Mono')
             .fontSize(12)
             .fontWeight(FontWeight.Bold)
-            .fontColor(PrototypeTokens.ACCENT)
+            .fontColor(PrototypeTokens.WHITE_A70)
             .maxLines(1)
         }
         .layoutWeight(1)
@@ -250,7 +265,9 @@ export struct PencilAppShell {
       .width('100%')
       .height(68)
       .padding({ left: 14, right: 14 })
-      .backgroundColor(RESUME_BAR_SURFACE)
+      // 顶部一层极淡的品牌色微光过渡到卡面纯色：让这条浮起来，而不是一块平的中性色块。
+      // 用 accent 的低透明度叠在 surface 上，不引入新色值（#AARRGGBB，0x14 ≈ 8%）。
+      .linearGradient({ angle: 180, colors: [['#1450ECA7', 0], [RESUME_BAR_SURFACE, 0.6]] })
       .borderRadius(20)
       .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
       .shadow({ radius: 24, color: '#7A000000', offsetX: 0, offsetY: 10 })
@@ -290,7 +307,7 @@ export struct PencilAppShell {
         .width(46)
         .height(46)
         .color(PrototypeTokens.ACCENT)
-        .backgroundColor(PrototypeTokens.WHITE_A10)
+        .backgroundColor(PrototypeTokens.WHITE_A08)
         .style({ strokeWidth: 3 })
       Text(this.homeState.activeDraftCompletedSets.toString() + '/' +
         this.homeState.activeDraftTotalSets.toString())

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -94,7 +96,13 @@ fun ResumeWorkoutBar(
             }
             .shadow(elevation = 14.dp, shape = RoundedCornerShape(20.dp), clip = false)
             .clip(RoundedCornerShape(20.dp))
-            .background(FtColor.surface)
+            .background(
+                // 顶部一层极淡的品牌色微光过渡到卡面纯色：让这条浮起来，
+                // 而不是一块平的中性色块。accent 8% 叠在 surface 上，不引入新色值。
+                Brush.verticalGradient(
+                    colors = listOf(FtColor.accent.copy(alpha = 0.08f), FtColor.surface),
+                ),
+            )
             .border(width = 1.dp, color = FtColor.accent12, shape = RoundedCornerShape(20.dp))
             .clickable {
                 scope.launch {
@@ -113,17 +121,32 @@ fun ResumeWorkoutBar(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text(
-                text = summary.exerciseName.ifEmpty { "训练进行中" },
-                color = FtColor.txtHi,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                // 与训练页顶栏计时点同一个绿点（静态版，不呼吸——为一条装饰动画挂常驻动画
+                // 不划算）：一眼看出这条是「正在进行的训练」，不是一条历史记录。
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(FtColor.accent),
+                )
+                Text(
+                    text = summary.exerciseName.ifEmpty { "训练进行中" },
+                    color = FtColor.txtHi,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            // 组数降到中性色：accent 只留给「时间在走」和「整场进度」，
+            // 三个数字同色会互相抢注意力。
             Text(
                 text = setProgressOf(summary),
-                color = FtColor.accent,
+                color = FtColor.navInactive,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
@@ -169,7 +192,7 @@ private fun ResumeRing(completedSets: Int, totalSets: Int) {
             val topLeft = Offset(inset, inset)
             // 轨道：整圈，淡白
             drawArc(
-                color = FtColor.accent12,
+                color = FtColor.accent07,
                 startAngle = -90f,
                 sweepAngle = 360f,
                 useCenter = false,
