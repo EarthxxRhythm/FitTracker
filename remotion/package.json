@@ -1,0 +1,21 @@
+{
+  "name": "fittracker-loop-tutorial",
+  "version": "1.0.0",
+  "private": true,
+  "description": "六环闭环 agent 体系操作教程动画（Remotion）",
+  "scripts": {
+    "dev": "remotion studio",
+    "render": "remotion render LoopTutorial out/loop-tutorial.mp4",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.515",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.515"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.3",
+    "typescript": "5.5.4"
+  }
+}
