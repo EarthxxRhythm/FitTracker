@@ -848,8 +848,8 @@ export struct ActiveContent {
           autoCancel: true,
           mask: true,
           radius: 16,
-          // 160：与安卓 ActiveScreen.kt 的 menuWidth 同值，依据见那边的真机实测注释。
-          width: 160
+          // 140：与安卓 ActiveScreen.kt 的 menuWidth 同值，依据见那边的注释。
+          width: 140
         })
         this.topTimer()
       }
@@ -983,7 +983,9 @@ export struct ActiveContent {
             .fontFamily('Noto Sans SC')
             .fontSize(14)
             .fontColor(index === this.selectedExerciseIndex ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A70)
-            .layoutWeight(1)
+            // 不用 layoutWeight(1)：那会把勾选推到行尾，固定宽度下中间留一大片空档。
+            // 改为按内容宽、上限 96（140 - 左右 padding 28 - 勾选与间距 16）。
+            .constraintSize({ maxWidth: 96 })
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
           if (index === this.selectedExerciseIndex) {
@@ -992,6 +994,7 @@ export struct ActiveContent {
               .fontSize(14)
               .fontWeight(FontWeight.Bold)
               .fontColor(PrototypeTokens.ACCENT)
+              .margin({ left: 6 })
           }
         }
         .width('100%')

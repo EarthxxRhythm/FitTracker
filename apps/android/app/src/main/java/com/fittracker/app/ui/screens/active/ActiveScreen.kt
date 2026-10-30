@@ -778,10 +778,11 @@ private fun ExerciseSwitcher(
     // 列表要在动作名**下方**居中：DropdownMenu 默认锦在父容器左上角，
     // 而这一格是 weight(1f) 铺满剩余的，不补偏移就会跑到屏幕左侧。
     BoxWithConstraints(modifier = modifier) {
-        // 160：真机（density 476）实测 180dp=536px 时，最宽动作名「哑铃侧平举」文字只有
-        // 165px，右侧仍空出约三分之一。160 按标准字号可放 8 个中文字，覆盖全部实际动作名
-        // （内容库最长「保加利亚分腿蹲」7 字）。
-        val menuWidth = 160.dp
+        // 140：真正让菜单显「松」的不是总宽度，而是「文字左对齐 + 勾选右对齐 + 固定宽度」——
+        // 180dp 时动作名只占菜单 32%，中间三百多像素全是空档，宽度小幅收窄观感几乎不变。
+        // 所以宽度收到 140，并把勾选挪到紧跟动作名（见下方 DropdownMenuItem）。
+        // 140 按标准字号可放 7 个中文字，正好覆盖内容库最长动作名「保加利亚分腿蹲」。
+        val menuWidth = 140.dp
         val menuOffsetX = (maxWidth - menuWidth) / 2
         Row(
             modifier = Modifier
@@ -831,17 +832,21 @@ private fun ExerciseSwitcher(
             exercises.forEachIndexed { index, exercise ->
                 DropdownMenuItem(
                     text = {
-                        Text(
-                            text = exercise.name,
-                            style = FtType.natural(14f),
-                            color = if (index == selectedIndex) FtColor.accent else FtColor.white70,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    },
-                    trailingIcon = {
-                        if (index == selectedIndex) {
-                            Text(text = "✓", style = FtType.natural(14f, 700), color = FtColor.accent)
+                        // 勾选跟着动作名走（weight fill=false），不用 trailingIcon 推到最右——
+                        // 两端对齐会在中间留一大片空档，固定宽度下这就是「松」的根源。
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = exercise.name,
+                                style = FtType.natural(14f),
+                                color = if (index == selectedIndex) FtColor.accent else FtColor.white70,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
+                            if (index == selectedIndex) {
+                                Box(Modifier.width(6.dp))
+                                Text(text = "✓", style = FtType.natural(14f, 700), color = FtColor.accent)
+                            }
                         }
                     },
                     onClick = { onSelect(index) },
