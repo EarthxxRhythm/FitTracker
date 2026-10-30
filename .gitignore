@@ -175,3 +175,8 @@ apps/harmony/0
 /loop/state.json
 /loop/evidence/
 /loop/cards/
+/loop/autopilot.local.json
+/loop/.autopilot.lock
+/loop/inbox/
+/loop/outbox/
+/loop/last-run.json
