@@ -101,6 +101,8 @@ const server = createServer((req, res) => {
   createReadStream(file).pipe(res)
 })
 
-server.listen(port, '127.0.0.1', () => {
-  console.log(`[serve-site] http://127.0.0.1:${port}  →  ${siteRoot}`)
+// 不指定 host → Node 监听 "::"，同时接受 IPv6（::1）与 IPv4 映射（127.0.0.1）。
+// 只绑 127.0.0.1 时，浏览器访问 localhost 会先试 ::1 而连不上。
+server.listen(port, () => {
+  console.log(`[serve-site] http://localhost:${port}  (localhost / 127.0.0.1 均可)  →  ${siteRoot}`)
 })
