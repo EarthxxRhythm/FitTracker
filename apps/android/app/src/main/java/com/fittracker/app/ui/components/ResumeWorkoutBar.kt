@@ -1,5 +1,8 @@
 package com.fittracker.app.ui.components
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,40 +14,60 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fittracker.app.ui.theme.FtColor
+import com.fittracker.app.ui.theme.FtMotion
+import kotlinx.coroutines.launch
 
 /**
- * 悬浮条持有的最小草稿摘要。
+ * 悬浮胶囊持有的最小草稿摘要。
  *
- * 只带展示需要的三个数，不把整个 `WorkoutDraftSnapshot` 传进 UI——悬浮条不该知道
- * 草稿的结构，否则将来草稿加字段时这里会被动跟着改。
+ * 只带展示需要的六个数，不把整个 `WorkoutDraftSnapshot` 传进 UI——胶囊不该知道草稿的结构，
+ * 否则将来草稿加字段时这里会被动跟着改。
  */
 data class ResumeDraftSummary(
+    /** 全场已完成组数（计数器分子）。 */
     val completedSets: Int,
+    /** 全场目标组数（计数器分母）。 */
     val totalSets: Int,
+    /** 已训练分钟数；0 表示不满一分钟，副行不显示时长段。 */
     val elapsedMinutes: Int,
+    /** 当前动作名（首个未录满动作，与训练页选中口径同源）。 */
+    val exerciseName: String,
+    /** 当前动作内已完成组数。 */
+    val exerciseCompletedSets: Int,
+    /** 当前动作目标组数。 */
+    val exerciseTargetSets: Int,
 )
 
 /**
- * 「训练进行中」悬浮入口：贴在底栏上方，跨 Tab 常驻。
+ * 「训练进行中」悬浮胶囊。
  *
- * 存在的理由（与鸿蒙 `PencilAppShell.resumeWorkoutBar` 同构）：首页卡片里的「开始训练」
- * 会随内容滚动移出视口，而「有一场没做完的训练」是需要持续可见的状态。
+ * 信息分三层，与训练页的阅读顺序一致（整体 → 当前 → 局部）：
+ *   ① 环内 3/12 —— 全场组数计数器。环的角度给比例、环内数字给精确值；
+ *      只给数字会丢掉「还剩多少」的直觉，只给环会丢掉「到底几组」。
+ *   ② 当前动作名 —— 告诉用户点进去会看到哪个动作。
+ *   ③ 第 2 组 / 共 4 组 · 32 分钟 —— 动作内位置 + 已训练时长。
  *
- * 形态：胶囊贴底栏上沿、左右各 18 留白。底色用不透明的 `FtColor.surface`——
- * 半透明会让下面的 Tab 内容透上来，在深色页上读成脏色。
+ * 点按先收束 110ms 再回调：让「胶囊被按下」与「训练页推入」读成一次连续动作，
+ * 而不是「点了没反应 → 突然换屏」。
  */
 @Composable
 fun ResumeWorkoutBar(
@@ -52,36 +75,50 @@ fun ResumeWorkoutBar(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val scope = rememberCoroutineScope()
+    // 0 = 常态，1 = 被按下收束到底。只在点按后到页面推入之间的 110ms 里非 0。
+    val sink = remember { Animatable(0f) }
+
     Row(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 18.dp)
-            .height(56.dp)
-            .shadow(elevation = 12.dp, shape = RoundedCornerShape(18.dp), clip = false)
-            .clip(RoundedCornerShape(18.dp))
+            .height(68.dp)
+            .graphicsLayer {
+                scaleX = 1f - 0.03f * sink.value
+                scaleY = 1f - 0.08f * sink.value
+                alpha = 1f - 0.55f * sink.value
+                translationY = 6.dp.toPx() * sink.value
+            }
+            .shadow(elevation = 14.dp, shape = RoundedCornerShape(20.dp), clip = false)
+            .clip(RoundedCornerShape(20.dp))
             .background(FtColor.surface)
-            .border(width = 1.dp, color = FtColor.accent12, shape = RoundedCornerShape(18.dp))
-            .clickable(onClick = onClick)
+            .border(width = 1.dp, color = FtColor.accent12, shape = RoundedCornerShape(20.dp))
+            .clickable {
+                scope.launch {
+                    sink.animateTo(1f, tween(FtMotion.DURATION_PRESS, easing = FtMotion.EASE_MOTION))
+                    onClick()
+                    // 页面已切走，复位不可见；下次回来必须从 0 开始，否则胶囊是「压扁」的
+                    sink.snapTo(0f)
+                }
+            }
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        // 呼吸点：与训练页顶栏计时点同一语汇——绿色实心小圆，表示「还在跑」
-        Box(
-            modifier = Modifier
-                .size(6.dp)
-                .clip(CircleShape)
-                .background(FtColor.accent),
+        ResumeRing(
+            completedSets = summary.completedSets,
+            totalSets = summary.totalSets,
         )
 
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
             Text(
-                text = "训练进行中",
+                text = summary.exerciseName.ifEmpty { "训练进行中" },
                 color = FtColor.txtHi,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -103,13 +140,80 @@ fun ResumeWorkoutBar(
             modifier = Modifier
                 .clip(RoundedCornerShape(999.dp))
                 .background(FtColor.accent)
-                .padding(horizontal = 14.dp, vertical = 7.dp),
+                .padding(horizontal = 14.dp, vertical = 8.dp),
         )
     }
 }
 
-/** 副行文案：「已做 3/12 组 · 32 分钟」；时长为 0 时只报组数。 */
+/**
+ * 左侧环形计数器：环角度 = 全场完成比例，环内给精确数字（3 在上、/12 在下）。
+ *
+ * 用 Canvas 自绘而不是 `CircularProgressIndicator`：后者在 Material3 各版本间
+ * `progress` 参数的形状变过（Float vs lambda），自绘不随依赖升级漂移。
+ */
+@Composable
+private fun ResumeRing(completedSets: Int, totalSets: Int) {
+    val total = if (totalSets > 0) totalSets else 1
+    val ratio = (completedSets.toFloat() / total.toFloat()).coerceIn(0f, 1f)
+
+    Box(modifier = Modifier.size(44.dp), contentAlignment = Alignment.Center) {
+        Canvas(modifier = Modifier.size(44.dp)) {
+            val strokePx = 3.dp.toPx()
+            val inset = strokePx / 2f
+            val arcSize = Size(size.width - strokePx, size.height - strokePx)
+            val topLeft = Offset(inset, inset)
+            // 轨道：整圈，淡白
+            drawArc(
+                color = FtColor.accent12,
+                startAngle = -90f,
+                sweepAngle = 360f,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(width = strokePx, cap = StrokeCap.Round),
+            )
+            // 进度：从 12 点顺时针扫过
+            if (ratio > 0f) {
+                drawArc(
+                    color = FtColor.accent,
+                    startAngle = -90f,
+                    sweepAngle = 360f * ratio,
+                    useCenter = false,
+                    topLeft = topLeft,
+                    size = arcSize,
+                    style = Stroke(width = strokePx, cap = StrokeCap.Round),
+                )
+            }
+        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = completedSets.toString(),
+                color = FtColor.txtHi,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = "/$totalSets",
+                color = FtColor.navInactive,
+                fontSize = 9.sp,
+            )
+        }
+    }
+}
+
+/**
+ * 副行文案。
+ *
+ * 三种形态互斥：该动作未满 → 「第 N 组 / 共 M 组」；已满 → 「本动作已完成 · 共 M 组」；
+ * 拿不到动作组数（旧草稿）→ 退回全局「已做 N 组」。时长只在非 0 时追加。
+ */
 private fun captionOf(summary: ResumeDraftSummary): String {
-    val sets = "已做 ${summary.completedSets}/${summary.totalSets} 组"
-    return if (summary.elapsedMinutes > 0) "$sets · ${summary.elapsedMinutes} 分钟" else sets
+    val target = summary.exerciseTargetSets
+    val completed = summary.exerciseCompletedSets
+    val base = when {
+        target > 0 && completed >= target -> "本动作已完成 · 共 $target 组"
+        target > 0 -> "第 ${completed + 1} 组 / 共 $target 组"
+        else -> "已做 ${summary.completedSets} 组"
+    }
+    return if (summary.elapsedMinutes > 0) "$base · ${summary.elapsedMinutes} 分钟" else base
 }

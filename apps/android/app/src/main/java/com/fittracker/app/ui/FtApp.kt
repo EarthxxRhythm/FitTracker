@@ -224,15 +224,34 @@ fun FtApp() {
                 // 与鸿蒙 PencilAppShell.resumeWorkoutBar 同构。预览/体重 gate 打开时隐藏：
                 // 那两层是覆盖式流程，悬浮条压在上面会遮住它们的底部按钮。
                 val draftBar = resumeDraft
-                if (draftBar != null && onTab && !chrome.collapsed && !showWeightGate && !showPreview) {
-                    ResumeWorkoutBar(
-                        summary = draftBar,
-                        onClick = { navController.navigate("active") },
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .navigationBarsPadding()
-                            .padding(bottom = BOTTOM_BAR_STACK_HEIGHT_DP.dp + 10.dp),
-                    )
+                AnimatedVisibility(
+                    visible = draftBar != null && onTab && !chrome.collapsed && !showWeightGate && !showPreview,
+                    // 出现：自下方上浮 + 缩放回弹 + 淡入。从训练页收起回来时胶囊「长」出来，
+                    // 接住上一个动作的注意力，而不是硬切上来。
+                    enter = slideInVertically(
+                        animationSpec = tween(FtMotion.DURATION_ENTER, easing = FtMotion.EASE_ENTER),
+                        initialOffsetY = { it / 2 },
+                    ) + fadeIn(tween(FtMotion.DURATION_ENTER)) + scaleIn(
+                        animationSpec = tween(FtMotion.DURATION_ENTER, easing = FtMotion.EASE_ENTER),
+                        initialScale = RESUME_BAR_ENTER_SCALE,
+                        transformOrigin = RESUME_BAR_TRANSFORM_ORIGIN,
+                    ),
+                    // 消失：比进场快（160ms）。草稿被清空是「状态没了」，不该慢吞吞。
+                    exit = slideOutVertically(
+                        animationSpec = tween(FtMotion.DURATION_COLOR_FAST, easing = FtMotion.EASE_MOTION),
+                        targetOffsetY = { it / 2 },
+                    ) + fadeOut(tween(FtMotion.DURATION_COLOR_FAST)),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .navigationBarsPadding()
+                        .padding(bottom = BOTTOM_BAR_STACK_HEIGHT_DP.dp + 10.dp),
+                ) {
+                    if (draftBar != null) {
+                        ResumeWorkoutBar(
+                            summary = draftBar,
+                            onClick = { navController.navigate("active") },
+                        )
+                    }
                 }
 
                 // ── 体重记录 gate（居中弹窗，遮罩淡入 + 卡片弹簧缩放） ──────────────
@@ -330,6 +349,12 @@ fun FtApp() {
 /** 底栏整体占位高度：内容 56 + 上下各 8（`FtBottomTabBar` 的 padding）。 */
 private const val BOTTOM_BAR_STACK_HEIGHT_DP = 72
 
+/** 悬浮胶囊进场起点缩放（与鸿蒙 `TransitionEffect.scale(0.92)` 同值）。 */
+private const val RESUME_BAR_ENTER_SCALE = 0.92f
+
+/** 胶囊缩放锚点：底边中点——从底栏里「长」出来，不是从中心膨胀。 */
+private val RESUME_BAR_TRANSFORM_ORIGIN = TransformOrigin(0.5f, 1f)
+
 /**
  * 读取进行中训练的展示摘要；无草稿或无进度时返回 null。
  *
@@ -340,7 +365,18 @@ private suspend fun loadResumeDraft(store: JsonStore): ResumeDraftSummary? {
     val draft = WorkoutDraftService.getDraft(store) ?: return null
     if (!hasWorkoutDraftProgress(draft)) return null
     val minutes = ((System.currentTimeMillis() - draft.startedAt) / 60_000L).toInt().coerceAtLeast(0)
-    return ResumeDraftSummary(draft.completedSets, draft.totalTargetSets, minutes)
+    // 当前动作 = 首个未录满的动作（全部录满时退到最后一个）——与 ActiveScreen 的选中口径
+    // 同一判据，否则胶囊上的动作名会和点进去看到的那个对不上。
+    val current = draft.exercises.firstOrNull { it.completedSets < it.targetSets }
+        ?: draft.exercises.lastOrNull()
+    return ResumeDraftSummary(
+        completedSets = draft.completedSets,
+        totalSets = draft.totalTargetSets,
+        elapsedMinutes = minutes,
+        exerciseName = current?.name ?: draft.currentExerciseName,
+        exerciseCompletedSets = current?.completedSets ?: 0,
+        exerciseTargetSets = current?.targetSets ?: 0,
+    )
 }
 
 /** 鸿蒙 `.pv-backdrop { background: rgba(0,0,0,.6) }`。 */

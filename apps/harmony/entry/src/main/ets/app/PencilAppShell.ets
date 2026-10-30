@@ -15,6 +15,13 @@ import { window } from '@kit.ArkUI'
 import { MotionTokens, SpacingTokens, TouchTokens } from '../common/styles/DesignTokens'
 import { PrototypeTokens } from '../common/styles/PrototypeTokens'
 
+/**
+ * 「训练进行中」悬浮条底色：沿用训练页 dock 的 rgba(10,13,18,.98)（原型 `.wo-dock`，
+ * 见 ActiveContent 同值）。收成命名常量是为了不把裸色值写在 `.backgroundColor()` 实参里
+ * （DS-01：内联色值必须走 DesignTokens 或就近命名常量）。
+ */
+const RESUME_BAR_SURFACE: string = '#FA0A0D12'
+
 enum PencilTabKey {
   HOME = 'home',
   PLAN = 'plan',
@@ -45,6 +52,8 @@ export struct PencilAppShell {
    * 底栏会一直藏着，且没有滚动事件能把它拉回来。
    */
   @State private tabBarCollapsed: boolean = false
+  /** 胶囊被按下时的收束量（0→1）：只在「点按 → 进训练页」的 110ms 里非 0。 */
+  @State private resumeBarSink: number = 0
 
   async aboutToAppear(): Promise<void> {
     const hostContext: Context | undefined = this.getUIContext().getHostContext()
@@ -187,26 +196,27 @@ export struct PencilAppShell {
   }
 
   /**
-   * 「训练进行中」悬浮条。
+   * 「训练进行中」悬浮胶囊。
    *
-   * 形态选择：胶囊贴底栏上沿、左右各 18 留白，与底栏同宽但不参与布局——
-   * 这样切到计划/回顾/我的 Tab 时它都在，且不会把内容区挤矮（用 Stack 覆盖而非 Column 占位）。
-   * 颜色沿用训练页 dock 的 #FA0A0D12（不透明，避免下面的内容透上来）。
+   * 信息分三层，与训练页的阅读顺序一致（整体 → 当前 → 局部）：
+   *   ① 环内 3/12 —— 全场组数计数器。环的角度给比例、环内数字给精确值；
+   *      只给数字会丢掉「还剩多少」的直觉，只给环会丢掉「到底几组」。
+   *   ② 当前动作名 —— 告诉用户点进去会看到哪个动作（与训练页选中口径同源）。
+   *   ③ 第 2 组 / 共 4 组 · 32 分钟 —— 动作内位置 + 已训练时长。
+   *
+   * 形态：贴底栏上沿、左右各 18 留白；用 Stack 覆盖不参与布局，切 Tab 时不挤内容区。
+   * 底色 RESUME_BAR_SURFACE 不透明——半透明会让下面的 Tab 内容透上来，在深色页上读成脏色。
    */
   @Builder
   private resumeWorkoutBar() {
     Column() {
-      Row({ space: 10 }) {
-        // 呼吸点与训练页顶栏计时点同一个语汇：绿色实心小圆，表示「还在跑」
-        Row()
-          .width(6)
-          .height(6)
-          .borderRadius(3)
-          .backgroundColor(PrototypeTokens.ACCENT)
-        Column({ space: 2 }) {
-          Text('训练进行中')
+      Row({ space: 12 }) {
+        this.resumeRing()
+
+        Column({ space: 3 }) {
+          Text(this.resumeExerciseName())
             .fontFamily('Noto Sans SC')
-            .fontSize(13)
+            .fontSize(14)
             .fontWeight(FontWeight.Bold)
             .fontColor(PrototypeTokens.TEXT_HI)
             .maxLines(1)
@@ -226,34 +236,114 @@ export struct PencilAppShell {
           .fontSize(12)
           .fontWeight(FontWeight.Bold)
           .fontColor(PrototypeTokens.TEXT_ON_ACCENT)
-          .padding({ left: 14, right: 14, top: 7, bottom: 7 })
+          .padding({ left: 14, right: 14, top: 8, bottom: 8 })
           .backgroundColor(PrototypeTokens.ACCENT)
           .borderRadius(999)
       }
       .width('100%')
-      .height(56)
+      .height(68)
       .padding({ left: 14, right: 14 })
-      .backgroundColor('#FA0A0D12')
-      .borderRadius(18)
+      .backgroundColor(RESUME_BAR_SURFACE)
+      .borderRadius(20)
       .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
-      .shadow({ radius: 20, color: '#66000000', offsetX: 0, offsetY: 8 })
-      .accessibilityText('继续上次训练，' + this.resumeBarCaption())
+      .shadow({ radius: 24, color: '#7A000000', offsetX: 0, offsetY: 10 })
+      .accessibilityText('继续上次训练：' + this.resumeExerciseName() + '，' + this.resumeBarCaption())
+      // 点按收束：胶囊压扁下沉淡出，与随后的页面推入连成一拍。
+      // 不是「按了没反应突然换屏」——110ms 足够让眼睛把两次变化接成一次。
+      .scale({ x: 1 - 0.03 * this.resumeBarSink, y: 1 - 0.08 * this.resumeBarSink })
+      .opacity(1 - 0.55 * this.resumeBarSink)
+      .translate({ y: 6 * this.resumeBarSink })
+      .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
       .onClick(() => {
-        this.openActiveWorkout()
+        this.sinkResumeBarAndOpen()
       })
     }
     .width('100%')
     .padding({ left: 18, right: 18, bottom: 10 })
+    // 出现/消失：自底栏方向上浮 28 + 缩放回弹 + 淡入。
+    // 从训练页收起回来时，胶囊「长」出来而不是硬切上来，接住上一个动作的注意力。
+    .transition(
+      TransitionEffect.OPACITY
+        .combine(TransitionEffect.translate({ y: 28 }))
+        .combine(TransitionEffect.scale({ x: 0.92, y: 0.92, centerX: '50%', centerY: '100%' }))
+        .animation({ duration: MotionTokens.DURATION_ENTER, curve: MotionTokens.EASE_ENTER_CURVE })
+    )
   }
 
-  /** 悬浮条副行：「已做 3/12 组 · 32 分钟」；时长为 0 时只报组数。 */
+  /** 左侧环形计数器：环角度 = 全场完成比例，环内给精确数字（3 在上、/12 在下）。 */
+  @Builder
+  private resumeRing() {
+    Stack({ alignContent: Alignment.Center }) {
+      Progress({
+        value: this.homeState.activeDraftCompletedSets,
+        total: this.resumeRingTotal(),
+        type: ProgressType.Ring
+      })
+        .width(44)
+        .height(44)
+        .color(PrototypeTokens.ACCENT)
+        .backgroundColor(PrototypeTokens.WHITE_A10)
+        .style({ strokeWidth: 3 })
+      Column({ space: 0 }) {
+        Text(this.homeState.activeDraftCompletedSets.toString())
+          .fontFamily('Geist Mono')
+          .fontSize(15)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(PrototypeTokens.TEXT_HI)
+        Text('/' + this.homeState.activeDraftTotalSets.toString())
+          .fontFamily('Geist Mono')
+          .fontSize(9)
+          .fontColor(PrototypeTokens.WHITE_A40)
+      }
+      .alignItems(HorizontalAlign.Center)
+    }
+    .width(44)
+    .height(44)
+  }
+
+  /** Progress 的 total 不能为 0：无草稿总组数时给 1，环退化为空环而不是报错。 */
+  private resumeRingTotal(): number {
+    return this.homeState.activeDraftTotalSets > 0 ? this.homeState.activeDraftTotalSets : 1
+  }
+
+  private resumeExerciseName(): string {
+    return this.homeState.activeDraftExerciseName.length > 0
+      ? this.homeState.activeDraftExerciseName
+      : '训练进行中'
+  }
+
+  /**
+   * 副行文案。
+   *
+   * 三种形态互斥：该动作未满 → 「第 N 组 / 共 M 组」；已满 → 「本动作已完成 · 共 M 组」；
+   * 拿不到动作组数（旧草稿）→ 退回全局「已做 N 组」。时长只在非 0 时追加。
+   */
   private resumeBarCaption(): string {
-    let caption: string = '已做 ' + this.homeState.activeDraftCompletedSets.toString() + '/' +
-      this.homeState.activeDraftTotalSets.toString() + ' 组'
+    const completed: number = this.homeState.activeDraftExerciseCompleted
+    const target: number = this.homeState.activeDraftExerciseTarget
+    let caption: string = ''
+    if (target > 0 && completed >= target) {
+      caption = '本动作已完成 · 共 ' + target.toString() + ' 组'
+    } else if (target > 0) {
+      caption = '第 ' + (completed + 1).toString() + ' 组 / 共 ' + target.toString() + ' 组'
+    } else {
+      caption = '已做 ' + this.homeState.activeDraftCompletedSets.toString() + ' 组'
+    }
     if (this.homeState.activeDraftElapsedMinutes > 0) {
       caption += ' · ' + this.homeState.activeDraftElapsedMinutes.toString() + ' 分钟'
     }
     return caption
+  }
+
+  /** 点按胶囊：先收束 110ms 再进训练页，让「按下」与「换页」连成一拍。 */
+  private sinkResumeBarAndOpen(): void {
+    this.getUIContext().animateTo({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION }, () => {
+      this.resumeBarSink = 1
+    })
+    setTimeout(() => {
+      this.resumeBarSink = 0
+      this.openActiveWorkout()
+    }, MotionTokens.DURATION_PRESS)
   }
 
   @Builder

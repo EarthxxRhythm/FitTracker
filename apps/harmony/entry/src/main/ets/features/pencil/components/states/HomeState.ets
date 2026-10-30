@@ -22,7 +22,8 @@ import WorkoutSessionPersistenceBridgeService from '../../../workout/services/Wo
 import SettingsService, { AppSettings } from '../../../../common/services/SettingsService'
 import WorkoutDraftService, {
   hasWorkoutDraftProgress,
-  WorkoutDraftSnapshot
+  WorkoutDraftSnapshot,
+  WorkoutExerciseDraft
 } from '../../../../common/services/WorkoutDraftService'
 
 export interface HomeWeekDayItem {
@@ -53,6 +54,11 @@ export class HomeState extends StateBase {
   activeDraftTotalSets: number = 0
   activeDraftElapsedMinutes: number = 0
   activeDraftTitle: string = ''
+  // 悬浮胶囊要显示的「当前动作 + 该动作内组数」：取自草稿里首个未录满的动作
+  // （与训练页 findUnfinishedExerciseIndex 同口径），不是全部动作的合计。
+  activeDraftExerciseName: string = ''
+  activeDraftExerciseCompleted: number = 0
+  activeDraftExerciseTarget: number = 0
 
   /** 按需装载。[force] 为 true 跳过新鲜度判断（首次 aboutToAppear 用）。 */
   async refresh(context: Context, force: boolean = false): Promise<void> {
@@ -250,6 +256,21 @@ export class HomeState extends StateBase {
     this.activeDraftTotalSets = draft.totalTargetSets
     this.activeDraftElapsedMinutes = Math.max(0, Math.floor((now - draft.startedAt) / 60000))
     this.activeDraftTitle = draft.planName
+    // 当前动作：首个未录满的动作（全部录满时退到最后一个）——与训练页的选中口径一致，
+    // 否则胶囊上的动作名会和点进去看到的那个对不上。
+    let current: WorkoutExerciseDraft | undefined = undefined
+    for (let index = 0; index < draft.exercises.length; index++) {
+      if (draft.exercises[index].completedSets < draft.exercises[index].targetSets) {
+        current = draft.exercises[index]
+        break
+      }
+    }
+    if (current === undefined && draft.exercises.length > 0) {
+      current = draft.exercises[draft.exercises.length - 1]
+    }
+    this.activeDraftExerciseName = current === undefined ? draft.currentExerciseName : current.name
+    this.activeDraftExerciseCompleted = current === undefined ? 0 : current.completedSets
+    this.activeDraftExerciseTarget = current === undefined ? 0 : current.targetSets
   }
 
   private clearDraftState(): void {
@@ -257,5 +278,8 @@ export class HomeState extends StateBase {
     this.activeDraftTotalSets = 0
     this.activeDraftElapsedMinutes = 0
     this.activeDraftTitle = ''
+    this.activeDraftExerciseName = ''
+    this.activeDraftExerciseCompleted = 0
+    this.activeDraftExerciseTarget = 0
   }
 }
