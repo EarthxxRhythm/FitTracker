@@ -144,34 +144,18 @@ const PART_ROW_HEIGHT: number = 36
 // 收回后等待单行 List 重建完成再滚动；当帧调用时布局未落定，居中不生效。
 const PART_COLLAPSE_SETTLE_MS: number = 50
 
-interface PartMusclesEntry {
-  part: string
-  muscles: string[]
-}
-
-const PART_MUSCLES: PartMusclesEntry[] = [
-  { part: '胸部', muscles: ['胸大肌'] },
-  { part: '背部', muscles: ['背阔肌', '菱形肌'] },
-  { part: '肩部', muscles: ['三角肌前束', '三角肌中束', '三角肌后束'] },
-  { part: '手臂', muscles: ['肱二头肌', '肱三头肌'] },
-  { part: '腿部', muscles: ['股四头肌', '腘绳肌'] },
-  { part: '核心', muscles: ['腹直肌'] }
-]
+/**
+ * 二级肌群筛选不再用写死清单：内容库肌群只有一层部位级名（胸部/背部/腿部/肩部/手臂/核心），
+ * 原型期的细分肌群表（胸大肌/背阔肌/…）与真实数据永不等值，选中任一 chip 会把列表筛成空。
+ * 修复与 Android 端 muscleChipsFrom 同口径：候选从已装配动作按所选部位派生，真实数据下每个
+ * 部位只有 1 个值，渲染层据此自动隐藏二级肌群行，不再产生空结果。
+ */
 
 /**
  * 器械分组不再用写死清单：内容库真实器械名是杠铃 / 哑铃 / 绳索 / 固定器械 / 徒手 / 弹力带 / 壶铃，
  * 旧的「器械」「自重」是原型样例名，与实际数据对不上会整组不显示。分组口径与 Android 端
  * `groupExercises` 一致：按动作的**首个**器械归类，分组顺序取过滤结果中的首次出现序。
  */
-
-function getMusclesForPart(part: string): string[] {
-  for (let index = 0; index < PART_MUSCLES.length; index++) {
-    if (PART_MUSCLES[index].part === part) {
-      return PART_MUSCLES[index].muscles
-    }
-  }
-  return []
-}
 
 @Entry
 @Component
@@ -365,9 +349,16 @@ export struct ExerciseLibraryPage {
 
   private muscleOptions(): string[] {
     const result: string[] = ['全部肌群']
-    const muscles: string[] = getMusclesForPart(this.selectedPart)
-    for (let index = 0; index < muscles.length; index++) {
-      result.push(muscles[index])
+    // 从已装配动作按所选部位派生候选（与 Android 端 muscleChipsFrom 同口径）：
+    // 真实数据下每个部位只有部位本身 1 个值，渲染层据此自动隐藏二级肌群行。
+    for (let index = 0; index < this.exercises.length; index++) {
+      const item: ExerciseItem = this.exercises[index]
+      if (this.selectedPart !== '全部' && item.part !== this.selectedPart) {
+        continue
+      }
+      if (item.muscle !== '' && result.indexOf(item.muscle) < 0) {
+        result.push(item.muscle)
+      }
     }
     return result
   }
@@ -517,7 +508,7 @@ export struct ExerciseLibraryPage {
 
             this.buildPartChips()
 
-            if (this.selectedPart !== '全部') {
+            if (this.selectedPart !== '全部' && this.muscleOptions().length > 1) {
               this.buildMuscleChips()
             }
 
