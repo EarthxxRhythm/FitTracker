@@ -222,7 +222,7 @@
       ringObserver.observe(phone)
     }
   }
-})()
+})();
 
 /* ============================================================================
    540 基准等比缩放
@@ -243,6 +243,8 @@
   }
 
   fit()
+  requestAnimationFrame(fit)
+  window.addEventListener("load", fit)
   window.addEventListener('resize', fit, { passive: true })
   if (typeof ResizeObserver === 'function') {
     new ResizeObserver(fit).observe(phone)
