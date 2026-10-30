@@ -170,3 +170,8 @@ apps/harmony/0
 # 其中 design/06_prototype_redraw/src/assets/opengym-ref/ 是第三方参考实现的资源副本，
 # 不适合随 Apache-2.0 仓库分发；产物截图见 docs/screenshots/。
 /design/
+
+# 六环闭环运行态：状态机与证据不入库（模板 loop/state.example.json 入库）
+/loop/state.json
+/loop/evidence/
+/loop/cards/
