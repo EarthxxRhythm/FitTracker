@@ -12,6 +12,7 @@ import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -81,6 +83,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
@@ -778,12 +781,14 @@ private fun ExerciseSwitcher(
     // 列表要在动作名**下方**居中：DropdownMenu 默认锦在父容器左上角，
     // 而这一格是 weight(1f) 铺满剩余的，不补偏移就会跑到屏幕左侧。
     BoxWithConstraints(modifier = modifier) {
-        // 140：真正让菜单显「松」的不是总宽度，而是「文字左对齐 + 勾选右对齐 + 固定宽度」——
-        // 180dp 时动作名只占菜单 32%，中间三百多像素全是空档，宽度小幅收窄观感几乎不变。
-        // 所以宽度收到 140，并把勾选挪到紧跟动作名（见下方 DropdownMenuItem）。
-        // 140 按标准字号可放 7 个中文字，正好覆盖内容库最长动作名「保加利亚分腿蹲」。
-        val menuWidth = 140.dp
+        // 宽度按内容走（上限 200dp）。动作名长短差别很大，固定宽度必然一边留空——
+        // 140dp 时最长项「哑铃锤式弯举」只占 66dp，右边 183px 全是空的，怎么调数字都松。
+        // 首帧用 132dp 兜底（够放 7 字 + 勾选），首个 item 测量后回写实际宽度，
+        // 居中偏移随之校正——校正发生在 DropdownMenu 入场动画的早期，肉眼不可见。
+        val maxMenuWidth = 200.dp
+        var menuWidth by remember { mutableStateOf(132.dp) }
         val menuOffsetX = (maxWidth - menuWidth) / 2
+        val density = LocalDensity.current
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -827,28 +832,42 @@ private fun ExerciseSwitcher(
             expanded = showPicker,
             onDismissRequest = onDismissPicker,
             offset = DpOffset(menuOffsetX, 0.dp),
-            modifier = Modifier.width(menuWidth),
+            // 容器外观不用 Material 默认值：它的 surface 在深色页上偏灰、圆角只有 4dp，
+            // 与同屏体重面板（#13161A + 16dp + 1px white10）不是一套东西。
+            shape = FtShape.xl,
+            containerColor = FtColor.menuSurface,
+            border = BorderStroke(1.dp, FtColor.white10),
+            modifier = Modifier.widthIn(max = maxMenuWidth),
         ) {
             exercises.forEachIndexed { index, exercise ->
+                val selected = index == selectedIndex
                 DropdownMenuItem(
                     text = {
-                        // 勾选跟着动作名走（weight fill=false），不用 trailingIcon 推到最右——
-                        // 两端对齐会在中间留一大片空档，固定宽度下这就是「松」的根源。
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = exercise.name,
                                 style = FtType.natural(14f),
-                                color = if (index == selectedIndex) FtColor.accent else FtColor.white70,
+                                color = if (selected) FtColor.accent else FtColor.white70,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(1f, fill = false),
                             )
-                            if (index == selectedIndex) {
+                            if (selected) {
                                 Box(Modifier.width(6.dp))
                                 Text(text = "✓", style = FtType.natural(14f, 700), color = FtColor.accent)
                             }
                         }
                     },
+                    modifier = Modifier
+                        // 选中行整行上底色：原先只有文字变色，选中行与普通行几乎看不出差别。
+                        .background(if (selected) FtColor.accent10 else Color.Transparent)
+                        .onSizeChanged { size ->
+                            if (size.width > 0) {
+                                val measured = with(density) { size.width.toDp() }
+                                if (measured != menuWidth) menuWidth = measured.coerceAtMost(maxMenuWidth)
+                            }
+                        },
+                    contentPadding = PaddingValues(horizontal = 14.dp),
                     onClick = { onSelect(index) },
                 )
             }

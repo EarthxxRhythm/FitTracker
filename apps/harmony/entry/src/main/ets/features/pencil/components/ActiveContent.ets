@@ -847,9 +847,10 @@ export struct ActiveContent {
           enableArrow: true,
           autoCancel: true,
           mask: true,
-          radius: 16,
-          // 140：与安卓 ActiveScreen.kt 的 menuWidth 同值，依据见那边的注释。
-          width: 140
+          radius: 16
+          // 不设 width：动作名长短差别大，固定宽度必然一边留空（140 时最长项只占 66dp）。
+          // 内容有多宽菜单就多宽，上限由列表容器 Column 的 constraintSize(maxWidth) 兜住；
+          // 安卓侧用 onSizeChanged 回写实测宽度，实现同一效果。
         })
         this.topTimer()
       }
@@ -983,9 +984,7 @@ export struct ActiveContent {
             .fontFamily('Noto Sans SC')
             .fontSize(14)
             .fontColor(index === this.selectedExerciseIndex ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A70)
-            // 不用 layoutWeight(1)：那会把勾选推到行尾，固定宽度下中间留一大片空档。
-            // 改为按内容宽、上限 96（140 - 左右 padding 28 - 勾选与间距 16）。
-            .constraintSize({ maxWidth: 96 })
+            // 不用 layoutWeight(1)：那会把勾选推到行尾，中间留一大片空档。
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
           if (index === this.selectedExerciseIndex) {
@@ -998,7 +997,7 @@ export struct ActiveContent {
           }
         }
         .width('100%')
-        .height(44)
+        .height(48)
         .padding({ left: 14, right: 14 })
         .backgroundColor(index === this.selectedExerciseIndex ? PrototypeTokens.ACCENT_A10 : PrototypeTokens.TRANSPARENT)
         .onClick(() => {
@@ -1006,7 +1005,9 @@ export struct ActiveContent {
         })
       }, (index: number) => 'picker_' + index.toString())
     }
-    .width('100%')
+    // 不设 width：宽度由最宽的一行决定（与安卓 widthIn(max) 同口径），
+    // 上限 200 防止超长动作名把菜单撑到屏幕边。
+    .constraintSize({ minWidth: 132, maxWidth: 200 })
     .padding({ top: 6, bottom: 6 })
   }
 

@@ -100,6 +100,12 @@ object FtColor {
     val glass10: Color = Color(FtColorUtil.rgba(255, 255, 255, 0.10))
 
     // ── 半透明白阶 ────────────────────────────────────────────
+    /** 浮层/弹层卡片底：与鸿蒙 `WeightRecordDialog.CARD_FILL` 的 #13161A 同值。 */
+    val menuSurface: Color = Color(0xFF13161A)
+
+    /** 10% 白：浮层 hairline 描边用（项目浮层统一 1px 该值）。 */
+    val white10: Color = Color(FtColorUtil.rgba(255, 255, 255, 0.10))
+
     val white32: Color = Color(FtColorUtil.rgba(255, 255, 255, 0.32))
     val white40: Color = Color(FtColorUtil.rgba(255, 255, 255, 0.40))
     val white48: Color = Color(FtColorUtil.rgba(255, 255, 255, 0.478))
