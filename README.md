@@ -184,6 +184,8 @@ flowchart LR
 
 ## 文档导航
 
+> 官网：https://earthrhythm.cloud（源码在 `site/`，部署见 `site/README.md`）
+
 | 文档 | 内容 |
 |---|---|
 | [AGENTS.md](AGENTS.md) | 工程约束：代码边界、服务归属、ArkTS / ArkUI 约定、清理规则 |

@@ -31,3 +31,18 @@ api.example.com {
 	# Supabase API 网关：/auth/v1/*、/rest/v1/* 等全部经此转发
 	reverse_proxy 127.0.0.1:8000
 }
+
+# 产品官网（静态站，源码在仓库 site/，构建与部署见 site/README.md）
+# 与上面的 api 块共用同一 Caddy 实例与 443 端口，靠 SNI/Host 分流。
+earthrhythm.cloud, www.earthrhythm.cloud {
+	root * /opt/fittracker/site
+	encode zstd gzip
+	header {
+		Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+	try_files {path} {path}.html {path}/index.html /404.html
+	file_server
+}

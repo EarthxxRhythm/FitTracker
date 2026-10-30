@@ -82,6 +82,7 @@ node tools/sync-exercise-gifs-to-android.mjs
 | `rawfile/pencil-social-wechat.svg` / `pencil-social-qq.svg` / `pencil-social-huawei.svg` | 各品牌官方标识 | ✅ 指示性使用（商标归权利人，见 THIRD-PARTY-NOTICES.md 第五节） |
 | Android App Icon（mipmap 各密度） | 本项目自绘 | ✅ Apache-2.0 |
 | HarmonyOS App Icon（`AppScope/resources/base/media/`） | 本项目自绘 | ✅ Apache-2.0 |
+| `site\assets\img\logo-ring.svg`（官网站点副本） | 派生自 `rawfile/fittracker-logo-ring.svg` | ✅ Apache-2.0 |
 
 ## 三、设计过程资产（2026-10-28 已移出主仓）
 
@@ -103,7 +104,9 @@ node tools/sync-exercise-gifs-to-android.mjs
 
 需要这些能力时，把 `FitTracker-design/` 放回 `design/` 即可恢复。
 
-成品界面截图保留在主仓 `docs/screenshots/`（8 张，来源为设备实测，非设计稿）。
+成品界面截图保留在主仓 `docs/screenshots/`（7 张，来源为设备实测，非设计稿）。
+官网站点里的 `site/assets/img/*.jpg` 是这 7 张截图的同源副本，由 `tools/build-site.mjs` 从
+`docs/screenshots/` 同步生成，不要单独编辑站点副本。
 
 ## 四、法律文本
 

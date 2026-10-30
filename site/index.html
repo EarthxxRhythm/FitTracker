@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="no-js">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>菲特 FitTracker · 双端原生健身训练记录</title>
+<meta name="description" content="逐组录入次数与重量，按 Epley 公式估算 1RM，汇总成周趋势、动作个人纪录与肌肉分布。HarmonyOS 与 Android 各自原生实现，数据默认留在本机。">
+<meta name="theme-color" content="#09100F">
+<link rel="icon" href="assets/img/logo-ring.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/site.css">
+<meta property="og:type" content="website">
+<meta property="og:title" content="菲特 FitTracker · 练过的每一组，都算数">
+<meta property="og:description" content="双端原生健身训练记录：组次与重量、Epley 1RM、周趋势、动作 PR 与肌肉分布。数据默认留在本机。">
+<meta property="og:url" content="https://earthrhythm.cloud/">
+<meta property="og:image" content="https://earthrhythm.cloud/assets/img/01-home.jpg">
+</head>
+<body>
+
+<!-- L0 极光背景：3 层渐变漂移 + 噪点，纯 CSS -->
+<!-- 开场过场：品牌环绘制，纯 CSS 自动淡出（reduced-motion 下直接不显示） -->
+<div class="intro" aria-hidden="true">
+  <svg class="intro-ring" viewBox="0 0 104 104">
+    <circle class="ring-track" cx="52" cy="52" r="44"/>
+    <circle class="ring-fill" cx="52" cy="52" r="44"/>
+  </svg>
+  <span class="intro-word">菲特</span>
+</div>
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+<div class="grid-lines" aria-hidden="true"></div>
+
+<!-- 流星：三条斜线周期划过（纯 CSS） -->
+<div class="meteors" aria-hidden="true"><i></i><i></i><i></i></div>
+
+<!-- 全屏聚光：跟随指针的柔光（JS 写入 --mx/--my） -->
+<div class="spotlight" aria-hidden="true"></div>
+
+<!-- 滚动进度条：顶部 2px 薄荷渐变 -->
+<div class="scroll-progress" aria-hidden="true"></div>
+
+<!-- 光标光环：桌面端跟随指针（保留原生光标） -->
+<div class="cursor-glow" aria-hidden="true"></div>
+
+<!-- ══ 顶栏 ══════════════════════════════════════════════════════════════ -->
+<header class="topbar" id="topbar">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="#top">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M 18.527 5.473 A 9.231 9.231 0 1 1 5.473 5.473" fill="none" stroke="#50ECA7" stroke-width="3.538" stroke-linecap="round"/>
+        <circle cx="12" cy="2.769" r="2.154" fill="#50ECA7"/>
+      </svg>
+      菲特 <em>FitTracker</em>
+    </a>
+    <nav class="nav" aria-label="主导航">
+      <a href="#flow">训练闭环</a>
+      <a href="#bento">功能</a>
+      <a href="#gallery">界面</a>
+      <a href="#privacy">数据与隐私</a>
+    </nav>
+    <a class="topbar-cta" href="https://github.com/EarthxxRhythm/FitTracker" rel="noopener noreferrer" target="_blank">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1.1-.8.1-.8.1-.8 1.2.1 1.8 1.2 1.8 1.2 1.1 1.9 2.9 1.3 3.6 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.6 4.8 18.6 5.1 18.6 5.1c.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3z"/></svg>
+      源码
+    </a>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ══ Hero L1 ══════════════════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <p class="hero-badge"><b>v1.1.0</b> 双端原生 · HarmonyOS &amp; Android</p>
+
+      <h1 class="hero-title">
+        <span class="ln"><span class="ch" style="--i:0">练</span><span class="ch" style="--i:1">过</span><span class="ch" style="--i:2">的</span><span class="ch" style="--i:3">每</span><span class="ch" style="--i:4">一</span><span class="ch" style="--i:5">组</span><span class="ch" style="--i:6">，</span></span>
+        <span class="ln accent"><span class="ch" style="--i:7">都</span><span class="ch" style="--i:8">算</span><span class="ch" style="--i:9">数</span><span class="ch" style="--i:10">。</span></span>
+      </h1>
+
+      <p class="hero-sub">
+        逐组记下次数与重量，按 <b>Epley 公式</b>估算 1RM，再汇总成周趋势、动作个人纪录与肌肉分布。
+        两端各自原生实现，数据默认留在你的设备上。
+      </p>
+
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="https://github.com/EarthxxRhythm/FitTracker" rel="noopener noreferrer" target="_blank">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1.1-.8.1-.8.1-.8 1.2.1 1.8 1.2 1.8 1.2 1.1 1.9 2.9 1.3 3.6 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.6 4.8 18.6 5.1 18.6 5.1c.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3z"/></svg>
+          即将上架 · 先看代码
+        </a>
+        <a class="btn btn-ghost" href="#gallery">看界面</a>
+      </div>
+
+      <p class="hero-meta">
+        <span>102 个动作</span>
+        <span>组间计时</span>
+        <span>登录后自动同步</span>
+      </p>
+    </div>
+
+    <div class="hero-art">
+      <div class="phone" id="heroPhone">
+        <img src="assets/img/01-home.jpg" width="540" height="1186"
+             alt="菲特首页：今日训练卡、本周进度环与本周节奏" fetchpriority="high" decoding="async">
+      </div>
+      <div class="ring-card" id="ringCard">
+        <svg class="ring-svg" viewBox="0 0 104 104" aria-hidden="true">
+          <circle class="ring-track" cx="52" cy="52" r="44"/>
+          <circle class="ring-dash" cx="52" cy="52" r="49"/>
+          <circle class="ring-fill" cx="52" cy="52" r="44"/>
+        </svg>
+        <div>
+          <div class="num" data-count="20" data-suffix="%">0%</div>
+          <div class="cap">本周进度</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 数字条 L2（反色断点） ═════════════════════════════════════════════ -->
+<section class="stats" aria-label="产品概况">
+  <div class="wrap">
+    <div class="stats-band reveal">
+      <div class="stats-grid">
+        <div class="stat">
+          <div class="n"><span data-count="102">0</span><small>个</small></div>
+          <div class="k">内置动作</div>
+        </div>
+        <div class="stat">
+          <div class="n"><span data-count="2">0</span><small>端</small></div>
+          <div class="k">原生实现</div>
+        </div>
+        <div class="stat">
+          <div class="n"><span data-count="2">0</span><small>项</small></div>
+          <div class="k">系统权限</div>
+        </div>
+        <div class="stat">
+          <div class="n"><span data-count="0">0</span><small>个</small></div>
+          <div class="k">广告与埋点 SDK</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 训练闭环 L3（sticky 叙事） ════════════════════════════════════════ -->
+<section id="flow">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">训练闭环</p>
+      <h2 class="h2">从选计划到看得见进步，四步闭合</h2>
+      <p class="lede">纸质本记得下数字，但算不出趋势，也拼不出肌肉分布。菲特把这条链一次接起来。</p>
+    </div>
+
+    <div class="flow-grid">
+      <div class="flow-steps">
+        <article class="flow-step is-active" data-shot="0">
+          <div class="flow-idx">1</div>
+          <h3>选计划</h3>
+          <p>按分化数成套的预置计划组，例如三分化。启用后落到本地库，首页直接给出「今日训练」，不用每天重新想练什么。</p>
+        </article>
+        <article class="flow-step" data-shot="1">
+          <div class="flow-idx">2</div>
+          <h3>逐组录入</h3>
+          <p>次数与重量逐组记，组间自动计时。中途换动作也不丢已录的分组——这一点两端行为一致。</p>
+        </article>
+        <article class="flow-step" data-shot="2">
+          <div class="flow-idx">3</div>
+          <h3>回顾趋势</h3>
+          <p>周趋势、动作个人纪录下钻、肌肉分布与进阶洞察。练了三周还是一条平线，你会立刻看见。</p>
+        </article>
+        <article class="flow-step" data-shot="3">
+          <div class="flow-idx">4</div>
+          <h3>记身体数据</h3>
+          <p>体重、围度与体成分单独成线。力量涨了但体重没动，和两者一起涨，是两件不同的事。</p>
+        </article>
+      </div>
+
+      <div class="flow-media" id="flowMedia">
+        <div class="phone">
+          <div class="shot is-active" data-shot="0">
+            <img src="assets/img/05-plans.jpg" width="540" height="1186" loading="lazy" decoding="async"
+                 alt="计划页：预置计划组与启用入口">
+          </div>
+          <div class="shot" data-shot="1">
+            <img src="assets/img/02-training.jpg" width="540" height="1186" loading="lazy" decoding="async"
+                 alt="训练执行页：逐组录入次数与重量">
+          </div>
+          <div class="shot" data-shot="2">
+            <img src="assets/img/04-review.jpg" width="540" height="1186" loading="lazy" decoding="async"
+                 alt="回顾页：周趋势与肌肉分布">
+          </div>
+          <div class="shot" data-shot="3">
+            <img src="assets/img/07-body.jpg" width="540" height="1186" loading="lazy" decoding="async"
+                 alt="身体数据页：体重与围度趋势">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ Bento 功能卡 L3 ═══════════════════════════════════════════════════ -->
+<section id="bento">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">功能</p>
+      <h2 class="h2">六个模块，一个都不断线</h2>
+      <p class="lede">记录、计划、回顾、内容、身体、同步——各自独立，但共用同一份数据契约。</p>
+    </div>
+
+    <div class="bento">
+      <article class="card wide reveal" style="--i:0">
+        <span class="card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg></span>
+        <h3>训练流</h3>
+        <p>训练预览 → 执行（组次录入、组间计时、切动作保留分组）→ 完成摘要。中途退出也能从草稿接着练。</p>
+        <span class="tag">组间计时</span>
+      </article>
+
+      <article class="card wide reveal" style="--i:1">
+        <span class="card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></span>
+        <h3>训练回顾</h3>
+        <p>历史训练、周趋势、动作 PR 下钻、肌肉分布与进阶洞察。数据不是记完就沉底，而是每周自己开口说话。</p>
+        <span class="tag">肌肉分布</span>
+      </article>
+
+      <article class="card reveal" style="--i:2">
+        <span class="card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2 2 7l10 5 10-5-10-5zM2 12l10 5 10-5M2 17l10 5 10-5"/></svg></span>
+        <h3>训练计划</h3>
+        <p>按分化数成套的预置计划组，可启用落库，首页直接呈现今日训练。</p>
+      </article>
+
+      <article class="card reveal" style="--i:3">
+        <span class="card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
+        <h3>动作库</h3>
+        <p>列表、筛选、收藏与详情，102 个动作内置演示素材，不联网也看得到。</p>
+      </article>
+
+      <article class="card reveal" style="--i:4">
+        <span class="card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M5 8h14M8 8l-3 8a3 3 0 0 0 6 0l-3-8M16 8l-3 8a3 3 0 0 0 6 0l-3-8"/></svg></span>
+        <h3>身体数据</h3>
+        <p>体重、围度与体成分趋势，和训练量放在同一时间轴上对照。</p>
+      </article>
+
+      <article class="card full reveal" style="--i:5">
+        <div class="split">
+          <div>
+            <span class="card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a4 4 0 0 0 0-8z"/></svg></span>
+            <h3>账号与云同步</h3>
+            <p>两端共用同一套自托管 Supabase：认证服务 + Postgres 整包快照。换设备不必重新开始。</p>
+          </div>
+          <div class="tech-item" style="margin:0">
+            <div class="k">数据边界</div>
+            <div class="v">
+              快照按 user_id 单行 upsert
+              <small>行级安全策略限定「仅数据创建者读写」，刻意不建 delete 策略。</small>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 截图画廊 ══════════════════════════════════════════════════════════ -->
+<section id="gallery">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">界面</p>
+      <h2 class="h2">真实设备截图，不是效果图</h2>
+      <p class="lede">下面每一张都来自实机。点开可以放大看细节。</p>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="gallery reveal">
+      <figure class="shot-card" data-src="assets/img/02-training.jpg" data-cap="训练执行 · 逐组录入">
+        <img src="assets/img/02-training.jpg" width="540" height="1186" loading="lazy" decoding="async" alt="训练执行页截图">
+        <figcaption>训练执行</figcaption>
+      </figure>
+      <figure class="shot-card" data-src="assets/img/04-review.jpg" data-cap="回顾 · 周趋势与肌肉分布">
+        <img src="assets/img/04-review.jpg" width="540" height="1186" loading="lazy" decoding="async" alt="回顾页截图">
+        <figcaption>训练回顾</figcaption>
+      </figure>
+      <figure class="shot-card" data-src="assets/img/05-plans.jpg" data-cap="计划 · 预置计划组">
+        <img src="assets/img/05-plans.jpg" width="540" height="1186" loading="lazy" decoding="async" alt="计划页截图">
+        <figcaption>训练计划</figcaption>
+      </figure>
+      <figure class="shot-card" data-src="assets/img/06-library.jpg" data-cap="动作库 · 筛选与收藏">
+        <img src="assets/img/06-library.jpg" width="540" height="1186" loading="lazy" decoding="async" alt="动作库页截图">
+        <figcaption>动作库</figcaption>
+      </figure>
+      <figure class="shot-card" data-src="assets/img/07-body.jpg" data-cap="身体数据 · 体重与围度">
+        <img src="assets/img/07-body.jpg" width="540" height="1186" loading="lazy" decoding="async" alt="身体数据页截图">
+        <figcaption>身体数据</figcaption>
+      </figure>
+      <figure class="shot-card" data-src="assets/img/08-profile.jpg" data-cap="个人页 · 资料与设置入口">
+        <img src="assets/img/08-profile.jpg" width="540" height="1186" loading="lazy" decoding="async" alt="个人页截图">
+        <figcaption>个人</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 数据与隐私 ════════════════════════════════════════════════════════ -->
+<section id="privacy">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">数据与隐私</p>
+      <h2 class="h2">只声明已经做到的事</h2>
+      <p class="lede">隐私政策里的每一项陈述都与当前代码和配置一一对应。做不到的，不写。</p>
+    </div>
+
+    <div class="privacy-grid">
+      <article class="pledge reveal" style="--i:0">
+        <span class="pledge-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+        <div>
+          <h3>数据默认留在本机</h3>
+          <p>训练计划、记录与身体数据写入应用私有沙箱，其他应用无法直接读取。</p>
+        </div>
+      </article>
+
+      <article class="pledge reveal" style="--i:1">
+        <span class="pledge-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 11h14v10H5zM8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+        <div>
+          <h3>只申请两项权限</h3>
+          <p>网络访问（登录与同步）与振动（完成一组时的触觉反馈）。不碰位置、通讯录、短信、相机、麦克风、相册。</p>
+        </div>
+      </article>
+
+      <article class="pledge reveal" style="--i:2">
+        <span class="pledge-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24M1 1l22 22"/></svg></span>
+        <div>
+          <h3>没有广告，也没有埋点</h3>
+          <p>不集成广告 SDK、第三方统计 SDK、第三方分享或支付 SDK。不采集设备标识、位置与使用行为。</p>
+        </div>
+      </article>
+
+      <article class="pledge reveal" style="--i:3">
+        <span class="pledge-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a4 4 0 0 0 0-8z"/></svg></span>
+        <div>
+          <h3>云端只有你自己的数据</h3>
+          <p>自托管 Supabase 部署在自己的境内服务器上，行级安全策略限定仅数据创建者读写。完整条文见<a href="privacy.html">隐私政策</a>。</p>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 技术底子 ══════════════════════════════════════════════════════════ -->
+<section>
+  <div class="wrap">
+    <div class="section-head reveal">
+      <p class="eyebrow">技术底子</p>
+      <h2 class="h2">两套原生 UI，一份数据契约</h2>
+      <p class="lede">这不是一个套壳应用。两端各自原生实现，快照的字段、类型与语义由契约层统一，改一处必须同步另一端。</p>
+    </div>
+
+    <div class="tech-row reveal">
+      <div class="tech-item">
+        <div class="k">双端原生</div>
+        <div class="v">ArkTS / ArkUI · Kotlin / Compose<small>各自独立实现，不共享 UI 层</small></div>
+      </div>
+      <div class="tech-item">
+        <div class="k">统一契约</div>
+        <div class="v">contracts/ 定义快照字段<small>任一端漂移，另一端解析直接失败</small></div>
+      </div>
+      <div class="tech-item">
+        <div class="k">八道门禁</div>
+        <div class="v">内容 → 路由 → 死链 → 对等 → 编译<small>任一红即停，提交前必过</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ══ 页脚 ══════════════════════════════════════════════════════════════ -->
+<footer class="site-foot">
+  <div class="wrap">
+    <div class="foot-mark" aria-hidden="true">FitTracker</div>
+    <div class="foot-grid">
+      <div>
+        <div class="foot-brand">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M 18.527 5.473 A 9.231 9.231 0 1 1 5.473 5.473" fill="none" stroke="#50ECA7" stroke-width="3.538" stroke-linecap="round"/>
+            <circle cx="12" cy="2.769" r="2.154" fill="#50ECA7"/>
+          </svg>
+          菲特 FitTracker
+        </div>
+        <p class="foot-desc">双端原生健身训练记录。数据默认留在本机，登录后自动同步。</p>
+      </div>
+      <div class="foot-col">
+        <h4>产品</h4>
+        <a href="#flow">训练闭环</a>
+        <a href="#bento">功能</a>
+        <a href="#gallery">界面</a>
+        <a href="#privacy">数据与隐私</a>
+      </div>
+      <div class="foot-col">
+        <h4>资料</h4>
+        <a href="https://github.com/EarthxxRhythm/FitTracker" rel="noopener noreferrer" target="_blank">源码仓库</a>
+        <a href="privacy.html">隐私政策</a>
+        <a href="terms.html">用户协议</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 EarthRhythm</span>
+      <span>版本 1.1.0</span>
+      <span>包名 com.earthrhythm.fittracker</span>
+      <span class="spacer"></span>
+      <span class="pending" data-pending="icp">ICP 备案号待取得</span>
+    </div>
+  </div>
+</footer>
+
+<!-- 截图放大 -->
+<dialog class="shot-modal" id="shotModal">
+  <button class="close" id="modalClose" type="button">关闭</button>
+  <img id="modalImg" src="assets/img/02-training.jpg" alt="界面截图（放大预览）" width="540" height="1186">
+</dialog>
+
+<script src="assets/site.js" defer></script>
+</body>
+</html>
