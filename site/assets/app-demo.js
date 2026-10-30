@@ -223,3 +223,28 @@
     }
   }
 })()
+
+/* ============================================================================
+   540 基准等比缩放
+   ----------------------------------------------------------------------------
+   app-demo.css 里 .app 固定 540×1186（与实机截图同分辨率），
+   显示尺寸靠 transform: scale(--k) 适配容器。这里只负责算 --k。
+   ========================================================================== */
+(function () {
+  'use strict'
+  var app = document.getElementById('appDemo')
+  if (!app) return
+  var phone = app.closest('.app-phone')
+  if (!phone) return
+
+  function fit() {
+    var width = phone.clientWidth
+    if (width > 0) app.style.setProperty('--k', String(width / 540))
+  }
+
+  fit()
+  window.addEventListener('resize', fit, { passive: true })
+  if (typeof ResizeObserver === 'function') {
+    new ResizeObserver(fit).observe(phone)
+  }
+})()
