@@ -8,6 +8,7 @@
 <meta name="theme-color" content="#09100F">
 <link rel="icon" href="assets/img/logo-ring.svg" type="image/svg+xml">
 <link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/app-demo.css">
 <meta property="og:type" content="website">
 <meta property="og:title" content="菲特 FitTracker · 练过的每一组，都算数">
 <meta property="og:description" content="双端原生健身训练记录：组次与重量、Epley 1RM、周趋势、动作 PR 与肌肉分布。数据默认留在本机。">
@@ -97,21 +98,248 @@
     </div>
 
     <div class="hero-art">
-      <div class="phone" id="heroPhone">
-        <img src="assets/img/01-home.jpg" width="540" height="1186"
-             alt="菲特首页：今日训练卡、本周进度环与本周节奏" fetchpriority="high" decoding="async">
+      <div class="phone app-phone" id="heroPhone">
+<div class="app" id="appDemo" data-active="home">
+
+  <div class="app-status">
+    <span>12:28</span>
+    <span class="app-sig"><i></i><i></i><i></i><b>82</b></span>
+  </div>
+
+  <div class="app-body">
+
+    <!-- ══ 首页 ══════════════════════════════════════════════════════════ -->
+    <section class="app-screen" data-screen="home">
+      <p class="app-date">10月28日 周三</p>
+      <h2 class="app-h1">下午好，专注训练</h2>
+
+      <div class="app-card app-today">
+        <div class="head">
+          <div>
+            <div class="app-ear-t">今日训练</div>
+            <h2>周三 腿部 <span class="app-pill gold">推荐</span></h2>
+            <div class="sub">腿部</div>
+          </div>
+          <div class="app-ring">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="rt" cx="50" cy="50" r="44"/>
+              <circle class="rf" cx="50" cy="50" r="44"/>
+            </svg>
+            <div class="rf-label"><b>20%</b><span>本周进度</span></div>
+          </div>
+        </div>
+
+        <div class="app-legend">训练日 · 建议完成</div>
+
+        <div class="app-3">
+          <div class="app-metric"><div class="n">5</div><div class="k">动作</div></div>
+          <div class="app-metric"><div class="n">0</div><div class="k">分钟</div></div>
+          <div class="app-metric"><div class="n">1</div><div class="k">肌群</div></div>
+        </div>
+
+        <button class="app-cta" type="button" data-go="workout" style="margin-top:.9em">开始训练</button>
+        <button class="app-cta-ghost" type="button" data-go="plans">查看预览</button>
       </div>
-      <div class="ring-card" id="ringCard">
-        <svg class="ring-svg" viewBox="0 0 104 104" aria-hidden="true">
-          <circle class="ring-track" cx="52" cy="52" r="44"/>
-          <circle class="ring-dash" cx="52" cy="52" r="49"/>
-          <circle class="ring-fill" cx="52" cy="52" r="44"/>
-        </svg>
-        <div>
-          <div class="num" data-count="20" data-suffix="%">0%</div>
-          <div class="cap">本周进度</div>
+
+      <div class="app-card">
+        <div class="app-ear"><span class="app-ear-t">本周节奏</span><span class="app-ear-a">1 / 5 次</span></div>
+        <div class="app-week">
+          <div class="app-day"><i></i><span>一</span><b>26</b></div>
+          <div class="app-day done"><i></i><span>二</span><b>27</b></div>
+          <div class="app-day"><i></i><span>三</span><b>28</b></div>
+          <div class="app-day"><i></i><span>四</span><b>29</b></div>
+          <div class="app-day"><i></i><span>五</span><b>30</b></div>
+          <div class="app-day"><i></i><span>六</span><b>31</b></div>
+          <div class="app-day"><i></i><span>日</span><b>1</b></div>
         </div>
       </div>
+    </section>
+
+    <!-- ══ 计划 ══════════════════════════════════════════════════════════ -->
+    <section class="app-screen" data-screen="plans">
+      <div class="app-plan-hero">
+        <div>
+          <div class="app-ear-t">当前计划</div>
+          <div class="app-plan-title">五分化</div>
+        </div>
+        <span class="app-ear-a">中度训练者 · 5 项分化 · 5 天周期</span>
+      </div>
+
+      <div class="app-seg">
+        <button type="button" class="on">第 3 天</button>
+        <button type="button">昨天</button>
+        <button type="button">周四</button>
+      </div>
+
+      <div class="app-card">
+        <div class="app-ear">
+          <span class="app-plan-title">周三 腿部</span>
+          <span class="app-pill">5 个动作</span>
+        </div>
+        <div class="app-row"><span class="app-idx">01</span><span class="app-row-main"><span class="app-row-t">杠铃深蹲</span><span class="app-row-s">腿部</span></span><span class="app-row-v">4×8-12</span></div>
+        <div class="app-row"><span class="app-idx">02</span><span class="app-row-main"><span class="app-row-t">罗马尼亚硬拉</span><span class="app-row-s">腿部</span></span><span class="app-row-v">3×8-12</span></div>
+        <div class="app-row"><span class="app-idx">03</span><span class="app-row-main"><span class="app-row-t">腿举</span><span class="app-row-s">腿部</span></span><span class="app-row-v">3×10-12</span></div>
+        <div class="app-row"><span class="app-idx">04</span><span class="app-row-main"><span class="app-row-t">腿弯举</span><span class="app-row-s">腿部</span></span><span class="app-row-v">3×12-15</span></div>
+        <div class="app-row"><span class="app-idx">05</span><span class="app-row-main"><span class="app-row-t">提踵</span><span class="app-row-s">腿部</span></span><span class="app-row-v">4×15-20</span></div>
+      </div>
+
+      <button class="app-cta" type="button" data-go="workout">开始这一天</button>
+    </section>
+
+    <!-- ══ 训练执行 ══════════════════════════════════════════════════════ -->
+    <section class="app-screen app-workout" data-screen="workout">
+      <div class="app-wk-top">
+        <span class="back" data-go="home" role="button" tabindex="0" aria-label="退出训练">⌄</span>
+        <span class="name">杠铃弯举</span>
+        <span class="t">总时长 <b id="appTimer">01:16</b></span>
+      </div>
+
+      <div class="app-wk-bars" id="wkBars"><i class="on"></i><i></i><i></i><i></i></div>
+
+      <div class="app-demo-card">
+        <span class="badge">动作 1 / 5</span>
+        <div class="app-demo-art">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/>
+          </svg>
+        </div>
+        <div class="app-demo-foot">
+          <span class="nm">杠铃弯举</span>
+          <span class="st" id="wkSetLabel">第 1 组 · 正式组</span>
+        </div>
+      </div>
+
+      <div class="app-empty" id="wkEmpty">还没有完成组</div>
+
+      <div class="app-wk-foot">
+        <div class="hint">长按「完成」提前结束本动作</div>
+        <button class="app-cta" type="button" id="wkDone">完成</button>
+      </div>
+    </section>
+
+    <!-- ══ 回顾 ══════════════════════════════════════════════════════════ -->
+    <section class="app-screen" data-screen="review">
+      <div class="app-seg" style="max-width:8.6em;margin:0 auto .1em">
+        <button type="button" class="on" data-range="week">周</button>
+        <button type="button" data-range="month">月</button>
+      </div>
+
+      <div class="app-card">
+        <div class="app-review-hero">本周 · 10月26 – 11月1日 <span class="app-pill">一掉平</span></div>
+        <div class="app-review-big">状态不错，继续保持。</div>
+        <div class="app-review-sub">你比上周多完成了 1 次训练，平均训练时长也提升了 12 分钟。</div>
+        <div class="app-review-sub" style="color:var(--primary);font-weight:750;margin-top:.45em">当前计划：五分化 · 已练 1 次</div>
+      </div>
+
+      <div class="app-card app-3">
+        <div class="app-metric"><div class="n">1</div><div class="k">训练 · 次</div></div>
+        <div class="app-metric"><div class="n">0</div><div class="k">时长 · 分钟</div></div>
+        <div class="app-metric"><div class="n" style="color:var(--text-3)">--</div><div class="k">体重变化 · kg</div></div>
+      </div>
+
+      <div class="app-card">
+        <div class="app-ear"><span class="app-ear-t">训练节奏</span><span class="app-ear-a">过去 7 天</span></div>
+        <div class="app-bars">
+          <span style="height:26%"></span>
+          <span class="hi" style="height:100%"></span>
+          <span style="height:26%"></span>
+          <span style="height:26%"></span>
+          <span style="height:26%"></span>
+          <span style="height:26%"></span>
+          <span style="height:26%"></span>
+        </div>
+        <div class="app-bars-x"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+      </div>
+
+      <div class="app-card">
+        <div class="app-ear"><span class="app-ear-t">肌肉地图</span><span class="app-ear-a">近 8 次训练 · 训练量</span></div>
+        <div class="app-seg" style="margin-bottom:.55em">
+          <button type="button" class="on" data-muscle="balance">平衡</button>
+          <button type="button" data-muscle="fatigue">疲劳</button>
+          <button type="button" data-muscle="strength">力量</button>
+        </div>
+        <div class="app-muscle">
+          <div>腿部<b>高</b></div>
+          <div>背部<b>中</b></div>
+          <div>胸部<b>低</b></div>
+          <div>手臂<b>中</b></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ 我的 ══════════════════════════════════════════════════════════ -->
+    <section class="app-screen" data-screen="profile">
+      <div class="app-me-head">
+        <div class="app-avatar">菲</div>
+        <div>
+          <div class="nm">健身新手</div>
+          <div class="rl">新手 · 已练 1 次</div>
+        </div>
+        <span class="app-pill" style="margin-left:auto">编辑</span>
+      </div>
+
+      <div class="app-card">
+        <div class="app-ear"><span class="app-ear-t">本周概览</span><span class="app-ear-a">10月26 – 11月1日</span></div>
+        <div style="display:flex;align-items:baseline;gap:.35em">
+          <span style="font-size:2.15em;font-weight:900;letter-spacing:-.04em;color:var(--primary);line-height:1">0</span>
+          <span style="font-size:.78em;color:var(--text-2);font-weight:700">分钟</span>
+        </div>
+        <div class="app-ear-a" style="margin:.2em 0 .7em">本周训练时长</div>
+        <div class="app-row" style="border-bottom:0;padding:.3em 0">
+          <span class="app-row-s" style="font-size:.78em;color:var(--text-3)">训练</span>
+          <span class="app-row-v" style="margin-left:auto"><b style="font-size:1.35em;color:var(--text);font-weight:900">1</b> 次</span>
+        </div>
+      </div>
+
+      <div class="app-card">
+        <div class="app-ear-t" style="margin-bottom:.6em">最近成就</div>
+        <div class="app-achievement">
+          <span class="ic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/>
+            </svg>
+          </span>
+          <div>
+            <div class="t">重量突破</div>
+            <div class="s">杠铃深蹲 35.0 kg</div>
+          </div>
+          <span class="d">2026-10-09</span>
+        </div>
+      </div>
+
+      <div class="app-entries">
+        <div class="app-entry">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3v18M5 8h14M8 8l-3 8a3 3 0 0 0 6 0l-3-8M16 8l-3 8a3 3 0 0 0 6 0l-3-8"/>
+          </svg>
+          身体数据
+        </div>
+        <div class="app-entry">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/>
+          </svg>
+          动作库
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <nav class="app-tabs" aria-label="App 演示导航">
+    <button type="button" data-go="home" class="is-on">首页</button>
+    <button type="button" data-go="plans">计划</button>
+    <button type="button" class="app-tab-cta" data-go="workout" aria-label="开始训练">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/>
+      </svg>
+    </button>
+    <button type="button" data-go="review">回顾</button>
+    <button type="button" data-go="profile">我的</button>
+  </nav>
+
+  <div class="app-toast" id="appToast"></div>
+</div>
+      </div>
     </div>
   </div>
 </section>
@@ -122,15 +350,15 @@
     <div class="stats-band reveal">
       <div class="stats-grid">
         <div class="stat">
-          <div class="n"><span data-count="102">0</span><small>个</small></div>
+          <div class="n"><span data-count="102">102</span><small>个</small></div>
           <div class="k">内置动作</div>
         </div>
         <div class="stat">
-          <div class="n"><span data-count="2">0</span><small>端</small></div>
+          <div class="n"><span data-count="2">2</span><small>端</small></div>
           <div class="k">原生实现</div>
         </div>
         <div class="stat">
-          <div class="n"><span data-count="2">0</span><small>项</small></div>
+          <div class="n"><span data-count="2">2</span><small>项</small></div>
           <div class="k">系统权限</div>
         </div>
         <div class="stat">
@@ -418,6 +646,7 @@
   <img id="modalImg" src="assets/img/02-training.jpg" alt="界面截图（放大预览）" width="540" height="1186">
 </dialog>
 
+<script src="assets/app-demo.js" defer></script>
 <script src="assets/site.js" defer></script>
 </body>
 </html>
