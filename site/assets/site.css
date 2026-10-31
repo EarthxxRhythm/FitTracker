@@ -1209,3 +1209,22 @@ body.has-glow .cursor-glow { opacity: 1; }
   .legal-body { font-size: 14.5px; }
   .legal-body h1 { margin-top: 24px; }
 }
+
+/* ── WebGL 极光层 ───────────────────────────────────────────────────────────
+   叠在 CSS 极光之上（同 z-index，DOM 靠后即在上），加色混合让亮部发光。
+   无 WebGL 时 canvas 保持透明，CSS 极光照常工作。
+   ────────────────────────────────────────────────────────────────────────── */
+.aurora-gl {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: .9;
+}
+@media (prefers-reduced-motion: reduce) {
+  .aurora-gl { opacity: .75; }
+}

@@ -98,7 +98,18 @@ const server = createServer((req, res) => {
     'Cache-Control': 'no-store',
     'X-Content-Type-Options': 'nosniff'
   })
-  createReadStream(file).pipe(res)
+  // 读盘失败时不能只发 200 空 body——把错误暴露出来，否则表现为“页面空白但状态码正常”
+  const stream = createReadStream(file)
+  stream.once('error', (err) => {
+    console.error('[serve-site] 读取失败 ' + file + ' :: ' + err.message)
+    if (!res.headersSent) {
+      res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' })
+      res.end('500 读取失败：' + err.message)
+    } else {
+      res.end()
+    }
+  })
+  stream.pipe(res)
 })
 
 // 不指定 host → Node 监听 "::"，同时接受 IPv6（::1）与 IPv4 映射（127.0.0.1）。

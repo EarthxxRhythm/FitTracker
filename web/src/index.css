@@ -1,0 +1,82 @@
+@import "tailwindcss";
+@import "./legacy.css";
+@import "./app-demo.css";
+
+/* ============================================================================
+   设计令牌 —— 逐条转录自 App 的 DesignTokens
+   来源：apps/harmony/entry/src/main/ets/common/styles/DesignTokens.ets
+   实测校正：#0E100D / #101810 / #4CECA4 取自 540×1186 实机截图的像素采样
+   （JPEG 压缩使 #50ECA7 采样为 #4CECA4，两者视为同色）
+   ========================================================================== */
+@theme {
+  /* 底色 */
+  --color-ink: #0E100D;          /* 页面背景（实测） */
+  --color-ink-2: #0F1716;        /* 次级底 DesignTokens:62 */
+  --color-surface: #101810;      /* 卡片底（实测） */
+  --color-surface-2: #1B2A27;
+
+  /* 品牌 */
+  --color-brand: #4CECA4;        /* 实测主色 */
+  --color-brand-deep: #45C9A1;   /* ACCENT_DEEP / 厚底 */
+  --color-brand-soft: #8CEBCC;
+  --color-gold: #B59869;         /* ACCENT_GOLD */
+
+  /* 文本 */
+  --color-fg: #EDF6F2;           /* TEXT_PRIMARY:101 */
+  --color-fg-2: #A3B3AD;         /* TEXT_SECONDARY:102 */
+  --color-fg-3: #7A8D85;         /* TEXT_TERTIARY:107（源码已实测过 WCAG AA） */
+
+  /* 描边 */
+  --color-line: #2A3934;         /* BORDER_DEFAULT:89 */
+
+  /* 动效曲线（MotionTokens） */
+  --ease-motion: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-enter: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out-duo: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-back-out: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* 字体 */
+  --font-sans: system-ui, -apple-system, "HarmonyOS Sans SC", "PingFang SC",
+               "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    margin: 0;
+    background: var(--color-ink);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--color-brand) 28%, transparent);
+    color: var(--color-fg);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--color-ink); }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-line);
+    border-radius: 999px;
+    border: 2px solid var(--color-ink);
+  }
+}
+
+/* 减弱动效：全站统一降级开关 */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
