@@ -416,17 +416,33 @@ export function buildContentIndex(exercises: ExerciseContent[]): ContentIndex {
   for (const exercise of exercises) {
     byId.set(exercise.exerciseId, exercise)
     byName.set(exercise.nameZh, exercise)
-    for (const alias of exercise.aliases) {
-      const key = alias.trim()
-      if (key.length > 0 && !byName.has(key)) byName.set(key, exercise)
-    }
+    // 只按中英文名精确匹配，**不吃 aliases**——与 WorkoutPreviewService.ets:278-283 同口径。
+    // 加上别名匹配会让 web 的动作映射率高于真机（实测 43 个计划动作真机只匹配上 17 个），
+    // 那是美化，不是复刻。
+    if (!byName.has(exercise.nameEn)) byName.set(exercise.nameEn, exercise)
   }
   return { byId, byName }
 }
 
-/** 预置计划里的中文动作名 → exerciseId；查不到时回退原名（不抛错，页面显示原名）。 */
-export function resolveExerciseIdByName(index: ContentIndex, name: string): string {
-  return index.byName.get(name)?.exerciseId ?? name
+/**
+ * 预置计划的中文动作名 → exerciseId。
+ *
+ * 匹配不上时返回 `${planId}_exercise_${position+1}` 占位并保留原名——与真机
+ * WorkoutPreviewService.ets:255-270 一致：真机匹配不上时同样用占位 id +
+ * 「预置计划动作暂未映射到动作库，将按名称记录」。占位 id 查不到主肌群，
+ * 于是不进入肌肉分布——这是真机的既有行为，不是 web 的缺陷。
+ */
+export function resolvePresetExercise(
+  index: ContentIndex,
+  planId: string,
+  name: string,
+  position: number
+): { exerciseId: string; name: string; mapped: boolean } {
+  const content = index.byName.get(name)
+  if (content) {
+    return { exerciseId: content.exerciseId, name: content.nameZh, mapped: true }
+  }
+  return { exerciseId: `${planId}_exercise_${position + 1}`, name, mapped: false }
 }
 
 export function getPrimaryMuscleIds(index: ContentIndex, exerciseId: string): string[] {
