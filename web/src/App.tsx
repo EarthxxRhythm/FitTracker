@@ -1,6 +1,7 @@
 import { motion, useReducedMotion, useScroll, useSpring } from 'framer-motion'
 import Aurora from './components/Aurora'
 import AppDemo from './components/AppDemo'
+import PointerFx from './components/PointerFx'
 
 /* ============================================================================
    官网主体
@@ -101,6 +102,7 @@ export default function App() {
   return (
     <>
       <Aurora />
+      <PointerFx />
       <div className="grid-lines" aria-hidden="true" />
 
       {/* 滚动进度条：framer-motion 的 useScroll 直接给到 0→1 的进度 */}

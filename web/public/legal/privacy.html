@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>隐私政策 · 菲特 FitTracker</title>
+<meta name="description" content="菲特 FitTracker 隐私政策：说明训练计划、训练记录与身体数据存放在哪里、登录后如何同步，以及本应用仅申请的联网与振动两项权限。">
+<meta name="theme-color" content="#09100F">
+<link rel="icon" href="../assets/img/logo-ring.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body class="page-legal">
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="../index.html">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M 18.527 5.473 A 9.231 9.231 0 1 1 5.473 5.473" fill="none" stroke="#50ECA7" stroke-width="3.538" stroke-linecap="round"/>
+          <circle cx="12" cy="2.769" r="2.154" fill="#50ECA7"/>
+        </svg>
+      菲特 <em>FitTracker</em>
+    </a>
+    <nav class="nav" aria-label="次要导航">
+      <a href="../index.html">返回首页</a>
+    </nav>
+  </div>
+</header>
+
+<main class="legal">
+  <article class="legal-body">
+<h1>菲特（FitTracker） 隐私政策</h1>
+<p>最后更新：2026-10-28（版本号随应用版本更新，以 <code>AppScope/app.json5</code> 为准）</p>
+<p>本政策描述 菲特（FitTracker，以下称"本应用"）当前版本对用户数据与设备能力的<strong>真实</strong>处理方式。本政策中的每一项陈述都与当前代码和配置一一对应：</p>
+<ul>
+<li>权限口径以 <code>entry/src/main/module.json5</code> 为准；</li>
+<li>网络与数据行为以 <code>entry/src/main/ets/</code> 下的实现为准；</li>
+<li>备份能力以 <code>entry/src/main/resources/base/profile/backup_config.json</code> 与 <code>entry/src/main/ets/entrybackupability/EntryBackupAbility.ets</code> 为准。</li>
+</ul>
+<p><strong>我们只声明已经实现的行为，也不遗漏已经实现的行为。</strong> 后续版本若新增任何数据采集、联网或权限申请，本政策会同步更新并在应用内提示。</p>
+<h2>一、核心承诺</h2>
+<ol>
+<li><strong>数据默认留在本机</strong>：使用应用需先创建账号；登录后，训练计划、训练记录、身体数据、目标设置与应用设置保存在你的设备本机，并可跨设备同步。</li>
+<li><strong>最小权限</strong>：当前版本仅申请「网络访问」（<code>ohos.permission.INTERNET</code>）与「振动」（<code>ohos.permission.VIBRATE</code>）两项权限——前者用于账号登录与云同步，后者仅在训练完成一组时提供触觉反馈（不采集数据、不联网，可在设置页关闭）；不申请位置、通讯录、短信、相机、麦克风、相册、日历等任何敏感权限。</li>
+<li><strong>云服务范围</strong>：联网行为指向本应用自建的身份与数据服务（自托管 Supabase，部署于本应用自有的境内云服务器）——认证服务与数据存储；使用微信 / QQ / 华为账号登录时，会调用对应官方 SDK 完成授权（见第五节），仅获取用于识别账号的标识与昵称，不采集通讯录、好友列表或任何社交内容；不集成广告 SDK、第三方统计 SDK、第三方分享或支付 SDK。</li>
+<li><strong>不收集额外信息</strong>：不采集设备唯一标识（OAID/AAID/UDID 等）、位置、通讯录、崩溃日志或使用行为埋点。</li>
+<li><strong>可随时退出</strong>：应用需登录后使用，数据始终保存在你的设备本机；你可以随时退出登录（本机数据保留）；云端快照可联系我们删除（见第八节）。</li>
+</ol>
+<h2>二、我们如何对待你的数据</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th>数据类别</th><th>内容示例</th><th>存储位置</th><th>是否离开设备</th></tr></thead>
+<tbody>
+<tr><td>账号与会话</td><td>用户 ID、登录令牌、昵称（会话快照）</td><td>应用私有沙箱（Preferences）；账号标识由自建 Supabase 认证服务管理</td><td>登录时（自建 Supabase 认证）</td></tr>
+<tr><td>训练计划</td><td>计划名称、动作、组次、周期</td><td>应用私有沙箱（Preferences）</td><td>登录后自动同步（自托管 Supabase）</td></tr>
+<tr><td>训练记录</td><td>每次训练的组次、重量、时长、完成度</td><td>应用私有沙箱（Preferences）</td><td>同上</td></tr>
+<tr><td>目标设置</td><td>目标类型、强度、周期</td><td>应用私有沙箱（Preferences）</td><td>同上</td></tr>
+<tr><td>用户资料</td><td>昵称、头像（图片或头像标识）、重量单位偏好、训练经验</td><td>应用私有沙箱（Preferences；头像图片另存于应用私有目录）</td><td>同上</td></tr>
+<tr><td>身体档案</td><td>身高、性别、出生年份</td><td>应用私有沙箱（Preferences）</td><td>登录后自动同步（自托管 Supabase）</td></tr>
+<tr><td>身体数据</td><td>体重记录、围度（胸/腰/臀/臂/腿）、体成分（体脂率/骨骼肌/身体水分）</td><td>应用私有沙箱（Preferences）</td><td>登录后自动同步（自托管 Supabase）</td></tr>
+<tr><td>应用设置</td><td>单位、语言、周开始日、各类开关状态</td><td>应用私有沙箱（Preferences）</td><td>否</td></tr>
+</tbody>
+</table>
+</div>
+<p>上述本地数据均写入应用私有沙箱，其他应用无法直接读取。云端数据（登录并同步后）写入自托管 Supabase 的账号数据空间，按用户 ID 隔离，服务端权限已配置为「仅数据创建者读写」（行级安全策略）。</p>
+<h2>三、我们不收集什么</h2>
+<p>当前版本<strong>不</strong>进行下列任何行为：</p>
+<ul>
+<li>不注册、不上报设备唯一标识（OAID/AAID/UDID 等）；</li>
+<li>不采集崩溃日志、埋点或使用行为统计；</li>
+<li>不申请位置、通讯录、短信、相机、麦克风、相册、日历等任何敏感权限；</li>
+<li>不集成广告 SDK、第三方统计 SDK，也不集成第三方分享或第三方支付 SDK（云端能力仅使用自托管 Supabase；登录时调用微信 / QQ / 华为账号官方 SDK，用途与数据范围见第五节）；</li>
+<li>不包含内嵌浏览器（WebView）或任何远程内容加载。</li>
+</ul>
+<h2>四、系统权限说明</h2>
+<p><code>entry/src/main/module.json5</code> 当前声明 2 项权限：</p>
+<ul>
+<li><code>ohos.permission.INTERNET</code>（网络访问）：用于账号登录（自托管 Supabase 上的认证服务）与云同步。未登录时该权限不被使用。</li>
+<li><code>ohos.permission.VIBRATE</code>（振动）：用于训练完成一组时的触觉振动反馈（30ms 短促振动）；不采集数据、不联网；可在设置页「声音与震动」中关闭。</li>
+</ul>
+<p>选择头像图片时使用系统图库选择器，应用<strong>不申请相册（媒体）读取权限</strong>：选择器只把你主动选中的那一张图片交给本应用，本应用无法访问相册中的其他内容。头像会压缩（正方形、256×256、JPEG）后保存在应用私有目录，并随云同步快照上传（见第五节）。</p>
+<p>训练提醒与成就提醒所需的系统级代理提醒能力（<code>ohos.permission.PUBLISH_AGENT_REMINDER</code>）当前<strong>未</strong>申请，提醒以应用内通知形式工作（见第六节）。</p>
+<h2>五、网络访问说明</h2>
+<p>登录与云同步是当前版本<strong>唯一</strong>的网络行为，全部指向本应用自建的服务端（自托管 Supabase，部署于本应用自有的境内云服务器）：</p>
+<ul>
+<li><strong>认证服务</strong>：手机验证码 / 邮箱密码登录时，凭据（手机号或邮箱）提交至自建 Supabase 认证服务完成身份验证；登录令牌由该服务颁发并管理。</li>
+<li><strong>第三方登录</strong>：选择微信 / QQ / 华为账号登录时，先由对应官方 SDK 在客户端完成授权并取得一次性授权码；该授权码随后提交至本应用服务端，由服务端凭密钥向第三方换取账号标识，用于建立本应用的登录会话。<strong>换取过程所需的密钥只保存在服务端，不下发到客户端</strong>。</li>
+<li><strong>云数据</strong>：登录后，应用将训练数据整包快照（目标、计划、训练记录、用户资料，见第二节）上传至自托管 Supabase，用于跨设备恢复；上行时机为登录成功、冷启动已登录与训练完成，均为自动同步。</li>
+<li><strong>沙盒降级</strong>：工程未配置 Supabase 凭据时（如本地开发构建），应用自动进入演示模式，所有"云端"读写均在本机沙盒内完成，不发起网络请求。</li>
+</ul>
+<p><strong>第三方登录 SDK 说明（如实披露）</strong>：本应用的第三方登录方式及对应 SDK 如下：</p>
+<div class="table-wrap">
+<table>
+<thead><tr><th>登录方式</th><th>调用的 SDK</th><th>用途</th><th>获取的信息</th></tr></thead>
+<tbody>
+<tr><td>微信</td><td>微信 OpenSDK（腾讯）</td><td>拉起微信完成授权，取得一次性授权码</td><td>账号唯一标识（unionid）、昵称</td></tr>
+<tr><td>QQ</td><td>QQ 互联 OpenSDK（腾讯）</td><td>拉起 QQ 完成授权，取得一次性授权码</td><td>账号唯一标识（openid）、昵称</td></tr>
+<tr><td>华为账号</td><td>Account Kit（华为）</td><td>拉起华为账号完成授权，取得一次性授权码</td><td>账号唯一标识（UnionID）、昵称</td></tr>
+</tbody>
+</table>
+</div>
+<p>上述 SDK 仅用于完成授权与获取账号标识，不采集你的通讯录、好友列表、聊天内容或任何社交数据；应用未申请任何社交类敏感权限。若你选择不使用这些方式，可完全使用手机验证码或邮箱密码登录。</p>
+<p>动作演示素材（GIF、图片）随安装包内置在 <code>entry/src/main/resources/rawfile/</code> 中，运行时从本地读取，不联网下载。未登录时应用停留在登录页，不进入主界面。</p>
+<h2>六、关于设置页中的开关（如实说明）</h2>
+<p>设置页包含若干数据相关开关，它们当前的行为如下：</p>
+<div class="table-wrap">
+<table>
+<thead><tr><th>设置项</th><th>当前实际行为</th></tr></thead>
+<tbody>
+<tr><td>训练数据同步</td><td>真实生效：登录状态下自动触发云同步（登录成功、冷启动、训练完成）；未登录时不发起云同步</td></tr>
+<tr><td>匿名使用数据</td><td>仅记录开关状态，不采集、不上报任何使用数据</td></tr>
+<tr><td>健康数据授权</td><td>仅作界面展示，未申请任何健康类权限，未读取系统健康数据</td></tr>
+<tr><td>训练提醒</td><td>真实生效：开启后每天 19:30 提醒训练；当天已完成训练或为休息日则不打扰。当前以应用内通知形式工作（系统代理提醒能力获批后升级为系统级提醒，应用退出后仍可提醒）</td></tr>
+<tr><td>成就提醒</td><td>真实生效：连续训练达到 3 / 7 / 14 / 30 天时发送「连续训练达成」通知</td></tr>
+<tr><td>声音与震动</td><td>真实生效：训练完成一组时给出一次 30ms 短促振动（暂无音效）；开关关闭时不振动</td></tr>
+<tr><td>训练中屏幕常亮</td><td>真实生效：训练过程中保持屏幕常亮（进入训练开启、退出恢复；不采集数据、不申请权限）</td></tr>
+</tbody>
+</table>
+</div>
+<p>以上开关的存储同样只发生在设备本机；训练提醒与成就提醒的通知内容在本机生成，不包含任何上传数据。这些能力若在未来版本进一步接入（例如系统级代理提醒或健康数据），本政策会先行更新并再次征得你的同意。</p>
+<h2>七、数据同步与迁移</h2>
+<ul>
+<li><strong>云同步（登录后）</strong>：与本地备份不同，云同步自动将快照存入自托管 Supabase 的账号数据空间（按用户 ID 隔离），用于跨设备恢复。同步范围包括：<strong>目标、计划、训练记录、用户资料（昵称/头像/单位偏好/训练经验）、身体档案（身高/性别/出生年份）与身体数据（体重/围度/体成分）</strong>；<strong>不包含</strong>训练草稿、内容库与媒体缓存。</li>
+<li><strong>系统备份</strong>：本应用声明了 <code>allowToBackupRestore</code>，若你在系统设置中开启了云备份，操作系统可能在执行备份时把应用数据一并纳入并由<strong>系统</strong>上传到你自己的云账号。这一传输由系统与你的账号设置控制，应用自身不发起、不干涉。你可以通过在系统设置中关闭云备份来阻止此类传输。</li>
+</ul>
+<h2>八、数据删除</h2>
+<ul>
+<li>你可以在系统"应用管理"中清除本应用数据，或卸载本应用，这将删除设备上的全部本地数据。</li>
+<li><strong>退出登录</strong>会清除本机业务数据（目标、计划、训练记录、用户资料），但不会自动删除云端的同步快照（供你再次登录时恢复）。</li>
+<li><strong>云端副本</strong>：当前版本未提供应用内删除云端数据的入口；如需删除云端快照，请通过第十一节的联系方式提出，我们会在核实账号身份后处理。</li>
+<li>建议在清除或卸载前，先使用应用内备份功能导出备份包。</li>
+</ul>
+<h2>九、未成年人</h2>
+<p>本应用是通用的健身训练记录工具，不面向 14 周岁以下儿童专门设计。若你是未成年人，请在监护人指导下使用。</p>
+<h2>十、政策更新</h2>
+<p>本政策可能随版本更新而调整。任何涉及数据采集、权限或联网行为的变化，都会先更新本政策并同步应用内提示，我们不会在你不知情的情况下改变数据处理方式。</p>
+<h2>十一、联系我们</h2>
+<p>如对本政策有疑问，请联系：</p>
+<ul>
+<li>开发者主体：EarthRhythm</li>
+<li>联系邮箱：1930808767@qq.com</li>
+</ul>
+<p>---</p>
+<p>本政策与《菲特（FitTracker） 用户协议》共同构成你对本应用的使用约定。</p>
+  </article>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <div class="foot-brand">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M 18.527 5.473 A 9.231 9.231 0 1 1 5.473 5.473" fill="none" stroke="#50ECA7" stroke-width="3.538" stroke-linecap="round"/>
+            <circle cx="12" cy="2.769" r="2.154" fill="#50ECA7"/>
+          </svg>
+          菲特 FitTracker
+        </div>
+        <p class="foot-desc">双端原生健身训练记录。数据默认留在本机，登录后自动同步。</p>
+      </div>
+      <div class="foot-col">
+        <h4>文档</h4>
+        <a href="../index.html">首页</a>
+        <a href="../privacy.html">隐私政策</a>
+        <a href="../terms.html">用户协议</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 EarthRhythm</span>
+      <span class="spacer"></span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

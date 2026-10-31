@@ -18,17 +18,22 @@ import { fileURLToPath } from 'node:url'
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const siteRoot = join(repoRoot, 'site')
 
+// 法务页输出目录：默认 site/，web 构建时传 --legal-out web/public/legal
+const LEGAL_OUT = process.argv.includes('--legal-out')
+  ? resolve(process.cwd(), process.argv[process.argv.indexOf('--legal-out') + 1])
+  : siteRoot
+
 const LEGAL = [
   {
     src: 'docs/legal/privacy-policy.md',
-    out: 'site/privacy.html',
+    out: 'privacy.html',
     slug: 'privacy.html',
     title: '隐私政策 · 菲特 FitTracker',
     desc: '菲特 FitTracker 隐私政策：说明训练计划、训练记录与身体数据存放在哪里、登录后如何同步，以及本应用仅申请的联网与振动两项权限。'
   },
   {
     src: 'docs/legal/user-agreement.md',
-    out: 'site/terms.html',
+    out: 'terms.html',
     slug: 'terms.html',
     title: '用户协议 · 菲特 FitTracker',
     desc: '菲特 FitTracker 用户协议：服务说明、健康与安全免责声明、账号与数据责任边界，以及与隐私政策的关系。'
@@ -214,7 +219,7 @@ const BRAND_SVG =
   '          <circle cx="12" cy="2.769" r="2.154" fill="#50ECA7"/>\n' +
   '        </svg>'
 
-export function pageShell(title, slug, bodyHtml) {
+export function pageShell(title, slug, bodyHtml, base = '') {
   const item = LEGAL.find((entry) => entry.slug === slug)
   const desc = item ? item.desc : title
   return `<!DOCTYPE html>
@@ -225,19 +230,19 @@ export function pageShell(title, slug, bodyHtml) {
 <title>${title}</title>
 <meta name="description" content="${desc}">
 <meta name="theme-color" content="#09100F">
-<link rel="icon" href="assets/img/logo-ring.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/site.css">
+<link rel="icon" href="${base}assets/img/logo-ring.svg" type="image/svg+xml">
+<link rel="stylesheet" href="${base}assets/site.css">
 </head>
 <body class="page-legal">
 
 <header class="topbar">
   <div class="wrap topbar-inner">
-    <a class="brand" href="index.html">
+    <a class="brand" href="${base}index.html">
       ${BRAND_SVG}
       菲特 <em>FitTracker</em>
     </a>
     <nav class="nav" aria-label="次要导航">
-      <a href="index.html">返回首页</a>
+      <a href="${base}index.html">返回首页</a>
     </nav>
   </div>
 </header>
@@ -262,9 +267,9 @@ ${bodyHtml}  </article>
       </div>
       <div class="foot-col">
         <h4>文档</h4>
-        <a href="index.html">首页</a>
-        <a href="privacy.html">隐私政策</a>
-        <a href="terms.html">用户协议</a>
+        <a href="${base}index.html">首页</a>
+        <a href="${base}privacy.html">隐私政策</a>
+        <a href="${base}terms.html">用户协议</a>
       </div>
     </div>
     <div class="foot-bottom">
@@ -309,8 +314,9 @@ function main() {
       continue
     }
     const md = readFileSync(mdPath, 'utf8')
-    const html = pageShell(item.title, item.slug, renderLegalMarkdown(md))
-    const outPath = join(repoRoot, item.out)
+    const legalBase = LEGAL_OUT === siteRoot ? '' : '../'
+    const html = pageShell(item.title, item.slug, renderLegalMarkdown(md), legalBase)
+    const outPath = join(LEGAL_OUT, item.out)
     const onDisk = existsSync(outPath) ? readFileSync(outPath, 'utf8') : ''
 
     if (checkMode) {
@@ -380,4 +386,8 @@ function main() {
   console.log('site build done')
 }
 
-main()
+const isDirectRun =
+  process.argv[1] !== undefined &&
+  resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))
+
+if (isDirectRun) main()
