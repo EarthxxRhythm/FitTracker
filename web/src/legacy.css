@@ -1647,3 +1647,69 @@ html:not(.has-cursor-fx) .cursor-glow {
 .muscle-cell:hover {
   border-color: rgba(80, 236, 167, .38);
 }
+
+/* ============================================================================
+   用户旅程（截图 + Remotion 编排）
+   ----------------------------------------------------------------------------
+   桌面：16:10 画布放 <Player>，五站自动推进。
+   窄屏：画布缩到 340px 宽后字号只剩 5-6px，没法读——改为竖排图文列表，
+         同一份 JOURNEY_STOPS 数据两套渲染，不重复写文案。
+   ========================================================================== */
+.journey-stage {
+  width: 100%;
+  aspect-ratio: 960 / 600;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: #0B0F0D;
+  overflow: hidden;
+  box-shadow: 0 40px 90px -60px rgba(0, 0, 0, .95);
+}
+.journey-stage > div {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* 竖排备选：仅在窄屏出现 */
+.journey-list {
+  display: none;
+  gap: 20px;
+}
+.journey-list li {
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  gap: 16px;
+  align-items: start;
+  padding: 16px;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+.journey-list img {
+  width: 78px;
+  border-radius: 10px;
+  border: 1px solid var(--line, var(--border));
+}
+.journey-idx {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  color: var(--primary);
+  margin-bottom: 6px;
+}
+.journey-list h3 {
+  font-size: 16px;
+  font-weight: 850;
+  letter-spacing: -.01em;
+  margin-bottom: 6px;
+}
+.journey-list p {
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.7;
+}
+
+@media (max-width: 860px) {
+  .journey-stage { display: none; }
+  .journey-list { display: grid; }
+}

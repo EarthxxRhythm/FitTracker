@@ -1,7 +1,12 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { motion, useReducedMotion, useScroll, useSpring } from 'framer-motion'
 import Aurora from './components/Aurora'
 import PointerFx from './components/PointerFx'
+import { JOURNEY_STOPS } from './journey/stops'
+
+// 旅程动画（截图 + Remotion 编排）体量约 360 kB，走 lazy：
+// 这一段在页面中部，不该阻塞首屏。
+const JourneyPlayer = lazy(() => import('./journey/JourneyFilm'))
 
 /* ============================================================================
    官网主体
@@ -175,6 +180,7 @@ export default function App() {
           </a>
           <nav className="nav" aria-label="主导航">
             <a href="#bento">功能</a>
+            <a href="#journey">旅程</a>
             <a href="#muscle">肌群</a>
             <a href="#growth">成长</a>
           </nav>
@@ -267,6 +273,39 @@ export default function App() {
           </div>
         </section>
 
+        {/* ── 用户旅程 ─────────────────────────────────────────────── */}
+        <section id="journey">
+          <div className="wrap">
+            <motion.div className="section-head" {...fadeUp}>
+              <p className="eyebrow">用户旅程</p>
+              <h2 className="h2">从选计划到三个月后，一条线走完</h2>
+              <p className="lede">下面这段由代码编排真实界面截图：五站依次推进，节奏固定，循环播放。</p>
+            </motion.div>
+
+            <div className="journey-stage">
+              <Suspense fallback={null}>
+                <JourneyPlayer />
+              </Suspense>
+            </div>
+
+            {/* 窄屏放不下 16:10 的画布，换成竖排图文，数据同源 */}
+            <ul className="journey-list">
+              {JOURNEY_STOPS.map((stop, i) => (
+                <li key={stop.id}>
+                  <img src={stop.img} alt="" loading="lazy" decoding="async" />
+                  <div>
+                    <span className="journey-idx">
+                      {i + 1} · {stop.label}
+                    </span>
+                    <h3>{stop.title}</h3>
+                    <p>{stop.line}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
         {/* ── 肌群覆盖 ─────────────────────────────────────────────── */}
         <section id="muscle" className="muscle-sec">
           <div className="wrap">
@@ -345,6 +384,7 @@ export default function App() {
             <div className="foot-col">
               <h4>产品</h4>
               <a href="#bento">功能</a>
+              <a href="#journey">用户旅程</a>
               <a href="#muscle">肌群</a>
               <a href="#growth">成长</a>
             </div>
