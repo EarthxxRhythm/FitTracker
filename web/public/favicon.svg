@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- FitTracker 品牌符号：进度环（与 App 图标同构）
+       来源几何 design/07_app_icon/master_fg.html：48 视框 / 弧 r=12 / 线宽 4.6 / 里程碑点 r=2.8
+       UI 小尺寸版：24 视框，外径占 92%，线宽与点半径按同一比例放大。
+       本站 favicon：与 public/logo-ring.svg 同一几何，供 index.html 的 <link rel="icon"> 引用。 -->
+  <path d="M 18.527 5.473 A 9.231 9.231 0 1 1 5.473 5.473" fill="none" stroke="#50ECA7" stroke-width="3.538" stroke-linecap="round"/>
+  <circle cx="12" cy="2.769" r="2.154" fill="#50ECA7"/>
+</svg>

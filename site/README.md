@@ -1,4 +1,12 @@
-# site —— 产品官网静态站
+# site —— 产品官网静态站（旧版，已被 web/ 取代）
+
+> **状态（2026-10-31）**：线上站点已切到 `web/`（React + Vite），由服务器 Caddy 从
+> `/opt/fittracker/web/` 提供服务。本目录**不再部署**，保留作两份用途：
+> 1. 内容与文案的对照基线；
+> 2. `apps/harmony/tools/check-site.mjs` 等门禁脚本的被检对象。
+>
+> 新的构建与部署流程见 [`web/README.md`](../web/README.md)。下文描述的是 `.mjs` 脚本链，
+> **不适用于线上**——`web/` 用的是 Vite + `tools/build-site.mjs --legal-out`。
 
 零依赖静态站点：`index.html` 手写，`assets/` 下是样式、脚本与图片，构建与本地预览都用仓库自带的
 Node 脚本（只用 `node:` 内置模块，不装任何 npm 包）。

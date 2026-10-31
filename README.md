@@ -183,7 +183,7 @@ flowchart LR
 
 ## 文档导航
 
-> 官网：https://earthrhythm.cloud（源码在 `site/`，部署见 `site/README.md`）
+> 官网：https://earthrhythm.cloud（源码在 `web/`，部署见 `web/README.md`）
 
 | 文档 | 内容 |
 |---|---|

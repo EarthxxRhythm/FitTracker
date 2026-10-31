@@ -53,22 +53,47 @@ npm run typecheck    # tsc --noEmit
 
 ## 部署
 
-产物在 `web/dist/`，需要同步到服务器的 `/opt/fittracker/web/`：
+产物在 `web/dist/`，同步到服务器的 `/opt/fittracker/web/`（`ubuntu@106.55.37.80`）。
+
+**日常发版只需两步，不碰 Caddy 配置、不重启容器**——Caddy 每次请求读磁盘：
 
 ```bash
-# 1) 本地构建
+# 1) 本地构建（prebuild 会重新渲染法务页）
 cd web && npm run build
 
-# 2) 同步（建议先删旧文件，否则 hash 命名的旧 assets 会累积）
-rsync -av --delete web/dist/ root@<server>:/opt/fittracker/web/
+# 2) 同步（Windows 无 rsync 时用 tar over ssh；Git Bash 自带 GNU tar）
+tar -czf - -C web/dist . | ssh ubuntu@106.55.37.80 \
+  'mkdir -p /opt/fittracker/web && tar -xzf - -C /opt/fittracker/web && chmod -R a+rX /opt/fittracker/web'
 
-# 3) 重启 Caddy（Caddyfile 是单文件 bind mount，必须 restart 不能 reload）
-ssh root@<server> 'docker restart fittracker-caddy'
-
-# 4) 验证
-curl -sI https://earthrhythm.cloud/ | head -3
-curl -sI https://earthrhythm.cloud/legal/privacy.html | head -3
+# 3) 验证
+curl -s https://earthrhythm.cloud/ | grep -o 'assets/index-[A-Za-z0-9_-]*\.js'
 ```
+
+需要 `rsync --delete` 清理旧 hash 产物时，先 `ssh ... ls -la /opt/fittracker/web` 确认再删。
+
+**只有 Caddy 配置变更才重启**（`root` 指向、安全头、缓存头）：
+
+```bash
+ssh ubuntu@106.55.37.80 'cp /opt/fittracker/caddy/Caddyfile /opt/fittracker/caddy/Caddyfile.bak-$(date +%Y%m%d%H%M%S)'
+# 改完先校验，再 restart——Caddy 是 fail-closed，配置错会连 api 一起起不来
+ssh ubuntu@106.55.37.80 "sg docker -c 'docker run --rm \
+  -v /opt/fittracker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro \
+  caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile'"
+ssh ubuntu@106.55.37.80 "sg docker -c 'docker restart fittracker-caddy'"
+# 双域名探活：官网 + api 都要看
+curl -sI https://earthrhythm.cloud/ | head -1
+curl -sS -o /dev/null -w '%{http_code}\n' https://api.earthrhythm.cloud/auth/v1/health
+```
+
+### 两个必须知道的运维事实
+
+1. **`--network host` 只共享网络，不共享文件系统。** 容器启动时必须带
+   `-v /opt/fittracker/web:/opt/fittracker/web:ro`，否则容器内没有这个路径，
+   `root` 指向虚空，官网全站 404——而 Caddy 不会报"目录不存在"，只会回 404，
+   极易误判成权限或 `try_files` 问题。
+2. **官网与 api 共用同一个 Caddy 容器**（`api.earthrhythm.cloud` 与
+   `earthrhythm.cloud` 两个站点块）。Caddy 挂了是两个一起挂，所以上面的
+   `caddy validate` 前置校验不能省。
 
 Caddyfile 里的站点块 `root * /opt/fittracker/web`（`server/deploy/Caddyfile`）。
 

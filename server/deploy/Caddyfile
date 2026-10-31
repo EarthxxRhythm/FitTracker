@@ -6,10 +6,14 @@
 #   3. docker run -d --name fittracker-caddy --restart unless-stopped \
 #        --network host \
 #        -v /opt/fittracker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro \
+#        -v /opt/fittracker/web:/opt/fittracker/web:ro \
 #        -v fittracker_caddy_data:/data -v fittracker_caddy_config:/config \
 #        caddy:2-alpine
 #      ⚠ 必须 --network host：容器内 127.0.0.1 是容器自身回环——bridge 网络下
 #        反代宿主 8000/8787 会全部 502。host 网络下容器内 127.0.0.1 即宿主回环。
+#      ⚠ 官网目录必须显式挂载（实测记录 ⑭）：--network host 只共享网络，不共享文件系统。
+#        少了 -v /opt/fittracker/web 时容器内没有该路径，root 指向虚空，官网全站 404，
+#        而 Caddy 自身不报"目录不存在"，只回 404——极易误判成权限或 try_files 问题。
 #   4. 验证：curl -sS https://api.<域名>/auth/v1/health
 #
 # 端口暴露：Caddy 以 host 网络直接占宿主 80/443。
@@ -32,10 +36,12 @@ api.example.com {
 	reverse_proxy 127.0.0.1:8000
 }
 
-# 产品官网（静态站，源码在仓库 site/，构建与部署见 site/README.md）
+# 产品官网（React 静态站，源码在仓库 web/，构建与部署见 web/README.md）
 # 与上面的 api 块共用同一 Caddy 实例与 443 端口，靠 SNI/Host 分流。
+# 产物链：cd web && npm run build → web/dist/ → 同步到 /opt/fittracker/web/
+# ⚠ www 需先配 DNS（CNAME → 根域）再启用，否则 Caddy 会为它反复申请证书失败。
 earthrhythm.cloud, www.earthrhythm.cloud {
-	root * /opt/fittracker/site
+	root * /opt/fittracker/web
 	encode zstd gzip
 	header {
 		Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'"
@@ -43,6 +49,11 @@ earthrhythm.cloud, www.earthrhythm.cloud {
 		Referrer-Policy strict-origin-when-cross-origin
 		-Server
 	}
+	# hash 命名的构建产物可长缓存；截图与图标按周缓存
+	@hashed path /assets/*
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+	@img path_regexp \.(jpg|svg)$
+	header @img Cache-Control "public, max-age=604800"
 	try_files {path} {path}.html {path}/index.html /404.html
 	file_server
 }
