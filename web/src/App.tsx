@@ -1,6 +1,5 @@
 import { motion, useReducedMotion, useScroll, useSpring } from 'framer-motion'
 import Aurora from './components/Aurora'
-import AppShell from './app/AppShell'
 import PointerFx from './components/PointerFx'
 
 /* ============================================================================
@@ -186,12 +185,6 @@ export default function App() {
                 <span>组间计时</span>
                 <span>登录后自动同步</span>
               </p>
-            </div>
-
-            <div className="hero-art">
-              <div className="phone hero-app-phone">
-                <AppShell />
-              </div>
             </div>
           </div>
         </section>

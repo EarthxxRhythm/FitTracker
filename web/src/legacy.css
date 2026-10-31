@@ -280,9 +280,23 @@ section { padding-block: var(--section-y); position: relative; scroll-margin-top
 }
 .hero-grid {
   display: grid;
-  grid-template-columns: 1.12fr .88fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: clamp(32px, 5vw, 64px);
   align-items: center;
+}
+/* 单列 + 居中：右列移除后文案独占视野，限宽居中，避免全部挤在左侧、右半屏留白。 */
+.hero-copy {
+  max-width: 760px;
+  margin-inline: auto;
+  text-align: center;
+}
+/* 居中后 flex 子项不会自动居中，逐个对齐；.hero-sub 有 46ch 上限，也要跟着归中。 */
+.hero-copy .hero-actions,
+.hero-copy .hero-meta {
+  justify-content: center;
+}
+.hero-copy .hero-sub {
+  margin-inline: auto;
 }
 .hero-badge {
   display: inline-flex;
@@ -410,13 +424,7 @@ section { padding-block: var(--section-y); position: relative; scroll-margin-top
   opacity: .8;
 }
 
-/* Hero 截图 —— 指针视差 + 进度环卡 */
-.hero-art {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  perspective: 1000px;
-}
+/* 手机壳 —— 流程区截图用 */
 .phone {
   position: relative;
   width: min(320px, 78vw);
@@ -838,7 +846,6 @@ dialog.shot-modal .close {
 /* ── 15. 响应式 ──────────────────────────────────────────────────────────── */
 @media (max-width: 1024px) {
   .hero-grid { grid-template-columns: 1fr; }
-  .hero-art { order: -1; }
   .flow-grid { grid-template-columns: 1fr; }
   .flow-media { position: relative; top: 0; min-height: 0; order: -1; margin-bottom: 8px; }
   .flow-media .shot:not(.is-active) { display: none; }
@@ -1074,7 +1081,6 @@ body.has-glow .cursor-glow { opacity: 1; }
 /* ── 滚动视差（JS 只写 transform） ──────────────────────────────────────── */
 .aurora { will-change: transform; }
 .hero-copy { will-change: transform; }
-.hero-art { will-change: transform; }
 
 /* ── 页脚水印字 ─────────────────────────────────────────────────────────── */
 .foot-mark {
