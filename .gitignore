@@ -116,6 +116,9 @@ Thumbs.db
 # Tianshu runtime local config (tool preset)
 /.rivet-config.json
 
+# Tianshu runtime project instruction file（本地入口资产，与 AGENTS.md 同级，不入库）
+/.rivet.md
+
 # --- Android / Gradle / Supabase（2026-10-12 并入 apps/android 与 server 时补）---
 # Gradle 缓存与 Kotlin 编译缓存（工程级，位于 apps/android/ 下）
 **/.gradle/
