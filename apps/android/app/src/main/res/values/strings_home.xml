@@ -46,6 +46,8 @@
 
     <!-- 卡内按钮（`.today .btn-primary` / `.btn-ghost`） -->
     <string name="home_action_start">开始训练</string>
+    <!-- 有进行中的训练草稿时，主 CTA 换成这条（直达训练页，不经过预览） -->
+    <string name="home_action_resume">继续训练</string>
     <string name="home_action_preview">查看预览</string>
 
     <!-- 周节奏（`.week`） -->

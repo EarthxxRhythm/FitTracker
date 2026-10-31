@@ -204,7 +204,16 @@ fun FtApp() {
                     FtNavHost(
                         navController = navController,
                         onOpenPreview = { showPreview = true },
-                        onStartWorkout = { showWeightGate = true },
+                        onStartWorkout = {
+                            // 兜底：即便首页 CTA 的文案还停在「开始训练」（ViewModel 只在
+                            // 冷启动读过一次草稿），只要草稿在就直达训练页——绝不能让预览页
+                            // 用今日计划把它覆盖掉（那会丢进度、换错动作）。
+                            if (resumeDraft != null) {
+                                navController.navigate("active")
+                            } else {
+                                showWeightGate = true
+                            }
+                        },
                         modifier = Modifier
                             .padding(inner)
                             // 动效施加在**内容区**（不含底栏），与原型作用于 `#viewport` 同级：
@@ -241,15 +250,19 @@ fun FtApp() {
                         animationSpec = tween(FtMotion.DURATION_COLOR_FAST, easing = FtMotion.EASE_MOTION),
                         targetOffsetY = { it / 2 },
                     ) + fadeOut(tween(FtMotion.DURATION_COLOR_FAST)),
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .navigationBarsPadding()
-                        .padding(bottom = BOTTOM_BAR_STACK_HEIGHT_DP.dp + 10.dp),
+                    // 只保留 align：**不能把内边距放在这一层**——AnimatedVisibility 不可见时
+                    // 内容为空，但 modifier 的内边距仍占位，会留下一个约 130dp 高的透明节点
+                    // 压在底栏上，把四个 Tab 的点击全部吞掉（真机实测：所有 Tab 无响应）。
+                    modifier = Modifier.align(Alignment.BottomCenter),
                 ) {
                     if (draftBar != null) {
                         ResumeWorkoutBar(
                             summary = draftBar,
                             onClick = { navController.navigate("active") },
+                            // 避开系统栏 + 底栏：这层 padding 只在内容真正渲染时才存在
+                            modifier = Modifier
+                                .navigationBarsPadding()
+                                .padding(bottom = BOTTOM_BAR_STACK_HEIGHT_DP.dp + 10.dp),
                         )
                     }
                 }

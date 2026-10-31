@@ -12,6 +12,8 @@ import com.fittracker.app.data.service.SettingsService
 import com.fittracker.app.data.service.TrainingPlanRepository
 import com.fittracker.app.data.service.WeekStart
 import com.fittracker.app.data.service.WeekWindow
+import com.fittracker.app.data.service.WorkoutDraftService
+import com.fittracker.app.data.service.hasWorkoutDraftProgress
 import com.fittracker.app.data.service.WorkoutRepository
 import com.fittracker.app.data.service.WorkoutSessionService
 import com.fittracker.app.data.service.currentLanguageTag
@@ -56,6 +58,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         private set
     var weeklyTrainedCount by mutableStateOf(0)
         private set
+
+    /**
+     * 是否存在可续练的训练草稿。
+     *
+     * 决定首页主 CTA 的文案与去向：有草稿时是「继续训练」→ 直达 active 屏。
+     * 不能让它走「开始训练 → 预览」那条路——预览页的 saveDraft 会用**今日计划**
+     * 覆盖草稿，进而导致「第二次训练动作不匹配」与「收起后没有胶囊」。
+     */
+    var resumeAvailable by mutableStateOf(false)
+        private set
     var weekDays by mutableStateOf<List<HomeWeekDay>>(emptyList())
         private set
 
@@ -65,6 +77,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
      */
     suspend fun load() {
         val res = getApplication<Application>().resources
+
+        // 草稿态先读：它只影响主 CTA 的文案与去向，不参与今日训练卡的派生。
+        resumeAvailable = WorkoutDraftService.getDraft(store)
+            ?.let { hasWorkoutDraftProgress(it) } == true
 
         // 日期与问候（`HomeContent.applyDateAndGreeting`）
         val now = java.util.Calendar.getInstance()

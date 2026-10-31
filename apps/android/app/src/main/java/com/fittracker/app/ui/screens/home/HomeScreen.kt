@@ -166,7 +166,10 @@ fun HomeScreen(
             durationMinutes = todayDurationMinutes,
             muscleGroupCount = todayMuscleGroupCount,
             progressPercent = weeklyProgressPercent,
-            onStart = { onNavigate("start-workout") },
+            resumeAvailable = vm.resumeAvailable,
+            // 有草稿时主 CTA 就是「继续训练」：直达 active 屏，不经过预览
+            // （预览会用今日计划覆盖草稿，导致动作不匹配、收起后无胶囊）
+            onStart = { onNavigate(if (vm.resumeAvailable) "active" else "start-workout") },
             onPreview = { onNavigate("workout") },
             modifier = Modifier.padding(top = 19.dp).enterFromBelow(todayIn),
         )
@@ -218,6 +221,8 @@ private fun TodayCard(
     durationMinutes: Int,
     muscleGroupCount: Int,
     progressPercent: Int,
+    /** 有草稿时主 CTA 是「继续训练」——文案与去向都由调用方定（这里只管显示）。 */
+    resumeAvailable: Boolean,
     onStart: () -> Unit,
     onPreview: () -> Unit,
     modifier: Modifier = Modifier,
@@ -274,7 +279,9 @@ private fun TodayCard(
         )
 
         CtaButton(
-            text = stringResource(R.string.home_action_start),
+            text = stringResource(
+                if (resumeAvailable) R.string.home_action_resume else R.string.home_action_start,
+            ),
             onClick = onStart,
             modifier = Modifier.padding(top = 16.dp), // 与鸿蒙对齐：16
             bg = FtColor.accent,
