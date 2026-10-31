@@ -2,6 +2,7 @@
 
 **双端健身训练记录应用。** HarmonyOS（ArkTS / ArkUI）与 Android（Kotlin / Jetpack Compose）各自原生实现，共用一个跨端数据契约；数据保存在本机，登录后自动同步到自托管 Supabase。
 
+[![Website](https://img.shields.io/badge/%E5%AE%98%E7%BD%91-earthrhythm.cloud-2ea44f)](https://earthrhythm.cloud/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-2ea44f)](LICENSE)
 [![HarmonyOS](https://img.shields.io/badge/HarmonyOS-6.0.2%20(22)-000000)](apps/harmony)
 [![Android](https://img.shields.io/badge/Android-minSdk%2024-3ddc84)](apps/android)
