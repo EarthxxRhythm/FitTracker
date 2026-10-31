@@ -56,6 +56,8 @@
 | L3 | `docs\ui\ui-sample-spot-check.md` | 抽样检查说明 | 双端 | 现行 | 否 | `check-specs`（仅存在） |
 | L3 | `docs\ui\midscene-regression-report-template.md` | Midscene 回归报告模板 | 双端 | 现行 | 否 | `check-specs`（仅存在） |
 | L3 | `docs\产品需求文档（PRD）.md` | 历史产品需求（2026-08-19 华为 AGC 方案，已被取代，仅作背景参考） | 双端 | 已被取代 | 是 | `check-specs`（仅存在） |
+| L2 | `loop\README.md` | 六环闭环 agent 体系协议：信封 schema、状态机、门禁断言、断点治理 | 双端 | 现行 | 否 | `check-specs`（头部） |
+| L2 | `loop\agents\conductor\AGENT.md` | 六环定制 agent 定义（conductor/req/design/dev/test/release/ops 七份 AGENT.md 的代表） | 双端 | 现行 | 否 | `check-specs`（仅存在） |
 
 ## 已删除的规范
 
@@ -63,7 +65,7 @@
 |---|---|---|---|
 | `docs\ui\设计系统代码规范文档.md` | 2026-10-27 | 2026-05-23 的 MVP 收口版，`features/onboarding/`、`GOAL_SETUP` 路由、`pages/HomePage` 三处锚点在当前代码中已不存在，却被 `docs\README.md` 与 `docs\prototype\ui-analysis-and-beautify-prompt.md` 当作现行规范引用 | 有效章节（ArkTS 严格模式、服务层、DesignTokens、文案、动作内容）并入 `docs\process\engineering-standards.md`；失效内容不迁移 |
 | 全部 `AGENTS.md`（仓库根 + 6 个就近目录） | 2026-10-28 | 远程仓库不再存放 AI 工具约定名的文件 | 工程约束本体改名为 `docs\process\engineering-constraints.md`，就近约束改为 `CONVENTIONS.md`，内容未删 |
-| `docs\process\vibe-coding-workflow.md`、`docs\process\tasks.*`、`docs\superpowers\`、`docs\skills\`、`docs\archive\workflow-consolidation-2026-10\`、`docs\archive\legacy-cleanup-2026-09\agent-state\`、`loop\`、`tools\loop\`、`apps\harmony\openspec\`、`apps\harmony\tasks\project-queue.json` | 2026-10-28 | 仓库清理：AI 工具配置、agent 编排与过程产物不入库 | 不迁移；本地工作区副本保留，`.gitignore` 覆盖防再入库 |
+| `docs\process\vibe-coding-workflow.md`、`docs\process\tasks.*`、`docs\superpowers\`、`docs\skills\`、`docs\archive\workflow-consolidation-2026-10\`、`docs\archive\legacy-cleanup-2026-09\agent-state\`、`apps\harmony\openspec\`、`apps\harmony\tasks\project-queue.json` | 2026-10-28 | 仓库清理：AI 工具配置、agent 编排与过程产物不入库 | 不迁移；本地工作区副本保留，`.gitignore` 覆盖防再入库 |
 
 ## 不属于规范的索引文档
 
