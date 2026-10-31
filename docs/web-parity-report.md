@@ -11,15 +11,15 @@
 
 | 来源 | 覆盖 | 状态 |
 |---|---|---|
-| 子代理 W1（首页 / 计划） | 10 条差异 | ⚠️ 结构化输出解析失败，条目从 worker artifact 中人工提取，**未经 schema 校验** |
+| 子代理 W1（首页 / 计划） | 10 条 findings | ✅ 重跑成功 |
 | 子代理 W2（训练 / 预览 / 摘要） | 14 条 | ✅ 正常返回 |
-| 子代理 W3（回顾） | 5 条 | ⚠️ 解析失败 + 输出截断，**由我读 `ReviewScreen.kt` 补齐**（卡组件行号已核实） |
+| 子代理 W3（回顾） | 10 条 findings | ✅ 重跑成功 |
 | 子代理 W4（动作库 / 身体） | 27 条 | ✅ 正常返回（inline 可见 22 条） |
 | 子代理 W5（我的 / 设置 / 主题） | 18 条 | ✅ 正常返回（inline 可见 8 条，其余截断未收录） |
 | Web 侧信息结构 | 6 屏 DOM 实测 | ✅ 浏览器 eval 实测（训练/摘要屏复用上一轮已验证结果） |
 
 **三处诚实交代**：
-1. W1、W3 的 worker 因我在派单里指定 `severity=P0/P1/P2` 与工具 schema（`CRITICAL/HIGH/MEDIUM`）冲突而解析失败——产出本身是完整的，只是没通过校验。这是**派单缺陷**，不是 worker 能力问题。
+1. 首轮 W1/W3 失败是**我的派单缺陷**——在 objective 里指定 `severity=P0/P1/P2`，与工具 schema（`CRITICAL/HIGH/MEDIUM`）冲突。改为工具原生格式后重跑成功。这笔账算在我头上，不算 worker 能力问题。
 2. W4、W5 的完整清单在 inline 里被截断，本报告只收录可见条目；遗漏不等于无差异。
 3. 所有 worker 都是**只读代码扫描**，没有视觉能力。本报告的视觉层只有我做的 6 屏 DOM 结构抓取，**没有像素级对照**。
 
@@ -106,23 +106,31 @@
 | 训练偏好页（目标/经验/天数/时长/器械/限制肌群） | `TrainingPreferencesScreen.kt:74-172` | MISSING | missing |
 | 成就口径 | `FtProfileModel.kt:198-241` 连续天数 + 重量突破 | 每动作 1RM 前 3 | behavior |
 
-### 3.5 首页 / 计划（W1）
+### 3.5 首页 / 计划（W1，本次重跑）
 
 | 功能 | 安卓 | web | 性质 |
 |---|---|---|---|
-| 今日指标项 | `HomeScreen.kt:539` 动作 / 时长(分) / 肌群 | 动作 / 计划组 / 肌群 | behavior |
-| 开始训练去向 | `HomeScreen.kt:169` 有草稿直达 active | 一律先进预览 | behavior |
-| 推荐胶囊 + 次按钮 | `HomeScreen.kt:326` | 无 chip，次按钮为「换个计划」 | missing |
-| 计划列表形态 | `PlansScreen.kt:81` 带返回栏的组列表（含示例行） | 平面预置卡 + 训练日行 | behavior |
+| 今日指标第二项 | `HomeScreen.kt:537-542` **时长（分钟）** | `HomeScreen.tsx:121-124` **计划组总数** | behavior |
+| 卡内第二 CTA | `HomeScreen.kt:288-299` 「预览今日训练」→ workout | `HomeScreen.tsx:133-135` 「换个计划」→ 计划屏 | behavior |
+| 当前计划摘要卡 | `PlansScreen.kt:157-215` 独立卡（含空态分支） | 仅在列表卡打「当前」pill | missing |
+| 计划屏层级 | `PlansScreen.kt:126-136` 列表 → `PlanGroupScreen` 详情两级 | 单页四卡直接启用 | missing |
+| 计划卡元信息 | `PlansScreen.kt:283-288` 列动作示例文本 | 列动作位总数 | copy |
 
-### 3.6 回顾（W3，我补齐部分）
+> **一个值得注意的数据事实**：安卓首页第二指标的「时长」当前可能恒为 0——`HomeViewModel.kt:120` 注释写明「预置计划模型无单次时长字段…sessionMinutes 取 0」。web 用「计划组」规避了这个数据缺口。**两端差异不全是设计意图，也有安卓侧数据未接通的成分。**
+
+### 3.6 回顾（W3，本次重跑）
 
 | 功能 | 安卓 | web | 性质 |
 |---|---|---|---|
-| 体重与目标卡 | `ReviewScreen.kt:787`（曲线 + 目标虚线 + 设置弹窗） | 只有一行「最近体重」 | missing |
-| 努力程度卡 | `ReviewScreen.kt:940`（RPE 指标 + 柱） | MISSING | missing |
-| 估算 1RM 卡 | `ReviewScreen.kt:1047`（按动作列 1RM） | MISSING | missing |
-| 肌群点选明细 | `ReviewScreen.kt:543`（点部位看明细、前 3 → 全 18 抽屉） | 只有 top8 排行 | behavior |
+| 体重与目标卡 | `ReviewScreen.kt:787` 曲线 + 虚线目标 + 目标弹窗（`:872` WeightChart） | 仅一行体重摘要 | missing |
+| 努力程度卡 | `ReviewScreen.kt:940` RIR/RPE 分段 + 8 柱（`:979` EffortBars） | MISSING | missing |
+| 估算 1RM 卡 | `ReviewScreen.kt:1047` 按动作列 | MISSING | missing |
+| **徽标口径** | `FtReviewModel.kt:622-633` **周环比涨跌**（待积累 / 首次回顾 / ↑+N% / 持平） | `ReviewScreen.tsx:154` **完成率阈值**（待开始 / 节奏稳 / 可加密） | behavior |
+| 概览卡头部 | `ReviewScreen.kt:470-500` headline + desc + **当前计划归属行** | 固定 eyebrow + h1，无计划归属 | missing |
+| 肌群排行形态 | `ReviewScreen.kt:597` 收起前 3 行 + `:648` 抽屉展开全 18 | inline 前 8 行 | behavior |
+| 部位点选明细 + 结论句 | `ReviewScreen.kt:742` MuscleDetailRow + `:695` 结论句 | 仅 hover title | missing |
+
+> **安卓侧也有一条闲置数据通道**：`WeeklyStats` 已含 `sets` / `volume`（`WorkoutSessionService.kt:27`），`FtReviewModel.monthlyStats` 同样产出，但 **UI 层无任何消费点**——安卓概览卡只渲染次数 / 时长 / 体重变化三项。web 的「训练量合计 + 完成 N/M 组（%）」正是这两项，属**web 超出**。
 
 ---
 
@@ -143,8 +151,11 @@
 
 | 项 | 说明 |
 |---|---|
-| 训练量分布柱图 | `ReviewScreen.tsx:182` 周/月柱图，安卓 `ReviewScreen.kt` 无对应组件 |
-| 完成率指标行 | `ReviewScreen.tsx:173` 训练量合计 / 完成组数 / 完成率，安卓三张 stat 卡无 |
+| 训练量分布柱图 | `ReviewScreen.tsx:179-190` 周 7 柱 / 月 4 柱，安卓无对应组件（已 grep 确认） |
+| 训练量合计行 | `ReviewScreen.tsx:173`，对应安卓**已算未用**的 `WeeklyStats.sets/volume` |
+| 概览卡区间 caption | web 有「本周 / 近 4 周 + 日期区间」，安卓概览卡头无 |
+| 去身体数据跳转 | `ReviewScreen.tsx:267`；安卓 `onNavigate` 声明但屏内零调用（grep 计数=1） |
+| 最近训练卡 | `HomeScreen.tsx:176-200`，安卓首页无此卡 |
 | 每组行内输入 | 可回改任意一组，安卓只能聚焦当前组 |
 | 热身标记 | web 有 UI 入口，安卓 UI 无 |
 | 数据持久化 | web 全量落 localStorage，安卓动作库收藏不落盘 |
@@ -168,12 +179,13 @@
 1. **单位制（kg/lbs）全站缺失**：训练、摘要、回顾、身体、我的五处重量都是 `kg` 字面量。安卓有一条统一链路（`WeightUtils` + `UserProfileService.weightUnit`）。
 2. **设置体系只复刻了 1/12**：安卓设置屏三段十二行，web 只有「周开始日」。
 3. **`weekStart` 在「我的」屏没接通**（P0-1），是设置项落地不完整的典型表现。
+4. **安卓有两处「算出来但没上屏」的数据**（首页时长、回顾 sets/volume）——只看 UI 对比会低估 web 的合理性。
 
 ---
 
 ## 8. web 自身缺陷（与安卓无关，本轮实测发现）
 
-**「我的」页最佳纪录显示英文 exerciseId**：`ProfileScreen.tsx` 的 `displayName()` 把 `ex_machine_leg_press` 转成 `machine leg press`，实测渲染出 `machine leg press` / `barbell squat` / `preset_upper_lower_exercise_1`。
+**「我的」页最佳纪录显示英文 exerciseId**：`ProfileScreen.tsx:217-219` 的 `displayName()` 把 `ex_machine_leg_press` 转成 `machine leg press`，实测渲染出 `machine leg press` / `barbell squat` / `preset_upper_lower_exercise_1`。
 
 对比：`SummaryScreen.tsx` 已有正确的解析（`resolveExerciseName` 走内容库 + 计划反查），「我的」页没复用。**建议与 P0-1 一并修**。
 
