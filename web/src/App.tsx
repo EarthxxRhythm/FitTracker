@@ -92,6 +92,21 @@ export default function App() {
   const { scrollYProgress } = useScroll()
   const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 24, restDelta: 0.001 })
 
+  // 卡片 3D 倾斜：写 CSS 变量，transform 由 legacy.css 的 .card 规则消费
+  const tilt = (e: React.PointerEvent<HTMLElement>) => {
+    if (reduce) return
+    const el = e.currentTarget
+    const r = el.getBoundingClientRect()
+    const dx = (e.clientX - r.left) / r.width - 0.5
+    const dy = (e.clientY - r.top) / r.height - 0.5
+    el.style.setProperty('--rx', (-dy * 4).toFixed(2) + 'deg')
+    el.style.setProperty('--ry', (dx * 4).toFixed(2) + 'deg')
+  }
+  const untilt = (e: React.PointerEvent<HTMLElement>) => {
+    e.currentTarget.style.setProperty('--rx', '0deg')
+    e.currentTarget.style.setProperty('--ry', '0deg')
+  }
+
   const fadeUp = {
     initial: reduce ? false : { opacity: 0, y: 24 },
     whileInView: { opacity: 1, y: 0 },
@@ -259,10 +274,12 @@ export default function App() {
                 <motion.article
                   className={'card ' + (card.span === 'wide' ? 'wide' : card.span === 'full' ? 'full' : '')}
                   key={card.title}
-                  initial={reduce ? false : { opacity: 0, y: 24 }}
-                  whileInView={{ opacity: 1, y: 0 }}
+                  initial={reduce ? false : { opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
                   viewport={{ once: true, margin: '0px 0px -10% 0px' }}
-                  transition={{ duration: 0.5, delay: i * 0.04, ease: [0.2, 0.8, 0.2, 1] as [number, number, number, number] }}
+                  transition={{ duration: 0.5, delay: i * 0.04 }}
+                  onPointerMove={tilt}
+                  onPointerLeave={untilt}
                 >
                   <h3>{card.title}</h3>
                   <p>{card.body}</p>
@@ -324,7 +341,7 @@ export default function App() {
                   className="pledge"
                   key={title}
                   initial={reduce ? false : { opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
+                  whileInView={{ opacity: 1 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.45, delay: i * 0.05, ease: [0.2, 0.8, 0.2, 1] as [number, number, number, number] }}
                 >
