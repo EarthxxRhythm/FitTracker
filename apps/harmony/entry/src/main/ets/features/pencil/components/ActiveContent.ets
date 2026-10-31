@@ -47,9 +47,9 @@ interface InitialSetValues {
 // 组记录按动作分组（见 ActiveSetRecordModel）：分组键是 plannedExerciseId，
 // 且记录区只显示「当前动作」那一组——切到下一个动作后，上一动作的组不留在列表里。
 
-// 进度条段数不固定：段数 = 本次训练总组数（跨动作求和，见 ActiveWorkoutService.totalTargetSets），
-// 由 @State targetSets 驱动。此前这里是硬编码的 6 段常量，结束判据也压在它上面——
-// 于是「做完一个动作的组」就会被当成整场训练做完，后面的动作永远不会出现在训练页。
+// 进度胶囊段数不固定：段数 = 选中动作的计划组数（见 setIndexes / plannedTargetSets）——
+// 长按提前结束只收缩 targetSets，计划组数不变，胶囊因此不会「合并」。
+// 此前这里硬编码 6 段，结束判据也压在它上面，于是「做完一个动作的组」就被当成整场训练做完。
 
 // 重量步进区间（kg 基准，来自原型 `data-min/max`）；显示时按当前单位换算。
 const WEIGHT_MIN_KG: number = 20
@@ -138,8 +138,6 @@ export struct ActiveContent {
   @State private exerciseUsesPhotoStyle: boolean = false
   @State private exerciseIndex: number = 1
   @State private exerciseTotal: number = 0
-  /** 本次训练总组数（跨动作求和）：进度条段数、组号文案与收尾判据都以它为准。 */
-  @State private targetSets: number = 0
   @State private showModal: boolean = false
   /** 当前动作的组记录（0 或 1 个分组）：页面只显示正在练的动作，历史动作不进列表。 */
   @State private recordGroups: ActiveExerciseRecordGroup[] = []
@@ -345,7 +343,6 @@ export struct ActiveContent {
     this.exerciseUsesPhotoStyle = ExerciseGifCatalog.usesPhotoStyle(state.currentExerciseName)
     this.exerciseTotal = state.exercises.length
     this.exerciseIndex = this.findCurrentExerciseIndex(state)
-    this.targetSets = ActiveWorkoutService.totalTargetSets(state)
     this.completed = state.completedSets
     this.elapsedSeconds = elapsedSeconds
     // 顶部胶囊初值：首个未录满动作（= 改造前「当前动作」的同一口径）；全部录满时停在最后一个动作。
@@ -697,17 +694,51 @@ export struct ActiveContent {
     return !this.selectedCanRecord()
   }
 
-  /** 选中动作的目标组数（caption 在录满态报总数用）。 */
-  private exerciseTargetSets(): number {
+  /**
+   * 选中动作是否被「长按提前结束」：计划组数大于收缩后的目标组数。
+   *
+   * 收缩后 completedSets >= targetSets 对「真的练满」与「放弃剩余组」同时成立，
+   * 光看这两个数会把结束读成完成；plannedTargetSets 是唯一还留着差值的字段。
+   */
+  private selectedEndedEarly(): boolean {
     const exercise: ActiveWorkoutExercise | undefined = this.selectedExercise()
-    return exercise === undefined ? 0 : exercise.targetSets
+    return exercise !== undefined && exercise.plannedTargetSets > exercise.targetSets
   }
 
-  /** 当前动作的组索引（0..targetSets-1）；提前结束后 targetSets 已收缩，自动变短。 */
+  /** 真·练满：计划组全部完成，不是提前结束。完成态文案只认这一条。 */
+  private selectedCompletedFully(): boolean {
+    return this.selectedIsFull() && !this.selectedEndedEarly()
+  }
+
+  /** 该组是否被放弃（仅提前结束后存在）：已完成组之后、计划组数之前的格子。 */
+  private isSetAbandoned(index: number): boolean {
+    const exercise: ActiveWorkoutExercise | undefined = this.selectedExercise()
+    return exercise !== undefined && this.selectedEndedEarly() && index >= exercise.completedSets
+  }
+
+  /**
+   * 选中动作的计划组数（caption 报总数、胶囊铺格都用它）。
+   *
+   * 不能用 targetSets：提前结束时它被收缩到 completedSets，照它报数会得出「共 1 组」。
+   */
+  private exerciseTargetSets(): number {
+    const exercise: ActiveWorkoutExercise | undefined = this.selectedExercise()
+    return exercise === undefined ? 0 : exercise.plannedTargetSets
+  }
+
+  /** 选中动作实际完成的组数（结束态文案的分子）。 */
+  private completedSetsOfSelected(): number {
+    const exercise: ActiveWorkoutExercise | undefined = this.selectedExercise()
+    return exercise === undefined ? 0 : exercise.completedSets
+  }
+
+  /** 当前动作的组索引（0..plannedTargetSets-1）；提前结束不收缩，胶囊不再合并。 */
   private setIndexes(): number[] {
     const indexes: number[] = []
     const exercise: ActiveWorkoutExercise | undefined = this.selectedExercise()
-    const total: number = exercise === undefined ? 0 : exercise.targetSets
+    // 用 plannedTargetSets 而不是 targetSets：提前结束时 targetSets 已收缩到 completedSets，
+    // 照它生成索引会让胶囊数量骤减、剩下的格子等分拉宽，读起来像「几格合并成了一根」。
+    const total: number = exercise === undefined ? 0 : exercise.plannedTargetSets
     for (let index = 0; index < total; index++) {
       indexes.push(index)
     }
@@ -720,10 +751,11 @@ export struct ActiveContent {
     return exercise !== undefined && index < exercise.completedSets
   }
 
-  /** 该组是否是「正在做的那一组」（实线描边 + 呼吸）。 */
+  /** 该组是否是「正在做的那一组」（实线描边 + 呼吸）；提前结束后不再有「正在做」。 */
   private isSetCurrent(index: number): boolean {
     const exercise: ActiveWorkoutExercise | undefined = this.selectedExercise()
-    return exercise !== undefined && index === exercise.completedSets && index < exercise.targetSets
+    return exercise !== undefined && !this.selectedEndedEarly() &&
+      index === exercise.completedSets && index < exercise.targetSets
   }
 
   private openExercisePicker(): void {
@@ -1152,12 +1184,43 @@ export struct ActiveContent {
       .animation({ duration: MotionTokens.DURATION_MARKER, curve: MotionTokens.EASE_MOTION })
   }
 
-  /** 胶囊的三态状态词：视觉上有三态，读屏也得有三态，否则「第 3 组」分不出做没做。 */
+  /** 胶囊的状态词：已完成 / 未完成（放弃）/ 进行中 / 未开始——四态都要能被读出来。 */
   private setPillStateLabel(index: number): string {
     if (this.isSetDone(index)) {
       return '已完成'
     }
+    if (this.isSetAbandoned(index)) {
+      return '未完成'
+    }
     return this.isSetCurrent(index) ? '进行中' : '未开始'
+  }
+
+  /** 演示卡标题条右侧的组况文案：真·练满 / 长按提前结束 / 进行中。 */
+  private captionText(): string {
+    if (this.selectedCompletedFully()) {
+      return '本动作完成 · 共 ' + this.exerciseTargetSets().toString() + ' 组'
+    }
+    if (this.selectedEndedEarly()) {
+      return '本动作已结束 · 完成 ' + this.completedSetsOfSelected().toString() +
+        '/' + this.exerciseTargetSets().toString() + ' 组'
+    }
+    return '第 ' + this.selectedSetNumber().toString() + ' 组 · 正式组'
+  }
+
+  /** dock 说明行文案：完成态与结束态必须说两句不同的话。 */
+  private dockHintText(): string {
+    if (this.selectedCompletedFully()) {
+      return '本动作已完成'
+    }
+    return this.selectedEndedEarly() ? '本动作已结束 · 剩余组已跳过' : '长按「完成」提前结束本动作'
+  }
+
+  /** dock 主按钮文案：提前结束不能自称「已完成」。 */
+  private primaryButtonLabel(): string {
+    if (this.selectedCompletedFully()) {
+      return '已完成'
+    }
+    return this.selectedEndedEarly() ? '已结束' : '完成'
   }
 
   /** 动作切换弹层内容：当前项右侧带对勾。 */
@@ -1233,11 +1296,9 @@ export struct ActiveContent {
           .lineHeight(22)
           .fontWeight(FontWeight.Bold)
           .fontColor(PrototypeTokens.TEXT_HI)
-        // 录满时「第 N 组」是错的：第 N 组已经做完，此刻屏上停留的正是完成态。
-        // 换成本动作口径，与 dock 的「本动作已完成」、胶囊满格说同一件事。
-        Text(this.selectedIsFull()
-          ? '本动作完成 · 共 ' + this.exerciseTargetSets().toString() + ' 组'
-          : '第 ' + this.selectedSetNumber().toString() + ' 组 · 正式组')
+        // 三态文案见 captionText：真·练满 / 提前结束 / 进行中。
+        // 前两者都满足 selectedIsFull()，只看它会把「放弃剩余组」报成「本动作完成」。
+        Text(this.captionText())
           .fontFamily('Noto Sans SC')
           .fontSize(12)
           .lineHeight(14)
@@ -1383,7 +1444,7 @@ export struct ActiveContent {
         }
         .width('100%')
       } else {
-        Text(this.selectedIsFull() ? '本动作已完成' : '长按「完成」提前结束本动作')
+        Text(this.dockHintText())
           .fontFamily('Noto Sans SC')
           .fontSize(11)
           .fontColor(PrototypeTokens.WHITE_A40)
@@ -1391,7 +1452,7 @@ export struct ActiveContent {
           .textAlign(TextAlign.Center)
       }
 
-      Button(this.selectedIsFull() ? '已完成' : '完成')
+      Button(this.primaryButtonLabel())
         .width('100%')
         .height(50)
         .padding(0)

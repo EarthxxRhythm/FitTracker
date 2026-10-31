@@ -26,6 +26,14 @@ export interface WorkoutExerciseDraft {
   exerciseId: string
   name: string
   targetMuscle: string
+  /**
+   * 计划组数（进入训练时定下，永不收缩）。
+   *
+   * 长按提前结束会把 targetSets 压到 completedSets；没有本字段，草稿往返后
+   * 训练页就无法区分「真的练满」与「放弃剩余组」。旧草稿没有它，由
+   * normalizeWorkoutDraft 回落为 targetSets（降级为「看不出提前结束」，不劣化）。
+   */
+  plannedTargetSets: number
   targetSets: number
   targetReps: string
   completedSets: number
@@ -70,6 +78,7 @@ export function copyWorkoutExerciseDraft(source: WorkoutExerciseDraft): WorkoutE
     exerciseId: source.exerciseId,
     name: source.name,
     targetMuscle: source.targetMuscle,
+    plannedTargetSets: source.plannedTargetSets,
     targetSets: source.targetSets,
     targetReps: source.targetReps,
     completedSets: source.completedSets,
@@ -106,6 +115,12 @@ export function normalizeWorkoutDraft(source: WorkoutDraftSnapshot): WorkoutDraf
     // 不回落的话 buildRecordGroupFor 拿到 undefined，训练页会显示「还没有完成组」。
     if (exercise.plannedExerciseId === undefined || exercise.plannedExerciseId.length === 0) {
       exercise.plannedExerciseId = exercise.exerciseId
+    }
+    // 旧草稿缺 plannedTargetSets：回落为 targetSets。缺字段只会「看不出提前结束」，
+    // 但绝不能把 undefined 带进 plannedTargetSets > targetSets 的比较：NaN 比较恒为 false，
+    // 提前结束会静默退回完成态，比缺字段难排查。
+    if (!isFiniteNumberValue(exercise.plannedTargetSets)) {
+      exercise.plannedTargetSets = exercise.targetSets
     }
   }
   return snapshot
@@ -169,6 +184,10 @@ function isValidWorkoutExerciseDraft(source: WorkoutExerciseDraft): boolean {
   if (!isOptionalStringValue(source.plannedExerciseId)) {
     return false
   }
+  // plannedTargetSets 也是后补字段：旧草稿没有它，放行后由 normalizeWorkoutDraft 回落为 targetSets。
+  if (!isOptionalNumberValue(source.plannedTargetSets)) {
+    return false
+  }
   if (!isStringValue(source.exerciseId) || !isStringValue(source.name) || !isStringValue(source.targetMuscle)) {
     return false
   }
@@ -206,6 +225,14 @@ function isOptionalStringValue(value: string): boolean {
     return true
   }
   return value.toString() === value
+}
+
+/** 后补字段专用：允许缺失（旧结构），但存在时必须是有限数。 */
+function isOptionalNumberValue(value: number): boolean {
+  if (value === null || value === undefined) {
+    return true
+  }
+  return Number.isFinite(value)
 }
 
 function isFiniteNumberValue(value: number): boolean {

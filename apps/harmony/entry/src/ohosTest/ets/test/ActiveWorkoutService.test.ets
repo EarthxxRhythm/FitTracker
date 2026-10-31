@@ -498,6 +498,7 @@ export default function activeWorkoutServiceTest(): void {
         plannedExerciseId: 'planned_empty',
         exerciseId: 'ex_empty',
         name: '空动作',
+        plannedTargetSets: 0,
         targetSets: 0,
         targetReps: '8-12',
         intensityNote: '',
@@ -532,6 +533,47 @@ export default function activeWorkoutServiceTest(): void {
         }
         expect(ended.totalTargetSets).assertEqual(expectedTotal)
       }
+    })
+
+    it('endExercise 保留 plannedTargetSets，targetSets 收缩', 0, () => {
+      const initial: ActiveWorkoutState = createPresetActiveState(117)
+      const first: ActiveWorkoutExercise = initial.exercises[0]
+      expect(first.plannedTargetSets).assertEqual(first.targetSets)
+      expect(first.targetSets >= 1).assertTrue()
+      if (first.targetSets >= 1) {
+        const afterOne: ActiveWorkoutState =
+          ActiveWorkoutService.recordSetFor(initial, first.plannedExerciseId, '40', '10')
+        const ended: ActiveWorkoutState =
+          ActiveWorkoutService.endExercise(afterOne, first.plannedExerciseId)
+
+        // targetSets 收缩（下游判据零改动），plannedTargetSets 保留计划原值——
+        // 两者之差就是被放弃的组数，训练页靠它区分「练满」与「提前结束」。
+        expect(ended.exercises[0].targetSets).assertEqual(1)
+        expect(ended.exercises[0].plannedTargetSets).assertEqual(first.targetSets)
+        expect(ended.exercises[0].plannedTargetSets > ended.exercises[0].targetSets).assertTrue()
+      }
+    })
+
+    it('recordSetFor 之后 plannedTargetSets 不丢', 0, () => {
+      const initial: ActiveWorkoutState = createPresetActiveState(118)
+      const first: ActiveWorkoutExercise = initial.exercises[0]
+      const after: ActiveWorkoutState =
+        ActiveWorkoutService.recordSetFor(initial, first.plannedExerciseId, '40', '10')
+      expect(after.exercises[0].plannedTargetSets).assertEqual(first.targetSets)
+    })
+
+    it('提前结束后再走一次 createStateWithProgress，plannedTargetSets 仍在', 0, () => {
+      const initial: ActiveWorkoutState = createPresetActiveState(119)
+      const first: ActiveWorkoutExercise = initial.exercises[0]
+      const ended: ActiveWorkoutState =
+        ActiveWorkoutService.endExercise(initial, first.plannedExerciseId)
+      // 收缩后仍要保住计划原值：endExercise 末尾会经 copyActiveExercise 重建对象，
+      // 少一处透传就会在下一帧把提前结束静默退回完成态。
+      expect(ended.exercises[0].targetSets).assertEqual(0)
+      const rebuilt: ActiveWorkoutState =
+        ActiveWorkoutService.createStateWithProgress(ended, ended.exercises)
+      expect(rebuilt.exercises[0].plannedTargetSets).assertEqual(first.targetSets)
+      expect(rebuilt.exercises[0].plannedTargetSets > rebuilt.exercises[0].targetSets).assertTrue()
     })
 
     it('endExercise 在动作已录满时原样返回同一引用', 0, () => {

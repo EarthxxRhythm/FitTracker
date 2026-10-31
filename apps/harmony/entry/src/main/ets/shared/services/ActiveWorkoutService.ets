@@ -19,6 +19,14 @@ export interface ActiveWorkoutExercise {
   plannedExerciseId: string
   exerciseId: string
   name: string
+  /**
+   * 计划组数（进入训练时定下，永不收缩）。
+   *
+   * 提前结束只把 targetSets 压到 completedSets，差值就是被放弃的组数；
+   * 少了这个字段，「真的练满」与「提前结束」在渲染层无法区分（两者都满足
+   * completedSets >= targetSets），进度胶囊会从 N 格缩成 M 格后拉宽铺满整行。
+   */
+  plannedTargetSets: number
   targetSets: number
   targetReps: string
   intensityNote: string
@@ -270,6 +278,7 @@ class ActiveWorkoutService {
       plannedExerciseId: exercise.plannedExerciseId,
       exerciseId: exercise.exerciseId,
       name: exercise.name,
+      plannedTargetSets: exercise.plannedTargetSets,
       targetSets: exercise.completedSets,
       targetReps: exercise.targetReps,
       intensityNote: exercise.intensityNote,
@@ -454,6 +463,7 @@ class ActiveWorkoutService {
       plannedExerciseId: previewExercise.plannedExerciseId,
       exerciseId: previewExercise.exerciseId,
       name: previewExercise.name,
+      plannedTargetSets: previewExercise.targetSets,
       targetSets: previewExercise.targetSets,
       targetReps: previewExercise.targetReps,
       intensityNote: previewExercise.intensityNote,
@@ -468,6 +478,7 @@ class ActiveWorkoutService {
       plannedExerciseId: exercise.plannedExerciseId,
       exerciseId: exercise.exerciseId,
       name: exercise.name,
+      plannedTargetSets: exercise.plannedTargetSets,
       targetSets: exercise.targetSets,
       targetReps: exercise.targetReps,
       intensityNote: exercise.intensityNote,
@@ -485,6 +496,7 @@ class ActiveWorkoutService {
       plannedExerciseId: exercise.plannedExerciseId,
       exerciseId: exercise.exerciseId,
       name: exercise.name,
+      plannedTargetSets: exercise.plannedTargetSets,
       targetSets: exercise.targetSets,
       targetReps: exercise.targetReps,
       intensityNote: exercise.intensityNote,
@@ -514,6 +526,7 @@ class ActiveWorkoutService {
       plannedExerciseId: exercise.plannedExerciseId,
       exerciseId: exercise.exerciseId,
       name: exercise.name,
+      plannedTargetSets: exercise.plannedTargetSets,
       targetSets: exercise.targetSets,
       targetReps: exercise.targetReps,
       intensityNote: exercise.intensityNote,
@@ -542,6 +555,7 @@ class ActiveWorkoutService {
       plannedExerciseId: exercise.plannedExerciseId,
       exerciseId: exercise.exerciseId,
       name: exercise.name,
+      plannedTargetSets: exercise.plannedTargetSets,
       targetSets: exercise.targetSets,
       targetReps: exercise.targetReps,
       intensityNote: exercise.intensityNote,
@@ -558,6 +572,7 @@ class ActiveWorkoutService {
       plannedExerciseId: exercise.plannedExerciseId,
       exerciseId: exercise.exerciseId,
       name: exercise.name,
+      plannedTargetSets: exercise.plannedTargetSets,
       targetSets: exercise.targetSets,
       targetReps: exercise.targetReps,
       intensityNote: exercise.intensityNote,

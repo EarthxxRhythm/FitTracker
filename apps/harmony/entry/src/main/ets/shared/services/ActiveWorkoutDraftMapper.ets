@@ -98,6 +98,8 @@ function toExerciseDraft(exercise: ActiveWorkoutExercise): WorkoutExerciseDraft 
     name: exercise.name,
     // 训练态没有肌群字段（动作卡只显示名称与组数），草稿该字段保持空串。
     targetMuscle: '',
+    // 计划组数随草稿留存：提前结束后 targetSets 已收缩，只有它能还原「放弃了组」。
+    plannedTargetSets: exercise.plannedTargetSets,
     targetSets: exercise.targetSets,
     targetReps: exercise.targetReps,
     completedSets: exercise.completedSets,
@@ -118,6 +120,9 @@ function fromExerciseDraft(draft: WorkoutExerciseDraft): ActiveWorkoutExercise {
     plannedExerciseId: plannedExerciseId,
     exerciseId: draft.exerciseId,
     name: draft.name,
+    // 与 plannedExerciseId 同一条理由：调用方跳过 normalizeWorkoutDraft 时也不能留 undefined，
+    // 否则 plannedTargetSets > targetSets 恒为 false，提前结束会静默退回完成态。
+    plannedTargetSets: draft.plannedTargetSets === undefined ? draft.targetSets : draft.plannedTargetSets,
     targetSets: draft.targetSets,
     targetReps: draft.targetReps,
     intensityNote: '',
