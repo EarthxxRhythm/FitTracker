@@ -43,17 +43,6 @@ class FtReviewStringsTest {
             R.string.review_month_headline to "本月节奏更稳定。",
             R.string.review_month_desc to "本月已完成 17 次训练，平均每周 4 次，累计训练 720 分钟。",
             R.string.review_month_sub to "每天 · 越深量越大",
-            R.string.review_activity_title to "训练节奏",
-            R.string.review_month_label to "%1\$d 年 %2\$d 月",
-            R.string.review_month_label_sample to "2026 年 6 月",
-            R.string.review_month_meta to "训练 %1\$d 天 · %2\$d 分钟",
-            R.string.review_month_meta_sample to "训练 17 天 · 720 分钟",
-            R.string.review_month_tip to "一格代表一天 · 颜色越深，当天训练量越大",
-            R.string.review_month_legend_none to "未练",
-            R.string.review_month_legend_light to "轻",
-            R.string.review_month_legend_medium to "中",
-            R.string.review_month_legend_high to "高",
-            R.string.review_month_legend_max to "大",
             R.string.review_muscle_title to "肌肉地图",
             R.string.review_muscle_a11y_mode to "肌肉地图模式",
             R.string.review_muscle_legend_low to "低",
@@ -85,6 +74,9 @@ class FtReviewStringsTest {
             R.string.review_muscle_hip_flexors to "髋屈肌",
             R.string.review_muscle_calves to "小腿",
             R.string.review_muscle_tibialis to "胫骨",
+            R.string.review_muscle_ranking_title to "肌群排行",
+            R.string.review_muscle_ranking_open to "查看全部 %1\$d 个部位 ›",
+            R.string.review_muscle_ranking_note to "完整 %1\$d 个部位 · 按当前模式的数值从高到低",
             R.string.review_muscle_detail_sets to "%1\$d 组",
             R.string.review_muscle_recovery_0 to "已恢复",
             R.string.review_muscle_recovery_1 to "恢复中",
@@ -128,7 +120,7 @@ class FtReviewStringsTest {
         expectations.forEach { (id, expected) ->
             assertEquals("资源 id=$id 与原型中文不一致", expected, context.getString(id))
         }
-        assertEquals("资源条数（zh）", 98, expectations.size)
+        assertEquals("资源条数（zh）", 90, expectations.size)
     }
 
     /** 带参模板的插值结果（原型样例值）。 */
@@ -136,8 +128,6 @@ class FtReviewStringsTest {
     fun `回顾域带参模板插值逐字`() {
         assertEquals("本周 · 6月 7–13日", context.getString(R.string.review_head_week, "6月 7–13日"))
         assertEquals("本月 · 6月", context.getString(R.string.review_head_month, 6))
-        assertEquals("2026 年 6 月", context.getString(R.string.review_month_label, 2026, 6))
-        assertEquals("训练 2 天 · 35 分钟", context.getString(R.string.review_month_meta, 2, 35))
         assertEquals("较上月 -0.8 kg", context.getString(R.string.review_weight_delta_month, "-0.8 kg"))
         assertEquals("目标 68 kg", context.getString(R.string.review_weight_goal_label, "68"))
         assertEquals("48 组", context.getString(R.string.review_muscle_detail_sets, 48))
@@ -154,7 +144,6 @@ class FtReviewStringsTest {
         assertEquals("Save", context.getString(R.string.review_goal_modal_save))
         assertEquals("This week · Jun 7–13", context.getString(R.string.review_head_week_sample))
         assertEquals("RIR · 8-session average", context.getString(R.string.review_effort_unit, "RIR"))
-        assertEquals("6/2026", context.getString(R.string.review_month_label, 2026, 6))
         assertEquals("Chest", context.getString(R.string.review_muscle_chest))
         assertEquals(
             "Complete a workout and rate its effort — your data will appear here.",

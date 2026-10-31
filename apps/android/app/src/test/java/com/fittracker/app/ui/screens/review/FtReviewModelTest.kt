@@ -63,66 +63,6 @@ class FtReviewModelTest {
         )
     }
 
-    /** 周柱高度是原型写在 inline style 里的字面量（L1195-1201）；日标签取 `WeekWindow.dayLabels`。 */
-    @Test
-    fun `周柱状七天的高度与点亮状态逐条对齐原型`() {
-        val bars = FtReviewModel.WEEK_BARS
-        assertEquals(listOf("一", "二", "三", "四", "五", "六", "日"), bars.map { it.label })
-        assertEquals(listOf(52.6f, 83.4f, 67.1f, 38.1f, 105.2f, 74.4f, 41.7f), bars.map { it.height })
-        assertEquals(listOf(false, true, true, false, true, true, false), bars.map { it.on })
-    }
-
-    // ── 月历（原型 L1203-1260） ────────────────────────────────────
-
-    @Test
-    fun `月历为 6 月共 30 天加 5 个空位且 13 号为今天`() {
-        val cells = FtReviewModel.MONTH_CELLS
-        assertEquals(35, cells.size)
-        // MONTH_HEAD 常量已移除（表头序改由 WeekWindow.dayLabels(weekStart) 驱动）——
-        // 「一…日」表头断言由 WeekWindowTest 的 dayLabels 两态用例继承覆盖。
-
-        val days = cells.filter { it.day > 0 }
-        assertEquals(30, days.size)
-        assertEquals(1, days.first().day)
-        assertEquals(30, days.last().day)
-        assertEquals(13, cells.first { it.today }.day)
-        assertEquals(5, cells.count { it.day == 0 })
-    }
-
-    /** 月历标语与图例（原型 `.month-cal` 的 tip / `.month-legend`）指向资源。 */
-    @Test
-    fun `月历样例文案与图例指向资源`() {
-        assertEquals(R.string.review_month_label_sample, FtReviewModel.MONTH_LABEL_RES)
-        assertEquals(R.string.review_month_meta_sample, FtReviewModel.MONTH_META_RES)
-        assertEquals(R.string.review_month_tip, FtReviewModel.MONTH_TIP_RES)
-        assertEquals(
-            listOf(
-                R.string.review_month_legend_none,
-                R.string.review_month_legend_light,
-                R.string.review_month_legend_medium,
-                R.string.review_month_legend_high,
-                R.string.review_month_legend_max,
-            ),
-            FtReviewModel.MONTH_LEGEND_RES,
-        )
-    }
-
-    /** 每格等级取自原型的 `mcal-cell lN` class（L1210-1249）。 */
-    @Test
-    fun `月历各格等级与原型 class 对齐`() {
-        val byDay = FtReviewModel.MONTH_CELLS.filter { it.day > 0 }.associateBy { it.day }
-        // 抽样几格：1 未练、2 轻(l1)、5 高(l3)、6 大(l4)、13 今天(l4)
-        assertEquals(0, byDay.getValue(1).level)
-        assertEquals(2, byDay.getValue(2).level)
-        assertEquals(3, byDay.getValue(5).level)
-        assertEquals(4, byDay.getValue(6).level)
-        assertTrue(byDay.getValue(13).today)
-        assertEquals(4, byDay.getValue(13).level)
-        // 17 号 l1、20 号 l4
-        assertEquals(1, byDay.getValue(17).level)
-        assertEquals(4, byDay.getValue(20).level)
-    }
-
     // ── 努力程度（原型 renderEffort，L1779-1805） ─────────────────
 
     @Test
@@ -308,177 +248,6 @@ class FtReviewModelTest {
         )
     }
 
-    // ── W3-2b 真实数据接线：训练节奏 / 月历 / 体重（纯函数） ──────────
-
-    /** 本地时区日零点（与服务 `startOfDay` / `mondayStart` 同口径）。 */
-    private fun day(year: Int, month1: Int, dayOfMonth: Int): Long {
-        val cal = Calendar.getInstance()
-        cal.clear()
-        cal.set(year, month1 - 1, dayOfMonth)
-        return cal.timeInMillis
-    }
-
-    /** 单会话：给定开始时刻、时长与工作组 `(重量, 次数)` 列表（全部非热身）。 */
-    private fun session(
-        startedAt: Long,
-        durationSeconds: Int = 0,
-        volumeSets: List<Pair<Double, Int>> = emptyList(),
-    ): WorkoutSession = WorkoutSession(
-        sessionId = "s-$startedAt-$durationSeconds",
-        planId = "p",
-        dayId = "d",
-        startedAt = startedAt,
-        endedAt = startedAt + durationSeconds * 1000L,
-        durationSeconds = durationSeconds,
-        totalSets = volumeSets.size,
-        totalVolume = volumeSets.sumOf { (weight, reps) -> weight * reps },
-        fatigueScore = 0.0,
-        notes = "",
-        sets = volumeSets.mapIndexed { index, (weight, reps) ->
-            WorkoutSet(setId = "set-$index", exerciseId = "e", weight = weight, reps = reps, rpe = 8.0, isWarmup = false)
-        },
-    )
-
-    @Test
-    fun `训练节奏按本周逐日训练量分桶`() {
-        val now = day(2026, 6, 10) // 周三
-        val sessions = listOf(
-            session(day(2026, 6, 8), volumeSets = listOf(50.0 to 2)), // 周一 · 100
-            session(day(2026, 6, 10), volumeSets = listOf(100.0 to 2)), // 周三 · 200（本周最大）
-            session(day(2026, 6, 15), volumeSets = listOf(999.0 to 1)), // 下周一 · 出周窗口
-        )
-        val bars = FtReviewModel.weeklyBars(sessions, now, WeekStart.MONDAY)
-        assertEquals(listOf("一", "二", "三", "四", "五", "六", "日"), bars.map { it.label })
-        assertEquals(listOf(true, false, true, false, false, false, false), bars.map { it.on })
-        // 本周最大量（周三）取上限，未训练日取下限
-        assertEquals(FtReviewModel.WEEK_BAR_MAX_H, bars[2].height, 1e-3f)
-        assertEquals(FtReviewModel.WEEK_BAR_MIN_H, bars[1].height, 1e-3f)
-        // 周一 100/200 = 半程 → 下限 + 半程跨度
-        assertEquals(
-            FtReviewModel.WEEK_BAR_MIN_H + (FtReviewModel.WEEK_BAR_MAX_H - FtReviewModel.WEEK_BAR_MIN_H) / 2f,
-            bars[0].height,
-            1e-3f,
-        )
-    }
-
-    @Test
-    fun `训练节奏空会话回落下限高且全灭`() {
-        val bars = FtReviewModel.weeklyBars(emptyList(), day(2026, 6, 10), WeekStart.MONDAY)
-        assertEquals(7, bars.size)
-        assertTrue(bars.all { !it.on })
-        assertTrue(bars.all { it.height == FtReviewModel.WEEK_BAR_MIN_H })
-    }
-
-    @Test
-    fun `月历按会话逐日聚合并映射等级`() {
-        val now = day(2026, 6, 10)
-        val sessions = listOf(
-            session(day(2026, 6, 2), volumeSets = listOf(50.0 to 2)), // 100
-            session(day(2026, 6, 5), volumeSets = listOf(100.0 to 2)), // 200（当月最大）
-            session(day(2026, 7, 1), volumeSets = listOf(999.0 to 1)), // 下月 · 排除
-        )
-        val cells = FtReviewModel.monthGrid(sessions, now, WeekStart.MONDAY)
-        // 2026-06-01 是周一 → 无前置空位；30 天 + 5 个尾部占位 = 35
-        assertEquals(35, cells.size)
-        assertEquals(5, cells.count { it.day == 0 })
-        assertEquals(30, cells.filter { it.day > 0 }.size)
-        assertEquals(1, cells.first().day)
-        assertEquals(2, cells.first { it.day == 2 }.level) // 100/200 → 半程 → 2
-        assertEquals(4, cells.first { it.day == 5 }.level) // 当月最大 → 4
-        assertEquals(0, cells.first { it.day == 1 }.level) // 未训练
-        assertEquals(10, cells.first { it.today }.day)
-    }
-
-    @Test
-    fun `当天摘要聚合时长动作数组数与容量`() {
-        val now = day(2026, 6, 10)
-        val sessions = listOf(
-            session(day(2026, 6, 2), durationSeconds = 600, volumeSets = listOf(50.0 to 2, 30.0 to 3)), // 190
-            session(day(2026, 6, 2), durationSeconds = 300, volumeSets = listOf(100.0 to 1)), // 同日第二场 +100
-            session(day(2026, 6, 5), durationSeconds = 1200, volumeSets = listOf(999.0 to 1)), // 其它天
-        )
-        val summary = FtReviewModel.daySummary(sessions, 2, now, WeekStart.MONDAY)
-        assertEquals(2, summary.day)
-        assertTrue(summary.hasSession)
-        assertEquals(15, summary.durationMinutes) // (600+300)/60
-        assertEquals(1, summary.exerciseCount) // 两场同 exerciseId "e" → 去重
-        assertEquals(3, summary.setCount) // 2 + 1 组
-        assertEquals(290.0, summary.volumeKg, 1e-6) // (50*2 + 30*3) + 100*1
-    }
-
-    @Test
-    fun `当天摘要无训练返回空态`() {
-        val summary = FtReviewModel.daySummary(emptyList(), 9, day(2026, 6, 10), WeekStart.MONDAY)
-        assertEquals(9, summary.day)
-        assertTrue(!summary.hasSession)
-        assertEquals(0, summary.durationMinutes)
-        assertEquals(0, summary.exerciseCount)
-        assertEquals(0, summary.setCount)
-        assertEquals(0.0, summary.volumeKg, 1e-6)
-    }
-
-    @Test
-    fun `当天摘要排除热身组且按 exerciseId 去重`() {
-        val now = day(2026, 6, 10)
-        val warmup = WorkoutSession(
-            sessionId = "s-w",
-            planId = "p",
-            dayId = "d",
-            startedAt = day(2026, 6, 3),
-            endedAt = day(2026, 6, 3) + 300_000L,
-            durationSeconds = 300,
-            totalSets = 2,
-            totalVolume = 0.0,
-            fatigueScore = 0.0,
-            notes = "",
-            sets = listOf(
-                WorkoutSet(setId = "w1", exerciseId = "warm", weight = 20.0, reps = 10, rpe = 5.0, isWarmup = true),
-                WorkoutSet(setId = "w2", exerciseId = "a", weight = 40.0, reps = 5, rpe = 8.0, isWarmup = false),
-                WorkoutSet(setId = "w3", exerciseId = "b", weight = 40.0, reps = 5, rpe = 8.0, isWarmup = false),
-            ),
-        )
-        val summary = FtReviewModel.daySummary(listOf(warmup), 3, now, WeekStart.MONDAY)
-        assertTrue(summary.hasSession)
-        assertEquals(2, summary.setCount) // 排除热身
-        assertEquals(3, summary.exerciseCount) // warmup/"a"/"b" 三个动作（热身也算做过该动作，双端口径一致）
-        assertEquals(400.0, summary.volumeKg, 1e-6) // 40*5 + 40*5
-    }
-
-    @Test
-    fun `月历图例五档取到与主格同源的五个颜色`() {
-        val levels = (0..4).map { FtReviewColors.monthLegendSwatch(it) }
-        assertEquals(5, levels.toSet().size) // 五档可辨（不再全同色）
-        // 高/大两档须与主格同源
-        assertEquals(FtReviewColors.mcalFill(1), levels[1])
-        assertEquals(FtReviewColors.mcalFill(4), levels[4])
-    }
-
-    @Test
-    fun `月历前置空位对齐当月首日周几`() {
-        val now = day(2026, 7, 15)
-        val cells = FtReviewModel.monthGrid(emptyList(), now, WeekStart.MONDAY)
-        // 2026-07-01 是周三 → 2 个前置空位；31 天 + 2 = 33，补到 35
-        assertEquals(35, cells.size)
-        assertEquals(2, cells.take(2).count { it.day == 0 })
-        assertEquals(1, cells[2].day)
-        assertEquals(31, cells.count { it.day > 0 })
-        assertEquals(15, cells.first { it.today }.day)
-    }
-
-    @Test
-    fun `月历标题与 meta 按当月聚合`() {
-        val now = day(2026, 6, 10)
-        assertEquals(MonthLabel(2026, 6), FtReviewModel.monthLabel(now))
-        val sessions = listOf(
-            session(day(2026, 6, 2), durationSeconds = 600),
-            session(day(2026, 6, 2), durationSeconds = 300), // 同日第二场
-            session(day(2026, 6, 5), durationSeconds = 1200),
-            session(day(2026, 7, 1), durationSeconds = 999), // 下月 · 排除
-        )
-        // 当月训练 2 天（2 号、5 号）；总时长 2100s → 35 分钟
-        assertEquals(MonthMeta(2, 35), FtReviewModel.monthMeta(sessions, now))
-    }
-
     @Test
     fun `体重曲线点集按 min max 归一`() {
         val points = FtReviewModel.weightPoints(listOf(70f, 72f, 71f))
@@ -507,38 +276,6 @@ class FtReviewModelTest {
         assertEquals("-0.8", FtReviewModel.weightDeltaValue(-0.8, WeightUnit.KG))
         assertEquals("1.6", FtReviewModel.weightDeltaValue(1.6, WeightUnit.KG))
         assertEquals("1.8", FtReviewModel.weightDeltaValue(0.8, WeightUnit.LBS))
-    }
-
-    // ── 周开始日两态（A5 / Wave 2 · 周首周一 vs 周日） ─────────────
-
-    @Test
-    fun `周柱图周首切周日时标签序与分桶联动`() {
-        val now = day(2026, 6, 10) // 周三（2026-06-01 为周一）
-        val sessions = listOf(
-            session(day(2026, 6, 7), volumeSets = listOf(50.0 to 2)), // 本周日（周首）· 100
-            session(day(2026, 6, 10), volumeSets = listOf(100.0 to 2)), // 周三 · 200（当周最大）
-            session(day(2026, 6, 14), volumeSets = listOf(999.0 to 1)), // 下周日 · 出周窗口
-        )
-        val bars = FtReviewModel.weeklyBars(sessions, now, WeekStart.SUNDAY)
-        assertEquals(listOf("日", "一", "二", "三", "四", "五", "六"), bars.map { it.label })
-        assertEquals(listOf(true, false, false, true, false, false, false), bars.map { it.on })
-        assertEquals(FtReviewModel.WEEK_BAR_MAX_H, bars[3].height, 1e-3f)
-        assertEquals(
-            FtReviewModel.WEEK_BAR_MIN_H + (FtReviewModel.WEEK_BAR_MAX_H - FtReviewModel.WEEK_BAR_MIN_H) / 2f,
-            bars[0].height,
-            1e-3f,
-        )
-    }
-
-    @Test
-    fun `月历前置空位随周首切周日`() {
-        val now = day(2026, 6, 10)
-        val cells = FtReviewModel.monthGrid(emptyList(), now, WeekStart.SUNDAY)
-        // 2026-06-01 是周一 → 周日首模式下前置 1 格；30 天 + 1 = 31，补到 35
-        assertEquals(35, cells.size)
-        assertEquals(1, cells.take(1).count { it.day == 0 })
-        assertEquals(1, cells[1].day)
-        assertEquals(30, cells.count { it.day > 0 })
     }
 
     // ── 真实派生（Wave 2）：肌群训练量与努力程度 ─────────────────────
@@ -651,9 +388,68 @@ class FtReviewModelTest {
     }
 
     @Test
+    fun `肌群排行_平衡模式按真实组数降序且同值保原序`() {
+        val volume = MutableList(18) { 0 }
+        volume[FtReviewModel.MUSCLE_IDS.indexOf("chest")] = 12
+        volume[FtReviewModel.MUSCLE_IDS.indexOf("quadriceps")] = 20
+        volume[FtReviewModel.MUSCLE_IDS.indexOf("gluteal")] = 20
+        val levels = FtReviewModel.muscleLevels(volume)
+        val ranking = FtReviewModel.muscleRanking(levels, volume, MuscleMode.BALANCE)
+        // 20 组并列：gluteal 在 MUSCLE_IDS 里（索引 11）先于 quadriceps（12）→ 稳定排序保留原序
+        assertEquals(listOf("gluteal", "quadriceps", "chest"), ranking.take(3))
+        assertEquals(18, ranking.size)
+    }
+
+    @Test
+    fun `肌群排行_疲劳与力量模式按等级降序`() {
+        val volume = MutableList(18) { 0 }
+        volume[FtReviewModel.MUSCLE_IDS.indexOf("chest")] = 4
+        val levels = FtReviewModel.muscleLevels(volume)
+        // 唯一非零部位拿到最高档 → 两个非 balance 模式都把它排第一
+        assertEquals("chest", FtReviewModel.muscleRanking(levels, volume, MuscleMode.FATIGUE).first())
+        assertEquals("chest", FtReviewModel.muscleRanking(levels, volume, MuscleMode.STRENGTH).first())
+    }
+
+    @Test
+    fun `肌群排行_无训练量时退回 MUSCLE_IDS 原序`() {
+        val zeros = List(18) { 0 }
+        assertEquals(FtReviewModel.MUSCLE_IDS, FtReviewModel.muscleRanking(zeros, zeros, MuscleMode.BALANCE))
+        assertEquals(FtReviewModel.MUSCLE_IDS, FtReviewModel.muscleRanking(zeros, zeros, MuscleMode.FATIGUE))
+    }
+
+    @Test
     fun `EMPTY_VALUE_为仓内约定占位`() {
         assertEquals("--", FtReviewModel.EMPTY_VALUE)
     }
+
+    /** 本地时区日零点（与服务 `startOfDay` 同口径）。 */
+    private fun day(year: Int, month1: Int, dayOfMonth: Int): Long {
+        val cal = Calendar.getInstance()
+        cal.clear()
+        cal.set(year, month1 - 1, dayOfMonth)
+        return cal.timeInMillis
+    }
+
+    /** 单会话：给定开始时刻、时长与工作组 `(重量, 次数)` 列表（全部非热身）。 */
+    private fun session(
+        startedAt: Long,
+        durationSeconds: Int = 0,
+        volumeSets: List<Pair<Double, Int>> = emptyList(),
+    ): WorkoutSession = WorkoutSession(
+        sessionId = "s-$startedAt-$durationSeconds",
+        planId = "p",
+        dayId = "d",
+        startedAt = startedAt,
+        endedAt = startedAt + durationSeconds * 1000L,
+        durationSeconds = durationSeconds,
+        totalSets = volumeSets.size,
+        totalVolume = volumeSets.sumOf { (weight, reps) -> weight * reps },
+        fatigueScore = 0.0,
+        notes = "",
+        sets = volumeSets.mapIndexed { index, (weight, reps) ->
+            WorkoutSet(setId = "set-$index", exerciseId = "e", weight = weight, reps = reps, rpe = 8.0, isWarmup = false)
+        },
+    )
 
     /** 构造含若干 set 的会话（每个 exerciseId 一条 set）。 */
     private fun sessionWith(startedAt: Long, exerciseIds: List<String>, rpe: Int = 8): WorkoutSession {

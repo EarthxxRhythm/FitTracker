@@ -43,26 +43,6 @@ data class ReviewScaleData(
     val stats: List<ReviewStat>,
 )
 
-/** 周柱状图的一根柱（原型 `.bar-col`，高度写在 inline style 里）。 */
-data class WeekBar(val label: String, val height: Float, val on: Boolean)
-
-/** 月历的一格；[day] 为 0 表示占位空格（原型 `.mcal-space`）。 */
-data class MonthCell(val day: Int, val level: Int, val today: Boolean = false)
-
-/**
- * 某一天的训练摘要（供月历热力格点击弹层）。
- *
- * [hasSession] 为 false 表示当天无训练记录（其余字段均为 0）。
- */
-data class DaySummary(
-    val day: Int,
-    val durationMinutes: Int,
-    val exerciseCount: Int,
-    val setCount: Int,
-    val volumeKg: Double,
-    val hasSession: Boolean,
-)
-
 /**
  * 估算 1RM 的一行。
  *
@@ -114,12 +94,6 @@ data class MuscleSummary(val maxIndex: Int, val minIndex: Int) {
     val hasData: Boolean get() = maxIndex >= 0
 }
 
-/** 月历标题参数（模板 `review_month_label`：`%1$d 年 %2$d 月`）。 */
-data class MonthLabel(val year: Int, val month: Int)
-
-/** 月历 meta 参数（模板 `review_month_meta`：`训练 %1$d 天 · %2$d 分钟`）。 */
-data class MonthMeta(val days: Int, val minutes: Int)
-
 /** 肌肉地图的三种模式（原型 `data-mode`）。 */
 enum class MuscleMode(val token: String) { BALANCE("balance"), FATIGUE("fatigue"), STRENGTH("strength") }
 
@@ -164,59 +138,6 @@ object FtReviewModel {
             ReviewStat(R.string.review_stat_weight_change, "-1.6", R.string.review_unit_kg),
         ),
     )
-
-    /**
-     * 周柱状：高度是原型写死的 inline style（L1195-1201），不是算出来的。
-     *
-     * 日标签取自 [WeekWindow.dayLabels]（与真实路径 `weeklyBars` 同源）——日标签的 i18n 归
-     * `WeekWindow` 域（Wave 7/8 统一迁资源），本域不另立一份（同 Wave 1 移除 `MONTH_HEAD` 的理由）。
-     */
-    val WEEK_BARS: List<WeekBar> = run {
-        val labels = WeekWindow.dayLabels(WeekStart.MONDAY, currentLanguageTag())
-        val heights = listOf(52.6f, 83.4f, 67.1f, 38.1f, 105.2f, 74.4f, 41.7f)
-        val lit = listOf(false, true, true, false, true, true, false)
-        List(7) { index -> WeekBar(labels[index], heights[index], lit[index]) }
-    }
-
-    // ── 月历（L1203-1260） ────────────────────────────────────────
-
-    // 月历表头序由「周开始日」决定（WeekWindow.dayLabels(weekStart)，由 ReviewScreen 持有并传入）——
-    // 原 MONTH_HEAD 常量已移除（Wave 4 遗留小项）；「一…日 / 日…六」两态断言由 WeekWindowTest 继承。
-    /** 月历标题样例（真实路径：`monthLabel` 参数 + `review_month_label` 模板）。 */
-    @StringRes
-    val MONTH_LABEL_RES = R.string.review_month_label_sample
-
-    /** 月历 meta 样例（真实路径：`monthMeta` 参数 + `review_month_meta` 模板）。 */
-    @StringRes
-    val MONTH_META_RES = R.string.review_month_meta_sample
-
-    @StringRes
-    val MONTH_TIP_RES = R.string.review_month_tip
-
-    /** 图例五档文案（原型 `.month-legend`，L1256-1260）。 */
-    val MONTH_LEGEND_RES: List<Int> = listOf(
-        R.string.review_month_legend_none,
-        R.string.review_month_legend_light,
-        R.string.review_month_legend_medium,
-        R.string.review_month_legend_high,
-        R.string.review_month_legend_max,
-    )
-
-    /** 月历 6 月：30 天 + 5 个尾部占位（原型 `.mcal-grid` 的 35 个 span）。 */
-    val MONTH_CELLS: List<MonthCell> = run {
-        // 原型 class 序列（L1210-1249）：每 7 格一行，0 表示无 lN
-        val levels = listOf(
-            0, 2, 1, 0, 3, 4, 0,
-            0, 2, 3, 0, 2, 4, 0,
-            0, 3, 1, 0, 2, 4, 0,
-            0, 1, 2, 0, 3, 3, 0,
-            0, 2, 0, 0, 0, 0, 0,
-        )
-        List(35) { i ->
-            val day = if (i < 30) i + 1 else 0
-            MonthCell(day = day, level = if (day == 0) 0 else levels[i], today = day == 13)
-        }
-    }
 
     // ── 体重与目标（L1311-1340 / saveGoal L1744-1759） ────────────
 
@@ -578,6 +499,22 @@ object FtReviewModel {
     /** 详情行进度条的填充宽度百分比（`level * 25`；等级已来自真实训练量）。 */
     fun muscleDetailPercent(levels: List<Int>, id: String): Int = muscleLevel(levels, id) * 25
 
+    /**
+     * 肌群排行：18 个部位按「当前模式的数值」降序，同值保持 [MUSCLE_IDS] 原序。
+     *
+     * 排序键随模式变——BALANCE 用真实组数 [volume]，FATIGUE / STRENGTH 用 1–4 级 [levels]：
+     * 三模式共用同一份 [muscleVolume] 的派生，等级会把不同组数合并成同档，因此不能统一按
+     * 组数排（否则疲劳模式下的并列会被打散成组数序，与地图着色不一致）。
+     *
+     * [sortedByDescending] 稳定 → 同值时原序保留，鸿蒙 `createMuscleRanking` 同口径。
+     */
+    fun muscleRanking(levels: List<Int>, volume: List<Int>, mode: MuscleMode): List<String> =
+        MUSCLE_IDS.withIndex()
+            .sortedByDescending { (index, _) ->
+                if (mode == MuscleMode.BALANCE) volume.getOrElse(index) { 0 } else levels.getOrElse(index) { 0 }
+            }
+            .map { it.value }
+
     // ── 肌肉地图图例（L1284-1300） ───────────────────────────────
 
     /** 图例两端的文案（原型 `.hm-legend` 里的「低」「高」）。 */
@@ -586,155 +523,6 @@ object FtReviewModel {
 
     @StringRes
     val LEGEND_HIGH_RES = R.string.review_muscle_legend_high
-
-    // ── W3-2b 真实数据接线：训练节奏 / 月历 / 体重（纯函数） ──────────
-    //
-    // 数据源为 data 层 `WorkoutSession`（会话）与 `WeightRecord`（体重）；空库时调用方回落上方
-    // 样例常量，此处只做「有数据 → 渲染结构」的纯映射，不触 IO。日期口径同 `WorkoutSessionService` /
-    // `BodyRecordService`（`java.util.Calendar` 本地时区，`minSdk = 24` 不用 `java.time`）。
-
-    /** 周柱高度包络：对齐原型亮柱区间（`WEEK_BARS` 最低 / 最高柱），真实数据按当日训练量归一到此。 */
-    const val WEEK_BAR_MIN_H = 38.1f
-    const val WEEK_BAR_MAX_H = 105.2f
-
-    /**
-     * 本周（周首由 [weekStart] 决定，共 7 天）逐日训练量分桶为七根柱。柱高按当日训练量在当周最大值
-     * 中的占比较 [WEEK_BAR_MIN_H]..[WEEK_BAR_MAX_H] 线性映射；未训练日取下限高、[WeekBar.on] = false。
-     * 标签序随 [weekStart] 联动（[WeekWindow.dayLabels]）。
-     * 训练量口径同 `WorkoutSessionService.sessionVolume`（非热身组 `weight × reps` 之和）。
-     */
-    fun weeklyBars(
-        sessions: List<WorkoutSession>,
-        nowMillis: Long = System.currentTimeMillis(),
-        weekStart: WeekStart,
-    ): List<WeekBar> {
-        val weekStartMillis = mondayStart(nowMillis, weekStart)
-        val volumes = DoubleArray(7)
-        for (session in sessions) {
-            if (mondayStart(session.startedAt, weekStart) != weekStartMillis) continue
-            volumes[mondayIndex(session.startedAt, weekStart)] += sessionVolume(session)
-        }
-        val max = volumes.maxOrNull() ?: 0.0
-        val labels = WeekWindow.dayLabels(weekStart)
-        return List(7) { index ->
-            val volume = volumes[index]
-            val height = if (max <= 0.0) {
-                WEEK_BAR_MIN_H
-            } else {
-                WEEK_BAR_MIN_H + (volume / max).toFloat() * (WEEK_BAR_MAX_H - WEEK_BAR_MIN_H)
-            }
-            WeekBar(labels[index], height, on = volume > 0.0)
-        }
-    }
-
-    /**
-     * 当前自然月（本地时区）的日期格：前置空位对齐当月 1 号在周首序中的位置（周首由 [weekStart] 决定）、
-     * 尾部补到 7 的倍数。
-     * [MonthCell.level] 按当日训练量在当月最大值中的占比映射到 `1..4`（未训练为 `0`），
-     * 当月今天标 [MonthCell.today]。
-     */
-    fun monthGrid(
-        sessions: List<WorkoutSession>,
-        nowMillis: Long = System.currentTimeMillis(),
-        weekStart: WeekStart,
-    ): List<MonthCell> {
-        val now = calendarOf(nowMillis)
-        val year = now.get(Calendar.YEAR)
-        val month0 = now.get(Calendar.MONTH)
-        val daysInMonth = now.getActualMaximum(Calendar.DAY_OF_MONTH)
-        val todayDom = now.get(Calendar.DAY_OF_MONTH)
-
-        val volumes = DoubleArray(daysInMonth + 1)
-        for (session in sessions) {
-            val cal = calendarOf(session.startedAt)
-            if (cal.get(Calendar.YEAR) == year && cal.get(Calendar.MONTH) == month0) {
-                volumes[cal.get(Calendar.DAY_OF_MONTH)] += sessionVolume(session)
-            }
-        }
-        val max = volumes.maxOrNull() ?: 0.0
-
-        val cells = ArrayList<MonthCell>(35)
-        repeat(mondayOffsetOfFirst(year, month0, weekStart)) { cells.add(MonthCell(day = 0, level = 0)) }
-        for (day in 1..daysInMonth) {
-            val volume = volumes[day]
-            val level = if (volume <= 0.0 || max <= 0.0) {
-                0
-            } else {
-                ceil(volume / max * 4.0).toInt().coerceIn(1, 4)
-            }
-            cells.add(MonthCell(day = day, level = level, today = day == todayDom))
-        }
-        while (cells.size % 7 != 0) cells.add(MonthCell(day = 0, level = 0))
-        return cells
-    }
-
-    /** 月历标题参数：`年` / `月`——文案模板 `review_month_label` 由 UI 层插值。 */
-    fun monthLabel(nowMillis: Long = System.currentTimeMillis()): MonthLabel {
-        val cal = calendarOf(nowMillis)
-        return MonthLabel(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1)
-    }
-
-    /** 月历 meta 参数：`(当月去重训练日数, 总分钟)`——模板 `review_month_meta` 由 UI 层插值。 */
-    fun monthMeta(
-        sessions: List<WorkoutSession>,
-        nowMillis: Long = System.currentTimeMillis(),
-    ): MonthMeta {
-        val cal = calendarOf(nowMillis)
-        val year = cal.get(Calendar.YEAR)
-        val month0 = cal.get(Calendar.MONTH)
-        val days = LinkedHashSet<Int>()
-        var seconds = 0
-        for (session in sessions) {
-            val s = calendarOf(session.startedAt)
-            if (s.get(Calendar.YEAR) != year || s.get(Calendar.MONTH) != month0) continue
-            days.add(s.get(Calendar.DAY_OF_MONTH))
-            seconds += session.durationSeconds
-        }
-        return MonthMeta(days.size, seconds / 60)
-    }
-
-    /**
-     * 某一天的训练摘要（与鸿蒙 `ReviewContent.initCalendarData` 同口径）：
-     * 训练量 = Σ 非热身 `weight×reps`；组数同样排除热身；动作数按 `exerciseId` 去重。
-     * 当天无训练返回 `hasSession=false`、其余字段为 0。
-     */
-    fun daySummary(
-        sessions: List<WorkoutSession>,
-        day: Int,
-        nowMillis: Long = System.currentTimeMillis(),
-        weekStart: WeekStart,
-    ): DaySummary {
-        val cal = calendarOf(nowMillis)
-        val year = cal.get(Calendar.YEAR)
-        val month0 = cal.get(Calendar.MONTH)
-        val exerciseIds = LinkedHashSet<String>()
-        var seconds = 0
-        var setCount = 0
-        var volume = 0.0
-        var hasSession = false
-        for (session in sessions) {
-            val s = calendarOf(session.startedAt)
-            if (s.get(Calendar.YEAR) != year || s.get(Calendar.MONTH) != month0) continue
-            if (s.get(Calendar.DAY_OF_MONTH) != day) continue
-            hasSession = true
-            seconds += session.durationSeconds
-            for (set in session.sets) {
-                exerciseIds.add(set.exerciseId)
-                if (!set.isWarmup) {
-                    setCount++
-                    volume += set.weight * set.reps
-                }
-            }
-        }
-        return DaySummary(
-            day = day,
-            durationMinutes = seconds / 60,
-            exerciseCount = exerciseIds.size,
-            setCount = setCount,
-            volumeKg = volume,
-            hasSession = hasSession,
-        )
-    }
 
     /** 体重曲线绘图区（与 `WEIGHT_POINTS` 同一 342×132 viewBox 内的落点范围）。 */
     const val WEIGHT_PLOT_X0 = 12f
@@ -789,42 +577,6 @@ object FtReviewModel {
     private fun calendarOf(millis: Long): Calendar =
         Calendar.getInstance().apply { timeInMillis = millis }
 
-    /** 本地时区日零点（对齐 JS `new Date(y, m, d)`）。 */
-    private fun startOfDay(millis: Long): Long {
-        val cal = calendarOf(millis)
-        return calendarAt(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).timeInMillis
-    }
-
-    /** 当周周首 00:00（周首由 [weekStart] 决定；`Calendar.DAY_OF_WEEK`：周日=1..周六=7）。 */
-    private fun mondayStart(millis: Long, weekStart: WeekStart): Long {
-        val cal = calendarOf(startOfDay(millis))
-        return calendarAt(
-            cal.get(Calendar.YEAR),
-            cal.get(Calendar.MONTH),
-            cal.get(Calendar.DAY_OF_MONTH) - mondayIndex(millis, weekStart),
-        ).timeInMillis
-    }
-
-    /** 本地周几的周索引（自周首起）：周首 = 0 … 第 6 天 = 6。 */
-    private fun mondayIndex(millis: Long, weekStart: WeekStart): Int {
-        val dow = calendarOf(millis).get(Calendar.DAY_OF_WEEK) // 周日=1..周六=7
-        return WeekWindow.offsetFromWeekStart(dow - 1, weekStart)
-    }
-
-    /** 某月 1 号的周索引（自周首起）：周首 = 0 … 第 6 天 = 6。 */
-    private fun mondayOffsetOfFirst(year: Int, month0: Int, weekStart: WeekStart): Int {
-        val dow = calendarAt(year, month0, 1).get(Calendar.DAY_OF_WEEK)
-        return WeekWindow.offsetFromWeekStart(dow - 1, weekStart)
-    }
-
-    /** 本地时区午夜 Calendar（对齐 JS `new Date(y, m, d)`）。 */
-    private fun calendarAt(year: Int, month0: Int, dayOfMonth: Int): Calendar {
-        val cal = Calendar.getInstance()
-        cal.clear()
-        cal.set(year, month0, dayOfMonth)
-        return cal
-    }
-
     /**
      * 当前自然月（本地时区）的训练汇总：次数 / 时长 / 组数 / 量。
      *
@@ -878,12 +630,4 @@ object FtReviewModel {
         return BADGE_FLAT
     }
 
-    /** 会话训练量：非热身组的 `weight × reps` 之和（同 `WorkoutSessionService.sessionVolume`）。 */
-    private fun sessionVolume(session: WorkoutSession): Double {
-        var volume = 0.0
-        for (set in session.sets) {
-            if (!set.isWarmup) volume += set.weight * set.reps
-        }
-        return volume
-    }
 }

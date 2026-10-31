@@ -31,7 +31,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -141,6 +147,7 @@ internal enum class ReviewScale { WEEK, MONTH }
  *
  * 路由：原型本文件 `FT_APP.routes` 是空表（L1838），底栏跳转由壳层负责；本屏不放路由。
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReviewScreen(
     onNavigate: (String) -> Unit,
@@ -153,9 +160,8 @@ fun ReviewScreen(
     var selectedMuscle by remember { mutableStateOf<String?>(null) }
     var effortMetric by remember { mutableStateOf(EffortMetric.RIR) }
     var goalModalOpen by remember { mutableStateOf(false) }
-    var selectedDay by remember { mutableStateOf<Int?>(null) }
-    // 气泡锚点：被点日期格的窗口矩形，气泡据此定位并决定朝上还是朝下。
-    var selectedCellBounds by remember { mutableStateOf(Rect.Zero) }
+    // 肌群排行抽屉（屏幕底部可拖拽弹层）的开合
+    var muscleSheetOpen by remember { mutableStateOf(false) }
 
     // ── 数据态（由 [ReviewViewModel] 持有）──
     // 回顾派生数据取自本地会话仓储与体重记录服务；`viewModel()` 取 NavBackStackEntry 作用域实例，
@@ -165,17 +171,12 @@ fun ReviewScreen(
     val goal = vm.goal
     val oneRmRows = vm.oneRmRows
     val weekStats = vm.weekStats
-    val weekBars = vm.weekBars
-    val monthCells = vm.monthCells
-    val monthLabel = vm.monthLabel
-    val monthMeta = vm.monthMeta
     val weekHeadText = vm.weekHeadText
     val monthHeadText = vm.monthHeadText
     val badgeText = vm.badgeText
     val monthStats = vm.monthStats
     val chartLoKg = vm.chartLoKg
     val chartHiKg = vm.chartHiKg
-    val monthHead = vm.monthHead
     val weightCurrent = vm.weightCurrent
     val weightDelta = vm.weightDelta
     val weightPoints = vm.weightPoints
@@ -196,6 +197,10 @@ fun ReviewScreen(
     val reviewSessions = vm.reviewSessions
     val reviewWeekStart = vm.reviewWeekStart
     val reviewNow = vm.reviewNow
+    // 肌群排行：随模式/数据变化，抽屉与收起态共用同一份顺序。
+    val muscleRanking = remember(muscleLevels, muscleVolume, muscleMode) {
+        FtReviewModel.muscleRanking(muscleLevels, muscleVolume, muscleMode)
+    }
 
     val baseData = if (scale == ReviewScale.WEEK) FtReviewModel.WEEK else FtReviewModel.MONTH
     // 两个尺度共用同一套覆盖口径：次数 / 时长取对应周期汇总（无数据 → `--`），体重变化只在
@@ -225,12 +230,6 @@ fun ReviewScreen(
     val scrollState = rememberScrollState()
     val chrome = LocalFtChrome.current
     LaunchedEffect(scrollState) { observeChromeOnScroll(scrollState, chrome) }
-    // 气泡锚在日期格上；一滚动锚点就离开原位，直接收起（鸿蒙侧同在 `onScroll` 里关闭）。
-    LaunchedEffect(scrollState) {
-        snapshotFlow { scrollState.isScrollInProgress }.collect { scrolling ->
-            if (scrolling && selectedDay != null) selectedDay = null
-        }
-    }
 
     Box(
         modifier = modifier
@@ -250,24 +249,6 @@ fun ReviewScreen(
                 planSessionCount = vm.currentPlanSessionCount,
             )
             StatsRow(stats = data.stats)
-            ActivityCard(
-                scale = scale,
-                data = data,
-                weekBars = weekBars,
-                monthCells = monthCells,
-                monthLabel = monthLabel,
-                monthMeta = monthMeta,
-                monthHead = monthHead,
-                onSelectDay = { day, bounds ->
-                    if (selectedDay == day) {
-                        // 再点同一格 = 收起气泡。
-                        selectedDay = null
-                    } else {
-                        selectedDay = day
-                        selectedCellBounds = bounds
-                    }
-                },
-            )
 
             // .openstats 作用域的四张卡（外层 gap 与 .review-stats 同为 16.3，故并列即可）
             MuscleMapCard(
@@ -275,8 +256,10 @@ fun ReviewScreen(
                 selected = selectedMuscle,
                 levels = muscleLevels,
                 volume = muscleVolume,
+                ranking = muscleRanking,
                 onMode = { muscleMode = it; selectedMuscle = null },
                 onSelect = { selectedMuscle = it },
+                onOpenRanking = { muscleSheetOpen = true },
             )
             WeightGoalCard(
                 goal = goal,
@@ -302,15 +285,22 @@ fun ReviewScreen(
             )
         }
 
-        selectedDay?.let { day ->
-            val summary = FtReviewModel.daySummary(reviewSessions, day, reviewNow, reviewWeekStart)
-            DayDetailPopup(
-                summary = summary,
-                month = monthOf(reviewNow),
-                weekdayLabel = weekdayLabelOf(day, reviewNow),
-                cellBounds = selectedCellBounds,
-                onDismiss = { selectedDay = null },
-            )
+        if (muscleSheetOpen) {
+            // 系统半模态：遮罩、下拉拖拽、返回键关闭都由 material3 承担（不再自绘手势）。
+            // `skipPartiallyExpanded` = 打开即全展开，避免「先半屏再拖」的两次动作。
+            ModalBottomSheet(
+                onDismissRequest = { muscleSheetOpen = false },
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                containerColor = FtColor.surface,
+                dragHandle = { BottomSheetDefaults.DragHandle() },
+            ) {
+                MuscleRankingSheet(
+                    ranking = muscleRanking,
+                    mode = muscleMode,
+                    levels = muscleLevels,
+                    volume = muscleVolume,
+                )
+            }
         }
     }
 }
@@ -337,20 +327,6 @@ internal suspend fun observeChromeOnScroll(scrollState: ScrollState, chrome: FtC
         }
         last = value
     }
-}
-
-/** `reviewNow` 所在月份（1 基），与月历渲染同源，避免跨月时标题与格子漂移。 */
-private fun monthOf(nowMillis: Long): Int =
-    java.util.Calendar.getInstance().apply { timeInMillis = nowMillis }.get(java.util.Calendar.MONTH) + 1
-
-/** 某天对应的中文星期（如 `周六`），与鸿蒙侧详情标题一致。 */
-private fun weekdayLabelOf(day: Int, nowMillis: Long): String {
-    val now = java.util.Calendar.getInstance().apply { timeInMillis = nowMillis }
-    val cal = java.util.Calendar.getInstance().apply {
-        set(now.get(java.util.Calendar.YEAR), now.get(java.util.Calendar.MONTH), day)
-    }
-    val labels = listOf("周日", "周一", "周二", "周三", "周四", "周五", "周六")
-    return labels[cal.get(java.util.Calendar.DAY_OF_WEEK) - 1]
 }
 
 // ── 时间尺度工具条 ───────────────────────────────────────────────
@@ -560,214 +536,6 @@ private fun StatsRow(stats: List<ReviewStat>) {
     }
 }
 
-// ── 训练节奏（周柱状 / 月日历） ──────────────────────────────────
-
-/** `.weekly`（L505-543）+ 月历（L335-433）：按尺度在柱状图与日历之间切换。 */
-@Composable
-private fun ActivityCard(
-    scale: ReviewScale,
-    data: ReviewScaleData,
-    weekBars: List<WeekBar>,
-    monthCells: List<MonthCell>,
-    monthLabel: String,
-    monthMeta: String,
-    monthHead: List<String>,
-    onSelectDay: (Int, Rect) -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(25.4.dp))
-            .background(CardFill)
-            .border(1.dp, FtColor.line10, RoundedCornerShape(25.4.dp))
-            .padding(16.3.dp),
-        verticalArrangement = Arrangement.spacedBy(12.7.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                // 原型 `wk-title` 恒为「训练节奏」，`wk-sub` 随尺度变
-                text = stringResource(R.string.review_activity_title),
-                style = FtType.natural(14.5f, 700),
-                color = FtColor.txtHi,
-            )
-            Text(
-                text = stringResource(data.subRes),
-                style = FtType.natural(10.9f),
-                color = FtColor.white48,
-            )
-        }
-
-        if (scale == ReviewScale.WEEK) {
-            WeekBars(bars = weekBars)
-        } else {
-            MonthCalendar(cells = monthCells, label = monthLabel, meta = monthMeta, head = monthHead, onSelectDay = onSelectDay)
-        }
-    }
-}
-
-/** `.wk-bars` / `.bar-col` / `.bar`（L521-543）：七根柱，高 136.1。 */
-@Composable
-private fun WeekBars(bars: List<WeekBar>) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(136.1.dp),
-        verticalAlignment = Alignment.Bottom,
-        horizontalArrangement = Arrangement.spacedBy(9.1.dp),
-    ) {
-        bars.forEach { bar ->
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight(),
-                verticalArrangement = Arrangement.Bottom, // justify-content: flex-end
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(bar.height.dp)
-                        .clip(RoundedCornerShape(9.1.dp))
-                        .background(if (bar.on) FtColor.accent else FtColor.accent20),
-                )
-                Text(
-                    text = bar.label,
-                    modifier = Modifier.padding(top = 7.3.dp), // `.bar-col { gap: 7.3px }`
-                    style = FtType.natural(10f).copy(lineHeight = 10.sp), // line-height: 1
-                    color = if (bar.on) FtColor.accent else FtColor.white54,
-                )
-            }
-        }
-    }
-}
-
-/** `.month-cal`（L335-433）：训练日历，7 列网格。 */
-@Composable
-private fun MonthCalendar(cells: List<MonthCell>, label: String, meta: String, head: List<String>, onSelectDay: (Int, Rect) -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp), // `.month-cal { gap: 10px }`
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                text = label,
-                style = FtType.natural(15f, 700),
-                color = FtColor.txtHi,
-            )
-            Text(
-                text = meta,
-                style = FtType.natural(10.9f),
-                color = FtColor.white48,
-            )
-        }
-        Text(
-            text = stringResource(FtReviewModel.MONTH_TIP_RES),
-            style = FtType.natural(11f).copy(lineHeight = 17.05.sp), // 1.55 × 11px
-            color = FtColor.white48,
-        )
-
-        // `.mcal-head`：7 列等宽网格
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-            head.forEach { headLabel ->
-                Text(
-                    text = headLabel,
-                    modifier = Modifier.weight(1f),
-                    style = FtType.natural(10f).copy(lineHeight = 20.sp),
-                    color = FtColor.white40,
-                    textAlign = TextAlign.Center,
-                )
-            }
-        }
-
-        // `.mcal-grid`：35 格（30 天 + 5 个空位），每 7 格一行
-        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            cells.chunked(7).forEach { week ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(5.dp),
-                ) {
-                    week.forEach { cell ->
-                        MonthCellView(cell = cell, onSelectDay = onSelectDay, modifier = Modifier.weight(1f))
-                    }
-                }
-            }
-        }
-
-        // `.month-legend`：五个方块 + 文案（原型的方块是同一浅白色，见 FtReviewColors）
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            FtReviewModel.MONTH_LEGEND_RES.forEachIndexed { index, labelRes ->
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(5.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .requiredSize(14.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(FtReviewColors.monthLegendSwatch(index)),
-                    )
-                    Text(
-                        text = stringResource(labelRes),
-                        style = FtType.natural(9f),
-                        color = FtColor.white48,
-                    )
-                }
-            }
-        }
-    }
-}
-
-/** `.mcal-cell`（L372-407）：高 34、圆角 9 的日期格。 */
-@Composable
-private fun MonthCellView(cell: MonthCell, onSelectDay: (Int, Rect) -> Unit, modifier: Modifier = Modifier) {
-    if (cell.day == 0) {
-        // `.mcal-space { background: transparent; border: 0 }`
-        Box(modifier = modifier.height(34.dp))
-        return
-    }
-    // 气泡的锚点：格子自身的窗口矩形。选中的那一刻直接随点击回传给 `ReviewScreen`，
-    // 避免气泡层再去反查「当前是哪个格子」（那需要在格子与根层之间再穿一条状态链）。
-    var cellBounds by remember { mutableStateOf(Rect.Zero) }
-    Box(
-        modifier = modifier
-            .height(34.dp)
-            .onGloballyPositioned { cellBounds = it.boundsInWindow() }
-            .clip(RoundedCornerShape(9.dp))
-            .background(if (cell.level == 0) FtReviewColors.mcalBg else FtReviewColors.mcalFill(cell.level))
-            .border(
-                width = 1.dp,
-                color = if (cell.level == 0) FtReviewColors.mcalBorder else Color.Transparent,
-                shape = RoundedCornerShape(9.dp),
-            )
-            .clickableNoRipple { onSelectDay(cell.day, cellBounds) },
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = cell.day.toString(),
-            style = FtType.natural(12f, if (cell.level == 4) 700 else 500, FtType.num),
-            color = if (cell.level >= 3) FtReviewColors.mcalTextOn else FtReviewColors.mcalText,
-        )
-        if (cell.today) {
-            // `.today { box-shadow: 0 0 0 1.5px var(--txt-hi) }` —— 不占布局的外环
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .border(1.5.dp, FtColor.txtHi, RoundedCornerShape(9.dp)),
-            )
-        }
-    }
-}
-
 // ── 肌肉地图 ────────────────────────────────────────────────────
 
 /** `.openstats .card` + 肌肉地图（L958-1020）。 */
@@ -777,8 +545,10 @@ private fun MuscleMapCard(
     selected: String?,
     levels: List<Int>,
     volume: List<Int>,
+    ranking: List<String>,
     onMode: (MuscleMode) -> Unit,
     onSelect: (String) -> Unit,
+    onOpenRanking: () -> Unit,
 ) {
     Card {
         CardTitle(title = stringResource(R.string.review_muscle_title), meta = stringResource(FtReviewModel.mmMetaRes(mode)))
@@ -804,10 +574,113 @@ private fun MuscleMapCard(
         if (selected != null) {
             MuscleDetailRow(mode = mode, id = selected, levels = levels, volume = volume)
         }
+        // 收起态入口：只在真有训练量时出现——「前三个」在空数据下无意义，卡底已有空态结论。
+        if (volume.isNotEmpty() && volume.any { it > 0 }) {
+            MuscleRankingTeaser(
+                ranking = ranking,
+                mode = mode,
+                levels = levels,
+                volume = volume,
+                onOpen = onOpenRanking,
+            )
+        }
         Text(
             text = muscleNoteText(volume),
             modifier = Modifier.padding(top = 10.dp),
             style = FtType.natural(12f).copy(lineHeight = 17.4.sp), // 1.45 × 12px
+            color = FtReviewColors.label3,
+        )
+    }
+}
+
+/** 收起态露出的行数（「正常只显示当前数据的前三个」）。 */
+private const val RankingTeaserRows = 3
+
+/**
+ * 肌肉地图卡内的收起态：抓手 + 前 3 名 + 「查看全部」。
+ *
+ * 行样式直接复用 [MuscleDetailRow]（名称 + 74dp 条 + 数值），与点选明细行同口径；
+ * 点击整块 → 由调用方拉起屏幕底部抽屉。
+ */
+@Composable
+private fun MuscleRankingTeaser(
+    ranking: List<String>,
+    mode: MuscleMode,
+    levels: List<Int>,
+    volume: List<Int>,
+    onOpen: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 10.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .clickableNoRipple(onClick = onOpen)
+            .padding(top = 6.dp, bottom = 4.dp),
+    ) {
+        // 抓手：36×4 的圆角条，暗示「可以拉开」
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .size(width = 36.dp, height = 4.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(FtColor.line10),
+        )
+        ranking.take(RankingTeaserRows).forEach { id ->
+            MuscleDetailRow(mode = mode, id = id, levels = levels, volume = volume)
+        }
+        Text(
+            text = stringResource(R.string.review_muscle_ranking_open, ranking.size),
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            style = FtType.natural(12f),
+            color = FtReviewColors.acc,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+/**
+ * 展开态：屏幕底部抽屉，列出完整 18 个部位（含收起态已露出的前 3 名）。
+ *
+ * 只列「剩余 15 个」会让列表从第 4 名开始、失去上下文；完整列表同时满足「显示剩余数据」。
+ */
+@Composable
+private fun MuscleRankingSheet(
+    ranking: List<String>,
+    mode: MuscleMode,
+    levels: List<Int>,
+    volume: List<Int>,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.3.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = stringResource(R.string.review_muscle_ranking_title),
+                style = FtType.natural(16f, 700),
+                color = FtColor.txtHi,
+            )
+            Text(
+                text = stringResource(FtReviewModel.mmMetaRes(mode)),
+                style = FtType.natural(11f),
+                color = FtReviewColors.label3,
+            )
+        }
+        LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp)) {
+            items(ranking) { id ->
+                Column(modifier = Modifier.padding(horizontal = 16.3.dp)) {
+                    MuscleDetailRow(mode = mode, id = id, levels = levels, volume = volume)
+                }
+            }
+        }
+        Text(
+            text = stringResource(R.string.review_muscle_ranking_note, ranking.size),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.3.dp, end = 16.3.dp, top = 8.dp, bottom = 16.3.dp),
+            style = FtType.natural(11f),
             color = FtReviewColors.label3,
         )
     }
@@ -1323,238 +1196,6 @@ private fun GoalModal(initial: Double, onDismiss: () -> Unit, onSave: (Double) -
             }
         }
     }
-}
-
-// ── 月历热力格 · 当天详情气泡 ──────────────────────────────────
-// 尺寸与鸿蒙 `ReviewContent` 的 `bindPopup` 参数逐项对齐：宽 232、圆角 16、箭头 14×7、
-// 面板底 #171717。改一处必须同步另一处，否则双端点热力格的观感会分叉。
-
-private val BubbleWidth = 232.dp
-private val BubbleRadius = 16.dp
-private val BubbleArrowWidth = 14.dp
-private val BubbleArrowHeight = 7.dp
-/**
- * 气泡面板与箭头的填充色。
- *
- * 不能直接用 `FtColor.surface`（#171717）：卡片底本身就是 3.1% 白叠在 `#0F0F0F` 上，
- * 算出来恰好也是 #171717——气泡会整块融进卡片，箭头完全看不出来（真机实测）。
- * #232323 仍偏暗（与卡片只差 12 级，箭头要放大才看得出），这里再提一档。
- * 改色必须同步鸿蒙 `BUBBLE_SURFACE`。
- */
-private val BubbleFill = Color(0xFF2A2A2A)
-/** 气泡（含箭头）离日期格的间距：箭头 7 + 留白 6。 */
-private val BubbleGap = 13.dp
-/** 气泡离屏幕左右边缘的最小距离。 */
-private val BubbleScreenMargin = 12.dp
-
-/**
- * 月历热力格「当天详情」气泡：锚在被点的日期格上，箭头指向该格。
- *
- * 为什么用 [Popup] 而不是自绘浮层：`dismissOnClickOutside` 天生实现「点外部收起」，
- * 且不改变页面滚动结构——自绘遮罩会挡住下面 Scroll 的滑动。
- *
- * 朝向（朝下 / 朝上）只看格子落在屏幕的哪一半，不依赖气泡高度。这样箭头方向在组合阶段
- * 就确定，不必「先测量再翻转」地重排一帧；气泡高度只参与 [PopupPositionProvider] 的 y，
- * 保证整块气泡留在屏内。
- *
- * [month] 是 1 基月份——标题资源 `review_day_detail_title` 的槽位是「月 / 日 / 周几」三参，
- * 少传月份会让 `%d` 吃到星期字符串，组合期抛 `IllegalFormatConversionException`（点热力格即闪退）。
- */
-@Composable
-internal fun DayDetailPopup(
-    summary: DaySummary,
-    month: Int,
-    weekdayLabel: String,
-    cellBounds: Rect,
-    onDismiss: () -> Unit,
-) {
-    val density = LocalDensity.current
-    val windowSize = LocalWindowInfo.current.containerSize
-    // 窗口尺寸还没就绪时（首帧）按「气泡在格子下方」处理：箭头方向不会指向错误的一侧。
-    val above = windowSize.height > 0 && cellBounds.center.y > windowSize.height / 2f
-
-    val bubbleWidthPx = with(density) { BubbleWidth.roundToPx() }
-    val marginPx = with(density) { BubbleScreenMargin.roundToPx() }
-    // 气泡水平居中于格子，再夹进屏幕；箭头跟着格子中心走，两端留 12dp 避免压到圆角。
-    val left = (cellBounds.center.x - bubbleWidthPx / 2f)
-        .coerceIn(
-            marginPx.toFloat(),
-            (windowSize.width - bubbleWidthPx - marginPx).toFloat().coerceAtLeast(marginPx.toFloat()),
-        )
-        .toInt()
-    val arrowInsetPx = with(density) { 12.dp.toPx() } + with(density) { BubbleArrowWidth.toPx() } / 2f
-    val arrowCenterPx = (cellBounds.center.x - left)
-        .coerceIn(arrowInsetPx, bubbleWidthPx - arrowInsetPx)
-    val arrowLeft = with(density) { (arrowCenterPx - BubbleArrowWidth.toPx() / 2f).toDp() }
-
-    val gapPx = with(density) { BubbleGap.roundToPx() }
-    val anchorTop = cellBounds.top.toInt()
-    val anchorBottom = cellBounds.bottom.toInt()
-    val positionProvider = remember(left, above, gapPx, anchorTop, anchorBottom) {
-        object : PopupPositionProvider {
-            override fun calculatePosition(
-                anchorBounds: IntRect,
-                windowSize: IntSize,
-                layoutDirection: LayoutDirection,
-                popupContentSize: IntSize,
-            ): IntOffset {
-                val top = if (above) {
-                    anchorTop - popupContentSize.height - gapPx
-                } else {
-                    anchorBottom + gapPx
-                }
-                return IntOffset(left, top)
-            }
-        }
-    }
-
-    Popup(
-        popupPositionProvider = positionProvider,
-        onDismissRequest = onDismiss,
-        properties = PopupProperties(
-            // 必须 focusable：非焦点 popup 收不到外部触摸的完整事件序列，点一下（收起气泡）
-            // 会把半个 down/up 漏给下面的 `Scroll`，真机实测页面会跟着滚一段。
-            // 焦点模式由 popup 自己吞掉外部点击并触发 `onDismissRequest`，页面不会动。
-            focusable = true,
-            dismissOnClickOutside = true,
-            usePlatformDefaultWidth = false,
-        ),
-    ) {
-        DayDetailBubble(
-            summary = summary,
-            month = month,
-            weekdayLabel = weekdayLabel,
-            above = above,
-            arrowLeft = arrowLeft,
-        )
-    }
-}
-
-/** 气泡面板 + 指向箭头。箭头与面板同色，拼成一条「指向格子」的尾巴。 */
-@Composable
-internal fun DayDetailBubble(
-    summary: DaySummary,
-    month: Int,
-    weekdayLabel: String,
-    above: Boolean,
-    arrowLeft: Dp,
-) {
-    // 入场：与鸿蒙 `bindPopup` 的 160ms 淡入同值（`FtMotion.DURATION_COLOR_FAST`）。
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { visible = true }
-    val alpha by animateFloatAsState(
-        targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(FtMotion.DURATION_COLOR_FAST),
-        label = "dayDetailBubbleAlpha",
-    )
-
-    Column(
-        modifier = Modifier
-            .width(BubbleWidth)
-            .graphicsLayer { this.alpha = alpha },
-    ) {
-        if (!above) {
-            DayBubbleArrow(left = arrowLeft, pointUp = true)
-        }
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                // 不加 `Modifier.shadow`：阴影随面板节点绘制，而箭头是面板之前的兄弟节点，
-                // 24dp 的暗晕会把它整个盖住（真机实测：朝上的箭头完全消失）。
-                // 层次由 `BubbleFill` 比卡片亮一档来立，双端同口径。
-                .clip(RoundedCornerShape(BubbleRadius))
-                .background(BubbleFill)
-                .padding(start = 14.dp, end = 14.dp, top = 12.dp, bottom = 14.dp),
-        ) {
-            Text(
-                text = stringResource(R.string.review_day_detail_title, month, summary.day, weekdayLabel),
-                style = FtType.natural(14.5f, 700),
-                color = FtColor.txtHi,
-            )
-            if (summary.hasSession) {
-                DayDetailRow(
-                    label = stringResource(R.string.review_day_detail_duration),
-                    value = stringResource(R.string.review_day_detail_duration_value, summary.durationMinutes),
-                )
-                DayDetailRow(
-                    label = stringResource(R.string.review_day_detail_exercises),
-                    value = stringResource(R.string.review_day_detail_exercises_value, summary.exerciseCount),
-                )
-                DayDetailRow(
-                    label = stringResource(R.string.review_day_detail_sets),
-                    value = stringResource(R.string.review_day_detail_sets_value, summary.setCount),
-                )
-                DayDetailRow(
-                    label = stringResource(R.string.review_day_detail_volume),
-                    value = stringResource(R.string.review_day_detail_volume_value, volumeText(summary.volumeKg)),
-                )
-            } else {
-                Text(
-                    text = stringResource(R.string.review_day_detail_empty),
-                    modifier = Modifier.padding(top = 8.dp),
-                    style = FtType.natural(12.5f),
-                    color = FtColor.white54,
-                )
-            }
-        }
-        if (above) {
-            DayBubbleArrow(left = arrowLeft, pointUp = false)
-        }
-    }
-}
-
-/**
- * 气泡指向格子的小三角，宽 14 / 高 7。
- *
- * [pointUp] 为 true 时尖朝上（气泡在格子下方）；[left] 是箭头相对气泡左边缘的位移。
- * 用 `offset` 而不进布局流——箭头本来就要压在面板边界上，不参与 Column 的宽度分配。
- */
-@Composable
-private fun DayBubbleArrow(left: Dp, pointUp: Boolean) {
-    Box(modifier = Modifier.fillMaxWidth().height(BubbleArrowHeight)) {
-        Canvas(
-            modifier = Modifier
-                .offset(x = left)
-                .size(BubbleArrowWidth, BubbleArrowHeight)
-                .graphicsLayer { rotationZ = if (pointUp) 0f else 180f },
-        ) {
-            val path = Path().apply {
-                moveTo(0f, size.height)
-                lineTo(size.width, size.height)
-                lineTo(size.width / 2f, 0f)
-                close()
-            }
-            drawPath(path, BubbleFill)
-        }
-    }
-}
-
-@Composable
-private fun DayDetailRow(label: String, value: String) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(text = label, style = FtType.natural(12.5f), color = FtColor.white54)
-        Text(text = value, style = FtType.natural(12.5f, 500), color = FtColor.txtHi)
-    }
-}
-
-/** 千分位容量文本（`4200` → `4,200`）。 */
-private fun volumeText(volumeKg: Double): String {
-    val rounded = Math.round(volumeKg)
-    val digits = rounded.toString()
-    val sb = StringBuilder()
-    var count = 0
-    for (i in digits.length - 1 downTo 0) {
-        sb.append(digits[i])
-        count++
-        if (count % 3 == 0 && i > 0) sb.append(',')
-    }
-    return sb.reverse().toString()
 }
 
 /** `.goal-actions button`（L1180-1190）：高 40 的胶囊，取消灰底、保存翡翠底。 */

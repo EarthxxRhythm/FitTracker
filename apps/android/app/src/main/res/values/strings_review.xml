@@ -11,9 +11,8 @@
   `BodyRecordService` / `PersonalRecordService`），与 UI 文案不同源；此处资源化的仅为
   **空库时的屏内降级样例**（原型静态基线），键名以 `_sample` 后缀标注。
 
-  跨域遗留：周/月**日期文本**（`本周 · 6月 7–13日` 的日期段）与周柱**日标签**（`一…日`）
-  由 `data/service/WeekWindow` 产出（`weekRangeText` / `dayLabels`），其资源化归 WeekWindow 域，
-  本域已改为直接取该服务的输出（见 `FtReviewModel.WEEK_BARS`）。
+  跨域遗留：周/月**日期文本**（`本周 · 6月 7–13日` 的日期段）由 `data/service/WeekWindow`
+  产出（`weekRangeText`），其资源化归 WeekWindow 域，本域已改为直接取该服务的输出。
 -->
 <resources>
 
@@ -50,22 +49,6 @@
     <string name="review_month_headline">本月节奏更稳定。</string>
     <string name="review_month_desc">本月已完成 17 次训练，平均每周 4 次，累计训练 720 分钟。</string>
     <string name="review_month_sub">每天 · 越深量越大</string>
-
-    <!-- 训练节奏卡（`.weekly` / `.month-cal`） -->
-    <string name="review_activity_title">训练节奏</string>
-    <!-- `%1$d` 年 · `%2$d` 月 -->
-    <string name="review_month_label">%1$d 年 %2$d 月</string>
-    <string name="review_month_label_sample">2026 年 6 月</string>
-    <!-- `%1$d` 当月去重训练日数 · `%2$d` 总分钟 -->
-    <string name="review_month_meta">训练 %1$d 天 · %2$d 分钟</string>
-    <string name="review_month_meta_sample">训练 17 天 · 720 分钟</string>
-    <string name="review_month_tip">一格代表一天 · 颜色越深，当天训练量越大</string>
-    <!-- `.month-legend` 五档（L1256-1260） -->
-    <string name="review_month_legend_none">未练</string>
-    <string name="review_month_legend_light">轻</string>
-    <string name="review_month_legend_medium">中</string>
-    <string name="review_month_legend_high">高</string>
-    <string name="review_month_legend_max">大</string>
 
     <!-- 肌肉地图卡（L958-1020） -->
     <string name="review_muscle_title">肌肉地图</string>
@@ -106,6 +89,13 @@
     <string name="review_muscle_hip_flexors">髋屈肌</string>
     <string name="review_muscle_calves">小腿</string>
     <string name="review_muscle_tibialis">胫骨</string>
+
+    <!-- 肌群排行（肌肉地图卡内的收起态入口 + 屏幕底部抽屉） -->
+    <string name="review_muscle_ranking_title">肌群排行</string>
+    <!-- `%1$d` 部位总数 -->
+    <string name="review_muscle_ranking_open">查看全部 %1$d 个部位 ›</string>
+    <!-- `%1$d` 部位总数 -->
+    <string name="review_muscle_ranking_note">完整 %1$d 个部位 · 按当前模式的数值从高到低</string>
 
     <!-- 点选肌肉后的详情行取值（原型 `selectMuscle`，L1680-1704） -->
     <!-- `%1$d` 组数（平衡模式：该部位真实组数，来自最近 8 次训练） -->
@@ -167,18 +157,5 @@
     <string name="review_effort_note">RIR 记的是你还剩几次；RPE 用 0–10 表示主观用力，RPE ≈ 10 − RIR。</string>
     <!-- `%1$s` 记法名（`RIR` / `RPE`） -->
     <string name="review_effort_unit">%1$s · 近 8 次平均</string>
-
-    <!-- 月历热力格当天详情弹层 -->
-    <string name="review_day_detail_title">%1$d月%2$d日 · %3$s</string>
-    <string name="review_day_detail_duration">训练时长</string>
-    <string name="review_day_detail_duration_value">%1$d 分钟</string>
-    <string name="review_day_detail_exercises">动作数</string>
-    <string name="review_day_detail_exercises_value">%1$d 个</string>
-    <string name="review_day_detail_sets">总组数</string>
-    <string name="review_day_detail_sets_value">%1$d 组</string>
-    <string name="review_day_detail_volume">总容量</string>
-    <string name="review_day_detail_volume_value">%1$s kg</string>
-    <string name="review_day_detail_empty">这天没有训练记录</string>
-    <string name="review_day_detail_close">关闭</string>
 
 </resources>

@@ -36,7 +36,7 @@ import kotlinx.coroutines.launch
  *
  * **迁移边界**：
  * - 迁入：全部数据态（~25 个）与 `LaunchedEffect(Unit)` 装载（周/月尺度派生、1RM、体重记录）。
- * - 留屏内：`scale`/`muscleMode`/`selectedMuscle`/`effortMetric`/`goalModalOpen`/`selectedDay`
+ * - 留屏内：`scale`/`muscleMode`/`selectedMuscle`/`effortMetric`/`goalModalOpen`
  *   等纯 UI 交互态；`data`/`goalLineY` 等渲染期派生值也留屏内（它们随 UI 态变化）。
  *
  * `load()` 公开 `suspend`（同其他屏：runBlocking 可驱动，规避 Robolectric Main dispatcher 死锁）。
@@ -58,14 +58,6 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         private set
     var weekStats by mutableStateOf<WeeklyStats?>(null)
         private set
-    var weekBars by mutableStateOf<List<WeekBar>>(emptyList())
-        private set
-    var monthCells by mutableStateOf<List<MonthCell>>(emptyList())
-        private set
-    var monthLabel by mutableStateOf("")
-        private set
-    var monthMeta by mutableStateOf("")
-        private set
     var weekHeadText by mutableStateOf("")
         private set
     var monthHeadText by mutableStateOf("")
@@ -77,8 +69,6 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
     var chartLoKg by mutableDoubleStateOf(0.0)
         private set
     var chartHiKg by mutableDoubleStateOf(0.0)
-        private set
-    var monthHead by mutableStateOf(WeekWindow.dayLabels(WeekStart.MONDAY))
         private set
     var weightCurrent by mutableStateOf<String?>(null)
         private set
@@ -122,11 +112,10 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         // 体重目标：`0` = 从未设置（目标线与按钮走空态）。
         goal = settings.weightGoalKg
         weightUnit = UserProfileService.loadProfile(store).weightUnit
-        // 周/月尺度抬头与月历表头：纯日期计算（与数据有无无关）
+        // 周/月尺度抬头：纯日期计算（与数据有无无关）
         weekHeadText = res.getString(R.string.review_head_week, WeekWindow.weekRangeText(now, weekStart, currentLanguageTag()))
         val monthCal = java.util.Calendar.getInstance().apply { timeInMillis = now }
         monthHeadText = res.getString(R.string.review_head_month, monthCal.get(java.util.Calendar.MONTH) + 1)
-        monthHead = WeekWindow.dayLabels(weekStart, currentLanguageTag())
         val sessions = WorkoutRepository.getSessions(store)
         reviewSessions = sessions
         reviewWeekStart = weekStart
@@ -153,8 +142,6 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         monthStats = FtReviewModel.monthlyStats(sessions, now)
         if (sessions.isNotEmpty()) {
             weekStats = WorkoutSessionService.weeklyStats(sessions, now, weekStart)
-            weekBars = FtReviewModel.weeklyBars(sessions, now, weekStart)
-            monthCells = FtReviewModel.monthGrid(sessions, now, weekStart)
             // 努力程度（近 8 次训练的整体 RPE）与肌群训练量：真实派生，供图表着色。
             effortLevels = FtReviewModel.effortLevels(sessions, 8)
             muscleVolume = FtReviewModel.muscleVolume(
@@ -162,10 +149,6 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
                 { exerciseId -> ContentRepository.getExercise(exerciseId)?.primaryMuscleIds.orEmpty() },
                 8,
             )
-            val monthLabelArgs = FtReviewModel.monthLabel(now)
-            monthLabel = res.getString(R.string.review_month_label, monthLabelArgs.year, monthLabelArgs.month)
-            val monthMetaArgs = FtReviewModel.monthMeta(sessions, now)
-            monthMeta = res.getString(R.string.review_month_meta, monthMetaArgs.days, monthMetaArgs.minutes)
             val details = PersonalRecordService.createRecordDetails(sessions)
             if (details.isNotEmpty()) {
                 oneRmRows = details.take(4).map { detail ->

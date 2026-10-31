@@ -219,6 +219,46 @@ export default function reviewInsightsServiceTest(): void {
       expect(levels[2]).assertEqual(0)
     })
 
+    it('muscle_ranking_平衡模式按组数降序且同值保原序', 0, () => {
+      const volume: number[] = []
+      for (let i = 0; i < 18; i++) {
+        volume.push(0)
+      }
+      // 与 Android 同 fixture：chest(2)=12 / gluteal(11)=20 / quadriceps(12)=20
+      volume[2] = 12
+      volume[11] = 20
+      volume[12] = 20
+      const levels = ReviewInsightsService.createMuscleLevels(volume)
+      const order = ReviewInsightsService.createMuscleRanking(levels, volume, 'balance')
+      expect(order.length).assertEqual(18)
+      // 20 组并列：下标 11 先于 12 → 稳定排序保持原序
+      expect(order[0]).assertEqual(11)
+      expect(order[1]).assertEqual(12)
+      expect(order[2]).assertEqual(2)
+    })
+
+    it('muscle_ranking_疲劳与力量模式按等级降序', 0, () => {
+      const volume: number[] = []
+      for (let i = 0; i < 18; i++) {
+        volume.push(0)
+      }
+      volume[2] = 4
+      const levels = ReviewInsightsService.createMuscleLevels(volume)
+      expect(ReviewInsightsService.createMuscleRanking(levels, volume, 'fatigue')[0]).assertEqual(2)
+      expect(ReviewInsightsService.createMuscleRanking(levels, volume, 'strength')[0]).assertEqual(2)
+    })
+
+    it('muscle_ranking_无训练量时退回原序', 0, () => {
+      const zeros: number[] = []
+      for (let i = 0; i < 18; i++) {
+        zeros.push(0)
+      }
+      const order = ReviewInsightsService.createMuscleRanking(zeros, zeros, 'balance')
+      for (let i = 0; i < order.length; i++) {
+        expect(order[i]).assertEqual(i)
+      }
+    })
+
     it('effort_levels_取已评价场次的整体 RPE', 0, () => {
       const base: WorkoutSession[] = [
         createSession('e1', 1000),

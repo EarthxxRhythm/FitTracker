@@ -21,12 +21,6 @@ import { shakeField } from '../../../common/utils/FieldShake'
 import { PrototypeTokens } from '../../../common/styles/PrototypeTokens'
 import { SegmentedPill, SegmentedPillItem, createSegmentedPillItem } from '../../../components/SegmentedPill'
 
-interface ReviewBarItem {
-  label: string
-  height: number
-  active: boolean
-}
-
 interface WeightChartPoint {
   x: number
   y: number
@@ -58,10 +52,6 @@ const EFFORT_MODE_ITEMS: SegmentedPillItem[] = [
   createSegmentedPillItem('rpe', 'RPE')
 ]
 
-const WEEKDAY_LABELS: string[] = ['一', '二', '三', '四', '五', '六', '日']
-/** 周开始日=周日时，周柱/日历表头从周日排起（首列=周日）。 */
-const WEEKDAY_LABELS_SUNDAY_FIRST: string[] = ['日', '一', '二', '三', '四', '五', '六']
-
 // 努力程度柱状图：一列总高 96 要同时容纳柱子、6px 间距和 12px 序号，柱子可用高度只有 78
 const EFFORT_BAR_COLUMN_HEIGHT: number = 96
 const EFFORT_BAR_GAP: number = 6
@@ -85,8 +75,10 @@ const REVIEW_CHROME_EXPAND: number = 12
 const EFFORT_BAR_TRACK_HEIGHT: number =
   EFFORT_BAR_COLUMN_HEIGHT - EFFORT_BAR_GAP - EFFORT_BAR_LABEL_HEIGHT
 
-const MM_MUSCLE_KEYS: string[] = [
-  'trapezius', 'deltoids', 'chest', 'upper-back', 'serratus', 'biceps', 'triceps', 'forearm',
+/** 收起态入口露出的行数（「正常只显示当前数据的前三个」）。 */
+const MUSCLE_RANKING_TEASER_ROWS: number = 3
+
+const MM_MUSCLE_KEYS: string[] = [  'trapezius', 'deltoids', 'chest', 'upper-back', 'serratus', 'biceps', 'triceps', 'forearm',
   'abs', 'obliques', 'lower-back', 'gluteal', 'quadriceps', 'hamstring', 'adductors', 'hip-flexors',
   'calves', 'tibialis'
 ]
@@ -102,16 +94,6 @@ const SILHOUETTE_FILL: string = '#3F454A'
 const BODY_PATH_STROKE: string = '#171D24'
 const MUSCLE_BASE_FILL: string = '#30353B'
 
-const HEATMAP_CELL_BASE: string = '#09FFFFFF'
-/**
- * 月历热力格 L1–L3：与安卓 `FtReviewColors.mcalLevels` 对齐——半透明翡翠叠在卡底上，
- * 原实现是不透明灰绿，和 L4 的翡翠断层明显。
- */
-const HEATMAP_CELL_L1: string = '#4D68EFB3'
-const HEATMAP_CELL_L2: string = '#8759EDAC'
-const HEATMAP_CELL_L3: string = '#C053ECA9'
-const HEATMAP_CELL_L4: string = PrototypeTokens.ACCENT
-const HEATMAP_LEGEND_BASE: string = PrototypeTokens.WHITE_A05_ALT
 /**
  * 次级 / 三级文字：与安卓 `FtReviewColors.label2` / `label3` 同值（带一点冷绿的暖白）。
  *
@@ -125,27 +107,6 @@ const REVIEW_MODAL_SURFACE: string = '#171717'
 /** 目标体重输入框底：与安卓 `FtColor.surfaceStat` 对齐（原为 `#171D24`）。 */
 const REVIEW_INPUT_SURFACE: string = '#1D1D1D'
 
-// ── 月历热力格气泡（Tooltip）────────────────────────────────
-// 数值与安卓 `ReviewScreen.kt` 的 `DayDetailBubble` 逐项对齐：宽 232、圆角 16、箭头 14×7。
-const BUBBLE_WIDTH: number = 232
-const BUBBLE_RADIUS: number = 16
-const BUBBLE_ARROW_WIDTH: number = 14
-const BUBBLE_ARROW_HEIGHT: number = 7
-const BUBBLE_PADDING_H: number = 14
-const BUBBLE_PADDING_TOP: number = 12
-const BUBBLE_PADDING_BOTTOM: number = 14
-const BUBBLE_ROW_GAP: number = 8
-/**
- * 气泡面板与箭头色。
- *
- * 不能沿用弹窗底 `REVIEW_MODAL_SURFACE`（#171717）：月历卡片底本身就是 3.1% 白叠在
- * 页面底 #0F0F0F 上，算出来恰好也是 #171717——气泡会整块融进卡片，系统画的指向箭头
- * 完全看不出来（安卓真机实测同因）。#232323 仍偏暗（与卡片只差 12 级），再提一档。
- * `bindPopup` 的箭头颜色跟随 `popupColor`，改这里等于同时改面板与箭头。
- * 改色必须同步安卓 `ReviewScreen.BubbleFill`。
- */
-const BUBBLE_SURFACE: string = '#2A2A2A'
-
 const MM_MUSCLE_LABELS: string[] = [
   '斜方肌', '肩', '胸', '上背', '前锯肌', '二头', '三头', '前臂',
   '腹', '腹斜肌', '下背', '臀', '股四头', '腘绳肌', '内收肌', '髋屈肌',
@@ -157,16 +118,6 @@ const MM_FATIGUE_WORDS: string[] = ['已恢复', '恢复中', '略疲劳', '疲�
 const MM_STRENGTH_WORDS: string[] = ['弱', '一般', '中', '强']
 
 const SELECTED_MUSCLE_STROKE: string = PrototypeTokens.TEXT_HI
-
-/** 某一天的训练摘要（供月历热力格点击弹层使用）。 */
-interface DaySummaryItem {
-  day: number
-  durationMinutes: number
-  exerciseCount: number
-  setCount: number
-  volumeKg: number
-  hasSession: boolean
-}
 
 interface HitPoint {
   x: number
@@ -935,21 +886,18 @@ export struct ReviewContent {
   @Prop @Watch('onReloadTokenChanged') reloadToken: number = 0
   @State private timeScale: string = 'week'
   @State private summary: ReviewDashboardSummary = ReviewDashboardService.createEmptySummary()
-  @State private weekBars: ReviewBarItem[] = []
   @State private trendItems: ReviewWeeklyTrendItem[] = []
-  @State private monthLabel: string = ''
   @State private monthBadge: string = ''
   @State private weekRangeText: string = ''
   /** 当前启用的计划名；空串 = 尚未启用计划。回顾此前完全不感知计划归属。 */
   @State private currentPlanName: string = ''
   /** 当前计划下的训练次数（按 `session.planId` 聚合）；无计划时为 0。 */
   @State private currentPlanSessionCount: number = 0
-  @State private trainDays: number[] = []
-  @State private calendarDays: number[] = []
-  @State private todayDay: number = -1
   @State private monthSessionCount: number = 0
   @State private monthDurationMinutes: number = 0
   @State private muscleMode: string = 'balance'
+  /** 肌群排行抽屉（`bindSheet` 半模态）是否展开。 */
+  @State private showMuscleSheet: boolean = false
   @State private effortMode: string = 'rir'
   @State private showGoalModal: boolean = false
   /** 体重目标（kg）；`0` = 用户从未设置（不画目标线，头部按钮显示「设置目标」）。 */
@@ -979,17 +927,6 @@ export struct ReviewContent {
   /** 折线归一量程上界（kg）。 */
   @State private chartHiKg: number = 0
   @State private selectedMuscleKey: string = ''
-  @State private monthDayLevels: number[] = []
-  @State private calendarLeadDays: number = 0
-  /** 按天训练摘要（index = 日），供点击弹层读取。 */
-  @State private daySummaries: DaySummaryItem[] = []
-  /** 热力格「当天详情」气泡是否展开。 */
-  @State private showDayDetail: boolean = false
-  /** 当前选中的日期（1..31；-1 = 无）。 */
-  @State private selectedDay: number = -1
-  /** 当前月历的年 / 月（0 基），供详情标题使用。 */
-  @State private calendarYear: number = 0
-  @State private calendarMonth0: number = 0
   @State private goalPressed: boolean = false
   /**
    * 可收起头部是否收起（对齐安卓 `FtChromeState.collapsed`）。
@@ -1136,8 +1073,7 @@ export struct ReviewContent {
         this.summary = ReviewDashboardService.createSummary(sessions)
       }
       this.trendItems = ReviewInsightsService.createWeeklyTrendItems(sessions, now, settings.weekStart)
-      this.weekBars = this.buildWeekBars(sessions, now, this.weekStartKey)
-      this.initCalendarData(sessions, now)
+      this.computeMonthTotals(sessions, now)
       // 真实数据接线：体重折线 / 努力程度 / 肌群热力 / 1RM 表（无数据时各渲染空态）。
       await this.loadBodyWeight(context, now)
       this.loadPersonalRecords(sessions)
@@ -1301,151 +1237,40 @@ export struct ReviewContent {
   private applyEmptyState(): void {
     this.summary = ReviewDashboardService.createEmptySummary()
     this.trendItems = []
-    this.weekBars = []
-    this.trainDays = []
-    this.monthDayLevels = []
-    this.daySummaries = []
     this.monthSessionCount = 0
     this.monthDurationMinutes = 0
   }
 
   private initCalendarShell(now: number): void {
     const date: Date = new Date(now)
-    const year: number = date.getFullYear()
     const month: number = date.getMonth()
-    this.monthLabel = year.toString() + ' 年 ' + (month + 1).toString() + ' 月'
     this.monthBadge = '本月 · ' + (month + 1).toString() + '月'
-    this.calendarYear = year
-    this.calendarMonth0 = month
     this.weekRangeText = this.formatWeekRange(now, this.weekStartKey)
-    this.todayDay = date.getDate()
-    const firstWeekday: number = new Date(year, month, 1).getDay()
-    this.calendarLeadDays = this.weekStartKey === 'sunday' ? firstWeekday : (firstWeekday + 6) % 7
-    const daysInMonth: number = new Date(year, month + 1, 0).getDate()
-    const days: number[] = []
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push(day)
-    }
-    this.calendarDays = days
   }
 
-  private initCalendarData(sessions: WorkoutSession[], now: number): void {
+  /**
+   * 当前自然月的汇总：次数 / 总分钟。
+   *
+   * 原 `initCalendarData` 一个函数承担两件事——月历热力格（日等级、日摘要）与月份汇总。
+   * 训练节奏卡删除后，热力格连同它的日摘要一起下线，只剩概览卡月视图的描述文案
+   * （`weekDescText`）还需要这两个数，故拆出这一段保留。
+   */
+  private computeMonthTotals(sessions: WorkoutSession[], now: number): void {
     const date: Date = new Date(now)
     const year: number = date.getFullYear()
     const month: number = date.getMonth()
-    const trainDays: number[] = []
     let sessionCount: number = 0
     let durationSeconds: number = 0
-    const daysInMonth: number = this.calendarDays.length
-    const dayVolumes: number[] = []
-    const dayDurations: number[] = []
-    const daySetCounts: number[] = []
-    const dayExerciseIds: string[][] = []
-    const dayHasSession: boolean[] = []
-    const summaries: DaySummaryItem[] = []
-    for (let day = 0; day <= daysInMonth; day++) {
-      dayVolumes.push(0)
-      dayDurations.push(0)
-      daySetCounts.push(0)
-      dayExerciseIds.push([])
-      dayHasSession.push(false)
-      summaries.push({ day: day, durationMinutes: 0, exerciseCount: 0, setCount: 0, volumeKg: 0, hasSession: false })
-    }
     for (let index = 0; index < sessions.length; index++) {
-      const session: WorkoutSession = sessions[index]
-      const sessionDate: Date = new Date(session.startedAt)
+      const sessionDate: Date = new Date(sessions[index].startedAt)
       if (sessionDate.getFullYear() !== year || sessionDate.getMonth() !== month) {
         continue
       }
       sessionCount++
-      durationSeconds += session.durationSeconds
-      const day: number = sessionDate.getDate()
-      if (!this.containsDay(trainDays, day)) {
-        trainDays.push(day)
-      }
-      // 训练量口径与 Android `FtReviewModel.sessionVolume` 对齐：Σ 非热身 weight×reps
-      dayVolumes[day] += this.sessionVolume(session)
-      dayDurations[day] += session.durationSeconds
-      daySetCounts[day] += this.countWorkingSets(session)
-      dayHasSession[day] = true
-      const ids: string[] = dayExerciseIds[day]
-      for (let setIndex = 0; setIndex < session.sets.length; setIndex++) {
-        const exerciseId: string = session.sets[setIndex].exerciseId
-        if (!this.containsText(ids, exerciseId)) {
-          ids.push(exerciseId)
-        }
-      }
+      durationSeconds += sessions[index].durationSeconds
     }
-    let maxVolume: number = 0
-    for (let day = 1; day <= daysInMonth; day++) {
-      if (dayVolumes[day] > maxVolume) {
-        maxVolume = dayVolumes[day]
-      }
-    }
-    const levels: number[] = []
-    for (let day = 0; day <= daysInMonth; day++) {
-      levels.push(0)
-    }
-    for (let day = 1; day <= daysInMonth; day++) {
-      const volume: number = dayVolumes[day]
-      let level: number = 0
-      if (volume > 0 && maxVolume > 0) {
-        const ratio: number = volume / maxVolume
-        if (ratio > 0.75) {
-          level = 4
-        } else if (ratio > 0.5) {
-          level = 3
-        } else if (ratio > 0.25) {
-          level = 2
-        } else {
-          level = 1
-        }
-      }
-      levels[day] = level
-      summaries[day] = {
-        day: day,
-        durationMinutes: Math.round(dayDurations[day] / 60),
-        exerciseCount: dayExerciseIds[day].length,
-        setCount: daySetCounts[day],
-        volumeKg: Math.round(dayVolumes[day]),
-        hasSession: dayHasSession[day]
-      }
-    }
-    this.trainDays = trainDays
     this.monthSessionCount = sessionCount
     this.monthDurationMinutes = Math.round(durationSeconds / 60)
-    this.monthDayLevels = levels
-    this.daySummaries = summaries
-  }
-
-  /** 单次会话训练量：非热身组的 weight×reps 之和（口径同 Android `FtReviewModel.sessionVolume`）。 */
-  private sessionVolume(session: WorkoutSession): number {
-    let volume: number = 0
-    for (let index = 0; index < session.sets.length; index++) {
-      const set: WorkoutSet = session.sets[index]
-      if (!set.isWarmup) {
-        volume += set.weight * set.reps
-      }
-    }
-    return volume
-  }
-
-  private containsText(values: string[], target: string): boolean {
-    for (let index = 0; index < values.length; index++) {
-      if (values[index] === target) {
-        return true
-      }
-    }
-    return false
-  }
-
-  private containsDay(days: number[], target: number): boolean {
-    for (let index = 0; index < days.length; index++) {
-      if (days[index] === target) {
-        return true
-      }
-    }
-    return false
   }
 
   private formatWeekRange(now: number, weekStart: WeekStart): string {
@@ -1457,63 +1282,6 @@ export struct ReviewContent {
       weekStartDate.getDate().toString() + '日'
     const endText: string = (weekEndDate.getMonth() + 1).toString() + '月' + weekEndDate.getDate().toString() + '日'
     return startText + '–' + endText
-  }
-
-  /** 周柱/日历表头使用的星期标签序列（随「周开始日」设置：周日开始时首列=周日）。 */
-  private resolveWeekdayLabels(): string[] {
-    if (this.weekStartKey === 'sunday') {
-      return WEEKDAY_LABELS_SUNDAY_FIRST
-    }
-    return WEEKDAY_LABELS
-  }
-
-  private buildWeekBars(sessions: WorkoutSession[], now: number, weekStart: WeekStart): ReviewBarItem[] {
-    const weekStartDate: Date = resolveWeekStart(new Date(now), weekStart)
-    const weekdayLabels: string[] = weekStart === 'sunday' ? WEEKDAY_LABELS_SUNDAY_FIRST : WEEKDAY_LABELS
-    const setsPerDay: number[] = []
-    let maxSets: number = 0
-    for (let dayIndex = 0; dayIndex < 7; dayIndex++) {
-      const dayStart: number = new Date(
-        weekStartDate.getFullYear(), weekStartDate.getMonth(), weekStartDate.getDate() + dayIndex
-      ).getTime()
-      const dayEnd: number = dayStart + 24 * 60 * 60 * 1000
-      let daySets: number = 0
-      for (let sessionIndex = 0; sessionIndex < sessions.length; sessionIndex++) {
-        const startedAt: number = sessions[sessionIndex].startedAt
-        if (startedAt >= dayStart && startedAt < dayEnd) {
-          daySets += this.countWorkingSets(sessions[sessionIndex])
-        }
-      }
-      setsPerDay.push(daySets)
-      if (daySets > maxSets) {
-        maxSets = daySets
-      }
-    }
-    const bars: ReviewBarItem[] = []
-    for (let index = 0; index < 7; index++) {
-      let height: number = 6
-      if (maxSets > 0 && setsPerDay[index] > 0) {
-        height = 12 + (setsPerDay[index] / maxSets) * 93
-      }
-      const bar: ReviewBarItem = {
-        label: weekdayLabels[index],
-        height: height,
-        active: setsPerDay[index] > 0
-      }
-      bars.push(bar)
-    }
-    return bars
-  }
-
-  private countWorkingSets(session: WorkoutSession): number {
-    let count: number = 0
-    for (let index = 0; index < session.sets.length; index++) {
-      const set: WorkoutSet = session.sets[index]
-      if (set.weight > 0 && set.reps > 0 && !set.isWarmup) {
-        count++
-      }
-    }
-    return count
   }
 
   private weekText(): string {
@@ -1690,8 +1458,8 @@ export struct ReviewContent {
     return words[index]
   }
 
-  private muscleDetailValue(): string {
-    const index: number = this.staticIndex(MM_MUSCLE_KEYS, this.selectedMuscleKey)
+  private muscleDetailValue(key: string): string {
+    const index: number = this.staticIndex(MM_MUSCLE_KEYS, key)
     if (this.muscleMode === 'balance') {
       // 真实组数（与 Android 同口径）：最近 8 次训练里该部位累计的组数，不再 level*10+8 估算
       if (index < 0 || index >= this.muscleVolume.length) {
@@ -1699,15 +1467,15 @@ export struct ReviewContent {
       }
       return this.muscleVolume[index].toString() + ' 组'
     }
-    const level: number = this.muscleLevel(this.selectedMuscleKey)
+    const level: number = this.muscleLevel(key)
     if (this.muscleMode === 'fatigue') {
       return this.muscleStatWord(level, MM_FATIGUE_WORDS)
     }
     return this.muscleStatWord(level, MM_STRENGTH_WORDS)
   }
 
-  private muscleDetailBarWidth(): string {
-    const level: number = this.muscleLevel(this.selectedMuscleKey)
+  private muscleDetailBarWidth(key: string): string {
+    const level: number = this.muscleLevel(key)
     return (level * 25).toString() + '%'
   }
 
@@ -2074,7 +1842,6 @@ export struct ReviewContent {
             Column({ space: 16.3 }) {
               this.overviewCard()
               this.statsRow()
-              this.activityCard()
               this.muscleMapCard()
               this.weightGoalCard()
               this.effortCard()
@@ -2091,11 +1858,6 @@ export struct ReviewContent {
           // `Scroll` 不支持 `onDidScroll`（见 reviewScroller 的注释），用 `onScroll`。
           .onScroll(() => {
             this.observeChromeScroll(this.reviewScroller.currentOffset().yOffset)
-            // 兜底：`mask: true` 已经把气泡展开时的手势挡在浮层内，正常滚不到这里；
-            // 真机若因避让/焦点异常漏过一次滚动，气泡也不会赖在已经移位了的格子旁边。
-            if (this.showDayDetail) {
-              this.showDayDetail = false
-            }
           })
 
           // 胶囊浮层：`HitTestMode.Transparent` 让手势穿透到下层滚动区，自身仍可点击。
@@ -2126,6 +1888,20 @@ export struct ReviewContent {
     .width('100%')
     .height('100%')
     .backgroundColor(PrototypeTokens.BG_INK)
+    // 肌群排行抽屉：系统半模态（自带遮罩、拖拽把手与下拉关闭），不是自绘浮层——
+    // 自绘只能盖住内容区、盖不到底栏，且手势冲突要自己调。
+    // `isShow` 用单向绑定 + `onDisappear` 回写：本 SDK 的 ArkTS 编译器不认 `$` 双向语法
+    // （实测报 `Cannot find name '$this'`），单向绑定同样能做到「下拉关闭后状态复位」。
+    .bindSheet(this.showMuscleSheet, this.muscleRankingSheet(), {
+      detents: [SheetSize.MEDIUM, SheetSize.LARGE],
+      dragBar: true,
+      showClose: false,
+      preferType: SheetType.BOTTOM,
+      backgroundColor: REVIEW_MODAL_SURFACE,
+      onDisappear: () => {
+        this.showMuscleSheet = false
+      }
+    })
   }
 
   /** 周 / 月：描边胶囊、无填充、按内容宽。选中块由 `SegmentedPill` 平移而来。 */
@@ -2264,351 +2040,6 @@ export struct ReviewContent {
   }
 
   @Builder
-  private activityCard() {
-    Column({ space: 12.7 }) {
-      Row() {
-        Text('训练节奏')
-          .fontFamily('Noto Sans SC')
-          .fontSize(14.5)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(PrototypeTokens.TEXT_HI)
-        Text(this.timeScale === 'week' ? '过去 7 天' : '每天 · 越深量越大')
-          .fontFamily('Noto Sans SC')
-          .fontSize(10.9)
-          .fontColor(PrototypeTokens.WHITE_A48)
-      }
-      .width('100%')
-      .justifyContent(FlexAlign.SpaceBetween)
-
-      if (this.timeScale === 'week') {
-        Row({ space: 9.1 }) {
-          ForEach(this.weekBars, (bar: ReviewBarItem) => {
-            Column({ space: 7.3 }) {
-              Row()
-                .width('100%')
-                .height(bar.height)
-                .backgroundColor(bar.active ? PrototypeTokens.ACCENT : PrototypeTokens.ACCENT_A20)
-                .borderRadius(9.1)
-              Text(bar.label)
-                .fontFamily('Noto Sans SC')
-                .fontSize(10)
-                .lineHeight(10) // 与安卓对齐：显式行高
-                .fontColor(bar.active ? PrototypeTokens.ACCENT : PrototypeTokens.WHITE_A54)
-            }
-            .layoutWeight(1)
-            .height('100%')
-            .justifyContent(FlexAlign.End)
-            .alignItems(HorizontalAlign.Center)
-          }, (bar: ReviewBarItem) => bar.label)
-        }
-        .width('100%')
-        .height(136.1)
-        .alignItems(VerticalAlign.Bottom)
-      } else {
-        this.calendarView()
-      }
-    }
-    .width('100%')
-    .padding(16.3)
-    .backgroundColor(PrototypeTokens.WHITE_A03)
-    .borderRadius(25.4)
-    .border({ width: 1, color: PrototypeTokens.WHITE_A10 })
-  }
-
-  @Builder
-  private calendarView() {
-    Column({ space: 10 }) {
-      Row() {
-        Text(this.monthLabel)
-          .fontFamily('Noto Sans SC')
-          .fontSize(15)
-          .fontWeight(FontWeight.Bold)
-          .fontColor(PrototypeTokens.TEXT_HI)
-        Text('训练 ' + this.trainDays.length.toString() + ' 天 · ' + this.monthDurationMinutes.toString() + ' 分钟')
-          .fontFamily('Noto Sans SC')
-          .fontSize(10.9)
-          .fontColor(PrototypeTokens.WHITE_A48)
-      }
-      .width('100%')
-      .justifyContent(FlexAlign.SpaceBetween)
-      .alignItems(VerticalAlign.Bottom)
-
-      Text('一格代表一天 · 颜色越深，当天训练量越大')
-        .fontFamily('Noto Sans SC')
-        .fontSize(11)
-        .fontColor(PrototypeTokens.WHITE_A48)
-        .lineHeight(17.05) // 与安卓对齐：绝对值 17.05（原写 1.55 倍，等价但看不出目标值）
-        .width('100%')
-
-      Row({ space: 5 }) {
-        ForEach(this.resolveWeekdayLabels(), (day: string) => {
-          Text(day)
-            .fontFamily('Noto Sans SC')
-            .fontSize(10)
-            .lineHeight(20) // 与安卓对齐：显式行高
-            .fontColor(REVIEW_LABEL3)
-            .layoutWeight(1)
-            .textAlign(TextAlign.Center)
-        }, (day: string) => day)
-      }
-      .width('100%')
-
-      Grid() {
-        ForEach(this.calendarCells(), (cell: number, index: number) => {
-          GridItem() {
-            if (cell < 0) {
-              Column()
-                .width('100%')
-                .height(34)
-            } else {
-              this.calendarDayCell(cell)
-            }
-          }
-        }, (cell: number, index: number) => index.toString())
-      }
-      .width('100%')
-      .columnsTemplate('1fr 1fr 1fr 1fr 1fr 1fr 1fr')
-      .columnsGap(5)
-      .rowsGap(5)
-
-      Row({ space: 4 }) {
-        this.monthLegendSwatch(HEATMAP_LEGEND_BASE, '未练')
-        this.monthLegendSwatch(HEATMAP_CELL_L1, '轻')
-        this.monthLegendSwatch(HEATMAP_CELL_L2, '中')
-        this.monthLegendSwatch(HEATMAP_CELL_L3, '高')
-        this.monthLegendSwatch(HEATMAP_CELL_L4, '大')
-      }
-      .width('100%')
-      .justifyContent(FlexAlign.SpaceBetween)
-    }
-    .width('100%')
-  }
-
-  @Builder
-  private calendarDayCell(day: number) {
-    Column() {
-      Text(day.toString())
-        .fontFamily('Inter')
-        .fontSize(12)
-        .fontWeight(this.monthDayLevel(day) >= 4 ? FontWeight.Bold : FontWeight.Medium)
-        .fontColor(this.calendarCellTextColor(day))
-    }
-    .width('100%')
-    .height(34)
-    .justifyContent(FlexAlign.Center)
-    .alignItems(HorizontalAlign.Center)
-    .backgroundColor(this.calendarCellBackground(day))
-    .borderRadius(9)
-    .border({ width: day === this.todayDay ? 1.5 : 1, color: this.calendarCellBorderColor(day) })
-    .onClick(() => {
-      // 再点同一格 = 收起；点别的格 = 直接切换到那一格的气泡。
-      if (this.showDayDetail && this.selectedDay === day) {
-        this.showDayDetail = false
-        return
-      }
-      this.selectedDay = day
-      this.showDayDetail = true
-    })
-    // 气泡提示：锚在被点的日期格上，由系统做避让与指向箭头。
-    // 用 `bindPopup` 而不是自绘浮层——自绘拿不到稳定的锚点坐标，滚动后还会与格子脱位；
-    // 系统 popup 自带「点外部关闭」（`autoCancel`）与上下翻转，行为与安卓 `Popup` 一致。
-    .bindPopup(this.showDayDetail && this.selectedDay === day, {
-      builder: (): void => {
-        this.dayDetailBubble()
-      },
-      placement: Placement.Bottom,
-      popupColor: BUBBLE_SURFACE,
-      // 默认 COMPONENT_ULTRA_THICK 会把纯色底糊成半透明材质；气泡要的是实色面板。
-      backgroundBlurStyle: BlurStyle.NONE,
-      enableArrow: true,
-      // 箭头尺寸与安卓 `DayDetailBubble` 的三角一致。
-      arrowWidth: BUBBLE_ARROW_WIDTH,
-      arrowHeight: BUBBLE_ARROW_HEIGHT,
-      autoCancel: true,
-      // 必须 mask：与安卓 `PopupProperties(focusable = true)` 同口径——气泡展开时不把
-      // 手势漏给下面的 `Scroll`，否则点一下收起会顺带把页面滚一段。遮罩本身是透明的。
-      mask: true,
-      radius: BUBBLE_RADIUS,
-      width: BUBBLE_WIDTH,
-      followTransformOfTarget: true,
-      // 不设 shadow：安卓侧自绘箭头会被面板阴影盖住，两端统一去掉；
-      // 层次靠 `BUBBLE_SURFACE` 比卡片底亮一档来立。
-      transition: TransitionEffect.OPACITY
-        .animation({ duration: MotionTokens.DURATION_MODAL_SCRIM, curve: MotionTokens.EASE_MOTION }),
-      onStateChange: (event: PopupStateChangeParam): void => {
-        // 点外部 / 返回键由系统收起时，把页内状态同步回去，否则下次点同一格会被判成「再点收起」。
-        // 必须带上 `selectedDay === day`：从 A 格切到 B 格时 A 的 popup 也会收到 isVisible=false，
-        // 若不加这个判断，会把刚打开的 B 格气泡一起关掉。
-        if (!event.isVisible && this.selectedDay === day) {
-          this.showDayDetail = false
-        }
-      }
-    })
-  }
-
-  @Builder
-  private monthLegendSwatch(color: string, label: string) {
-    Column({ space: 5 }) {
-      Row()
-        .width(14)
-        .height(14)
-        .borderRadius(4)
-        .backgroundColor(color)
-      Text(label)
-        .fontFamily('Noto Sans SC')
-        .fontSize(9)
-        .fontColor(PrototypeTokens.WHITE_A48)
-    }
-    .alignItems(HorizontalAlign.Center)
-  }
-
-  private calendarCells(): number[] {
-    const cells: number[] = []
-    for (let index = 0; index < this.calendarLeadDays; index++) {
-      cells.push(-1)
-    }
-    for (let index = 0; index < this.calendarDays.length; index++) {
-      cells.push(this.calendarDays[index])
-    }
-    const total: number = this.calendarLeadDays + this.calendarDays.length
-    const trailing: number = (7 - (total % 7)) % 7
-    for (let index = 0; index < trailing; index++) {
-      cells.push(-1)
-    }
-    return cells
-  }
-
-  private monthDayLevel(day: number): number {
-    if (day <= 0 || day >= this.monthDayLevels.length) {
-      return 0
-    }
-    return this.monthDayLevels[day]
-  }
-
-  private calendarCellBackground(day: number): string {
-    const level: number = this.monthDayLevel(day)
-    if (level === 1) {
-      return HEATMAP_CELL_L1
-    }
-    if (level === 2) {
-      return HEATMAP_CELL_L2
-    }
-    if (level === 3) {
-      return HEATMAP_CELL_L3
-    }
-    if (level >= 4) {
-      return HEATMAP_CELL_L4
-    }
-    return HEATMAP_CELL_BASE
-  }
-
-  private calendarCellTextColor(day: number): string {
-    const level: number = this.monthDayLevel(day)
-    if (level >= 3) {
-      return PrototypeTokens.TEXT_ON_ACCENT
-    }
-    // 与安卓 `FtReviewColors.mcalText` 一致：L0–L2 统一 white70（#B3FFFFFF）。
-    // 原先 L1–L2 用 TEXT_HI（≈纯白），在翡翠底上比安卓糊一档。
-    return PrototypeTokens.WHITE_A70
-  }
-
-  private calendarCellBorderColor(day: number): string {
-    if (day === this.todayDay) {
-      return PrototypeTokens.TEXT_HI
-    }
-    if (this.monthDayLevel(day) > 0) {
-      return PrototypeTokens.TRANSPARENT
-    }
-    return PrototypeTokens.WHITE_A06
-  }
-
-  // ── 当天详情弹层辅助 ──────────────────────────────────────────
-
-  private selectedDaySummary(): DaySummaryItem {
-    if (this.selectedDay > 0 && this.selectedDay < this.daySummaries.length) {
-      return this.daySummaries[this.selectedDay]
-    }
-    return { day: this.selectedDay, durationMinutes: 0, exerciseCount: 0, setCount: 0, volumeKg: 0, hasSession: false }
-  }
-
-  private dayDetailTitle(): string {
-    const weekdayTexts: string[] = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-    const date: Date = new Date(this.calendarYear, this.calendarMonth0, this.selectedDay)
-    return (this.calendarMonth0 + 1).toString() + '月' + this.selectedDay.toString() + '日 · ' +
-      weekdayTexts[date.getDay()]
-  }
-
-  private volumeText(volumeKg: number): string {
-    let text: string = volumeKg.toString()
-    let result: string = ''
-    let count: number = 0
-    for (let index = text.length - 1; index >= 0; index--) {
-      result = text.charAt(index) + result
-      count++
-      if (count % 3 === 0 && index > 0) {
-        result = ',' + result
-      }
-    }
-    return result + ' kg'
-  }
-
-  /**
-   * 热力格气泡内容。面板底/圆角/箭头由 `bindPopup` 负责，这里只排文字。
-   *
-   * 不设「关闭」按钮：气泡点外部即收起（`autoCancel`），与安卓 `Popup` 的
-   * `dismissOnClickOutside` 同一条交互。
-   */
-  @Builder
-  private dayDetailBubble() {
-    Column() {
-      Text(this.dayDetailTitle())
-        .fontFamily('Noto Sans SC')
-        .fontSize(14.5)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(PrototypeTokens.TEXT_HI)
-        .width('100%')
-      if (this.selectedDaySummary().hasSession) {
-        this.dayDetailRow('训练时长', this.selectedDaySummary().durationMinutes.toString() + ' 分钟')
-        this.dayDetailRow('动作数', this.selectedDaySummary().exerciseCount.toString() + ' 个')
-        this.dayDetailRow('总组数', this.selectedDaySummary().setCount.toString() + ' 组')
-        this.dayDetailRow('总容量', this.volumeText(this.selectedDaySummary().volumeKg))
-      } else {
-        Text('这天没有训练记录')
-          .fontFamily('Noto Sans SC')
-          .fontSize(12.5)
-          .fontColor(PrototypeTokens.WHITE_A54)
-          .margin({ top: BUBBLE_ROW_GAP })
-          .width('100%')
-      }
-    }
-    .width('100%')
-    .padding({
-      left: BUBBLE_PADDING_H,
-      right: BUBBLE_PADDING_H,
-      top: BUBBLE_PADDING_TOP,
-      bottom: BUBBLE_PADDING_BOTTOM
-    })
-  }
-
-  @Builder
-  private dayDetailRow(label: string, value: string) {
-    Row() {
-      Text(label)
-        .fontFamily('Noto Sans SC')
-        .fontSize(12.5)
-        .fontColor(PrototypeTokens.WHITE_A54)
-      Text(value)
-        .fontFamily('Noto Sans SC')
-        .fontSize(12.5)
-        .fontWeight(FontWeight.Medium)
-        .fontColor(PrototypeTokens.TEXT_HI)
-    }
-    .width('100%')
-    .justifyContent(FlexAlign.SpaceBetween)
-    .margin({ top: BUBBLE_ROW_GAP })
-  }
-
-  @Builder
   private muscleMapCard() {
     Column() {
       Row() {
@@ -2686,7 +2117,12 @@ export struct ReviewContent {
       .margin({ top: 12 })
 
       if (this.selectedMuscleKey !== '') {
-        this.muscleDetailRow()
+        this.muscleDetailRow(this.selectedMuscleKey)
+      }
+
+      // 收起态入口：只在真有训练量时出现——「前三个」在空数据下无意义，卡底已有空态结论。
+      if (this.muscleVolume.length > 0) {
+        this.muscleRankingTeaser()
       }
 
       Text(this.muscleNote())
@@ -2705,9 +2141,9 @@ export struct ReviewContent {
   }
 
   @Builder
-  private muscleDetailRow() {
+  private muscleDetailRow(key: string) {
     Row({ space: 9 }) {
-      Text(this.muscleLabel(this.selectedMuscleKey))
+      Text(this.muscleLabel(key))
         .fontFamily('Noto Sans SC')
         .fontSize(14)
         .fontColor(PrototypeTokens.TEXT_HI)
@@ -2716,7 +2152,7 @@ export struct ReviewContent {
         .textOverflow({ overflow: TextOverflow.Ellipsis })
       Row() {
         Row()
-          .width(this.muscleDetailBarWidth())
+          .width(this.muscleDetailBarWidth(key))
           .height('100%')
           .backgroundColor(PrototypeTokens.ACCENT)
           .borderRadius(3)
@@ -2726,7 +2162,7 @@ export struct ReviewContent {
       .backgroundColor('#20272F')
       .borderRadius(3)
       .clip(true)
-      Text(this.muscleDetailValue())
+      Text(this.muscleDetailValue(key))
         .fontFamily('Noto Sans SC')
         .fontSize(12)
         .fontColor(REVIEW_LABEL2)
@@ -2737,6 +2173,94 @@ export struct ReviewContent {
     .alignItems(VerticalAlign.Center)
     // 与安卓对齐：上 6 / 下 8（原先外层还叠了 margin top 6，上侧成 14）。
     .padding({ top: 6, bottom: 8 })
+  }
+
+  /** 当前模式下的肌群排行（18 个部位 key，降序；同值保持 [MM_MUSCLE_KEYS] 原序）。 */
+  private muscleRankingKeys(): string[] {
+    const order: number[] = ReviewInsightsService.createMuscleRanking(
+      this.currentLevels(), this.muscleVolume, this.muscleMode
+    )
+    const keys: string[] = []
+    for (let index = 0; index < order.length; index++) {
+      keys.push(MM_MUSCLE_KEYS[order[index]])
+    }
+    return keys
+  }
+
+  /** 收起态：抓手 + 前 3 名 + 「查看全部」。行样式复用 [muscleDetailRow]。 */
+  @Builder
+  private muscleRankingTeaser() {
+    Column({ space: 2 }) {
+      // 抓手：36×4 的圆角条，暗示可以拉开
+      Row()
+        .width(36)
+        .height(4)
+        .borderRadius(2)
+        .backgroundColor(PrototypeTokens.WHITE_A10)
+        .margin({ top: 10, bottom: 6 })
+      ForEach(this.muscleRankingKeys().slice(0, MUSCLE_RANKING_TEASER_ROWS), (key: string) => {
+        this.muscleDetailRow(key)
+      }, (key: string) => key)
+      Text('查看全部 ' + this.muscleVolume.length.toString() + ' 个部位 ›')
+        .fontFamily('Noto Sans SC')
+        .fontSize(12)
+        .fontColor(PrototypeTokens.ACCENT)
+        .textAlign(TextAlign.Center)
+        .width('100%')
+        .padding({ top: 4, bottom: 2 })
+    }
+    .width('100%')
+    .margin({ top: 6 })
+    .onClick(() => {
+      this.showMuscleSheet = true
+    })
+  }
+
+  /**
+   * 展开态：屏幕底部抽屉（`bindSheet` 半模态），列出完整排行。
+   *
+   * 列完整 18 个而非仅「剩余 15 个」：只列剩余会让列表从第 4 名开始、失去上下文。
+   */
+  @Builder
+  private muscleRankingSheet() {
+    Column() {
+      Row() {
+        Text('肌群排行')
+          .fontFamily('Noto Sans SC')
+          .fontSize(16)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(PrototypeTokens.TEXT_HI)
+        Text(this.muscleMeta())
+          .fontFamily('Noto Sans SC')
+          .fontSize(11)
+          .fontColor(REVIEW_LABEL3)
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.SpaceBetween)
+      .alignItems(VerticalAlign.Bottom)
+      .padding({ left: 16.3, right: 16.3, top: 8, bottom: 8 })
+
+      List() {
+        ForEach(this.muscleRankingKeys(), (key: string) => {
+          ListItem() {
+            this.muscleDetailRow(key)
+          }
+        }, (key: string) => key)
+      }
+      .width('100%')
+      .layoutWeight(1)
+      .scrollBar(BarState.Auto)
+      .edgeEffect(EdgeEffect.Spring)
+
+      Text('完整 ' + this.muscleVolume.length.toString() + ' 个部位 · 按当前模式的数值从高到低')
+        .fontFamily('Noto Sans SC')
+        .fontSize(11)
+        .fontColor(REVIEW_LABEL3)
+        .width('100%')
+        .padding({ left: 16.3, right: 16.3, top: 8, bottom: 16.3 })
+    }
+    .width('100%')
+    .height('100%')
   }
 
   @Builder

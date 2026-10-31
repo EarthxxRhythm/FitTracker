@@ -38,22 +38,6 @@
     <string name="review_month_desc">17 workouts so far this month, 4 a week on average, 720 minutes in total.</string>
     <string name="review_month_sub">Daily · darker means more volume</string>
 
-    <!-- Training rhythm card -->
-    <string name="review_activity_title">Training rhythm</string>
-    <!-- `%1$d` year · `%2$d` month -->
-    <string name="review_month_label">%2$d/%1$d</string>
-    <string name="review_month_label_sample">6/2026</string>
-    <!-- `%1$d` training days · `%2$d` total minutes -->
-    <string name="review_month_meta">%1$d training days · %2$d min</string>
-    <string name="review_month_meta_sample">17 training days · 720 min</string>
-    <string name="review_month_tip">One square per day · darker means more volume</string>
-    <!-- `.month-legend` levels -->
-    <string name="review_month_legend_none">None</string>
-    <string name="review_month_legend_light">Light</string>
-    <string name="review_month_legend_medium">Medium</string>
-    <string name="review_month_legend_high">High</string>
-    <string name="review_month_legend_max">Max</string>
-
     <!-- Muscle map card -->
     <string name="review_muscle_title">Muscle map</string>
     <string name="review_muscle_a11y_mode">Muscle map mode</string>
@@ -89,6 +73,13 @@
     <string name="review_muscle_hip_flexors">Hip flexors</string>
     <string name="review_muscle_calves">Calves</string>
     <string name="review_muscle_tibialis">Tibialis</string>
+
+    <!-- Muscle ranking (collapsed teaser in the muscle map card + bottom sheet) -->
+    <string name="review_muscle_ranking_title">Muscle ranking</string>
+    <!-- `%1$d` total regions -->
+    <string name="review_muscle_ranking_open">See all %1$d regions ›</string>
+    <!-- `%1$d` total regions -->
+    <string name="review_muscle_ranking_note">All %1$d regions · highest to lowest by the current mode</string>
 
     <!-- Selected-muscle detail row -->
     <!-- `%1$d` set count -->
@@ -142,18 +133,5 @@
     <!-- `%1$s` metric name (`RIR` / `RPE`) -->
     <string name="review_effort_unit">%1$s · 8-session average</string>
     <string name="review_empty_hint">Complete a workout and rate its effort — your data will appear here.</string>
-
-    <!-- Month heatmap day detail modal -->
-    <string name="review_day_detail_title">%2$d/%1$d · %3$s</string>
-    <string name="review_day_detail_duration">Duration</string>
-    <string name="review_day_detail_duration_value">%1$d min</string>
-    <string name="review_day_detail_exercises">Exercises</string>
-    <string name="review_day_detail_exercises_value">%1$d</string>
-    <string name="review_day_detail_sets">Sets</string>
-    <string name="review_day_detail_sets_value">%1$d</string>
-    <string name="review_day_detail_volume">Volume</string>
-    <string name="review_day_detail_volume_value">%1$s kg</string>
-    <string name="review_day_detail_empty">No workout on this day</string>
-    <string name="review_day_detail_close">Close</string>
 
 </resources>

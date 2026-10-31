@@ -247,8 +247,36 @@ class ReviewInsightsService {
     return levels
   }
 
-  /** 努力程度序列（近 [count] 次训练的整体 RPE 1–10）；未评价（0）的场次跳过。 */
-  createEffortLevels(sessions: WorkoutSession[], count: number): number[] {
+  /**
+   * 肌群排行：按「当前模式的数值」降序的**下标**序列（与 `volume` 同序的下标）。
+   *
+   * 排序键随模式变——`balance` 用真实组数 `volume`，`fatigue` / `strength` 用 1–4 级 `levels`：
+   * 等级会把不同组数合并成同档，统一按组数排会与人体图着色不一致。
+   *
+   * 用插入排序而非 `Array.sort`：同值时新元素插在等值元素之后 → 稳定，下标保持原序；
+   * 与 Android `FtReviewModel.muscleRanking`（`sortedByDescending` 稳定）同口径。
+   * 部位仅 18 个，O(n²) 无成本。
+   */
+  createMuscleRanking(levels: number[], volume: number[], mode: string): number[] {
+    const order: number[] = []
+    for (let pivot = 0; pivot < volume.length; pivot++) {
+      const pivotValue: number = mode === 'balance'
+        ? (pivot < volume.length ? volume[pivot] : 0)
+        : (pivot < levels.length ? levels[pivot] : 0)
+      let insertAt: number = order.length
+      for (let cursor = 0; cursor < order.length; cursor++) {
+        const cursorValue: number = mode === 'balance' ? volume[order[cursor]] : levels[order[cursor]]
+        if (pivotValue > cursorValue) {
+          insertAt = cursor
+          break
+        }
+      }
+      order.splice(insertAt, 0, pivot)
+    }
+    return order
+  }
+
+  /** 努力程度序列（近 [count] 次训练的整体 RPE 1–10）；未评价（0）的场次跳过。 */  createEffortLevels(sessions: WorkoutSession[], count: number): number[] {
     const recent: WorkoutSession[] = this.takeRecent(sessions, count)
     const levels: number[] = []
     for (let index = 0; index < recent.length; index++) {
