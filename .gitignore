@@ -181,3 +181,28 @@ apps/harmony/0
 !/loop/inbox/README.md
 /loop/outbox/
 /loop/last-run.json
+
+# 官网构建产物（web/）：dist 由 vite build 生成，不入库
+/web/dist/
+
+# ── AI 工具配置与 agent 编排：本地保留可用，一律不入库 ──────────────
+# 远程仓库只放产品源码与工程文档，不放 AI 工具的配置、指令、skill 与过程产物。
+# 2026-10-31 从版本库移出（内容仍在历史提交前的本地工作区，可继续使用）。
+/.opencode/
+/.pi/
+/loop/
+/tools/loop/
+/apps/harmony/openspec/
+/apps/harmony/tasks/project-queue.json
+# AI 工具约定名的就近约束文件（工程约束本体已改名为 CONVENTIONS.md 入库）
+**/AGENTS.md
+/docs/superpowers/
+/docs/skills/
+/docs/archive/legacy-cleanup-2026-09/agent-state/
+/docs/archive/workflow-consolidation-2026-10/
+/docs/process/vibe-coding-workflow.md
+/docs/process/tasks.README.md
+/docs/process/tasks.*.json
+/docs/process/agent-team-fittracker-overlay.md
+/docs/process/pi-agent-parallel-restore.md
+/docs/prototype/prototype-to-arkui-prompt-*.md
