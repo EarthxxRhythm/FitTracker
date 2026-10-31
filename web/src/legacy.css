@@ -1369,3 +1369,59 @@ body.has-glow .cursor-glow { opacity: 1; }
   .growth-track { padding-left: 32px; }
   .growth-dot { left: -32px; width: 17px; height: 17px; }
 }
+
+/* ============================================================================
+   界面演示（Remotion Player）
+   ----------------------------------------------------------------------------
+   .demo-frame 是承载 <Player> 的手机壳：Player 自己会有固定像素的舞台尺寸，
+   用 !important 强制撑满容器，避免 540×1186 把壳撑破。
+   ========================================================================== */
+.demo-stage {
+  display: grid;
+  place-items: center;
+  gap: clamp(20px, 3vw, 32px);
+}
+.demo-frame {
+  width: min(340px, 78vw);
+  aspect-ratio: 540 / 1186;
+  overflow: hidden;
+}
+.demo-frame > div {
+  width: 100% !important;
+  height: 100% !important;
+}
+.flow-media .demo-frame {
+  width: min(320px, 70vw);
+}
+.demo-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.demo-tab {
+  padding: 7px 15px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-motion),
+              border-color var(--dur-fast) var(--ease-motion),
+              background var(--dur-fast) var(--ease-motion);
+}
+.demo-tab:hover {
+  color: var(--text);
+  border-color: rgba(80, 236, 167, .32);
+}
+.demo-tab.is-on {
+  color: var(--text-on-primary);
+  background: var(--primary);
+  border-color: var(--primary);
+}
+@media (max-width: 720px) {
+  .demo-frame { width: min(280px, 74vw); }
+  .demo-tab { font-size: 12px; padding: 6px 12px; }
+}

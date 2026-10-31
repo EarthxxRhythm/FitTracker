@@ -1,7 +1,14 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion, useScroll, useSpring } from 'framer-motion'
+import type { PlayerRef } from '@remotion/player'
 import Aurora from './components/Aurora'
 import PointerFx from './components/PointerFx'
+import { SCENE_FRAMES, SCENE_LABELS, TOTAL_FRAMES } from './demo/scenes'
+import type { DemoScene } from './demo/scenes'
+
+// Remotion 的 <Player> 与 composition 体积不小，按需加载：
+// 这段演示在页面下半部分，首屏不该为它多付三百多 KB。
+const ScenePlayer = lazy(() => import('./demo/AppDemo'))
 
 /* ============================================================================
    官网主体
@@ -39,7 +46,7 @@ const FLOW_STEPS: [string, string][] = [
   ['看趋势', '周趋势、每个动作的个人纪录、肌肉分布与进阶洞察。练了三周还是一条平线，你会立刻看见。'],
   ['比身体', '体重、围度与体成分单独成线。力量涨了体重没动，和两者一起涨，是两件不同的事。']
 ]
-const FLOW_SHOTS = ['05-plans', '02-training', '04-review', '07-body']
+const FLOW_SCENES: DemoScene[] = ['plan', 'train', 'review', 'body']
 
 type Feature = { title: string; claim: string; points: string[] }
 const FEATURES: Feature[] = [
@@ -102,16 +109,6 @@ const MUSCLE_ROWS: MuscleRow[] = [
   }
 ]
 
-const GALLERY: [string, string][] = [
-  ['01-home', '今日训练'],
-  ['02-training', '训练执行'],
-  ['04-review', '训练回顾'],
-  ['05-plans', '训练计划'],
-  ['06-library', '动作库'],
-  ['07-body', '身体数据'],
-  ['08-profile', '个人']
-]
-
 type GrowthNode = { phase: string; title: string; line: string; detail: string }
 const GROWTH: GrowthNode[] = [
   {
@@ -145,6 +142,20 @@ export default function App() {
   const { scrollYProgress } = useScroll()
   const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 24, restDelta: 0.001 })
   const [activeStep, setActiveStep] = useState(0)
+
+  // 界面演示：Player 的帧位置驱动下方场景标签高亮
+  // Player 没有 onFrameUpdate prop，只能订阅 frameupdate 事件（player 4.x）
+  const playerRef = useRef<PlayerRef>(null)
+  const [sceneIndex, setSceneIndex] = useState(0)
+  useEffect(() => {
+    const player = playerRef.current
+    if (!player) return
+    const onFrame = (data: { detail: { frame: number } }) => {
+      setSceneIndex(Math.min(Math.floor(data.detail.frame / SCENE_FRAMES), SCENE_LABELS.length - 1))
+    }
+    player.addEventListener('frameupdate', onFrame)
+    return () => player.removeEventListener('frameupdate', onFrame)
+  }, [])
 
   // 顶栏吸顶态：滚动超过 8px 才落半透明底，首屏保持通透让极光透出来。
   // 旧版由 site.js 的 classList.add 完成，React 重写后漏了这一环，
@@ -285,19 +296,10 @@ export default function App() {
               </div>
 
               <div className="flow-media">
-                <div className="phone">
-                  {FLOW_SHOTS.map((shot, i) => (
-                    <div className={'shot' + (i === activeStep ? ' is-active' : '')} key={shot}>
-                      <img
-                        src={`./${shot}.jpg`}
-                        width={540}
-                        height={1186}
-                        loading="lazy"
-                        decoding="async"
-                        alt={`${FLOW_STEPS[i][0]}界面`}
-                      />
-                    </div>
-                  ))}
+                <div className="phone demo-frame">
+                  <Suspense fallback={null}>
+                    <ScenePlayer scene={FLOW_SCENES[activeStep]} durationInFrames={SCENE_FRAMES} />
+                  </Suspense>
                 </div>
               </div>
             </div>
@@ -371,24 +373,36 @@ export default function App() {
           </div>
         </section>
 
-        {/* ── 截图画廊 ─────────────────────────────────────────────── */}
+        {/* ── 界面演示 ─────────────────────────────────────────────── */}
         <section id="gallery">
           <div className="wrap">
             <motion.div className="section-head" {...fadeUp}>
               <p className="eyebrow">界面</p>
-              <h2 className="h2">真实设备截图，不是效果图</h2>
-              <p className="lede">下面每一张都来自实机。</p>
+              <h2 className="h2">界面是活的，不是截图</h2>
+              <p className="lede">下面这段由代码逐帧画出来。点任意一屏可以单独看。</p>
             </motion.div>
 
-            <div className="gallery">
-              {GALLERY.map(([file, label]) => (
-                <figure className="shot-card" key={file}>
-                  <img src={`./${file}.jpg`} width={540} height={1186} loading="lazy" decoding="async" alt={`${label}截图`} />
-                  <figcaption>{label}</figcaption>
-                </figure>
-              ))}
+            <div className="demo-stage">
+              <div className="phone demo-frame">
+                <Suspense fallback={null}>
+                  <ScenePlayer ref={playerRef} durationInFrames={TOTAL_FRAMES} />
+                </Suspense>
+              </div>
+
+              <div className="demo-tabs" role="tablist" aria-label="界面场景">
+                {SCENE_LABELS.map((s, i) => (
+                  <button
+                    key={s.key}
+                    role="tab"
+                    aria-selected={i === sceneIndex}
+                    className={'demo-tab' + (i === sceneIndex ? ' is-on' : '')}
+                    onClick={() => playerRef.current?.seekTo(i * SCENE_FRAMES)}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <p className="gallery-hint">← 左右滑动看更多 →</p>
           </div>
         </section>
 
