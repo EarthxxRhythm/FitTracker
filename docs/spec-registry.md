@@ -30,25 +30,22 @@
 
 | 层级 | 路径 | 管辖 | 适用端 | 状态 | 会漂移 | 自动检查 |
 |---|---|---|---|---|---|---|
-| L1 | `AGENTS.md` | 工程约束总纲：代码边界、服务归属、ArkTS 约定、清理规则、构建命令、并行原则 | 双端 | 现行 | 是 | `check-specs`（头部） |
-| L1 | `docs\process\vibe-coding-workflow.md` | 开发流程唯一权威：任务源、标准循环、验证分层、交接格式 | 双端 | 现行 | 是 | `check-specs`（头部） |
-| L2 | `apps\harmony\entry\src\main\ets\common\services\AGENTS.md` | 应用级服务归属 + singleton / flush / Context 约定 | 仅鸿蒙 | 现行 | 否 | `check-specs`（头部） |
-| L2 | `apps\harmony\entry\src\main\ets\shared\AGENTS.md` | 跨功能领域逻辑归属 + ANTI-PATTERNS | 仅鸿蒙 | 现行 | 否 | `check-specs`（头部） |
-| L2 | `apps\harmony\entry\src\main\ets\components\AGENTS.md` | 通用组件约定 + AppButton 厚底规则 + 触控尺寸 | 仅鸿蒙 | 现行 | 否 | `check-specs`（头部） |
-| L2 | `apps\harmony\entry\src\main\ets\features\workout\pages\AGENTS.md` | 训练页仅保留 2 页，禁建第二套主线 | 仅鸿蒙 | 现行 | 否 | `check-specs`（头部） |
-| L2 | `apps\harmony\entry\src\main\ets\features\workout\services\AGENTS.md` | 训练编排归属 + ANTI-PATTERNS | 仅鸿蒙 | 现行 | 否 | `check-specs`（头部） |
+| L1 | `docs\process\engineering-constraints.md` | 工程约束总纲：代码边界、服务归属、ArkTS 约定、清理规则、构建命令、并行原则 | 双端 | 现行 | 是 | `check-specs`（头部） |
+| L2 | `apps\harmony\entry\src\main\ets\common\services\CONVENTIONS.md` | 应用级服务归属 + singleton / flush / Context 约定 | 仅鸿蒙 | 现行 | 否 | `check-specs`（头部） |
+| L2 | `apps\harmony\entry\src\main\ets\shared\CONVENTIONS.md` | 跨功能领域逻辑归属 + ANTI-PATTERNS | 仅鸿蒙 | 现行 | 否 | `check-specs`（头部） |
+| L2 | `apps\harmony\entry\src\main\ets\components\CONVENTIONS.md` | 通用组件约定 + AppButton 厚底规则 + 触控尺寸 | 仅鸿蒙 | 现行 | 否 | `check-specs`（头部） |
+| L2 | `apps\harmony\entry\src\main\ets\features\workout\pages\CONVENTIONS.md` | 训练页仅保留 2 页，禁建第二套主线 | 仅鸿蒙 | 现行 | 否 | `check-specs`（头部） |
+| L2 | `apps\harmony\entry\src\main\ets\features\workout\services\CONVENTIONS.md` | 训练编排归属 + ANTI-PATTERNS | 仅鸿蒙 | 现行 | 否 | `check-specs`（头部） |
 | L2 | `docs\process\engineering-standards.md` | 鸿蒙代码细则：RT / SV / AR / DS 七条 rule id + 正反例 | 仅鸿蒙 | 现行 | 否 | `check-specs`（头部）+ `check-code-rules` |
 | L2 | `docs\process\dual-platform-parity.md` | 双端对等清单、身份与字段对齐、改动时的同步要求 | 双端 | 现行 | 是 | `check-specs`（头部）+ `check-parity` |
 | L2 | `docs\process\test-environments.md` | 鸿蒙 DevEco 模拟器 + 安卓 MuMu 模拟器的连法与取图 | 双端 | 现行 | 是 | `check-specs`（头部） |
 | L2 | `docs\process\auth-verification.md` | 登录验证优先级：自部署栈 → 沙盒降级 → 显式跳过 | 双端 | 现行 | 是 | `check-specs`（头部） |
-| L2 | `docs\process\agent-team-fittracker-overlay.md` | 多 agent 协作适配层 | 双端 | 现行 | 否 | `check-specs`（头部） |
 | L2 | `docs\glossary.md` | 口径单一真源：事实口径表、术语标准词、口径分层规则、语言与文案口径 + GL 闸门 | 双端 | 现行 | 是 | `check-specs`（头部）+ `check-glossary` |
 | L2 | `docs\cloud\supabase-sync-setup.md` | 自托管 Supabase 配置：快照表迁移、端侧字段映射、验证步骤 | 双端 | 现行 | 是 | `check-specs`（头部） |
-| L2 | `apps\android\AGENTS.md` | 安卓端工程约束：端结构、Supabase 注入链路、与双端对等的关系 | 仅安卓 | 现行 | 否 | `check-specs`（头部） |
+| L2 | `apps\android\CONVENTIONS.md` | 安卓端工程约束：端结构、Supabase 注入链路、与双端对等的关系 | 仅安卓 | 现行 | 否 | `check-specs`（头部） |
 | L3 | `docs\process\harmonyos-default.md` | 官方 ArkTS 语法约束摘录 | 仅鸿蒙 | 现行 | 否 | `check-specs`（头部） |
 | L3 | `docs\cloud\cloud-setup.md` | 历史 AGC 云服务配置手册（2026-10-28 后端改定为自托管 Supabase 后作废，仅作排错参考） | 仅鸿蒙 | 已被取代 | 是 | `check-specs`（仅存在） |
 | L3 | `docs\release\release-build-runbook.md` | 发布工程面事实：构建/签名/证书、AGC 平台侧操作、bundleName 变更影响 | 双端 | 现行 | 是 | `check-specs`（仅存在） |
-| L3 | `docs\process\pi-agent-parallel-restore.md` | pi 宿主多 agent 并行还原的安装与派工说明 | 双端 | 现行 | 是 | `check-specs`（仅存在） |
 | L3 | `docs\process\qq-appid-landing-checklist.md` | QQ AppID / AppKey 落位清单（待人工提供凭据） | 双端 | 部分失效 | 是 | `check-specs`（仅存在） |
 | L3 | `docs\process\regression-flow-status.md` | 认证链路回归覆盖现状（状态记录，非规范） | 仅鸿蒙 | 现行 | 是 | `check-specs`（仅存在） |
 | L3 | `docs\process\thirdparty-qualification-guide.md` | 第三方登录资质申请操作手册（待人工执行） | 双端 | 部分失效 | 是 | `check-specs`（仅存在） |
@@ -58,9 +55,6 @@
 | L3 | `docs\ui\ui-design-review-packet.md` | 设计评审包模板 | 双端 | 现行 | 否 | `check-specs`（仅存在） |
 | L3 | `docs\ui\ui-sample-spot-check.md` | 抽样检查说明 | 双端 | 现行 | 否 | `check-specs`（仅存在） |
 | L3 | `docs\ui\midscene-regression-report-template.md` | Midscene 回归报告模板 | 双端 | 现行 | 否 | `check-specs`（仅存在） |
-
-| L2 | `loop\README.md` | 六环闭环 agent 体系协议：信封 schema、状态机、门禁断言、断点治理 | 双端 | 现行 | 否 | `check-specs`（头部） |
-| L2 | `loop\agents\` | 六环定制 agent 定义（conductor/req/design/dev/test/release/ops） | 双端 | 现行 | 否 | `check-specs`（仅存在） |
 | L3 | `docs\产品需求文档（PRD）.md` | 历史产品需求（2026-08-19 华为 AGC 方案，已被取代，仅作背景参考） | 双端 | 已被取代 | 是 | `check-specs`（仅存在） |
 
 ## 已删除的规范
@@ -68,6 +62,8 @@
 | 路径 | 删除日期 | 去因 | 内容去向 |
 |---|---|---|---|
 | `docs\ui\设计系统代码规范文档.md` | 2026-10-27 | 2026-05-23 的 MVP 收口版，`features/onboarding/`、`GOAL_SETUP` 路由、`pages/HomePage` 三处锚点在当前代码中已不存在，却被 `docs\README.md` 与 `docs\prototype\ui-analysis-and-beautify-prompt.md` 当作现行规范引用 | 有效章节（ArkTS 严格模式、服务层、DesignTokens、文案、动作内容）并入 `docs\process\engineering-standards.md`；失效内容不迁移 |
+| 全部 `AGENTS.md`（仓库根 + 6 个就近目录） | 2026-10-28 | 远程仓库不再存放 AI 工具约定名的文件 | 工程约束本体改名为 `docs\process\engineering-constraints.md`，就近约束改为 `CONVENTIONS.md`，内容未删 |
+| `docs\process\vibe-coding-workflow.md`、`docs\process\tasks.*`、`docs\superpowers\`、`docs\skills\`、`docs\archive\workflow-consolidation-2026-10\`、`docs\archive\legacy-cleanup-2026-09\agent-state\`、`loop\`、`tools\loop\`、`apps\harmony\openspec\`、`apps\harmony\tasks\project-queue.json` | 2026-10-28 | 仓库清理：AI 工具配置、agent 编排与过程产物不入库 | 不迁移；本地工作区副本保留，`.gitignore` 覆盖防再入库 |
 
 ## 不属于规范的索引文档
 

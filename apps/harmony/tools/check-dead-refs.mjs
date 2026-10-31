@@ -6,7 +6,7 @@
  * 迁到 `features/pencil/pages/`，但 docs/、tasks/、openspec/ 里的路径断言没有同步 ——
  * 活跃文档持续推荐已经不存在的脚本。这类漂移此前没有任何机制可以发现。
  *
- * 基准修正（2026-10）：本仓库已重组为 monorepo —— 仓库根保留 `docs/`、`AGENTS.md`，
+ * 基准修正（2026-10）：本仓库已重组为 monorepo —— 仓库根保留 `docs/`、`CONTRIBUTING.md`，
  * 而鸿蒙工程（`tools/`、`entry/`、`AppScope/`、`tasks/`、`openspec/`）位于
  * `apps/harmony/` 下。文档里的路径因此存在两种相对基准：
  *   - 相对仓库根（如 `docs/x.md`、`apps/harmony/tools/y.mjs`）
@@ -19,10 +19,10 @@
  * 又会把相对鸿蒙工程的合法路径（`tools/check-gates.mjs`）全判成死引用（假阳性）。
  *
  * 现改为：
- *   1. repoRoot 由脚本自身位置推导（向上找到同时含 `AGENTS.md` 与 `docs/` 的祖先），
+ *   1. repoRoot 由脚本自身位置推导（向上找到含 `docs/process/engineering-constraints.md` 的祖先），
  *      与 cwd 无关 —— 从任何目录运行结果一致；
  *   2. 每条引用依次按「仓库根」与「apps/harmony」两个基准解析，任一存在即视为有效；
- *   3. 扫描仓库根 `docs/`、`apps/harmony/{tasks,openspec}` 与仓库根 `AGENTS.md`。
+ *   3. 扫描仓库根 `docs/` 与工程约束文档 `docs/process/engineering-constraints.md`。
  *
  * 只识别「反引号包裹 + 以仓库内目录开头 + 有已知扩展名」的字符串，避免把模板路径
  * （`features/<feature>/pages/`）和通配符当成断言。已归档区（路径中含 archive 的目录）
@@ -38,13 +38,15 @@ import { fileURLToPath } from 'node:url'
 const outputJson = process.argv.includes('--json')
 
 /**
- * 从 startDir 向上定位仓库根：最近的同时含 `AGENTS.md` 与 `docs/` 的祖先。
+ * 从 startDir 向上定位仓库根：最近的含 `docs/process/engineering-constraints.md` 的祖先。
+ * 工程约束文档在 2026-10 由仓库根 `AGENTS.md` 改名为该路径 —— 它在仓库内唯一，
+ * 用来当根锦点比「同时含两个目录」更不易误命中。
  * 找不到返回 null，调用方回退到 cwd。
  */
 export function findRepoRoot(startDir) {
   let dir = resolve(startDir)
   for (let depth = 0; depth < 8; depth += 1) {
-    if (existsSync(join(dir, 'AGENTS.md')) && existsSync(join(dir, 'docs'))) {
+    if (existsSync(join(dir, 'docs', 'process', 'engineering-constraints.md'))) {
       return dir
     }
     const parent = dirname(dir)
@@ -140,18 +142,16 @@ function walk(dir, out) {
 function collectTargets() {
   const targets = []
   const scanDirs = [
-    join(repoRoot, 'docs'),
-    join(appRoot, 'tasks'),
-    join(appRoot, 'openspec')
+    join(repoRoot, 'docs')
   ]
   for (const dir of scanDirs) {
     if (existsSync(dir)) {
       walk(dir, targets)
     }
   }
-  const agentsFile = join(repoRoot, 'AGENTS.md')
-  if (existsSync(agentsFile)) {
-    targets.push(agentsFile)
+  const constraintsFile = join(repoRoot, 'docs', 'process', 'engineering-constraints.md')
+  if (existsSync(constraintsFile)) {
+    targets.push(constraintsFile)
   }
   return targets
 }

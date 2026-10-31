@@ -61,7 +61,7 @@ export const LEGACY_CREDENTIAL = 'agconnect-services.json'
 export const CURRENT_CREDENTIAL = 'supabase.json'
 
 /** 固定纳入现行范围的根级文档（不依赖注册表登记）。 */
-export const FIXED_DOCS = ['AGENTS.md', 'README.md', 'CONTRIBUTING.md']
+export const FIXED_DOCS = ['docs/process/engineering-constraints.md', 'README.md', 'CONTRIBUTING.md']
 
 /** 历史层与构建产物：路径前缀或任意层级目录名命中即跳过。 */
 export const EXCLUDED_PREFIXES = [

@@ -1,9 +1,9 @@
 // check-dead-refs.mjs 判据回归测试。
 //
 // 背景（RED 用例的来源）：脚本旧实现用 `process.cwd()` 当仓库根。本仓库是 monorepo，
-// docs/AGENTS.md 在仓库根，而 tools/entry/AppScope/tasks 在 apps/harmony/ 下 ——
+// docs/ 与工程约束文档在仓库根，而 tools/entry/AppScope 在 apps/harmony/ 下 ——
 // 文档里的路径因此有两套相对基准。旧实现在以下两种情形各错一次：
-//   - 按 AGENTS.md 约定在 apps/harmony 下运行：仓库根的 docs/ 与 AGENTS.md 根本不参与
+//   - 按工程约束约定在 apps/harmony 下运行：仓库根的 docs/ 根本不参与
 //     扫描（apps/harmony/docs 不存在），门禁恒报「无死引用」—— 静默失效（假阴性）。
 //   - 在仓库根运行：相对鸿蒙工程根的合法路径（`tools/check-gates.mjs`）全被判死引用
 //     —— 假阳性。
@@ -19,12 +19,12 @@ import { join } from 'node:path'
 
 import { findRepoRoot, existsAtAnyBase, collectFindings } from './check-dead-refs.mjs'
 
-/** 造一个最小 monorepo fixture：仓库根有 AGENTS.md + docs/，鸿蒙工程在 apps/harmony/ 下。 */
+/** 造一个最小 monorepo fixture：仓库根有 docs/process/engineering-constraints.md，鸿蒙工程在 apps/harmony/ 下。 */
 function makeRepo() {
   const root = mkdtempSync(join(tmpdir(), 'fittracker-deadrefs-'))
-  mkdirSync(join(root, 'docs'), { recursive: true })
+  mkdirSync(join(root, 'docs', 'process'), { recursive: true })
   mkdirSync(join(root, 'apps', 'harmony', 'tools'), { recursive: true })
-  writeFileSync(join(root, 'AGENTS.md'), '# fixture\n', 'utf8')
+  writeFileSync(join(root, 'docs', 'process', 'engineering-constraints.md'), '# fixture\n', 'utf8')
   writeFileSync(join(root, 'apps', 'harmony', 'tools', 'exists.mjs'), '', 'utf8')
   return root
 }
@@ -37,7 +37,7 @@ function cleanup(root) {
   rmSync(root, { recursive: true, force: true })
 }
 
-test('findRepoRoot 从鸿蒙工程子目录向上定位到含 AGENTS.md + docs 的仓库根', function () {
+test('findRepoRoot 从鸿蒙工程子目录向上定位到含工程约束文档的仓库根', function () {
   const root = makeRepo()
   try {
     assert.equal(findRepoRoot(join(root, 'apps', 'harmony', 'tools')), root)

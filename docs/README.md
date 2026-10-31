@@ -9,8 +9,8 @@
 | `docs/release/` | 构建与发布：release runbook、上架截图清单、云调试自动化 |
 | `docs/cloud/` | 云与数据：Supabase 后端配置（现行，`supabase-sync-setup.md`）、内容库 schema/同步、内容导入说明、动作视频库方案；另含历史 AGC 手册（已被取代，仅作排错参考） |
 | `docs/ui/` | UI 与视觉验收：验收清单与记录模板、评审包、视觉回归说明 |
-| `docs/prototype/` | 原型还原：1:1 还原规则、动效与发散还原工作流、ArkUI 迁移提示词 |
-| `docs/process/` | 工程流程与协作：开发工作流（唯一权威 `vibe-coding-workflow.md`）、团队角色路由、任务队列 |
+| `docs/prototype/` | 原型还原：1:1 还原规则、动效与发散还原工作流 |
+| `docs/process/` | 工程流程与协作：工程约束总纲（`engineering-constraints.md`）、代码细则、双端对等、测试环境、登录验证 |
 | `docs/closeout/` | 阶段收尾与治理：MVP/备份收尾、收尾审计、路线图、旧页面治理清单 |
 | `docs/legal/` | 隐私政策与用户协议 |
 | `docs/architecture/` | 系统图集：流程图 / 用例图 / 类图 / 序列图 |
@@ -39,15 +39,6 @@
 - `workflow-consolidation-2026-10/` —— 收敛归档的重复流程文档（见该目录 README）
 
 验收证据、构建记录和设备回归材料继续保留在原位置，除非明确要求，不移动或删除。
-
-## 迁移提示词
-
-把 Open Design HTML 原型迁移为 ArkUI 页面（完整 UI/UX 还原）时使用的提示词，拆为两份配合使用：
-
-- `docs\prototype\prototype-to-arkui-prompt-template.md` —— 通用方法论模板，跨项目复用，方括号处按项目替换
-- `docs\prototype\prototype-to-arkui-prompt-fittracker.md` —— 菲特 专属附录：八项规格源落点、15 屏清单与 ArkUI 落点、可执行命令、已踩过的坑、验收口径
-
-用法：先读附录第 1 节确认规格源，再把模板正文的方括号填成附录里的实际路径。
 
 ## 发布与合规
 

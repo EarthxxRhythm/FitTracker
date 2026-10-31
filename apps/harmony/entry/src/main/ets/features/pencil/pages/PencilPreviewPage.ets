@@ -4,8 +4,7 @@
  * `if (this.showPreview)` 条件渲染，作为盖住底栏的覆盖层（「中心缩放弹出」转场由
  * `TransitionEffect` 声明），故去掉 @Entry 并更名为内容组件（文件路径暂沿用）。
  *
- * 不使用 `bindContentCover`：该方案在本 SDK 的设备实测中不可用，改判经过见
- * `docs/superpowers/specs/2026-09-28-training-preview-modal-pop-design.md`。
+ * 不使用 `bindContentCover`：该方案在本 SDK 的设备实测中不可用。
  */
 
 import { Context } from '@kit.AbilityKit'

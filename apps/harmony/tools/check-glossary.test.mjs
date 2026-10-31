@@ -162,7 +162,7 @@ test('GL-04 登记了但状态不是「现行」→ finding（口径真源自称
 
 test('范围模型：注册表只有「现行」行进范围，固定集与代码集无条件纳入', function () {
   const root = makeRepo({
-    'AGENTS.md': '# 根约束\n',
+    'docs/process/engineering-constraints.md': '# 根约束\n',
     'docs/a.md': '# A\n',
     'docs/old.md': '# 旧\n',
     'contracts/README.md': '# 契约\n',
@@ -180,7 +180,7 @@ test('范围模型：注册表只有「现行」行进范围，固定集与代�
 
     assert.ok(scope.includes('docs/a.md'))
     assert.ok(!scope.includes('docs/old.md'), '「已被取代」不得进现行范围')
-    assert.ok(scope.includes('AGENTS.md'), '固定集无条件纳入')
+    assert.ok(scope.includes('docs/process/engineering-constraints.md'), '固定集无条件纳入')
     assert.ok(scope.includes('contracts/README.md'), 'contracts/**/*.md 无条件纳入')
     assert.ok(scope.includes('apps/harmony/entry/src/main/ets/app/X.ets'))
     assert.ok(scope.includes('apps/android/app/src/main/java/Y.kt'))

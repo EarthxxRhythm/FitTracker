@@ -51,8 +51,7 @@ FitTracker/
 ├── content/              动作内容源（JSONL，两端由脚本同步派生）
 ├── server/               自托管 Supabase 后端：快照迁移与 RLS、短信 hook、Caddy 反代、迁移对账脚本
 ├── docs/                 设计与工程文档（见 docs/README.md）
-├── tools/                根级同步与设备冒烟脚本
-└── AGENTS.md             工程约束（改代码前必读）
+└── tools/                根级同步与设备冒烟脚本
 ```
 
 **关键设计：契约层统一、单一后端。** 两端共用同一套自托管 Supabase，快照的字段、类型与语义由 `contracts/` 定义，两端实现必须逐条一致。改契约前先改 `contracts/README.md`，再同步两端实现——否则一端升级、另一端的解析会直接失败。
@@ -188,7 +187,7 @@ flowchart LR
 
 | 文档 | 内容 |
 |---|---|
-| [AGENTS.md](AGENTS.md) | 工程约束：代码边界、服务归属、ArkTS / ArkUI 约定、清理规则 |
+| docs/process/engineering-constraints.md | 工程约束（改代码前必读）：代码边界、服务归属、ArkTS / ArkUI 约定、清理规则 |
 | [docs/README.md](docs/README.md) | 文档入口与实现依据索引 |
 | [contracts/README.md](contracts/README.md) | 跨端数据契约（改数据结构的起点） |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | 提交格式、门禁、双端同步要求 |
