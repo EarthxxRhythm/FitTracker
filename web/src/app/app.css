@@ -1,0 +1,1049 @@
+/* ============================================================================
+   在线体验（#/app）样式
+   ----------------------------------------------------------------------------
+   与首屏 Hero 里那个 540×1186 缩放画布不同：这里是**真实可交互**的界面，
+   所以不缩放、不放固定画布——用流式布局 + 容器最大宽度，输入框才有正常尺寸。
+
+   颜色全部取自 src/index.css 的 @theme 令牌（同源，改令牌这里跟着变）。
+   class 统一 ft- 前缀，避免与 legacy.css 的站点 class 撞名。
+   ========================================================================== */
+
+.ft-root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--color-ink, #0e100d);
+  color: var(--color-fg, #edf6f2);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── 顶栏 ───────────────────────────────────────────────────────────── */
+
+.ft-top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px max(16px, env(safe-area-inset-left));
+  background: color-mix(in srgb, var(--color-ink, #0e100d) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-line, #2a3934);
+}
+
+.ft-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-fg, #edf6f2);
+  text-decoration: none;
+  font-size: 15px;
+}
+
+.ft-brand svg {
+  width: 20px;
+  height: 20px;
+}
+
+.ft-brand em {
+  font-style: normal;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--color-fg-3, #7a8d85);
+  letter-spacing: 0.04em;
+}
+
+.ft-top-spacer {
+  flex: 1;
+}
+
+.ft-back {
+  border: 1px solid var(--color-line, #2a3934);
+  background: var(--color-surface, #101810);
+  color: var(--color-fg-2, #a3b3ad);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.ft-back:hover {
+  color: var(--color-brand, #4ceca4);
+  border-color: var(--color-brand, #4ceca4);
+}
+
+/* ── 主区 ───────────────────────────────────────────────────────────── */
+
+.ft-main {
+  flex: 1;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 18px max(16px, env(safe-area-inset-left)) 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ft-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  /* 官网 legacy.css:100 对全局 section 设了 padding-block: var(--section-y)（实测 115.2px），
+     会漏进应用内的 <section>。这里显式归零，否则每屏顶上多出一大片空白。 */
+  padding-block: 0;
+  scroll-margin-top: 0;
+  animation: ft-fade 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes ft-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.ft-eyebrow {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-brand, #4ceca4);
+  margin: 0;
+}
+
+.ft-h1 {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.ft-sub {
+  font-size: 13.5px;
+  color: var(--color-fg-2, #a3b3ad);
+  margin: 0;
+  line-height: 1.55;
+}
+
+.ft-muted {
+  color: var(--color-fg-3, #7a8d85);
+}
+
+/* ── 卡片 ───────────────────────────────────────────────────────────── */
+
+.ft-card {
+  background: var(--color-surface, #101810);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ft-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ft-card-title {
+  font-size: 14.5px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.ft-card-meta {
+  font-size: 12px;
+  color: var(--color-fg-3, #7a8d85);
+  font-weight: 600;
+}
+
+/* ── 按钮 ───────────────────────────────────────────────────────────── */
+
+.ft-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 14px;
+  padding: 13px 18px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.12s, filter 0.15s, background 0.15s;
+  touch-action: manipulation;
+}
+
+.ft-btn:active {
+  transform: scale(0.985);
+}
+
+.ft-btn-primary {
+  background: var(--color-brand, #4ceca4);
+  color: #09100f;
+  box-shadow: 0 3px 0 var(--color-brand-deep, #45c9a1);
+}
+
+.ft-btn-primary:disabled {
+  background: var(--color-surface-2, #1b2a27);
+  color: var(--color-fg-3, #7a8d85);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.ft-btn-ghost {
+  background: transparent;
+  color: var(--color-fg-2, #a3b3ad);
+  border: 1px solid var(--color-line, #2a3934);
+}
+
+.ft-btn-ghost:hover {
+  color: var(--color-fg, #edf6f2);
+}
+
+.ft-btn-sm {
+  padding: 8px 12px;
+  font-size: 12.5px;
+  border-radius: 10px;
+}
+
+.ft-btn-danger {
+  background: transparent;
+  border: 1px solid rgba(229, 57, 53, 0.45);
+  color: #ff8a80;
+}
+
+/* ── 分段控件 ───────────────────────────────────────────────────────── */
+
+.ft-seg {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.05);
+  align-self: flex-start;
+}
+
+.ft-seg button {
+  border: 0;
+  background: transparent;
+  color: var(--color-fg-2, #a3b3ad);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 7px 13px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ft-seg button.is-on {
+  background: var(--color-brand, #4ceca4);
+  color: #09100f;
+}
+
+/* ── 指标 ───────────────────────────────────────────────────────────── */
+
+.ft-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.ft-metric {
+  text-align: center;
+  padding: 10px 4px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ft-metric b {
+  display: block;
+  font-size: 21px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--color-brand, #4ceca4);
+  line-height: 1.1;
+}
+
+.ft-metric span {
+  font-size: 11px;
+  color: var(--color-fg-3, #7a8d85);
+  font-weight: 700;
+}
+
+/* ── 环形进度 ───────────────────────────────────────────────────────── */
+
+.ft-ring {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  flex: 0 0 auto;
+}
+
+.ft-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.ft-ring circle {
+  fill: none;
+  stroke-width: 7;
+}
+
+.ft-ring .track {
+  stroke: rgba(255, 255, 255, 0.07);
+}
+
+.ft-ring .fill {
+  stroke: var(--color-brand, #4ceca4);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ft-ring-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+
+.ft-ring-label b {
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.ft-ring-label span {
+  font-size: 9px;
+  color: var(--color-fg-3, #7a8d85);
+  font-weight: 700;
+}
+
+/* ── 列表行 ─────────────────────────────────────────────────────────── */
+
+.ft-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.ft-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ft-row:last-child {
+  border-bottom: 0;
+}
+
+.ft-row-idx {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--color-fg-3, #7a8d85);
+  font-variant-numeric: tabular-nums;
+  width: 18px;
+  flex: 0 0 auto;
+}
+
+.ft-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ft-row-t {
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ft-row-s {
+  font-size: 11.5px;
+  color: var(--color-fg-3, #7a8d85);
+  font-weight: 600;
+}
+
+.ft-row-v {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--color-fg-2, #a3b3ad);
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+
+/* ── 徽标 ───────────────────────────────────────────────────────────── */
+
+.ft-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(76, 236, 164, 0.14);
+  color: var(--color-brand, #4ceca4);
+  white-space: nowrap;
+}
+
+.ft-pill-gold {
+  background: rgba(181, 152, 105, 0.16);
+  color: var(--color-gold, #b59869);
+}
+
+.ft-pill-quiet {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-fg-3, #7a8d85);
+}
+
+/* ── 周节奏 ─────────────────────────────────────────────────────────── */
+
+.ft-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.ft-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 0 6px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.03);
+  font-size: 11px;
+  color: var(--color-fg-3, #7a8d85);
+  font-weight: 700;
+}
+
+.ft-day i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.ft-day.is-done {
+  background: rgba(76, 236, 164, 0.12);
+  color: var(--color-brand, #4ceca4);
+}
+
+.ft-day.is-done i {
+  background: var(--color-brand, #4ceca4);
+  box-shadow: 0 0 8px rgba(76, 236, 164, 0.7);
+}
+
+.ft-day.is-today {
+  outline: 1px solid var(--color-brand, #4ceca4);
+  outline-offset: -1px;
+}
+
+.ft-day b {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--color-fg-2, #a3b3ad);
+}
+
+/* ── 输入 ───────────────────────────────────────────────────────────── */
+
+.ft-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.ft-field label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--color-fg-3, #7a8d85);
+  letter-spacing: 0.02em;
+}
+
+.ft-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-line, #2a3934);
+  border-radius: 12px;
+  color: var(--color-fg, #edf6f2);
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 800;
+  padding: 11px 12px;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.ft-input:focus {
+  outline: none;
+  border-color: var(--color-brand, #4ceca4);
+  background: rgba(76, 236, 164, 0.06);
+}
+
+.ft-input::placeholder {
+  color: var(--color-fg-3, #7a8d85);
+  font-weight: 600;
+}
+
+.ft-input-row {
+  display: flex;
+  gap: 10px;
+}
+
+.ft-stepper {
+  display: flex;
+  gap: 6px;
+}
+
+.ft-stepper button {
+  width: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--color-line, #2a3934);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-fg-2, #a3b3ad);
+  font-size: 17px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ft-stepper button:hover {
+  border-color: var(--color-brand, #4ceca4);
+  color: var(--color-brand, #4ceca4);
+}
+
+/* ── 组进度胶囊 ─────────────────────────────────────────────────────── */
+
+.ft-set-bars {
+  display: flex;
+  gap: 5px;
+}
+
+.ft-set-bars i {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  transition: background 0.2s;
+}
+
+.ft-set-bars i.is-done {
+  background: var(--color-brand, #4ceca4);
+}
+
+.ft-set-bars i.is-on {
+  background: var(--color-gold, #b59869);
+}
+
+/* 动作切换胶囊 */
+.ft-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.ft-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.ft-chip {
+  flex: 0 0 auto;
+  border: 1px solid var(--color-line, #2a3934);
+  background: transparent;
+  color: var(--color-fg-2, #a3b3ad);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.ft-chip.is-on {
+  border-color: var(--color-brand, #4ceca4);
+  color: var(--color-brand, #4ceca4);
+  background: rgba(76, 236, 164, 0.1);
+}
+
+.ft-chip.is-done {
+  color: var(--color-fg-3, #7a8d85);
+  border-style: dashed;
+}
+
+.ft-chip small {
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+/* ── 训练操作条 ─────────────────────────────────────────────────────── */
+
+.ft-action-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 0 max(12px, env(safe-area-inset-bottom));
+  margin-top: auto;
+  background: linear-gradient(to top, var(--color-ink, #0e100d) 70%, transparent);
+}
+
+.ft-hint {
+  font-size: 11.5px;
+  color: var(--color-fg-3, #7a8d85);
+  text-align: center;
+  font-weight: 600;
+}
+
+/* ── 柱状图 ─────────────────────────────────────────────────────────── */
+
+.ft-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 7px;
+  height: 96px;
+  padding-top: 6px;
+}
+
+.ft-bar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+}
+
+.ft-bar i {
+  width: 100%;
+  border-radius: 6px 6px 3px 3px;
+  background: rgba(76, 236, 164, 0.28);
+  min-height: 3px;
+  transition: height 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ft-bar.is-hi i {
+  background: var(--color-brand, #4ceca4);
+}
+
+.ft-bar span {
+  font-size: 10px;
+  color: var(--color-fg-3, #7a8d85);
+  font-weight: 700;
+}
+
+/* ── 肌肉分布 ───────────────────────────────────────────────────────── */
+
+.ft-muscle-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 5px;
+}
+
+.ft-muscle-cell {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9.5px;
+  font-weight: 800;
+  color: var(--color-fg-3, #7a8d85);
+  background: rgba(255, 255, 255, 0.04);
+  text-align: center;
+  line-height: 1.15;
+  padding: 2px;
+  transition: background 0.3s, color 0.3s;
+}
+
+.ft-muscle-cell.lv1 { background: rgba(76, 236, 164, 0.16); color: #c7f7e1; }
+.ft-muscle-cell.lv2 { background: rgba(76, 236, 164, 0.32); color: #d9fbee; }
+.ft-muscle-cell.lv3 { background: rgba(76, 236, 164, 0.56); color: #06120d; }
+.ft-muscle-cell.lv4 { background: var(--color-brand, #4ceca4); color: #06120d; }
+
+.ft-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  color: var(--color-fg-3, #7a8d85);
+  font-weight: 600;
+}
+
+.ft-legend i {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  display: block;
+}
+
+.ft-rank {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.ft-rank-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12.5px;
+}
+
+.ft-rank-row .nm {
+  width: 52px;
+  color: var(--color-fg-2, #a3b3ad);
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.ft-rank-row .bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.ft-rank-row .bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-brand, #4ceca4);
+}
+
+.ft-rank-row .v {
+  width: 30px;
+  text-align: right;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-fg-3, #7a8d85);
+  font-size: 11.5px;
+}
+
+/* ── 底部 Tab ───────────────────────────────────────────────────────── */
+
+.ft-tabs {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px max(12px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--color-ink, #0e100d) 92%, transparent);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid var(--color-line, #2a3934);
+}
+
+.ft-tab {
+  border: 0;
+  background: transparent;
+  color: var(--color-fg-3, #7a8d85);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  padding: 8px 18px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.ft-tab.is-on {
+  color: var(--color-brand, #4ceca4);
+  background: rgba(76, 236, 164, 0.1);
+}
+
+.ft-tab-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  margin: -14px 6px 0;
+  border-radius: 50%;
+  border: 0;
+  background: var(--color-brand, #4ceca4);
+  color: #09100f;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(76, 236, 164, 0.35);
+  transition: transform 0.15s;
+}
+
+.ft-tab-cta:active {
+  transform: scale(0.94);
+}
+
+.ft-tab-cta svg {
+  width: 21px;
+  height: 21px;
+}
+
+/* ── 提示气泡 ───────────────────────────────────────────────────────── */
+
+.ft-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 92px;
+  transform: translate(-50%, 8px);
+  z-index: 40;
+  background: rgba(27, 42, 39, 0.97);
+  border: 1px solid var(--color-line, #2a3934);
+  color: var(--color-fg, #edf6f2);
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 9px 16px;
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  max-width: 86vw;
+  text-align: center;
+}
+
+.ft-toast.is-on {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ── 空态 ───────────────────────────────────────────────────────────── */
+
+.ft-empty {
+  text-align: center;
+  padding: 26px 12px;
+  color: var(--color-fg-3, #7a8d85);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* ── 计划卡 ─────────────────────────────────────────────────────────── */
+
+.ft-plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--color-surface, #101810);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+}
+
+.ft-plan-card:hover {
+  border-color: rgba(76, 236, 164, 0.4);
+}
+
+.ft-plan-card.is-on {
+  border-color: var(--color-brand, #4ceca4);
+  background: rgba(76, 236, 164, 0.07);
+}
+
+.ft-plan-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ft-plan-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.ft-plan-name {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.ft-plan-desc {
+  font-size: 12px;
+  color: var(--color-fg-3, #7a8d85);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.ft-plan-meta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ── 动作库 ─────────────────────────────────────────────────────────── */
+
+.ft-search {
+  display: flex;
+  gap: 8px;
+}
+
+.ft-lib-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  background: transparent;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+}
+
+.ft-lib-row:last-child {
+  border-bottom: 0;
+}
+
+.ft-lib-ic {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: rgba(76, 236, 164, 0.1);
+  color: var(--color-brand, #4ceca4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.ft-lib-ic svg {
+  width: 19px;
+  height: 19px;
+}
+
+.ft-fav {
+  border: 0;
+  background: transparent;
+  color: var(--color-fg-3, #7a8d85);
+  cursor: pointer;
+  padding: 4px;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.ft-fav.is-on {
+  color: var(--color-gold, #b59869);
+}
+
+.ft-detail-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-fg-2, #a3b3ad);
+  line-height: 1.55;
+}
+
+.ft-detail-list.warn {
+  color: #ffb4a8;
+}
+
+/* ── 身体数据 ───────────────────────────────────────────────────────── */
+
+.ft-spark {
+  width: 100%;
+  height: 110px;
+  display: block;
+}
+
+.ft-spark path.line {
+  fill: none;
+  stroke: var(--color-brand, #4ceca4);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ft-spark path.area {
+  fill: rgba(76, 236, 164, 0.14);
+  stroke: none;
+}
+
+.ft-spark circle {
+  fill: var(--color-brand, #4ceca4);
+}
+
+/* ── 响应式 ─────────────────────────────────────────────────────────── */
+
+@media (min-width: 860px) {
+  .ft-main {
+    max-width: 880px;
+    padding-top: 26px;
+  }
+
+  .ft-h1 {
+    font-size: 30px;
+  }
+
+  .ft-muscle-grid {
+    grid-template-columns: repeat(9, 1fr);
+  }
+}
+
+@media (max-width: 420px) {
+  .ft-h1 {
+    font-size: 22px;
+  }
+
+  .ft-metric b {
+    font-size: 18px;
+  }
+
+  .ft-tab {
+    padding: 8px 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ft-screen,
+  .ft-bar i,
+  .ft-ring .fill,
+  .ft-muscle-cell,
+  .ft-toast {
+    animation: none !important;
+    transition: none !important;
+  }
+}

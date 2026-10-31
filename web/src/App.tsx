@@ -133,7 +133,9 @@ export default function App() {
             <a href="#flow">训练闭环</a>
             <a href="#bento">功能</a>
             <a href="#gallery">界面</a>
+                <a className="btn btn-ghost" href="#app">在线体验 →</a>
             <a href="#privacy">数据与隐私</a>
+            <a href="#app">在线体验</a>
           </nav>
           <a className="topbar-cta" href={GITHUB} target="_blank" rel="noopener noreferrer">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
