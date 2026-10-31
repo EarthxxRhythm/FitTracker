@@ -6,19 +6,17 @@ React 19 + Vite 8 + Tailwind 4 + framer-motion 构建的官网，最终产物由
 
 ```text
 web/
-├── index.html            官网入口（Vite HTML entry 1）
-├── app/                  在线体验入口（Vite HTML entry 2 → dist/app/）
+├── index.html            入口（Vite 的 HTML 入口）
 ├── vite.config.ts        构建配置（base: './'，产物到 dist/）
 ├── src/
 │   ├── main.tsx          React 挂载
 │   ├── App.tsx           页面主体（导航 / Hero / 各区块 / 页脚）
 │   ├── index.css         Tailwind 入口 + @theme 设计令牌（转录自 DesignTokens）
 │   ├── legacy.css        ★ 从 site/assets/site.css 复制而来，保留原有 class
-│   ├── tokens.css      ★ Tailwind + @theme 设计令牌（官网与 app 共用）
+│   ├── app-demo.css      App 原型样式（540 逻辑基准 + transform 缩放）
 │   └── components/
 │       ├── Aurora.tsx    裸 WebGL FBM 极光（无 WebGL / reduced-motion 降级）
-│       ├── DemoSlot.tsx   Hero 里的在线体验挂载点（懒加载 iframe + 兜底）
-│       ├── demo-slot.css  iframe 容器 / 骨架 / 兜底样式
+│       ├── AppDemo.tsx   可交互 App 原型：五屏 + 底部 Tab，全 React state
 │       └── PointerFx.tsx 光标光环 + 全站聚光
 ├── public/               原样复制到 dist/（截图、法务页、独立 CSS）
 │   ├── *.jpg             7 张实机截图
@@ -26,31 +24,6 @@ web/
 │   └── assets/site.css   法务页专用样式
 └── dist/                 构建产物（.gitignore 忽略）
 ```
-
-## 在线体验（/app/ 独立入口）
-
-Hero 右侧那个手机壳里跑的不是截图，也不是嵌在落地页 bundle 里的组件，而是
-**独立构建的一份产物**：`app/index.html` → `dist/app/`，用 iframe 挂上去。
-
-```text
-官网 /               → dist/index.html   （只加载 main-*.js，不含 app 代码）
-     └─ iframe ./app/ → dist/app/index.html（加载 app-*.js）
-```
-
-为什么这么拆（做法参照 opengym.ch 的 #demo）：
-
-1. **落地页不必为九屏 UI 买单**——官网首屏 gzip 从 159 kB 降到约 123 kB；
-2. **隔离**——app 内部崩了不会把落地页一起带崩；
-3. **可独立分享**——`/app/` 全屏直接打开，不需要官网外壳。
-
-细节：
-
-- `src/components/DemoSlot.tsx`：IntersectionObserver 提前 600px 观察，进入视口才挂 iframe；
-  容器不可见（`offsetParent` 为 null）时跳过，`resize` 后补挂；12s 未加载完给兜底出口。
-- app 入口只引 `tokens.css`（tailwind + 令牌），**不引** `index.css`——后者带着落地页的
-  41KB `legacy.css`，搬进 iframe 纯属浪费。
-- 两边共享 React vendor chunk（`jsx-runtime-*.js`），但 app 的九屏代码只在 app 入口出现。
-- iframe 内是独立文档：官网的 CSS 与 React 状态都不共享。要跨文档通信得走 `postMessage`。
 
 ## 样式策略（重要）
 

@@ -1,6 +1,6 @@
 import { motion, useReducedMotion, useScroll, useSpring } from 'framer-motion'
 import Aurora from './components/Aurora'
-import DemoSlot from './components/DemoSlot'
+import AppShell from './app/AppShell'
 import PointerFx from './components/PointerFx'
 
 /* ============================================================================
@@ -190,7 +190,7 @@ export default function App() {
 
             <div className="hero-art">
               <div className="phone hero-app-phone">
-                <DemoSlot />
+                <AppShell />
               </div>
             </div>
           </div>

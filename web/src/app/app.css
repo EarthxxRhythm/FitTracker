@@ -1061,7 +1061,16 @@
    唯一的例外是输入框：刻意保持 15px。低于 14px 时 iOS Safari 聚焦会强制放大整页。
    ========================================================================== */
 
+.hero-art { min-width: 0; }
 
+.hero-app-phone {
+  --app-w: min(320px, 78vw);
+  width: var(--app-w);
+  max-width: 100%;
+  aspect-ratio: 540 / 1186;
+  position: relative;
+  overflow: hidden;
+}
 
 .hero-app {
   display: flex;
@@ -1242,19 +1251,3 @@
 .hero-app .ft-spark { height: 84px; }
 .hero-app .ft-stepper button { width: 32px; font-size: 15px; }
 .hero-app .ft-search { gap: 6px; }
-
-
-/* ── iframe 入口的基础重置 ───────────────────────────────────────────
-   本文件只在 /app/ 独立文档里加载（AppShell import），所以这些全局规则
-   不会影响官网。若将来有别的入口复用 AppShell，需要把它们收进作用域。 */
-html, body, #root {
-  height: 100%;
-  margin: 0;
-}
-body {
-  background: var(--color-ink, #0e100d);
-  color: var(--color-fg, #edf6f2);
-  font-family: var(--font-sans, system-ui, sans-serif);
-  -webkit-font-smoothing: antialiased;
-  overscroll-behavior: none;
-}
