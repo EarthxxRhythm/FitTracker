@@ -1,27 +1,18 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, useReducedMotion, useScroll, useSpring } from 'framer-motion'
-import type { PlayerRef } from '@remotion/player'
 import Aurora from './components/Aurora'
 import PointerFx from './components/PointerFx'
-import { SCENE_FRAMES, SCENE_LABELS, TOTAL_FRAMES } from './demo/scenes'
-import type { DemoScene } from './demo/scenes'
-
-// Remotion 的 <Player> 与 composition 体积不小，按需加载：
-// 这段演示在页面下半部分，首屏不该为它多付三百多 KB。
-const ScenePlayer = lazy(() => import('./demo/AppDemo'))
 
 /* ============================================================================
    官网主体
    ----------------------------------------------------------------------------
-   六段，每段一种视觉语法，避免「一节接一节长得一样」：
-     Hero（单列居中大字）→ 训练闭环（左步骤 + 右 sticky 手机）
-     → 功能（2 大 2 小卡）→ 肌群（整块亮绿 + 矩阵）
-     → 界面（横滑图带）→ 成长（竖向时间轴）
+   四段，每段一种视觉语法，避免「一节接一节长得一样」：
+     Hero（单列居中大字）→ 功能（2×2 能力卡）
+     → 肌群（整块亮绿 + 矩阵）→ 成长（竖向时间轴）
 
    动效分工：
      - 滚动进度条：framer-motion useScroll + useSpring（替代手写 rAF）
      - 区块入场：motion whileInView（替代 IntersectionObserver）
-     - 训练闭环切图：onViewportEnter 驱动 activeStep（曾静态写死，右侧永远第 1 张）
      - 其余微动效仍在 legacy.css（CSS transition，零 JS 成本）
    ========================================================================== */
 
@@ -39,14 +30,6 @@ const BRAND_RING = (
     <circle cx="12" cy="2.769" r="2.154" fill="#4CECA4" />
   </svg>
 )
-
-const FLOW_STEPS: [string, string][] = [
-  ['选计划', '按分化数成套的预置计划，三分化、上下肢、推拉腿都有。启用之后，首页直接告诉你今天练什么。'],
-  ['跟着练', '次数与重量逐组记，组间自动计时。练到一半换动作，已经录好的组不会丢。'],
-  ['看趋势', '周趋势、每个动作的个人纪录、肌肉分布与进阶洞察。练了三周还是一条平线，你会立刻看见。'],
-  ['比身体', '体重、围度与体成分单独成线。力量涨了体重没动，和两者一起涨，是两件不同的事。']
-]
-const FLOW_SCENES: DemoScene[] = ['plan', 'train', 'review', 'body']
 
 type Feature = { title: string; claim: string; points: string[] }
 const FEATURES: Feature[] = [
@@ -141,21 +124,6 @@ export default function App() {
   const reduce = useReducedMotion()
   const { scrollYProgress } = useScroll()
   const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 24, restDelta: 0.001 })
-  const [activeStep, setActiveStep] = useState(0)
-
-  // 界面演示：Player 的帧位置驱动下方场景标签高亮
-  // Player 没有 onFrameUpdate prop，只能订阅 frameupdate 事件（player 4.x）
-  const playerRef = useRef<PlayerRef>(null)
-  const [sceneIndex, setSceneIndex] = useState(0)
-  useEffect(() => {
-    const player = playerRef.current
-    if (!player) return
-    const onFrame = (data: { detail: { frame: number } }) => {
-      setSceneIndex(Math.min(Math.floor(data.detail.frame / SCENE_FRAMES), SCENE_LABELS.length - 1))
-    }
-    player.addEventListener('frameupdate', onFrame)
-    return () => player.removeEventListener('frameupdate', onFrame)
-  }, [])
 
   // 顶栏吸顶态：滚动超过 8px 才落半透明底，首屏保持通透让极光透出来。
   // 旧版由 site.js 的 classList.add 完成，React 重写后漏了这一环，
@@ -206,10 +174,8 @@ export default function App() {
             菲特 <em>FitTracker</em>
           </a>
           <nav className="nav" aria-label="主导航">
-            <a href="#flow">训练闭环</a>
             <a href="#bento">功能</a>
             <a href="#muscle">肌群</a>
-            <a href="#gallery">界面</a>
             <a href="#growth">成长</a>
           </nav>
           <a className="topbar-cta" href={GITHUB} target="_blank" rel="noopener noreferrer">
@@ -255,7 +221,7 @@ export default function App() {
                   </svg>
                   即将上架 · 先看代码
                 </a>
-                <a className="btn btn-ghost" href="#gallery">看界面</a>
+                <a className="btn btn-ghost" href="#muscle">看肌群</a>
               </div>
 
               <p className="hero-meta">
@@ -263,45 +229,6 @@ export default function App() {
                 <span>组间计时</span>
                 <span>动作演示</span>
               </p>
-            </div>
-          </div>
-        </section>
-
-        {/* ── 训练闭环 ─────────────────────────────────────────────── */}
-        <section id="flow">
-          <div className="wrap">
-            <motion.div className="section-head" {...fadeUp}>
-              <p className="eyebrow">训练闭环</p>
-              <h2 className="h2">从选计划到看得见进步，四步闭合</h2>
-              <p className="lede">纸质本记得下数字，但算不出趋势，也拼不出肌肉分布。菲特把这条链一次接起来。</p>
-            </motion.div>
-
-            <div className="flow-grid">
-              <div className="flow-steps">
-                {FLOW_STEPS.map(([title, body], i) => (
-                  <motion.article
-                    className={'flow-step' + (i === activeStep ? ' is-active' : '')}
-                    key={title}
-                    onViewportEnter={() => setActiveStep(i)}
-                    viewport={{ margin: '-45% 0px -45% 0px' }}
-                    initial={reduce ? false : { opacity: 0.35, x: -6 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.45, ease: [0.2, 0.8, 0.2, 1] as [number, number, number, number] }}
-                  >
-                    <div className="flow-idx">{i + 1}</div>
-                    <h3>{title}</h3>
-                    <p>{body}</p>
-                  </motion.article>
-                ))}
-              </div>
-
-              <div className="flow-media">
-                <div className="phone demo-frame">
-                  <Suspense fallback={null}>
-                    <ScenePlayer scene={FLOW_SCENES[activeStep]} durationInFrames={SCENE_FRAMES} />
-                  </Suspense>
-                </div>
-              </div>
             </div>
           </div>
         </section>
@@ -373,39 +300,6 @@ export default function App() {
           </div>
         </section>
 
-        {/* ── 界面演示 ─────────────────────────────────────────────── */}
-        <section id="gallery">
-          <div className="wrap">
-            <motion.div className="section-head" {...fadeUp}>
-              <p className="eyebrow">界面</p>
-              <h2 className="h2">界面是活的，不是截图</h2>
-              <p className="lede">下面这段由代码逐帧画出来。点任意一屏可以单独看。</p>
-            </motion.div>
-
-            <div className="demo-stage">
-              <div className="phone demo-frame">
-                <Suspense fallback={null}>
-                  <ScenePlayer ref={playerRef} durationInFrames={TOTAL_FRAMES} />
-                </Suspense>
-              </div>
-
-              <div className="demo-tabs" role="tablist" aria-label="界面场景">
-                {SCENE_LABELS.map((s, i) => (
-                  <button
-                    key={s.key}
-                    role="tab"
-                    aria-selected={i === sceneIndex}
-                    className={'demo-tab' + (i === sceneIndex ? ' is-on' : '')}
-                    onClick={() => playerRef.current?.seekTo(i * SCENE_FRAMES)}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* ── 成长路径 ─────────────────────────────────────────────── */}
         <section id="growth">
           <div className="wrap">
@@ -450,10 +344,8 @@ export default function App() {
             </div>
             <div className="foot-col">
               <h4>产品</h4>
-              <a href="#flow">训练闭环</a>
               <a href="#bento">功能</a>
               <a href="#muscle">肌群</a>
-              <a href="#gallery">界面</a>
               <a href="#growth">成长</a>
             </div>
             <div className="foot-col">

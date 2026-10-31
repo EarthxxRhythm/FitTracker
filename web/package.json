@@ -15,11 +15,9 @@
   "keywords": [],
   "type": "module",
   "dependencies": {
-    "@remotion/player": "^4.0.539",
     "framer-motion": "^14.9.0",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1",
-    "remotion": "^4.0.539"
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
