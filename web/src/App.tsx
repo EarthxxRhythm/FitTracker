@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { motion, useReducedMotion, useScroll, useSpring } from 'framer-motion'
 import Aurora from './components/Aurora'
 import PointerFx from './components/PointerFx'
@@ -5,12 +6,15 @@ import PointerFx from './components/PointerFx'
 /* ============================================================================
    官网主体
    ----------------------------------------------------------------------------
-   结构沿用 site/index.html，class 复用 legacy.css（不重写样式，避免视觉回归）；
-   新增能力用 Tailwind / framer-motion。
+   六段，每段一种视觉语法，避免「一节接一节长得一样」：
+     Hero（单列居中大字）→ 训练闭环（左步骤 + 右 sticky 手机）
+     → 功能（2 大 2 小卡）→ 肌群（整块亮绿 + 矩阵）
+     → 界面（横滑图带）→ 成长（竖向时间轴）
 
    动效分工：
      - 滚动进度条：framer-motion useScroll + useSpring（替代手写 rAF）
-     - 区块入场：motion.section whileInView（替代 IntersectionObserver）
+     - 区块入场：motion whileInView（替代 IntersectionObserver）
+     - 训练闭环切图：onViewportEnter 驱动 activeStep（曾静态写死，右侧永远第 1 张）
      - 其余微动效仍在 legacy.css（CSS transition，零 JS 成本）
    ========================================================================== */
 
@@ -29,42 +33,77 @@ const BRAND_RING = (
   </svg>
 )
 
-const STATS: [string, string][] = [
-  ['102', '个'],
-  ['2', '端'],
-  ['2', '项'],
-  ['0', '个']
-]
-const STAT_LABELS = ['内置动作', '原生实现', '系统权限', '广告与埋点 SDK']
-
-const FLOW_STEPS: [string, string, number][] = [
-  ['选计划', '按分化数成套的预置计划组，例如三分化。启用后落到本地库，首页直接给出「今日训练」，不用每天重新想练什么。', 0],
-  ['逐组录入', '次数与重量逐组记，组间自动计时。中途换动作也不丢已录的分组——这一点两端行为一致。', 1],
-  ['回顾趋势', '周趋势、动作个人纪录下钻、肌肉分布与进阶洞察。练了三周还是一条平线，你会立刻看见。', 2],
-  ['记身体数据', '体重、围度与体成分单独成线。力量涨了但体重没动，和两者一起涨，是两件不同的事。', 3]
+const FLOW_STEPS: [string, string][] = [
+  ['选计划', '按分化数成套的预置计划，三分化、上下肢、推拉腿都有。启用之后，首页直接告诉你今天练什么。'],
+  ['跟着练', '次数与重量逐组记，组间自动计时。练到一半换动作，已经录好的组不会丢。'],
+  ['看趋势', '周趋势、每个动作的个人纪录、肌肉分布与进阶洞察。练了三周还是一条平线，你会立刻看见。'],
+  ['比身体', '体重、围度与体成分单独成线。力量涨了体重没动，和两者一起涨，是两件不同的事。']
 ]
 const FLOW_SHOTS = ['05-plans', '02-training', '04-review', '07-body']
 
-type Card = { title: string; body: string; tag?: string; span: 'wide' | 'normal' | 'full' }
-const BENTO: Card[] = [
+type Feature = { title: string; claim: string; points: string[] }
+const FEATURES: Feature[] = [
   {
-    title: '训练流',
-    body: '训练预览 → 执行（组次录入、组间计时、切动作保留分组）→ 完成摘要。中途退出也能从草稿接着练。',
-    tag: '组间计时',
-    span: 'wide'
+    title: '今日训练',
+    claim: '打开就知道练什么，不用每天重新想。',
+    points: ['按分化数成套的预置计划', '今天该练哪天，首页直接给', '临时换计划也不丢进度']
   },
   {
-    title: '训练回顾',
-    body: '历史训练、周趋势、动作 PR 下钻、肌肉分布与进阶洞察。数据不是记完就沉底，而是每周自己开口说话。',
-    tag: '肌肉分布',
-    span: 'wide'
+    title: '动作库',
+    claim: '看得见怎么做，才敢上重量。',
+    points: ['部位与肌群双层筛选', '常练的收起来，下次直接翻', '102 个动作，每个都有演示与要点']
   },
-  { title: '训练计划', body: '按分化数成套的预置计划组，可启用落库，首页直接呈现今日训练。', span: 'normal' },
-  { title: '动作库', body: '列表、筛选、收藏与详情，102 个动作内置演示素材，不联网也看得到。', span: 'normal' },
-  { title: '身体数据', body: '体重、围度与体成分趋势，和训练量放在同一时间轴上对照。', span: 'normal' }
+  {
+    title: '组间计时',
+    claim: '歇多久不用自己数。',
+    points: ['每组完成自动起表', '到点提醒，不打断节奏']
+  },
+  {
+    title: '身体记录',
+    claim: '力量与体重是两件事，分开看。',
+    points: ['体重、围度、体成分成线', '和训练量放同一时间轴']
+  }
+]
+
+type MuscleRow = { group: string; cells: { name: string; level: 0 | 1 | 2 | 3 }[] }
+const MUSCLE_ROWS: MuscleRow[] = [
+  {
+    group: '上肢',
+    cells: [
+      { name: '胸', level: 3 },
+      { name: '背', level: 2 },
+      { name: '肩', level: 3 },
+      { name: '二头', level: 1 },
+      { name: '三头', level: 2 },
+      { name: '前臂', level: 1 }
+    ]
+  },
+  {
+    group: '核心',
+    cells: [
+      { name: '腹直肌', level: 2 },
+      { name: '腹斜肌', level: 1 },
+      { name: '下背', level: 1 },
+      { name: '臀', level: 3 },
+      { name: '髋', level: 1 },
+      { name: '内收', level: 0 }
+    ]
+  },
+  {
+    group: '下肢',
+    cells: [
+      { name: '股四头', level: 3 },
+      { name: '腘绳', level: 2 },
+      { name: '小腿', level: 1 },
+      { name: '胫前', level: 0 },
+      { name: '足踝', level: 0 },
+      { name: '全身', level: 1 }
+    ]
+  }
 ]
 
 const GALLERY: [string, string][] = [
+  ['01-home', '今日训练'],
   ['02-training', '训练执行'],
   ['04-review', '训练回顾'],
   ['05-plans', '训练计划'],
@@ -73,33 +112,60 @@ const GALLERY: [string, string][] = [
   ['08-profile', '个人']
 ]
 
-const PLEDGES = [
-  ['数据默认留在本机', '训练计划、记录与身体数据写入应用私有沙箱，其他应用无法直接读取。'],
-  ['只申请两项权限', '网络访问（登录与同步）与振动（完成一组时的触觉反馈）。不碰位置、通讯录、短信、相机、麦克风、相册。'],
-  ['没有广告，也没有埋点', '不集成广告 SDK、第三方统计 SDK、第三方分享或支付 SDK。不采集设备标识、位置与使用行为。'],
-  ['云端只有你自己的数据', '自托管 Supabase 部署在自己的境内服务器上，行级安全策略限定仅数据创建者读写。']
-]
-
-const TECH: [string, string, string][] = [
-  ['双端原生', 'ArkTS / ArkUI · Kotlin / Compose', '各自独立实现，不共享 UI 层'],
-  ['统一契约', 'contracts/ 定义快照字段', '任一端漂移，另一端解析直接失败'],
-  ['八道门禁', '内容 → 路由 → 死链 → 对等 → 编译', '任一红即停，提交前必过']
+type GrowthNode = { phase: string; title: string; line: string; detail: string }
+const GROWTH: GrowthNode[] = [
+  {
+    phase: '第 1 周',
+    title: '先把动作做对',
+    line: '重量先放一边，姿势比数字重要。',
+    detail: '每个动作都有演示与要点，组间计时帮你把休息卡在同一个节奏上。'
+  },
+  {
+    phase: '第 1 个月',
+    title: '定下第一条基准',
+    line: '起始重量定下来，之后每次都在跟它比。',
+    detail: '每个动作的单组最好成绩自动换算成 1RM 参考值，不用自己记表。'
+  },
+  {
+    phase: '第 3 个月',
+    title: '趋势开始说话',
+    line: '哪些部位练多了、哪些被漏掉，图上很清楚。',
+    detail: '周趋势、肌肉分布与进阶洞察，每周自己更新一次，不需要你整理。'
+  },
+  {
+    phase: '第 6 个月',
+    title: '回头看得见距离',
+    line: '半年前的第一组，和今天的最后一组。',
+    detail: '历次训练全留档，任何一场都能翻回去看当时用了多重、做够了几组。'
+  }
 ]
 
 export default function App() {
   const reduce = useReducedMotion()
   const { scrollYProgress } = useScroll()
   const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 24, restDelta: 0.001 })
+  const [activeStep, setActiveStep] = useState(0)
 
-  // 卡片 3D 倾斜：写 CSS 变量，transform 由 legacy.css 的 .card 规则消费
+  // 顶栏吸顶态：滚动超过 8px 才落半透明底，首屏保持通透让极光透出来。
+  // 旧版由 site.js 的 classList.add 完成，React 重写后漏了这一环，
+  // 导致 .topbar.is-stuck（legacy.css:215）成了死规则、正文穿透顶栏。
+  const [stuck, setStuck] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setStuck(window.scrollY > 8)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  // 卡片 3D 倾斜：写 CSS 变量，transform 由 legacy.css 的 .feat 规则消费
   const tilt = (e: React.PointerEvent<HTMLElement>) => {
     if (reduce) return
     const el = e.currentTarget
     const r = el.getBoundingClientRect()
     const dx = (e.clientX - r.left) / r.width - 0.5
     const dy = (e.clientY - r.top) / r.height - 0.5
-    el.style.setProperty('--rx', (-dy * 4).toFixed(2) + 'deg')
-    el.style.setProperty('--ry', (dx * 4).toFixed(2) + 'deg')
+    el.style.setProperty('--rx', (-dy * 3).toFixed(2) + 'deg')
+    el.style.setProperty('--ry', (dx * 3).toFixed(2) + 'deg')
   }
   const untilt = (e: React.PointerEvent<HTMLElement>) => {
     e.currentTarget.style.setProperty('--rx', '0deg')
@@ -122,7 +188,7 @@ export default function App() {
       {/* 滚动进度条：framer-motion 的 useScroll 直接给到 0→1 的进度 */}
       <motion.div className="scroll-progress" style={{ scaleX: progress }} aria-hidden="true" />
 
-      <header className="topbar">
+      <header className={'topbar' + (stuck ? ' is-stuck' : '')}>
         <div className="wrap topbar-inner">
           <a className="brand" href="#top">
             {BRAND_RING}
@@ -131,8 +197,9 @@ export default function App() {
           <nav className="nav" aria-label="主导航">
             <a href="#flow">训练闭环</a>
             <a href="#bento">功能</a>
+            <a href="#muscle">肌群</a>
             <a href="#gallery">界面</a>
-            <a href="#privacy">数据与隐私</a>
+            <a href="#growth">成长</a>
           </nav>
           <a className="topbar-cta" href={GITHUB} target="_blank" rel="noopener noreferrer">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -149,7 +216,7 @@ export default function App() {
           <div className="wrap hero-grid">
             <div className="hero-copy">
               <p className="hero-badge">
-                <b>v1.1.0</b> 双端原生 · HarmonyOS &amp; Android
+                <b>v1.1.0</b> 记录 · 回顾 · 进阶
               </p>
 
               <h1 className="hero-title">
@@ -166,8 +233,8 @@ export default function App() {
               </h1>
 
               <p className="hero-sub">
-                逐组记下次数与重量，按 <b>Epley 公式</b>估算 1RM，再汇总成周趋势、动作个人纪录与肌肉分布。
-                两端各自原生实现，数据默认留在你的设备上。
+                逐组记下次数与重量，自动估算 1RM，再汇总成周趋势、动作个人纪录与肌肉分布。
+                练过的每一组都留下痕迹，三个月后回头看，进步是看得见的。
               </p>
 
               <div className="hero-actions">
@@ -183,28 +250,9 @@ export default function App() {
               <p className="hero-meta">
                 <span>102 个动作</span>
                 <span>组间计时</span>
-                <span>登录后自动同步</span>
+                <span>动作演示</span>
               </p>
             </div>
-          </div>
-        </section>
-
-        {/* ── 数字条 ───────────────────────────────────────────────── */}
-        <section className="stats" aria-label="产品概况">
-          <div className="wrap">
-            <motion.div className="stats-band" {...fadeUp}>
-              <div className="stats-grid">
-                {STATS.map(([n, unit], i) => (
-                  <div className="stat" key={STAT_LABELS[i]}>
-                    <div className="n">
-                      {n}
-                      <small>{unit}</small>
-                    </div>
-                    <div className="k">{STAT_LABELS[i]}</div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
           </div>
         </section>
 
@@ -221,11 +269,12 @@ export default function App() {
               <div className="flow-steps">
                 {FLOW_STEPS.map(([title, body], i) => (
                   <motion.article
-                    className={'flow-step' + (i === 0 ? ' is-active' : '')}
+                    className={'flow-step' + (i === activeStep ? ' is-active' : '')}
                     key={title}
+                    onViewportEnter={() => setActiveStep(i)}
+                    viewport={{ margin: '-45% 0px -45% 0px' }}
                     initial={reduce ? false : { opacity: 0.35, x: -6 }}
                     whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ margin: '-45% 0px -45% 0px' }}
                     transition={{ duration: 0.45, ease: [0.2, 0.8, 0.2, 1] as [number, number, number, number] }}
                   >
                     <div className="flow-idx">{i + 1}</div>
@@ -238,7 +287,7 @@ export default function App() {
               <div className="flow-media">
                 <div className="phone">
                   {FLOW_SHOTS.map((shot, i) => (
-                    <div className={'shot' + (i === 0 ? ' is-active' : '')} key={shot}>
+                    <div className={'shot' + (i === activeStep ? ' is-active' : '')} key={shot}>
                       <img
                         src={`./${shot}.jpg`}
                         width={540}
@@ -255,49 +304,70 @@ export default function App() {
           </div>
         </section>
 
-        {/* ── 功能 Bento ───────────────────────────────────────────── */}
+        {/* ── 功能 ─────────────────────────────────────────────────── */}
         <section id="bento">
           <div className="wrap">
             <motion.div className="section-head" {...fadeUp}>
               <p className="eyebrow">功能</p>
-              <h2 className="h2">六个模块，一个都不断线</h2>
-              <p className="lede">记录、计划、回顾、内容、身体、同步——各自独立，但共用同一份数据契约。</p>
+              <h2 className="h2">四件事做到位，训练就不用再操心</h2>
+              <p className="lede">不用先学会用工具，再开始练。打开就能练，练完自动记。</p>
             </motion.div>
 
-            <div className="bento">
-              {BENTO.map((card, i) => (
+            <div className="feat-grid">
+              {FEATURES.map((f, i) => (
                 <motion.article
-                  className={'card ' + (card.span === 'wide' ? 'wide' : card.span === 'full' ? 'full' : '')}
-                  key={card.title}
-                  initial={reduce ? false : { opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
+                  className="feat"
+                  key={f.title}
+                  initial={reduce ? false : { opacity: 0, y: 18 }}
+                  whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '0px 0px -10% 0px' }}
-                  transition={{ duration: 0.5, delay: i * 0.04 }}
+                  transition={{ duration: 0.5, delay: i * 0.05 }}
                   onPointerMove={tilt}
                   onPointerLeave={untilt}
                 >
-                  <h3>{card.title}</h3>
-                  <p>{card.body}</p>
-                  {card.tag && <span className="tag">{card.tag}</span>}
+                  <h3>{f.title}</h3>
+                  <p className="feat-claim">{f.claim}</p>
+                  <ul className="feat-points">
+                    {f.points.map((point) => (
+                      <li key={point}>{point}</li>
+                    ))}
+                  </ul>
                 </motion.article>
               ))}
-
-              <motion.article className="card full" {...fadeUp}>
-                <div className="split">
-                  <div>
-                    <h3>账号与云同步</h3>
-                    <p>两端共用同一套自托管 Supabase：认证服务 + Postgres 整包快照。换设备不必重新开始。</p>
-                  </div>
-                  <div className="tech-item" style={{ margin: 0 }}>
-                    <div className="k">数据边界</div>
-                    <div className="v">
-                      快照按 user_id 单行 upsert
-                      <small>行级安全策略限定「仅数据创建者读写」，刻意不建 delete 策略。</small>
-                    </div>
-                  </div>
-                </div>
-              </motion.article>
             </div>
+          </div>
+        </section>
+
+        {/* ── 肌群覆盖 ─────────────────────────────────────────────── */}
+        <section id="muscle" className="muscle-sec">
+          <div className="wrap">
+            <motion.div className="muscle-band" {...fadeUp}>
+              <div className="muscle-copy">
+                <p className="muscle-eyebrow">练到了哪里</p>
+                <h2 className="muscle-h2">
+                  一周下来，
+                  <br />
+                  哪里被照顾到，哪里被漏掉。
+                </h2>
+                <p className="muscle-lede">
+                  每个动作都标了主练肌群与协同肌群，练完自动汇总成这张覆盖图。
+                  颜色越深练得越多，一整格没亮的，就是这周被忘掉的部位。
+                </p>
+              </div>
+
+              <div className="muscle-matrix">
+                {MUSCLE_ROWS.map((row) => (
+                  <div className="muscle-row" key={row.group}>
+                    <span className="muscle-row-k">{row.group}</span>
+                    {row.cells.map((cell) => (
+                      <span className={`muscle-cell l${cell.level}`} key={cell.name}>
+                        {cell.name}
+                      </span>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
           </div>
         </section>
 
@@ -307,7 +377,7 @@ export default function App() {
             <motion.div className="section-head" {...fadeUp}>
               <p className="eyebrow">界面</p>
               <h2 className="h2">真实设备截图，不是效果图</h2>
-              <p className="lede">下面每一张都来自实机。点开可以放大看细节。</p>
+              <p className="lede">下面每一张都来自实机。</p>
             </motion.div>
 
             <div className="gallery">
@@ -318,58 +388,37 @@ export default function App() {
                 </figure>
               ))}
             </div>
+            <p className="gallery-hint">← 左右滑动看更多 →</p>
           </div>
         </section>
 
-        {/* ── 数据与隐私 ───────────────────────────────────────────── */}
-        <section id="privacy">
+        {/* ── 成长路径 ─────────────────────────────────────────────── */}
+        <section id="growth">
           <div className="wrap">
             <motion.div className="section-head" {...fadeUp}>
-              <p className="eyebrow">数据与隐私</p>
-              <h2 className="h2">只声明已经做到的事</h2>
-              <p className="lede">隐私政策里的每一项陈述都与当前代码和配置一一对应。做不到的，不写。</p>
+              <p className="eyebrow">成长路径</p>
+              <h2 className="h2">从第一次进健身房，到看得见的半年</h2>
+              <p className="lede">训练没有速成。但每一步都会留下证据，只是需要有人替你记下来。</p>
             </motion.div>
 
-            <div className="privacy-grid">
-              {PLEDGES.map(([title, body], i) => (
+            <div className="growth-track">
+              {GROWTH.map((node, i) => (
                 <motion.article
-                  className="pledge"
-                  key={title}
-                  initial={reduce ? false : { opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.45, delay: i * 0.05, ease: [0.2, 0.8, 0.2, 1] as [number, number, number, number] }}
+                  className="growth-node"
+                  key={node.phase}
+                  initial={reduce ? false : { opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '0px 0px -12% 0px' }}
+                  transition={{ duration: 0.5, delay: i * 0.08 }}
                 >
-                  <div>
-                    <h3>{title}</h3>
-                    <p>{body}</p>
-                  </div>
+                  <div className="growth-dot" aria-hidden="true" />
+                  <span className="growth-phase">{node.phase}</span>
+                  <h3>{node.title}</h3>
+                  <p className="growth-line">{node.line}</p>
+                  <p className="growth-detail">{node.detail}</p>
                 </motion.article>
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* ── 技术底子 ─────────────────────────────────────────────── */}
-        <section>
-          <div className="wrap">
-            <motion.div className="section-head" {...fadeUp}>
-              <p className="eyebrow">技术底子</p>
-              <h2 className="h2">两套原生 UI，一份数据契约</h2>
-              <p className="lede">这不是一个套壳应用。两端各自原生实现，快照的字段、类型与语义由契约层统一，改一处必须同步另一端。</p>
-            </motion.div>
-
-            <motion.div className="tech-row" {...fadeUp}>
-              {TECH.map(([k, v, small]) => (
-                <div className="tech-item" key={k}>
-                  <div className="k">{k}</div>
-                  <div className="v">
-                    {v}
-                    <small>{small}</small>
-                  </div>
-                </div>
-              ))}
-            </motion.div>
           </div>
         </section>
       </main>
@@ -383,14 +432,15 @@ export default function App() {
                 {BRAND_RING}
                 菲特 FitTracker
               </div>
-              <p className="foot-desc">双端原生健身训练记录。数据默认留在本机，登录后自动同步。</p>
+              <p className="foot-desc">双端健身训练记录。练过的每一组，都留下痕迹。</p>
             </div>
             <div className="foot-col">
               <h4>产品</h4>
               <a href="#flow">训练闭环</a>
               <a href="#bento">功能</a>
+              <a href="#muscle">肌群</a>
               <a href="#gallery">界面</a>
-              <a href="#privacy">数据与隐私</a>
+              <a href="#growth">成长</a>
             </div>
             <div className="foot-col">
               <h4>资料</h4>
