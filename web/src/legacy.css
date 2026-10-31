@@ -1425,3 +1425,225 @@ body.has-glow .cursor-glow { opacity: 1; }
   .demo-frame { width: min(280px, 74vw); }
   .demo-tab { font-size: 12px; padding: 6px 12px; }
 }
+
+/* ============================================================================
+   指针光效升级层 —— 追加于基础样式之后，靠后定义覆盖同优先级旧规则
+   ----------------------------------------------------------------------------
+   三层跟随（内核 / 光环 / 柔光）的位移由 PointerFx.tsx 的 rAF 写入，
+   这里只管形状、透明度与 hover 态。层级关系：
+     .spotlight   z-index -1（内容之下，像打光）
+     .cursor-glow z-index 110（内容之上，不挡点击）
+   ========================================================================== */
+
+/* 双层柔光：外圈大范围铺底，内圈小亮核跟着指针走 */
+.spotlight {
+  background:
+    radial-gradient(190px circle at var(--mx, 50%) var(--my, 24%),
+      rgba(80, 236, 167, .13), transparent 72%),
+    radial-gradient(560px circle at var(--mx, 50%) var(--my, 24%),
+      rgba(80, 236, 167, .08), transparent 66%);
+}
+
+/* 光环本体：环 + 内核两点 */
+.cursor-glow {
+  width: 30px;
+  height: 30px;
+  border-width: 1.5px;
+  border-color: rgba(80, 236, 167, .72);
+  box-shadow:
+    0 0 22px rgba(80, 236, 167, .38),
+    inset 0 0 12px rgba(80, 236, 167, .22);
+  background: transparent;
+  transform-origin: center;
+  transition:
+    width 260ms var(--ease-out-duo),
+    height 260ms var(--ease-out-duo),
+    border-color 260ms var(--ease-out-duo),
+    background-color 260ms var(--ease-out-duo),
+    box-shadow 260ms var(--ease-out-duo),
+    opacity 300ms;
+}
+
+/* 实心内核：给指针一个确定的落点，比光环跟得更紧 */
+.cursor-glow i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 9px rgba(80, 236, 167, .9);
+  transition:
+    transform 240ms var(--ease-out-duo),
+    opacity 240ms var(--ease-out-duo);
+}
+
+/* 悬停可交互元素：环扩张成淡填充，内核收小让位 */
+.cursor-glow.is-hovering {
+  width: 52px;
+  height: 52px;
+  border-color: var(--primary);
+  background: rgba(80, 236, 167, .10);
+  box-shadow:
+    0 0 30px rgba(80, 236, 167, .45),
+    inset 0 0 16px rgba(80, 236, 167, .18);
+}
+.cursor-glow.is-hovering i {
+  transform: scale(.35);
+  opacity: .45;
+}
+
+/* ============================================================================
+   自定义指针 —— 系统光标被隐藏，屏幕上看到的就是这三层
+   ----------------------------------------------------------------------------
+   层级：.spotlight(z-index -1) → .cursor-glow(9998) → .cursor-dot(9999)
+   位移全部由 PointerFx.tsx 的 rAF 写入，这里只管形态。
+
+   可用性红线：文本框 / 可编辑区保留原生 caret，否则没法选字、没法定位插入点。
+   ========================================================================== */
+
+/* 1. 藏掉系统光标。文本输入类保留，交互可用性优先于观感 */
+html.has-cursor-fx,
+html.has-cursor-fx * { cursor: none !important; }
+html.has-cursor-fx input,
+html.has-cursor-fx textarea,
+html.has-cursor-fx select,
+html.has-cursor-fx [contenteditable="true"] { cursor: auto !important; }
+
+/* 2. 指针主体：8px 实心点，靠负 margin 让中心对准真实坐标（transform 留给 JS） */
+.cursor-dot {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 9999;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow:
+    0 0 8px rgba(80, 236, 167, .92),
+    0 0 20px rgba(80, 236, 167, .42);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms var(--ease-out-duo), transform 120ms var(--ease-out-duo);
+}
+
+/* 3. 主体外环：可点区提示，压在 .cursor-glow 原规则之上 */
+.cursor-glow {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 9998;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(80, 236, 167, .58);
+  background: transparent;
+  box-shadow: 0 0 18px rgba(80, 236, 167, .18);
+  mix-blend-mode: normal;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    width 240ms var(--ease-out-duo),
+    height 240ms var(--ease-out-duo),
+    border-color 240ms var(--ease-out-duo),
+    background-color 240ms var(--ease-out-duo),
+    box-shadow 240ms var(--ease-out-duo),
+    opacity 200ms var(--ease-out-duo);
+}
+
+/* 首次移动后才显形，避免在左上角闪一下 */
+html.cursor-fx-ready .cursor-dot { opacity: 1; }
+html.cursor-fx-ready .cursor-glow { opacity: 1; }
+
+/* 悬停可交互元素：环扩张成淡填充，主体点让位 */
+.cursor-glow.is-hovering {
+  width: 44px;
+  height: 44px;
+  border-color: var(--primary);
+  background: rgba(80, 236, 167, .12);
+  box-shadow:
+    0 0 28px rgba(80, 236, 167, .40),
+    inset 0 0 14px rgba(80, 236, 167, .16);
+}
+html.cursor-fx-ready .cursor-glow.is-hovering { opacity: 1; }
+
+/* 按下：环收紧，给点击一个物理回应 */
+.cursor-glow.is-pressed {
+  width: 16px;
+  height: 16px;
+  border-color: var(--primary);
+  background: rgba(80, 236, 167, .22);
+}
+
+/* 未启用（触屏 / 粗指针 / 减弱动效）时三层都不存在 */
+html:not(.has-cursor-fx) .cursor-dot,
+html:not(.has-cursor-fx) .cursor-glow {
+  display: none;
+}
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .cursor-dot,
+  .cursor-glow,
+  .spotlight { display: none !important; }
+  html.has-cursor-fx,
+  html.has-cursor-fx * { cursor: auto !important; }
+}
+
+/* ============================================================================
+   肌群段改暗 —— 整块亮绿压成深色卡，靠矩阵格子承载亮点
+   ----------------------------------------------------------------------------
+   原实现是 background: var(--primary) 实心亮绿，全页最亮的一块，读久了刺眼。
+   改成：深底 + 低透明绿光晕 + 亮绿描边，矩阵 l3 仍用纯亮绿当视觉焦点——
+   对比关系还在（哪几块练得多一眼可见），但整块的眩光消失。
+   ========================================================================== */
+.muscle-band {
+  background:
+    radial-gradient(120% 92% at 86% 0%, rgba(80, 236, 167, .13), transparent 64%),
+    linear-gradient(155deg, #131C19 0%, #0E100D 72%);
+  border: 1px solid rgba(80, 236, 167, .16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .045),
+    0 24px 60px -40px rgba(0, 0, 0, .9);
+  color: var(--text);
+}
+/* 原白色高光在深底上会发灰，降到几乎察觉不到 */
+.muscle-band::before {
+  background: radial-gradient(ellipse 60% 120% at 88% -10%, rgba(255, 255, 255, .055), transparent 62%);
+}
+
+.muscle-eyebrow { color: var(--primary); }
+.muscle-eyebrow::before { background: rgba(80, 236, 167, .7); }
+.muscle-h2 { color: var(--text); }
+.muscle-lede { color: var(--text-2); }
+.muscle-row-k { color: var(--text-3); }
+
+/* 深底上的量级表达：空格 → 淡 → 中 → 纯亮绿 */
+.muscle-cell {
+  background: rgba(80, 236, 167, .055);
+  border: 1px solid rgba(80, 236, 167, .10);
+  color: var(--text-3);
+}
+.muscle-cell.l1 {
+  background: rgba(80, 236, 167, .14);
+  color: var(--text-2);
+}
+.muscle-cell.l2 {
+  background: rgba(80, 236, 167, .27);
+  color: var(--text);
+}
+.muscle-cell.l3 {
+  background: var(--primary);
+  color: var(--text-on-primary);
+  border-color: var(--primary);
+  box-shadow: 0 0 18px -4px rgba(80, 236, 167, .55);
+}
+.muscle-cell.l0 {
+  opacity: .42;
+  border-style: dashed;
+}
+.muscle-cell:hover {
+  border-color: rgba(80, 236, 167, .38);
+}
