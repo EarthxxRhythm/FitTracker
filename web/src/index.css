@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "./legacy.css";
-@import "./app-demo.css";
 
 /* ============================================================================
    设计令牌 —— 逐条转录自 App 的 DesignTokens

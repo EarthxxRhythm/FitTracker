@@ -1,6 +1,6 @@
 import { motion, useReducedMotion, useScroll, useSpring } from 'framer-motion'
 import Aurora from './components/Aurora'
-import AppDemo from './components/AppDemo'
+import AppShell from './app/AppShell'
 import PointerFx from './components/PointerFx'
 
 /* ============================================================================
@@ -133,9 +133,7 @@ export default function App() {
             <a href="#flow">训练闭环</a>
             <a href="#bento">功能</a>
             <a href="#gallery">界面</a>
-                <a className="btn btn-ghost" href="#app">在线体验 →</a>
             <a href="#privacy">数据与隐私</a>
-            <a href="#app">在线体验</a>
           </nav>
           <a className="topbar-cta" href={GITHUB} target="_blank" rel="noopener noreferrer">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -191,7 +189,9 @@ export default function App() {
             </div>
 
             <div className="hero-art">
-              <AppDemo />
+              <div className="phone hero-app-phone">
+                <AppShell />
+              </div>
             </div>
           </div>
         </section>

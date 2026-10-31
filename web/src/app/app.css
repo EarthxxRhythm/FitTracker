@@ -1047,3 +1047,207 @@
     transition: none !important;
   }
 }
+
+/* ============================================================================
+   Hero 嵌入模式
+   ----------------------------------------------------------------------------
+   app 不在独立页面里，而是活在 .hero-art 的手机壳内：宽度 min(320px, 78vw)，
+   高度由 aspect-ratio 540/1186 定（320px 宽 → 703px 高）。所以这里做两件事：
+
+     1. 把视口级定位改掉：.ft-root 的 100dvh、.ft-tabs/.ft-toast 的 fixed、
+        .ft-main 的 max-width:720px，全部改成壳内定位。
+     2. 字号与间距压一档——同样的九屏内容要塞进 320px 宽。
+
+   唯一的例外是输入框：刻意保持 15px。低于 14px 时 iOS Safari 聚焦会强制放大整页。
+   ========================================================================== */
+
+.hero-art { min-width: 0; }
+
+.hero-app-phone {
+  --app-w: min(320px, 78vw);
+  width: var(--app-w);
+  max-width: 100%;
+  aspect-ratio: 540 / 1186;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--color-ink, #0e100d);
+  color: var(--color-fg, #edf6f2);
+  overflow: hidden;
+  font-size: 13px;
+  text-align: left;
+}
+
+/* ── 模拟状态栏 ─────────────────────────────────────────────────────── */
+
+.hero-app-status {
+  flex: none;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-fg-2, #a3b3ad);
+}
+
+.hero-app-sig {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.hero-app-sig i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  display: block;
+}
+
+.hero-app-sig i:nth-child(1) { opacity: 0.35; }
+.hero-app-sig i:nth-child(2) { opacity: 0.65; }
+
+.hero-app-sig b {
+  font-size: 11px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ── 内容区：壳内滚动 ───────────────────────────────────────────────── */
+/* min-height:0 是关键：不写这句，flex 子项不会收缩，滚动条根本不会出现 */
+
+.hero-app-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  max-width: none;
+  margin: 0;
+  padding: 10px 12px 74px;
+  gap: 11px;
+}
+
+.hero-app-body::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Tab 与提示：视口定位 → 壳内定位 ────────────────────────────────── */
+
+.hero-app .ft-tabs {
+  position: absolute;
+  gap: 2px;
+  padding: 6px 8px;
+}
+
+.hero-app .ft-tab {
+  padding: 7px 11px;
+  font-size: 11.5px;
+  border-radius: 10px;
+}
+
+.hero-app .ft-tab-cta {
+  width: 38px;
+  height: 38px;
+  margin: -10px 4px 0;
+  box-shadow: 0 3px 12px rgba(76, 236, 164, 0.35);
+}
+
+.hero-app .ft-tab-cta svg {
+  width: 17px;
+  height: 17px;
+}
+
+.hero-app .ft-toast {
+  position: absolute;
+  bottom: 62px;
+  font-size: 11.5px;
+  padding: 7px 12px;
+  max-width: 90%;
+}
+
+/* ── 紧凑排版 ───────────────────────────────────────────────────────── */
+
+.hero-app .ft-h1 { font-size: 18px; }
+.hero-app .ft-eyebrow { font-size: 10px; letter-spacing: 0.1em; }
+.hero-app .ft-sub { font-size: 11.5px; line-height: 1.5; }
+
+.hero-app .ft-card { padding: 11px; border-radius: 14px; gap: 8px; }
+.hero-app .ft-card-title { font-size: 12.5px; }
+.hero-app .ft-card-meta { font-size: 10.5px; }
+
+.hero-app .ft-metrics { gap: 5px; }
+.hero-app .ft-metric { padding: 8px 3px; border-radius: 11px; }
+.hero-app .ft-metric b { font-size: 16px; }
+.hero-app .ft-metric span { font-size: 9.5px; }
+
+.hero-app .ft-row { padding: 8px 0; gap: 8px; }
+.hero-app .ft-row-t { font-size: 12.5px; }
+.hero-app .ft-row-s { font-size: 10px; }
+.hero-app .ft-row-v { font-size: 11.5px; }
+.hero-app .ft-row-idx { font-size: 10px; width: 14px; }
+
+.hero-app .ft-pill { font-size: 9.5px; padding: 2px 6px; }
+
+.hero-app .ft-btn { padding: 10px 13px; font-size: 12.5px; border-radius: 11px; }
+.hero-app .ft-btn-sm { padding: 6px 9px; font-size: 11px; border-radius: 8px; }
+.hero-app .ft-back { padding: 5px 9px; font-size: 11px; }
+
+/* 输入框不压：15px 是 iOS 不强制缩放的下限附近 */
+.hero-app .ft-input { font-size: 15px; padding: 8px 9px; border-radius: 9px; }
+.hero-app .ft-field label { font-size: 9.5px; }
+.hero-app .ft-input-row { gap: 7px; }
+
+.hero-app .ft-seg { padding: 2px; border-radius: 9px; }
+.hero-app .ft-seg button { font-size: 11px; padding: 5px 9px; border-radius: 7px; }
+
+.hero-app .ft-chips { gap: 5px; }
+.hero-app .ft-chip { font-size: 10.5px; padding: 5px 9px; }
+.hero-app .ft-chip small { font-size: 9px; }
+
+.hero-app .ft-ring { width: 56px; height: 56px; }
+.hero-app .ft-ring-label b { font-size: 13px; }
+.hero-app .ft-ring-label span { font-size: 8px; }
+
+.hero-app .ft-week { gap: 3px; }
+.hero-app .ft-day { padding: 6px 0 5px; font-size: 9.5px; border-radius: 8px; gap: 3px; }
+.hero-app .ft-day b { font-size: 10.5px; }
+
+.hero-app .ft-set-bars { gap: 3px; }
+
+.hero-app .ft-bars { height: 72px; gap: 5px; }
+.hero-app .ft-bar span { font-size: 9px; }
+
+.hero-app .ft-muscle-grid { grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.hero-app .ft-muscle-cell { font-size: 8.5px; border-radius: 6px; }
+
+.hero-app .ft-rank { gap: 5px; }
+.hero-app .ft-rank-row { font-size: 11px; gap: 7px; }
+.hero-app .ft-rank-row .nm { width: 42px; }
+.hero-app .ft-rank-row .v { width: 26px; font-size: 10px; }
+.hero-app .ft-legend { font-size: 9px; }
+
+.hero-app .ft-plan-card { padding: 11px; border-radius: 14px; gap: 8px; }
+.hero-app .ft-plan-name { font-size: 13px; }
+.hero-app .ft-plan-desc { font-size: 10.5px; }
+
+.hero-app .ft-lib-row { padding: 8px 0; gap: 9px; }
+.hero-app .ft-lib-ic { width: 30px; height: 30px; border-radius: 9px; }
+.hero-app .ft-lib-ic svg { width: 16px; height: 16px; }
+
+.hero-app .ft-detail-list { font-size: 11.5px; padding-left: 15px; gap: 5px; }
+.hero-app .ft-empty { padding: 18px 8px; font-size: 11px; }
+.hero-app .ft-hint { font-size: 10px; line-height: 1.45; }
+.hero-app .ft-spark { height: 84px; }
+.hero-app .ft-stepper button { width: 32px; font-size: 15px; }
+.hero-app .ft-search { gap: 6px; }

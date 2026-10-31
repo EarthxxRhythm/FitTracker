@@ -98,6 +98,7 @@ export default function AppShell() {
 
   const content = useMemo(() => buildContentIndex(EXERCISES), [])
   const toastTimer = useRef<number>(0)
+  const bodyRef = useRef<HTMLElement | null>(null)
 
   const now = Date.now()
   const plan = findPresetPlan(snapshot.currentPlanId) ?? PRESET_PLANS[0]
@@ -128,7 +129,7 @@ export default function AppShell() {
 
   const go = useCallback((next: Screen) => {
     setScreen(next)
-    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
+    bodyRef.current?.scrollTo({ top: 0 })
   }, [])
 
   // ── 训练流程 ────────────────────────────────────────────────────────
@@ -196,29 +197,18 @@ export default function AppShell() {
   const weekStarts = weekDayStarts(now, snapshot.settings.weekStart)
 
   return (
-    <div className="ft-root">
-      <header className="ft-top">
-        <a className="ft-brand" href="#/">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="M 18.527 5.473 A 9.231 9.231 0 1 1 5.473 5.473"
-              fill="none"
-              stroke="#4CECA4"
-              strokeWidth="3.538"
-              strokeLinecap="round"
-            />
-            <circle cx="12" cy="2.769" r="2.154" fill="#4CECA4" />
-          </svg>
-          在线体验
-          <em>FitTracker</em>
-        </a>
-        <span className="ft-top-spacer" />
-        <a className="ft-back" href="#/">
-          ← 返回官网
-        </a>
-      </header>
+    <div className="hero-app">
+      <div className="hero-app-status">
+        <span>12:28</span>
+        <span className="hero-app-sig">
+          <i />
+          <i />
+          <i />
+          <b>82</b>
+        </span>
+      </div>
 
-      <main className="ft-main">
+      <main className="ft-main hero-app-body" ref={bodyRef}>
         {screen === 'home' && (
           <HomeScreen
             snapshot={snapshot}
