@@ -57,6 +57,34 @@ const WEIGHT_MAX_KG: number = 200
 // 目标次数解析不出时的兜底（原型输入框占位为「8–10」）。
 const FALLBACK_REPS: number = 8
 
+// 动作切换图标（24×24 设计坐标，与渲染尺寸 1:1，与安卓 ActiveScreen 的 SwitchIcon 同源）。
+//
+// 收起态是菜单三横线（☰，y = 7 / 12 / 17、长 15），展开态是 X（两条对角线过中心 (12,12)、
+// 长 √288 ≈ 16.97）：上横线转到 +45° 并上移到中心，成为「左上 → 右下」那条；下横线转到 −45°
+// 同理；中横线两端向中心收拢到零长并淡出。
+//
+// 不复用「小坐标 + 缩放」：缩放会让三条横线落在非整数像素上，抗锯齿程度各不相同，
+// 看上去一条深一条浅。坐标取整数、渲染尺寸取 1:1，三条线就是同一张脸。
+//
+// 不再用 chevron：顶栏左侧的「收起训练」已经是一个 chevron-down，同一个字形在同一行承担
+// 「离开」与「切换」两种语义，而误触两者的代价并不对称。三横线＝菜单，形状上分得开，
+// 也正是这个按钮真正在做的事。
+const SWITCH_ICON_SIZE: number = 24
+const SWITCH_ICON_STROKE: number = 2.6
+/** 三横线：线长，以及上下两条横线到中心的距离 */
+const SWITCH_ICON_BAR_LEN: number = 15
+const SWITCH_ICON_BAR_SHIFT: number = 5
+/** X 的对角线长 √288 ≈ 16.97 */
+const SWITCH_ICON_CROSS_LEN: number = 16.97
+/**
+ * 线条色：60% 白与顶栏底色（SCRIM_DEEP ≈ #0A0D12）合成后的等效实色。
+ *
+ * 不用半透明白：X 态两条对角线在中心交叉，交叠处会再合成一次 alpha
+ * （1 − (1 − .6)² ≈ .84），交叉点显眼地比线身亮——「线条明暗不一」的主因。
+ * 合成成实色后，交叉与线身是同一个值，怎么叠都不变。
+ */
+const SWITCH_ICON_INK: string = '#9D9EA0'
+
 // 组胶囊：一个胶囊 = 一组（当前动作的目标组数）。高 26，整行等分铺满。
 // 组数多时靠 SET_PILL_MIN_WIDTH 兜底：宽度退到与高度相等（正圆点），不再继续变扁。
 const SET_PILL_HEIGHT: number = 26
@@ -154,6 +182,8 @@ export struct ActiveContent {
   @State private collapsePressed: boolean = false
   /** 动作切换弹层开关（点顶栏动作名打开）。 */
   @State private showExercisePicker: boolean = false
+  /** 动作切换图标的按压态（仅图标缩放，不缩整行：整行含动作名，缩了会抓不住重点）。 */
+  @State private switchPressed: boolean = false
   /** 名称滚动替换：0 → -28 旧名上滑淡出；28 → 0 新名升入。 */
   @State private nameShift: number = 0
   @State private nameOpacity: number = 1
@@ -761,8 +791,14 @@ export struct ActiveContent {
       index === exercise.completedSets && index < exercise.targetSets
   }
 
-  private openExercisePicker(): void {
-    this.showExercisePicker = true
+  /**
+   * 动作切换菜单开合。
+   *
+   * 曾经只置 true：图标变 X 却点不关——X 承诺了「点我关闭」，行为却只能开。
+   * 现在双向切换，与图标语义对齐。
+   */
+  private toggleExercisePicker(): void {
+    this.showExercisePicker = !this.showExercisePicker
   }
 
   /** 弹层里第 index 个动作的显示名。 */
@@ -1016,7 +1052,7 @@ export struct ActiveContent {
     Column({ space: 10 }) {
       Row() {
         this.collapseButton()
-        Row({ space: 4 }) {
+        Row({ space: 6 }) {
           Text(this.currentExerciseLabel())
             .fontFamily('Noto Sans SC')
             .fontSize(20)
@@ -1026,21 +1062,21 @@ export struct ActiveContent {
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .opacity(this.nameOpacity)
             .translate({ y: this.nameShift })
-          Path()
-            .width(14)
-            .height(14)
-            .commands('M3 5 L7 9 L11 5')
-            .fill(PrototypeTokens.TRANSPARENT)
-            .stroke(PrototypeTokens.WHITE_A54)
-            .strokeWidth(1.6)
-            .strokeLineCap(LineCapStyle.Round)
+          this.switchIcon()
         }
         .layoutWeight(1)
         .height(44)
         .justifyContent(FlexAlign.Center)
-        .accessibilityText('切换动作')
+        .accessibilityText(this.showExercisePicker ? '切换动作，已展开' : '切换动作')
+        .onTouch((event: TouchEvent) => {
+          if (event.type === TouchType.Down) {
+            this.switchPressed = true
+          } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+            this.switchPressed = false
+          }
+        })
         .onClick(() => {
-          this.openExercisePicker()
+          this.toggleExercisePicker()
         })
         .bindPopup(this.showExercisePicker, {
           builder: (): void => {
@@ -1052,6 +1088,11 @@ export struct ActiveContent {
           enableArrow: true,
           autoCancel: true,
           mask: true,
+          // 点遮罩 / 按返回键关闭时 ArkUI 只回调、不改绑定的 @State。不同步的话图标会停在 X，
+          // 后续 toggleExercisePicker() 读到的是过期状态，图标与菜单会错开一拍。
+          onStateChange: (e) => {
+            this.showExercisePicker = e.isVisible
+          },
           radius: 16
           // 不设 width：动作名长短差别大，固定宽度必然一边留空（140 时最长项只占 66dp）。
           // 内容有多宽菜单就多宽，上限由列表容器 Column 的 constraintSize(maxWidth) 兜住；
@@ -1071,6 +1112,57 @@ export struct ActiveContent {
     // 曾误按 #RRGGBBAA 写成 #0A0D12F5（= 4% 透明 + RGB(13,18,245)），顶栏因此比主体偏蓝。
     .backgroundColor(PrototypeTokens.SCRIM_DEEP)
     .border({ width: { bottom: 1 }, color: PrototypeTokens.WHITE_A06 })
+  }
+
+  /**
+   * 动作切换图标：收起态 chevron-down，展开态 X，两态之间是真正的路径形变。
+   *
+   * 用两条 ±45° 线段而不是 Path + commands：commands 是构造参数，不可补间。
+   * 这两条线段的端点恰好就是 chevron 与 X 的端点，且两态方向都是 ±45°，
+   * 于是「段长 + 段心位移」的线性补间与端点线性插值逐帧等价——观感同逐帧重绘路径，
+   * 实现上只是两个普通属性的隐式动画。
+   *
+   * 颜色与粗细沿用原 Path：WHITE_A54 + 1.6 圆头。
+   *
+   * 位移用 offset 而不是 translate：offset 是纯绘制偏移、不入 transform 矩阵，
+   * 与 rotate 恒等解耦（同 SegmentedPill.slider 的 width + offset 同期补间先例）。
+   * 角度补间在 ArkUI 是合法属性动画——先例见 PlanContent 卡片堆叠的
+   * rotate({ angle: this.rel(index) * 6 }) + .animation(SPRING_SETTLE)。
+   */
+  @Builder
+  private switchIcon() {
+    Stack({ alignContent: Alignment.Center }) {
+      // 上横线 → X 的「左上 → 右下」
+      Row()
+        .width(this.showExercisePicker ? SWITCH_ICON_CROSS_LEN : SWITCH_ICON_BAR_LEN)
+        .height(SWITCH_ICON_STROKE)
+        .borderRadius(SWITCH_ICON_STROKE / 2)
+        .backgroundColor(SWITCH_ICON_INK)
+        .offset({ y: this.showExercisePicker ? 0 : -SWITCH_ICON_BAR_SHIFT })
+        .rotate({ angle: this.showExercisePicker ? 45 : 0 })
+        .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: MotionTokens.EASE_MOTION })
+      // 中横线：两端向中心收拢到零长并淡出
+      Row()
+        .width(this.showExercisePicker ? 0 : SWITCH_ICON_BAR_LEN)
+        .height(SWITCH_ICON_STROKE)
+        .borderRadius(SWITCH_ICON_STROKE / 2)
+        .backgroundColor(SWITCH_ICON_INK)
+        .opacity(this.showExercisePicker ? 0 : 1)
+        .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: MotionTokens.EASE_MOTION })
+      // 下横线 → X 的「左下 → 右上」
+      Row()
+        .width(this.showExercisePicker ? SWITCH_ICON_CROSS_LEN : SWITCH_ICON_BAR_LEN)
+        .height(SWITCH_ICON_STROKE)
+        .borderRadius(SWITCH_ICON_STROKE / 2)
+        .backgroundColor(SWITCH_ICON_INK)
+        .offset({ y: this.showExercisePicker ? 0 : SWITCH_ICON_BAR_SHIFT })
+        .rotate({ angle: this.showExercisePicker ? -45 : 0 })
+        .animation({ duration: MotionTokens.DURATION_COLOR_FAST, curve: MotionTokens.EASE_MOTION })
+    }
+    .width(SWITCH_ICON_SIZE)
+    .height(SWITCH_ICON_SIZE)
+    .scale({ x: this.switchPressed ? 0.88 : 1, y: this.switchPressed ? 0.88 : 1 })
+    .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
   }
 
   /**

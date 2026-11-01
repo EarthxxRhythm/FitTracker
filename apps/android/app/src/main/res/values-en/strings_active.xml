@@ -55,4 +55,8 @@
     <string name="active_celebrate_title">Set complete</string>
     <string name="active_celebrate_subtitle">Nice work</string>
 
+    <!-- 动作切换按钮的开合态（读屏用，视觉上由图标形变表达） -->
+    <string name="active_switch_expanded">Exercise menu expanded</string>
+    <string name="active_switch_collapsed">Exercise menu collapsed</string>
+
 </resources>

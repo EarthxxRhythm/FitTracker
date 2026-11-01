@@ -76,4 +76,8 @@
     <string name="active_celebrate_title">本组完成</string>
     <string name="active_celebrate_subtitle">做得很好</string>
 
+    <!-- 动作切换按钮的开合态（读屏用，视觉上由图标形变表达） -->
+    <string name="active_switch_expanded">动作菜单已展开</string>
+    <string name="active_switch_collapsed">动作菜单已收起</string>
+
 </resources>

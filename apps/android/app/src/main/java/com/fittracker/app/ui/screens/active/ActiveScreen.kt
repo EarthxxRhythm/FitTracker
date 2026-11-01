@@ -89,6 +89,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -427,7 +428,7 @@ fun ActiveScreen(
                 exercises = workout?.exercises.orEmpty(),
                 selectedIndex = selectedIndex,
                 showPicker = showPicker,
-                onOpenPicker = { showPicker = true },
+                onTogglePicker = { showPicker = !showPicker },
                 onDismissPicker = { showPicker = false },
                 onSelect = { index -> chooseExercise(index) },
             )
@@ -509,7 +510,7 @@ private fun ActiveTop(
     exercises: List<ActiveWorkoutExercise>,
     selectedIndex: Int,
     showPicker: Boolean,
-    onOpenPicker: () -> Unit,
+    onTogglePicker: () -> Unit,
     onDismissPicker: () -> Unit,
     onSelect: (Int) -> Unit,
 ) {
@@ -533,7 +534,7 @@ private fun ActiveTop(
                 exercises = exercises,
                 selectedIndex = selectedIndex,
                 showPicker = showPicker,
-                onOpenPicker = onOpenPicker,
+                onTogglePicker = onTogglePicker,
                 onDismissPicker = onDismissPicker,
                 onSelect = onSelect,
                 modifier = Modifier.weight(1f),
@@ -821,13 +822,16 @@ private fun ExerciseSwitcher(
     exercises: List<ActiveWorkoutExercise>,
     selectedIndex: Int,
     showPicker: Boolean,
-    onOpenPicker: () -> Unit,
+    onTogglePicker: () -> Unit,
     onDismissPicker: () -> Unit,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val switchLabel = stringResource(R.string.active_switch_exercise)
+    val expandedLabel = stringResource(R.string.active_switch_expanded)
+    val collapsedLabel = stringResource(R.string.active_switch_collapsed)
     val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
     // 列表要在动作名**下方**居中：DropdownMenu 默认锦在父容器左上角，
     // 而这一格是 weight(1f) 铺满剩余的，不补偏移就会跑到屏幕左侧。
     BoxWithConstraints(modifier = modifier) {
@@ -844,10 +848,13 @@ private fun ExerciseSwitcher(
                 .fillMaxWidth()
                 .height(44.dp)
                 .clip(FtShape.pill)
-                .clickable(interactionSource = interaction, indication = null, onClick = onOpenPicker)
-                .semantics { contentDescription = switchLabel },
+                .clickable(interactionSource = interaction, indication = null, onClick = onTogglePicker)
+                .semantics {
+                    contentDescription = switchLabel
+                    stateDescription = if (showPicker) expandedLabel else collapsedLabel
+                },
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
         ) {
             AnimatedContent(
                 targetState = exerciseName,
@@ -865,18 +872,7 @@ private fun ExerciseSwitcher(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Canvas(modifier = Modifier.size(14.dp)) {
-                val path = Path().apply {
-                    moveTo(size.width * 0.22f, size.height * 0.36f)
-                    lineTo(size.width * 0.50f, size.height * 0.64f)
-                    lineTo(size.width * 0.78f, size.height * 0.36f)
-                }
-                drawPath(
-                    path = path,
-                    color = FtColor.white60,
-                    style = Stroke(width = 1.6.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round),
-                )
-            }
+            SwitchIcon(open = showPicker, pressed = pressed)
         }
         DropdownMenu(
             expanded = showPicker,
@@ -921,6 +917,89 @@ private fun ExerciseSwitcher(
                     onClick = { onSelect(index) },
                 )
             }
+        }
+    }
+}
+
+/**
+ * 动作切换图标的线条色：60% 白与顶栏底色（`TopFill` ≈ #0A0D12）合成后的等效实色。
+ *
+ * 不用半透明白：X 态两条对角线在中心交叉，半透明会在交叠处再合成一次 alpha
+ * （1 − (1 − .6)² ≈ .84），交叉点会显眼地比线身亮——「线条明暗不一」的主因。
+ * 合成成实色后，交叉与线身是同一个值，无论怎么叠都不变。
+ */
+private val SwitchInk = Color(0xFF9D9EA0)
+
+/**
+ * 动作切换图标：收起态是菜单三横线（☰），展开态是 X，两态之间是路径形变。
+ *
+ * 24×24 设计坐标（与渲染尺寸 1:1，与鸿蒙 `ActiveContent.switchIcon` 同源）：
+ * 三横线 y = 7 / 12 / 17、长 15；X 的两条对角线过中心 (12,12)、长 √288 ≈ 16.97。
+ * 上横线转到 +45° 并上移到中心，成为「左上→右下」那条；下横线转到 −45° 同理；
+ * 中横线两端向中心收拢到零长并淡出。角度与端点都是线性补间，直接插值即可。
+ *
+ * 坐标取整数而不是沿用 14 基准再缩放：缩放会让三条横线落在非整数像素上，
+ * 抗锯齿程度各不相同，看上去一条深一条浅。
+ *
+ * 为什么不是 chevron：顶栏左侧的「收起训练」就是一个 chevron-down，同一个字形在同一行
+ * 承担「离开」与「切换」两种语义，而误触两者的代价不对称。三横线 = 菜单，形状上分得开，
+ * 也正是这个按钮真正在做的事。
+ */
+@Composable
+private fun SwitchIcon(open: Boolean, pressed: Boolean) {
+    val morph by animateFloatAsState(
+        targetValue = if (open) 1f else 0f,
+        animationSpec = tween(FtMotion.DURATION_COLOR_FAST, easing = FtMotion.EASE_MOTION),
+        label = "switchIconMorph",
+    )
+    val pressScale by animateFloatAsState(
+        targetValue = if (pressed) FtMotion.PRESS_SCALE_ICON_BTN else 1f,
+        animationSpec = tween(FtMotion.DURATION_PRESS),
+        label = "switchIconPress",
+    )
+    Canvas(
+        modifier = Modifier
+            .size(24.dp)
+            .graphicsLayer {
+                scaleX = pressScale
+                scaleY = pressScale
+            },
+    ) {
+        val sx = size.width / 24f
+        val sy = size.height / 24f
+        val strokeWidth = 2.6.dp.toPx()
+        val barLen = 15f + (16.97f - 15f) * morph // 横线 → 对角线，长度略增
+        val half = barLen / 2f
+        val shift = 5f * (1f - morph) // 横线到中心的距离：5 → 0
+        val rad = Math.toRadians((45f * morph).toDouble())
+        val dx = (half * Math.cos(rad)).toFloat()
+        val dy = (half * Math.sin(rad)).toFloat()
+        // 上横线 → 「左上→右下」：中心 y = 12 − shift，θ = +45°·morph
+        drawLine(
+            color = SwitchInk,
+            start = Offset((12f - dx) * sx, (12f - shift - dy) * sy),
+            end = Offset((12f + dx) * sx, (12f - shift + dy) * sy),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round,
+        )
+        // 下横线 → 「左下→右上」：中心 y = 12 + shift，θ = −45°·morph
+        drawLine(
+            color = SwitchInk,
+            start = Offset((12f - dx) * sx, (12f + shift + dy) * sy),
+            end = Offset((12f + dx) * sx, (12f + shift - dy) * sy),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round,
+        )
+        // 中横线：两端向中心收拢到零长，同时淡出
+        if (morph < 1f) {
+            val midHalf = 7.5f * (1f - morph)
+            drawLine(
+                color = SwitchInk.copy(alpha = 1f - morph),
+                start = Offset((12f - midHalf) * sx, 12f * sy),
+                end = Offset((12f + midHalf) * sx, 12f * sy),
+                strokeWidth = strokeWidth,
+                cap = StrokeCap.Round,
+            )
         }
     }
 }
