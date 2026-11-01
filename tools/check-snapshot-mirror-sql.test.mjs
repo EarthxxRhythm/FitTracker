@@ -141,6 +141,19 @@ test('7 张镜像表均 enable row level security 且仅有 select 策略', () =
   }
 })
 
+test('拆分真源从 backupJson 解析（envelope 层防回退）', () => {
+  // snapshots.payload 外层是 CloudPayloadEnvelope，备份包在 backupJson 字符串里——
+  // 若函数直接拆 payload 顶层（sessions 全 NULL → 镜像 0 行），此断言红。
+  assert.match(
+    mirrorSql,
+    /v_backup\s+jsonb\s*:=\s*coalesce\(\(v_payload\s*->>\s*'backupJson'\)::jsonb/
+  )
+  assert.ok(
+    !/jsonb_to_recordset\(coalesce\(v_payload\s*->\s*'sessions'/.test(mirrorSql),
+    'sessions 拆分必须来自 v_backup（backupJson 解析后），不得拆 envelope 顶层'
+  )
+})
+
 test('snapshots 真源零改动：无 alter/drop policy 作用于 public.snapshots', () => {
   assert.ok(!/alter\s+table\s+public\.snapshots/.test(mirrorSql), '不得 alter snapshots 表')
   assert.ok(

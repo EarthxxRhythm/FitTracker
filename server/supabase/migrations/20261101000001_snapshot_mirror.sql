@@ -194,6 +194,10 @@ set search_path = pg_catalog, public
 as $$
 declare
   v_payload jsonb := coalesce(new.payload, '{}'::jsonb);
+  -- snapshots.payload 外层是 CloudPayloadEnvelope（schemaVersion/backupJson/nickname/avatar/weightUnit），
+  -- 备份包本体在 backupJson **字符串**里——必须先解析一次再拆。旧版直接把 v_payload 当备份包
+  -- 拆（sessions 等全 NULL → 镜像 0 行），此修复以 v_backup 为拆分真源。
+  v_backup  jsonb := coalesce((v_payload ->> 'backupJson')::jsonb, '{}'::jsonb);
 begin
   -- 全删：镜像表是派生数据，不做增量 diff（幂等重建）
   delete from public.snapshot_goals             where user_id = new.user_id;
@@ -221,7 +225,13 @@ begin
     coalesce(g."restrictedMuscleIds", '[]'::jsonb),
     g."createdAt",
     g."updatedAt"
-  from jsonb_to_record(v_payload -> 'goal') as g(
+  -- goal：Kotlin 可空单值字段 → JSON null（标量）；jsonb_to_record(标量) 会报
+  -- "cannot call populate_composite on a scalar"，故类型守卫：仅 object 才拆，
+  -- 否则给空对象 → 全 NULL 行由 goalId 非空守卫过滤。
+  from jsonb_to_record(case
+    when jsonb_typeof(v_backup -> 'goal') = 'object' then v_backup -> 'goal'
+    else '{}'::jsonb
+  end) as g(
     "goalId"              text,
     "goalType"            text,
     level                 text,
@@ -249,7 +259,7 @@ begin
     p.description,
     coalesce(p.days, '[]'::jsonb),
     p."enabledAt"
-  from jsonb_to_recordset(coalesce(v_payload -> 'plans', '[]'::jsonb)) as p(
+  from jsonb_to_recordset(coalesce(v_backup -> 'plans', '[]'::jsonb)) as p(
     id                 text,
     name               text,
     "coverColor"       text,
@@ -279,7 +289,7 @@ begin
     t."fatigueScore",
     coalesce(t."sessionRpe", 0),
     t.notes
-  from jsonb_to_recordset(coalesce(v_payload -> 'sessions', '[]'::jsonb)) as t(
+  from jsonb_to_recordset(coalesce(v_backup -> 'sessions', '[]'::jsonb)) as t(
     "sessionId"       text,
     "planId"          text,
     "dayId"           text,
@@ -308,7 +318,7 @@ begin
     s.reps,
     s.rpe,
     coalesce(s."isWarmup", false)
-  from jsonb_to_recordset(coalesce(v_payload -> 'sessions', '[]'::jsonb)) as t(
+  from jsonb_to_recordset(coalesce(v_backup -> 'sessions', '[]'::jsonb)) as t(
     "sessionId" text,
     sets        jsonb
   )
@@ -329,7 +339,7 @@ begin
     new.user_id,
     r."dateMillis",
     r.kg
-  from jsonb_to_recordset(coalesce(v_payload -> 'bodyRecords', '[]'::jsonb)) as r(
+  from jsonb_to_recordset(coalesce(v_backup -> 'bodyRecords', '[]'::jsonb)) as r(
     "dateMillis" bigint,
     kg           double precision
   )
@@ -350,7 +360,7 @@ begin
     coalesce(m."bodyFatPercent", -1),
     coalesce(m."skeletalMuscleKg", -1),
     coalesce(m."bodyWaterPercent", -1)
-  from jsonb_to_recordset(coalesce(v_payload -> 'bodyMeasurements', '[]'::jsonb)) as m(
+  from jsonb_to_recordset(coalesce(v_backup -> 'bodyMeasurements', '[]'::jsonb)) as m(
     "dateMillis"        bigint,
     "chestCm"           double precision,
     "waistCm"           double precision,
@@ -370,10 +380,10 @@ begin
   )
   values (
     new.user_id,
-    (v_payload ->> 'schemaVersion')::integer,
-    (v_payload ->> 'exportedAt')::bigint,
-    v_payload ->> 'currentPlanId',
-    ((v_payload -> 'contentMeta') ->> 'contentVersion')::integer
+    (v_backup ->> 'schemaVersion')::integer,
+    (v_backup ->> 'exportedAt')::bigint,
+    v_backup ->> 'currentPlanId',
+    ((v_backup -> 'contentMeta') ->> 'contentVersion')::integer
   );
 
   return null;  -- after 触发器返回值被忽略
