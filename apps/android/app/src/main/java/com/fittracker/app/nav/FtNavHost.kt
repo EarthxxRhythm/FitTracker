@@ -176,4 +176,9 @@ fun NavHostController.navigateToTab(routeId: String) {
         launchSingleTop = true
         restoreState = true
     }
+    // restoreState 恢复保存态时会把该 tab 之前压在它上面的**整串嵌套帧**一并恢复
+    // （探针实测：plan 保存 [plan, complete, review]，切回时栈顶成 review——用户报的
+    // 「点计划跳到回顾」即此）。恢复后收敛到 tab 根：弹出目标 tab 之上的嵌套帧，
+    // 保其 ViewModelStore 与 saveState 语义不变（NavigateToTabStackTest 守护）。
+    popBackStack(routeId, inclusive = false)
 }

@@ -163,6 +163,8 @@ dependencies {
     implementation(files("libs/open_sdk_3.5.19_r9483ffc7_lite.jar"))
 
     testImplementation(libs.junit)
+    // NavHost 栈行为探针（TestNavHostController）——navigateToTab 保存/恢复语义的 JVM 反证
+    testImplementation(libs.androidx.navigation.testing)
     // Compose 布局层测试（Robolectric 在 JVM 上跑组合/测量）——见 FtCanvasLayoutTest
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.work.testing)
