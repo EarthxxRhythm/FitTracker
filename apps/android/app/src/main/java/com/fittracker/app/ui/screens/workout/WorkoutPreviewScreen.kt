@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fittracker.app.R
 import com.fittracker.app.data.model.UserPlan
+import com.fittracker.app.data.model.WorkoutSession
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
 import com.fittracker.app.data.service.ActiveWorkoutService
@@ -64,9 +65,11 @@ import com.fittracker.app.data.service.TrainingPlanRepository
 import com.fittracker.app.data.service.WorkoutDraftService
 import com.fittracker.app.data.service.WorkoutDraftSnapshot
 import com.fittracker.app.data.service.WorkoutExerciseDraft
+import com.fittracker.app.data.service.WorkoutRepository
 import com.fittracker.app.data.service.WorkoutPreviewExercise
 import com.fittracker.app.data.service.WorkoutPreviewSummary
 import com.fittracker.app.data.service.WorkoutSetDraft
+import com.fittracker.app.data.service.hasWorkoutDraftProgress
 import com.fittracker.app.ui.theme.DuTokens
 import com.fittracker.app.ui.theme.FtColor
 import com.fittracker.app.ui.theme.FtMotion
@@ -74,6 +77,9 @@ import com.fittracker.app.ui.theme.FtShape
 import com.fittracker.app.ui.theme.FtType
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlin.math.abs
 
 /**
  * 训练预览屏（原型 `fittracker-training-preview.html` 的 `screen-training-preview` 帧，L427-520）。
@@ -237,12 +243,19 @@ fun WorkoutPreviewScreen(
                             scope.launch {
                                 // 训练域接线：开工前把活跃训练态落草稿（active 屏据此重入恢复）；
                                 // 无计划则清空草稿（active 屏按「无草稿 → 全新训练」降级）。
+                                // 只写「有进度」的草稿：预览态从零开始，写下去的必然是一份
+                                // 零进度快照——那是盘上「草稿无进度」这一边缘态的唯一写入点
+                                // （恢复分支拿它没用、hasWorkoutDraftProgress 也判否，纯残留）。
+                                // 不写它，「盘上草稿必有进度」在写入侧即成立；真正开练后
+                                // active 屏进入时会按今日训练落一份带 startedAt 的草稿。
                                 val state = workout
-                                if (state != null && state.exercises.isNotEmpty()) {
-                                    WorkoutDraftService.saveDraft(
-                                        store,
-                                        activeStateToDraft(state, System.currentTimeMillis()),
-                                    )
+                                val snapshot = if (state != null && state.exercises.isNotEmpty()) {
+                                    activeStateToDraft(state, System.currentTimeMillis())
+                                } else {
+                                    null
+                                }
+                                if (snapshot != null && hasWorkoutDraftProgress(snapshot)) {
+                                    WorkoutDraftService.saveDraft(store, snapshot)
                                 } else {
                                     WorkoutDraftService.clearDraft(store)
                                 }
@@ -567,6 +580,99 @@ internal fun collapseDraftDecision(state: ActiveWorkoutState, startedAt: Long): 
         return CollapseDraftAction.CLEAR
     }
     return CollapseDraftAction.SNAPSHOT
+}
+
+/**
+ * 收尾查重的时间窗（毫秒）。
+ *
+ * 同一场训练的落库与它的草稿 `startedAt` 由同一个 `origin` 派生，偏差只有毫秒级抖动，
+ * 2s 已经足够宽裕；又远小于「同计划同一天两场」之间的真实间隔（人工完成一场至少数分钟），
+ * 所以用它当主判据既不会漏查重、也不会把第二场误判为重复。
+ */
+internal const val FINALIZE_DEDUPE_WINDOW_MILLIS: Long = 2_000L
+
+/** [recordedSessionOutcome] 的判定结果。 */
+internal enum class FinalizeOutcome {
+    /** SESSIONS 库已有本场训练——只清草稿，**不再** saveSession（防双写）。 */
+    ALREADY_RECORDED,
+
+    /** 尚未落库——saveSession + clearDraft。 */
+    NEEDS_SAVE,
+}
+
+/**
+ * 录满残留草稿判据：草稿已「整场录满」，说明上次收尾在 saveSession 与 clearDraft 之间被打断
+ * （进程被杀、`appWriteScope` 没跑完）。
+ *
+ * 谓词与 [collapseDraftDecision] 的 CLEAR 分支**同一形状**（`completedSets < targetSets` 无命中
+ * + exercises 非空 + 总目标组数 > 0），只是这里判的是落盘快照而不是内存态。
+ * 恢复分支据此「先收尾、再新建」：不把用户带进一个全部录满、无组可记的训练页
+ * （那种页面退出时走 CLEAR，session 未必存在——正是整场记录丢失的成因）。
+ */
+internal fun isRecordedDraftResidue(draft: WorkoutDraftSnapshot): Boolean {
+    if (draft.exercises.isEmpty() || draft.totalTargetSets <= 0 || draft.completedSets <= 0) {
+        return false
+    }
+    return draft.exercises.none { it.completedSets < it.targetSets }
+}
+
+/**
+ * 收尾查重（纯函数）：SESSIONS 库是否已有本场训练。
+ *
+ * 主判据按 `startedAt` 时间窗——[WorkoutSession.startedAt] **恒存在**（非可空 Long），
+ * 且由同一个 `origin` 派生，故按 `planId + dayId + |startedAt - origin| <= 窗口` 匹配。
+ * `origin` 无效（<= 0，历史/降级数据）时才退化为 `planId + dayId + totalSets == 总目标组数`。
+ *
+ * **不**单用「组数录满」当判据：同一计划同一天做两场（两场都录满）时，
+ * 第二场的 `startedAt` 与第一场相差远超窗口，主判据不会误判；
+ * 只有退化判据才可能误判，而退化判据只在 `origin` 无效时启用——正常写入路径走不到。
+ */
+internal fun recordedSessionOutcome(
+    sessions: List<WorkoutSession>,
+    state: ActiveWorkoutState,
+    origin: Long,
+    windowMillis: Long = FINALIZE_DEDUPE_WINDOW_MILLIS,
+): FinalizeOutcome {
+    val sameSession = sessions.filter { it.planId == state.planId && it.dayId == state.dayId }
+    val hit = if (origin > 0L) {
+        sameSession.any { abs(it.startedAt - origin) <= windowMillis }
+    } else {
+        sameSession.any { it.totalSets == state.totalTargetSets }
+    }
+    return if (hit) FinalizeOutcome.ALREADY_RECORDED else FinalizeOutcome.NEEDS_SAVE
+}
+
+/** 收尾序列化锁：appWriteScope 是并发 IO 调度，查重与落库必须同一临界区内完成。 */
+private val finalizeLock = Mutex()
+
+/**
+ * 统一收尾：把一场「已录满」的训练落库并清草稿——**幂等**（查重命中即只清草稿）。
+ *
+ * 四个调用点共用本函数：完成本组收尾、长按提前结束收尾、退出训练补收尾（CLEAR）、
+ * 以及恢复分支的录满残留收尾。之前三处各自拼 `saveSession + clearDraft`，
+ * 重入（收尾途中退出/进程重启）会双写同一条记录——`saveSession` 允许重复 id 追加副本，
+ * 回顾页就会出现两条。故查重必须在 `saveSession` **之前**、同一临界区内完成（[finalizeLock]）。
+ */
+internal suspend fun finalizeRecordedWorkout(
+    store: JsonStore,
+    state: ActiveWorkoutState,
+    origin: Long,
+) = finalizeLock.withLock {
+    val sessions = WorkoutRepository.getSessions(store)
+    if (recordedSessionOutcome(sessions, state, origin) == FinalizeOutcome.ALREADY_RECORDED) {
+        WorkoutDraftService.clearDraft(store)
+        return@withLock
+    }
+    val endedAt = System.currentTimeMillis()
+    val session = ActiveWorkoutService.createCompletedSession(
+        sessionId = "session_$endedAt",
+        state = state,
+        startedAt = origin,
+        endedAt = endedAt,
+        completedSets = state.completedSets,
+    )
+    WorkoutRepository.saveSession(store, session)
+    WorkoutDraftService.clearDraft(store)
 }
 
 /**

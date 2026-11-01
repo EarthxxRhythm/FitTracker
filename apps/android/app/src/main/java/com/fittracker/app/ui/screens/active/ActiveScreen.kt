@@ -109,7 +109,6 @@ import com.fittracker.app.data.service.UserProfileService
 import com.fittracker.app.data.service.WeightUnit
 import com.fittracker.app.data.service.WeightUtils
 import com.fittracker.app.data.service.WorkoutDraftService
-import com.fittracker.app.data.service.WorkoutRepository
 import com.fittracker.app.notifications.checkAndNotifyAchievement
 import com.fittracker.app.data.service.hasWorkoutDraftProgress
 import com.fittracker.app.ui.components.clickableNoRipple
@@ -119,6 +118,8 @@ import com.fittracker.app.ui.screens.workout.CollapseDraftAction
 import com.fittracker.app.ui.screens.workout.activeStateToDraft
 import com.fittracker.app.ui.screens.workout.collapseDraftDecision
 import com.fittracker.app.ui.screens.workout.draftToActiveState
+import com.fittracker.app.ui.screens.workout.finalizeRecordedWorkout
+import com.fittracker.app.ui.screens.workout.isRecordedDraftResidue
 import com.fittracker.app.ui.screens.workout.loadTodayWorkoutPreview
 import com.fittracker.app.ui.theme.DuTokens
 import com.fittracker.app.ui.theme.FtColor
@@ -263,16 +264,9 @@ fun ActiveScreen(
                 }
                 CollapseDraftAction.CLEAR -> if (!finishHandled) {
                     appWriteScope.launch {
-                        val endedAt = System.currentTimeMillis()
-                        val session = ActiveWorkoutService.createCompletedSession(
-                            sessionId = "session_$endedAt",
-                            state = state,
-                            startedAt = origin,
-                            endedAt = endedAt,
-                            completedSets = state.completedSets,
-                        )
-                        WorkoutRepository.saveSession(store, session)
-                        WorkoutDraftService.clearDraft(store)
+                        // 补收尾走统一收尾（查重 → 落库或仅清草稿）：本场可能已在 completeSet
+                        // 里落过库（finishHandled 置位前的一帧竞态），重入时不再双写。
+                        finalizeRecordedWorkout(store, state, origin)
                     }
                 }
                 CollapseDraftAction.SKIP -> Unit
@@ -305,11 +299,19 @@ fun ActiveScreen(
         }
     }
 
-    // 训练域接线：进入时优先恢复草稿（鸿蒙「进行中训练重入恢复」）；无草稿 / 无进度 → 全新训练
-    // （0 记录），由「当前计划 → 今日训练」编译活跃训练态并落草稿。
+    // 训练域接线：进入时按草稿分三支——
+    // ① 录满残留（上次整场录满后 saveSession/clearDraft 之间被打断）→ 先统一收尾、再新建；
+    // ② 有进度且未录满 → 恢复草稿（鸿蒙「进行中训练重入恢复」）；
+    // ③ 无草稿 / 草稿无进度 → 全新训练（0 记录），由「当前计划 → 今日训练」编译活跃训练态并落草稿。
     LaunchedEffect(Unit) {
         val draft = WorkoutDraftService.getDraft(store)
-        if (draft != null && hasWorkoutDraftProgress(draft)) {
+        // ① 录满残留：不恢复（会给用户一个全部录满、无组可记的训练页，退出只走 CLEAR，
+        // 而 session 可能从未落库），而是先收尾（查重 → 落库或仅清草稿，幂等）再当无草稿处理。
+        val residue = draft != null && isRecordedDraftResidue(draft)
+        if (residue && draft != null) {
+            finalizeRecordedWorkout(store, draftToActiveState(draft), draft.startedAt)
+        }
+        if (draft != null && !residue && hasWorkoutDraftProgress(draft)) {
             startedAt = draft.startedAt
             elapsed = ((System.currentTimeMillis() - draft.startedAt) / 1000).toInt().coerceAtLeast(0)
             target = if (draft.totalTargetSets > 0) draft.totalTargetSets else FtActiveModel.TARGET
@@ -322,6 +324,12 @@ fun ActiveScreen(
                 ?.let { FtActiveModel.recordsFor(state.exercises, it.plannedExerciseId) }
                 .orEmpty()
         } else {
+            // ③ 盘上若还留着「无进度」草稿（旧版本预览页 CTA 会写一份零进度快照，
+            // 本轮已不再写），先清掉再落本次训练：让「盘上草稿 ⇔ 当前训练」不变量在
+            // 读侧也成立，不至于把上一天/上一计划的残留快照一直留在盘上。
+            if (draft != null) {
+                WorkoutDraftService.clearDraft(store)
+            }
             val summary = loadTodayWorkoutPreview(store)
             startedAt = System.currentTimeMillis()
             target = summary.exercises.sumOf { it.targetSets }.takeIf { it > 0 } ?: FtActiveModel.TARGET
@@ -398,21 +406,11 @@ fun ActiveScreen(
             justDoneIndex = null
         }
         // 训练域接线：自动保存草稿（对齐鸿蒙 active 页的进行中持久化）；
-        // 集满目标则收尾——`createCompletedSession` 产物经 `WorkoutRepository.saveSession`
-        // 落 SESSIONS 库，随后清草稿。
+        // 集满目标则收尾——统一收尾函数（查重 → `saveSession` 落 SESSIONS 库 → 清草稿）。
         scope.launch {
             WorkoutDraftService.saveDraft(store, activeStateToDraft(progressed, origin))
             if (finished) {
-                val endedAt = System.currentTimeMillis()
-                val session = ActiveWorkoutService.createCompletedSession(
-                    sessionId = "session_$endedAt",
-                    state = progressed,
-                    startedAt = origin,
-                    endedAt = endedAt,
-                    completedSets = progressed.completedSets,
-                )
-                WorkoutRepository.saveSession(store, session)
-                WorkoutDraftService.clearDraft(store)
+                finalizeRecordedWorkout(store, progressed, origin)
                 finishHandled = true
                 // 成就提醒（A6）：保存后检查连续训练里程碑——内部全静默，不阻塞训练流程
                 checkAndNotifyAchievement(store, context)
@@ -473,18 +471,9 @@ fun ActiveScreen(
         val origin = if (startedAt > 0L) startedAt else System.currentTimeMillis()
         scope.launch { WorkoutDraftService.saveDraft(store, activeStateToDraft(progressed, origin)) }
         if (FtActiveModel.firstUnfinishedIndex(progressed.exercises) < 0) {
-            val endedAt = System.currentTimeMillis()
             playCelebration()
             scope.launch {
-                val session = ActiveWorkoutService.createCompletedSession(
-                    sessionId = "session_$endedAt",
-                    state = progressed,
-                    startedAt = origin,
-                    endedAt = endedAt,
-                    completedSets = progressed.completedSets,
-                )
-                WorkoutRepository.saveSession(store, session)
-                WorkoutDraftService.clearDraft(store)
+                finalizeRecordedWorkout(store, progressed, origin)
                 finishHandled = true
                 checkAndNotifyAchievement(store, context)
                 delay(900)
