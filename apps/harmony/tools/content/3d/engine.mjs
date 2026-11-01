@@ -94,7 +94,7 @@ export function lerpPose(pA, pB, t) {
   }
 }
 
-/** 分段链 → 顶点坐标（世界系，y 向下）。a=0 指 +y（下），a=90 指 +x（右）。 */
+/** 分段链 → 顶点坐标（世界系，y 向下）。a=0 指 -y（上），a=90 指 +x（右），a=-90 指 -x（左）。 */
 export function chainToPoints(pose) {
   const pts = [[pose.root[0], pose.root[1]]]
   let x = pose.root[0]
@@ -102,7 +102,7 @@ export function chainToPoints(pose) {
   for (const seg of pose.segments) {
     const rad = (seg.a * Math.PI) / 180
     x += Math.sin(rad) * seg.l
-    y += Math.cos(rad) * seg.l
+    y -= Math.cos(rad) * seg.l
     pts.push([x, y])
   }
   return pts
