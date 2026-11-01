@@ -31,6 +31,8 @@
 | `currentPlanId` | String | 当前计划指针；不在 `plans` 中时归一化为首个 |
 | `sessions` | `List<WorkoutSession>` | 训练记录 |
 | `contentMeta` | `UserDataBackupContentMeta` | `{ contentVersion: Int }`，内容库版本（取全部动作 `contentVersion` 最大值） |
+| `bodyRecords` | `List<WeightRecord>?` | 体重记录，**可选**（null = 包内无该字段，旧包无此字段 → 导入保留本地既有记录）；`{ dateMillis: Long, kg: Double }`，dateMillis 为本地日零点（日粒度，同日覆盖） |
+| `bodyMeasurements` | `List<BodyMeasurement>?` | 身体测量（围度 + 体成分），语义同 `bodyRecords`；8 个测量字段未录入恒为 `-1`（`MEASUREMENT_UNSET`），单位固定：围度 cm / 体脂与水分 % / 骨骼肌 kg |
 
 源：`apps/android/app/src/main/java/com/fittracker/app/data/model/BackupPackage.kt:23`
 ↔ 鸿蒙 `entry/src/main/ets/shared/services/UserDataBackupService.ets:26`

@@ -30,6 +30,16 @@ flowchart LR
 
 ## MVP 表结构
 
+> **⚠ 2026-11-01 已漂移标注**：本节描述的 7 窄表（含 `exercise_muscles` / `exercise_equipment` /
+> `exercise_alternatives` / `exercise_media` 四张关联表）是**早期设计草案**，从未在设备端落地。
+> 设备端实际实现（源码为准）是 **3 张宽表**，多值字段内嵌 JSON 数组列：
+> `apps\harmony\entry\src\main\ets\shared\services\ContentDatabaseService.ets`（`createTables`，
+> `muscles` / `equipment` / `exercises`，exercises 内嵌 `primary_muscle_ids_json` /
+> `secondary_muscle_ids_json` / `equipment_ids_json` / `alternative_exercise_ids_json` 等）。
+> 云端内容库与 seed 导出工具均已对齐 3 宽表：`server\supabase\migrations\20261101000000_content_library.sql`
+> 与 `apps\harmony\tools\content\export-db-seed.mjs`（`EXERCISE_COLUMNS` / `MUSCLE_COLUMNS` /
+> `EQUIPMENT_COLUMNS` 列常量）。下方 7 窄表仅作历史存档，不再作为实现依据。
+
 ### `exercises`
 
 | 字段 | 类型 | 必填 | 说明 |

@@ -161,6 +161,62 @@ DUMP_DIR=/opt/fittracker/migrate/out ./restore.sh
 手机 OTP（真短信）/ 密码登录 / 注册 / 云同步上下行 / 账号页状态 / 旧快照拉取。
 回滚：改回旧项目 URL/key 重建。
 
+### 内容库部署（Wave 7 · 动作库落库）
+
+> 迁移文件：`supabase/migrations/20261101000000_content_library.sql`（3 张宽表 `exercises` / `muscles` / `equipment`
+> + 多值字段内嵌为 `*_json` 文本列（不建窄关联表）；列集与 `apps/harmony/tools/content/export-db-seed.mjs` 的
+> `EXERCISE_COLUMNS` / `MUSCLE_COLUMNS` / `EQUIPMENT_COLUMNS` 逐列逐序一致，也与设备端 `ContentDatabaseService.ets` 对齐）。
+> 安全模型：全部开 RLS，**只建 select 策略 `using (true)`**（动作库是产品内置公开内容，app 未登录可浏览）；
+> 不建 insert/update/delete 策略 → 客户端不可写，内容更新只走本节部署流程。
+> 两个文件的执行顺序**不可颠倒**：先迁移（建表 + RLS），后 seed（灌数据）——seed 自带 `create table if not exists`，
+> 表已存在时自动跳过；灌数据由表 owner `postgres` 执行，owner 默认不受 RLS 约束。两者重复执行均安全（幂等）。
+
+```bash
+# ① 本机生成 seed（脚本内部会先跑 build-content.mjs 校验，校验不过不出 seed）
+cd apps/harmony && node tools/content/export-db-seed.mjs
+#    产出：apps/harmony/build/content/fittracker-content-seed.sql
+
+# ② 上传迁移与 seed（下两条 scp 在本机**仓库根**执行 → 服务器）
+scp server/supabase/migrations/20261101000000_content_library.sql ubuntu@<服务器IP>:/opt/fittracker/migrate/
+scp apps/harmony/build/content/fittracker-content-seed.sql        ubuntu@<服务器IP>:/opt/fittracker/migrate/
+
+# ③ 服务器上先执行迁移（姿势同 Wave 4 ①：经容器内直连执行最稳）
+sg docker -c "docker exec -i supabase-db psql -U postgres -d postgres" \
+  < /opt/fittracker/migrate/20261101000000_content_library.sql
+
+# ④ 再灌 seed（seed 自带 BEGIN TRANSACTION / COMMIT，失败整单回滚）
+sg docker -c "docker exec -i supabase-db psql -U postgres -d postgres" \
+  < /opt/fittracker/migrate/fittracker-content-seed.sql
+```
+
+验证一 · 计数（seed 实际条数：动作 102，肌群/器械以 jsonl 行数为准）：
+
+```bash
+sg docker -c "docker exec -i supabase-db psql -U postgres -d postgres -c \"select 'exercises' as t, count(*) from public.exercises union all select 'muscles', count(*) from public.muscles union all select 'equipment', count(*) from public.equipment;\""
+# 且每条动作都有步骤（steps_json 是 JSON 文本列）：select count(*) from public.exercises where steps_json = '[]';  → 期望 0
+# 英文名无空洞：select count(*) from public.exercises where name_en = '';  → 期望 0
+# 另核宽表非空：select count(*) from public.muscles; select count(*) from public.equipment;
+```
+
+验证二 · 公开读 + 客户端不可写（外网匿名，姿势同 Wave 3 的带 key 请求）：
+
+```bash
+# 读：期望 200 + JSON（未登录即可，无需 Authorization）
+curl -s -o /dev/null -w '%{http_code}\n' -H "apikey: <publishable-key>" \
+  "https://api.<域名>/rest/v1/exercises?select=exercise_id&limit=1"
+
+# 写：期望 401/403（无 insert 策略；RLS 拒绝不是故障，是设计）
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+  -H "apikey: <publishable-key>" -H "Content-Type: application/json" \
+  -d '{"exercise_id":"probe_should_be_rejected","name_zh":"probe"}' \
+  "https://api.<域名>/rest/v1/exercises"
+```
+
+> 内容更新（改 jsonl 后重新上线）：重跑 ①②③ 的 ① 与 ② 生成新 seed，再执行 ④ 前先清掉旧行
+> （`truncate public.exercises, public.muscles, public.equipment;`，或按 `content_version` 增量），
+> 否则主键冲突会让 seed 整单回滚。重灌前后各跑一次上面的计数验证，两组数字应一致。
+> ⚠ 若服务器上的 `.sql` 由 Windows 本机 scp 上传（CRLF），先按本文开头的行尾标准化命令 `sed -i 's/\r$//'` 处理。
+
 ## 运维
 
 ### 备份（每日 03:30，已装 cron）
