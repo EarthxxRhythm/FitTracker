@@ -128,9 +128,11 @@ import com.fittracker.app.ui.theme.FtShape
 import com.fittracker.app.ui.theme.FtType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.random.Random
 
 /**
@@ -256,7 +258,11 @@ fun ActiveScreen(
         exiting = true
         collapseCallback?.isEnabled = false
         val state = workout
-        if (state != null) {
+        // 挂起写盘（三态决策同前）。happens-before：动画完成 pop 前 join——
+        // pop 后任何读盘（壳层 currentId 重读、首页 load 重跑）必然看到新草稿，
+        // 不再依赖「写盘恰好快于读盘」。写盘与 280ms 收起动画并行，总时长
+        // = max(写盘, 动画) ≤ 1s 超时上限，用户无感。
+        val pendingWrite: Job? = if (state != null) {
             val origin = if (startedAt > 0L) startedAt else System.currentTimeMillis()
             when (collapseDraftDecision(state, origin)) {
                 CollapseDraftAction.SNAPSHOT -> appWriteScope.launch {
@@ -268,15 +274,21 @@ fun ActiveScreen(
                         // 里落过库（finishHandled 置位前的一帧竞态），重入时不再双写。
                         finalizeRecordedWorkout(store, state, origin)
                     }
+                } else {
+                    null
                 }
-                CollapseDraftAction.SKIP -> Unit
+                CollapseDraftAction.SKIP -> null
             }
+        } else {
+            null
         }
-        // 收起动效：落盘先行（上方三态分支），整页下滑淡出（280ms 面板曲线），动画完成才退出。
-        // 用 scope（随组合销毁取消）：动画期间按系统返回 → 组合 pop → delay 中断，不会二次 pop
-        // （对齐鸿蒙 collapseWorkout 的 clearTimeout 兜底语义）。
+        // 收起动效：落盘 join（上方挂起写盘，1s 超时降级继续退出），整页下滑淡出
+        // （280ms 面板曲线），动画完成才退出。用 scope（随组合销毁取消）：动画期间按系统
+        // 返回 → 组合 pop → delay 中断，不会二次 pop（对齐鸿蒙 collapseWorkout 的
+        // clearTimeout 兜底语义）。
         collapsing = true
         scope.launch {
+            withTimeoutOrNull(1_000L) { pendingWrite?.join() }
             delay(FtMotion.DURATION_PANEL.toLong())
             backDispatcher?.onBackPressed()
         }
