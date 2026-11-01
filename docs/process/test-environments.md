@@ -1,9 +1,9 @@
 # 测试环境规范
 
 > **层级**：L2 展开
-> **最后核对**：2026-10-27
+> **最后核对**：2026-11-01
 > **上位文档**：`AGENTS.md`（冲突以 L1 为准）
-> **状态**：现行（双端设备链路已实测连通：2026-10-27 安卓 MuMu 与鸿蒙 DevEco 均判 PASS；应用内启动与 instrumented 用例仍未验证）
+> **状态**：现行（2026-11-01 安卓补测：应用内启动已验证落到登录页；instrumented 断言已修绿——`setCurrentState` 主线程崩溃已修、`am instrument` 报 OK 2 tests，但 gradle `connectedDebugAndroidTest` 仍因 instrumentation 进程退出码 -1 判 FAILED，遗留待查——见「安卓：MuMu 模拟器」与「本文的验证边界」）
 > **路径基准**：命令中 `tools\…` 相对 `apps\harmony\`；`gradlew` 相对 `apps\android\`
 > **适用端**：双端
 
@@ -84,6 +84,36 @@ hdc install -r entry/build/default/outputs/default/entry-default-signed.hap
 >   与鸿蒙不同：**MuMu 实例独立存活，跨 shell 不受影响**，起一次可反复复用。
 > - 附带实测：`mumu-cli info` 单独调用报 `errcode -21 Missing param <vmindex>`，需写 `info --vmindex 0`。
 
+> **2026-11-01 实测（本机，MuMu 15.0 / Android 15 / x86_64 / model `22041211A`）**：
+>
+> - **生命周期定性：跨 shell 独立存活（本次新证据确认，与鸿蒙模拟器相反）**——
+>   `MuMuNxDevice` 进程启动于 `14:36:08`，至 `17:02` 仍在线（存活 2h26m）；其间被至少 4 次
+>   **互相独立**的 shell 调用复用（`check` / 构建安装 / `am start` + 截图 / `connectedDebugAndroidTest`），
+>   `adb devices` 始终为 `127.0.0.1:16384\tdevice`。
+>   ⇒ 与鸿蒙「起 + 用必须同一次调用」不同：MuMu **起一次可跨调用反复复用**，
+>   不需要把启动与使用合并进同一条命令。
+> - **就绪判据只有两条**：① `16384` 端口 `LISTENING`（`MuMuNxDevice.exe` 常驻）；
+>   ② `adb devices` 出现 `127.0.0.1:16384\tdevice`。
+>   `mumu-cli ... launch` 的 `errcode: 0` 与 `am start -W` 的返回**都不是**就绪信号。
+> - **应用启动命令口径（实测通过，先取证再启动）**：
+>
+>   ```bash
+>   adb -s 127.0.0.1:16384 shell cmd package resolve-activity --brief com.earthrhythm.fittracker
+>   # → com.earthrhythm.fittracker/com.fittracker.app.MainActivity
+>   adb -s 127.0.0.1:16384 shell am start -W -n com.earthrhythm.fittracker/com.fittracker.app.MainActivity
+>   # → Status: ok / Activity: com.earthrhythm.fittracker/com.fittracker.app.MainActivity
+>   ```
+>
+>   ⚠️ 组件名两侧是**不同命名空间**：`/` 前是 applicationId `com.earthrhythm.fittracker`，
+>   `/` 后是 namespace 下的类全名 `com.fittracker.app.MainActivity`。
+>   按 applicationId 拼相对名（`com.earthrhythm.fittracker/MainActivity`）会启动失败。
+> - **应用内启动已验证（2026-11-01）**：`am start` 后 `uiautomator dump` 取到登录页完整文案
+>   （「欢迎回来」「手机号」「验证码」「我已阅读并同意」「《隐私政策》/《用户协议》」），
+>   ⇒ 未登录态的分流正确落在登录页，不再是「截图停在桌面/锁屏」。
+> - **新证据路径**：`test_run\android-e2e\`（`app-ui.png` 应用内登录页截图 135,404 字节、
+>   `ui-dump.xml` 登录页 UI 层级 package=`com.earthrhythm.fittracker`、`assemble.log` 记 `BUILD SUCCESSFUL in 26s`）；
+>   instrumented 回执见下节「androidTest 实跑」。
+
 **连接步骤**（端口以实例配置为准，不要照抄任何默认值）：
 
 1. 启动实例：`"<MuMuHome>\nx_main\mumu-cli.exe" control --vmindex 0 launch`（参数顺序见上），或经多开器界面启动；确认实例进入桌面（launch 返回码不是就绪信号）
@@ -93,11 +123,15 @@ hdc install -r entry/build/default/outputs/default/entry-default-signed.hap
 **脚本化入口**（`apps\android` 下，本仓库新增）：
 
 ```bash
-node tools/android-device.mjs check     # 发现 + 就绪断言 + 打印 Android 版本/ABI/是否模拟器
-node tools/android-device.mjs install   # 构建 debug APK 并安装（需先有可用设备）
-node tools/android-device.mjs shoot --out test_run/x.png
-node tools/android-device.mjs test --class <FQCN>   # connectedDebugAndroidTest
+node tools/android-device.mjs check --emulator   # 发现 + 就绪断言 + 打印版本/ABI/是否模拟器（--emulator 防真机假账）
+node tools/android-device.mjs install --emulator # 安装 debug APK（需先 assembleDebug）
+node tools/android-device.mjs launch --emulator  # am start -W 启动应用（组件名走 resolve-activity，双命名空间已处理）
+node tools/android-device.mjs shoot --emulator --out test_run/x.png
+node tools/android-device.mjs test --class <FQCN>   # connectedDebugAndroidTest（自动 ANDROID_SERIAL 钉模拟器）
 ```
+
+⚠️ 真机在插时**必须带 `--emulator`**：不带时 ensureTarget 会短路到真机，APK 装到真机、截图截真机。
+`test` 子命令默认强制模拟器并注入 `ANDROID_SERIAL`（实测教训：未限设备时 connectedDebugAndroidTest 同时跑了真机 PKB110 与 MuMu）。
 
 失败时统一以退出码 1 + 指名原因的 `❌ <CODE>: <消息>` 收尾（`NO_TARGETS` /
 `MUMU_NOT_REACHABLE` / `INSTALL_FAILED` 等），不抛泛化错误。
@@ -115,11 +149,27 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb exec-out screencap -p > <out>.png
 ```
 
+**androidTest 实跑（2026-11-01 同日两轮：RED→断言 GREEN，gradle 判定遗留 -1）**：
+
+- **首轮 RED（修复前）**：`AppStartsSmokeTest` 2 例 2 失败，同为
+  `java.lang.IllegalStateException: Method setCurrentState must be called on the main thread`
+  （栈：`SplashScreen.kt:76` 导航 → `FtNavHost.kt:54` navigate → popUpTo → `LifecycleRegistry.setCurrentState`）——
+  根因：instrumented 环境下 Compose UI test 的 `FrameDeferringContinuationInterceptor` 把
+  `LaunchedEffect` 协程 resume 移出主线程，导航 pop 在非主线程触发。
+- **修复**：`SplashScreen.kt` 启动分流导航包 `withContext(Dispatchers.Main)`（真机与模拟器同款崩溃，双端修复同一处）。
+- **复测 GREEN**：`am instrument -w -e class com.fittracker.app.AppStartsSmokeTest` 输出 `OK (2 tests)`；
+  XML `TEST-22041211A - 15.xml` 记 `tests=2 failures=0 errors=0`。
+- **遗留（未解决，待查）**：instrumentation 进程退出码 `-1`（`INSTRUMENTATION_CODE: -1`，无 FATAL、VM exit 0），
+  导致 `gradlew connectedDebugAndroidTest` 仍判 BUILD FAILED（`test-result-exit-code.txt`=1），
+  因此 `node tools/android-device.mjs test` 目前会报 `INSTRUMENTED_FAILED` 尽管断言全绿。
+  验证「断言是否绿」请直跑 `am instrument`（见上），不要以 gradle 退出码为准。
+- **证据**：`apps\test_run\android-e2e\`（`instrumented-r2.log` RED 轮 / `instrumented-r3.log` GREEN 轮 / `app-launch.png` 134,127 字节 / `assemble.log` BUILD SUCCESSFUL 15s）。
+
 **已知**：`apps\android\app\build.gradle.kts` 里 `testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"`，注释提到「Compose 语义动作在 app 进程内派发，不依赖系统触摸注入（ColorOS 会静默丢弃 `adb input tap`）」——设备侧交互走 Compose 语义断言，不要依赖 `adb input tap`。
 
 | 实例名（目录） | CLI index | adb 端口 | 端口来源 | 连通性 |
 |---|---|---|---|---|
-| `MuMuPlayer-15.0-0` | `0` | `16384` | `configs\vm_config.json` → `vm.nat.port_forward.adb.host_port`（2026-10-27 读得） | ✅ **已连通**（2026-10-27 实测）：`adb connect 127.0.0.1:16384` → `device`；device-smoke 判 **PASS**，截图 `apps\android\test_run\device-smoke-1793100496980.png`（1,406,502 字节） |
+| `MuMuPlayer-15.0-0` | `0` | `16384` | `configs\vm_config.json` → `vm.nat.port_forward.adb.host_port`（2026-10-27 读得） | ✅ **已连通**（2026-10-27 实测）：`adb connect 127.0.0.1:16384` → `device`；device-smoke 判 **PASS**，截图 `apps\android\test_run\device-smoke-1793100496980.png`（1,406,502 字节）；2026-11-01 同一实例连续存活 >2h 且被多次独立 shell 调用复用 |
 
 > 端口一栏是**配置值**（读 `vm_config.json`），连通性一栏是**实测值**（以 `adb devices` 出现 `device` 为准）。换机或换实例后两栏都要重测——不要照抄本行。
 
@@ -171,7 +221,8 @@ node tools/device-smoke.mjs
 
 - **鸿蒙段（2026-10-27 实测）**：模拟器清单 `devecocli emulator list` 本机 8 台（含 `Pura 90`）。`devecocli emulator start "Pura 90"` 前台 54–65s 返回 `started successfully`，`hdc list targets -v` 得 `127.0.0.1:5555` / `5557` `TCP Connected`；signed HAP 安装成功（`install bundle successfully`），截图 `apps\harmony\test_run\harmony-smoke\smoke.png`（1,300,321 字节）。
   ⚠️ 该截图是**锁屏界面**——只证明模拟器在跑，**未证明应用已启动**。
-- **安卓段（2026-10-27 实测）**：发现链路脚本化并单测覆盖（`apps\android\tools\android-device.test.mjs` 16 例，实测 **16/16 pass**）；设备连通性**已通过**——MuMu 实例开机、`adb connect 127.0.0.1:16384` 后 `adb devices` 出现 `device`，`device-smoke` 判 PASS 并落截图。
+- **安卓段（2026-10-27 实测）**：发现链路脚本化并单测覆盖（`apps\android\tools\android-device.test.mjs` 23 例，实测 **23/23 pass**（2026-11-01 复测；10-27 时为 16 例））；设备连通性**已通过**——MuMu 实例开机、`adb connect 127.0.0.1:16384` 后 `adb devices` 出现 `device`，`device-smoke` 判 PASS 并落截图。
+- **安卓段（2026-11-01 补测）**：应用内启动**已验证**（`am start` 后前台焦点=`com.earthrhythm.fittracker/MainActivity`，截图 `apps\test_run\android-e2e\app-launch.png`）；instrumented 断言**已修绿**（`am instrument` OK 2 tests / XML failures=0），但 gradle `connectedDebugAndroidTest` 因 instrumentation 退出码 -1 仍 FAILED（**遗留待查**，见「androidTest 实跑」节）。
 - **跨端**：`node tools\device-smoke.mjs` 2026-10-27 跑出双端 **PASS**，摘要 `test_run\device-smoke-summary.md`。
-- **仍未验证（不得称为已验）**：应用内启动（鸿蒙截图停在锁屏）、`ohos-test.ps1`（ohosTest 用例）、`android-device.mjs install` 与 `test`（connectedDebugAndroidTest）。
+- **仍未验证（不得称为已验）**：鸿蒙应用内启动（`test_run\harmony-smoke\smoke.png` 停在锁屏）、`ohos-test.ps1`（ohosTest 用例）、instrumentation 退出码 -1 的根因。
 - 本文档只覆盖模拟器路径，真机路径见各端的 release runbook

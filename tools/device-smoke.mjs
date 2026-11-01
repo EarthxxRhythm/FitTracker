@@ -7,7 +7,9 @@
 //
 // 用法：
 //   node tools/device-smoke.mjs                # 两端就绪检查（安卓额外取一张图）
-//   node tools/device-smoke.mjs --android-install   # 安卓额外构建并安装 debug APK
+//   node tools/device-smoke.mjs --android-install   # 安卓安装 debug APK + 启动应用 + 等待渲染后截图
+//   node tools/device-smoke.mjs --android-launch    # 只启动应用 + 截图（APK 已装）
+//   node tools/device-smoke.mjs --android-any-device # 允许用实体机（默认只认 MuMu 模拟器）
 //   node tools/device-smoke.mjs --harmony-test      # 鸿蒙额外跑 ohosTest（需已构建测试包）
 
 import { spawnSync } from 'node:child_process';
@@ -85,8 +87,13 @@ async function waitForHdcTarget({ maxWaitSeconds = 60, pollSeconds = 5, log = ()
 async function checkAndroid(flags, log) {
   // 复用 android-device.mjs 的执行层，避免第二套设备发现逻辑
   const mod = await import(pathToFileURL(path.join(androidDir, 'tools', 'android-device.mjs')).href);
+  // 这一行报告标题写的就是「安卓 (MuMu)」：机器上插着实体机时不能静默把真机当成 MuMu 验，
+  // 否则 APK 装到真机、截图截真机，摘要却写 MuMu —— 正是本文件自己反对的假账。
+  const requireEmulator = !flags['android-any-device'];
+  const shouldLaunch = Boolean(flags['android-install'] || flags['android-launch']);
+  const waitMs = Number(flags['android-wait']) > 0 ? Number(flags['android-wait']) : 3000;
   try {
-    const { serial, source, adbPath } = await mod.ensureTarget({ log });
+    const { serial, source, adbPath } = await mod.ensureTarget({ log, requireEmulator });
     const info = mod.describeTarget(adbPath, serial);
     const details = [
       `串号 ${serial}（来源 ${source}）`,
@@ -101,6 +108,14 @@ async function checkAndroid(flags, log) {
       details.push('安装：Success');
     }
 
+    if (shouldLaunch) {
+      // 启动必须在截图之前：不启动就截，图上是桌面或锁屏，「有截图」不能当「应用起来了」的证据。
+      const launched = mod.launchApp(adbPath, serial, {}, log);
+      details.push(`启动 ${launched.component}（组件名来源 ${launched.source}，Status ok）`);
+      log(`等待首帧渲染 ${waitMs}ms`);
+      await sleep(waitMs);
+    }
+
     const out = path.join(androidDir, 'test_run', `device-smoke-${Date.now()}.png`);
     const shot = mod.screenshot(adbPath, serial, out);
     details.push(`截图 ${path.relative(repoRoot, shot.path)}（${shot.bytes} 字节）`);
@@ -113,6 +128,10 @@ async function checkAndroid(flags, log) {
     }
     if (error && error.code === 'NO_TARGETS') {
       return { status: SKIP, details: ['没有连接的安卓设备', error.message] };
+    }
+    // 只有实体机、没有 MuMu：本次「安卓 (MuMu)」无从验证 → SKIP，不计为通过
+    if (error && error.code === 'EMULATOR_REQUIRED') {
+      return { status: SKIP, details: ['未找到可用的 MuMu 实例（仅检测到实体机）', error.message] };
     }
     return { status: FAIL, details: [`${error.code || 'ERROR'}: ${error.message}`] };
   }

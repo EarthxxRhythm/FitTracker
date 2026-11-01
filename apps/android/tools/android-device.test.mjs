@@ -10,8 +10,11 @@ import {
   adbPortCandidates,
   assertAdbReady,
   classifyEmulator,
+  isEmulatorSerial,
   parseAdbDevices,
   parseMumuConfig,
+  parseResolvedComponent,
+  pickEmulator,
 } from './android-device.mjs';
 
 test('parseAdbDevices：空输入与仅表头都返回空数组', () => {
@@ -169,4 +172,58 @@ test('parseMumuConfig：结构缺失或端口非法时返回 null', () => {
   assert.equal(parseMumuConfig({ vm: {} }), null);
   assert.equal(parseMumuConfig({ vm: { nat: { port_forward: { adb: { host_port: 'abc' } } } } }), null);
   assert.equal(parseMumuConfig({ vm: { nat: { port_forward: { adb: { host_port: 99999 } } } } }), null);
+});
+
+// --- 目标选择：模拟器 vs 实体机 -------------------------------------------------
+// 依据 2026-11-01 本机实测：MuMu 在 127.0.0.1:16384 就绪的同时，插着一台实体机
+// （serial=LFCAV8YXVOTOMNYL, model=PKB110）。旧 ensureTarget 的「已有设备即返回」
+// 会选中那台实体机：APK 装到真机、截图截真机，而摘要仍写「安卓 (MuMu)」。
+
+test('isEmulatorSerial：回环与 emulator-<n> 判为模拟器', () => {
+  assert.equal(isEmulatorSerial('127.0.0.1:16384'), true);
+  assert.equal(isEmulatorSerial('localhost:5555'), true);
+  assert.equal(isEmulatorSerial('emulator-5554'), true);
+});
+
+test('isEmulatorSerial：实体机串号与无线 adb 真机都不算模拟器', () => {
+  assert.equal(isEmulatorSerial('LFCAV8YXVOTOMNYL'), false);
+  assert.equal(isEmulatorSerial('192.168.1.20:5555'), false);
+  assert.equal(isEmulatorSerial(''), false);
+  assert.equal(isEmulatorSerial(null), false);
+});
+
+test('pickEmulator：跳过实体机与未就绪的模拟器，优先已就绪的模拟器', () => {
+  const entries = [
+    { serial: 'LFCAV8YXVOTOMNYL', state: 'device' },
+    { serial: '127.0.0.1:16385', state: 'offline' },
+    { serial: '127.0.0.1:16384', state: 'device' },
+  ];
+  assert.equal(pickEmulator(entries).serial, '127.0.0.1:16384');
+});
+
+test('pickEmulator：只有实体机/空输入时返回 null', () => {
+  assert.equal(pickEmulator([{ serial: 'LFCAV8YXVOTOMNYL', state: 'device' }]), null);
+  assert.equal(pickEmulator([]), null);
+  assert.equal(pickEmulator(null), null);
+});
+
+// --- 组件名解析：namespace ≠ applicationId 的接线护栏 ----------------------------
+
+test('parseResolvedComponent：取 resolve-activity --brief 的末行组件名', () => {
+  const raw = 'priority=0\ncom.earthrhythm.fittracker/com.fittracker.app.MainActivity\n';
+  assert.equal(parseResolvedComponent(raw), 'com.earthrhythm.fittracker/com.fittracker.app.MainActivity');
+});
+
+test('parseResolvedComponent：CRLF、相对类名与多余空行都能处理', () => {
+  assert.equal(
+    parseResolvedComponent('priority=0\r\ncom.earthrhythm.fittracker/.MainActivity\r\n\r\n'),
+    'com.earthrhythm.fittracker/.MainActivity',
+  );
+});
+
+test('parseResolvedComponent：无匹配输出（含空格的行）不被当成组件名', () => {
+  assert.equal(parseResolvedComponent('No activity found'), null);
+  assert.equal(parseResolvedComponent('priority=0'), null);
+  assert.equal(parseResolvedComponent(''), null);
+  assert.equal(parseResolvedComponent(null), null);
 });

@@ -17,6 +17,7 @@ import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
 
 // ---------------------------------------------------------------------------
 // 纯函数区（单测目标）
@@ -133,6 +134,47 @@ export function adbPortCandidates(opts = {}) {
 export function classifyEmulator(propsText) {
   if (typeof propsText !== 'string' || propsText.length === 0) return false;
   return /(mumu|nemu|qemu|goldfish|ro\.boot\.qemu\s*[=:]\s*1|emulator)/i.test(propsText);
+}
+
+/**
+ * 由串号判定是否为本地模拟器（免一次 getprop）。
+ * 只认回环目标与 emulator-<n>：`192.168.x.x:5555` 这类是无线真机，不能当模拟器。
+ * @param {string} serial
+ * @returns {boolean}
+ */
+export function isEmulatorSerial(serial) {
+  if (typeof serial !== 'string' || serial.length === 0) return false;
+  return /^(emulator-\d+|(127\.0\.0\.1|localhost):\d+)$/.test(serial);
+}
+
+/**
+ * 从 adb devices 结果里挑出已就绪的模拟器；没有则 null。
+ * @param {{serial: string, state: string}[]} entries
+ * @returns {{serial: string, state: string}|null}
+ */
+export function pickEmulator(entries) {
+  const list = Array.isArray(entries) ? entries : [];
+  return list.find((e) => e && e.state === 'device' && isEmulatorSerial(e.serial)) || null;
+}
+
+/**
+ * 解析 `cmd package resolve-activity --brief <pkg>` 的输出，取最后一行组件名。
+ * 实测输出形如：`priority=0` 换行 `com.earthrhythm.fittracker/com.fittracker.app.MainActivity`；
+ * 无匹配时是 `No activity found`（含空格，会被排除）。
+ * @param {string} raw
+ * @returns {string|null}
+ */
+export function parseResolvedComponent(raw) {
+  if (typeof raw !== 'string' || raw.length === 0) return null;
+  const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
+  for (let i = lines.length - 1; i >= 0; i -= 1) {
+    const line = lines[i];
+    if (/^priority=\d+$/i.test(line)) continue;
+    if (!line.includes('/')) continue;
+    if (/\s/.test(line)) continue;
+    return line;
+  }
+  return null;
 }
 
 /**
@@ -265,13 +307,27 @@ function probeTcp(host, port, timeoutMs = 400) {
  * 顺序：已有 device → MuMu 配置端口（TCP 探测通过才 connect）→ 候选端口兜底。
  * @returns {Promise<{serial: string, source: string}>}
  */
-export async function ensureTarget({ preferredSerial = '', log = () => {} } = {}) {
+export async function ensureTarget({ preferredSerial = '', requireEmulator = false, log = () => {} } = {}) {
   const adbPath = resolveAdb();
 
   let entries = listTargets(adbPath);
-  if (entries.some((e) => e.state === 'device')) {
+  const readyEntries = entries.filter((e) => e.state === 'device');
+
+  // 不要求模拟器：已有就绪设备直接可用（短路，省一次 connect）。
+  if (!requireEmulator && readyEntries.length > 0) {
     const target = assertAdbReady(entries, preferredSerial);
     return { serial: target.serial, source: 'existing', adbPath };
+  }
+
+  // 要求模拟器：只在回环目标已在列时才复用。
+  // 为什么不能沿用上面的短路：机器上插着实体机时 adb devices 一定非空，
+  // 短路会把真机当成验证目标——APK 装到真机、截图截真机，而摘要仍写「安卓 (MuMu)」，
+  // 正是 device-smoke 自己反对的假账。
+  if (requireEmulator) {
+    const emulator = pickEmulator(entries);
+    if (emulator && (!preferredSerial || emulator.serial === preferredSerial)) {
+      return { serial: emulator.serial, source: 'existing-emulator', adbPath };
+    }
   }
 
   const mumuHome = resolveMumuHome();
@@ -291,6 +347,13 @@ export async function ensureTarget({ preferredSerial = '', log = () => {} } = {}
     log(`端口 ${port} 有监听，尝试 adb connect…`);
     runAdb(adbPath, ['connect', `127.0.0.1:${port}`]);
     entries = listTargets(adbPath);
+    if (requireEmulator) {
+      const emulator = pickEmulator(entries);
+      if (emulator && (!preferredSerial || emulator.serial === preferredSerial)) {
+        return { serial: emulator.serial, source: `mumu:${port}`, adbPath };
+      }
+      continue;
+    }
     if (entries.some((e) => e.state === 'device')) {
       const target = assertAdbReady(entries, preferredSerial);
       return { serial: target.serial, source: `mumu:${port}`, adbPath };
@@ -301,6 +364,14 @@ export async function ensureTarget({ preferredSerial = '', log = () => {} } = {}
   const detail = instances.length
     ? instances.map((i) => `${i.name}(adbPort=${i.adbPort ?? '未知'})`).join(', ')
     : '未发现 MuMu 实例配置';
+  if (requireEmulator && readyEntries.length > 0) {
+    throw new AdbTargetError(
+      'EMULATOR_REQUIRED',
+      `要求模拟器目标，但当前就绪的只有非模拟器设备：${readyEntries.map((e) => e.serial).join(', ')}。` +
+        `MuMu 实例：${detail}；已尝试端口 [${ports.join(', ')}]。` +
+        '要改用实体机验证，去掉 --emulator（device-smoke 用 --android-any-device）。',
+    );
+  }
   throw new AdbTargetError(
     'MUMU_NOT_REACHABLE',
     `MuMu 实例未就绪：${detail}。已尝试端口 [${ports.join(', ')}]。` +
@@ -363,11 +434,63 @@ export function screenshot(adbPath, serial, outPath) {
 }
 
 // ---------------------------------------------------------------------------
+// 启动应用
+// ---------------------------------------------------------------------------
+
+/**
+ * 启动应用并等待首帧（am start -W）。
+ * 组件名顺序：--component 显式值 → 设备侧 resolve-activity（已装 APK 时准确）→ namespace 兜底。
+ * 为什么不能拿 applicationId 拼相对名：build.gradle.kts 里 namespace=com.fittracker.app、
+ * applicationId=com.earthrhythm.fittracker，相对名 `.MainActivity` 会被解析成
+ * com.earthrhythm.fittracker.MainActivity（不存在）→ 启动失败、截图停在桌面。
+ * @returns {{component: string, source: string, output: string}}
+ */
+export function launchApp(
+  adbPath,
+  serial,
+  { pkg = DEFAULT_APP_ID, activity = DEFAULT_ACTIVITY, component = '' } = {},
+  log = () => {},
+) {
+  let target = typeof component === 'string' ? component.trim() : '';
+  let source = 'component-flag';
+
+  if (!target) {
+    const probe = runAdb(adbPath, ['-s', serial, 'shell', 'cmd', 'package', 'resolve-activity', '--brief', pkg], {
+      timeout: 30000,
+    });
+    const resolved = parseResolvedComponent(`${probe.stdout || ''}${probe.stderr || ''}`);
+    if (resolved) {
+      target = resolved;
+      source = 'resolve-activity';
+    } else {
+      target = `${pkg}/${activity}`;
+      source = 'fallback-namespace';
+      log(`resolve-activity 未返回组件名，回退到 ${target}（若启动失败请用 --component 指定）`);
+    }
+  }
+
+  const res = runAdb(adbPath, ['-s', serial, 'shell', 'am', 'start', '-W', '-n', target], { timeout: 60000 });
+  const output = `${res.stdout || ''}${res.stderr || ''}`.trim();
+  const started = /Status:\s*ok/i.test(output) || /Activity not started.*brought to the front/i.test(output);
+  if (res.status !== 0 || !started) {
+    throw new AdbTargetError('LAUNCH_FAILED', `启动失败（exit=${res.status}，组件 ${target}）：${output || '（无输出）'}`);
+  }
+  return { component: target, source, output };
+}
+
+// ---------------------------------------------------------------------------
 // CLI
 // ---------------------------------------------------------------------------
 
-const REPO_ANDROID = path.resolve(process.cwd());
-const DEFAULT_APK = path.join(REPO_ANDROID, 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk');
+// 基准取脚本自身位置（apps/android/tools/..），不取 cwd：
+// 从仓库根跑 `node apps/android/tools/android-device.mjs install` 时，
+// 旧的 path.resolve(process.cwd()) 会拼出 <repo>/app/build/... → 误报 APK_MISSING。
+const ANDROID_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const DEFAULT_APK = path.join(ANDROID_ROOT, 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk');
+
+/** 应用身份（build.gradle.kts：namespace=com.fittracker.app，applicationId=com.earthrhythm.fittracker）。 */
+const DEFAULT_APP_ID = 'com.earthrhythm.fittracker';
+const DEFAULT_ACTIVITY = 'com.fittracker.app.MainActivity';
 
 function parseArgs(argv) {
   const flags = {};
@@ -394,7 +517,11 @@ async function main() {
   try {
     switch (command) {
       case 'check': {
-        const { serial, source, adbPath } = await ensureTarget({ preferredSerial: flags.serial || '', log });
+        const { serial, source, adbPath } = await ensureTarget({
+          preferredSerial: flags.serial || '',
+          requireEmulator: Boolean(flags.emulator),
+          log,
+        });
         const info = describeTarget(adbPath, serial);
         log(`目标串号 ${serial}（来源 ${source}）`);
         log(`Android ${info.androidRelease} / ABI ${info.abi} / model ${info.model}`);
@@ -402,35 +529,79 @@ async function main() {
         break;
       }
       case 'install': {
-        const { serial, adbPath } = await ensureTarget({ preferredSerial: flags.serial || '', log });
+        const { serial, adbPath } = await ensureTarget({
+          preferredSerial: flags.serial || '',
+          requireEmulator: Boolean(flags.emulator),
+          log,
+        });
         const apk = flags.apk || DEFAULT_APK;
         log(`安装 ${apk} → ${serial}`);
         log(installApk(adbPath, serial, apk));
         break;
       }
+      case 'launch': {
+        const { serial, adbPath } = await ensureTarget({
+          preferredSerial: flags.serial || '',
+          requireEmulator: Boolean(flags.emulator),
+          log,
+        });
+        const launched = launchApp(
+          adbPath,
+          serial,
+          {
+            pkg: typeof flags.pkg === 'string' ? flags.pkg : DEFAULT_APP_ID,
+            activity: typeof flags.activity === 'string' ? flags.activity : DEFAULT_ACTIVITY,
+            component: typeof flags.component === 'string' ? flags.component : '',
+          },
+          log,
+        );
+        log(`已启动 ${launched.component}（组件名来源 ${launched.source}）`);
+        log(launched.output.split(/\r?\n/).filter((l) => /Status|Error|Warning/i.test(l)).join(' | '));
+        break;
+      }
       case 'shoot': {
-        const { serial, adbPath } = await ensureTarget({ preferredSerial: flags.serial || '', log });
+        const { serial, adbPath } = await ensureTarget({
+          preferredSerial: flags.serial || '',
+          requireEmulator: Boolean(flags.emulator),
+          log,
+        });
         const out = flags.out || path.join('test_run', `android-${Date.now()}.png`);
         const shot = screenshot(adbPath, serial, out);
         log(`截图 ${shot.path}（${shot.bytes} 字节）`);
         break;
       }
       case 'test': {
-        // 走 gradle connectedDebugAndroidTest；设备就绪断言在这里不重复，交给 gradle 报告
+        // 走 gradle connectedDebugAndroidTest。它默认跑「所有已连接设备」——必须先用
+        // ensureTarget 收敛到一台并用 ANDROID_SERIAL 钉住，否则会把 instrumented 包装到
+        // 用户真机上（实测教训：未限设备时同时跑了真机 PKB110 与 MuMu）。
+        // 未显式给 --serial 时强制模拟器（防假账，同 requireEmulator 语义）。
+        const { serial } = await ensureTarget({
+          preferredSerial: flags.serial || '',
+          requireEmulator: !flags.serial,
+          log,
+        });
         const args = [isWindows ? '.\\gradlew.bat' : './gradlew', ':app:connectedDebugAndroidTest'];
         if (flags.class) {
           args.push(`-Pandroid.testInstrumentationRunnerArguments.class=${flags.class}`);
         }
-        log(`执行 ${args.join(' ')}`);
-        const res = spawnSync(args[0], args.slice(1), { stdio: 'inherit', cwd: REPO_ANDROID });
+        log(`在 ${serial} 上执行 ${args.join(' ')}（ANDROID_SERIAL 已钉住）`);
+        const res = spawnSync(args[0], args.slice(1), {
+          stdio: 'inherit',
+          cwd: ANDROID_ROOT,
+          env: { ...process.env, ANDROID_SERIAL: serial },
+          // Windows 下 node 无 shell 不能直接执行 .bat（status=null spawn 失败）；
+          // shell: true 走 cmd /c，与 Git Bash 里 ./gradlew.bat 语义一致。
+          shell: isWindows,
+        });
         if (res.status !== 0) {
-          throw new AdbTargetError('INSTRUMENTED_FAILED', `connectedDebugAndroidTest 失败（exit=${res.status}）`);
+          const detail = res.status === null ? `spawn 失败：${res.error?.message ?? '未知'}` : `exit=${res.status}`;
+          throw new AdbTargetError('INSTRUMENTED_FAILED', `connectedDebugAndroidTest 失败（${detail}）`);
         }
         break;
       }
       default:
         console.error(
-          '用法：node android-device.mjs <check|install|shoot|test> [--serial <s>] [--apk <path>] [--out <png>] [--class <FQCN>]',
+          '用法：node android-device.mjs <check|install|launch|shoot|test> [--serial <s>] [--emulator] [--apk <path>] [--out <png>] [--class <FQCN>] [--component <pkg/cls>] [--pkg <id>] [--activity <cls>]',
         );
         process.exit(2);
     }

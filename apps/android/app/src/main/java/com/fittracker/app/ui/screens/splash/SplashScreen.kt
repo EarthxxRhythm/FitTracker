@@ -28,6 +28,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fittracker.app.R
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.fittracker.app.data.auth.AuthService
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
@@ -73,7 +75,13 @@ fun SplashScreen(
                 AvatarImageService.resolveDir(context),
             )
         }
-        onNavigate(if (loggedIn) "home" else "login")
+        // 导航必须在主线程：instrumented 环境下 Compose UI test 的
+        // FrameDeferringContinuationInterceptor 会把 LaunchedEffect 的 resume 移到测试线程，
+        // navigate 的 popUpTo(splash) 同步 pop → LifecycleRegistry.setCurrentState 崩
+        // 「must be called on the main thread」（AppStartsSmokeTest 实测复现）。
+        withContext(Dispatchers.Main) {
+            onNavigate(if (loggedIn) "home" else "login")
+        }
     }
 
     Box(modifier.fillMaxSize().background(Color(0xFF090C11))) {
