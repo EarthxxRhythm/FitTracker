@@ -209,3 +209,5 @@ apps/harmony/0
 /docs/process/agent-team-fittracker-overlay.md
 /docs/process/pi-agent-parallel-restore.md
 /docs/prototype/prototype-to-arkui-prompt-*.md
+# 看板本地静态产物（npm run board:build 的快照，仅供本机预览，不进 Caddy/发布链路）
+/web/board-dist/

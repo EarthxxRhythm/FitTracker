@@ -37,6 +37,12 @@ const groups = [
     cwd: path.join(repoRoot, 'apps', 'android'),
     files: ['tools/android-device.test.mjs'],
   },
+  {
+    // web 开发看板数据管道：纯解析逻辑（COMMAND.md / plans / git 文本），不触设备、不触网络。
+    // 依赖 .rivet/ 与 git 的用例自带降级（数据源缺失即 skip 或空），CI 无本地资产也能过。
+    cwd: path.join(repoRoot, 'web'),
+    files: ['tools/board-data.test.mjs'],
+  },
 ];
 
 let failedGroups = 0;
