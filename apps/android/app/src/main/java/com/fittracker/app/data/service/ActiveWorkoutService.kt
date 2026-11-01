@@ -388,6 +388,7 @@ object ActiveWorkoutService {
             plannedExerciseId = exercise.plannedExerciseId,
             exerciseId = exercise.exerciseId,
             name = exercise.name,
+            plannedTargetSets = exercise.plannedTargetSets,
             targetSets = exercise.targetSets,
             targetReps = exercise.targetReps,
             intensityNote = exercise.intensityNote,
@@ -403,6 +404,10 @@ object ActiveWorkoutService {
         plannedExerciseId = exercise.plannedExerciseId,
         exerciseId = exercise.exerciseId,
         name = exercise.name,
+        // 这几个 copy* 是全字段重建，不是 data class 的 copy()——不显式透传就会落到默认值
+        // （= 当时的 targetSets）。endExercise 收缩后 targetSets 已为 0，不传就会把
+        // plannedTargetSets 一起清零，胶囊行当场退化成一句「本动作已结束」。
+        plannedTargetSets = exercise.plannedTargetSets,
         targetSets = exercise.targetSets,
         targetReps = exercise.targetReps,
         intensityNote = exercise.intensityNote,
@@ -429,6 +434,7 @@ object ActiveWorkoutService {
             plannedExerciseId = exercise.plannedExerciseId,
             exerciseId = exercise.exerciseId,
             name = exercise.name,
+            plannedTargetSets = exercise.plannedTargetSets,
             targetSets = exercise.targetSets,
             targetReps = exercise.targetReps,
             intensityNote = exercise.intensityNote,
@@ -455,6 +461,7 @@ object ActiveWorkoutService {
             plannedExerciseId = exercise.plannedExerciseId,
             exerciseId = exercise.exerciseId,
             name = exercise.name,
+            plannedTargetSets = exercise.plannedTargetSets,
             targetSets = exercise.targetSets,
             targetReps = exercise.targetReps,
             intensityNote = exercise.intensityNote,
@@ -471,6 +478,7 @@ object ActiveWorkoutService {
             plannedExerciseId = exercise.plannedExerciseId,
             exerciseId = exercise.exerciseId,
             name = exercise.name,
+            plannedTargetSets = exercise.plannedTargetSets,
             targetSets = exercise.targetSets,
             targetReps = exercise.targetReps,
             intensityNote = exercise.intensityNote,
