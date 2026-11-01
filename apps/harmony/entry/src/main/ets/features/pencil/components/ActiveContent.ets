@@ -710,12 +710,6 @@ export struct ActiveContent {
     return this.selectedIsFull() && !this.selectedEndedEarly()
   }
 
-  /** 该组是否被放弃（仅提前结束后存在）：已完成组之后、计划组数之前的格子。 */
-  private isSetAbandoned(index: number): boolean {
-    const exercise: ActiveWorkoutExercise | undefined = this.selectedExercise()
-    return exercise !== undefined && this.selectedEndedEarly() && index >= exercise.completedSets
-  }
-
   /**
    * 选中动作的计划组数（caption 报总数、胶囊铺格都用它）。
    *
@@ -748,7 +742,16 @@ export struct ActiveContent {
   /** 该组是否已完成（实心态）。 */
   private isSetDone(index: number): boolean {
     const exercise: ActiveWorkoutExercise | undefined = this.selectedExercise()
-    return exercise !== undefined && index < exercise.completedSets
+    if (exercise === undefined) {
+      return false
+    }
+    // 长按提前结束后整行原地切完成态：胶囊保持计划组数、全部填充。
+    // 长按的语义是「这个动作到此为止」，不是逐格记账——留灰格会让整行读成「没做完」，
+    // 而实际诉求是「原地切换为完成态，不要消失」。
+    if (this.selectedEndedEarly()) {
+      return index < exercise.plannedTargetSets
+    }
+    return index < exercise.completedSets
   }
 
   /** 该组是否是「正在做的那一组」（实线描边 + 呼吸）；提前结束后不再有「正在做」。 */
@@ -888,8 +891,10 @@ export struct ActiveContent {
     }
     this.activeState = nextState
     const nextIndex: number = findUnfinishedExerciseIndex(nextState.exercises)
+    // 先让本动作的胶囊原地切完成态并停留，再翻到下一个动作。
+    // 立即改 selectedExerciseIndex 会让完成态一帧都渲染不出来（与「完成本组」同一处理）。
     if (nextIndex >= 0) {
-      this.selectedExerciseIndex = nextIndex
+      this.scheduleAdvance(target.plannedExerciseId, nextIndex)
     }
     this.applyCurrentExercise(nextState)
     this.completed = nextState.completedSets
@@ -1184,13 +1189,10 @@ export struct ActiveContent {
       .animation({ duration: MotionTokens.DURATION_MARKER, curve: MotionTokens.EASE_MOTION })
   }
 
-  /** 胶囊的状态词：已完成 / 未完成（放弃）/ 进行中 / 未开始——四态都要能被读出来。 */
+  /** 胶囊的状态词：视觉上只有两态（实心 / 未做），读屏也只需两态。 */
   private setPillStateLabel(index: number): string {
     if (this.isSetDone(index)) {
       return '已完成'
-    }
-    if (this.isSetAbandoned(index)) {
-      return '未完成'
     }
     return this.isSetCurrent(index) ? '进行中' : '未开始'
   }
