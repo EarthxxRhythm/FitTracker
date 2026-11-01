@@ -40,8 +40,10 @@ const groups = [
   {
     // web 开发看板数据管道：纯解析逻辑（COMMAND.md / plans / git 文本），不触设备、不触网络。
     // 依赖 .rivet/ 与 git 的用例自带降级（数据源缺失即 skip 或空），CI 无本地资产也能过。
+    // tools/board-projects.test.mjs：看板项目管理数据层（读写 .rivet/board-projects.json 的纯操作，
+    // 全部走 mkdtemp 临时文件，不触仓库真实数据、不起服务、不占端口），与 board-data 同组跑。
     cwd: path.join(repoRoot, 'web'),
-    files: ['tools/board-data.test.mjs'],
+    files: ['tools/board-data.test.mjs', 'tools/board-projects.test.mjs'],
   },
 ];
 

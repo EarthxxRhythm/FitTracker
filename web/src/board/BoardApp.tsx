@@ -3,6 +3,9 @@ import type { BoardData } from './types'
 import StatusOverview from './sections/StatusOverview'
 import Blockers from './sections/Blockers'
 import Plans from './sections/Plans'
+import Projects from './sections/Projects'
+import Improvements from './sections/Improvements'
+import TodoList from './sections/TodoList'
 import Commits from './sections/Commits'
 import WorkingTree from './sections/WorkingTree'
 
@@ -45,7 +48,7 @@ export default function BoardApp() {
         <div className="board-header-main">
           <h1 className="board-title">FitTracker · 开发看板</h1>
           <p className="board-subtitle">
-            只读聚合 <code>.rivet/COMMAND.md</code> · <code>.rivet/plans/*.md</code> · git
+            只读聚合 <code>.rivet/COMMAND.md</code> · <code>.rivet/plans/*.md</code> · git；项目管理在 dev 下可写
           </p>
         </div>
         <div className="board-header-meta">
@@ -75,6 +78,9 @@ export default function BoardApp() {
           <StatusOverview command={data.command} drift={data.drift} />
           <Blockers command={data.command} />
           <Plans plans={data.plans} />
+          <Projects />
+          <Improvements />
+          <TodoList />
           <Commits git={data.git} />
           <WorkingTree git={data.git} />
         </main>
