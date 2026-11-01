@@ -56,8 +56,14 @@ export class HomeState extends StateBase {
   // 四字段默认 0/空 = 无进行中训练，与训练页 persistDraftOnExit 的「零组不落草稿」对齐。
   activeDraftCompletedSets: number = 0
   activeDraftTotalSets: number = 0
-  /** 已训练秒数：胶囊直接用训练页右上角那套 mm:ss 显示，不在这里折成分钟。 */
-  activeDraftElapsedSeconds: number = 0
+  /**
+   * 草稿开始时刻（epoch ms，由 load 时从 draft.startedAt 填入）。
+   *
+   * 胶囊计时的唯一来源：壳层每秒 tick 都拿 now - activeDraftStartedAt 重算，不做累加；
+   * 状态里不存秒数快照（存了就得每个 tick 回写，读的人还会误以为是正在走秒的活值）。
+   * 0 = 无草稿或 startedAt 不可用。
+   */
+  activeDraftStartedAt: number = 0
   activeDraftTitle: string = ''
   // 悬浮胶囊要显示的「当前动作 + 该动作内组数」：取自草稿里首个未录满的动作
   // （与训练页 findUnfinishedExerciseIndex 同口径），不是全部动作的合计。
@@ -142,7 +148,7 @@ export class HomeState extends StateBase {
     const settings: AppSettings = await SettingsService.loadSettings(context)
     // 草稿读取放在计划/目标都装载完之后：它只影响主 CTA 的文案与副行，不参与计划派生。
     const draft: WorkoutDraftSnapshot | null = await WorkoutDraftService.getDraft(context)
-    this.applyDraftState(draft, now)
+    this.applyDraftState(draft)
     const sessions: WorkoutSession[] = await WorkoutSessionPersistenceBridgeService.loadPersistedSessions(context)
     // 数据一致性收口：首页环分子改「本周按计划训练日去重」（repository 会话按 planId+dayId），
     // 与计划页「本周 N/M 天」同一口径；不再用周会话数。
@@ -280,14 +286,16 @@ export class HomeState extends StateBase {
   }
 
   /** 把草稿铺成首页接续态；无草稿或草稿无进度时清零。 */
-  private applyDraftState(draft: WorkoutDraftSnapshot | null, now: number): void {
+  private applyDraftState(draft: WorkoutDraftSnapshot | null): void {
     if (draft === null || !hasWorkoutDraftProgress(draft)) {
       this.clearDraftState()
       return
     }
     this.activeDraftCompletedSets = draft.completedSets
     this.activeDraftTotalSets = draft.totalTargetSets
-    this.activeDraftElapsedSeconds = Math.max(0, Math.floor((now - draft.startedAt) / 1000))
+    // startedAt 有效性兜底：旧版本/异常写入的 startedAt 可能是 0 或负数，此时
+    // (now - 0)/1000 会算出天文数字。不可用就停在 0，宁可显示 00:00 也不显示假值。
+    this.activeDraftStartedAt = draft.startedAt > 0 ? draft.startedAt : 0
     this.activeDraftTitle = draft.planName
     // 当前动作：首个未录满的动作（全部录满时退到最后一个）——与训练页的选中口径一致，
     // 否则胶囊上的动作名会和点进去看到的那个对不上。
@@ -309,7 +317,7 @@ export class HomeState extends StateBase {
   private clearDraftState(): void {
     this.activeDraftCompletedSets = 0
     this.activeDraftTotalSets = 0
-    this.activeDraftElapsedSeconds = 0
+    this.activeDraftStartedAt = 0
     this.activeDraftTitle = ''
     this.activeDraftExerciseName = ''
     this.activeDraftExerciseCompleted = 0

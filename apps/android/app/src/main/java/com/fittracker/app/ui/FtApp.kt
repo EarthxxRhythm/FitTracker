@@ -373,9 +373,8 @@ private val RESUME_BAR_TRANSFORM_ORIGIN = TransformOrigin(0.5f, 1f)
  * 判据经 `WorkoutDraftService.resumeSnapshot`（`hasWorkoutDraftProgress`，与 `ActiveScreen`
  * 恢复草稿同一份实现），不用 `completedSets > 0`：否则会出现「首页说有、点进去说没有」。
  */
-private suspend fun loadResumeDraft(store: JsonStore): ResumeDraftSummary? {
+internal suspend fun loadResumeDraft(store: JsonStore): ResumeDraftSummary? {
     val draft = WorkoutDraftService.resumeSnapshot(store) ?: return null
-    val seconds = ((System.currentTimeMillis() - draft.startedAt) / 1_000L).toInt().coerceAtLeast(0)
     // 当前动作 = 首个未录满的动作（全部录满时退到最后一个）——与 ActiveScreen 的选中口径
     // 同一判据，否则胶囊上的动作名会和点进去看到的那个对不上。
     val current = draft.exercises.firstOrNull { it.completedSets < it.targetSets }
@@ -383,7 +382,9 @@ private suspend fun loadResumeDraft(store: JsonStore): ResumeDraftSummary? {
     return ResumeDraftSummary(
         completedSets = draft.completedSets,
         totalSets = draft.totalTargetSets,
-        elapsedSeconds = seconds,
+        // 胶囊中栏时钟锚到这个时刻自己走（与 ActiveScreen 恢复分支同一字段）：
+        // startedAt 是摘要里唯一的时间源，秒数由胶囊按 tick 现算，这里不再传快照。
+        startedAt = draft.startedAt,
         exerciseName = current?.name ?: draft.currentExerciseName,
         exerciseCompletedSets = current?.completedSets ?: 0,
         exerciseTargetSets = current?.targetSets ?: 0,

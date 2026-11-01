@@ -54,6 +54,23 @@ export struct PencilAppShell {
   @State private tabBarCollapsed: boolean = false
   /** 胶囊被按下时的收束量（0→1）：只在「点按 → 进训练页」的 110ms 里非 0。 */
   @State private resumeBarSink: number = 0
+  /**
+   * 胶囊计时的每秒节拍（每次 +1，值本身无意义）。
+   *
+   * 它只承担一件事：让 ArkUI 知道「现在变了」，从而重跑 build 里的
+   * `resumeElapsedClock`，秒数再从 `now - homeState.activeDraftStartedAt`
+   * 现算。状态里不存已训练秒数——存了就成了一个名像活值、实为装载时快照的字段。
+   */
+  @State private draftClockTick: number = 0
+  /**
+   * 胶囊计时的每秒 tick 句柄（-1 = 未运行）。
+   *
+   * tick 只做一件事：bump `draftClockTick` 触发胶囊时钟重算（墙钟绝对派生，不做累加）；
+   * 页面隐藏或无草稿时必须清掉，不留后台空转的常驻 timer。
+   */
+  private elapsedClockTimer: number = -1
+  /** 本页是否在前台（onPageHide 置 false）：被训练页盖住时计时器要停。 */
+  private pageVisible: boolean = false
 
   async aboutToAppear(): Promise<void> {
     const hostContext: Context | undefined = this.getUIContext().getHostContext()
@@ -74,6 +91,7 @@ export struct PencilAppShell {
     if (context === undefined) {
       return
     }
+    this.pageVisible = true
     // 与安卓 `FtApp` 的「任何帧切换都 chrome.updateCollapsed(false)」同构。
     this.tabBarCollapsed = false
     // 「首页」和「计划」两个 Tab 都读 getCurrentPlan（计划组里切换后必须一起刷新）。
@@ -81,7 +99,7 @@ export struct PencilAppShell {
     // 那个 Tab 仍是旧计划，看起来就像「切换没生效」。
     this.homeState.invalidate()
     this.planState.invalidate()
-    this.homeState.refresh(context)
+    this.refreshHome(context)
     this.planState.refresh(context)
     if (this.currentTab === PencilTabKey.REVIEW) {
       this.reviewReloadToken += 1
@@ -91,6 +109,20 @@ export struct PencilAppShell {
       this.profileState.invalidate()
       this.profileState.refresh(context)
     }
+  }
+
+  /**
+   * 页面被压栈页盖住（典型：进训练页）时停掉每秒计时器：
+   * 胶囊此刻不可见，后台空转只会白耗一帧性重绘；onPageShow 回来时再按需拉起。
+   */
+  onPageHide(): void {
+    this.pageVisible = false
+    this.stopElapsedClockTimer()
+  }
+
+  aboutToDisappear(): void {
+    this.pageVisible = false
+    this.stopElapsedClockTimer()
   }
 
   // 训练预览覆盖层打开时，系统返回键先关闭它，不退出页面。
@@ -123,7 +155,7 @@ export struct PencilAppShell {
     if (this.currentTab === PencilTabKey.HOME) {
       this.homeState.invalidate()
       if (context !== undefined) {
-        this.homeState.refresh(context)
+        this.refreshHome(context)
       }
     }
     if (this.currentTab === PencilTabKey.PLAN) {
@@ -343,9 +375,70 @@ export struct PencilAppShell {
     return currentSet.toString() + ' / ' + target.toString()
   }
 
-  /** 中栏：已训练时长，与训练页右上角同一口径（mm:ss）。 */
+  /**
+   * 中栏：已训练时长，与训练页右上角同一格式（mm:ss）。
+   *
+   * 数值每次 build 时从 homeState.activeDraftStartedAt 墙钟派生（不存秒数快照），
+   * 与训练页 `elapsed += 1` 的增量计数**同源不同机制**：两边都锚定草稿 startedAt，
+   * 但增量会随 1s delay 抖动累积、后台挂起时冻结，墙钟派生不会。
+   * 因此长时间后台挂起后两处读数会短暂分歧，回到训练页时以训练页自身计数为准。
+   */
   private resumeElapsedClock(): string {
-    return this.formatElapsedClock(this.homeState.activeDraftElapsedSeconds)
+    return this.formatElapsedClock(this.elapsedSecondsNow(this.draftClockTick))
+  }
+
+  /**
+   * 从 startedAt 墙钟派生已训练秒数。
+   *
+   * [clockTick] 不参与算术，只作为「现在变了」的显式依赖传进来——`draftClockTick`
+   * 每跳一次都会让 build 重跑，本方法随之重新求值，秒数因此自己走。
+   * `startedAt <= 0`（旧草稿/异常写入）退化为 0：宁可显示 00:00，也不显示 (now - 0) 的天文数字。
+   */
+  private elapsedSecondsNow(clockTick: number): number {
+    const startedAt: number = this.homeState.activeDraftStartedAt
+    if (startedAt <= 0 || clockTick < 0) {
+      return 0
+    }
+    const seconds: number = Math.floor((Date.now() - startedAt) / 1000)
+    return seconds > 0 ? seconds : 0
+  }
+
+  /** 首页重读：草稿是否存在只有读完后才知道，所以完成后同步计时器。 */
+  private refreshHome(context: Context): void {
+    this.homeState.refresh(context).then(() => {
+      this.syncElapsedClockTimer()
+    })
+  }
+
+  /**
+   * 按当前状态启停每秒计时器（幂等）：只有「页面在前台 + 首页读到有效 startedAt」才运行，
+   * 其余情况一律清掉——不能让一个不存在的胶囊留一条常驻 timer。
+   */
+  private syncElapsedClockTimer(): void {
+    const needed: boolean = this.pageVisible && this.homeState.activeDraftStartedAt > 0
+    if (!needed) {
+      this.stopElapsedClockTimer()
+      return
+    }
+    if (this.elapsedClockTimer !== -1) {
+      return
+    }
+    this.elapsedClockTimer = setInterval(() => {
+      if (!this.pageVisible || this.homeState.activeDraftStartedAt <= 0) {
+        // 兜底自清理：草稿在两次 sync 之间被清空（如训练完成/写盘）时不必等外部再调一次。
+        this.stopElapsedClockTimer()
+        return
+      }
+      // 只 bump 节拍：秒数由 build 期的 resumeElapsedClock 从 startedAt 现算。
+      this.draftClockTick = this.draftClockTick + 1
+    }, 1000)
+  }
+
+  private stopElapsedClockTimer(): void {
+    if (this.elapsedClockTimer !== -1) {
+      clearInterval(this.elapsedClockTimer)
+      this.elapsedClockTimer = -1
+    }
   }
 
   /** 与训练页顶栏同一格式：mm:ss，两位补零（总时长超过 99 分钟时分钟位自然变宽）。 */

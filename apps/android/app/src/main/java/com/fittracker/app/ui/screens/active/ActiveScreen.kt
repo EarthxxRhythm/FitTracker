@@ -112,6 +112,7 @@ import com.fittracker.app.data.service.WorkoutDraftService
 import com.fittracker.app.notifications.checkAndNotifyAchievement
 import com.fittracker.app.data.service.hasWorkoutDraftProgress
 import com.fittracker.app.ui.components.clickableNoRipple
+import com.fittracker.app.ui.components.elapsedSecondsSince
 import com.fittracker.app.ui.screens.library.ExerciseGif
 import com.fittracker.app.ui.screens.library.FtLibraryModel
 import com.fittracker.app.ui.screens.workout.CollapseDraftAction
@@ -325,7 +326,7 @@ fun ActiveScreen(
         }
         if (draft != null && !residue && hasWorkoutDraftProgress(draft)) {
             startedAt = draft.startedAt
-            elapsed = ((System.currentTimeMillis() - draft.startedAt) / 1000).toInt().coerceAtLeast(0)
+            elapsed = elapsedSecondsSince(draft.startedAt, System.currentTimeMillis())
             target = if (draft.totalTargetSets > 0) draft.totalTargetSets else FtActiveModel.TARGET
             val state = draftToActiveState(draft)
             workout = state
@@ -356,11 +357,21 @@ fun ActiveScreen(
         }
     }
 
-    // 原型 `window.setInterval(…, 1000)`（L711-714）
-    LaunchedEffect(Unit) {
+    // 原型 `window.setInterval(…, 1000)`（L711-714）：节奏仍是每秒一拍，但数值不再 += 1 累加，
+    // 改为从 startedAt 墙钟绝对派生——与主屏胶囊 elapsedSecondsSince 同一个函数、同一个锚点。
+    //
+    // 为什么必须改成派生：`delay(1000)` 只保证「至少 1 秒」，每拍实际多出几 ms 到几百 ms 的调度
+    // 抖动（主线程忙时更明显），累加计数会把这些偏差永久写进显示值，长训越走越偏小；后台挂起
+    // 期间不再 tick，回到前台还停在旧值。绝对派生对抖动免疫，也与胶囊/鸿蒙两端同机制。
+    //
+    // key 用 startedAt 而非 Unit：startedAt 是在上面的 `LaunchedEffect(Unit)` 里才写入的
+    // （恢复草稿分支取 draft.startedAt，全新训练分支取当前时间），用 Unit 会让本循环锁定初值 0；
+    // key 跟随 startedAt 后，锚点一落定就自动按正确起点重开。
+    // 兜底交给 elapsedSecondsSince（startedAt<=0 / 时钟回拨都退化为 0），不在这里重复判。
+    LaunchedEffect(startedAt) {
         while (true) {
+            elapsed = elapsedSecondsSince(startedAt, System.currentTimeMillis())
             delay(1000)
-            elapsed += 1
         }
     }
 

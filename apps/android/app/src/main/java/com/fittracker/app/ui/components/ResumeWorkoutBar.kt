@@ -19,8 +19,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fittracker.app.ui.theme.FtColor
 import com.fittracker.app.ui.theme.FtMotion
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -51,8 +56,13 @@ data class ResumeDraftSummary(
     val completedSets: Int,
     /** 全场目标组数（计数器分母）。 */
     val totalSets: Int,
-    /** 已训练秒数：胶囊直接用训练页右上角那套 mm:ss 显示，不在这里折成分钟。 */
-    val elapsedSeconds: Int,
+    /**
+     * 草稿开练时刻（epoch ms，与 `ActiveScreen` 恢复分支同一字段）。
+     *
+     * 胶囊中栏的时钟由它派生（`now - startedAt`），不拿落盘快照的秒数静态显示：
+     * 快照只在草稿写入时更新，停在首页时秒数会冻住。
+     */
+    val startedAt: Long,
     /** 当前动作名（首个未录满动作，与训练页选中口径同源）。 */
     val exerciseName: String,
     /** 当前动作内已完成组数。 */
@@ -82,6 +92,20 @@ fun ResumeWorkoutBar(
     val scope = rememberCoroutineScope()
     // 0 = 常态，1 = 被按下收束到底。只在点按后到页面推入之间的 110ms 里非 0。
     val sink = remember { Animatable(0f) }
+
+    // 每秒一次的「现在」：中栏时钟由 now - startedAt 派生，与训练页恢复分支同一锚点
+    // （ActiveScreen 恢复时也从 draft.startedAt 播种），因此不会像累加计数那样累积漂移；
+    // 后台挂起回来后下一次 tick 直接跳到真实墙钟时间，不会慢慢追。
+    var nowTick by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(1_000L)
+            nowTick = System.currentTimeMillis()
+        }
+    }
+    // 秒数永远从 startedAt 现算，不在状态里留快照：tick 只提供「现在变了」这个信号。
+    // `startedAt <= 0` 的旧草稿由 helper 兜底成 0，不需要第二份数据来判断。
+    val elapsedSeconds = elapsedSecondsSince(summary.startedAt, nowTick)
 
     Row(
         modifier = modifier
@@ -153,10 +177,11 @@ fun ResumeWorkoutBar(
             )
         }
 
-        // 中：已经练了多久（训练页右上角同口径 mm:ss）。
+        // 中：已经练了多久。与训练页「同源不同机制」——两处都锚定 draft.startedAt，
+        // 训练页是恢复后累加，这里是 now - startedAt 绝对派生；显示格式（mm:ss）也一致。
         // 固定宽度 + 居中：秒数每跳一次不会把左右两栏推来推去。
         Text(
-            text = formatElapsedClock(summary.elapsedSeconds),
+            text = formatElapsedClock(elapsedSeconds),
             color = FtColor.accent,
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold,
@@ -234,8 +259,34 @@ private fun setProgressOf(summary: ResumeDraftSummary): String {
     return "$currentSet / $target"
 }
 
-/** 与训练页顶栏同一格式：mm:ss，两位补零。 */
-private fun formatElapsedClock(totalSeconds: Int): String {
+/**
+ * 从草稿 `startedAt` 派生「已训练秒数」——墙钟绝对派生，不是 `elapsed += 1` 累加计数。
+ *
+ * 两处兜底各自对应一种会把显示搞错的真实输入：
+ * - `startedAt <= 0`：旧版本/异常写入的草稿缺 `startedAt`，`(now - 0)/1000` 会显示天文数字；
+ * - `now <= startedAt`：设备时钟回拨或刚开练，直接相减会出负数。
+ * 两种都退化为 0（等价「刚开始」），不把错误值原样喂给 [formatElapsedClock]。
+ *
+ * 抽成独立函数而非内联：胶囊（每秒 tick）与训练页（恢复后累加的回填）用的是同一口径，
+ * 两处各写一遍迟早分叉；单测也只需钉这一个纯函数。
+ */
+internal fun elapsedSecondsSince(startedAtMillis: Long, nowMillis: Long): Int {
+    if (startedAtMillis <= 0L) {
+        return 0
+    }
+    if (nowMillis <= startedAtMillis) {
+        return 0
+    }
+    return ((nowMillis - startedAtMillis) / 1_000L).toInt()
+}
+
+/**
+ * 与训练页顶栏同一格式：mm:ss，两位补零。
+ *
+ * `internal` 而非 `private`：纯字符串换算，值得被单测直接钉住边界
+ * （0s / 59s / 60s / 大分钟），不必为测它去渲染一整条 Composable。
+ */
+internal fun formatElapsedClock(totalSeconds: Int): String {
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
     return "%02d:%02d".format(minutes, seconds)
