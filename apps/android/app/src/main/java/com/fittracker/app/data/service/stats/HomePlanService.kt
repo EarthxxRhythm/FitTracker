@@ -66,6 +66,16 @@ object HomePlanService {
     const val START_ROUTE_WORKOUT = "workout"
 
     /**
+     * 目标生成计划的日循环种子：目标创建至今的第几天（≥1）。
+     * 数据一致性收口：对齐鸿蒙 `HomePlanService.ets:214-223`（Android 此前缺失此函数）。
+     * 首页/计划 Tab/训练预览必须共用这一份口径。
+     */
+    fun createDaySeedFromGoal(goalCreatedAt: Long, now: Long): Int {
+        val dayCount = Math.floorDiv(now - goalCreatedAt, 86400000L) + 1
+        return if (dayCount < 1) 1 else dayCount.toInt()
+    }
+
+    /**
      * 动作名反查插槽——默认接 `ContentRepository.getExercise(id)?.nameZh`；
      * 回落 `null` 时调用方用 `exerciseId`（源 `getExerciseById` 未命中分支）。
      */

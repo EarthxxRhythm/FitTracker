@@ -144,8 +144,10 @@ export function buildPlanDayItemsFromUserPlan(plan: UserPlan, todayWeekday: numb
     const day: TrainingDay = plan.days[index]
     // 同一派生源：distance 同时喂今日标记与徽标（有意的口径变化——徽标由
     // 「日历星期距离」改为「计划序列距离」，与今日卡位置一致，消除卡标今日
-    // 而徽标显示第 N 天的并存）。
-    const distance: number = plan.days.length > 0 ? (index - todayIndex + plan.days.length) % plan.days.length : 0
+    // 而徽标显示第 N 天的并存）。休息日（todayIndex < 0）降级：不标今日 + 位置徽标。
+    const distance: number = todayIndex < 0 || plan.days.length === 0
+      ? -1
+      : (index - todayIndex + plan.days.length) % plan.days.length
     const isToday: boolean = distance === 0
     items.push(createPlanDayItem(
       shortDayTag(day.dayLabel),

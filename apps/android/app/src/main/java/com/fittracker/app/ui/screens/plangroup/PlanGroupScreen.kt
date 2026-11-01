@@ -851,9 +851,10 @@ private fun shortDayTag(dayLabel: String): String =
  *
  * 计划数据无独立 focus 字段，取该日动作的 `targetMuscle` 去重后以「 · 」连接
  * （与前 `FtPlanGroup` 的 examples 策略一致）。
+ * 数据一致性收口：过滤空串（对齐 FtPlanModel.dayFocusMuscles），避免空段/前导「 · 」。
  */
 private fun dayFocusMuscles(day: TrainingDay): String =
-    day.exercises.map { it.targetMuscle }.distinct().joinToString(" · ")
+    day.exercises.map { it.targetMuscle }.filter { it.isNotEmpty() }.distinct().joinToString(" · ")
 
 /**
  * 每周节奏 7 格（对齐鸿蒙 `PlanGroupDetailContent.ets:133-149` 的 `buildWeekCells`）。

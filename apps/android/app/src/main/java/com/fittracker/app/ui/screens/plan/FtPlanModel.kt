@@ -180,6 +180,18 @@ fun positionBadge(index: Int): FtPlanBadge = when (index) {
 }
 
 /**
+ * 相对日徽标（数据一致性收口，对齐鸿蒙 `PlanTabModel.relativeDayBadge`）：
+ * 0/1/2 天 → 今日/明日/后天；>2 → 「N 天后」；距离解析不出（休息日降级）→ 位置徽标。
+ */
+fun relativeDayBadge(distance: Int, index: Int): FtPlanBadge = when {
+    distance == 0 -> FtPlanBadge(R.string.plan_badge_today)
+    distance == 1 -> FtPlanBadge(R.string.plan_badge_tomorrow)
+    distance == 2 -> FtPlanBadge(R.string.plan_badge_day_after)
+    distance > 2 -> FtPlanBadge(R.string.plan_badge_days_later, distance)
+    else -> positionBadge(index)
+}
+
+/**
  * 训练日短标签（`PlanTabModel.shortDayTag`）：首字为「周」时砍掉两字符再 trim 取首字
  * （「周一 胸部」→胸、「上肢A」→上）；空标签回落「练」（动态标签兜底，属内容数据，
  * 无 `Context` 可解析，故保持字面量）。
@@ -209,10 +221,12 @@ fun dayFocusMuscles(day: TrainingDay): String {
  * 由「已启用的预置计划」构建计划页日卡
  * （`PlanTabModel.buildPlanDayItemsFromUserPlan` 的字段级对齐）。
  *
+ * 数据一致性收口：今日标记与徽标同一派生源（todayIndex 位置距离）——
+ * 不再恒标首日（原 `isToday = index == 0` 与预览页星期匹配必分叉）。
  * 与源一致的取舍：`duration` 传空（预置计划无单次时长），卡片副标题渲染时省略尾段
  * （`daySubtitle` 的「duration 为空不追加」口径）。
  */
-fun ftPlanDaysFromUserPlan(plan: UserPlan): List<FtPlanDay> = ftPlanDaysFromDays(plan.days)
+fun ftPlanDaysFromUserPlan(plan: UserPlan, todayIndex: Int): List<FtPlanDay> = ftPlanDaysFromDays(plan.days, todayIndex)
 
 /**
  * 由「计划组」的预设计划构建日卡——**计划页动作清单的权威来源**。
@@ -221,17 +235,21 @@ fun ftPlanDaysFromUserPlan(plan: UserPlan): List<FtPlanDay> = ftPlanDaysFromDays
  * 预设模板后续更新后两份内容会漂移。设备实测（PKB110）：同名「三分化 · 谭成义」在
  * 计划组详情有 5 个动作，而计划页读落盘副本只有 3 个、日标签还是旧版「拉」。
  * 计划页与计划组必须同源，故清单取预设模板最新的 `days`。
+ * 今日判定仍以「当前计划」为准（todayIndex 由调用方传入）。
  */
-fun ftPlanDaysFromPreset(plan: PresetPlan): List<FtPlanDay> = ftPlanDaysFromDays(plan.days)
+fun ftPlanDaysFromPreset(plan: PresetPlan, todayIndex: Int): List<FtPlanDay> = ftPlanDaysFromDays(plan.days, todayIndex)
 
-private fun ftPlanDaysFromDays(days: List<TrainingDay>): List<FtPlanDay> = days.mapIndexed { index, day ->
+private fun ftPlanDaysFromDays(days: List<TrainingDay>, todayIndex: Int): List<FtPlanDay> = days.mapIndexed { index, day ->
+    // 数据一致性收口：distance 同时喂今日标记与徽标；休息日（todayIndex < 0）降级为
+    // 全不标今日 + 位置徽标（对齐鸿蒙 PlanTabModel 同一降级分支）。
+    val distance = if (todayIndex < 0 || days.isEmpty()) -1 else (index - todayIndex + days.size) % days.size
     FtPlanDay(
         tag = shortDayTag(day.dayLabel),
         title = day.dayLabel,
         focus = dayFocusMuscles(day),
         duration = "",
-        badge = positionBadge(index),
-        isToday = index == 0,
+        badge = relativeDayBadge(distance, index),
+        isToday = distance == 0,
         exercises = day.exercises.map { ref ->
             FtPlanExercise(
                 name = ref.name,

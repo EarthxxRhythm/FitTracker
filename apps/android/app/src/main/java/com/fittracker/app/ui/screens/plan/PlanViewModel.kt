@@ -14,8 +14,9 @@ import com.fittracker.app.data.persist.StoreNames
 import com.fittracker.app.data.persist.appDataStore
 import com.fittracker.app.data.service.SettingsService
 import com.fittracker.app.data.service.TrainingPlanRepository
+import com.fittracker.app.data.service.WeekWindow
 import com.fittracker.app.data.service.WorkoutRepository
-import com.fittracker.app.data.service.WorkoutSessionService
+import com.fittracker.app.data.service.stats.StatsDashboardService
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
@@ -105,7 +106,10 @@ class PlanViewModel(application: Application) : AndroidViewModel(application) {
             // 与计划组详情页的 isCurrent 判定共用同一真源，避免两套匹配口径再漂移。
             val presetId: String = TrainingPlanRepository.getPresetIdForPlan(current)
             val preset = if (presetId.isEmpty()) null else TrainingPlanRepository.getPresetPlanById(presetId)
-            days = if (preset != null) ftPlanDaysFromPreset(preset) else ftPlanDaysFromUserPlan(current)
+            // 数据一致性收口：今日判定走唯一真源（星期匹配 + 无星期计划启用日循环），
+            // 计划页不再恒标首日；preset 分支也以「当前计划」的今日为准。
+            val todayIndex = TrainingPlanRepository.getTodayTrainingIndexForPlan(current)
+            days = if (preset != null) ftPlanDaysFromPreset(preset, todayIndex) else ftPlanDaysFromUserPlan(current, todayIndex)
             planName = current.name.ifEmpty { res.getString(R.string.plan_fallback_name) }
             planMeta = res.getString(
                 R.string.plan_meta_format,
@@ -113,14 +117,16 @@ class PlanViewModel(application: Application) : AndroidViewModel(application) {
                 current.days.size,
                 current.weeklyFrequency,
             )
-            val stats = WorkoutSessionService.weeklyStats(
-                WorkoutRepository.getSessions(store),
-                System.currentTimeMillis(),
-                weekStart,
+            // 数据一致性收口：本周进度 N 改「按计划训练日去重」计数（同日两练计 1），
+            // 与分母计划训练日数同量纲；不再用周会话数。
+            val sessions = WorkoutRepository.getSessions(store)
+            val (weekStartMillis, weekEndExclusive) = WeekWindow.weekRange(System.currentTimeMillis(), weekStart)
+            val distinct = StatsDashboardService.countDistinctPlanDays(
+                sessions, current.id, current.days.map { it.dayLabel }, weekStartMillis, weekEndExclusive,
             )
             val total = current.days.size
-            weeklyProgress = res.getString(R.string.plan_week_progress, stats.count, total)
-            progressFraction = if (total > 0) (stats.count.toFloat() / total).coerceIn(0f, 1f) else 0f
+            weeklyProgress = res.getString(R.string.plan_week_progress, distinct, total)
+            progressFraction = if (total > 0) (distinct.toFloat() / total).coerceIn(0f, 1f) else 0f
         } else {
             // 空态（`PlanContent.applyEmptyState`）
             days = emptyList()

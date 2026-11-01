@@ -9,6 +9,9 @@ import com.fittracker.app.R
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
 import com.fittracker.app.data.service.SettingsService
+import com.fittracker.app.data.service.ContentRepository
+import com.fittracker.app.data.service.GoalRepository
+import com.fittracker.app.data.service.generatePlan
 import com.fittracker.app.data.service.TrainingPlanRepository
 import com.fittracker.app.data.service.WeekStart
 import com.fittracker.app.data.service.WeekWindow
@@ -17,6 +20,7 @@ import com.fittracker.app.data.service.WorkoutRepository
 import com.fittracker.app.data.service.WorkoutSessionService
 import com.fittracker.app.data.service.currentLanguageTag
 import com.fittracker.app.data.service.stats.HomePlanService
+import com.fittracker.app.data.service.stats.StatsDashboardService
 import com.fittracker.app.ui.screens.plan.dayFocusMuscles
 
 /**
@@ -137,21 +141,55 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             todayDurationMinutes = summary.sessionMinutes
             todayMuscleGroupCount = summary.todayMuscleGroupCount
             weeklyPlannedDays = summary.weeklyDays
+            // 数据一致性收口：首页环分子改「本周按计划训练日去重」（对齐鸿蒙 HomeState）。
+            val (weekStartMillis, weekEndExclusive) = WeekWindow.weekRange(System.currentTimeMillis(), weekStart)
+            val distinct = StatsDashboardService.countDistinctPlanDays(
+                sessions, current.id, current.days.map { it.dayLabel }, weekStartMillis, weekEndExclusive,
+            )
             weeklyProgressPercent = if (summary.weeklyDays > 0) {
-                ((stats.count * 100) / summary.weeklyDays).coerceAtMost(100)
+                ((distinct * 100) / summary.weeklyDays).coerceAtMost(100)
             } else {
                 0
             }
         } else {
-            // 空态（`HomeContent.applyEmptyState`）
-            todayTitle = res.getString(R.string.home_empty_plan_title)
-            todayMuscleText = res.getString(R.string.home_empty_plan_subtitle)
-            todayStatusText = res.getString(R.string.home_status_pending)
-            todayExerciseCount = 0
-            todayDurationMinutes = 0
-            todayMuscleGroupCount = 0
-            weeklyPlannedDays = 0
-            weeklyProgressPercent = 0
+            // 数据一致性收口：对齐鸿蒙 HomeState.ets:112-122——有目标、无当前计划时
+            // 展示目标生成计划的今日摘要（此前 Android 直接走空态，双端行为分歧）。
+            val goal = GoalRepository.loadGoal(store)
+            if (goal != null) {
+                val plan = generatePlan(goal, ContentRepository.exercises())
+                val daySeed = HomePlanService.createDaySeedFromGoal(goal.createdAt, System.currentTimeMillis())
+                val summary = HomePlanService.createSummary(goal, plan, daySeed)
+                todayTitle = summary.todayTitle
+                // 鸿蒙此行为肌群名（muscleNamesOf）；Android 首页无对应肌群文本辅助，
+                // 以今日动作名列表呈现（已知双端小差异，登记在案）。
+                todayMuscleText = summary.todayExerciseNames.joinToString(" · ")
+                todayStatusText = res.getString(
+                    if (summary.hasTodayWorkout) R.string.home_status_training_day else R.string.home_status_rest_day,
+                )
+                todayExerciseCount = summary.todayExerciseCount
+                todayDurationMinutes = summary.sessionMinutes
+                todayMuscleGroupCount = summary.todayMuscleGroupCount
+                weeklyPlannedDays = plan.days.size
+                val (weekStartMillis, weekEndExclusive) = WeekWindow.weekRange(System.currentTimeMillis(), weekStart)
+                val distinct = StatsDashboardService.countDistinctPlanDays(
+                    sessions, plan.planId, plan.days.map { it.dayId }, weekStartMillis, weekEndExclusive,
+                )
+                weeklyProgressPercent = if (plan.days.isNotEmpty()) {
+                    ((distinct * 100) / plan.days.size).coerceAtMost(100)
+                } else {
+                    0
+                }
+            } else {
+                // 空态（`HomeContent.applyEmptyState`）
+                todayTitle = res.getString(R.string.home_empty_plan_title)
+                todayMuscleText = res.getString(R.string.home_empty_plan_subtitle)
+                todayStatusText = res.getString(R.string.home_status_pending)
+                todayExerciseCount = 0
+                todayDurationMinutes = 0
+                todayMuscleGroupCount = 0
+                weeklyPlannedDays = 0
+                weeklyProgressPercent = 0
+            }
         }
     }
 }

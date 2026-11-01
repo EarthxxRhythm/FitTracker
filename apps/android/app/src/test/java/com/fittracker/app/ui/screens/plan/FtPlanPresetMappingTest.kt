@@ -22,7 +22,7 @@ class FtPlanPresetMappingTest {
         val preset = TrainingPlanRepository.getPresetPlanById(PRESET_PPL)
         assertTrue("预设计划 $PRESET_PPL 必须存在", preset != null)
 
-        val days = ftPlanDaysFromPreset(preset!!)
+        val days = ftPlanDaysFromPreset(preset!!, 0)
         assertEquals("训练日数应一致", preset.days.size, days.size)
 
         preset.days.forEachIndexed { index, day ->
@@ -55,7 +55,7 @@ class FtPlanPresetMappingTest {
     @Test
     fun `三分化第二天映射出五个动作`() {
         val preset = TrainingPlanRepository.getPresetPlanById(PRESET_PPL)!!
-        val days = ftPlanDaysFromPreset(preset)
+        val days = ftPlanDaysFromPreset(preset, 0)
 
         assertEquals("背后束二头", days[1].title)
         assertEquals(5, days[1].exercises.size)

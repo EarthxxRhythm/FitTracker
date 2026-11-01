@@ -7,6 +7,7 @@ import com.fittracker.app.data.model.UserPlan
 import com.fittracker.app.data.persist.JsonCodec
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.StoreNames
+import com.fittracker.app.data.service.stats.HomePlanService
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import java.util.Calendar
@@ -270,23 +271,68 @@ object TrainingPlanRepository {
 
     /**
      * 源 `:413` `getTodayTraining`——先按 `dayOfWeek` 命中，未中再按 `dayLabel` 兜底。
+     * 数据一致性收口：改走 [getTodayTrainingIndexForPlan]（无星期计划启用日循环回退）。
      *
      * 测试缝：`todayOfWeek` 默认取当前星期（JS `getDay()` 口径：0=周日…6=周六），
      * 可注入以构造确定性日期（源从 `new Date()` 直取，本侧为可测性显式参数化）。
      */
     fun getTodayTraining(plan: UserPlan, todayOfWeek: Int = currentDayOfWeek()): TrainingDay? {
-        for (day in plan.days) { // :415-421
+        val index = getTodayTrainingIndexForPlan(plan, todayOfWeek)
+        return if (index < 0) null else plan.days[index]
+    }
+
+    /**
+     * 今日判定唯一真源（数据一致性收口，对齐鸿蒙 `resolveTodayTrainingIndexForPlan`）。
+     *
+     * 口径注释表（四类计划 × 今日判定）：
+     * | 计划形态 | 今日判定 |
+     * | 预置计划（dayOfWeek/dayLabel 含星期） | 星期匹配；今天不匹配 → -1 休息日 |
+     * | 自定义计划（可能无星期） | 无任何星期信息且 enabledAt > 0 → 启用日循环回退 |
+     * | 目标生成计划 | createDaySeedFromGoal（目标创建至今第 N 天循环） |
+     * | 无星期且 enabledAt <= 0 | -1 休息日 |
+     *
+     * 注意：星期循环（周期 7）与启用日循环（周期 days.size）是两种不同构映射，
+     * 本函数只在前者完全不可用（计划无任何星期信息）时才启用后者——
+     * 预置计划的休息日（有星期但今天不匹配）不会被误循环成训练日。
+     */
+    fun getTodayTrainingIndexForPlan(plan: UserPlan, todayOfWeek: Int = currentDayOfWeek()): Int {
+        val matched = resolveTodayTrainingIndex(plan.days, todayOfWeek)
+        if (matched >= 0 || plan.days.isEmpty()) {
+            return matched
+        }
+        if (plan.enabledAt > 0 && !planHasAnyWeekdayInfo(plan.days)) {
+            val seed = HomePlanService.createDaySeedFromGoal(plan.enabledAt, System.currentTimeMillis())
+            return (seed - 1) % plan.days.size
+        }
+        return -1
+    }
+
+    /** 计划是否含任何星期信息（dayOfWeek 或 dayLabel 可解析出「周X」）。 */
+    fun planHasAnyWeekdayInfo(days: List<TrainingDay>): Boolean {
+        for (day in days) {
+            if (!day.dayOfWeek.isNullOrEmpty()) {
+                return true
+            }
+            if (getDayNumberFromLabel(day.dayLabel) >= 0) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun resolveTodayTrainingIndex(days: List<TrainingDay>, todayOfWeek: Int): Int {
+        for ((index, day) in days.withIndex()) {
             val dayOfWeek: List<Int>? = day.dayOfWeek
             if (!dayOfWeek.isNullOrEmpty() && todayOfWeek in dayOfWeek) {
-                return day
+                return index
             }
         }
-        for (day in plan.days) { // :423-429
+        for ((index, day) in days.withIndex()) {
             if (getDayNumberFromLabel(day.dayLabel) == todayOfWeek) {
-                return day
+                return index
             }
         }
-        return null // :430
+        return -1
     }
 
     /** 源 `:432` `isTrainingDay`。 */

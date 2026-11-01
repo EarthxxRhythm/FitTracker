@@ -36,6 +36,7 @@
     <string name="plan_badge_tomorrow">明日</string>
     <string name="plan_badge_day_after">后天</string>
     <string name="plan_badge_day_number">第 %1$d 天</string>
+    <string name="plan_badge_days_later">%1$d 天后</string>
     <string name="plan_exercise_list">动作清单</string>
     <!-- 卡片副题（`PlanTabModel.daySubtitle`）：`%1$s` 肌群 · `%2$d` 动作数 · `%3$s` 时长（可空） -->
     <string name="plan_day_subtitle">%1$s · %2$d 个动作</string>

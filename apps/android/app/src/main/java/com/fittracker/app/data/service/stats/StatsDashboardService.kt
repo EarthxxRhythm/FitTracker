@@ -37,8 +37,7 @@ data class CalendarHeatmapRow(
     val days: List<CalendarHeatmapDay>,
 )
 
-/** 统计面板汇总（源 `StatsDashboardService.ets:35` `StatsDashboardSummary`）。 */
-data class StatsDashboardSummary(
+/** 统计面板汇总（源 `StatsDashboardService.ets:35` `StatsDashboardSummary`）。 */data class StatsDashboardSummary(
     val weeklyStats: WeeklyTrainingStats,
     val monthTitle: String,
     val heatmapDays: List<CalendarHeatmapDay>,
@@ -54,6 +53,37 @@ data class StatsDashboardSummary(
  * （`minSdk = 24`，不用 `java.time`，避免 desugaring 依赖）。
  */
 object StatsDashboardService {
+
+    /**
+     * 本周「按计划训练日去重」的完成计数（纯函数，无 IO）。
+     *
+     * 数据一致性收口（对齐鸿蒙 `countDistinctPlanDaysById`）：Android 会话
+     * `dayId` 的值为计划 `dayLabel`（见 WorkoutPreviewScreen `dayId = day.dayLabel`），
+     * 故去重键 = planId + dayId，命中集合为当前计划各训练日的 dayLabel 列表。
+     * 同键多次仅计 1；dayId 为空的历史会话不计。不变量：0 ≤ 结果 ≤ dayLabels.size。
+     */
+    fun countDistinctPlanDays(
+        sessions: List<WorkoutSession>,
+        planId: String,
+        dayLabels: List<String>,
+        weekStartMillis: Long,
+        weekEndExclusive: Long,
+    ): Int {
+        if (planId.isEmpty() || dayLabels.isEmpty()) return 0
+        val seenKeys = mutableSetOf<String>()
+        var count = 0
+        for (session in sessions) {
+            if (session.planId != planId) continue
+            if (session.startedAt < weekStartMillis || session.startedAt >= weekEndExclusive) continue
+            if (session.dayId.isEmpty()) continue
+            if (session.dayId !in dayLabels) continue
+            val key = "$planId|${session.dayId}"
+            if (key in seenKeys) continue
+            seenKeys.add(key)
+            count++
+        }
+        return count
+    }
 
     /** 源 `createSummary`（`StatsDashboardService.ets:43`）。 */
     fun createSummary(sessions: List<WorkoutSession>, now: Long, weekStart: WeekStart): StatsDashboardSummary {
