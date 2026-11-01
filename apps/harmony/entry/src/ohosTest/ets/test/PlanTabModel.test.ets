@@ -24,6 +24,8 @@ import {
   relativeDayBadge,
   shortDayTag
 } from '../../../main/ets/features/pencil/components/PlanTabModel'
+import ContentRepository from '../../../main/ets/shared/services/ContentRepository'
+import { ExerciseContent } from '../../../main/ets/shared/models/TrainingModels'
 
 function buildCurrentPlan(id: string): UserPlan {
   const preset: PresetPlan | undefined = TrainingPlanService.getPresetPlanById(id)
@@ -98,9 +100,12 @@ export default function planTabModelTest(): void {
       const items: PlanDayItem[] = buildPlanDayItemsFromUserPlan(plan, 1)
       const day: TrainingDay = plan.days[0]
       const first: ExerciseRef = day.exercises[0]
+      // 数据一致性收口：动作名与预览页同口径——内容库命中显示 nameZh，未命中保留原名。
+      const content: ExerciseContent | undefined = ContentRepository.resolveByName(first.name)
+      const expectedName: string = content !== undefined ? content.nameZh : first.name
 
       expect(items[0].exercises.length).assertEqual(day.exercises.length)
-      expect(items[0].exercises[0].name).assertEqual(first.name)
+      expect(items[0].exercises[0].name).assertEqual(expectedName)
       expect(items[0].exercises[0].muscle).assertEqual(first.targetMuscle)
       expect(items[0].exercises[0].sets).assertEqual(first.sets.toString())
       expect(items[0].exercises[0].reps).assertEqual(first.reps)
@@ -148,10 +153,23 @@ export default function planTabModelTest(): void {
       }
       const items: PlanDayItem[] = buildPlanDayItemsFromUserPlan(noWeekdayPlan, 3)
 
-      expect(items[0].badge).assertEqual('今日')
-      expect(items[0].today).assertTrue()
-      expect(items[1].badge).assertEqual('明日')
-      expect(items[1].today).assertFalse()
+      // 数据一致性收口（有意口径变化）：无星期计划不再恒标首日为今日，而是
+      // 走启用日循环回退（resolveTodayTrainingIndexForPlan）——与预览页同源。
+      // 断言不变量而非具体位置：恰好一张卡标今日，其余卡按相对位置标徽标。
+      let todayCount = 0
+      let todayIndex = -1
+      for (let index = 0; index < items.length; index++) {
+        if (items[index].today) {
+          todayCount++
+          todayIndex = index
+        }
+      }
+      expect(todayCount).assertEqual(1)
+      expect(todayIndex).assertLarger(-1)
+      expect(items[todayIndex].badge).assertEqual('今日')
+      const otherIndex: number = (todayIndex + 1) % items.length
+      expect(items[otherIndex].badge).assertEqual('明日')
+      expect(items[otherIndex].today).assertFalse()
     })
   })
 

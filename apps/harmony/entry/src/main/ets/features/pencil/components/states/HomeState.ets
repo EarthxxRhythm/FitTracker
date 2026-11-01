@@ -14,7 +14,8 @@ import WorkoutSessionService, { WeeklyStats } from '../../../../common/services/
 import TrainingPlanService, { TrainingDay, UserPlan } from '../../../../common/services/TrainingPlanService'
 import ContentRepository from '../../../../shared/services/ContentRepository'
 import { dayFocusMuscles } from '../PlanTabModel'
-import StatsDashboardService, { StatsDashboardSummary } from '../../../../shared/services/StatsDashboardService'
+import { countDistinctPlanDaysById } from '../../../../shared/services/StatsDashboardService'
+import { resolveWeekStart } from '../../../../common/utils/WeekUtils'
 import GoalRepository from '../../../../shared/services/GoalRepository'
 import PlanEngine from '../../../../shared/services/PlanEngine'
 import HomePlanService, { HomePlanSummary } from '../../../../shared/services/HomePlanService'
@@ -46,6 +47,9 @@ export class HomeState extends StateBase {
   todayMuscleGroupCount: number = 0
   weeklyTrainedCount: number = 0
   weeklyPlannedDays: number = 0
+  // 数据一致性收口：本周进度去重所需的活动计划上下文（计划 id + 训练日 id 集合）。
+  activePlanId: string = ''
+  activePlanDayIds: string[] = []
   weekDays: HomeWeekDayItem[] = []
 
   // 进行中的训练草稿（首页接续态）：训练页收起后回到首页，主 CTA 变「继续训练」。
@@ -109,6 +113,9 @@ export class HomeState extends StateBase {
       this.todayDurationMinutes = summary.sessionMinutes
       this.todayMuscleGroupCount = summary.todayMuscleGroupCount
       this.weeklyPlannedDays = summary.weeklyDays
+      // 数据一致性收口：记录活动计划上下文供周进度去重（repository 会话 dayId 格式为 current_plan_day_N）。
+      this.activePlanId = current.id
+      this.activePlanDayIds = this.createCurrentPlanDayIds(current.days.length)
     } else if (goal !== undefined) {
       const plan: TrainingPlan = PlanEngine.generatePlan(goal)
       // 与训练预览同口径的目标日种子（createDaySeedFromGoal），保证两处的「今日训练」是同一天。
@@ -124,6 +131,9 @@ export class HomeState extends StateBase {
       this.todayDurationMinutes = summary.sessionMinutes
       this.todayMuscleGroupCount = summary.todayMuscleGroupCount
       this.weeklyPlannedDays = plan.days.length
+      // 目标生成计划：会话落库 planId = 'plan_' + goalId，dayId = 'day_N'（PlanEngine 契约）。
+      this.activePlanId = plan.planId
+      this.activePlanDayIds = this.createGoalPlanDayIds(plan.days)
     } else {
       this.applyEmptyState()
       return
@@ -134,10 +144,30 @@ export class HomeState extends StateBase {
     const draft: WorkoutDraftSnapshot | null = await WorkoutDraftService.getDraft(context)
     this.applyDraftState(draft, now)
     const sessions: WorkoutSession[] = await WorkoutSessionPersistenceBridgeService.loadPersistedSessions(context)
-    const dashboard: StatsDashboardSummary = sessions.length === 0
-      ? StatsDashboardService.createEmptySummary(now, settings.weekStart)
-      : StatsDashboardService.createSummary(sessions, now, settings.weekStart)
-    this.weeklyProgressPercent = this.createProgressPercent(dashboard.weeklyStats.sessionCount, this.weeklyPlannedDays)
+    // 数据一致性收口：首页环分子改「本周按计划训练日去重」（repository 会话按 planId+dayId），
+    // 与计划页「本周 N/M 天」同一口径；不再用周会话数。
+    const weekStartDate: Date = resolveWeekStart(new Date(now), settings.weekStart)
+    const weekStartTime: number = weekStartDate.getTime()
+    const weekEndExclusive: number = weekStartTime + 7 * 86400000
+    const distinct: number = countDistinctPlanDaysById(
+      sessions, this.activePlanId, this.activePlanDayIds, weekStartTime, weekEndExclusive)
+    this.weeklyProgressPercent = this.createProgressPercent(distinct, this.weeklyPlannedDays)
+  }
+
+  private createCurrentPlanDayIds(dayCount: number): string[] {
+    const ids: string[] = []
+    for (let index = 1; index <= dayCount; index++) {
+      ids.push('current_plan_day_' + index.toString())
+    }
+    return ids
+  }
+
+  private createGoalPlanDayIds(days: PlanDay[]): string[] {
+    const ids: string[] = []
+    for (let index = 0; index < days.length; index++) {
+      ids.push(days[index].dayId)
+    }
+    return ids
   }
 
   // ── 派生（从 HomeContent 迁入） ──────────────────────────────────────────
@@ -243,6 +273,8 @@ export class HomeState extends StateBase {
     this.todayDurationMinutes = 0
     this.todayMuscleGroupCount = 0
     this.weeklyPlannedDays = 0
+    this.activePlanId = ''
+    this.activePlanDayIds = []
     // 无计划时不应存在「继续训练」：有草稿也只能是历史残留，直接清掉展示态
     this.clearDraftState()
   }

@@ -12,8 +12,10 @@ import {
   ExerciseRef,
   TrainingDay,
   UserPlan,
-  resolveDayDistance
+  resolveTodayTrainingIndexForPlan
 } from '../../../common/services/TrainingPlanService'
+import ContentRepository from '../../../shared/services/ContentRepository'
+import { ExerciseContent } from '../../../shared/models/TrainingModels'
 
 export interface PlanExerciseItem {
   name: string
@@ -135,12 +137,16 @@ export function daySubtitle(day: PlanDayItem): string {
 
 /** 由「计划组已启用的预置计划」构建计划 Tab 的日卡片。todayWeekday 供测试注入固定星期。 */
 export function buildPlanDayItemsFromUserPlan(plan: UserPlan, todayWeekday: number = new Date().getDay()): PlanDayItem[] {
+  // 数据一致性收口：今日判定与首页/预览页同源（resolveTodayTrainingIndexForPlan）。
+  const todayIndex: number = resolveTodayTrainingIndexForPlan(plan.days, todayWeekday, plan.enabledAt)
   const items: PlanDayItem[] = []
   for (let index = 0; index < plan.days.length; index++) {
     const day: TrainingDay = plan.days[index]
-    const distance: number = resolveDayDistance(day, todayWeekday)
-    // 无星期信息的计划（自定义计划）解析不出距离，沿用旧的按位置回退：首日视为今日。
-    const isToday: boolean = distance === 0 || (distance < 0 && index === 0)
+    // 同一派生源：distance 同时喂今日标记与徽标（有意的口径变化——徽标由
+    // 「日历星期距离」改为「计划序列距离」，与今日卡位置一致，消除卡标今日
+    // 而徽标显示第 N 天的并存）。
+    const distance: number = plan.days.length > 0 ? (index - todayIndex + plan.days.length) % plan.days.length : 0
+    const isToday: boolean = distance === 0
     items.push(createPlanDayItem(
       shortDayTag(day.dayLabel),
       day.dayLabel,
@@ -158,7 +164,10 @@ function buildPlanExerciseItems(exercises: ExerciseRef[]): PlanExerciseItem[] {
   const items: PlanExerciseItem[] = []
   for (let index = 0; index < exercises.length; index++) {
     const exercise: ExerciseRef = exercises[index]
-    items.push(createPlanExerciseItem(exercise.name, exercise.targetMuscle, exercise.sets.toString(), exercise.reps))
+    // 数据一致性收口：动作名与预览页同口径——内容库命中显示 nameZh，未命中保留原名。
+    const content: ExerciseContent | undefined = ContentRepository.resolveByName(exercise.name)
+    const name: string = content !== undefined ? content.nameZh : exercise.name
+    items.push(createPlanExerciseItem(name, exercise.targetMuscle, exercise.sets.toString(), exercise.reps))
   }
   return items
 }

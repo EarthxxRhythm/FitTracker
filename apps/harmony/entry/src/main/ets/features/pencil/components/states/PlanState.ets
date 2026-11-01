@@ -12,8 +12,12 @@ import { StateBase } from './StateBase'
 import GoalRepository from '../../../../shared/services/GoalRepository'
 import PlanEngine from '../../../../shared/services/PlanEngine'
 import ContentRepository from '../../../../shared/services/ContentRepository'
-import WorkoutSessionService, { WeeklyStats } from '../../../../common/services/WorkoutSessionService'
-import TrainingPlanService, { UserPlan } from '../../../../common/services/TrainingPlanService'
+import WorkoutSessionService, {
+  countDistinctPlanDays,
+  createWeekWindowStrings
+} from '../../../../common/services/WorkoutSessionService'
+import TrainingPlanService, { TrainingDay, UserPlan } from '../../../../common/services/TrainingPlanService'
+import SettingsService from '../../../../common/services/SettingsService'
 import {
   PlanDayItem,
   PlanExerciseItem,
@@ -70,7 +74,7 @@ export class PlanState extends StateBase {
       const current: UserPlan | null = await TrainingPlanService.getCurrentPlan(context)
       if (current !== null) {
         this.applyCurrentPlanState(current)
-        await this.loadWeeklyProgress(context, current.days.length)
+        await this.loadWeeklyProgress(context, current.id, this.trainingDayLabelsOf(current.days))
         return
       }
     } catch (error) {
@@ -88,7 +92,7 @@ export class PlanState extends StateBase {
       this.planName = plan.name.length > 0 ? plan.name : '训练计划'
       this.goalMeta = goalTypeLabel(goal.goalType) + ' · ' + plan.days.length.toString() + ' 练分化'
       this.planMeta = this.goalMeta + ' · ' + plan.cycleWeeks.toString() + ' 周推进'
-      await this.loadWeeklyProgress(context, plan.days.length)
+      await this.loadWeeklyProgress(context, plan.planId, this.planDayIdsOf(plan.days))
     } catch (error) {
       this.applyEmptyState()
     }
@@ -102,16 +106,39 @@ export class PlanState extends StateBase {
     this.planMeta = plan.targetAudience + ' · ' + plan.days.length.toString() + ' 练分化 · ' + plan.weeklyFrequency
   }
 
-  private async loadWeeklyProgress(context: Context, totalDays: number): Promise<void> {
+  private async loadWeeklyProgress(context: Context, planId: string, dayLabels: string[]): Promise<void> {
     let completedDays: number = 0
+    const totalDays: number = dayLabels.length
     try {
-      const stats: WeeklyStats = await WorkoutSessionService.getWeeklyStats(context)
-      completedDays = stats.count
+      // 数据一致性收口：N 改为「本周按计划训练日去重」的完成天数（同日两练计 1），
+      // 与分母计划训练日数同量纲；不再用会话数。
+      const settings = await SettingsService.loadSettings(context)
+      const window = createWeekWindowStrings(new Date(), settings.weekStart)
+      const sessions = await WorkoutSessionService.getSessions(context)
+      completedDays = countDistinctPlanDays(sessions, planId, dayLabels, window.start, window.end)
     } catch (error) {
       completedDays = 0
     }
     this.weeklyProgress = '本周 ' + completedDays.toString() + ' / ' + totalDays.toString() + ' 天'
     this.progressPercent = totalDays > 0 ? Math.min(100, Math.round(completedDays * 100 / totalDays)) : 0
+  }
+
+  /** 预置计划：legacy 会话 dayLabel = TrainingDay.dayLabel（含「周X」前缀）。 */
+  private trainingDayLabelsOf(days: TrainingDay[]): string[] {
+    const labels: string[] = []
+    for (let index = 0; index < days.length; index++) {
+      labels.push(days[index].dayLabel)
+    }
+    return labels
+  }
+
+  /** 目标生成计划：legacy 会话 dayLabel = repository dayId = PlanDay.dayId（day_N）。 */
+  private planDayIdsOf(days: PlanDay[]): string[] {
+    const ids: string[] = []
+    for (let index = 0; index < days.length; index++) {
+      ids.push(days[index].dayId)
+    }
+    return ids
   }
 
   private applyEmptyState(): void {

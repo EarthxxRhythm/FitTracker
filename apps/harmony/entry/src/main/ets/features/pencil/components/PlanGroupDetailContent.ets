@@ -5,7 +5,7 @@ import TrainingPlanService, {
   PresetPlan,
   TrainingDay,
   UserPlan,
-  resolveTodayTrainingIndex
+  resolveTodayTrainingIndexForPlan
 } from '../../../common/services/TrainingPlanService'
 import { dayFocusMuscles, shortDayTag } from './PlanTabModel'
 import { Context } from '@kit.AbilityKit'
@@ -112,9 +112,10 @@ export struct PlanGroupDetailContent {
     this.planTags = [plan.targetAudience, plan.weeklyFrequency, plan.days.length.toString() + ' 个训练日']
     this.days = this.buildDays(plan)
     this.weekCells = this.buildWeekCells(plan)
-    // 默认落在今天对应的训练日（与训练预览同一份 resolveTodayTrainingIndex 口径），
+    // 默认落在今天对应的训练日（与训练预览同一份 resolveTodayTrainingIndexForPlan 口径），
     // 打开计划组看到的动作清单就是预览页展示的那天；今天休息时回退到第一天浏览。
-    const todayIndex: number = resolveTodayTrainingIndex(plan.days, new Date().getDay())
+    // enabledAt 传 0 = 浏览态：星期匹配照常命中（预置计划），无星期计划不参与启用日循环。
+    const todayIndex: number = resolveTodayTrainingIndexForPlan(plan.days, new Date().getDay(), 0)
     this.activeDay = todayIndex >= 0 ? todayIndex : 0
     await this.refreshCurrentState()
     await this.loadProgress(plan)

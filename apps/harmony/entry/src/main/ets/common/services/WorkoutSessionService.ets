@@ -6,8 +6,7 @@
  */
 import { preferences } from '@kit.ArkData'
 import SettingsService, { AppSettings } from './SettingsService'
-import { resolveWeekStart } from '../utils/WeekUtils'
-import { TrainingDay } from './TrainingPlanService'
+import { resolveWeekStart, WeekStart } from '../utils/WeekUtils'
 
 // ============================================================
 // 接口定义
@@ -46,25 +45,44 @@ export interface WeeklyStats {
   volume: number
 }
 
+export interface WeekWindowStrings {
+  start: string
+  end: string
+}
+
+/**
+ * 本周窗口的日期字符串（start = 周首，end = 周首 + 6 天，格式 YYYY-MM-DD）。
+ * 与 getWeeklyStats / countDistinctPlanDays 共用同一份周界口径。
+ */
+export function createWeekWindowStrings(now: Date, weekStart: WeekStart): WeekWindowStrings {
+  const weekStartDate: Date = resolveWeekStart(now, weekStart)
+  const start: string = `${weekStartDate.getFullYear()}-${String(weekStartDate.getMonth() + 1).padStart(2, '0')}-${String(weekStartDate.getDate()).padStart(2, '0')}`
+  const weekEndDate: Date = new Date(weekStartDate.getFullYear(), weekStartDate.getMonth(), weekStartDate.getDate() + 6)
+  const end: string = `${weekEndDate.getFullYear()}-${String(weekEndDate.getMonth() + 1).padStart(2, '0')}-${String(weekEndDate.getDate()).padStart(2, '0')}`
+  const window: WeekWindowStrings = { start: start, end: end }
+  return window
+}
+
 /**
  * 本周「按计划训练日去重」的完成计数（纯函数，无 IO）。
  *
  * 数据一致性收口口径：计划页「本周 N / M 天」的 N 不再用会话数，而是
  * 按计划训练日去重——同一天（同一 dayLabel）练两次只计 1 天，与分母
- * plan.days.length 同量纲。
+ * 计划训练日数同量纲。
  *
- * 去重键 = planId + dayLabel（legacy 会话无 dayId，只有 dayLabel）；
- * 仅计 planId 匹配且 dayLabel 命中 days 的会话；dayLabel 为空的历史会话不计。
- * 不变量：0 ≤ 结果 ≤ days.length。
+ * 去重键 = planId + dayLabel（legacy 会话无 dayId，只有 dayLabel；
+ * legacy dayLabel 的值即 repository dayId，见 WorkoutSessionPersistenceBridgeService）。
+ * 仅计 planId 匹配且 dayLabel 命中 dayLabels 的会话；dayLabel 为空的历史会话不计。
+ * 不变量：0 ≤ 结果 ≤ dayLabels.length。
  */
 export function countDistinctPlanDays(
   sessions: WorkoutSession[],
   planId: string,
-  days: TrainingDay[],
+  dayLabels: string[],
   weekStartStr: string,
   weekEndStr: string
 ): number {
-  if (planId.length === 0 || days.length === 0) {
+  if (planId.length === 0 || dayLabels.length === 0) {
     return 0
   }
   const seenKeys: string[] = []
@@ -80,7 +98,7 @@ export function countDistinctPlanDays(
     if (session.dayLabel.length === 0) {
       continue
     }
-    if (!containsDayLabel(days, session.dayLabel)) {
+    if (dayLabels.indexOf(session.dayLabel) < 0) {
       continue
     }
     const key: string = planId + '|' + session.dayLabel
@@ -91,15 +109,6 @@ export function countDistinctPlanDays(
     count++
   }
   return count
-}
-
-function containsDayLabel(days: TrainingDay[], label: string): boolean {
-  for (let index = 0; index < days.length; index++) {
-    if (days[index].dayLabel === label) {
-      return true
-    }
-  }
-  return false
 }
 
 export interface ExerciseRecord {
@@ -293,11 +302,7 @@ class WorkoutSessionService {
     const now = new Date()
     // 周起点由设置页「周开始日」驱动（默认周一，读取失败时 SettingsService 自身回落默认值）。
     const settings: AppSettings = await SettingsService.loadSettings(context)
-    const weekStartDate: Date = resolveWeekStart(now, settings.weekStart)
-    const weekStartStr = `${weekStartDate.getFullYear()}-${String(weekStartDate.getMonth() + 1).padStart(2, '0')}-${String(weekStartDate.getDate()).padStart(2, '0')}`
-    // 周终点 = 周起点 + 6 天
-    const weekEndDate = new Date(weekStartDate.getFullYear(), weekStartDate.getMonth(), weekStartDate.getDate() + 6)
-    const weekEndStr = `${weekEndDate.getFullYear()}-${String(weekEndDate.getMonth() + 1).padStart(2, '0')}-${String(weekEndDate.getDate()).padStart(2, '0')}`
+    const window: WeekWindowStrings = createWeekWindowStrings(now, settings.weekStart)
 
     let count = 0
     let duration = 0
@@ -305,7 +310,7 @@ class WorkoutSessionService {
     let volume = 0
 
     for (const session of sessions) {
-      if (session.createdAt >= weekStartStr && session.createdAt <= weekEndStr) {
+      if (session.createdAt >= window.start && session.createdAt <= window.end) {
         count++
         duration += session.durationSeconds
         sets += this.getCompletedWorkingSetCount(session)

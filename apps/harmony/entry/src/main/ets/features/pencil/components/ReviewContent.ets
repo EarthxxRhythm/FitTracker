@@ -895,6 +895,9 @@ export struct ReviewContent {
   @State private currentPlanSessionCount: number = 0
   @State private monthSessionCount: number = 0
   @State private monthDurationMinutes: number = 0
+  // 数据一致性收口：周尺度概览（随 timeScale 切换，与月尺度并列）。
+  @State private weekSessionCount: number = 0
+  @State private weekDurationMinutes: number = 0
   @State private muscleMode: string = 'balance'
   /** 肌群排行抽屉（`bindSheet` 半模态）是否展开。 */
   @State private showMuscleSheet: boolean = false
@@ -1074,6 +1077,7 @@ export struct ReviewContent {
       }
       this.trendItems = ReviewInsightsService.createWeeklyTrendItems(sessions, now, settings.weekStart)
       this.computeMonthTotals(sessions, now)
+      this.computeWeekTotals(sessions, now, settings.weekStart)
       // 真实数据接线：体重折线 / 努力程度 / 肌群热力 / 1RM 表（无数据时各渲染空态）。
       await this.loadBodyWeight(context, now)
       this.loadPersonalRecords(sessions)
@@ -1273,6 +1277,28 @@ export struct ReviewContent {
     this.monthDurationMinutes = Math.round(durationSeconds / 60)
   }
 
+  /**
+   * 数据一致性收口：周尺度概览（与月尺度并列）。概览卡「训练 / 时长」随 timeScale
+   * 切换——week 取本周窗口、month 取本月窗口，不再显示全量累计。
+   */
+  private computeWeekTotals(sessions: WorkoutSession[], now: number, weekStart: WeekStart): void {
+    const weekStartDate: Date = resolveWeekStart(new Date(now), weekStart)
+    const weekStartTime: number = weekStartDate.getTime()
+    const weekEndExclusive: number = weekStartTime + 7 * 86400000
+    let sessionCount: number = 0
+    let durationSeconds: number = 0
+    for (let index = 0; index < sessions.length; index++) {
+      const startedAt: number = sessions[index].startedAt
+      if (startedAt < weekStartTime || startedAt >= weekEndExclusive) {
+        continue
+      }
+      sessionCount++
+      durationSeconds += sessions[index].durationSeconds
+    }
+    this.weekSessionCount = sessionCount
+    this.weekDurationMinutes = Math.round(durationSeconds / 60)
+  }
+
   private formatWeekRange(now: number, weekStart: WeekStart): string {
     const weekStartDate: Date = resolveWeekStart(new Date(now), weekStart)
     const weekEndDate: Date = new Date(
@@ -1292,14 +1318,19 @@ export struct ReviewContent {
   }
 
   private badgeText(): string {
+    // 数据一致性收口（有意口径变化，非等价迁移）：徽标由「最近 2 次 vs 其余历史」
+    // 改为「本周 vs 上周完成率环比」，与 Android badgeText（FtReviewModel.kt:619）
+    // 同公式同数据源（createWeeklyTrendItems）。
     if (!this.summary.hasSessions) {
       return '待积累'
     }
-    if (!this.summary.trendSummary.hasTrend) {
+    if (this.trendItems.length === 0 || this.trendItems[0].sessionCount === 0) {
+      return '待积累'
+    }
+    if (this.trendItems.length < 2 || this.trendItems[1].sessionCount === 0) {
       return '首次回顾'
     }
-    const delta: number = this.summary.trendSummary.recentCompletionRate -
-      this.summary.trendSummary.previousCompletionRate
+    const delta: number = this.trendItems[0].completionRate - this.trendItems[1].completionRate
     if (delta > 0) {
       return '↑ +' + delta.toString() + '%'
     }
@@ -1343,10 +1374,17 @@ export struct ReviewContent {
 
   private statValue(index: number): string {
     if (index === 0) {
-      return this.summary.sessionCount.toString()
+      // 数据一致性收口：随周/月尺度切换（默认周），不再显示全量累计。
+      if (this.timeScale === 'month') {
+        return this.monthSessionCount.toString()
+      }
+      return this.weekSessionCount.toString()
     }
     if (index === 1) {
-      return Math.round(this.summary.totalDurationSeconds / 60).toString()
+      if (this.timeScale === 'month') {
+        return this.monthDurationMinutes.toString()
+      }
+      return this.weekDurationMinutes.toString()
     }
     if (!this.summary.hasSessions) {
       return '—'
