@@ -46,7 +46,6 @@ import com.fittracker.app.nav.navigateToTab
 import com.fittracker.app.data.persist.JsonStore
 import com.fittracker.app.data.persist.appDataStore
 import com.fittracker.app.data.service.WorkoutDraftService
-import com.fittracker.app.data.service.hasWorkoutDraftProgress
 import com.fittracker.app.ui.components.FtBottomTabBar
 import com.fittracker.app.ui.components.ResumeDraftSummary
 import com.fittracker.app.ui.components.ResumeWorkoutBar
@@ -371,12 +370,11 @@ private val RESUME_BAR_TRANSFORM_ORIGIN = TransformOrigin(0.5f, 1f)
 /**
  * 读取进行中训练的展示摘要；无草稿或无进度时返回 null。
  *
- * 判据用 `hasWorkoutDraftProgress`（与 `ActiveScreen` 恢复草稿同一份实现），
- * 不用 `completedSets > 0`：否则会出现「首页说有、点进去说没有」。
+ * 判据经 `WorkoutDraftService.resumeSnapshot`（`hasWorkoutDraftProgress`，与 `ActiveScreen`
+ * 恢复草稿同一份实现），不用 `completedSets > 0`：否则会出现「首页说有、点进去说没有」。
  */
 private suspend fun loadResumeDraft(store: JsonStore): ResumeDraftSummary? {
-    val draft = WorkoutDraftService.getDraft(store) ?: return null
-    if (!hasWorkoutDraftProgress(draft)) return null
+    val draft = WorkoutDraftService.resumeSnapshot(store) ?: return null
     val seconds = ((System.currentTimeMillis() - draft.startedAt) / 1_000L).toInt().coerceAtLeast(0)
     // 当前动作 = 首个未录满的动作（全部录满时退到最后一个）——与 ActiveScreen 的选中口径
     // 同一判据，否则胶囊上的动作名会和点进去看到的那个对不上。

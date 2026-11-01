@@ -1,5 +1,6 @@
 package com.fittracker.app.ui.screens.active
 
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.LocalOnBackPressedDispatcherOwner
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -113,7 +114,9 @@ import com.fittracker.app.data.service.hasWorkoutDraftProgress
 import com.fittracker.app.ui.components.clickableNoRipple
 import com.fittracker.app.ui.screens.library.ExerciseGif
 import com.fittracker.app.ui.screens.library.FtLibraryModel
+import com.fittracker.app.ui.screens.workout.CollapseDraftAction
 import com.fittracker.app.ui.screens.workout.activeStateToDraft
+import com.fittracker.app.ui.screens.workout.collapseDraftDecision
 import com.fittracker.app.ui.screens.workout.draftToActiveState
 import com.fittracker.app.ui.screens.workout.loadTodayWorkoutPreview
 import com.fittracker.app.ui.theme.DuTokens
@@ -121,6 +124,9 @@ import com.fittracker.app.ui.theme.FtColor
 import com.fittracker.app.ui.theme.FtMotion
 import com.fittracker.app.ui.theme.FtShape
 import com.fittracker.app.ui.theme.FtType
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.random.Random
@@ -227,6 +233,66 @@ fun ActiveScreen(
     DisposableEffect(keepScreenOn) {
         view.keepScreenOn = keepScreenOn
         onDispose { view.keepScreenOn = false }
+    }
+
+    // ── 统一退出路径：收起按钮与系统返回键共用（对齐鸿蒙 collapseWorkout「落草稿后返回」） ──
+    // 三态决策见 `collapseDraftDecision`：SNAPSHOT 落快照 / CLEAR 补收尾（saveSession+clearDraft，
+    // 防「录满但 finished 收尾未走完」时丢整场记录）/ SKIP 不写不删。
+    // 写盘走 appWriteScope（不随 pop 取消）；finishHandled 防补收尾与 completeSet 的
+    // finished 收尾双写。pop 前必须同步 disable 本 callback——否则 onBackPressed 会再入
+    // 本回调被 exiting 守卫吞掉，pop 永远到不了 NavHost。
+    var finishHandled by remember { mutableStateOf(false) }
+    var exiting by remember { mutableStateOf(false) }
+    val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+    // 前置声明：requestCollapse（定义在下）需引用它；实例由下方 remember 块赋值。
+    var collapseCallback: OnBackPressedCallback? = null
+
+    fun requestCollapse() {
+        if (exiting) return
+        exiting = true
+        collapseCallback?.isEnabled = false
+        val state = workout
+        if (state != null) {
+            val origin = if (startedAt > 0L) startedAt else System.currentTimeMillis()
+            when (collapseDraftDecision(state, origin)) {
+                CollapseDraftAction.SNAPSHOT -> appWriteScope.launch {
+                    WorkoutDraftService.saveDraft(store, activeStateToDraft(state, origin))
+                }
+                CollapseDraftAction.CLEAR -> if (!finishHandled) {
+                    appWriteScope.launch {
+                        val endedAt = System.currentTimeMillis()
+                        val session = ActiveWorkoutService.createCompletedSession(
+                            sessionId = "session_$endedAt",
+                            state = state,
+                            startedAt = origin,
+                            endedAt = endedAt,
+                            completedSets = state.completedSets,
+                        )
+                        WorkoutRepository.saveSession(store, session)
+                        WorkoutDraftService.clearDraft(store)
+                    }
+                }
+                CollapseDraftAction.SKIP -> Unit
+            }
+        }
+        backDispatcher?.onBackPressed()
+    }
+
+    collapseCallback = remember {
+        object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                requestCollapse()
+            }
+        }
+    }
+    DisposableEffect(collapseCallback) {
+        val callback = collapseCallback
+        if (callback != null) {
+            backDispatcher?.addCallback(callback)
+            onDispose { callback.remove() }
+        } else {
+            onDispose { }
+        }
     }
 
     // 训练域接线：进入时优先恢复草稿（鸿蒙「进行中训练重入恢复」）；无草稿 / 无进度 → 全新训练
@@ -337,6 +403,7 @@ fun ActiveScreen(
                 )
                 WorkoutRepository.saveSession(store, session)
                 WorkoutDraftService.clearDraft(store)
+                finishHandled = true
                 // 成就提醒（A6）：保存后检查连续训练里程碑——内部全静默，不阻塞训练流程
                 checkAndNotifyAchievement(store, context)
                 // ft-stage.js `watchFinish`：完成本组后 950ms，若标签已是「训练完成」则跳 complete
@@ -408,6 +475,7 @@ fun ActiveScreen(
                 )
                 WorkoutRepository.saveSession(store, session)
                 WorkoutDraftService.clearDraft(store)
+                finishHandled = true
                 checkAndNotifyAchievement(store, context)
                 delay(900)
                 onNavigate("complete")
@@ -431,6 +499,7 @@ fun ActiveScreen(
                 onTogglePicker = { showPicker = !showPicker },
                 onDismissPicker = { showPicker = false },
                 onSelect = { index -> chooseExercise(index) },
+                onCollapse = { requestCollapse() },
             )
 
             Column(
@@ -495,6 +564,15 @@ fun ActiveScreen(
 /** 庆祝动画的相位（原型 `.celebrate` 的 `playing` / `fading` 类，L798-812）。 */
 private enum class CelebratePhase { None, Playing, Fading }
 
+/**
+ * 退出落盘专用作用域：不随 ActiveScreen 组合销毁而取消——pop 后写盘仍完成。
+ *
+ * `rememberCoroutineScope` 在 pop 时被 cancel，用它承载退出写盘会把兜底落盘静默丢掉
+ * （用户「完成一组→立即收起」时恰好命中）。本作用域进程级存活，只承载
+ * saveDraft/clearDraft/saveSession 这类有限次数的幂等写，无泄漏面。
+ */
+private val appWriteScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
 // ── 顶栏与进度条 ─────────────────────────────────────────────────
 
 /**
@@ -513,6 +591,7 @@ private fun ActiveTop(
     onTogglePicker: () -> Unit,
     onDismissPicker: () -> Unit,
     onSelect: (Int) -> Unit,
+    onCollapse: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -528,7 +607,7 @@ private fun ActiveTop(
                 .height(44.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            CollapseButton()
+            CollapseButton(onClick = onCollapse)
             ExerciseSwitcher(
                 exerciseName = exerciseName,
                 exercises = exercises,
@@ -566,11 +645,11 @@ private fun ActiveTop(
 /**
  * 收起按钮：纯线条 chevron-down，无底色块、无描边底、无常驻圆底（参考图左上角）。
  *
- * 返回走 `OnBackPressedDispatcher`，与系统返回键同一路径——不引入新的「折叠训练」状态。
+ * 与系统返回键共用同一退出路径（`requestCollapse`：落草稿后 pop），
+ * 不引入新的「折叠训练」状态。
  */
 @Composable
-private fun CollapseButton() {
-    val dispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
+private fun CollapseButton(onClick: () -> Unit) {
     val collapseLabel = stringResource(R.string.active_collapse)
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
@@ -587,7 +666,7 @@ private fun CollapseButton() {
                 scaleY = scale
             }
             .clip(FtShape.pill)
-            .clickable(interactionSource = interaction, indication = null) { dispatcher?.onBackPressed() }
+            .clickable(interactionSource = interaction, indication = null) { onClick() }
             .semantics { contentDescription = collapseLabel },
         contentAlignment = Alignment.Center,
     ) {

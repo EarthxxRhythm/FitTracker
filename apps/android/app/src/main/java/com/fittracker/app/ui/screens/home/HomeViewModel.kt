@@ -13,7 +13,6 @@ import com.fittracker.app.data.service.TrainingPlanRepository
 import com.fittracker.app.data.service.WeekStart
 import com.fittracker.app.data.service.WeekWindow
 import com.fittracker.app.data.service.WorkoutDraftService
-import com.fittracker.app.data.service.hasWorkoutDraftProgress
 import com.fittracker.app.data.service.WorkoutRepository
 import com.fittracker.app.data.service.WorkoutSessionService
 import com.fittracker.app.data.service.currentLanguageTag
@@ -79,8 +78,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val res = getApplication<Application>().resources
 
         // 草稿态先读：它只影响主 CTA 的文案与去向，不参与今日训练卡的派生。
-        resumeAvailable = WorkoutDraftService.getDraft(store)
-            ?.let { hasWorkoutDraftProgress(it) } == true
+        // 读盘口径与壳层悬浮条（FtApp）共用 WorkoutDraftService.resumeSnapshot。
+        resumeAvailable = WorkoutDraftService.resumeSnapshot(store) != null
 
         // 日期与问候（`HomeContent.applyDateAndGreeting`）
         val now = java.util.Calendar.getInstance()

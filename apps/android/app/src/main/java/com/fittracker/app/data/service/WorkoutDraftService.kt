@@ -246,6 +246,15 @@ object WorkoutDraftService {
     }
 
     /**
+     * 可续练草稿查询：`getDraft` 且 `hasWorkoutDraftProgress` 通过。
+     *
+     * 首页 CTA（HomeViewModel）、壳层悬浮条（FtApp.loadResumeDraft）与训练页恢复
+     * 三处共用这一读盘口径——「读草稿 + 判进度」不再各自拼表达式，口径漂移从源头收口。
+     */
+    suspend fun resumeSnapshot(store: JsonStore): WorkoutDraftSnapshot? =
+        getDraft(store)?.takeIf { hasWorkoutDraftProgress(it) }
+
+    /**
      * 源 `:205` `clearDraft`——**写入空串**（而非删键，源 `:207` `put(key, '')`）。
      *
      * 源注释（`:208-210`）：清空失败时保持原草稿不动，故吞掉异常。

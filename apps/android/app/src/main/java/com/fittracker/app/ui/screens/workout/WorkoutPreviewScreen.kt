@@ -540,6 +540,36 @@ internal fun resolveExerciseId(name: String): String {
 }
 
 /**
+ * 收起训练时的三态落盘决策（对齐鸿蒙 `ActiveContent.persistDraftOnExit` 的 finished / 零组守卫）。
+ *
+ * - SKIP（不写不删）：startedAt 无效或零完成组（对齐鸿蒙 countCompletedSets<=0 早退，
+ *   零组草稿本就在盘上，且被 hasWorkoutDraftProgress 挡住，无需再写）；
+ * - CLEAR（清残留草稿防幽灵入口）：exercises 非空、总目标组数 > 0 且全部动作录满。
+ *   判据与 ActiveScreen 的 finished 谓词（`firstUnfinishedIndex < 0`，即
+ *   `completedSets < targetSets` 无命中）**同一谓词**——不另造求和谓词，避免 targetSets 边界分叉；
+ * - SNAPSHOT（落快照）：其余有进度状态。
+ *
+ * 非 SKIP 分支与首页接续态判据 `hasWorkoutDraftProgress(activeStateToDraft(...))`
+ * 的不变量关系由 `CollapseDraftDecisionTest.non-skip decision iff snapshot has progress` 锁定。
+ */
+internal enum class CollapseDraftAction { SKIP, CLEAR, SNAPSHOT }
+
+internal fun collapseDraftDecision(state: ActiveWorkoutState, startedAt: Long): CollapseDraftAction {
+    if (startedAt <= 0) {
+        return CollapseDraftAction.SKIP
+    }
+    if (state.completedSets <= 0) {
+        return CollapseDraftAction.SKIP
+    }
+    // 与 ActiveScreen finished 判据（firstUnfinishedIndex < 0）同一谓词；空列表/零目标不退化为 CLEAR。
+    val hasUnfinished = state.exercises.any { it.completedSets < it.targetSets }
+    if (state.exercises.isNotEmpty() && state.totalTargetSets > 0 && !hasUnfinished) {
+        return CollapseDraftAction.CLEAR
+    }
+    return CollapseDraftAction.SNAPSHOT
+}
+
+/**
  * 活跃训练态 → 草稿快照（[WorkoutDraftService] 的持久化模型）。
  *
  * 口径映射：`title → planName`、`dayId → dayLabel`、`intensityNote ↔ targetMuscle`
