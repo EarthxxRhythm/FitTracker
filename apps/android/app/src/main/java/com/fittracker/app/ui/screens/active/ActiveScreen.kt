@@ -12,6 +12,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -243,6 +244,8 @@ fun ActiveScreen(
     // 本回调被 exiting 守卫吞掉，pop 永远到不了 NavHost。
     var finishHandled by remember { mutableStateOf(false) }
     var exiting by remember { mutableStateOf(false) }
+    // 收起动效进行中：驱动整页下滑淡出；动画完成才 pop（见 requestCollapse）。
+    var collapsing by remember { mutableStateOf(false) }
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     // 前置声明：requestCollapse（定义在下）需引用它；实例由下方 remember 块赋值。
     var collapseCallback: OnBackPressedCallback? = null
@@ -275,7 +278,14 @@ fun ActiveScreen(
                 CollapseDraftAction.SKIP -> Unit
             }
         }
-        backDispatcher?.onBackPressed()
+        // 收起动效：落盘先行（上方三态分支），整页下滑淡出（280ms 面板曲线），动画完成才退出。
+        // 用 scope（随组合销毁取消）：动画期间按系统返回 → 组合 pop → delay 中断，不会二次 pop
+        // （对齐鸿蒙 collapseWorkout 的 clearTimeout 兜底语义）。
+        collapsing = true
+        scope.launch {
+            delay(FtMotion.DURATION_PANEL.toLong())
+            backDispatcher?.onBackPressed()
+        }
     }
 
     collapseCallback = remember {
@@ -483,9 +493,21 @@ fun ActiveScreen(
         }
     }
 
+    // 收起动效进度：0 = 原位，1 = 整页滑出屏底 + 淡出至 0.35。
+    // 时长/曲线与鸿蒙 `MotionTokens.DURATION_COLLAPSE`/`EASE_COLLAPSE` 逐值一致。
+    val collapseProgress by animateFloatAsState(
+        targetValue = if (collapsing) 1f else 0f,
+        animationSpec = tween(FtMotion.DURATION_PANEL, easing = FtMotion.EASE_PANEL),
+        label = "collapseSlide",
+    )
+
     Box(
         modifier = modifier
             .fillMaxSize()
+            .graphicsLayer {
+                translationY = collapseProgress * size.height
+                alpha = 1f - 0.65f * collapseProgress
+            }
             .background(FtColor.ink0), // `.wo-screen` 底 var(--ink-0)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -653,10 +675,24 @@ private fun CollapseButton(onClick: () -> Unit) {
     val collapseLabel = stringResource(R.string.active_collapse)
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
+    // 按压回弹弹簧（对齐鸿蒙 `MotionTokens.SPRING_PRESS` = curves.springMotion(0.28, 0.85)）。
     val scale by animateFloatAsState(
         targetValue = if (pressed) FtMotion.PRESS_SCALE_ICON_BTN else 1f,
-        animationSpec = tween(FtMotion.DURATION_PRESS),
+        animationSpec = spring(
+            dampingRatio = FtMotion.PRESS_SPRING_DAMPING,
+            stiffness = FtMotion.PRESS_SPRING_STIFFNESS,
+        ),
         label = "collapsePress",
+    )
+    // chevron 沿「收起」方向下移 2dp：按压方向反馈（对齐鸿蒙 collapseButton 的 offset 2vp）。
+    val chevronDipPx = with(LocalDensity.current) { 2.dp.toPx() }
+    val chevronDip by animateFloatAsState(
+        targetValue = if (pressed) chevronDipPx else 0f,
+        animationSpec = spring(
+            dampingRatio = FtMotion.PRESS_SPRING_DAMPING,
+            stiffness = FtMotion.PRESS_SPRING_STIFFNESS,
+        ),
+        label = "collapseChevronDip",
     )
     Box(
         modifier = Modifier
@@ -672,9 +708,9 @@ private fun CollapseButton(onClick: () -> Unit) {
     ) {
         Canvas(modifier = Modifier.size(24.dp)) {
             val path = Path().apply {
-                moveTo(size.width * 0.25f, size.height * 0.40f)
-                lineTo(size.width * 0.50f, size.height * 0.64f)
-                lineTo(size.width * 0.75f, size.height * 0.40f)
+                moveTo(size.width * 0.25f, size.height * 0.40f + chevronDip)
+                lineTo(size.width * 0.50f, size.height * 0.64f + chevronDip)
+                lineTo(size.width * 0.75f, size.height * 0.40f + chevronDip)
             }
             drawPath(
                 path = path,
