@@ -1344,8 +1344,12 @@ export struct ReviewContent {
     if (!this.summary.hasSessions) {
       return '完成一次训练，开始你的回顾。'
     }
-    if (this.summary.trendSummary.hasTrend) {
-      return this.summary.trendSummary.summaryText
+    // 与 Android 同屏同文案（静态短句）：真源 strings_review.xml:46 / :49，
+    // 消费点 ReviewScreen.kt:465 + FtReviewModel.kt:119（headlineRes）。
+    // 旧口径（trendSummary.summaryText，最近 2 次对比）已随徽标收口下线，
+    // 且 week 视图下与 descriptionText 同源同句（撞车），故标题位改为静态。
+    if (this.timeScale === 'month') {
+      return '本月节奏更稳定。'
     }
     return '状态不错，继续保持。'
   }

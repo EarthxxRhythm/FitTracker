@@ -29,6 +29,12 @@ const groups = [
       'tools/check-specs.test.mjs',
       'tools/check-parity.test.mjs',
       'tools/check-code-rules.test.mjs',
+      // content 素材流水线（与鸿蒙门禁 check-gates.mjs 登记项同源，此处为根级 verify
+      // 单命令覆盖扩展，非替代）。ffmpeg 缺失时用例显式 t.skip（CI 降级），
+      // 故「绿」不等于「真断言跑过」——本地自证需 ffmpeg 可用。
+      'tools/content/build-exercise-gifs-photo.test.mjs',
+      'tools/content/exercise-photo-sources.test.mjs',
+      'tools/content/build-exercise-gifs-3d.test.mjs',
     ],
   },
   {
