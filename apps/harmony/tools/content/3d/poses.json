@@ -1,0 +1,3119 @@
+{
+  "version": 1,
+  "_readme": [
+    "动作演示 3D 姿势表（构建期数据）。LLM 按运动学常识逐条给出，不是真人动捕，也不追求与 free-exercise-db 实拍视频逐帧一致；目标口径：风格统一、动作可辨识、A<->B 乒乓循环流畅。",
+    "消费者：tools/content/build-exercise-gifs-3d.mjs（loadPoses/normalizeEntry/collectEntries）。本文件结构与该脚本文件头「姿态数据」一节锁定的契约一致：{ version, poses: { <exerciseId>: { nameZh, equipment, a, b } } }，渲染器在 A、B 之间按线性三角波插值（帧 0=A、帧 25=B、窗期 50 帧）。",
+    "角度语义（度，矢状面，人物朝 +x，y 向上）—— 与渲染器 DEFAULT_POSE 注释同口径，不另立一套：",
+    "  lean     躯干相对竖直的倾角，正=前倾；",
+    "  headTilt 颈相对躯干轴的倾角，正=点头向前；",
+    "  hip      180=躯干与大腿成一直线（站立伸直），90=大腿与躯干垂直；即 180 − 髋屈曲角；",
+    "  knee     180=腿伸直，90=屈膝直角；即 180 − 膝屈曲角；",
+    "  ankle    90=足与小腿垂直（自然站立），>90=背屈（脚尖上抬），<90=跖屈（踮脚）；",
+    "  shoulder 0=上臂沿躯干向下，正=向前抬起；",
+    "  elbow    180=手臂伸直；即 180 − 肘屈曲角。",
+    "体位归一化（重要口径）：渲染器是以髋为原点、腿向下延伸的 2.5D 矢状面骨链，|lean| 接近 90 时 upDir/downDir 退化（躯干与腿同向、人形折叠），因此仰卧/俯卧/坐/跪/俯撑/侧卧/器械支撑这类体位一律按「站姿示意」折算：lean 取该体位的固定代表值（仰卧 −8、俯卧与俯撑 +45、坐 +8、跪 +12、上斜靠背 −12、悬垂 0、器械支撑 +12），关节角仍用真实相对角换算。真实体位记录在每条目的 postureNote 里，不作为渲染输入。",
+    "非矢状面通道的折算（渲染器无外展/旋转通道，为使动作不塌成零运动）：原设计里的肩外展角按 0.7 系数并入 shoulder（正=前抬，视觉上偏「前平举」）；躯干旋转角按 0.3 系数并入 lean。折算系数固定，改动会改变动作幅度观感，属定版数据的一部分。",
+    "额外元数据（渲染器忽略的多余字段，供分级与人工核对）：priority（P0 最常见复合动作 20 个，首轮优先渲染验证；P1 其余）、symmetric（双侧是否同角同相，false 者见 notes.symmetry 的相位说明）、postureNote（真实体位）、notes.centerOfMass（重心/支撑投影口径）、notes.symmetry（对称性与相位约定：symmetric=true 以「左右同角，镜像渲染」开头；false 以「非对称，左右相位错开，不镜像渲染」开头）。",
+    "已知表达力边界（不修）：渲染器只有矢状面通道，无肩外展/躯干旋转，故侧平举、飞鸟、直立划船类只能以 shoulder 前抬近似表达（视觉上偏「前平举」），俄罗斯转体/帕洛夫抗旋推的旋转维度无法表现，其 notes.symmetry 已写明该限制。",
+    "结构校验（改动后必须跑）：① poses 的 key 集合与 tools/content/exercise-photo-sources.json 的 sources[].exerciseId 集合相等；② 每条含 nameZh/equipment/priority/symmetric/a/b/notes；③ a、b 均含 lean/headTilt/hip/knee/ankle/shoulder/elbow 七项且为有限数，角度 ∈ [-180,180]；④ hip/knee/elbow ∈ [20,180]（伸直=180，屈曲越深值越小）、ankle ∈ [55,125]、lean ∈ [-30,60]、shoulder ∈ [-30,180]；⑤ equipment ∈ {none,barbell,dumbbell,kettlebell}；⑥ priority ∈ {P0,P1} 且 P0 恰好 20 条；⑦ 每条 a/b 至少有一条通道差异 ≥5 度：单关节孤立动作（耸肩、弯举、提踵、臂屈伸）本就只有单通道变化，属正常；零运动或总差异 <5 度视为缺陷。",
+    "结构版本（现行，与 tools/content/build-exercise-gifs-3d.mjs 的 normalizeEntry 契约一致）：poses 是 map，key=exerciseId；每条 { exerciseId, nameZh, posture, equipment, priority, symmetric, frames:{A,B}, notes }；frames 通道 hip/knee/ankle/shoulder/elbow/trunk 必需，shoulderAbd/twist 可选（渲染器为矢状面骨架，记录为 unsupported 不参与渲染）。"
+  ],
+  "poses": {
+    "ex_dead_bug": {
+      "exerciseId": "ex_dead_bug",
+      "nameZh": "死虫式",
+      "posture": "supine",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": false,
+      "frames": {
+        "A": {
+          "hip": 90,
+          "knee": 90,
+          "ankle": 90,
+          "shoulder": 90,
+          "elbow": 180,
+          "trunk": -90
+        },
+        "B": {
+          "hip": 135,
+          "knee": 165,
+          "ankle": 100,
+          "shoulder": 150,
+          "elbow": 180,
+          "trunk": -90
+        }
+      },
+      "notes": {
+        "centerOfMass": "仰卧腰背贴地，重心随对侧手脚伸展略向支撑侧偏移，腰椎始终压地",
+        "symmetry": "非对称，左右相位错开，不镜像渲染：对侧手脚同时伸展（右臂过头配左腿伸直），另一对侧屈髋屈膝 90 度维持不动"
+      }
+    },
+    "ex_romanian_deadlift": {
+      "exerciseId": "ex_romanian_deadlift",
+      "nameZh": "罗马尼亚硬拉",
+      "posture": "standing",
+      "equipment": "barbell",
+      "priority": "P0",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 90,
+          "knee": 162,
+          "ankle": 96,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": 55
+        }
+      },
+      "notes": {
+        "centerOfMass": "杠铃垂线贴大腿下移至胫骨前，重心压在足中偏后，臀后移对抗",
+        "symmetry": "左右同角，镜像渲染。髋膝屈曲两侧同步"
+      }
+    },
+    "ex_pallof_press": {
+      "exerciseId": "ex_pallof_press",
+      "nameZh": "帕洛夫抗旋推",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": false,
+      "frames": {
+        "A": {
+          "hip": 168,
+          "knee": 162,
+          "ankle": 95,
+          "shoulder": 60,
+          "elbow": 85,
+          "trunk": 0,
+          "twist": 0
+        },
+        "B": {
+          "hip": 168,
+          "knee": 162,
+          "ankle": 95,
+          "shoulder": 92,
+          "elbow": 180,
+          "trunk": -2.4,
+          "twist": -8
+        }
+      },
+      "notes": {
+        "centerOfMass": "侧向站位，重心居双足中，推直瞬间躯干被阻力带拉向一侧，靠核心反扭回正",
+        "symmetry": "非对称，左右相位错开，不镜像渲染：阻力来自单侧（右手位为例），躯干对称站姿但 twist 单向偏转 0→-8 度后抗回"
+      }
+    },
+    "ex_dumbbell_pullover": {
+      "exerciseId": "ex_dumbbell_pullover",
+      "nameZh": "哑铃上拉",
+      "posture": "supine",
+      "equipment": "dumbbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 135,
+          "ankle": 95,
+          "shoulder": 165,
+          "elbow": 155,
+          "trunk": -90
+        },
+        "B": {
+          "hip": 180,
+          "knee": 135,
+          "ankle": 95,
+          "shoulder": 95,
+          "elbow": 170,
+          "trunk": -90
+        }
+      },
+      "notes": {
+        "centerOfMass": "上臂落向头后时重心随哑铃后移，肩胛贴凳、腰椎不塌",
+        "symmetry": "左右同角，镜像渲染。双手共握一只哑铃"
+      }
+    },
+    "ex_single_leg_romanian_deadlift": {
+      "exerciseId": "ex_single_leg_romanian_deadlift",
+      "nameZh": "单腿罗马尼亚硬拉",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": false,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 95,
+          "knee": 168,
+          "ankle": 96,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": 55
+        }
+      },
+      "notes": {
+        "centerOfMass": "支撑腿足中承重，摆动腿后伸使重心始终压在支撑脚掌，臀部水平不翻髋",
+        "symmetry": "非对称，左右相位错开，不镜像渲染：支撑腿微屈承重，对侧腿随躯干前倾后伸至与躯干近一线"
+      }
+    },
+    "ex_assisted_dip": {
+      "exerciseId": "ex_assisted_dip",
+      "nameZh": "辅助双杠臂屈伸",
+      "posture": "kneeling",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 170,
+          "knee": 90,
+          "ankle": 100,
+          "shoulder": 20,
+          "elbow": 175,
+          "trunk": 10
+        },
+        "B": {
+          "hip": 168,
+          "knee": 90,
+          "ankle": 100,
+          "shoulder": 20,
+          "elbow": 92,
+          "trunk": 10
+        }
+      },
+      "notes": {
+        "centerOfMass": "重心落在双杠握点与膝垫之间，下降时躯干略前倾以免肩峰受压",
+        "symmetry": "左右同角，镜像渲染。双侧同步屈伸肘"
+      }
+    },
+    "ex_bird_dog": {
+      "exerciseId": "ex_bird_dog",
+      "nameZh": "鸟狗式",
+      "posture": "quadruped",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": false,
+      "frames": {
+        "A": {
+          "hip": 90,
+          "knee": 90,
+          "ankle": 90,
+          "shoulder": 90,
+          "elbow": 180,
+          "trunk": 85
+        },
+        "B": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 95,
+          "shoulder": 150,
+          "elbow": 175,
+          "trunk": 85
+        }
+      },
+      "notes": {
+        "centerOfMass": "四点支撑重心居中，对侧手脚抬起时重心略移向支撑对角线，骨盆保持水平不旋转",
+        "symmetry": "非对称，左右相位错开，不镜像渲染：右臂前伸配左腿后伸，另一对侧手脚支撑不动"
+      }
+    },
+    "ex_farmers_carry": {
+      "exerciseId": "ex_farmers_carry",
+      "nameZh": "农夫走",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 158,
+          "knee": 158,
+          "ankle": 96,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": 3
+        }
+      },
+      "notes": {
+        "centerOfMass": "重心始终压在足中，负重使肩带上提；A/B 仅表达单步迈出，躯干保持直立不左右晃",
+        "symmetry": "左右同角，镜像渲染。A=双足并立，B=一足前迈（左右腿相位由渲染器按步行周期错开）"
+      }
+    },
+    "ex_mountain_climber": {
+      "exerciseId": "ex_mountain_climber",
+      "nameZh": "登山者",
+      "posture": "plank",
+      "equipment": "none",
+      "priority": "P0",
+      "symmetric": false,
+      "frames": {
+        "A": {
+          "hip": 100,
+          "knee": 170,
+          "ankle": 110,
+          "shoulder": 80,
+          "elbow": 175,
+          "trunk": 78
+        },
+        "B": {
+          "hip": 80,
+          "knee": 90,
+          "ankle": 105,
+          "shoulder": 80,
+          "elbow": 175,
+          "trunk": 78
+        }
+      },
+      "notes": {
+        "centerOfMass": "肩正上方投影落于双手之间，提膝时重心略后移但髋部不上下耸动",
+        "symmetry": "非对称，左右相位错开，不镜像渲染：一侧提膝至胸前，另一侧腿保持伸直蹬地，双腿交替"
+      }
+    },
+    "ex_kettlebell_swing_placeholder": {
+      "exerciseId": "ex_kettlebell_swing_placeholder",
+      "nameZh": "髋铰链摆动",
+      "posture": "standing",
+      "equipment": "kettlebell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 110,
+          "knee": 140,
+          "ankle": 100,
+          "shoulder": 0,
+          "elbow": 175,
+          "trunk": 55
+        },
+        "B": {
+          "hip": 175,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 25,
+          "elbow": 168,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "后摆时重心压足中偏后、臀后移；顶髋时重心上提至足中，壶铃惯性前摆至胸高",
+        "symmetry": "左右同角，镜像渲染。双臂同握壶铃，髋主导而非手臂甩动"
+      }
+    },
+    "ex_bodyweight_glute_bridge": {
+      "exerciseId": "ex_bodyweight_glute_bridge",
+      "nameZh": "臀桥",
+      "posture": "supine",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 130,
+          "knee": 90,
+          "ankle": 95,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": -90
+        },
+        "B": {
+          "hip": 175,
+          "knee": 90,
+          "ankle": 120,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": -90
+        }
+      },
+      "notes": {
+        "centerOfMass": "顶髋后重心前移至足中，肩背与足三点支撑；腰椎靠臀发力而非塌腰代偿",
+        "symmetry": "左右同角，镜像渲染。双足平行踩地与髋同宽"
+      }
+    },
+    "ex_barbell_incline_bench_press": {
+      "exerciseId": "ex_barbell_incline_bench_press",
+      "nameZh": "上斜杠铃卧推",
+      "posture": "incline",
+      "equipment": "barbell",
+      "priority": "P0",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 125,
+          "knee": 110,
+          "ankle": 100,
+          "shoulder": 70,
+          "elbow": 80,
+          "trunk": -55
+        },
+        "B": {
+          "hip": 125,
+          "knee": 110,
+          "ankle": 100,
+          "shoulder": 95,
+          "elbow": 170,
+          "trunk": -55
+        }
+      },
+      "notes": {
+        "centerOfMass": "上背与臀贴 30 度斜凳，杠铃垂线落于锁骨下缘，重心居中不下滑",
+        "symmetry": "左右同角，镜像渲染。双侧同步推起"
+      }
+    },
+    "ex_decline_barbell_bench_press": {
+      "exerciseId": "ex_decline_barbell_bench_press",
+      "nameZh": "下斜杠铃卧推",
+      "posture": "supine",
+      "equipment": "barbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 160,
+          "knee": 155,
+          "ankle": 95,
+          "shoulder": 65,
+          "elbow": 80,
+          "trunk": -90
+        },
+        "B": {
+          "hip": 160,
+          "knee": 155,
+          "ankle": 95,
+          "shoulder": 90,
+          "elbow": 170,
+          "trunk": -90
+        }
+      },
+      "notes": {
+        "centerOfMass": "下斜位重心偏向头侧，双腿勾住固定垫防止下滑，杠落于下胸",
+        "symmetry": "左右同角，镜像渲染。双侧同步推起"
+      }
+    },
+    "ex_decline_dumbbell_bench_press": {
+      "exerciseId": "ex_decline_dumbbell_bench_press",
+      "nameZh": "下斜哑铃卧推",
+      "posture": "supine",
+      "equipment": "dumbbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 160,
+          "knee": 155,
+          "ankle": 95,
+          "shoulder": 68,
+          "elbow": 85,
+          "trunk": -90
+        },
+        "B": {
+          "hip": 160,
+          "knee": 155,
+          "ankle": 95,
+          "shoulder": 92,
+          "elbow": 170,
+          "trunk": -90
+        }
+      },
+      "notes": {
+        "centerOfMass": "哑铃垂线落在下胸两侧，重心居中；推起时两铃靠拢但不碰撞",
+        "symmetry": "左右同角，镜像渲染。双手各持一只哑铃"
+      }
+    },
+    "ex_incline_dumbbell_flyes": {
+      "exerciseId": "ex_incline_dumbbell_flyes",
+      "nameZh": "上斜哑铃飞鸟",
+      "posture": "incline",
+      "equipment": "dumbbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 125,
+          "knee": 110,
+          "ankle": 100,
+          "shoulder": 60,
+          "elbow": 165,
+          "trunk": -55,
+          "shoulderAbd": 75
+        },
+        "B": {
+          "hip": 125,
+          "knee": 110,
+          "ankle": 100,
+          "shoulder": 60,
+          "elbow": 165,
+          "trunk": -55,
+          "shoulderAbd": 10
+        }
+      },
+      "notes": {
+        "centerOfMass": "打开时重心随哑铃下沉略外扩，合拢时回到胸骨正上；肘角固定为微屈",
+        "symmetry": "左右同角，镜像渲染。双臂同步划弧，肘角全程不变"
+      }
+    },
+    "ex_machine_chest_fly": {
+      "exerciseId": "ex_machine_chest_fly",
+      "nameZh": "蝴蝶机夹胸",
+      "posture": "seated",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 40,
+          "elbow": 120,
+          "trunk": 5,
+          "shoulderAbd": 70
+        },
+        "B": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 40,
+          "elbow": 120,
+          "trunk": 5,
+          "shoulderAbd": 10
+        }
+      },
+      "notes": {
+        "centerOfMass": "坐姿背部贴垫，重心居中；合拢靠胸肌收缩而非肩前伸",
+        "symmetry": "左右同角，镜像渲染。两侧臂垫同步向中合"
+      }
+    },
+    "ex_cable_crossover": {
+      "exerciseId": "ex_cable_crossover",
+      "nameZh": "龙门架交叉夹胸",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 175,
+          "knee": 165,
+          "ankle": 93,
+          "shoulder": 30,
+          "elbow": 160,
+          "trunk": 5,
+          "shoulderAbd": 65
+        },
+        "B": {
+          "hip": 175,
+          "knee": 165,
+          "ankle": 93,
+          "shoulder": 45,
+          "elbow": 165,
+          "trunk": 5,
+          "shoulderAbd": 5
+        }
+      },
+      "notes": {
+        "centerOfMass": "一足前一足后站位，重心居双足中；合拢时两手在胸前交叉、躯干微前倾配平拉力",
+        "symmetry": "左右同角，镜像渲染。双臂同步划弧"
+      }
+    },
+    "ex_wide_push_up": {
+      "exerciseId": "ex_wide_push_up",
+      "nameZh": "宽距俯卧撑",
+      "posture": "plank",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 98,
+          "knee": 172,
+          "ankle": 115,
+          "shoulder": 82,
+          "elbow": 172,
+          "trunk": 78
+        },
+        "B": {
+          "hip": 98,
+          "knee": 172,
+          "ankle": 115,
+          "shoulder": 65,
+          "elbow": 88,
+          "trunk": 78
+        }
+      },
+      "notes": {
+        "centerOfMass": "双手宽于肩，重心落在双手与足尖之间；全程躯干与双腿一条线，髋不塌不耸",
+        "symmetry": "左右同角，镜像渲染。双侧同步屈伸肘"
+      }
+    },
+    "ex_incline_push_up": {
+      "exerciseId": "ex_incline_push_up",
+      "nameZh": "上斜俯卧撑",
+      "posture": "plank",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 125,
+          "knee": 174,
+          "ankle": 105,
+          "shoulder": 70,
+          "elbow": 172,
+          "trunk": 78
+        },
+        "B": {
+          "hip": 125,
+          "knee": 174,
+          "ankle": 105,
+          "shoulder": 55,
+          "elbow": 90,
+          "trunk": 78
+        }
+      },
+      "notes": {
+        "centerOfMass": "手撑台面使躯干约 45 度倾斜，重心落于双手与足尖之间；倾角越大负重越小",
+        "symmetry": "左右同角，镜像渲染。双侧同步屈伸肘"
+      }
+    },
+    "ex_chin_up": {
+      "exerciseId": "ex_chin_up",
+      "nameZh": "反握引体向上",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 175,
+          "knee": 168,
+          "ankle": 90,
+          "shoulder": 170,
+          "elbow": 170,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 172,
+          "knee": 165,
+          "ankle": 90,
+          "shoulder": 100,
+          "elbow": 75,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "悬垂时重心在杠下正中，拉起后重心上移贴近杠；核心收紧避免前后摆荡",
+        "symmetry": "左右同角，镜像渲染。反握与肩同宽，双侧同步"
+      }
+    },
+    "ex_barbell_deadlift": {
+      "exerciseId": "ex_barbell_deadlift",
+      "nameZh": "杠铃硬拉",
+      "posture": "standing",
+      "equipment": "barbell",
+      "priority": "P0",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 85,
+          "knee": 110,
+          "ankle": 102,
+          "shoulder": 60,
+          "elbow": 180,
+          "trunk": 55
+        },
+        "B": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "起始杠铃垂线过中足，起立时重心沿足中垂直上移，杠贴小腿与大腿刮过",
+        "symmetry": "左右同角，镜像渲染。双侧同步，杠铃水平不偏"
+      }
+    },
+    "ex_bent_over_barbell_row": {
+      "exerciseId": "ex_bent_over_barbell_row",
+      "nameZh": "俯身杠铃划船",
+      "posture": "standing",
+      "equipment": "barbell",
+      "priority": "P0",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 95,
+          "knee": 158,
+          "ankle": 95,
+          "shoulder": 80,
+          "elbow": 180,
+          "trunk": 55
+        },
+        "B": {
+          "hip": 95,
+          "knee": 158,
+          "ankle": 95,
+          "shoulder": 55,
+          "elbow": 75,
+          "trunk": 55
+        }
+      },
+      "notes": {
+        "centerOfMass": "俯身位重心前移至足中偏前，臀后移配平；拉起时躯干角恒定不借力起伏",
+        "symmetry": "左右同角，镜像渲染。双侧同步拉至腹前"
+      }
+    },
+    "ex_close_grip_lat_pulldown": {
+      "exerciseId": "ex_close_grip_lat_pulldown",
+      "nameZh": "窄距高位下拉",
+      "posture": "seated",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 165,
+          "elbow": 165,
+          "trunk": 5
+        },
+        "B": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 105,
+          "elbow": 70,
+          "trunk": 5
+        }
+      },
+      "notes": {
+        "centerOfMass": "坐姿腿垫压住大腿，重心贴在坐垫上；下拉时上身略后仰以对抗配重",
+        "symmetry": "左右同角，镜像渲染。窄距对握，两肘贴身下拉"
+      }
+    },
+    "ex_dumbbell_shrug": {
+      "exerciseId": "ex_dumbbell_shrug",
+      "nameZh": "哑铃耸肩",
+      "posture": "standing",
+      "equipment": "dumbbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": -8,
+          "elbow": 180,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 12,
+          "elbow": 180,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "重心压在足中，耸肩靠肩带上提而非屈肘；哑铃垂于体侧不摆动",
+        "symmetry": "左右同角，镜像渲染。肩带垂直上提下放"
+      }
+    },
+    "ex_barbell_shrug": {
+      "exerciseId": "ex_barbell_shrug",
+      "nameZh": "杠铃耸肩",
+      "posture": "standing",
+      "equipment": "barbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": -10,
+          "elbow": 180,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 14,
+          "elbow": 180,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "杠置于体前大腿，垂直上提，重心始终压在足中不前后晃",
+        "symmetry": "左右同角，镜像渲染。双侧同步上提下放"
+      }
+    },
+    "ex_rack_pull": {
+      "exerciseId": "ex_rack_pull",
+      "nameZh": "架上硬拉",
+      "posture": "standing",
+      "equipment": "barbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 120,
+          "knee": 125,
+          "ankle": 100,
+          "shoulder": 40,
+          "elbow": 180,
+          "trunk": 38
+        },
+        "B": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "起始铃位在膝上架，杠垂线过中足；锁定顶髋收肩，重心逐帧上移",
+        "symmetry": "左右同角，镜像渲染。双侧同步锁定"
+      }
+    },
+    "ex_straight_arm_pulldown": {
+      "exerciseId": "ex_straight_arm_pulldown",
+      "nameZh": "直臂下压",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 175,
+          "knee": 168,
+          "ankle": 93,
+          "shoulder": 130,
+          "elbow": 170,
+          "trunk": 5
+        },
+        "B": {
+          "hip": 175,
+          "knee": 168,
+          "ankle": 93,
+          "shoulder": 20,
+          "elbow": 175,
+          "trunk": 5
+        }
+      },
+      "notes": {
+        "centerOfMass": "重心压在足中，肘角全程几乎不变；下压靠背阔发力，躯干不上下起伏借重",
+        "symmetry": "左右同角，镜像渲染。双臂同步下压至髋前"
+      }
+    },
+    "ex_standing_dumbbell_upright_row": {
+      "exerciseId": "ex_standing_dumbbell_upright_row",
+      "nameZh": "站姿哑铃直立划船",
+      "posture": "standing",
+      "equipment": "dumbbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 170,
+          "trunk": 0,
+          "shoulderAbd": 15
+        },
+        "B": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 20,
+          "elbow": 110,
+          "trunk": 0,
+          "shoulderAbd": 75
+        }
+      },
+      "notes": {
+        "centerOfMass": "重心压在足中，上提时肘高于腕；避免耸肩与躯干后仰代偿",
+        "symmetry": "左右同角，镜像渲染。双侧同步上提至锁骨高度"
+      }
+    },
+    "ex_one_arm_kettlebell_row": {
+      "exerciseId": "ex_one_arm_kettlebell_row",
+      "nameZh": "单臂壶铃划船",
+      "posture": "quadruped",
+      "equipment": "kettlebell",
+      "priority": "P1",
+      "symmetric": false,
+      "frames": {
+        "A": {
+          "hip": 100,
+          "knee": 100,
+          "ankle": 100,
+          "shoulder": 80,
+          "elbow": 180,
+          "trunk": 85
+        },
+        "B": {
+          "hip": 100,
+          "knee": 100,
+          "ankle": 100,
+          "shoulder": 60,
+          "elbow": 70,
+          "trunk": 85
+        }
+      },
+      "notes": {
+        "centerOfMass": "单手单膝撑凳的三点支撑，重心压在支撑对角线上；拉起时肩胛后收不翻躯干",
+        "symmetry": "非对称，左右相位错开，不镜像渲染：单侧持铃拉动，另一侧手撑凳保持支撑"
+      }
+    },
+    "ex_barbell_full_squat": {
+      "exerciseId": "ex_barbell_full_squat",
+      "nameZh": "杠铃全蹲",
+      "posture": "standing",
+      "equipment": "barbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 80,
+          "knee": 35,
+          "ankle": 120,
+          "shoulder": 10,
+          "elbow": 50,
+          "trunk": 20
+        },
+        "B": {
+          "hip": 175,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 50,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "杠置于斜方肌上，底面重心压在足中；全蹲位膝超前于足尖但重心不越足尖",
+        "symmetry": "左右同角，镜像渲染。双侧同步下蹲起立"
+      }
+    },
+    "ex_barbell_lunge": {
+      "exerciseId": "ex_barbell_lunge",
+      "nameZh": "杠铃箭步蹲",
+      "posture": "standing",
+      "equipment": "barbell",
+      "priority": "P0",
+      "symmetric": false,
+      "frames": {
+        "A": {
+          "hip": 170,
+          "knee": 165,
+          "ankle": 95,
+          "shoulder": 10,
+          "elbow": 50,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 105,
+          "knee": 85,
+          "ankle": 110,
+          "shoulder": 10,
+          "elbow": 50,
+          "trunk": 10
+        }
+      },
+      "notes": {
+        "centerOfMass": "分腿站位，重心居两足之间；下蹲时前腿膝不过足尖过多、后膝贴近地面",
+        "symmetry": "非对称，左右相位错开，不镜像渲染：单腿前迈下蹲（前腿为主导侧，后腿屈膝下沉），双腿交替"
+      }
+    },
+    "ex_dumbbell_lunges": {
+      "exerciseId": "ex_dumbbell_lunges",
+      "nameZh": "哑铃箭步蹲",
+      "posture": "standing",
+      "equipment": "dumbbell",
+      "priority": "P1",
+      "symmetric": false,
+      "frames": {
+        "A": {
+          "hip": 172,
+          "knee": 168,
+          "ankle": 94,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 102,
+          "knee": 82,
+          "ankle": 108,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": 8
+        }
+      },
+      "notes": {
+        "centerOfMass": "哑铃垂于体侧，重心压在前后足之间；下蹲时躯干直立不前倾",
+        "symmetry": "非对称，左右相位错开，不镜像渲染：单腿前迈，另一腿在后屈膝下沉，双腿交替"
+      }
+    },
+    "ex_leg_extensions": {
+      "exerciseId": "ex_leg_extensions",
+      "nameZh": "坐姿腿屈伸",
+      "posture": "seated",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 90,
+          "knee": 90,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 170,
+          "trunk": 5
+        },
+        "B": {
+          "hip": 90,
+          "knee": 175,
+          "ankle": 80,
+          "shoulder": 0,
+          "elbow": 170,
+          "trunk": 5
+        }
+      },
+      "notes": {
+        "centerOfMass": "背部贴靠背、臀部坐实，重心在坐垫上；伸膝顶点略勾脚尖以锁住股四头",
+        "symmetry": "左右同角，镜像渲染。双侧同步伸膝"
+      }
+    },
+    "ex_lying_leg_curls": {
+      "exerciseId": "ex_lying_leg_curls",
+      "nameZh": "俯卧腿弯举",
+      "posture": "prone",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": 90
+        },
+        "B": {
+          "hip": 180,
+          "knee": 60,
+          "ankle": 100,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": 90
+        }
+      },
+      "notes": {
+        "centerOfMass": "俯卧髋骨贴垫，重心压在垫面；屈膝时骨盆不抬起，踝保持放松",
+        "symmetry": "左右同角，镜像渲染。双侧同步屈膝"
+      }
+    },
+    "ex_seated_calf_raise": {
+      "exerciseId": "ex_seated_calf_raise",
+      "nameZh": "坐姿提踵",
+      "posture": "seated",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 95,
+          "knee": 90,
+          "ankle": 110,
+          "shoulder": 0,
+          "elbow": 170,
+          "trunk": 5
+        },
+        "B": {
+          "hip": 95,
+          "knee": 90,
+          "ankle": 65,
+          "shoulder": 0,
+          "elbow": 170,
+          "trunk": 5
+        }
+      },
+      "notes": {
+        "centerOfMass": "膝垫压住大腿，重心压在坐垫；踝由背屈被拉伸位蹬到跖屈最高点",
+        "symmetry": "左右同角，镜像渲染。双侧同步蹬踝"
+      }
+    },
+    "ex_standing_calf_raises": {
+      "exerciseId": "ex_standing_calf_raises",
+      "nameZh": "站姿提踵",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 105,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 180,
+          "knee": 177,
+          "ankle": 55,
+          "shoulder": 5,
+          "elbow": 180,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "重心压在前足掌，提踵时垂直上移；膝保持近乎伸直以拉伸腓肠肌",
+        "symmetry": "左右同角，镜像渲染。双侧同步提踵"
+      }
+    },
+    "ex_deficit_romanian_deadlift": {
+      "exerciseId": "ex_deficit_romanian_deadlift",
+      "nameZh": "垫高罗马尼亚硬拉",
+      "posture": "standing",
+      "equipment": "barbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 80,
+          "knee": 168,
+          "ankle": 100,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": 55
+        }
+      },
+      "notes": {
+        "centerOfMass": "站于垫木使杠铃下降到更低、活动幅度增大；重心全程压在足中偏后",
+        "symmetry": "左右同角，镜像渲染。双侧同步屈髋"
+      }
+    },
+    "ex_dumbbell_step_ups": {
+      "exerciseId": "ex_dumbbell_step_ups",
+      "nameZh": "哑铃登阶",
+      "posture": "standing",
+      "equipment": "dumbbell",
+      "priority": "P1",
+      "symmetric": false,
+      "frames": {
+        "A": {
+          "hip": 100,
+          "knee": 100,
+          "ankle": 100,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": 10
+        },
+        "B": {
+          "hip": 175,
+          "knee": 172,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "重心先压到台上足掌再蹬起，台下腿仅辅助；哑铃垂于体侧不摆荡",
+        "symmetry": "非对称，左右相位错开，不镜像渲染：单腿踏上台阶并蹬起，另一腿随后跟步，双腿交替"
+      }
+    },
+    "ex_smith_machine_squat": {
+      "exerciseId": "ex_smith_machine_squat",
+      "nameZh": "史密斯机深蹲",
+      "posture": "standing",
+      "equipment": "barbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 80,
+          "knee": 50,
+          "ankle": 118,
+          "shoulder": 8,
+          "elbow": 45,
+          "trunk": 20
+        },
+        "B": {
+          "hip": 175,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 45,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "杠沿固定导轨垂直运动，重心可略前移；足位偏前时躯干更直立",
+        "symmetry": "左右同角，镜像渲染。双侧同步下蹲起立"
+      }
+    },
+    "ex_barbell_hip_thrust": {
+      "exerciseId": "ex_barbell_hip_thrust",
+      "nameZh": "杠铃臀推",
+      "posture": "supine",
+      "equipment": "barbell",
+      "priority": "P0",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 125,
+          "knee": 90,
+          "ankle": 95,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": -90
+        },
+        "B": {
+          "hip": 175,
+          "knee": 92,
+          "ankle": 120,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": -90
+        }
+      },
+      "notes": {
+        "centerOfMass": "上背靠凳，顶髋后重心压向足中；顶点躯干与大腿一线，收下巴不仰头",
+        "symmetry": "左右同角，镜像渲染。双足平行，双侧同步顶髋"
+      }
+    },
+    "ex_seated_barbell_shoulder_press": {
+      "exerciseId": "ex_seated_barbell_shoulder_press",
+      "nameZh": "坐姿杠铃肩推",
+      "posture": "seated",
+      "equipment": "barbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 80,
+          "elbow": 85,
+          "trunk": 5
+        },
+        "B": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 170,
+          "elbow": 175,
+          "trunk": 5
+        }
+      },
+      "notes": {
+        "centerOfMass": "背部贴凳、重心居中；杠由锁骨前垂直上推，顶位不塌腰",
+        "symmetry": "左右同角，镜像渲染。双侧同步上推"
+      }
+    },
+    "ex_front_dumbbell_raise": {
+      "exerciseId": "ex_front_dumbbell_raise",
+      "nameZh": "哑铃前平举",
+      "posture": "standing",
+      "equipment": "dumbbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 170,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 90,
+          "elbow": 170,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "重心压在足中，抬臂至与地面平行为止；躯干不后仰借力",
+        "symmetry": "左右同角，镜像渲染。双臂同步前平举"
+      }
+    },
+    "ex_reverse_flyes": {
+      "exerciseId": "ex_reverse_flyes",
+      "nameZh": "俯卧上斜哑铃飞鸟",
+      "posture": "prone",
+      "equipment": "dumbbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 170,
+          "knee": 165,
+          "ankle": 95,
+          "shoulder": 60,
+          "elbow": 165,
+          "trunk": 90,
+          "shoulderAbd": 15
+        },
+        "B": {
+          "hip": 170,
+          "knee": 165,
+          "ankle": 95,
+          "shoulder": 60,
+          "elbow": 165,
+          "trunk": 90,
+          "shoulderAbd": 85
+        }
+      },
+      "notes": {
+        "centerOfMass": "胸贴上斜凳，重心压在凳面；打开时上臂水平外展，肘角固定为微屈",
+        "symmetry": "左右同角，镜像渲染。双臂同步外展"
+      }
+    },
+    "ex_arnold_dumbbell_press": {
+      "exerciseId": "ex_arnold_dumbbell_press",
+      "nameZh": "阿诺德推举",
+      "posture": "seated",
+      "equipment": "dumbbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 80,
+          "elbow": 70,
+          "trunk": 5,
+          "shoulderAbd": 20
+        },
+        "B": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 159,
+          "elbow": 170,
+          "trunk": 5,
+          "shoulderAbd": 30
+        }
+      },
+      "notes": {
+        "centerOfMass": "坐姿背贴凳，重心居中；推起过程中前臂内旋，肘由体前划向两侧",
+        "symmetry": "左右同角，镜像渲染。双侧同步推起并旋转"
+      }
+    },
+    "ex_upright_barbell_row": {
+      "exerciseId": "ex_upright_barbell_row",
+      "nameZh": "杠铃直立划船",
+      "posture": "standing",
+      "equipment": "barbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 170,
+          "trunk": 0,
+          "shoulderAbd": 15
+        },
+        "B": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 15,
+          "elbow": 100,
+          "trunk": 0,
+          "shoulderAbd": 80
+        }
+      },
+      "notes": {
+        "centerOfMass": "重心压在足中，杠贴身垂直上提至下胸；不要高过锁骨以免肩峰撞击",
+        "symmetry": "左右同角，镜像渲染。双侧同步上提"
+      }
+    },
+    "ex_seated_rear_delt_raise": {
+      "exerciseId": "ex_seated_rear_delt_raise",
+      "nameZh": "坐姿俯身后束飞鸟",
+      "posture": "seated",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 30,
+          "elbow": 160,
+          "trunk": 5,
+          "shoulderAbd": 15
+        },
+        "B": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 30,
+          "elbow": 160,
+          "trunk": 5,
+          "shoulderAbd": 80
+        }
+      },
+      "notes": {
+        "centerOfMass": "坐姿俯身重心前压在膝上，胸贴近大腿；外展靠后束发力，肘角固定",
+        "symmetry": "左右同角，镜像渲染。双臂同步外展"
+      }
+    },
+    "ex_cable_shoulder_press": {
+      "exerciseId": "ex_cable_shoulder_press",
+      "nameZh": "绳索肩推",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 175,
+          "knee": 170,
+          "ankle": 93,
+          "shoulder": 70,
+          "elbow": 80,
+          "trunk": 5
+        },
+        "B": {
+          "hip": 175,
+          "knee": 170,
+          "ankle": 93,
+          "shoulder": 165,
+          "elbow": 170,
+          "trunk": 5
+        }
+      },
+      "notes": {
+        "centerOfMass": "一足前站位，重心居双足中；绳索拉力方向使躯干需微前倾配平",
+        "symmetry": "左右同角，镜像渲染。双侧同步上推"
+      }
+    },
+    "ex_alternate_hammer_curl": {
+      "exerciseId": "ex_alternate_hammer_curl",
+      "nameZh": "交替锤式弯举",
+      "posture": "standing",
+      "equipment": "dumbbell",
+      "priority": "P1",
+      "symmetric": false,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 165,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 10,
+          "elbow": 55,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "重心压在足中，单侧弯起时对侧手臂保持垂下，躯干不左右摆",
+        "symmetry": "非对称，左右相位错开，不镜像渲染：右臂弯起时左臂垂于体侧，两臂相位差半个循环"
+      }
+    },
+    "ex_preacher_curl": {
+      "exerciseId": "ex_preacher_curl",
+      "nameZh": "牧师凳弯举",
+      "posture": "seated",
+      "equipment": "barbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 30,
+          "elbow": 175,
+          "trunk": 5
+        },
+        "B": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 30,
+          "elbow": 55,
+          "trunk": 5
+        }
+      },
+      "notes": {
+        "centerOfMass": "腋窝贴住斜垫顶端，重心压在垫上；下放到底时肘不完全锁死",
+        "symmetry": "左右同角，镜像渲染。双侧同步弯举"
+      }
+    },
+    "ex_concentration_curls": {
+      "exerciseId": "ex_concentration_curls",
+      "nameZh": "集中弯举",
+      "posture": "seated",
+      "equipment": "dumbbell",
+      "priority": "P1",
+      "symmetric": false,
+      "frames": {
+        "A": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 20,
+          "elbow": 175,
+          "trunk": 5
+        },
+        "B": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 20,
+          "elbow": 50,
+          "trunk": 5
+        }
+      },
+      "notes": {
+        "centerOfMass": "坐姿前俯、肘部抵住同侧大腿内侧，重心压在前倾的躯干与坐骨之间",
+        "symmetry": "非对称，左右相位错开，不镜像渲染：单侧手臂抵膝弯举，另一侧手撑膝或垂放，两侧轮流"
+      }
+    },
+    "ex_close_grip_barbell_bench_press": {
+      "exerciseId": "ex_close_grip_barbell_bench_press",
+      "nameZh": "窄距杠铃卧推",
+      "posture": "supine",
+      "equipment": "barbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 140,
+          "ankle": 100,
+          "shoulder": 65,
+          "elbow": 80,
+          "trunk": -90
+        },
+        "B": {
+          "hip": 180,
+          "knee": 140,
+          "ankle": 100,
+          "shoulder": 85,
+          "elbow": 170,
+          "trunk": -90
+        }
+      },
+      "notes": {
+        "centerOfMass": "握距窄于肩，肘内收贴体侧；重心落在上背与双足三点支撑内",
+        "symmetry": "左右同角，镜像渲染。双侧同步推起，肘紧贴躯干"
+      }
+    },
+    "ex_triceps_dip": {
+      "exerciseId": "ex_triceps_dip",
+      "nameZh": "双杠臂屈伸（三头）",
+      "posture": "support",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 140,
+          "knee": 110,
+          "ankle": 100,
+          "shoulder": 15,
+          "elbow": 175,
+          "trunk": 8
+        },
+        "B": {
+          "hip": 135,
+          "knee": 105,
+          "ankle": 100,
+          "shoulder": 15,
+          "elbow": 90,
+          "trunk": 8
+        }
+      },
+      "notes": {
+        "centerOfMass": "身体悬于双杠间，重心在两手连线下方；下降至肘约 90 度，躯干近直立避免胸主导",
+        "symmetry": "左右同角，镜像渲染。双侧同步屈伸肘"
+      }
+    },
+    "ex_standing_dumbbell_triceps_extension": {
+      "exerciseId": "ex_standing_dumbbell_triceps_extension",
+      "nameZh": "站姿哑铃臂屈伸",
+      "posture": "standing",
+      "equipment": "dumbbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 170,
+          "elbow": 80,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 170,
+          "elbow": 170,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "双臂过顶，重心压在足中；上臂垂直固定，仅前臂绕肘转动，躯干不后仰",
+        "symmetry": "左右同角，镜像渲染。双手共握一只哑铃"
+      }
+    },
+    "ex_bench_dips": {
+      "exerciseId": "ex_bench_dips",
+      "nameZh": "凳上臂屈伸",
+      "posture": "support",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 160,
+          "knee": 90,
+          "ankle": 95,
+          "shoulder": -18,
+          "elbow": 175,
+          "trunk": 8
+        },
+        "B": {
+          "hip": 155,
+          "knee": 85,
+          "ankle": 95,
+          "shoulder": -18,
+          "elbow": 85,
+          "trunk": 8
+        }
+      },
+      "notes": {
+        "centerOfMass": "双手在身后撑凳，重心落于双手与双足之间；下降时髋贴近凳沿但不相碰",
+        "symmetry": "左右同角，镜像渲染。双侧同步屈伸肘"
+      }
+    },
+    "ex_lying_triceps_press": {
+      "exerciseId": "ex_lying_triceps_press",
+      "nameZh": "仰卧杠铃臂屈伸",
+      "posture": "supine",
+      "equipment": "barbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 140,
+          "ankle": 100,
+          "shoulder": 90,
+          "elbow": 90,
+          "trunk": -90
+        },
+        "B": {
+          "hip": 180,
+          "knee": 140,
+          "ankle": 100,
+          "shoulder": 90,
+          "elbow": 175,
+          "trunk": -90
+        }
+      },
+      "notes": {
+        "centerOfMass": "仰卧重心压在上背与双足，杠下放至额头上方；上臂垂直固定不前后晃",
+        "symmetry": "左右同角，镜像渲染。双侧同步伸肘"
+      }
+    },
+    "ex_three_quarter_sit_up": {
+      "exerciseId": "ex_three_quarter_sit_up",
+      "nameZh": "四分之三卷腹",
+      "posture": "supine",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 135,
+          "knee": 95,
+          "ankle": 100,
+          "shoulder": 60,
+          "elbow": 70,
+          "trunk": -90
+        },
+        "B": {
+          "hip": 110,
+          "knee": 95,
+          "ankle": 100,
+          "shoulder": 55,
+          "elbow": 85,
+          "trunk": -90
+        }
+      },
+      "notes": {
+        "centerOfMass": "起身过程重心由臀部向坐骨方向前移；卷起幅度到躯干与地面约 135 度即止",
+        "symmetry": "左右同角，镜像渲染。双侧同步卷起"
+      }
+    },
+    "ex_russian_twist": {
+      "exerciseId": "ex_russian_twist",
+      "nameZh": "俄罗斯转体",
+      "posture": "seated",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 100,
+          "knee": 90,
+          "ankle": 100,
+          "shoulder": 60,
+          "elbow": 90,
+          "trunk": 5,
+          "twist": -25
+        },
+        "B": {
+          "hip": 100,
+          "knee": 90,
+          "ankle": 100,
+          "shoulder": 60,
+          "elbow": 90,
+          "trunk": 18,
+          "twist": 25
+        }
+      },
+      "notes": {
+        "centerOfMass": "坐姿后仰重心落在坐骨上，双足离地或轻触地；旋转全程躯干后仰角不变",
+        "symmetry": "左右同角，镜像渲染。矢状面通道左右一致，转体由 twist 通道 ±25 度往返表达"
+      }
+    },
+    "ex_cable_crunch": {
+      "exerciseId": "ex_cable_crunch",
+      "nameZh": "绳索卷腹",
+      "posture": "kneeling",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 90,
+          "knee": 90,
+          "ankle": 100,
+          "shoulder": 170,
+          "elbow": 85,
+          "trunk": 10
+        },
+        "B": {
+          "hip": 90,
+          "knee": 90,
+          "ankle": 100,
+          "shoulder": 150,
+          "elbow": 70,
+          "trunk": 10
+        }
+      },
+      "notes": {
+        "centerOfMass": "跪姿重心压在膝垫，卷腹时由腹肌把胸骨拉向骨盆，髋不主动屈",
+        "symmetry": "左右同角，镜像渲染。双侧同步卷曲"
+      }
+    },
+    "ex_alternating_kettlebell_press": {
+      "exerciseId": "ex_alternating_kettlebell_press",
+      "nameZh": "壶铃交替推举",
+      "posture": "standing",
+      "equipment": "kettlebell",
+      "priority": "P1",
+      "symmetric": false,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 75,
+          "elbow": 80,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 170,
+          "elbow": 170,
+          "trunk": -5
+        }
+      },
+      "notes": {
+        "centerOfMass": "重心压在足中；单侧推起时对侧壶铃维持肩位，躯干轻微侧移配平但不后仰",
+        "symmetry": "非对称，左右相位错开，不镜像渲染：两侧轮流推举，一臂推起时另一臂停在肩位"
+      }
+    },
+    "ex_flutter_kicks": {
+      "exerciseId": "ex_flutter_kicks",
+      "nameZh": "俯卧剪刀腿",
+      "posture": "supine",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": false,
+      "frames": {
+        "A": {
+          "hip": 160,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": -90
+        },
+        "B": {
+          "hip": 135,
+          "knee": 172,
+          "ankle": 80,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": -90
+        }
+      },
+      "notes": {
+        "centerOfMass": "仰卧腰背压地，重心稳健于骨盆；双腿小幅上下交替，全程不离地太多",
+        "symmetry": "非对称，左右相位错开，不镜像渲染：两腿反相上下摆动，相位差半个周期"
+      }
+    },
+    "ex_barbell_bench_press": {
+      "exerciseId": "ex_barbell_bench_press",
+      "nameZh": "杠铃卧推",
+      "posture": "supine",
+      "equipment": "barbell",
+      "priority": "P0",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 140,
+          "ankle": 100,
+          "shoulder": 65,
+          "elbow": 85,
+          "trunk": -90
+        },
+        "B": {
+          "hip": 180,
+          "knee": 140,
+          "ankle": 100,
+          "shoulder": 90,
+          "elbow": 172,
+          "trunk": -90
+        }
+      },
+      "notes": {
+        "centerOfMass": "上背与双足三点支撑，杠垂线落于中胸；肩胛后收下沉，腰微离凳",
+        "symmetry": "左右同角，镜像渲染。双侧同步推起，杠保持水平"
+      }
+    },
+    "ex_dumbbell_bench_press": {
+      "exerciseId": "ex_dumbbell_bench_press",
+      "nameZh": "哑铃卧推",
+      "posture": "supine",
+      "equipment": "dumbbell",
+      "priority": "P0",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 140,
+          "ankle": 100,
+          "shoulder": 68,
+          "elbow": 88,
+          "trunk": -90
+        },
+        "B": {
+          "hip": 180,
+          "knee": 140,
+          "ankle": 100,
+          "shoulder": 92,
+          "elbow": 170,
+          "trunk": -90
+        }
+      },
+      "notes": {
+        "centerOfMass": "哑铃垂线落在中胸两侧，重心居中；比杠铃更自由的轨迹使肘可略外展",
+        "symmetry": "左右同角，镜像渲染。双手各持一只哑铃，同步推起"
+      }
+    },
+    "ex_push_up": {
+      "exerciseId": "ex_push_up",
+      "nameZh": "俯卧撑",
+      "posture": "plank",
+      "equipment": "none",
+      "priority": "P0",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 98,
+          "knee": 172,
+          "ankle": 115,
+          "shoulder": 80,
+          "elbow": 172,
+          "trunk": 78
+        },
+        "B": {
+          "hip": 98,
+          "knee": 172,
+          "ankle": 115,
+          "shoulder": 62,
+          "elbow": 85,
+          "trunk": 78
+        }
+      },
+      "notes": {
+        "centerOfMass": "重心落于双手与足尖之间；躯干与双腿一条线，臀部不塌不耸",
+        "symmetry": "左右同角，镜像渲染。双手与肩同宽，双侧同步屈伸肘"
+      }
+    },
+    "ex_pull_up": {
+      "exerciseId": "ex_pull_up",
+      "nameZh": "引体向上",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P0",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 175,
+          "knee": 168,
+          "ankle": 90,
+          "shoulder": 170,
+          "elbow": 170,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 172,
+          "knee": 165,
+          "ankle": 90,
+          "shoulder": 100,
+          "elbow": 75,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "悬垂时重心在杠下正中，拉起后上移贴近杠；核心收紧，双腿微屈不摆荡",
+        "symmetry": "左右同角，镜像渲染。正握略宽于肩，双侧同步"
+      }
+    },
+    "ex_dumbbell_row": {
+      "exerciseId": "ex_dumbbell_row",
+      "nameZh": "单臂哑铃划船",
+      "posture": "quadruped",
+      "equipment": "dumbbell",
+      "priority": "P0",
+      "symmetric": false,
+      "frames": {
+        "A": {
+          "hip": 100,
+          "knee": 100,
+          "ankle": 100,
+          "shoulder": 80,
+          "elbow": 180,
+          "trunk": 85
+        },
+        "B": {
+          "hip": 100,
+          "knee": 100,
+          "ankle": 100,
+          "shoulder": 58,
+          "elbow": 70,
+          "trunk": 85
+        }
+      },
+      "notes": {
+        "centerOfMass": "一手一膝撑凳的三点支撑，重心压在支撑对角线；拉起时肩胛后收、躯干不旋转",
+        "symmetry": "非对称，左右相位错开，不镜像渲染：单侧持铃拉至腰侧，另一侧手膝撑凳不动"
+      }
+    },
+    "ex_lat_pulldown": {
+      "exerciseId": "ex_lat_pulldown",
+      "nameZh": "高位下拉",
+      "posture": "seated",
+      "equipment": "none",
+      "priority": "P0",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 165,
+          "elbow": 165,
+          "trunk": 5
+        },
+        "B": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 105,
+          "elbow": 70,
+          "trunk": 5
+        }
+      },
+      "notes": {
+        "centerOfMass": "腿垫压住大腿，重心贴在坐垫；下拉至上胸，肩胛下沉不耸肩",
+        "symmetry": "左右同角，镜像渲染。宽握双侧同步下拉"
+      }
+    },
+    "ex_barbell_squat": {
+      "exerciseId": "ex_barbell_squat",
+      "nameZh": "杠铃深蹲",
+      "posture": "standing",
+      "equipment": "barbell",
+      "priority": "P0",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 80,
+          "knee": 60,
+          "ankle": 112,
+          "shoulder": 10,
+          "elbow": 50,
+          "trunk": 20
+        },
+        "B": {
+          "hip": 175,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 50,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "杠置于斜方肌，底面重心压足中；髋膝同步屈曲，膝随脚尖方向打开",
+        "symmetry": "左右同角，镜像渲染。双侧同步下蹲起立"
+      }
+    },
+    "ex_goblet_squat": {
+      "exerciseId": "ex_goblet_squat",
+      "nameZh": "高脚杯深蹲",
+      "posture": "standing",
+      "equipment": "kettlebell",
+      "priority": "P0",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 80,
+          "knee": 55,
+          "ankle": 115,
+          "shoulder": 85,
+          "elbow": 60,
+          "trunk": 18
+        },
+        "B": {
+          "hip": 175,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 70,
+          "elbow": 60,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "重物抱于胸前，重心因此略前移，躯干可保持更直；底位膝随脚尖外开",
+        "symmetry": "左右同角，镜像渲染。双手共抱一只哑铃或壶铃"
+      }
+    },
+    "ex_machine_leg_press": {
+      "exerciseId": "ex_machine_leg_press",
+      "nameZh": "腿举",
+      "posture": "supine",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 80,
+          "knee": 70,
+          "ankle": 105,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": -90
+        },
+        "B": {
+          "hip": 170,
+          "knee": 170,
+          "ankle": 95,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": -90
+        }
+      },
+      "notes": {
+        "centerOfMass": "斜躺靠背，重心压在臀与背垫；蹬起时膝不锁死，髋部不离开靠垫",
+        "symmetry": "左右同角，镜像渲染。双足等宽同步蹬起"
+      }
+    },
+    "ex_dumbbell_shoulder_press": {
+      "exerciseId": "ex_dumbbell_shoulder_press",
+      "nameZh": "哑铃肩推",
+      "posture": "seated",
+      "equipment": "dumbbell",
+      "priority": "P0",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 75,
+          "elbow": 85,
+          "trunk": 5
+        },
+        "B": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 165,
+          "elbow": 170,
+          "trunk": 5
+        }
+      },
+      "notes": {
+        "centerOfMass": "背部贴凳重心居中；哑铃由耳侧垂直上推，顶位两铃不碰撞",
+        "symmetry": "左右同角，镜像渲染。双侧同步上推"
+      }
+    },
+    "ex_band_lateral_raise": {
+      "exerciseId": "ex_band_lateral_raise",
+      "nameZh": "弹力带侧平举",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 170,
+          "trunk": 0,
+          "shoulderAbd": 5
+        },
+        "B": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 165,
+          "trunk": 0,
+          "shoulderAbd": 88
+        }
+      },
+      "notes": {
+        "centerOfMass": "双足踩带，重心压在足中；外展至与地面平行即止，肘略高于腕",
+        "symmetry": "左右同角，镜像渲染。双臂同步外展"
+      }
+    },
+    "ex_cable_triceps_pressdown": {
+      "exerciseId": "ex_cable_triceps_pressdown",
+      "nameZh": "绳索下压",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 177,
+          "knee": 170,
+          "ankle": 92,
+          "shoulder": 15,
+          "elbow": 100,
+          "trunk": 5
+        },
+        "B": {
+          "hip": 177,
+          "knee": 170,
+          "ankle": 92,
+          "shoulder": 10,
+          "elbow": 175,
+          "trunk": 5
+        }
+      },
+      "notes": {
+        "centerOfMass": "一足略前站，重心压在足中；上臂贴体侧固定，仅前臂下压伸展",
+        "symmetry": "左右同角，镜像渲染。双侧同步下压"
+      }
+    },
+    "ex_dumbbell_curl": {
+      "exerciseId": "ex_dumbbell_curl",
+      "nameZh": "哑铃弯举",
+      "posture": "standing",
+      "equipment": "dumbbell",
+      "priority": "P0",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 170,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 15,
+          "elbow": 55,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "重心压在足中；弯举时肘固定在体侧不前移，躯干不前后晃",
+        "symmetry": "左右同角，镜像渲染。双侧同步弯举"
+      }
+    },
+    "ex_plank": {
+      "exerciseId": "ex_plank",
+      "nameZh": "平板支撑",
+      "posture": "plank",
+      "equipment": "none",
+      "priority": "P0",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 100,
+          "knee": 172,
+          "ankle": 115,
+          "shoulder": 78,
+          "elbow": 95,
+          "trunk": 78
+        },
+        "B": {
+          "hip": 88,
+          "knee": 172,
+          "ankle": 112,
+          "shoulder": 84,
+          "elbow": 98,
+          "trunk": 78
+        }
+      },
+      "notes": {
+        "centerOfMass": "前臂支撑，重心落在肘与足尖之间；等长动作，A/B 仅表达呼吸带来的骨盆与胸廓 1-2 度微升降，循环靠此维持可辨识",
+        "symmetry": "左右同角，镜像渲染。双前臂平行撑地，双侧同步"
+      }
+    },
+    "ex_incline_dumbbell_press": {
+      "exerciseId": "ex_incline_dumbbell_press",
+      "nameZh": "上斜哑铃卧推",
+      "posture": "incline",
+      "equipment": "dumbbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 125,
+          "knee": 110,
+          "ankle": 100,
+          "shoulder": 70,
+          "elbow": 80,
+          "trunk": -55
+        },
+        "B": {
+          "hip": 125,
+          "knee": 110,
+          "ankle": 100,
+          "shoulder": 95,
+          "elbow": 170,
+          "trunk": -55
+        }
+      },
+      "notes": {
+        "centerOfMass": "上背与臀贴 30 度斜凳，哑铃垂线落于上胸两侧；重心居中不下滑",
+        "symmetry": "左右同角，镜像渲染。双手各持一只哑铃，同步推起"
+      }
+    },
+    "ex_cable_chest_fly": {
+      "exerciseId": "ex_cable_chest_fly",
+      "nameZh": "绳索夹胸",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 175,
+          "knee": 165,
+          "ankle": 93,
+          "shoulder": 35,
+          "elbow": 165,
+          "trunk": 5,
+          "shoulderAbd": 65
+        },
+        "B": {
+          "hip": 175,
+          "knee": 165,
+          "ankle": 93,
+          "shoulder": 45,
+          "elbow": 165,
+          "trunk": 5,
+          "shoulderAbd": 8
+        }
+      },
+      "notes": {
+        "centerOfMass": "一足前一足后站位，重心居双足中；合拢时双手在中线相碰，躯干微前倾配平拉力",
+        "symmetry": "左右同角，镜像渲染。双臂同步划弧"
+      }
+    },
+    "ex_chest_supported_row": {
+      "exerciseId": "ex_chest_supported_row",
+      "nameZh": "胸托划船",
+      "posture": "incline",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 110,
+          "knee": 160,
+          "ankle": 95,
+          "shoulder": 85,
+          "elbow": 180,
+          "trunk": -55
+        },
+        "B": {
+          "hip": 110,
+          "knee": 160,
+          "ankle": 95,
+          "shoulder": 62,
+          "elbow": 75,
+          "trunk": -55
+        }
+      },
+      "notes": {
+        "centerOfMass": "胸贴斜板使重心完全压在板面，下肢不承担稳定；拉起时肩胛后收",
+        "symmetry": "左右同角，镜像渲染。双侧同步拉至胸板两侧"
+      }
+    },
+    "ex_seated_cable_row": {
+      "exerciseId": "ex_seated_cable_row",
+      "nameZh": "坐姿绳索划船",
+      "posture": "seated",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 95,
+          "knee": 100,
+          "ankle": 100,
+          "shoulder": 75,
+          "elbow": 170,
+          "trunk": 5
+        },
+        "B": {
+          "hip": 95,
+          "knee": 100,
+          "ankle": 100,
+          "shoulder": 40,
+          "elbow": 85,
+          "trunk": 5
+        }
+      },
+      "notes": {
+        "centerOfMass": "双足蹬踏板，重心压在坐垫；后拉时躯干由略前倾到略后仰，幅度受控不甩腰",
+        "symmetry": "左右同角，镜像渲染。双侧同步后拉至腹部"
+      }
+    },
+    "ex_walking_lunge": {
+      "exerciseId": "ex_walking_lunge",
+      "nameZh": "行进弓步",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P0",
+      "symmetric": false,
+      "frames": {
+        "A": {
+          "hip": 165,
+          "knee": 160,
+          "ankle": 95,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": 2
+        },
+        "B": {
+          "hip": 100,
+          "knee": 80,
+          "ankle": 110,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": 8
+        }
+      },
+      "notes": {
+        "centerOfMass": "重心随迈步在两足间前移，下蹲瞬间落在两足中间；膝不过度前顶",
+        "symmetry": "非对称，左右相位错开，不镜像渲染：单腿前迈下蹲后蹬起换腿，双腿交替前进"
+      }
+    },
+    "ex_band_squat": {
+      "exerciseId": "ex_band_squat",
+      "nameZh": "弹力带深蹲",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 80,
+          "knee": 60,
+          "ankle": 112,
+          "shoulder": 60,
+          "elbow": 90,
+          "trunk": 20
+        },
+        "B": {
+          "hip": 175,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 55,
+          "elbow": 90,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "双足踩带、带过肩后，重心压在足中；带张力使躯干可略前倾对抗",
+        "symmetry": "左右同角，镜像渲染。双侧同步下蹲起立"
+      }
+    },
+    "ex_barbell_overhead_press": {
+      "exerciseId": "ex_barbell_overhead_press",
+      "nameZh": "杠铃推举",
+      "posture": "standing",
+      "equipment": "barbell",
+      "priority": "P0",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 75,
+          "elbow": 85,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 170,
+          "elbow": 172,
+          "trunk": -5
+        }
+      },
+      "notes": {
+        "centerOfMass": "重心压在足中，推起时头略后让、杠过头后收回；腰不塌、臀不前置",
+        "symmetry": "左右同角，镜像渲染。双侧同步上推"
+      }
+    },
+    "ex_machine_shoulder_press": {
+      "exerciseId": "ex_machine_shoulder_press",
+      "nameZh": "器械推肩",
+      "posture": "seated",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 70,
+          "elbow": 85,
+          "trunk": 5
+        },
+        "B": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 165,
+          "elbow": 170,
+          "trunk": 5
+        }
+      },
+      "notes": {
+        "centerOfMass": "背贴靠垫，重心居中；轨迹由器械固定，只需保持躯干不离开靠垫",
+        "symmetry": "左右同角，镜像渲染。双侧同步上推"
+      }
+    },
+    "ex_face_pull": {
+      "exerciseId": "ex_face_pull",
+      "nameZh": "面拉",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 177,
+          "knee": 170,
+          "ankle": 92,
+          "shoulder": 80,
+          "elbow": 175,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 177,
+          "knee": 170,
+          "ankle": 92,
+          "shoulder": 95,
+          "elbow": 50,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "重心压在足中；拉至绳触面部高度、肘高于腕，肩胛后缩下沉",
+        "symmetry": "左右同角，镜像渲染。双侧同步拉向面部"
+      }
+    },
+    "ex_cable_lateral_raise": {
+      "exerciseId": "ex_cable_lateral_raise",
+      "nameZh": "绳索侧平举",
+      "posture": "seated",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 170,
+          "trunk": 5,
+          "shoulderAbd": 5
+        },
+        "B": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 168,
+          "trunk": 5,
+          "shoulderAbd": 85
+        }
+      },
+      "notes": {
+        "centerOfMass": "坐姿重心居中；外展至与地面平行即止，肘略高于腕，斜方肌不耸",
+        "symmetry": "左右同角，镜像渲染。双臂同步外展"
+      }
+    },
+    "ex_close_grip_push_up": {
+      "exerciseId": "ex_close_grip_push_up",
+      "nameZh": "窄距俯卧撑",
+      "posture": "plank",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 98,
+          "knee": 172,
+          "ankle": 115,
+          "shoulder": 80,
+          "elbow": 172,
+          "trunk": 78
+        },
+        "B": {
+          "hip": 98,
+          "knee": 172,
+          "ankle": 115,
+          "shoulder": 65,
+          "elbow": 90,
+          "trunk": 78
+        }
+      },
+      "notes": {
+        "centerOfMass": "双手窄于肩（拇指相对），重心落在双手与足尖之间；下放时肘贴体侧",
+        "symmetry": "左右同角，镜像渲染。双侧同步屈伸肘"
+      }
+    },
+    "ex_barbell_curl": {
+      "exerciseId": "ex_barbell_curl",
+      "nameZh": "杠铃弯举",
+      "posture": "standing",
+      "equipment": "barbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 168,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 15,
+          "elbow": 50,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "重心压在足中；肘固定于体侧，躯干不后仰借力",
+        "symmetry": "左右同角，镜像渲染。双手共握一根横杠，同步弯举"
+      }
+    },
+    "ex_band_triceps_extension": {
+      "exerciseId": "ex_band_triceps_extension",
+      "nameZh": "弹力带臂屈伸",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 170,
+          "elbow": 80,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 170,
+          "elbow": 170,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "一足踩带、带过双手，重心压在足中；上臂垂直固定，仅前臂伸展",
+        "symmetry": "左右同角，镜像渲染。双臂同步伸展"
+      }
+    },
+    "ex_hanging_knee_raise": {
+      "exerciseId": "ex_hanging_knee_raise",
+      "nameZh": "悬垂提膝",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 175,
+          "knee": 170,
+          "ankle": 90,
+          "shoulder": 175,
+          "elbow": 175,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 85,
+          "knee": 85,
+          "ankle": 100,
+          "shoulder": 172,
+          "elbow": 175,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "悬垂重心在杠下正中；提膝时重心几乎不移动，躯干不跟随后摆",
+        "symmetry": "左右同角，镜像渲染。双膝同步上提至髋屈约 95 度"
+      }
+    },
+    "ex_side_plank": {
+      "exerciseId": "ex_side_plank",
+      "nameZh": "侧桥",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": false,
+      "frames": {
+        "A": {
+          "hip": 170,
+          "knee": 165,
+          "ankle": 95,
+          "shoulder": 70,
+          "elbow": 95,
+          "trunk": 0,
+          "shoulderAbd": 20
+        },
+        "B": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 95,
+          "shoulder": 75,
+          "elbow": 95,
+          "trunk": 0,
+          "shoulderAbd": 35
+        }
+      },
+      "notes": {
+        "centerOfMass": "侧卧，重心落在下方肘与前脚外缘的连线上；抬髋在冠状面完成，矢状面通道仅表达臂撑与髋微屈",
+        "symmetry": "非对称，左右相位错开，不镜像渲染：仅一侧前臂支撑、另一侧手叉腰或上举，抬髋从未抬起位到一线位"
+      }
+    },
+    "ex_incline_machine_press": {
+      "exerciseId": "ex_incline_machine_press",
+      "nameZh": "上斜器械推胸",
+      "posture": "incline",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 120,
+          "knee": 105,
+          "ankle": 98,
+          "shoulder": 65,
+          "elbow": 90,
+          "trunk": -55
+        },
+        "B": {
+          "hip": 120,
+          "knee": 105,
+          "ankle": 98,
+          "shoulder": 90,
+          "elbow": 170,
+          "trunk": -55
+        }
+      },
+      "notes": {
+        "centerOfMass": "背贴斜垫重心居中；握把轨迹固定，只需保持肩胛下沉不耸",
+        "symmetry": "左右同角，镜像渲染。双侧同步推起"
+      }
+    },
+    "ex_band_chest_fly": {
+      "exerciseId": "ex_band_chest_fly",
+      "nameZh": "弹力带夹胸",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 177,
+          "knee": 168,
+          "ankle": 93,
+          "shoulder": 30,
+          "elbow": 165,
+          "trunk": 5,
+          "shoulderAbd": 65
+        },
+        "B": {
+          "hip": 177,
+          "knee": 168,
+          "ankle": 93,
+          "shoulder": 42,
+          "elbow": 168,
+          "trunk": 5,
+          "shoulderAbd": 8
+        }
+      },
+      "notes": {
+        "centerOfMass": "带固定于背后，重心压在足中；合拢时两手在中线相碰，肘角固定为微屈",
+        "symmetry": "左右同角，镜像渲染。双臂同步划弧"
+      }
+    },
+    "ex_reverse_grip_lat_pulldown": {
+      "exerciseId": "ex_reverse_grip_lat_pulldown",
+      "nameZh": "反握高位下拉",
+      "posture": "seated",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 160,
+          "elbow": 160,
+          "trunk": 5
+        },
+        "B": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 100,
+          "elbow": 65,
+          "trunk": 5
+        }
+      },
+      "notes": {
+        "centerOfMass": "腿垫压住大腿，重心贴在坐垫；反握使上臂更贴近躯干、二头参与更多",
+        "symmetry": "左右同角，镜像渲染。与肩同宽反握，双侧同步下拉"
+      }
+    },
+    "ex_leg_press_single": {
+      "exerciseId": "ex_leg_press_single",
+      "nameZh": "单腿腿举",
+      "posture": "supine",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": false,
+      "frames": {
+        "A": {
+          "hip": 80,
+          "knee": 70,
+          "ankle": 105,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": -90
+        },
+        "B": {
+          "hip": 175,
+          "knee": 172,
+          "ankle": 95,
+          "shoulder": 0,
+          "elbow": 180,
+          "trunk": -90
+        }
+      },
+      "notes": {
+        "centerOfMass": "单侧蹬踏使骨盆有旋转倾向，靠核心与对侧腿固定把重心压在靠垫上",
+        "symmetry": "非对称，左右相位错开，不镜像渲染：单腿蹬起，另一腿屈膝停于踏板上方不发力，两侧交替"
+      }
+    },
+    "ex_hack_squat_machine": {
+      "exerciseId": "ex_hack_squat_machine",
+      "nameZh": "哈克深蹲",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 80,
+          "knee": 55,
+          "ankle": 115,
+          "shoulder": 20,
+          "elbow": 170,
+          "trunk": 15
+        },
+        "B": {
+          "hip": 175,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 15,
+          "elbow": 170,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "背部与肩压靠垫，重心沿固定斜轨垂直移动；足位偏前使膝前移量受控",
+        "symmetry": "左右同角，镜像渲染。双侧同步下蹲起立"
+      }
+    },
+    "ex_dumbbell_lateral_raise": {
+      "exerciseId": "ex_dumbbell_lateral_raise",
+      "nameZh": "哑铃侧平举",
+      "posture": "standing",
+      "equipment": "dumbbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 170,
+          "trunk": 0,
+          "shoulderAbd": 5
+        },
+        "B": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 165,
+          "trunk": 0,
+          "shoulderAbd": 90
+        }
+      },
+      "notes": {
+        "centerOfMass": "重心压在足中；外展至与地面平行，肩不耸、躯干不前后晃",
+        "symmetry": "左右同角，镜像渲染。双臂同步外展"
+      }
+    },
+    "ex_cable_upright_row": {
+      "exerciseId": "ex_cable_upright_row",
+      "nameZh": "绳索直立划船",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 170,
+          "trunk": 0,
+          "shoulderAbd": 15
+        },
+        "B": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 15,
+          "elbow": 100,
+          "trunk": 0,
+          "shoulderAbd": 75
+        }
+      },
+      "notes": {
+        "centerOfMass": "重心压在足中，绳握宽于肩；上提至下胸，肘高于腕且不超锁骨",
+        "symmetry": "左右同角，镜像渲染。双侧同步上提"
+      }
+    },
+    "ex_dumbbell_skullcrusher": {
+      "exerciseId": "ex_dumbbell_skullcrusher",
+      "nameZh": "哑铃仰卧臂屈伸",
+      "posture": "supine",
+      "equipment": "dumbbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 140,
+          "ankle": 100,
+          "shoulder": 90,
+          "elbow": 85,
+          "trunk": -90
+        },
+        "B": {
+          "hip": 180,
+          "knee": 140,
+          "ankle": 100,
+          "shoulder": 90,
+          "elbow": 175,
+          "trunk": -90
+        }
+      },
+      "notes": {
+        "centerOfMass": "仰卧重心压在上背与双足；哑铃下放至耳侧，上臂垂直不前后摆",
+        "symmetry": "左右同角，镜像渲染。双手各持一只哑铃，同步伸肘"
+      }
+    },
+    "ex_hammer_curl_cable": {
+      "exerciseId": "ex_hammer_curl_cable",
+      "nameZh": "绳索锤式弯举",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 0,
+          "elbow": 170,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 180,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 10,
+          "elbow": 60,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "绳握垂于体前，重心压在足中；绳索持续张力使肘不外移",
+        "symmetry": "左右同角，镜像渲染。双手对握绳端，同步弯举"
+      }
+    },
+    "ex_machine_chest_press": {
+      "exerciseId": "ex_machine_chest_press",
+      "nameZh": "器械推胸",
+      "posture": "seated",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 70,
+          "elbow": 90,
+          "trunk": 5
+        },
+        "B": {
+          "hip": 95,
+          "knee": 95,
+          "ankle": 90,
+          "shoulder": 95,
+          "elbow": 172,
+          "trunk": 5
+        }
+      },
+      "notes": {
+        "centerOfMass": "背贴靠垫，重心居坐垫；握把与中胸同高，推起时肩胛下沉",
+        "symmetry": "左右同角，镜像渲染。双侧同步推起"
+      }
+    },
+    "ex_dumbbell_flyes": {
+      "exerciseId": "ex_dumbbell_flyes",
+      "nameZh": "哑铃飞鸟",
+      "posture": "supine",
+      "equipment": "dumbbell",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 180,
+          "knee": 140,
+          "ankle": 100,
+          "shoulder": 60,
+          "elbow": 165,
+          "trunk": -90,
+          "shoulderAbd": 75
+        },
+        "B": {
+          "hip": 180,
+          "knee": 140,
+          "ankle": 100,
+          "shoulder": 60,
+          "elbow": 165,
+          "trunk": -90,
+          "shoulderAbd": 10
+        }
+      },
+      "notes": {
+        "centerOfMass": "仰卧重心压在上背与双足；打开时肘角固定为微屈，下放至与胸同高即止",
+        "symmetry": "左右同角，镜像渲染。双臂同步划弧"
+      }
+    },
+    "ex_crunches": {
+      "exerciseId": "ex_crunches",
+      "nameZh": "卷腹",
+      "posture": "supine",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 140,
+          "knee": 100,
+          "ankle": 100,
+          "shoulder": 60,
+          "elbow": 70,
+          "trunk": -90
+        },
+        "B": {
+          "hip": 125,
+          "knee": 100,
+          "ankle": 100,
+          "shoulder": 55,
+          "elbow": 80,
+          "trunk": -90
+        }
+      },
+      "notes": {
+        "centerOfMass": "仰卧腰背贴地，卷起幅度小于四分之三卷腹；下背始终不离地",
+        "symmetry": "左右同角，镜像渲染。双手抱头不拉颈，双侧同步卷起"
+      }
+    },
+    "ex_hanging_leg_raise": {
+      "exerciseId": "ex_hanging_leg_raise",
+      "nameZh": "悬垂举腿",
+      "posture": "standing",
+      "equipment": "none",
+      "priority": "P1",
+      "symmetric": true,
+      "frames": {
+        "A": {
+          "hip": 175,
+          "knee": 175,
+          "ankle": 90,
+          "shoulder": 175,
+          "elbow": 175,
+          "trunk": 0
+        },
+        "B": {
+          "hip": 90,
+          "knee": 175,
+          "ankle": 100,
+          "shoulder": 172,
+          "elbow": 175,
+          "trunk": 0
+        }
+      },
+      "notes": {
+        "centerOfMass": "悬垂重心在杠下正中；直腿举至水平，躯干仅随之后摆约 8 度",
+        "symmetry": "左右同角，镜像渲染。双腿并拢同步上举"
+      }
+    }
+  }
+}
