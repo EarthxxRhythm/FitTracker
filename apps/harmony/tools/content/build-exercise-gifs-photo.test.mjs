@@ -34,10 +34,11 @@ const CACHE_DIR = join(harmonyRoot, '.cache/exercise-photo-src')
 const HOLD = 0.42
 const FADE = 0.2
 
+/** 探测 ffmpeg；缺失返回 null（CI 兼容：不 throw，由各测试 t.skip 降级）。 */
 function findFfmpeg() {
   const r = spawnSync('ffmpeg', ['-version'], { stdio: 'pipe' })
   if (r.status === 0) return 'ffmpeg'
-  throw new Error('未找到 ffmpeg，本测试依赖它与合成链同一工具')
+  return null
 }
 
 /** 临时工作目录（测试结束整体清理）。 */
@@ -46,14 +47,17 @@ function makeTmpDir() {
   return d
 }
 
-/** 两帧真实源图（缓存缺失时合成）。 */
+/** 两帧真实源图（缓存缺失或 ffmpeg 不可用时返回 null，由调用方 skip）。 */
 function ensureFramePair(ffmpeg, dir) {
-  const cached = readdirSync(CACHE_DIR).filter((f) => /-\d\.jpg$/.test(f))
-  const base = cached[0] && cached[0].replace(/-\d\.jpg$/, '')
-  if (base) {
-    const a = join(CACHE_DIR, base + '-0.jpg')
-    const b = join(CACHE_DIR, base + '-1.jpg')
-    if (existsSync(a) && existsSync(b)) return [a, b]
+  if (!ffmpeg) return null
+  if (existsSync(CACHE_DIR)) {
+    const cached = readdirSync(CACHE_DIR).filter((f) => /-\d\.jpg$/.test(f))
+    const base = cached[0] && cached[0].replace(/-\d\.jpg$/, '')
+    if (base) {
+      const a = join(CACHE_DIR, base + '-0.jpg')
+      const b = join(CACHE_DIR, base + '-1.jpg')
+      if (existsSync(a) && existsSync(b)) return [a, b]
+    }
   }
   // 合成：白底 + 位置不同的黑色方块，保证两帧有真实差异。
   const a = join(dir, 'syn-a.png')
@@ -101,13 +105,14 @@ function readGifWidth(file) {
 const ffmpeg = findFfmpeg()
 const tmp = makeTmpDir()
 
-test('showcase GIF：帧块数 ≥16 且总时长 ≥1.5s（插帧生效，非 2 帧乒乓）', function () {
+test('showcase GIF：帧块数 ≥16 且总时长 ≥1.5s（插帧生效，非 2 帧乒乓）', function (t) {
+  if (!ffmpeg) { t.skip('ffmpeg 缺失（CI 降级）'); return }
   const [a, b] = ensureFramePair(ffmpeg, tmp)
   const out = join(tmp, 'showcase.gif')
   composeShowcaseGif(ffmpeg, [a, b], out, { size: 480 })
-  const t = readGifTiming(out)
-  assert.ok(t.blocks >= 16, `帧块数 ${t.blocks} 应 ≥16`)
-  assert.ok(t.seconds >= 1.5, `总时长 ${t.seconds.toFixed(2)}s 应 ≥1.5s`)
+  const timing = readGifTiming(out)
+  assert.ok(timing.blocks >= 16, `帧块数 ${timing.blocks} 应 ≥16`)
+  assert.ok(timing.seconds >= 1.5, `总时长 ${timing.seconds.toFixed(2)}s 应 ≥1.5s`)
 })
 
 /** 两帧 PSNR（dB）：GIF 差异编码/抖动会带来少量量化噪声，无缝判据用阈值而非哈希相等。 */
@@ -119,7 +124,8 @@ function psnrBetween(ffmpeg, a, b) {
   return parseFloat(m[1])
 }
 
-test('showcase GIF：首末帧无缝（PSNR ≥40dB）且无连续 3 帧停顿', function () {
+test('showcase GIF：首末帧无缝（PSNR ≥40dB）且无连续 3 帧停顿', function (t) {
+  if (!ffmpeg) { t.skip('ffmpeg 缺失（CI 降级）'); return }
   const [a, b] = ensureFramePair(ffmpeg, tmp)
   const out = join(tmp, 'showcase-loop.gif')
   composeShowcaseGif(ffmpeg, [a, b], out, { size: 480 })
@@ -140,24 +146,27 @@ test('showcase GIF：首末帧无缝（PSNR ≥40dB）且无连续 3 帧停顿',
   }
 })
 
-test('showcase GIF：尺寸 == --size（默认 480）', function () {
+test('showcase GIF：尺寸 == --size（默认 480）', function (t) {
+  if (!ffmpeg) { t.skip('ffmpeg 缺失（CI 降级）'); return }
   const [a, b] = ensureFramePair(ffmpeg, tmp)
   const out = join(tmp, 'showcase-size.gif')
   composeShowcaseGif(ffmpeg, [a, b], out, { size: 480 })
   assert.equal(readGifWidth(out), 480, '宽度应 480')
 })
 
-test('app profile：产物时长与 HOLD/FADE 三段公式等值（现状回归）', function () {
+test('app profile：产物时长与 HOLD/FADE 三段公式等值（现状回归）', function (t) {
+  if (!ffmpeg) { t.skip('ffmpeg 缺失（CI 降级）'); return }
   const [a, b] = ensureFramePair(ffmpeg, tmp)
   const out = join(tmp, 'app.gif')
   composeGif(ffmpeg, [a, b], out)
-  const t = readGifTiming(out)
+  const timing2 = readGifTiming(out)
   const expected = HOLD * 3 + FADE
-  assert.ok(Math.abs(t.seconds - expected) <= 0.12,
-    `实际 ${t.seconds.toFixed(2)}s，三段期望 ${expected.toFixed(2)}s`)
+  assert.ok(Math.abs(timing2.seconds - expected) <= 0.12,
+    `实际 ${timing2.seconds.toFixed(2)}s，三段期望 ${expected.toFixed(2)}s`)
 })
 
 test('--bg white：python+rembg 缺失时降级（不抛错）', function (t) {
+  if (!ffmpeg) { t.skip('ffmpeg 缺失（CI 降级）'); return }
   const probe = spawnSync('python', ['-c', 'import rembg'], { stdio: 'pipe' })
   if (probe.status === 0) {
     t.skip('本机有 python+rembg，白底降级路径不适用')

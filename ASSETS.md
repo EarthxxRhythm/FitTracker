@@ -97,7 +97,24 @@ node tools/content/build-exercise-gifs-photo.mjs --profile showcase --only ex_de
 体积预期：0.4–4 MB/个（与源图内容相关），单文件上界 <5MB；展示级全量约 40–400MB，
 只落 `test_run/showcase-gifs/`（默认），不进双端安装包。
 回归守护：`tools/content/build-exercise-gifs-photo.test.mjs`（合成法不变量）与
-`tools/content/exercise-photo-sources.test.mjs`（app 目录乒乓结构与 showcase 目录断言）。
+`tools/content/exercise-photo-sources.test.mjs`（app 目录乒乓结构与 showcase 目录断言），
+二者已登记进 `apps/harmony/tools/check-gates.mjs` 的 content gif regression 步骤
+（2026-11-01 补登；此前未进任何门，文档旧称「回归守护」不实，已一并校正）。
+
+### 1.4 3D 演示素材线（2026-11-01 起，与实拍线并存）
+
+**来源：本项目自建程序化人形（零外部素材许可风险）**——不用真人照片、不引入任何
+外部 3D 角色/动画素材（Mixamo 等需账号下载且再分发条款受限，明确排除）。
+
+| 项 | 内容 |
+|---|---|
+| 渲染链 | 纯 Node 软件渲染：姿势（分段链）→ slerp 插值 50 帧（25fps/40ms 定版，镜像回程 p[i]≡p[50-i]）→ 胶囊 SDF 光栅化 + 漫反射光照 + 地面软阴影 → 固定 256 色调色板量化 → 自写 LZW 编码 GIF |
+| 文件 | `tools/content/3d/{engine,encode-gif,gif-decode}.mjs`（全自写零外部依赖）+ `3d/poses.json`（姿势表） |
+| 生成 | `node tools/content/build-exercise-gifs-3d.mjs [--only id1,id2] [--dry-run]` |
+| 输出 | `test_run/showcase-gifs-3d/`（默认；`--out` 白名单护栏同上，仅 test_run/ 下） |
+| 体积 | 首版 3 动作实测 56–62 KB/个（白底可压缩性好，预算 <1.5MB/个） |
+| 许可 | 全自建（渲染/编码/解码代码均本项目自写），无第三方素材与库依赖 |
+| 状态 | 探针期：首版 3 动作（深蹲/俯卧撑/硬拉）已产出，**风格由用户目检拍板**后再批量扩充至 101 动作（姿势表结构已定，批量 = 补 poses.json 条目） |
 
 ## 二、应用图标与矢量图形
 

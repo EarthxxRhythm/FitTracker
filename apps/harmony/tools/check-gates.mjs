@@ -126,6 +126,12 @@ function main() {
       command: 'node',
       args: ['tools/check-code-rules.mjs'],
       help: '按 [rule-id] 定位：RT=路由 SV=服务 AR=分层 DS=设计系统。规则说明见 docs/process/engineering-standards.md 同名章节。确属架构例外时加入 EXEMPTIONS 并写明 reason/ref；存量色值债只能用 --write-baseline 追加，不得手工编辑基线。'
+    },
+    {
+      name: 'content gif regression',
+      command: 'node',
+      args: ['--test', 'tools/content/build-exercise-gifs-photo.test.mjs', 'tools/content/exercise-photo-sources.test.mjs', 'tools/content/build-exercise-gifs-3d.test.mjs'],
+      help: '动作演示素材（实拍/3D 双线）的合成不变量回归：帧块/时长/无缝/白底/round-trip。三套测试均自给 fixture（3D 线零外部依赖；实拍线 ffmpeg 缺失时显式 skip），CI 无 npm/ffmpeg/Chrome 也能跑。'
     }
   ]
 
