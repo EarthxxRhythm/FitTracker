@@ -1651,7 +1651,7 @@ html:not(.has-cursor-fx) .cursor-glow {
 /* ============================================================================
    用户旅程（截图 + Remotion 编排）
    ----------------------------------------------------------------------------
-   桌面：16:10 画布放 <Player>，五站自动推进。
+   桌面：16:10 画布放 <Player>，七站自动推进（时间轴外置在画布底部，可点跳站）。
    窄屏：画布缩到 340px 宽后字号只剩 5-6px，没法读——改为竖排图文列表，
          同一份 JOURNEY_STOPS 数据两套渲染，不重复写文案。
    ========================================================================== */
@@ -1667,6 +1667,86 @@ html:not(.has-cursor-fx) .cursor-glow {
 .journey-stage > div {
   width: 100% !important;
   height: 100% !important;
+}
+
+/* 画布容器：Player + 外置时间轴的定位基准。
+   height:100% 必须显式写——.journey-stage > div 的尺寸规则只命中直接子元素，
+   若这里退化为 auto，Player 的 height:'100%' 会把画布压塌，时间轴随之错位。 */
+.journey-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  container-type: inline-size;
+}
+
+/* 外置时间轴：左 72 / 右 72 / 下 44 是 960×600 内部坐标系的原始位置，
+   外置后这里变成 CSS 像素，画布会随视口放大，所以换成百分比按画布宽度等比内缩
+   （72/960 = 7.5%，44/600 ≈ 7.33%），字号用容器查询单位同步缩放。 */
+.journey-timeline {
+  position: absolute;
+  left: 7.5%;
+  right: 7.5%;
+  bottom: 7.33%;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  z-index: 2;
+}
+
+.journey-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 2px;
+  border-radius: 6px;
+  color: var(--text-3);
+  font-size: 13px;
+  font-size: clamp(11px, 1.15cqw, 14px);
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-align: left;
+  transition: color .18s ease;
+}
+
+.journey-tab-bar {
+  display: block;
+  height: 3px;
+  border-radius: var(--radius-pill);
+  background: rgba(237, 246, 242, .16);
+  overflow: hidden;
+  transition: background .18s ease;
+}
+.journey-tab-bar > i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+  box-shadow: 0 0 10px -2px rgba(76, 236, 164, .6);
+  transition: width .12s linear;
+}
+
+.journey-tab-label {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.journey-tab:hover,
+.journey-tab:focus-visible {
+  color: var(--text-2);
+}
+.journey-tab:hover .journey-tab-bar,
+.journey-tab:focus-visible .journey-tab-bar {
+  background: rgba(237, 246, 242, .28);
+}
+.journey-tab.is-active {
+  color: var(--primary);
+}
+.journey-tab.is-active .journey-tab-bar {
+  background: rgba(76, 236, 164, .24);
 }
 
 /* 竖排备选：仅在窄屏出现 */

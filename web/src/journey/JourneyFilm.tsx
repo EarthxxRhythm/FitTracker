@@ -9,13 +9,25 @@
  * 为什么这次用真实截图而不是纯 CSS 画界面：旅程讲的是"用户实际看到什么"，
  * 真机像素才有说服力；动画只承担节奏与转场，不假装自己是另一个界面。
  *
+ * 时间轴已外置为 Player 的兄弟控件，点击可跳站——composition 内部拿不到 seek，
+ * 所以 Timeline 不再是 composition 的一部分，改由 PlayerRef 驱动。
+ *
  * 默认导出带 <Player> 的封装，供 App.tsx 走 React.lazy 引入。
  */
 
+import { useEffect, useRef, useState } from 'react'
 import { AbsoluteFill, interpolate, Sequence, useCurrentFrame, useVideoConfig } from 'remotion'
 import { Player } from '@remotion/player'
 import type { PlayerRef } from '@remotion/player'
-import { FRAMES_PER_STOP, JOURNEY_FRAMES, JOURNEY_STOPS, STAGE_HEIGHT, STAGE_WIDTH } from './stops'
+import {
+  FRAMES_PER_STOP,
+  JOURNEY_FRAMES,
+  JOURNEY_STOPS,
+  STAGE_HEIGHT,
+  STAGE_WIDTH,
+  activeIndexAt,
+  localProgressAt
+} from './stops'
 import type { JourneyStop } from './stops'
 
 const C = {
@@ -126,56 +138,6 @@ const Stop: React.FC<{ stop: JourneyStop; index: number }> = ({ stop, index }) =
   )
 }
 
-/** 底部时间轴：五段进度，已走过的高亮 */
-const Timeline: React.FC = () => {
-  const frame = useCurrentFrame()
-  const active = Math.min(Math.floor(frame / FRAMES_PER_STOP), JOURNEY_STOPS.length - 1)
-
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        left: 72,
-        right: 72,
-        bottom: 44,
-        display: 'flex',
-        gap: 10,
-        fontFamily: 'system-ui, -apple-system, "HarmonyOS Sans SC", sans-serif'
-      }}
-    >
-      {JOURNEY_STOPS.map((stop, i) => {
-        const localProgress =
-          i < active ? 1 : i > active ? 0 : clamp(frame - active * FRAMES_PER_STOP, 0, FRAMES_PER_STOP)
-        return (
-          <div key={stop.id} style={{ flex: 1 }}>
-            <div style={{ height: 3, borderRadius: 2, background: C.line, overflow: 'hidden' }}>
-              <div
-                style={{
-                  width: `${localProgress * 100}%`,
-                  height: '100%',
-                  background: C.primary,
-                  borderRadius: 2
-                }}
-              />
-            </div>
-            <div
-              style={{
-                marginTop: 8,
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: 1,
-                color: i === active ? C.primary : C.text3
-              }}
-            >
-              {stop.label}
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
 /** 主 composition */
 export const JourneyFilm: React.FC = () => {
   const { fps } = useVideoConfig()
@@ -198,8 +160,6 @@ export const JourneyFilm: React.FC = () => {
         </Sequence>
       ))}
 
-      <Timeline />
-
       {/* 站与站之间的细碎节拍：底部一条呼吸线，提示"还在走" */}
       <div
         style={{
@@ -216,25 +176,84 @@ export const JourneyFilm: React.FC = () => {
   )
 }
 
-export interface JourneyPlayerProps {
-  ref?: React.Ref<PlayerRef>
+/** 外置时间轴：兄弟组件，自行订阅帧推进，避免父级每帧重渲染 Player。
+ *  帧映射一律消费 stops.ts 的 activeIndexAt / localProgressAt——不内联重算。 */
+const Timeline: React.FC<{ playerRef: React.RefObject<PlayerRef | null> }> = ({ playerRef }) => {
+  const [frame, setFrame] = useState(0)
+
+  useEffect(() => {
+    const player = playerRef.current
+    if (!player) return
+    const sync = () => setFrame(player.getCurrentFrame())
+    player.addEventListener('frameupdate', sync) // 主通道：30fps 平滑
+    let alive = true
+    let raf = 0
+    let timer = 0
+    const poll = () => { // 兜底通道：100ms 轮询，跨版本稳定
+      if (!alive) return // 卸载守卫：已入队的回调不再续排
+      sync()
+      timer = window.setTimeout(() => {
+        raf = window.requestAnimationFrame(poll)
+      }, 100)
+    }
+    raf = window.requestAnimationFrame(poll)
+    return () => {
+      alive = false
+      player.removeEventListener('frameupdate', sync)
+      cancelAnimationFrame(raf)
+      clearTimeout(timer) // 双清理：raf 与 timer 都要清，否则卸载后永久轮询
+    }
+  }, [playerRef])
+
+  const active = activeIndexAt(frame)
+
+  return (
+    <div className="journey-timeline" role="tablist" aria-label="旅程站点">
+      {JOURNEY_STOPS.map((stop, i) => {
+        const p = localProgressAt(frame, i)
+        return (
+          <button
+            key={stop.id}
+            type="button"
+            role="tab"
+            aria-selected={i === active}
+            aria-label={`第 ${i + 1} 站：${stop.label}`}
+            className={'journey-tab' + (i === active ? ' is-active' : '')}
+            onClick={() => {
+              setFrame(i * FRAMES_PER_STOP) // 立即反馈，不等事件
+              playerRef.current?.seekTo(i * FRAMES_PER_STOP)
+            }}
+          >
+            <span className="journey-tab-bar">
+              <i style={{ width: `${p * 100}%` }} />
+            </span>
+            <span className="journey-tab-label">{stop.label}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
 }
 
 /** 默认导出：带 <Player> 的封装，App.tsx 用 React.lazy 引它 */
-export default function JourneyPlayer({ ref }: JourneyPlayerProps) {
+export default function JourneyPlayer() {
+  const playerRef = useRef<PlayerRef>(null)
   return (
-    <Player
-      ref={ref}
-      component={JourneyFilm}
-      durationInFrames={JOURNEY_FRAMES}
-      fps={30}
-      compositionWidth={STAGE_WIDTH}
-      compositionHeight={STAGE_HEIGHT}
-      autoPlay
-      loop
-      controls={false}
-      acknowledgeRemotionLicense
-      style={{ width: '100%', height: '100%' }}
-    />
+    <div className="journey-wrap">
+      <Player
+        ref={playerRef}
+        component={JourneyFilm}
+        durationInFrames={JOURNEY_FRAMES}
+        fps={30}
+        compositionWidth={STAGE_WIDTH}
+        compositionHeight={STAGE_HEIGHT}
+        autoPlay
+        loop
+        controls={false}
+        acknowledgeRemotionLicense
+        style={{ width: '100%', height: '100%' }}
+      />
+      <Timeline playerRef={playerRef} />
+    </div>
   )
 }

@@ -13,11 +13,19 @@ web/
 │   ├── App.tsx           页面主体（导航 / Hero / 各区块 / 页脚）
 │   ├── index.css         Tailwind 入口 + @theme 设计令牌（转录自 DesignTokens）
 │   ├── legacy.css        ★ 从 site/assets/site.css 复制而来，保留原有 class
-│   ├── app-demo.css      App 原型样式（540 逻辑基准 + transform 缩放）
-│   └── components/
-│       ├── Aurora.tsx    裸 WebGL FBM 极光（无 WebGL / reduced-motion 降级）
-│       ├── AppDemo.tsx   可交互 App 原型：五屏 + 底部 Tab，全 React state
-│       └── PointerFx.tsx 光标光环 + 全站聚光
+│   ├── components/
+│   │   ├── Aurora.tsx    裸 WebGL FBM 极光（无 WebGL / reduced-motion 降级）
+│   │   └── PointerFx.tsx 光标光环 + 全站聚光
+│   ├── journey/          旅程区块（Remotion 逐帧播放）
+│   │   ├── stops.ts      七站数据 + 帧映射纯函数（activeIndexAt / localProgressAt）
+│   │   └── JourneyFilm.tsx  JourneyPlayer + 站点时间轴
+│   └── board/            开发看板（独立入口 board.html + vite.board.config.ts）
+│       ├── main.tsx      看板挂载
+│       ├── BoardApp.tsx  看板骨架与分栏
+│       ├── board.css     看板样式
+│       ├── types.ts      看板数据类型
+│       └── sections/     区块（StatusOverview / WorkingTree / Commits / Plans /
+│                         Improvements / Blockers / TodoList / Projects）
 ├── public/               原样复制到 dist/（截图、法务页、独立 CSS）
 │   ├── *.jpg             7 张实机截图
 │   ├── legal/            隐私政策 / 用户协议（由 tools/build-site.mjs 生成）

@@ -11,9 +11,10 @@ const JourneyPlayer = lazy(() => import('./journey/JourneyFilm'))
 /* ============================================================================
    官网主体
    ----------------------------------------------------------------------------
-   四段，每段一种视觉语法，避免「一节接一节长得一样」：
+   五段，每段一种视觉语法，避免「一节接一节长得一样」：
      Hero（单列居中大字）→ 功能（2×2 能力卡）
-     → 肌群（整块亮绿 + 矩阵）→ 成长（竖向时间轴）
+     → 旅程（Remotion 编排截图 + 外置时间轴）→ 肌群（整块亮绿 + 矩阵）
+     → 成长（竖向时间轴）
 
    动效分工：
      - 滚动进度条：framer-motion useScroll + useSpring（替代手写 rAF）
@@ -279,7 +280,7 @@ export default function App() {
             <motion.div className="section-head" {...fadeUp}>
               <p className="eyebrow">用户旅程</p>
               <h2 className="h2">从选计划到三个月后，一条线走完</h2>
-              <p className="lede">下面这段由代码编排真实界面截图：五站依次推进，节奏固定，循环播放。</p>
+              <p className="lede">下面这段由代码编排真实界面截图：七站依次推进，点时间轴任一站可直达；窄屏自动换成竖排图文。</p>
             </motion.div>
 
             <div className="journey-stage">
