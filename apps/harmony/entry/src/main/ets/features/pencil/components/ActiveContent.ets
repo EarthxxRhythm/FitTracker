@@ -1,7 +1,7 @@
 /** ActiveContent - 训练中界面体（供 PencilActivePage 独立渲染）。 */
 import { AppRoutes } from '../../../app/AppRoutes'
 import { Context } from '@kit.AbilityKit'
-import { window } from '@kit.ArkUI'
+import { display, window } from '@kit.ArkUI'
 import { MediaTokens, MotionTokens } from '../../../common/styles/DesignTokens'
 import { MotionIntent } from '../../../common/styles/MotionIntent'
 import { DuTokens } from '../../../common/styles/DuTokens'
@@ -201,6 +201,12 @@ export struct ActiveContent {
   /** 挂起切换的来源动作 id：回调时用它判断用户是否已手动切走。 */
   private advanceFromId: string = ''
   private celebrateTimer: number = -1
+  /** 收起动效进行中：整页下滑淡出（280ms 面板曲线），动画完成才返回。 */
+  @State private collapsing: boolean = false
+  /** 收起下滑的目标位移（vp，= 屏高，整页滑出屏底）；aboutToAppear 里按设备屏高赋值。 */
+  private collapseShift: number = 0
+  /** 收起动画到点的返回定时器：aboutToDisappear 里清理，防系统返回抢先后叠退。 */
+  private collapseTimer: number = -1
   private clockTimer: number = -1
   private pulseTimer: number = -1
   private finished: boolean = false
@@ -242,6 +248,8 @@ export struct ActiveContent {
     this.pulseTimer = setInterval(() => {
       this.livePulseLow = !this.livePulseLow
     }, MotionTokens.DURATION_PULSE / 2)
+    // 收起下滑位移 = 屏高（vp）：整页滑出屏底（取法同 common/utils/CanvasScale.ets）。
+    this.collapseShift = this.getUIContext().px2vp(display.getDefaultDisplaySync().height)
     this.applyKeepScreenOnPreference()
     this.applySoundPreference()
   }
@@ -258,6 +266,10 @@ export struct ActiveContent {
     if (this.celebrateTimer !== -1) {
       clearTimeout(this.celebrateTimer)
       this.celebrateTimer = -1
+    }
+    if (this.collapseTimer !== -1) {
+      clearTimeout(this.collapseTimer)
+      this.collapseTimer = -1
     }
     if (this.holdTimer !== -1) {
       clearInterval(this.holdTimer)
@@ -1007,9 +1019,19 @@ export struct ActiveContent {
    * 两处靠 draftSavedOnExit 幂等，不会重复写盘。
    */
   private collapseWorkout(): void {
+    if (this.collapsing) {
+      return
+    }
+    this.collapsing = true
     this.releaseKeepScreenOn()
     this.persistDraftOnExit()
-    this.getUIContext().getRouter().back()
+    // 收起动效：落草稿先行，整页下滑淡出（280ms 面板曲线），动画到点才返回。
+    // 定时器存成员、aboutToDisappear 清理：动画期间按系统返回 → 定时器被清，
+    // 不会在 pop 之后再 back 一次造成叠退（对齐安卓 requestCollapse 的 scope 取消语义）。
+    this.collapseTimer = setTimeout(() => {
+      this.collapseTimer = -1
+      this.getUIContext().getRouter().back()
+    }, MotionTokens.DURATION_PANEL)
   }
 
   build() {
@@ -1045,6 +1067,11 @@ export struct ActiveContent {
     }
     .width('100%')
     .height('100%')
+    // 收起动效：整页下滑（位移 = 屏高）+ 淡出至 0.35。
+    // 时长/曲线与安卓 `FtMotion.DURATION_PANEL`/`EASE_PANEL` 逐值一致。
+    .translate({ y: this.collapsing ? this.collapseShift : 0 })
+    .opacity(this.collapsing ? 0.35 : 1)
+    .animation({ duration: MotionTokens.DURATION_PANEL, curve: MotionTokens.EASE_PANEL })
   }
 
   @Builder
@@ -1183,11 +1210,14 @@ export struct ActiveContent {
         .strokeWidth(2.2)
         .strokeLineCap(LineCapStyle.Round)
         .strokeLineJoin(LineJoinStyle.Round)
+        // chevron 沿「收起」方向下移 2vp：按压方向反馈（对齐安卓 CollapseButton 的 chevronDip）。
+        .offset({ y: this.collapsePressed ? 2 : 0 })
     }
     .width(44)
     .height(44)
     .scale({ x: this.collapsePressed ? MotionTokens.PRESS_ICON : 1, y: this.collapsePressed ? MotionTokens.PRESS_ICON : 1 })
-    .animation({ duration: MotionTokens.DURATION_PRESS, curve: MotionTokens.EASE_MOTION })
+    // 按压回弹弹簧（与安卓 `FtMotion.PRESS_SPRING_*` = spring(0.85, 504) 同源）。
+    .animation({ curve: MotionTokens.SPRING_PRESS })
     .accessibilityText('收起训练')
     .onTouch((event: TouchEvent) => {
       if (event.type === TouchType.Down) {
