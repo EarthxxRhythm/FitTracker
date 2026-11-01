@@ -237,7 +237,7 @@ export function lzwDecode(minCodeSize, data, expected) {
       suffix[dictLen] = firstByte
       head[dictLen] = head[prev]
       dictLen++
-      // 与 encode-gif.mjs 的配对（探针裁定唯一 PASS 组合）：
+      // 与 encode-gif.mjs 的配对（4 组合探针裁定唯一 PASS）：
       // decoder 在 dictLen == 2^codeSize - 1 时扩宽，encoder 在 nextCode == 2^codeSize 时扩宽。
       if (dictLen === (1 << codeSize) - 1 && codeSize < 12) codeSize++
     }

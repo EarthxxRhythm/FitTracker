@@ -8,11 +8,12 @@
 // 帧结构定版（council 评审通过）：帧 0=姿势 A、帧 25=姿势 B、帧 49=回程接近 A；
 // 循环时 49→0 的姿势差 = 单帧步长（回绕无缝）；p[i] ≡ p[50-i]（镜像回程）。
 //
-// 依赖：node:fs（仅落盘用）、./vendor/gifenc.esm.js（MIT，见 THIRD-PARTY-NOTICES）。
+// 依赖：node 内置 + ffmpeg（编码/解码 oracle，photo 线同款惯例；缺失时测试显式 skip）。
 
-import { encodeGif as encodeGifBytes } from './encode-gif.mjs'
-import { writeFileSync, mkdirSync } from 'node:fs'
-import { dirname } from 'node:path'
+import { spawnSync } from 'node:child_process'
+import { writeFileSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { tmpdir } from 'node:os'
 
 export const FPS = 25
 export const FRAME_COUNT = 50 // 2s × 25fps
@@ -223,20 +224,51 @@ export function renderPoseFrames(posePair, opts) {
   return frames
 }
 
-/** 索引帧序列 → GIF 字节（自写编码器，与 gif-decode.mjs 配对）。 */
+/** 索引帧 → RGB 字节流（按 PALETTE）。 */
+export function indicesToRgb(frames) {
+  const n = frames[0].length
+  const out = Buffer.alloc(n * 3 * frames.length)
+  for (let f = 0; f < frames.length; f++) {
+    const idx = frames[f]
+    for (let i = 0; i < n; i++) {
+      const p = idx[i] * 3
+      out[(f * n + i) * 3] = PALETTE[p]
+      out[(f * n + i) * 3 + 1] = PALETTE[p + 1]
+      out[(f * n + i) * 3 + 2] = PALETTE[p + 2]
+    }
+  }
+  return out
+}
+
+/**
+ * 索引帧序列 → GIF 字节。
+ *
+ * 编码后端 = ffmpeg（rawvideo → gif）。为什么不用自写 LZW / gifenc：
+ * 2026-11-01 四 oracle 实测（自写 decoder / ffmpeg / GDI+ / Chrome）——
+ * 自写 LZW 与 gifenc 的码流在 GDI+/Chrome 下解出错误画面（宽容解码静默错帧），
+ * ffmpeg 直接报 LZW decode failed；而 ffmpeg 产出的 app 素材（101 个 GIF）
+ * 三 oracle 全兼容。故编码交给 ffmpeg（photo 线已有 ffmpeg 依赖惯例）。
+ */
 export function encodeGif(frames, opts) {
   const width = opts.width
   const height = opts.height
   const delays = opts.delays || frames.map(() => FRAME_DELAY_CS)
-  const bytes = encodeGifBytes(frames, {
-    width,
-    height,
-    delays,
-    palette: opts.palette || PALETTE
-  })
-  if (opts.outPath) {
-    mkdirSync(dirname(opts.outPath), { recursive: true })
-    writeFileSync(opts.outPath, bytes)
+  const rgb = indicesToRgb(frames)
+  const fps = 1000 / (delays[0] * 10) // delay cs → fps（25fps @ delay=4cs）
+  const outPath = opts.outPath || join(tmpdir(), 'gif3d-' + Date.now() + '.gif')
+  const args = [
+    '-y', '-hide_banner', '-loglevel', 'error',
+    '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-s', width + 'x' + height, '-r', String(fps),
+    '-i', 'pipe:0',
+    '-vf', 'split[s0][s1];[s0]palettegen=reserve_transparent=0[p];[s1][p]paletteuse=dither=bayer:bayer_scale=3',
+    '-loop', '0',
+    outPath
+  ]
+  const r = spawnSync('ffmpeg', args, { input: rgb, stdio: ['pipe', 'pipe', 'pipe'] })
+  if (r.status !== 0) {
+    throw new Error('ffmpeg 编码失败：' + r.stderr.toString().slice(0, 300))
   }
+  const bytes = readFileSync(outPath)
+  if (!opts.outPath) rmSync(outPath, { force: true })
   return bytes
 }
