@@ -28,6 +28,47 @@ export default function contentRepositoryTest(): void {
       expect(sourceInfo.buildValidationRequired).assertTrue()
     })
 
+    it('resolveByName: matches nameZh exactly', 0, () => {
+      const exercise: ExerciseContent | undefined = ContentRepository.resolveByName('俯卧撑')
+      expect(exercise !== undefined).assertTrue()
+      if (exercise !== undefined) {
+        expect(exercise.exerciseId).assertEqual('ex_push_up')
+      }
+    })
+
+    it('resolveByName: matches nameEn exactly', 0, () => {
+      const exercise: ExerciseContent | undefined = ContentRepository.resolveByName('Push-Up')
+      expect(exercise !== undefined).assertTrue()
+      if (exercise !== undefined) {
+        expect(exercise.exerciseId).assertEqual('ex_push_up')
+      }
+    })
+
+    it('resolveByName: matches aliases exactly (dynamic first-aliased exercise)', 0, () => {
+      const allExercises: ExerciseContent[] = ContentRepository.getExercises()
+      let found: ExerciseContent | undefined = undefined
+      for (let index = 0; index < allExercises.length; index++) {
+        const exercise: ExerciseContent = allExercises[index]
+        if (exercise.aliases.length > 0) {
+          found = exercise
+          break
+        }
+      }
+      if (found === undefined) {
+        return
+      }
+      const resolved: ExerciseContent | undefined = ContentRepository.resolveByName(found.aliases[0])
+      expect(resolved !== undefined).assertTrue()
+      if (resolved !== undefined) {
+        expect(resolved.exerciseId).assertEqual(found.exerciseId)
+      }
+    })
+
+    it('resolveByName: unmatched name returns undefined', 0, () => {
+      const exercise: ExerciseContent | undefined = ContentRepository.resolveByName('不存在的动作名xyz')
+      expect(exercise === undefined).assertTrue()
+    })
+
     it('can switch repository reads to a database content source', 0, () => {
       const databaseSource: DatabaseContentDataSource = new DatabaseContentDataSource(
         ContentRepository.getMuscles(),

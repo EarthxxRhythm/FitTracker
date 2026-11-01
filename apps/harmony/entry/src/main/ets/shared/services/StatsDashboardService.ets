@@ -40,6 +40,51 @@ export interface StatsDashboardSummary {
   heatmapRows: CalendarHeatmapRow[]
 }
 
+/**
+ * 本周「按计划训练日去重」的完成计数（repository 会话源，纯函数，无 IO）。
+ *
+ * 数据一致性收口：首页环「本周完成进度」的分子。repository 会话有 dayId
+ * （无 dayLabel），故去重键 = planId + dayId；仅计 planId 匹配且 dayId 命中
+ * dayIds 的会话，同键多次仅计 1；dayId 为空的历史会话不计。
+ * 不变量：0 ≤ 结果 ≤ dayIds.length。
+ * 与 legacy 源 `countDistinctPlanDays`（planId+dayLabel）语义等价、键不同。
+ */
+export function countDistinctPlanDaysById(
+  sessions: WorkoutSession[],
+  planId: string,
+  dayIds: string[],
+  weekStartTime: number,
+  weekEndExclusive: number
+): number {
+  if (planId.length === 0 || dayIds.length === 0) {
+    return 0
+  }
+  const seenKeys: string[] = []
+  let count = 0
+  for (let index = 0; index < sessions.length; index++) {
+    const session: WorkoutSession = sessions[index]
+    if (session.planId !== planId) {
+      continue
+    }
+    if (session.startedAt < weekStartTime || session.startedAt >= weekEndExclusive) {
+      continue
+    }
+    if (session.dayId.length === 0) {
+      continue
+    }
+    if (dayIds.indexOf(session.dayId) < 0) {
+      continue
+    }
+    const key: string = planId + '|' + session.dayId
+    if (seenKeys.indexOf(key) >= 0) {
+      continue
+    }
+    seenKeys.push(key)
+    count++
+  }
+  return count
+}
+
 class StatsDashboardService {
   createSummary(sessions: WorkoutSession[], now: number, weekStart: WeekStart): StatsDashboardSummary {
     const heatmapDays: CalendarHeatmapDay[] = this.createHeatmapDays(sessions, now, weekStart)

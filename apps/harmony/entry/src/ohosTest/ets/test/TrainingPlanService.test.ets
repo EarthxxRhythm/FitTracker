@@ -7,7 +7,11 @@
  */
 import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium'
 import { abilityDelegatorRegistry } from '@kit.TestKit'
-import trainingPlanService, { TrainingDay, UserPlan } from '../../../main/ets/common/services/TrainingPlanService'
+import trainingPlanService, {
+  TrainingDay,
+  UserPlan,
+  resolveTodayTrainingIndexForPlan
+} from '../../../main/ets/common/services/TrainingPlanService'
 
 function getTestContext(): Context {
   return abilityDelegatorRegistry.getAbilityDelegator().getAppContext()
@@ -195,6 +199,59 @@ export default function trainingPlanServiceTest(): void {
         }
         const result = trainingPlanService.getTodayTraining(emptyPlan)
         expect(result).assertNull()
+      })
+    })
+
+    // ============================================================
+    // resolveTodayTrainingIndexForPlan（数据一致性收口：无星期计划的启用日循环回退）
+    // ============================================================
+    describe('resolveTodayTrainingIndexForPlan', () => {
+      it('has weekday: matches today via dayOfWeek', 0, () => {
+        const todayWeekday = new Date().getDay()
+        const days: TrainingDay[] = [
+          { dayLabel: 'A', exercises: [], dayOfWeek: [todayWeekday] },
+          { dayLabel: 'B', exercises: [], dayOfWeek: [(todayWeekday + 1) % 7] }
+        ]
+        const index = resolveTodayTrainingIndexForPlan(days, todayWeekday, Date.now())
+        expect(index).assertEqual(0)
+      })
+
+      it('has weekday but today is rest day: stays -1 even with enabledAt > 0', 0, () => {
+        const todayWeekday = new Date().getDay()
+        const other = (todayWeekday + 2) % 7
+        const days: TrainingDay[] = [
+          { dayLabel: 'A', exercises: [], dayOfWeek: [other] },
+          { dayLabel: 'B', exercises: [], dayOfWeek: [(other + 1) % 7] }
+        ]
+        // enabledAt > 0 但计划含星期信息：休息日语义不得被启用日循环覆盖
+        const index = resolveTodayTrainingIndexForPlan(days, todayWeekday, Date.now())
+        expect(index).assertEqual(-1)
+      })
+
+      it('no weekday info + enabledAt = now: cycles to first day', 0, () => {
+        const days: TrainingDay[] = [
+          { dayLabel: '自定义日一', exercises: [] },
+          { dayLabel: '自定义日二', exercises: [] },
+          { dayLabel: '自定义日三', exercises: [] }
+        ]
+        // dayDiff = 0 → createDaySeedFromGoal 归 1 → index = (1-1) % 3 = 0
+        const index = resolveTodayTrainingIndexForPlan(days, new Date().getDay(), Date.now())
+        expect(index).assertEqual(0)
+      })
+
+      it('no weekday info + enabledAt <= 0: stays rest day -1', 0, () => {
+        const days: TrainingDay[] = [
+          { dayLabel: '自定义日一', exercises: [] },
+          { dayLabel: '自定义日二', exercises: [] }
+        ]
+        const index = resolveTodayTrainingIndexForPlan(days, new Date().getDay(), 0)
+        expect(index).assertEqual(-1)
+      })
+
+      it('empty days: returns -1', 0, () => {
+        const days: TrainingDay[] = []
+        const index = resolveTodayTrainingIndexForPlan(days, new Date().getDay(), Date.now())
+        expect(index).assertEqual(-1)
       })
     })
 

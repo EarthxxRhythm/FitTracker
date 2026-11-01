@@ -221,6 +221,39 @@ class ContentRepositoryImpl {
     return undefined
   }
 
+  /**
+   * 按名称解析动作内容：nameZh / nameEn / aliases 精确全等匹配，未命中返回 undefined。
+   *
+   * 定位（数据一致性收口）：计划动作名 → 内容库正式名的映射真源，计划 Tab / 预览页 /
+   * 训练页共用——同一动作三处显示同名。注意与 matchesExercise（动作库搜索的
+   * indexOf 模糊匹配）边界不同：搜索要模糊召回，映射要精确全等，勿混用。
+   */
+  resolveByName(name: string): ExerciseContent | undefined {
+    const sourceExercises: ExerciseContent[] = this.dataSource.getExercises()
+    for (let index = 0; index < sourceExercises.length; index++) {
+      const exercise: ExerciseContent = sourceExercises[index]
+      if (exercise.nameZh === name) {
+        return this.copyExerciseContent(exercise)
+      }
+    }
+    for (let index = 0; index < sourceExercises.length; index++) {
+      const exercise: ExerciseContent = sourceExercises[index]
+      if (exercise.nameEn === name) {
+        return this.copyExerciseContent(exercise)
+      }
+    }
+    for (let index = 0; index < sourceExercises.length; index++) {
+      const exercise: ExerciseContent = sourceExercises[index]
+      const aliases: string[] = this.copyStringArray(exercise.aliases)
+      for (let aliasIndex = 0; aliasIndex < aliases.length; aliasIndex++) {
+        if (aliases[aliasIndex] === name) {
+          return this.copyExerciseContent(exercise)
+        }
+      }
+    }
+    return undefined
+  }
+
   getExerciseDetailViewModel(exerciseId: string): ExerciseDetailViewModel | undefined {
     const exercise: ExerciseContent | undefined = this.findLocalExerciseById(exerciseId)
     if (exercise === undefined) {

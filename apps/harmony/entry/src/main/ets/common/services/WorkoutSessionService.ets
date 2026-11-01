@@ -7,6 +7,7 @@
 import { preferences } from '@kit.ArkData'
 import SettingsService, { AppSettings } from './SettingsService'
 import { resolveWeekStart } from '../utils/WeekUtils'
+import { TrainingDay } from './TrainingPlanService'
 
 // ============================================================
 // 接口定义
@@ -43,6 +44,62 @@ export interface WeeklyStats {
   duration: number
   sets: number
   volume: number
+}
+
+/**
+ * 本周「按计划训练日去重」的完成计数（纯函数，无 IO）。
+ *
+ * 数据一致性收口口径：计划页「本周 N / M 天」的 N 不再用会话数，而是
+ * 按计划训练日去重——同一天（同一 dayLabel）练两次只计 1 天，与分母
+ * plan.days.length 同量纲。
+ *
+ * 去重键 = planId + dayLabel（legacy 会话无 dayId，只有 dayLabel）；
+ * 仅计 planId 匹配且 dayLabel 命中 days 的会话；dayLabel 为空的历史会话不计。
+ * 不变量：0 ≤ 结果 ≤ days.length。
+ */
+export function countDistinctPlanDays(
+  sessions: WorkoutSession[],
+  planId: string,
+  days: TrainingDay[],
+  weekStartStr: string,
+  weekEndStr: string
+): number {
+  if (planId.length === 0 || days.length === 0) {
+    return 0
+  }
+  const seenKeys: string[] = []
+  let count = 0
+  for (let index = 0; index < sessions.length; index++) {
+    const session: WorkoutSession = sessions[index]
+    if (session.planId !== planId) {
+      continue
+    }
+    if (session.createdAt < weekStartStr || session.createdAt > weekEndStr) {
+      continue
+    }
+    if (session.dayLabel.length === 0) {
+      continue
+    }
+    if (!containsDayLabel(days, session.dayLabel)) {
+      continue
+    }
+    const key: string = planId + '|' + session.dayLabel
+    if (seenKeys.indexOf(key) >= 0) {
+      continue
+    }
+    seenKeys.push(key)
+    count++
+  }
+  return count
+}
+
+function containsDayLabel(days: TrainingDay[], label: string): boolean {
+  for (let index = 0; index < days.length; index++) {
+    if (days[index].dayLabel === label) {
+      return true
+    }
+  }
+  return false
 }
 
 export interface ExerciseRecord {

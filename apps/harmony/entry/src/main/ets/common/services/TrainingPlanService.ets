@@ -10,6 +10,7 @@ import { util } from '@kit.ArkTS'
 import GoalRepository from '../../shared/services/GoalRepository'
 import PlanEngine from '../../shared/services/PlanEngine'
 import ContentRepository from '../../shared/services/ContentRepository'
+import HomePlanService from '../../shared/services/HomePlanService'
 
 export interface ExerciseRef {
   name: string
@@ -286,6 +287,48 @@ export function resolveTodayTrainingIndex(days: TrainingDay[], todayWeekday: num
     if (getDayNumberFromLabel(days[index].dayLabel) === todayWeekday) {
       return index
     }
+  }
+  return -1
+}
+
+/**
+ * 计划是否含任何星期信息（dayOfWeek 或 dayLabel 可解析出「周X」）。
+ * 决定「无星期计划」是否走启用日循环回退的判定条件。
+ */
+export function planHasAnyWeekdayInfo(days: TrainingDay[]): boolean {
+  for (let index = 0; index < days.length; index++) {
+    const weekdays: number[] | undefined = days[index].dayOfWeek
+    if (weekdays !== undefined && weekdays.length > 0) {
+      return true
+    }
+    if (getDayNumberFromLabel(days[index].dayLabel) >= 0) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * 今日判定唯一真源（数据一致性收口）。
+ *
+ * 口径注释表（四类计划 × 今日判定）：
+ * | 计划形态 | 今日判定 |
+ * | 预置计划（dayOfWeek/dayLabel 含星期） | 星期匹配；今天不匹配 → -1 休息日 |
+ * | 自定义计划（可能无星期） | 无任何星期信息且 enabledAt > 0 → 启用日循环回退 |
+ * | 目标生成计划 | HomePlanService.createDaySeedFromGoal（目标创建至今第 N 天循环） |
+ * | 无星期且 enabledAt <= 0 | -1 休息日（如计划组详情的浏览态） |
+ *
+ * 注意：星期循环（周期 7）与启用日循环（周期 days.length）是两种不同构映射，
+ * 本函数只在前者完全不可用（计划无任何星期信息）时才启用后者。
+ */
+export function resolveTodayTrainingIndexForPlan(days: TrainingDay[], todayWeekday: number, enabledAt: number): number {
+  const matched: number = resolveTodayTrainingIndex(days, todayWeekday)
+  if (matched >= 0 || days.length === 0) {
+    return matched
+  }
+  if (enabledAt > 0 && !planHasAnyWeekdayInfo(days)) {
+    const seed: number = HomePlanService.createDaySeedFromGoal(enabledAt, Date.now())
+    return (seed - 1) % days.length
   }
   return -1
 }
@@ -574,7 +617,7 @@ class TrainingPlanService {
   }
 
   getTodayTraining(plan: UserPlan): TrainingDay | null {
-    const index: number = resolveTodayTrainingIndex(plan.days, new Date().getDay())
+    const index: number = resolveTodayTrainingIndexForPlan(plan.days, new Date().getDay(), plan.enabledAt)
     if (index < 0) {
       return null
     }

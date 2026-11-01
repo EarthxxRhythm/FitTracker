@@ -284,19 +284,9 @@ class WorkoutPreviewService {
   }
 
   private findExerciseContentByName(name: string): ExerciseContent | undefined {
-    const exercises: ExerciseContent[] = ContentRepository.getExercises()
-    for (let index = 0; index < exercises.length; index++) {
-      const exercise: ExerciseContent = exercises[index]
-      if (exercise.nameZh === name || exercise.nameEn === name) {
-        return exercise
-      }
-      for (let aliasIndex = 0; aliasIndex < exercise.aliases.length; aliasIndex++) {
-        if (exercise.aliases[aliasIndex] === name) {
-          return exercise
-        }
-      }
-    }
-    return undefined
+    // 口径收口：委托 ContentRepository.resolveByName（nameZh/nameEn/aliases 精确全等唯一真源）。
+    // 与旧实现语义一致（旧实现同样含 aliases 全等，已实读核对），属等价迁移。
+    return ContentRepository.resolveByName(name)
   }
 
   private findCurrentPlanTrainingByDayId(days: TrainingDay[], dayId: string): TrainingDay | null {

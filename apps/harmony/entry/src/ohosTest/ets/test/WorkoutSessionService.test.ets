@@ -8,8 +8,10 @@ import WorkoutSessionService, {
   SavedSet,
   SessionPreferencesStore,
   WorkoutSession,
-  WeeklyStats
+  WeeklyStats,
+  countDistinctPlanDays
 } from '../../../main/ets/common/services/WorkoutSessionService'
+import { TrainingDay } from '../../../main/ets/common/services/TrainingPlanService'
 
 const KEY_SESSIONS = 'sessions'
 
@@ -312,6 +314,87 @@ export default function workoutSessionLogicTest(): void {
         expect(weeklyStats.duration).assertEqual(7200)
         expect(weeklyStats.sets).assertEqual(2)
         expect(weeklyStats.volume).assertEqual(980)
+      })
+    })
+
+    // ============================================================
+    // countDistinctPlanDays（数据一致性收口：按计划训练日去重）
+    // ============================================================
+    describe('countDistinctPlanDays', () => {
+      const weekStart = '2026-11-02'
+      const weekEnd = '2026-11-08'
+      const days: TrainingDay[] = [
+        { dayLabel: '周一 胸', exercises: [] },
+        { dayLabel: '周三 背', exercises: [] },
+        { dayLabel: '周五 腿', exercises: [] }
+      ]
+
+      function makeSession(id: string, planId: string, dayLabel: string, createdAt: string): WorkoutSession {
+        const session: WorkoutSession = {
+          id: id,
+          planId: planId,
+          planName: 'P',
+          dayLabel: dayLabel,
+          startTime: 1000,
+          endTime: 2000,
+          durationSeconds: 1000,
+          totalSets: 1,
+          totalVolume: 10,
+          notes: '',
+          exercises: [],
+          createdAt: createdAt
+        }
+        return session
+      }
+
+      it('same dayLabel twice in one day counts as 1', 0, () => {
+        const sessions: WorkoutSession[] = [
+          makeSession('s1', 'p1', '周一 胸', '2026-11-03'),
+          makeSession('s2', 'p1', '周一 胸', '2026-11-03')
+        ]
+        expect(countDistinctPlanDays(sessions, 'p1', days, weekStart, weekEnd)).assertEqual(1)
+      })
+
+      it('same dayLabel across two days still counts as 1 (keyed by plan day)', 0, () => {
+        const sessions: WorkoutSession[] = [
+          makeSession('s1', 'p1', '周一 胸', '2026-11-03'),
+          makeSession('s2', 'p1', '周一 胸', '2026-11-05')
+        ]
+        expect(countDistinctPlanDays(sessions, 'p1', days, weekStart, weekEnd)).assertEqual(1)
+      })
+
+      it('empty dayLabel sessions are not counted', 0, () => {
+        const sessions: WorkoutSession[] = [
+          makeSession('s1', 'p1', '', '2026-11-03'),
+          makeSession('s2', 'p1', '周一 胸', '2026-11-04')
+        ]
+        expect(countDistinctPlanDays(sessions, 'p1', days, weekStart, weekEnd)).assertEqual(1)
+      })
+
+      it('dayLabel outside current plan days is not counted', 0, () => {
+        const sessions: WorkoutSession[] = [
+          makeSession('s1', 'p1', '周一 胸', '2026-11-03'),
+          makeSession('s2', 'p1', '周日 休息', '2026-11-04')
+        ]
+        expect(countDistinctPlanDays(sessions, 'p1', days, weekStart, weekEnd)).assertEqual(1)
+      })
+
+      it('other plan sessions and out-of-window sessions are excluded', 0, () => {
+        const sessions: WorkoutSession[] = [
+          makeSession('s1', 'p1', '周一 胸', '2026-11-03'),
+          makeSession('s2', 'p2', '周一 胸', '2026-11-03'),
+          makeSession('s3', 'p1', '周三 背', '2026-11-10')
+        ]
+        expect(countDistinctPlanDays(sessions, 'p1', days, weekStart, weekEnd)).assertEqual(1)
+      })
+
+      it('empty planId or empty days returns 0', 0, () => {
+        const sessions: WorkoutSession[] = [
+          makeSession('s1', 'p1', '周一 胸', '2026-11-03')
+        ]
+        const emptyDays: TrainingDay[] = []
+        expect(countDistinctPlanDays(sessions, '', days, weekStart, weekEnd)).assertEqual(0)
+        expect(countDistinctPlanDays(sessions, 'p1', emptyDays, weekStart, weekEnd)).assertEqual(0)
       })
     })
   })
