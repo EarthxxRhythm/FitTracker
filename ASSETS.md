@@ -73,6 +73,32 @@ node tools/sync-exercise-gifs-to-android.mjs
 数据一致性由 `tools/content/exercise-photo-sources.test.mjs` 与 ohosTest 的
 `ExerciseGifCatalog.test.ets` 双重守护：映射表、素材文件、catalog 表三者必须一一对应。
 
+**展示级（Gymvisual 风格）素材的流程**（`--profile showcase`，2026-11-01 起）：
+
+```bash
+cd apps/harmony
+# 全量展示级（480px、光流插帧流畅循环、乒乓无缝）：
+node tools/content/build-exercise-gifs-photo.mjs --profile showcase
+# 或指定动作（exerciseId 逗号分隔）：
+node tools/content/build-exercise-gifs-photo.mjs --profile showcase --only ex_dead_bug,ex_push_up
+```
+
+参数表：
+
+| 参数 | 取值 | 说明 |
+|---|---|---|
+| `--profile` | `app`（默认）/ `showcase` | app=180px 三段乒乓（双端素材管线）；showcase=480px 光流插帧循环 |
+| `--size N` | showcase 尺寸（默认 480） | 仅 showcase |
+| `--bg` | `none`（默认）/ `white` | white=Gymvisual 风格白底，需本机 `python`+`rembg`（缺失时自动降级实景并警告） |
+| `--method` | `minterpolate`（默认）/ `rife` | 插帧法；rife 为可选增强（需额外依赖，未接入时忽略） |
+| `--out <dir>` | showcase 输出目录 | **白名单护栏**：必须位于仓库根 `test_run/` 之下，否则脚本退出码 2——展示级产物永不进入 rawfile/assets（安装包），也不入库（test_run 已 gitignored） |
+
+依赖：ffmpeg（必需，`PATH` 或 `FFMPEG` 环境变量）；`--bg white` 另需 python+rembg（可选）。
+体积预期：0.4–4 MB/个（与源图内容相关），单文件上界 <5MB；展示级全量约 40–400MB，
+只落 `test_run/showcase-gifs/`（默认），不进双端安装包。
+回归守护：`tools/content/build-exercise-gifs-photo.test.mjs`（合成法不变量）与
+`tools/content/exercise-photo-sources.test.mjs`（app 目录乒乓结构与 showcase 目录断言）。
+
 ## 二、应用图标与矢量图形
 
 | 资源 | 来源 | 授权 |

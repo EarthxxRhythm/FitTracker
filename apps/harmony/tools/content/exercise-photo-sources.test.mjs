@@ -253,3 +253,20 @@ test('素材是 3 帧乒乓结构（A->B->A 三段），不是 2 帧淡化', fun
     `这些素材的时长不符合「3 段乒乓」(HOLD=${hold} FADE=${fade} => ${expectedSeconds.toFixed(2)}s)：\n  ` +
     deviations.join('\n  '))
 })
+
+test('showcase 目录（存在时）：GIF 帧块 ≥16 且尺寸 480', function (t) {
+  // showcase 产物是可选产出（--profile showcase 单独跑），目录不存在/为空时跳过，不新增失败。
+  const SHOWCASE_DIR = resolve(repoRoot, 'test_run/showcase-gifs')
+  if (!existsSync(SHOWCASE_DIR)) { t.skip('showcase 目录不存在（未跑过 --profile showcase），跳过'); return }
+  const gifs = readdirSync(SHOWCASE_DIR).filter((f) => f.toLowerCase().endsWith('.gif'))
+  if (gifs.length === 0) { t.skip('showcase 目录为空，跳过'); return }
+  for (const f of gifs) {
+    const buf = readFileSync(resolve(SHOWCASE_DIR, f))
+    assert.equal(buf.readUInt16LE(6), 480, f + ' 宽度应 480（showcase 规格）')
+    let blocks = 0
+    for (let i = 0; i < buf.length - 8; i++) {
+      if (buf[i] === 0x21 && buf[i + 1] === 0xf9 && buf[i + 2] === 0x04) blocks++
+    }
+    assert.ok(blocks >= 16, f + ' 帧块 ' + blocks + ' 应 ≥16（插帧生效，非 2 帧乒乓）')
+  }
+})

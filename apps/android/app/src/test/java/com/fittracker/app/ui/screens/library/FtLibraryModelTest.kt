@@ -166,15 +166,17 @@ class FtLibraryModelTest {
 
     // ── 动作 GIF 素材映射（W2-2） ──────────────────────────────────────
     // 2026-10-28：线稿素材（`exercise-gifs-cut`，© Gym visual，授权链条不成立）已随版权
-    // 清理移除，解析统一走 [PhotoGifCatalog]（free-exercise-db，Unlicense，59 个）。
+    // 清理移除，解析统一走 [PhotoGifCatalog]（free-exercise-db，Unlicense，101 个）。
     // 因此「id 命中线稿」「别名映射到线稿」两类断言不再成立，改为按实拍表的真实覆盖断言。
 
     @Test
-    fun `实拍素材未覆盖的动作返回 null 保留占位`() {
+    fun `历史占位动作已转为实拍覆盖`() {
         val pushUp = FtLibraryModel.EXERCISES.first { it.id == "push-up" }
-        // 「俯卧撑」本体不在 free-exercise-db 实拍覆盖内（只有宽距/上斜/高位变式）→ 占位。
-        org.junit.Assert.assertNull(FtLibraryModel.gifAssetFor(pushUp))
-        org.junit.Assert.assertNull(FtLibraryModel.gifAssetFor("ex_barbell_squat", "杠铃深蹲"))
+        // 2026-11-01：俯卧撑/杠铃深蹲已进入实拍覆盖（PhotoGifCatalog 俯卧撑→push-up、
+        // 杠铃深蹲→barbell-squat），不再返回占位 null。
+        assertEquals("exercise-gifs-photo/push-up.gif", FtLibraryModel.gifAssetFor(pushUp))
+        assertEquals("exercise-gifs-photo/barbell-squat.gif",
+            FtLibraryModel.gifAssetFor("ex_barbell_squat", "杠铃深蹲"))
     }
 
     @Test
@@ -225,7 +227,7 @@ class FtLibraryModelTest {
     @Test
     fun `实拍素材文件在 assets 中真实存在且与映射表自洽`() {
         val photoNames = context.assets.list(PhotoGifCatalog.ASSET_DIR)!!.toSet()
-        assertEquals("实拍素材应有 59 个", 59, photoNames.size)
+        assertEquals("实拍素材应有 101 个", 101, photoNames.size)
         // 映射表里每个目标文件都必须真实存在，否则运行时会静默落占位块。
         val missing = PhotoGifCatalog.BY_NAME.values.toSet().filter { "${it}.gif" !in photoNames }
         assertTrue("映射表指向不存在的素材：$missing", missing.isEmpty())
@@ -234,7 +236,7 @@ class FtLibraryModelTest {
     @Test
     fun `映射到的 GIF 文件在 assets 中真实存在`() {
         val names = context.assets.list(FtLibraryModel.GIF_ASSET_DIR)!!.toSet()
-        assertEquals("素材目录（${FtLibraryModel.GIF_ASSET_DIR}）应有 59 个实拍素材", 59, names.size)
+        assertEquals("素材目录（${FtLibraryModel.GIF_ASSET_DIR}）应有 101 个实拍素材", 101, names.size)
         assertEquals(PhotoGifCatalog.ASSET_DIR, FtLibraryModel.GIF_ASSET_DIR)
         // 覆盖边界：映射到实拍表的每个文件名都必须真实存在，否则运行时会静默落占位块。
         val missingFiles = PhotoGifCatalog.BY_NAME.values.toSet().filter { "${it}.gif" !in names }

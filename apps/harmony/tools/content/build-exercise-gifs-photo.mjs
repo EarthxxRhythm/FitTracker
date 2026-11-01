@@ -29,7 +29,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
@@ -58,11 +58,16 @@ const SOURCE_JSON_URL =
 const SOURCE_IMG_BASE = 'https://ghproxy.net/https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/'
 
 function parseArgs(argv) {
-  const out = { only: null, input: null, dryRun: false, force: false }
+  const out = { only: null, input: null, dryRun: false, force: false, profile: 'app', method: 'minterpolate', bg: 'none', size: 480, out: path.join(REPO_ROOT, 'test_run', 'showcase-gifs') }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     if (a === '--only' && argv[i + 1]) { out.only = argv[++i].split(',').map((s) => s.trim()).filter(Boolean) }
     else if (a === '--input' && argv[i + 1]) { out.input = argv[++i] }
+    else if (a === '--profile' && argv[i + 1]) { out.profile = argv[++i] }
+    else if (a === '--method' && argv[i + 1]) { out.method = argv[++i] }
+    else if (a === '--bg' && argv[i + 1]) { out.bg = argv[++i] }
+    else if (a === '--size' && argv[i + 1]) { out.size = parseInt(argv[++i], 10) }
+    else if (a === '--out' && argv[i + 1]) { out.out = argv[++i] }
     else if (a === '--dry-run') { out.dryRun = true }
     else if (a === '--force') { out.force = true }
   }
@@ -147,6 +152,72 @@ function composeGif(ffmpeg, framePaths, outPath) {
   fs.rmSync(mp4, { force: true })
 }
 
+const REPO_ROOT = path.resolve(HARMONY_ROOT, '..', '..')
+
+/**
+ * showcase --out 白名单护栏：只允许落在仓库根 test_run/ 之下（gitignored 验收目录）。
+ * 白名单而非黑名单：可证明展示级产物永远无法到达任一安装包素材目录
+ * （鸿蒙 rawfile/ 与 Android assets/ 都在白名单之外）。
+ */
+function assertShowcaseOutAllowed(outDir) {
+  const abs = path.resolve(outDir)
+  const allowed = path.join(REPO_ROOT, 'test_run') + path.sep
+  return abs.startsWith(allowed)
+}
+
+/**
+ * Gymvisual 风格白底段（可选）：python -m rembg 去背景 → 垫白底。
+ * 本机无 Python 时降级实景并警告（不是报错）——白底是风格增强，不是产出门槛。
+ */
+function applyWhiteBackground(ffmpeg, framePaths, workDir) {
+  const probe = spawnSync('python', ['-c', 'import rembg'], { stdio: 'pipe' })
+  if (probe.status !== 0) {
+    console.warn('  ! 白底需要 python+rembg（本机缺失），已降级为实景背景')
+    return framePaths
+  }
+  const out = []
+  for (let i = 0; i < framePaths.length; i++) {
+    const cut = path.join(workDir, 'cut-' + i + '.png')
+    const flat = path.join(workDir, 'flat-' + i + '.jpg')
+    execFileSync('python', ['-m', 'rembg', 'i', framePaths[i], cut], { stdio: 'pipe' })
+    execFileSync(ffmpeg, ['-y', '-hide_banner', '-loglevel', 'error', '-i', cut, '-f', 'lavfi', '-i', 'color=c=white:s=' + SIZE + 'x' + SIZE, '-filter_complex', '[0:v][1:v]overlay=(W-w)/2:(H-h)/2', flat], { stdio: 'pipe' })
+    out.push(flat)
+  }
+  return out
+}
+
+/**
+ * showcase 合成：两照 → 光流插帧 → 乒乓无缝循环 → GIF。
+ *
+ * 滤镜链（Wave 0 探针验证，实测 62 帧块 / 2.06s / 480px）：
+ *   scale/crop 到 size → concat=fps=2 两帧流 → minterpolate 插到 30fps
+ *   → split/reverse 镜像拼接（首尾同帧，循环无缝）→ palettegen/paletteuse 量化。
+ */
+function composeShowcaseGif(ffmpeg, framePaths, outPath, opts) {
+  const size = opts.size || SIZE
+  const fps = 30
+  const mp4 = outPath.replace(/\.gif$/, '.tmp.mp4')
+  const scaleTo = (inputIndex, label) =>
+    '[' + inputIndex + ':v]scale=' + size + ':' + size + ':force_original_aspect_ratio=increase,' +
+    'crop=' + size + ':' + size + ',setsar=1,format=yuv420p[' + label + ']'
+  const filter =
+    scaleTo(0, 'a') + ';' +
+    scaleTo(1, 'b') + ';' +
+    '[a][b]concat=n=2:v=1:a=0,fps=2[src];' +
+    '[src]minterpolate=fps=' + fps + ':mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1[v];' +
+    '[v]split[x][y];[y]reverse[r];[x][r]concat=n=2:v=1:a=0[loop]'
+  execFileSync(ffmpeg, ['-y', '-hide_banner', '-loglevel', 'error',
+    '-loop', '1', '-t', '1', '-i', framePaths[0],
+    '-loop', '1', '-t', '1', '-i', framePaths[1],
+    '-filter_complex', filter,
+    '-map', '[loop]', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', mp4], { stdio: 'pipe' })
+  execFileSync(ffmpeg, ['-y', '-hide_banner', '-loglevel', 'error', '-i', mp4,
+    '-vf', 'split[s0][s1];[s0]palettegen=max_colors=' + COLORS + '[p];' +
+      '[s1][p]paletteuse=dither=bayer:bayer_scale=' + BAYER,
+    '-loop', '0', outPath], { stdio: 'pipe' })
+  fs.rmSync(mp4, { force: true })
+}
+
 function countFrameBlocks(buf) {
   let n = 0
   for (let i = 0; i < buf.length - 2; i++) {
@@ -157,6 +228,10 @@ function countFrameBlocks(buf) {
 
 function main() {
   const opts = parseArgs(process.argv.slice(2))
+  if (opts.profile === 'showcase' && !assertShowcaseOutAllowed(opts.out)) {
+    console.error('✗ --out 必须位于 ' + path.join(REPO_ROOT, 'test_run') + ' 之下（展示级产物不入库、不进安装包），实际：' + path.resolve(opts.out))
+    return 2
+  }
   const mapPath = path.join(HERE, 'exercise-photo-sources.json')
   const map = JSON.parse(fs.readFileSync(mapPath, 'utf8'))
   let sources = map.sources
@@ -197,6 +272,7 @@ function main() {
 
   const ffmpeg = findFfmpeg()
   fs.mkdirSync(OUT_DIR, { recursive: true })
+  if (opts.profile === 'showcase') fs.mkdirSync(opts.out, { recursive: true })
   fs.mkdirSync(CACHE_DIR, { recursive: true })
 
   const report = []
@@ -216,7 +292,8 @@ function main() {
     }
 
     const gifId = item.exerciseId.replace(/^ex_/, '').replace(/_/g, '-')
-    const outPath = path.join(OUT_DIR, gifId + '.gif')
+    const outDir = opts.profile === 'showcase' ? opts.out : OUT_DIR
+    const outPath = path.join(outDir, gifId + '.gif')
     if (fs.existsSync(outPath) && !opts.force) {
       const size = fs.statSync(outPath).size
       console.log('  = ' + gifId + ' 已存在，跳过（' + (size / 1024).toFixed(1) + ' KB）')
@@ -245,7 +322,12 @@ function main() {
     if (!ok) continue
 
     try {
-      composeGif(ffmpeg, frames, outPath)
+      if (opts.profile === 'showcase') {
+        const framesFinal = opts.bg === 'white' ? applyWhiteBackground(ffmpeg, frames, CACHE_DIR) : frames
+        composeShowcaseGif(ffmpeg, framesFinal, outPath, { size: opts.size })
+      } else {
+        composeGif(ffmpeg, frames, outPath)
+      }
     } catch (err) {
       console.error('✗ 合成失败 ' + gifId + '：' + String(err.message).slice(0, 120))
       failures.push({ ...item, reason: '合成失败' })
@@ -268,7 +350,7 @@ function main() {
     console.log('平均体积 ' + (totalBytes / report.length / 1024).toFixed(1) + ' KB' +
       '，目录总计 ' + (totalBytes / 1048576).toFixed(2) + ' MB')
   }
-  console.log('输出目录 ' + path.relative(HARMONY_ROOT, OUT_DIR).replace(/\\/g, '/'))
+  console.log('输出目录 ' + (opts.profile === 'showcase' ? path.relative(REPO_ROOT, opts.out) : path.relative(HARMONY_ROOT, OUT_DIR)).replace(/\\/g, '/'))
   if (failures.length > 0) {
     console.log('\n失败明细：')
     for (const f of failures) console.log('  ' + f.nameZh + '（' + f.exerciseId + '）：' + f.reason)
@@ -278,4 +360,11 @@ function main() {
   return failures.length > 0 ? 2 : 0
 }
 
-process.exit(main())
+const isDirectRun = process.argv[1] !== undefined &&
+  path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))
+
+export { composeGif, composeShowcaseGif, parseArgs, assertShowcaseOutAllowed }
+
+if (isDirectRun) {
+  process.exit(main())
+}
