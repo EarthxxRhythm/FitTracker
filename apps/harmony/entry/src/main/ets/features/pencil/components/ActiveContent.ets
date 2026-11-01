@@ -2,7 +2,7 @@
 import { AppRoutes } from '../../../app/AppRoutes'
 import { Context } from '@kit.AbilityKit'
 import { display, window } from '@kit.ArkUI'
-import { MediaTokens, MotionTokens } from '../../../common/styles/DesignTokens'
+import { FontTokens, MediaTokens, MotionTokens } from '../../../common/styles/DesignTokens'
 import { MotionIntent } from '../../../common/styles/MotionIntent'
 import { DuTokens } from '../../../common/styles/DuTokens'
 import { ExerciseDemoImage } from '../../../components/ExerciseDemoImage'
@@ -1083,6 +1083,8 @@ export struct ActiveContent {
           Text(this.currentExerciseLabel())
             .fontFamily('Noto Sans SC')
             .fontSize(20)
+            // 视觉审查 P1：限制系统字号放大（顶栏行高 44 固定，动作名放大即溢出）
+            .maxFontScale(FontTokens.MAX_SCALE)
             .fontWeight(FontWeight.Bold)
             .fontColor(PrototypeTokens.TEXT_HI)
             .maxLines(1)
@@ -1246,10 +1248,14 @@ export struct ActiveContent {
       Text('·总时长')
         .fontFamily('Noto Sans SC')
         .fontSize(11.5)
+        // 视觉审查 P1：限制系统字号放大（顶栏右端三件套并排，放大后总时长会被挤出屏宽）
+        .maxFontScale(FontTokens.MAX_SCALE)
         .fontColor(PrototypeTokens.WHITE_A60)
       Text(formatClock(this.elapsedSeconds))
         .fontFamily('Geist Mono')
         .fontSize(14)
+        // 视觉审查 P1：限制系统字号放大（mm:ss 是顶栏宽度预算最紧的一段）
+        .maxFontScale(FontTokens.MAX_SCALE)
         .fontWeight(FontWeight.Bold)
         .fontColor(PrototypeTokens.TEXT_HI)
     }
@@ -1643,6 +1649,8 @@ export struct ActiveContent {
             Text('记录本组')
               .fontFamily('Noto Sans SC')
               .fontSize(22)
+              // 视觉审查 P1：限制系统字号放大（弹层宽 342 固定，标题放大后与关闭键争宽）
+              .maxFontScale(FontTokens.MAX_SCALE)
               .fontWeight(FontWeight.Bold)
               .fontColor(PrototypeTokens.TEXT_HI)
             Text(this.currentExerciseLabel() + ' · 第 ' + this.selectedSetNumber().toString() + ' 组')
@@ -1782,6 +1790,8 @@ export struct ActiveContent {
         Text('本组完成')
           .fontFamily('HarmonyOS Sans')
           .fontSize(21)
+          // 视觉审查 P1：限制系统字号放大（覆盖层居中三行，放大后与上方 120 圆冲突）
+          .maxFontScale(FontTokens.MAX_SCALE)
           .fontWeight(FontWeight.Bold)
           .fontColor(PrototypeTokens.TEXT_HI)
 
@@ -1847,6 +1857,8 @@ export struct ActiveContent {
         Text(value.toString())
           .fontFamily('Geist Mono')
           .fontSize(24)
+          // 视觉审查 P1：限制系统字号放大（输入行高固定，数字放大后±键被挤小）
+          .maxFontScale(FontTokens.MAX_SCALE)
           .fontWeight(FontWeight.Bold)
           .fontColor(PrototypeTokens.TEXT_HI)
           .layoutWeight(1)

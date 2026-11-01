@@ -223,6 +223,16 @@ export class FontTokens {
   static readonly STATUS_PILL_SIZE: number = 11
   static readonly STATUS_PILL_LINE_HEIGHT: number = 14
   static readonly STATUS_PILL_WEIGHT: number = FontWeight.Medium
+
+  /**
+   * 系统字号放大上限（视觉审查 P1：限制系统字号放大）。
+   *
+   * 原型按 1.0 字号排版：胶囊 68 高、进度环 46、顶栏 44、弹层宽 342 都是固定几何，
+   * 系统字号放到 2.0 时文字必然撑破。ArkUI 没有应用级字号上限开关，
+   * 只能逐个 Text/Button 挂 `.maxFontScale()`，故把统一取值收在这里。
+   * 1.3 ≈ 系统「大字号」档，再大就与固定几何冲突。
+   */
+  static readonly MAX_SCALE: number = 1.3
 }
 
 export class SpacingTokens {

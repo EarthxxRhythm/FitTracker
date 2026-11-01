@@ -1,0 +1,62 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "bounce-easing",
+        "value": "*",
+        "files": [
+          "web/src/**"
+        ],
+        "createdAt": "2026-11-01T13:56:13.713Z",
+        "reason": "入场回弹曲线有意（advisory）：克制的一次性入场，非滚动/悬停抖动"
+      },
+      {
+        "rule": "gradient-text",
+        "value": "*",
+        "files": [
+          "web/src/**"
+        ],
+        "createdAt": "2026-11-01T13:57:06.649Z",
+        "reason": "品牌标题渐变有意：legacy.css:936 及法务页同款，属品牌字标视觉语言，非 slop 渐变"
+      },
+      {
+        "rule": "kicker-above-heading",
+        "value": "*",
+        "files": [
+          "web/src/**"
+        ],
+        "createdAt": "2026-11-01T13:57:11.477Z",
+        "reason": "官网 eyebrow 有意：功能/用户旅程/练到了哪里/成长路径 四组叙述性引导词是叙事结构件，不是装饰性 kicker"
+      },
+      {
+        "rule": "dark-glow",
+        "value": "*",
+        "files": [
+          "web/src/**"
+        ],
+        "createdAt": "2026-11-01T13:57:13.796Z",
+        "reason": "muscle-cell.l3 活跃肌群发光有意：品牌绿零偏移 glow 是活跃肌群的高亮视觉语言"
+      },
+      {
+        "rule": "codex-grid-background",
+        "value": "*",
+        "files": [
+          "web/src/**"
+        ],
+        "createdAt": "2026-11-01T13:57:18.087Z",
+        "reason": "全站网格底纹有意：官网/看板以网格作为测量式底纹，属品牌结构语言"
+      },
+      {
+        "rule": "radial-spotlight-glow",
+        "value": "*",
+        "files": [
+          "web/src/**"
+        ],
+        "createdAt": "2026-11-01T13:57:20.810Z",
+        "reason": "Aurora 极光有意：首屏顶部极光光斑是品牌场景叙事的一部分"
+      }
+    ]
+  }
+}

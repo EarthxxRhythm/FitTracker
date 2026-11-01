@@ -130,7 +130,7 @@ const Stop: React.FC<{ stop: JourneyStop; index: number }> = ({ stop, index }) =
       >
         <img
           src={stop.img}
-          alt=""
+          alt={`${stop.label}界面截图`}
           style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }}
         />
       </div>

@@ -24,6 +24,9 @@ const JourneyPlayer = lazy(() => import('./journey/JourneyFilm'))
 
 const GITHUB = 'https://github.com/EarthxxRhythm/FitTracker'
 
+// 产品版本（app 双端发布版本），非 web 包版本——与 web/package.json 的 1.0.0 不同源，不要合并
+const PRODUCT_VERSION = 'v1.1.0'
+
 const BRAND_RING = (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path
@@ -200,7 +203,7 @@ export default function App() {
           <div className="wrap hero-grid">
             <div className="hero-copy">
               <p className="hero-badge">
-                <b>v1.1.0</b> 记录 · 回顾 · 进阶
+                <b>{PRODUCT_VERSION}</b> 记录 · 回顾 · 进阶
               </p>
 
               <h1 className="hero-title">
@@ -293,7 +296,7 @@ export default function App() {
             <ul className="journey-list">
               {JOURNEY_STOPS.map((stop, i) => (
                 <li key={stop.id}>
-                  <img src={stop.img} alt="" loading="lazy" decoding="async" />
+                  <img src={stop.img} alt={`${stop.label}界面截图`} loading="lazy" decoding="async" />
                   <div>
                     <span className="journey-idx">
                       {i + 1} · {stop.label}
@@ -398,7 +401,7 @@ export default function App() {
           </div>
           <div className="foot-bottom">
             <span>© 2026 EarthRhythm</span>
-            <span>版本 1.1.0</span>
+            <span>版本 {PRODUCT_VERSION.replace('v', '')}</span>
             <span>包名 com.earthrhythm.fittracker</span>
             <span className="spacer" />
             <span className="pending" data-pending="icp">ICP 备案号待取得</span>

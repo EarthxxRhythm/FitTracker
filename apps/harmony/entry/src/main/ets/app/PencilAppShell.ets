@@ -12,7 +12,7 @@ import { HomeState } from '../features/pencil/components/states/HomeState'
 import { AppRoutes } from './AppRoutes'
 import { Context } from '@kit.AbilityKit'
 import { window } from '@kit.ArkUI'
-import { MotionTokens, SpacingTokens, TouchTokens } from '../common/styles/DesignTokens'
+import { FontTokens, MotionTokens, SpacingTokens, TouchTokens } from '../common/styles/DesignTokens'
 import { PrototypeTokens } from '../common/styles/PrototypeTokens'
 
 /**
@@ -259,6 +259,8 @@ export struct PencilAppShell {
             Text(this.resumeExerciseName())
               .fontFamily('Noto Sans SC')
               .fontSize(14)
+              // 视觉审查 P1：限制系统字号放大（胶囊高 68 固定，动作名放大后会挤走右侧计时）
+              .maxFontScale(FontTokens.MAX_SCALE)
               .fontWeight(FontWeight.Bold)
               .fontColor(PrototypeTokens.TEXT_HI)
               .maxLines(1)
@@ -273,6 +275,8 @@ export struct PencilAppShell {
           Text(this.resumeSetProgress())
             .fontFamily('Geist Mono')
             .fontSize(12)
+            // 视觉审查 P1：限制系统字号放大（同一条胶囊的固定高度）
+            .maxFontScale(FontTokens.MAX_SCALE)
             .fontWeight(FontWeight.Bold)
             .fontColor(PrototypeTokens.WHITE_A70)
             .maxLines(1)
@@ -285,6 +289,8 @@ export struct PencilAppShell {
         Text(this.resumeElapsedClock())
           .fontFamily('Geist Mono')
           .fontSize(22)
+          // 视觉审查 P1：限制系统字号放大（宽度钉死 88，mm:ss 放大即被裁）
+          .maxFontScale(FontTokens.MAX_SCALE)
           .fontWeight(FontWeight.Bold)
           .fontColor(PrototypeTokens.ACCENT)
           .maxLines(1)
@@ -347,6 +353,8 @@ export struct PencilAppShell {
         .fontSize(10)
         .fontWeight(FontWeight.Bold)
         .fontColor(PrototypeTokens.ACCENT)
+        // 视觉审查 P1：限制系统字号放大（环径 46 固定，环内数字放大即溢出环外）
+        .maxFontScale(FontTokens.MAX_SCALE)
     }
     .width(46)
     .height(46)
