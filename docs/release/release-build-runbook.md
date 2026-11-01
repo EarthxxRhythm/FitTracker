@@ -107,6 +107,12 @@ devecocli signature generate --product default  # 生成材料并自动写入 bu
 - 明确 `default` product 在 release 期实际引用的 signing config 名称（当前 `"default"` 与 `signature generate` 的默认命名一致）
 - 签名材料来源已约定为 `devecocli signature generate` 的项目根 `signature/` 产物
 
+> ⚠ **提交前检查项（2026-11-01 新增，安全红线）**：`apps/harmony/build-profile.json5` 已被 git 跟踪，且 `signature generate` 会把本机证书路径与 storePassword/keyPassword **密文直接写进该文件的 `signingConfigs`**（2026-11-01 实测工作区存在 +15 −1 的真值改动）。仓库为 public，该文件连同密文一旦提交即凭据暴露。因此：
+>
+> - 任何提交**一律按文件白名单**（显式 `git add <精确路径>`），严禁 `git add -A` / `git commit -a` / `git add .`。
+> - 提交前确认 `build-profile.json5` 的 `signingConfigs` 为 `[]`（空数组）才可入库；含真值的工作区版本保持本地未提交状态，不回退、不删除。
+> - 若已误提交，按凭据轮换流程处理（证书与口令全部作废重发），不要试图用 revert 掩盖。
+
 ### 4.4 验收前置项
 
 - 一次真实 signed HAP 构建记录
