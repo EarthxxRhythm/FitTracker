@@ -383,7 +383,11 @@ fun ActiveScreen(
         if (progressed === state) return
         workout = progressed
         val nextIndex = FtActiveModel.firstUnfinishedIndex(progressed.exercises)
-        if (nextIndex >= 0) selectedIndex = nextIndex
+        // 先让本动作的胶囊原地切完成态并停留，再翻到下一个动作——立即改 selectedIndex
+        // 会让完成态一帧都渲染不出来（与「完成本组」录满后走 pendingAdvance 同一处理）。
+        if (nextIndex >= 0) {
+            pendingAdvance = PendingAdvance(target.plannedExerciseId, nextIndex)
+        }
         records = progressed.exercises.getOrNull(selectedIndex)
             ?.let { FtActiveModel.recordsFor(progressed.exercises, it.plannedExerciseId) }
             .orEmpty()
@@ -712,9 +716,14 @@ private fun ExercisePill(
  */
 @Composable
 private fun SetPills(exercise: ActiveWorkoutExercise?) {
+    // 用计划组数铺格：提前结束时 targetSets 已被收缩到 completedSets，照它铺会让胶囊
+    // 从 N 格缩成 M 格（读作「合并」），completedSets = 0 时更会整行退化成一句文字。
+    val plannedSets = exercise?.plannedTargetSets ?: 0
     val targetSets = exercise?.targetSets ?: 0
     val completed = exercise?.completedSets ?: 0
-    if (targetSets <= 0) {
+    // 提前结束 = 计划组数大于收缩后的目标组数：整行原地切完成态，不留灰格。
+    val endedEarly = plannedSets > targetSets
+    if (plannedSets <= 0) {
         // 不套描边壳：胶囊的语义是「一格一组」，用一个壳装一句话会让这一行读成第 N+1 格。
         Box(
             modifier = Modifier
@@ -747,11 +756,11 @@ private fun SetPills(exercise: ActiveWorkoutExercise?) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        for (index in 0 until targetSets) {
+        for (index in 0 until plannedSets) {
             SetPill(
                 setNumber = index + 1,
-                done = index < completed,
-                current = index == completed,
+                done = endedEarly || index < completed,
+                current = !endedEarly && index == completed,
                 currentBorderAlpha = breathe.value,
                 modifier = Modifier.weight(1f),
             )

@@ -55,6 +55,14 @@ data class ActiveWorkoutExercise(
     val intensityNote: String,
     val completedSets: Int,
     val sets: List<ActiveWorkoutSetEntry>,
+    /**
+     * 计划组数（进入训练时定下，永不收缩）。
+     *
+     * 长按提前结束只把 targetSets 压到 completedSets。没有本字段，胶囊行会从 N 格缩成
+     * M 格（读作「合并」），completedSets = 0 时更会整行退化成一句「本动作已结束」——
+     * 胶囊就消失了。放在末尾 + 默认值 = targetSets：旧构造点与旧草稿 JSON 都不用改。
+     */
+    val plannedTargetSets: Int = targetSets,
 )
 
 /** 活跃训练整体状态（源 `:39` `ActiveWorkoutState`）。 */
