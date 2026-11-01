@@ -28,6 +28,14 @@ export interface BoardPlan {
   bytes: number
   modifiedAt: string
   absPath: string
+  /** 「## 需求提炼 → **目标**」提取出的目标条目（已去 `**` 加粗）；未命中为空数组 */
+  goals: string[]
+  /** goals 的整块文本（换行连接），便于一次展示；行级渲染用 goals */
+  goalText: string
+  /** 计划文件内 `- [x]` 的条数 */
+  tasksDone: number
+  /** 计划文件内 `- [x]` / `- [ ]` 的总条数 */
+  tasksTotal: number
 }
 
 export interface GitCommit {

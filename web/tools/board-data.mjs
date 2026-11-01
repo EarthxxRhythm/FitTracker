@@ -106,6 +106,133 @@ function statusMarkers(body) {
   return markers
 }
 
+// ── 「需求提炼 → 目标」提取 ───────────────────────────────────────────────
+//
+// 计划档案的目标行格式实测不统一（四种已观测变体）：
+//   ① `**目标**：散文`                     —— 训练页收起语义与接续态.md
+//   ② `**目标（用户原话）**：` + 编号列表   —— 数据一致性收口…双端.md
+//   ③ `**目标**：` 空标题 + `- ` 列表 / 散文段
+//   ④ `**目标**` 无冒号，内容在下一行
+// 只支持这四种变体，未命中即空数组——不追求穷举：格式再漂就反复加分支，
+// 是结构性脆弱点（计划里已登记的 Challenge），此处明确划界。
+const GOAL_SECTION = '需求提炼'
+const HEADING_LINE = /^(#{1,6})\s+(.+?)\s*$/
+// 标记行 = 可选引用前缀 + 可选列表符 + 可选加粗 + 「目标」+ 括注（加粗前/后都实测出现过）
+// + 可选加粗 + 冒号/空白/行尾。
+// 「**目标态数据流**」「> **目标平台**：」这类（目标后直接跟汉字）不匹配；
+// 「**非目标**」也不匹配（前一位是非）。
+const GOAL_MARKER =
+  /^[\s>]*(?:[-+•]\s+)?\*{0,2}\s*目标\s*(?:（[^）]*）|\([^)]*\))?\s*\*{0,2}\s*(?:（[^）]*）|\([^)]*\))?\s*(?:[:：]|\s|$)/
+const GOAL_STOP = /^[\s>]*(?:[-+•]\s+)?\*{0,2}\s*非目标/
+// 下一个「**标签**」纯标记行也终止，但只认整行就是一个标签（冒号可有可无）——
+// 散文里的 `**加粗词**` 不截断目标段（计划里登记的 Challenge）。
+const BOLD_LABEL_LINE = /^[\s>]*\*\*[^*]+\*\*\s*[:：]?\s*$/
+// `- item` / `* item` / `+ item` / `1. item` / `1、item` / `1) item`
+const LIST_ITEM = /^\s*(?:[-*+]|\d+[.)、])\s+(.*)$/
+const CHECKBOX_ITEM = /^\s*[-*+]\s*\[([xX ])\]/
+
+const stripBold = (s) => s.replace(/\*\*/g, '').trim()
+
+// 取某个标题节的行（终止于同级或更高级标题）。节内的更深子标题行丢弃、内容保留；
+// 围栏代码块里的 `#` 不当标题。
+function sectionLines(body, keyword) {
+  const out = []
+  let level = 0
+  let inFence = false
+  for (const line of body.split(/\r?\n/)) {
+    if (FENCE.test(line)) {
+      inFence = !inFence
+      if (level > 0) out.push(line)
+      continue
+    }
+    if (!inFence) {
+      const heading = HEADING_LINE.exec(line)
+      if (heading) {
+        const depth = heading[1].length
+        if (level > 0 && depth <= level) break // 同级/更高级标题 = 本节结束
+        if (level === 0) {
+          if (!heading[2].includes(keyword)) continue
+          level = depth
+          continue
+        }
+        continue // 节内的子标题：只留内容
+      }
+    }
+    if (level > 0) out.push(line)
+  }
+  return out
+}
+
+// 从「## 需求提炼」章节的 `**目标**` 标记行提取目标条目。
+// 容错第一职责：章节缺失、标记缺失、格式漂移都返回 []，绝不抛错。
+export function parsePlanGoals(body) {
+  if (typeof body !== 'string' || body === '') return []
+
+  const lines = sectionLines(body, GOAL_SECTION)
+  if (lines.length === 0) return []
+
+  const goals = []
+  let paragraph = []
+  const flush = () => {
+    const text = paragraph.join('').trim()
+    if (text !== '') goals.push(text)
+    paragraph = []
+  }
+
+  let started = false
+  for (const line of lines) {
+    // 终止：`**非目标**` 标记行 / 下一个纯 `**标签**` 行（`#` 标题已在 sectionLines 截断）
+    const isGoalMarker = GOAL_MARKER.test(line)
+    if (!isGoalMarker && (GOAL_STOP.test(line) || BOLD_LABEL_LINE.test(line))) {
+      if (started) break
+      continue
+    }
+
+    if (isGoalMarker) {
+      if (started) break // 只认第一条目标标记行
+      started = true
+      const marker = GOAL_MARKER.exec(line)
+      const inline = stripBold(line.slice(marker[0].length))
+      if (inline !== '') goals.push(inline) // ① 冒号后非空散文 = 一条 goal
+      continue
+    }
+
+    if (!started) continue
+    if (line.trim() === '') {
+      flush()
+      continue
+    }
+
+    const item = LIST_ITEM.exec(line)
+    if (item) {
+      flush()
+      const text = stripBold(item[1])
+      if (text !== '') goals.push(text)
+      continue
+    }
+
+    // 散文行：并入当前段落（中文换行不加空格，避免拼出空格缝）
+    paragraph.push(stripBold(line))
+  }
+  flush()
+
+  return goals
+}
+
+// 勾选框进度：`- [x]` 已完成 / `- [ ]` 未完成。全局统计（不限定章节）。
+export function countCheckboxes(body) {
+  if (typeof body !== 'string' || body === '') return { done: 0, total: 0 }
+  let done = 0
+  let total = 0
+  for (const line of body.split(/\r?\n/)) {
+    const m = CHECKBOX_ITEM.exec(line)
+    if (!m) continue
+    total += 1
+    if (m[1] !== ' ') done += 1
+  }
+  return { done, total }
+}
+
 export function parsePlans(dir = PLANS_DIR) {
   if (typeof dir !== 'string' || dir === '') return []
 
@@ -133,13 +260,21 @@ export function parsePlans(dir = PLANS_DIR) {
       }
       const markers = statusMarkers(body)
       const last = markers.length > 0 ? markers[markers.length - 1] : ''
+      const goals = parsePlanGoals(body)
+      const checkboxes = countCheckboxes(body)
       return {
         file: e.name,
         status: normalizePlanStatus(last),
         statusRaw: last.trim(),
         bytes,
         modifiedAt,
-        absPath: toPosix(abs)
+        absPath: toPosix(abs),
+        // 「## 需求提炼 → **目标**」提取结果：行级用 goals，整块展示用 goalText
+        goals,
+        goalText: goals.join('\n'),
+        // 勾选框进度：`- [x]` 已完成 / `- [ ]` 未完成
+        tasksDone: checkboxes.done,
+        tasksTotal: checkboxes.total
       }
     })
 }

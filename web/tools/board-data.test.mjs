@@ -14,7 +14,7 @@
 
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -23,9 +23,11 @@ import {
   claimUncommittedCount,
   collectBoardData,
   computeDrift,
+  countCheckboxes,
   normalizePlanStatus,
   parseCommand,
   parseGit,
+  parsePlanGoals,
   parsePlans,
 } from './board-data.mjs'
 
@@ -411,4 +413,171 @@ test('computeDrift: git 不可用 / 无读数 → 不判定（不假警报）', 
 
   // 入参缺失也不抛
   assert.doesNotThrow(() => computeDrift(undefined, undefined))
+})
+
+// ── parsePlanGoals / countCheckboxes ────────────────────────────────────
+//
+// 提取契约（只支持已观测到的变体集合，未命中即空；格式再漂不追求穷举）：
+//   ① `**目标**：散文`        → 冒号后非空散文直接作为一条 goal
+//   ② `**目标（用户原话）**：` → 空标题，后续编号列表每项一条
+//   ③ `**目标**：` + `- ` 列表 / 散文段落 → 每项一条，散文段合并成一条
+//   ④ `**目标**` 无冒号       → 内容在下一行，同上
+//   终止：`**非目标**` 标记行 / 下一个纯 `**标签**` 行 / `#` 标题。
+//   散文里的 `**加粗词**` 不终止（整行不是纯标签行就不算标记）。
+
+function readRealPlan (name) {
+  const abs = join(REAL_PLANS_DIR, name)
+  return existsSync(abs) ? readFileSync(abs, 'utf8') : null
+}
+
+test('parsePlanGoals: 散文型真实样本（`**目标**：散文`）→ 一条 goal，非目标不混入', (t) => {
+  const body = readRealPlan('训练页收起语义与接续态.md')
+  if (body === null) return t.skip('真实样本缺失：训练页收起语义与接续态.md')
+
+  const goals = parsePlanGoals(body)
+  assert.equal(goals.length, 1)
+  assert.ok(goals[0].startsWith('确定训练页左上角 chevron 按钮'), goals[0])
+  assert.ok(goals[0].includes('再次进入时看到什么'))
+  assert.ok(!goals[0].includes('**'), `应去掉加粗标记：${goals[0]}`)
+  // `**非目标**` 之后的条目不得混入
+  assert.ok(!goals[0].includes('不改训练记录主链路'))
+  assert.ok(!goals[0].includes('不改 chevron 的图形与配色'))
+})
+
+test('parsePlanGoals: 列表型真实样本（`**目标（用户原话）**：` + 编号列表）→ 逐条 goal', (t) => {
+  const body = readRealPlan('数据一致性收口-训练动作与完成进度统一口径-双端.md')
+  if (body === null) return t.skip('真实样本缺失：数据一致性收口-训练动作与完成进度统一口径-双端.md')
+
+  const goals = parsePlanGoals(body)
+  assert.equal(goals.length, 3, JSON.stringify(goals))
+  assert.ok(goals[0].startsWith('今日计划的动作和预览页'), goals[0])
+  assert.ok(goals[1].includes('统一口径'), goals[1])
+  assert.ok(goals[2].includes('顺带扫清双端派生'), goals[2])
+  for (const g of goals) assert.ok(!g.includes('**'), `应去掉加粗标记：${g}`)
+  for (const g of goals) assert.ok(!g.includes('不改训练数据落库格式'), `非目标混入：${g}`)
+})
+
+test('parsePlanGoals: `**目标**：` 空标题后跟列表与散文段（含加粗词不提前截断）', () => {
+  const md = [
+    '# P',
+    '',
+    '## 需求提炼',
+    '',
+    '**目标**：',
+    '- 第一件事 `a`',
+    '- 第二件事',
+    '',
+    '一段散文，含 **加粗强调** 与 `code`。',
+    '',
+    '**非目标**：',
+    '- 不做的事',
+    '',
+    '## 回归清单',
+    '**目标**：不该被读到',
+    ''
+  ].join('\n')
+
+  assert.deepEqual(parsePlanGoals(md), [
+    '第一件事 `a`',
+    '第二件事',
+    '一段散文，含 加粗强调 与 `code`。'
+  ])
+})
+
+test('parsePlanGoals: `**目标**` 无冒号 / 冒号后直接散文两种写法都取到内容', () => {
+  const noColon = ['## 需求提炼', '**目标** 把 A 做完。', '**非目标**', '- 别的事'].join('\n')
+  assert.deepEqual(parsePlanGoals(noColon), ['把 A 做完。'])
+
+  const nextLine = [
+    '## 需求提炼',
+    '**目标**',
+    '把 B 做完。',
+    '',
+    '## 下一节',
+    '**目标**',
+    '不应读到'
+  ].join('\n')
+  assert.deepEqual(parsePlanGoals(nextLine), ['把 B 做完。'])
+})
+
+test('parsePlanGoals: 无「## 需求提炼」章节 / 空串 / 非字符串 → 空数组，不抛', () => {
+  assert.deepEqual(parsePlanGoals('# 标题\n**目标**：散落在章节外\n'), [])
+  assert.deepEqual(parsePlanGoals(''), [])
+  assert.deepEqual(parsePlanGoals(null), [])
+  assert.deepEqual(parsePlanGoals(undefined), [])
+})
+
+test('countCheckboxes: 统计 `- [x]` / `- [ ]`，已勾选与总数分开', () => {
+  const md = [
+    '- [x] 已做',
+    '- [ ] 未做',
+    '- [X] 大写也算已做',
+    '  - [ ] 缩进列表也算',
+    '- 普通列表项',
+    '* [ ] 星号列表',
+    '表格 | [x] | 不算',
+    '[x] 无列表前缀不算'
+  ].join('\n')
+
+  assert.deepEqual(countCheckboxes(md), { done: 2, total: 5 })
+  assert.deepEqual(countCheckboxes(''), { done: 0, total: 0 })
+})
+
+test('parsePlans: 每条计划挂 goals / goalText / tasksDone / tasksTotal', () => {
+  withTempDir((dir) => {
+    writeFileSync(join(dir, 'plan.md'), [
+      '# 计划',
+      '> **Status: APPROVED**',
+      '',
+      '## 需求提炼',
+      '',
+      '**目标**：把两处口径统一。',
+      '',
+      '**非目标**：',
+      '- 不改库',
+      '',
+      '## 回归清单',
+      '- [x] 用例 A',
+      '- [ ] 用例 B',
+      '- [x] 用例 C',
+      ''
+    ].join('\n'))
+
+    const [plan] = parsePlans(dir)
+    assert.deepEqual(plan.goals, ['把两处口径统一。'])
+    assert.equal(plan.goalText, '把两处口径统一。')
+    assert.equal(plan.tasksDone, 2)
+    assert.equal(plan.tasksTotal, 3)
+
+    // 无「需求提炼」章节：空集而不是抛错
+    writeFileSync(join(dir, 'plain.md'), '# 无需求提炼\n\n只有正文。\n')
+    const plain = parsePlans(dir).find((p) => p.file === 'plain.md')
+    assert.deepEqual(plain.goals, [])
+    assert.equal(plain.goalText, '')
+    assert.equal(plain.tasksDone, 0)
+    assert.equal(plain.tasksTotal, 0)
+  })
+})
+
+test('parsePlanGoals: 真实语料里另外三种写法（列表符前缀 / 括注在加粗后 / 无加粗）', () => {
+  // `- **目标**：…` + `- **非目标**：…`（android-端-点击计划-tab…md 的实际写法）
+  const bullet = [
+    '## 需求提炼',
+    '- **用户原话**：「点击计划tab跳转到回顾页了」',
+    '- **目标**：锁定根因并修复。',
+    '- **非目标**：不改底栏视觉/文案。'
+  ].join('\n')
+  assert.deepEqual(parsePlanGoals(bullet), ['锁定根因并修复。'])
+
+  // `**目标**（可验收）：`：括注在关闭加粗之后
+  const parenAfterBold = ['## 需求提炼', '**目标**（可验收）：', '- 口径 A', '- 口径 B', ''].join('\n')
+  assert.deepEqual(parsePlanGoals(parenAfterBold), ['口径 A', '口径 B'])
+
+  // `> 目标：散文`：无加粗 + 引用前缀
+  const plain = ['## 需求提炼', '> 目标：把 #gallery 换成滚动展示。', ''].join('\n')
+  assert.deepEqual(parsePlanGoals(plain), ['把 #gallery 换成滚动展示。'])
+
+  // 「目标平台」这类不是目标标记行
+  const notMarker = ['## 需求提炼', '> **目标平台**：鸿蒙 + 安卓', ''].join('\n')
+  assert.deepEqual(parsePlanGoals(notMarker), [])
 })

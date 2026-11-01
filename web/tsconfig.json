@@ -20,7 +20,6 @@
     "src",
     "vite.config.ts",
     "vite.board.config.ts",
-    "tools/board-data.d.mts",
-    "tools/board-projects.d.mts"
+    "tools/board-data.d.mts"
   ]
 }

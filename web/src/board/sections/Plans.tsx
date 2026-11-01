@@ -26,14 +26,20 @@ function sourceHref(plan: BoardPlan): string | undefined {
   return import.meta.env.DEV ? `/@fs/${plan.absPath}` : undefined
 }
 
+// 完成度只在确实统计到 checkbox 时才算（tasksTotal=0 时不渲染进度条）
+function progressPct(plan: BoardPlan): number | undefined {
+  if (plan.tasksTotal <= 0) return undefined
+  return Math.min(100, Math.max(0, Math.round((plan.tasksDone / plan.tasksTotal) * 100)))
+}
+
 export default function Plans({ plans }: Props) {
   const total = plans.length
 
   return (
     <section className="board-section board-section--wide">
       <div className="board-section-head">
-        <h2 className="board-section-title">计划列表</h2>
-        <span className="board-section-note">{total} 份（按 Status 分组）</span>
+        <h2 className="board-section-title">项目聚合</h2>
+        <span className="board-section-note">{total} 个项目 · 名与进度均由计划档案派生</span>
       </div>
 
       {total === 0 ? <p className="board-empty">未读到 .rivet/plans 下的计划文件。</p> : null}
@@ -50,22 +56,49 @@ export default function Plans({ plans }: Props) {
             <ul className="board-plan-list">
               {items.map((plan) => {
                 const href = sourceHref(plan)
+                const pct = progressPct(plan)
+                const goal = plan.goalText
+                const done = plan.tasksDone
+                const total = plan.tasksTotal
                 return (
-                  <li key={plan.file} className="board-plan">
-                    <span className="board-plan-name">{plan.file.replace(/\.md$/, '')}</span>
-                    <span className="board-plan-meta">
-                      {formatDate(plan.modifiedAt)} · {(plan.bytes / 1024).toFixed(1)} KB
-                      {plan.statusRaw ? ` · ${plainText(plan.statusRaw)}` : ''}
-                    </span>
-                    {href ? (
-                      <a className="board-link" href={href} target="_blank" rel="noreferrer">
-                        打开源文件
-                      </a>
-                    ) : (
-                      <span className="board-link board-link--off" title="静态快照无文件服务；开发模式可点开">
-                        打开源文件
-                      </span>
+                  <li key={plan.file} className="board-plan board-plan--project">
+                    <div className="board-plan-head">
+                      <span className="board-plan-name">{plan.file.replace(/\.md$/, '')}</span>
+                      <span className={`board-badge board-badge--${group.tone}`}>{group.label}</span>
+                    </div>
+                    {goal ? <p className="board-plan-goal">{goal}</p> : null}
+                    {pct === undefined ? null : (
+                      <div
+                        className="board-plan-progress"
+                        role="progressbar"
+                        aria-valuemin={0}
+                        aria-valuemax={total}
+                        aria-valuenow={done}
+                        aria-label={`${plan.file} 完成度`}
+                      >
+                        <span className="board-plan-progress-bar" style={{ width: `${pct}%` }} />
+                      </div>
                     )}
+                    <div className="board-plan-meta">
+                      <span>
+                        {formatDate(plan.modifiedAt)} · {(plan.bytes / 1024).toFixed(1)} KB
+                        {plan.statusRaw ? ` · ${plainText(plan.statusRaw)}` : ''}
+                      </span>
+                      {pct === undefined ? null : (
+                        <span className="board-plan-progress-label">
+                          {done}/{total}
+                        </span>
+                      )}
+                      {href ? (
+                        <a className="board-link" href={href} target="_blank" rel="noreferrer">
+                          打开源文件
+                        </a>
+                      ) : (
+                        <span className="board-link board-link--off" title="静态快照无文件服务；开发模式可点开">
+                          打开源文件
+                        </span>
+                      )}
+                    </div>
                   </li>
                 )
               })}

@@ -28,6 +28,14 @@ export interface BoardPlan {
   bytes: number
   modifiedAt: string
   absPath: string
+  /** 「## 需求提炼 → **目标**」提取出的目标条目（已去 `**` 加粗）；未命中为空数组 */
+  goals: string[]
+  /** goals 的整块文本（换行连接），便于一次展示；行级渲染用 goals */
+  goalText: string
+  /** 计划文件内 `- [x]` 的条数 */
+  tasksDone: number
+  /** 计划文件内 `- [x]` / `- [ ]` 的总条数 */
+  tasksTotal: number
 }
 
 export interface GitCommit {
@@ -81,6 +89,10 @@ export declare const PLANS_DIR: string
 export declare function parseCommand(md: string): BoardSection[]
 export declare function normalizePlanStatus(raw: string | null | undefined): PlanStatus
 export declare function parsePlans(dir?: string): BoardPlan[]
+/** 「## 需求提炼」章节里 `**目标**` 标记行 → 目标条目（已去 `**`）；格式漂移/未命中返回 []，不抛 */
+export declare function parsePlanGoals(body: string): string[]
+/** 勾选框进度：`- [x]` 已完成 / `- [ ]` 未完成 */
+export declare function countCheckboxes(body: string): { done: number; total: number }
 export declare function parseGitLog(out: string): GitCommit[]
 export declare function parseGitStatus(out: string): GitChange[]
 export declare function parseGit(cwd?: string): BoardGit
