@@ -85,6 +85,25 @@ cd apps/harmony && node tools/check-code-rules.mjs
 
 **可安全重构方案**：`AppState` 依赖可从「import 直取」改为「注入/回调」（`shared` 层声明 `interface StoreSink`，由 `app` 层在初始化时注入）。`AppRoutes` 两处是路由常量引用，把 `AppRoutes` 下沉到 `common/`（或 `shared/` 内的常量文件）成本更低、风险更小——**建议先做这两处，后做 5 处 store 注入**。
 
+**`AppRoutes` 引用面口径（tq-a4 实测更正，覆盖草稿的「17 行 / 17 文件」）**：
+
+全仓 `grep -rn "from '.*AppRoutes'"` 实测 **main 17 + test 7 = 24** 个消费点：
+
+| 区段 | 命中 | 消费点 | 说明 |
+|---|---|---|---|
+| `entry/src/main/ets` | 18 行 / 18 文件 | **17** | 多出的 1 行是 `app/AppRoutes.ets` 自身的 re-export（`export { AppRoutes } from '../common/AppRoutes'`），不计入消费面 |
+| `entry/src/test` | 1 行 / 1 文件 | **1** | `TargetLoopSkeleton.test.ets:7` |
+| `entry/src/ohosTest/ets/test` | 6 行 / 6 文件 | **6** | `TargetLoopFlow.test.ets:2`、`AuthSessionFlow.test.ets:9`、`AuthRoutingFlow.test.ets:9`、`StartupRouting.test.ets:2`、`PersistenceFallbackService.test.ets:4`、`WorkoutPreviewService.test.ets:2` |
+| **合计** | 25 行 | **24** | main 17 + test 7 |
+
+**为什么必须写清这 7 处**：下沉采用「`app/AppRoutes.ets` 保留为兼容 re-export 壳」方案时，这 7 处测试 import **无需改动**（说明符仍指向 `app/AppRoutes`，由壳转发到 `common/AppRoutes`）。但它同时是**壳不可删除的硬约束**——任何「彻底删除 `app/AppRoutes.ets` 门面」的后续波次必须先改这 7 处，否则 `test` / `ohosTest` 编译立刻失败。只按「17」记账会把这条约束丢掉。
+
+**`mod-routes-sink` 验收判据增补（tq-a4）**：除下列两条既有判据外——① `grep -rn "from '.*/app/AppRoutes'" apps/harmony/entry/src/main/ets/shared/` 命中数 2 → 0（基线 `HomePlanService.ets:17`、`WorkoutPreviewService.ets:13`）；② `cd apps/harmony && node tools/check-code-rules.mjs` 绿且「20 个路由常量」不变——须**额外**验证一条：
+
+> **re-export 后 `ohosTest` 与 `test` 目录 import 路径不变且 build 通过**——即 `entry/src/test/TargetLoopSkeleton.test.ets` 与 `entry/src/ohosTest/ets/test/` 下 6 个文件的 `AppRoutes` import 说明符保持指向 `app/AppRoutes`（不改写为 `common/AppRoutes`），且编译通过。
+
+判据形态：`grep -rn "from '.*AppRoutes'" apps/harmony/entry/src/test apps/harmony/entry/src/ohosTest` 仍为 7 行（路径不变）+ 一次真实 build 退出码 0。
+
 ---
 
 ### 1.4 `features/` → `features/`（5 行 / 5 文件）— 禁动
@@ -99,7 +118,7 @@ cd apps/harmony && node tools/check-code-rules.mjs
 
 **拆分判定**：
 - **依赖本身禁动**（同 §1.1，兼容层）。
-- 但 `features/workout/pages/WorkoutCompletePage.ets:8` 的**说明符写法** `'../../../features/workout/services/...'` 是自层绕行（从 `features/workout/pages/` 上跳 3 级再折回同目录），应改为 `'../../services/WorkoutSessionPersistenceBridgeService'`。**纯路径改写，零语义变化，可安全重构**。
+- 但 `features/workout/pages/WorkoutCompletePage.ets:8` 的**说明符写法** `'../../../features/workout/services/...'` 是自层绕行（从 `features/workout/pages/` 上跳 3 级再折回同目录），应改为 `'../services/WorkoutSessionPersistenceBridgeService'`（自 `features/workout/pages/` 上跳 1 级即 `features/workout/services/`；曾误写为 `'../../services/...'`，该写法会解析到**不存在**的 `features/services/`，照抄即编译失败）。**纯路径改写，零语义变化，可安全重构**。〔Wave 1 复核：源码 `:8` 已按本行修正，台账同步校正〕
 
 ---
 
@@ -298,7 +317,7 @@ STALE BASELINE: features/pencil/components/ReviewContent.ets|#9E040608  baseline
 
 ### 4.4 `features/workout/pages/WorkoutCompletePage.ets:8` — 路径异味，可安全重构
 
-说明符 `'../../../features/workout/services/WorkoutSessionPersistenceBridgeService'` 从 `features/workout/pages/` 上跳 3 级到 `ets/` 再折回。应为 `'../../services/...'`。**纯路径改写**。
+说明符 `'../../../features/workout/services/WorkoutSessionPersistenceBridgeService'` 从 `features/workout/pages/` 上跳 3 级到 `ets/` 再折回。应为 `'../services/WorkoutSessionPersistenceBridgeService'`（`../` 即 `features/workout/services/`；曾误写为 `'../../services/...'`，会解析到不存在的 `features/services/`）。**纯路径改写**。〔Wave 1 复核：源码 `:8` 现状即此修正后形态〕
 
 ### 4.5 `generated/` 的双向引用
 
@@ -341,7 +360,7 @@ STALE BASELINE: features/pencil/components/ReviewContent.ets|#9E040608  baseline
 
 | 序 | 动作 | 条目数 | 优先级 | 风险 |
 |---|---|---|---|---|
-| 1 | `AppRoutes` 下沉到 `common/`，消除 `shared→app` 的 2 行 | 2 行 | P1 | 低（纯常量搬迁） |
+| 1 | `AppRoutes` 下沉到 `common/`，消除 `shared→app` 的 2 行（引用面口径：main 17 + test 7 = 24，壳 `app/AppRoutes.ets` 不可删，见 §1.3） | 2 行 | P1 | 低（纯常量搬迁） |
 | 2 | 修 `WorkoutCompletePage.ets:8` 自层绕行路径 + `mock/SeedPlanRules.ets` 迁移 | 2 处 | P1 | 低（纯路径/纯移动） |
 | 3 | 删 baseline 陈旧条目 `ReviewContent.ets\|#9E040608`（38→37→…只缩不增） | 1 条 | P2 | 极低 |
 | 4 | 37 行 DS-01 收敛到 token（按 §2.3「可安全重构」标注，排除 ⚠️ 与禁动） | ~30 行 | P2 | 中（视觉回归需真机核对） |

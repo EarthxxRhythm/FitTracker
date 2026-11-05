@@ -10,7 +10,7 @@ import {
   TrainingPlan,
   UserGoal
 } from '../models/TrainingModels'
-import { AppRoutes } from '../../app/AppRoutes'
+import { AppRoutes } from '../../common/AppRoutes'
 import {
   ExerciseRef,
   TrainingDay,

@@ -3,7 +3,7 @@
  *
  * Feature #3: plan engine and review calculations.
  */
-import { PlanRule, SEED_PLAN_RULES } from '../../mock/SeedPlanRules'
+import { PlanRule, SEED_PLAN_RULES } from './PlanRuleCatalog'
 import {
   ExerciseContent,
   PlanDay,

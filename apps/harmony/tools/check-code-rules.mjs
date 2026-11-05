@@ -16,7 +16,7 @@ const appRoot = resolve(selfDir, '..')
 // 可被 setEtsRoot 覆盖——单测指向临时目录，避免读真实源码
 let etsRoot = resolve(appRoot, 'entry/src/main/ets')
 const profilePath = resolve(appRoot, 'entry/src/main/resources/base/profile/main_pages.json')
-const routesPath = resolve(etsRoot, 'app/AppRoutes.ets')
+const routesPath = resolve(etsRoot, 'common/AppRoutes.ets')
 const baselinePath = resolve(selfDir, 'code-rules-baseline.json')
 
 /** 规则表：id → 人话说明。报错输出直接引用，文档章节标题同名。 */
@@ -39,7 +39,7 @@ export const EXEMPTIONS = [
     rule: 'RT-01',
     target: 'features/pencil/pages/PencilPreviewPage',
     reason: '训练预览由 PencilAppShell.build() 条件渲染成壳内覆盖层（非 bindContentCover），不是路由页',
-    ref: 'app/AppRoutes.ets:17-20'
+    ref: 'common/AppRoutes.ets:20-23'
   },
   {
     rule: 'AR-02',
@@ -120,7 +120,7 @@ export function parseMainPages(text) {
   return profile.src.map((page) => String(page).replace(/\\/g, '/'))
 }
 
-/** 解析 AppRoutes.ets 的 `static readonly NAME: string = 'path'`。 */
+/** 解析 AppRoutes 常量文件（common/AppRoutes.ets）的 `static readonly NAME: string = 'path'`。 */
 export function parseRouteConstants(text) {
   const constants = []
   const lines = text.split(/\r?\n/)
@@ -148,7 +148,7 @@ export function checkRoutes(pages, constants) {
     if (isExempt('RT-01', page)) continue
     findings.push({
       rule: 'RT-01',
-      file: 'app/AppRoutes.ets',
+      file: 'common/AppRoutes.ets',
       line: 0,
       message: `${page} 注册在 main_pages.json，但没有任何 AppRoutes 常量指向它`
     })
@@ -159,7 +159,7 @@ export function checkRoutes(pages, constants) {
     if (isExempt('RT-01', constant.path)) continue
     findings.push({
       rule: 'RT-01',
-      file: 'app/AppRoutes.ets',
+      file: 'common/AppRoutes.ets',
       line: constant.line,
       message: `常量 ${constant.name} 指向 ${constant.path}，但它未注册到 main_pages.json（若为非路由页请加入 EXEMPTIONS）`
     })

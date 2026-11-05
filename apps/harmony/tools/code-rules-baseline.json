@@ -131,12 +131,6 @@
     {
       "rule": "DS-01",
       "file": "features/pencil/components/ReviewContent.ets",
-      "snippet": "#9E040608",
-      "line": 2330
-    },
-    {
-      "rule": "DS-01",
-      "file": "features/pencil/components/ReviewContent.ets",
       "snippet": "#20272F",
       "line": 2522
     },
