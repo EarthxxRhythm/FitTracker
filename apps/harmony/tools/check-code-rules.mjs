@@ -3,9 +3,11 @@
 //
 // rule id 与 docs/process/engineering-standards.md 一一对应，可双向 grep 追溯。
 // 七条规则的存量基线（2026-10-27 实测）：RT-01 有 1 条豁免、RT-02 为 0、SV-01 为 0、
-// AR-01/03 为 0、AR-02 有 3 条豁免、DS-01 有 38 处走基线——所以上线即绿。
+// AR-01/03 为 0、AR-02 有 3 条豁免、DS-01 存量走 code-rules-baseline.json——所以上线即绿。
+// 该台账只允许缩小：`--write-baseline` 会拒绝写入任何新增的 file|snippet 组，
+// 见 classifyBaselineChange——否则新内联色值能被一键洗白回旧天花板。
 //
-// 运行：node tools/check-code-rules.mjs [--write-baseline] [--list-rules]
+// 运行：node tools/check-code-rules.mjs [--write-baseline [--allow-new]] [--list-rules]
 
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
@@ -322,6 +324,42 @@ export function toBaselineEntries(hits) {
     .sort((a, b) => (a.file === b.file ? a.line - b.line : a.file < b.file ? -1 : 1))
 }
 
+/**
+ * 台账棘轮：按 `file|snippet` 计数比对旧台账与新扫描结果。
+ * added = 新扫描有、旧台账没有的组（会让天花板上升，必须人工审视）；
+ * removed = 旧台账有、新扫描没有的组（收敛，允许）。
+ *
+ * diffAgainstBaseline 只报「超出基线」的命中，所以没有这道闸时 --write-baseline
+ * 会把新增色值原样记进台账，天花板就被洗白回旧值——「只允许缩小」成了注释里的空话。
+ */
+export function classifyBaselineChange(previousEntries, nextEntries) {
+  const tally = (entries) => {
+    const counts = new Map()
+    for (const entry of entries) {
+      const key = `${entry.file}|${entry.snippet}`
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+    return counts
+  }
+
+  const before = tally(previousEntries)
+  const after = tally(nextEntries)
+
+  const added = []
+  for (const [key, count] of after) {
+    const delta = count - (before.get(key) ?? 0)
+    if (delta > 0) added.push({ key, count: delta })
+  }
+
+  const removed = []
+  for (const [key, count] of before) {
+    const delta = count - (after.get(key) ?? 0)
+    if (delta > 0) removed.push({ key, count: delta })
+  }
+
+  return { added, removed }
+}
+
 function loadBaseline() {
   if (!existsSync(baselinePath)) return []
   const parsed = JSON.parse(readFileSync(baselinePath, 'utf8'))
@@ -359,13 +397,27 @@ function main() {
 
   if (argv.includes('--write-baseline')) {
     const entries = toBaselineEntries(hits)
+    const previous = loadBaseline()
+    const { added, removed } = classifyBaselineChange(previous, entries)
+    // previous 为空 = 首次生成台账，放行；已有台账后只允许缩小。
+    if (previous.length > 0 && added.length > 0 && !argv.includes('--allow-new')) {
+      console.error(`[code-rules] 基线只允许缩小，拒绝写入 ${added.length} 组新增命中：`)
+      for (const item of added) console.error(`  +${item.count} ${item.key}`)
+      console.error(
+        '新增色值请改用 DesignTokens 或 feature 内命名常量；确属文件搬迁导致 file 变更时，人工复核后加 --allow-new 重跑。'
+      )
+      process.exit(1)
+    }
     const payload = {
       generatedBy: 'check-code-rules.mjs --write-baseline',
       note: '存量技术债台账：只允许缩小。新增违规不得写入本文件。',
       entries
     }
     writeFileSync(baselinePath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8')
-    console.log(`[code-rules] 基线已写入 ${relative(process.cwd(), baselinePath) || baselinePath}（${entries.length} 条）`)
+    console.log(
+      `[code-rules] 基线已写入 ${relative(process.cwd(), baselinePath) || baselinePath}` +
+        `（${previous.length} → ${entries.length} 条，收敛 ${removed.length} 组，新增 ${added.length} 组${argv.includes('--allow-new') ? '，已放行新增' : ''}）`
+    )
     return
   }
 

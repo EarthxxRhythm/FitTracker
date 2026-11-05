@@ -343,7 +343,7 @@ struct PencilLoginPage {
       Text('登录后，同步你的训练进度与身体数据')
         .fontFamily('Noto Sans SC')
         .fontSize(15)
-        .fontColor('#A6FFFFFF')
+        .fontColor(PrototypeTokens.WHITE_A65)
         .textAlign(TextAlign.Center)
     }
     .width('100%')

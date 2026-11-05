@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -33,6 +34,39 @@ export function resolveDevecoCliInvocation() {
   }
 
   return { command: 'devecocli', prefixArgs: [], useShell: USE_SHELL }
+}
+
+/**
+ * 计算文件内容哈希（sha256），文件不存在时返回 null。
+ *
+ * 用途：判定「构建有没有改写某个文件」。这里刻意用内容 sha256，而不是 `git hash-object`
+ * 的 blob 哈希，也不比对任何写死的绝对基线——判据是「构建前 == 构建后」这条不变式，
+ * 与文件当前是否脏、历史上某次哈希是多少都无关。
+ */
+export function fileSha256(filePath) {
+  if (!existsSync(filePath)) {
+    return null
+  }
+  return createHash('sha256').update(readFileSync(filePath)).digest('hex')
+}
+
+/**
+ * 纯判定：比较构建前后的内容哈希。未变返回 null；变了返回方向性说明。
+ *
+ * 「构建前不存在、构建后出现」与「构建前存在、构建后被删除」都算改写——
+ * 只对「存在且哈希相等」放行，避免文件被凭空生成或被删时静默通过。
+ */
+export function describeProfileDrift(before, after) {
+  if (before === after) {
+    return null
+  }
+  if (before === null) {
+    return `构建前不存在、构建后出现（sha256=${after}）——build 写出了 build-profile.json5`
+  }
+  if (after === null) {
+    return `构建前存在、构建后被删除（sha256=${before}）——build 删掉了 build-profile.json5`
+  }
+  return `build 改写了 build-profile.json5（构建前 sha256=${before}，构建后 sha256=${after}）`
 }
 
 function runCommand(command, args, cwd = process.cwd(), useShell = false) {
@@ -77,6 +111,15 @@ function main() {
   const repoRoot = process.cwd()
   const argv = process.argv.slice(2)
   const skipBuild = argv.includes('--skip-build')
+
+  // ---- 安全不变式：build 不得改写 build-profile.json5 ----
+  // 该文件含真实签名材料（证书路径 + 密码密文），工作区常带用户未提交改动（M），
+  // 所以判据只能是「构建前 hash == 构建后 hash」，不能是任何写死的绝对基线：
+  // 文件本就脏时绝对基线会误报（或反过来掩盖 build 真的改写了文件），
+  // 且那等于把用户资产的当前状态当成门禁输入。
+  // 全程只读该文件：不写、不回退、不暂存（用户未提交资产）。
+  const profilePath = path.join(repoRoot, 'build-profile.json5')
+  const profileHashBefore = fileSha256(profilePath)
 
   const steps = [
     {
@@ -153,6 +196,7 @@ function main() {
   // 这类 HEAD 级破损长期潜伏。现在改为真实编译，且无法编译时绝不声称通过。
   if (skipBuild) {
     console.warn('[build-gates] ⚠ --skip-build：ArkTS 编译门禁被显式跳过，产物未经编译验证。')
+    console.warn('[build-gates] ⚠ --skip-build：build-profile.json5 的「构建前后不变」不变式本次未验证。')
     console.warn('[build-gates]   仅在明确已知编译状态时使用；提交前请去掉该参数。')
     return
   }
@@ -175,6 +219,20 @@ function main() {
     repoRoot,
     invocation.useShell
   )
+  // 不变式判定先于编译结果判定：build 失败但把签名配置改坏了，更值得先报。
+  const profileHashAfter = fileSha256(profilePath)
+  const profileDrift = describeProfileDrift(profileHashBefore, profileHashAfter)
+  if (profileDrift !== null) {
+    throw new Error(
+      `[build-gates] 安全不变式被破坏：${profileDrift}\n` +
+      '判据是「build 前 hash == build 后 hash」，与绝对基线无关（此处不比对任何写死的哈希）。\n' +
+      `构建退出码: ${build.status}\n` +
+      '建议: 先查 devecocli 是否在 build 期间重写签名配置；不要用 git checkout/stash/restore 还原该文件'
+      + '——它是用户未提交资产（含真实签名材料）。'
+    )
+  }
+  console.log(`[build-gates] build-profile.json5 构建前后未变（sha256=${profileHashAfter === null ? '不存在' : profileHashAfter}）`)
+
   if (build.status !== 0) {
     throw new Error(
       `[build-gates] ArkTS 编译失败 (exit ${build.status})\n` +

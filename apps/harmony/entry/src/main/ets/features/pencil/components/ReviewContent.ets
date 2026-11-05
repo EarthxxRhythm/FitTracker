@@ -2201,7 +2201,7 @@ export struct ReviewContent {
       }
       .width(74)
       .height(5)
-      .backgroundColor('#20272F')
+      .backgroundColor(PrototypeTokens.SURFACE_2)
       .borderRadius(3)
       .clip(true)
       Text(this.muscleDetailValue(key))

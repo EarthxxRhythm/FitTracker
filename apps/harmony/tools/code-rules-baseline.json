@@ -6,55 +6,49 @@
       "rule": "DS-01",
       "file": "app/PencilAppShell.ets",
       "snippet": "#000000",
-      "line": 213
-    },
-    {
-      "rule": "DS-01",
-      "file": "app/PencilAppShell.ets",
-      "snippet": "#0B0F13",
-      "line": 245
+      "line": 595
     },
     {
       "rule": "DS-01",
       "file": "features/body/components/BodyDataContent.ets",
       "snippet": "#06FFFFFF",
-      "line": 1278
-    },
-    {
-      "rule": "DS-01",
-      "file": "features/pencil/components/ActiveContent.ets",
-      "snippet": "#FA0A0D12",
-      "line": 821
-    },
-    {
-      "rule": "DS-01",
-      "file": "features/pencil/components/ActiveContent.ets",
-      "snippet": "#030606B8",
-      "line": 831
-    },
-    {
-      "rule": "DS-01",
-      "file": "features/pencil/components/ActiveContent.ets",
-      "snippet": "#13161A",
-      "line": 925
-    },
-    {
-      "rule": "DS-01",
-      "file": "features/pencil/components/ActiveContent.ets",
-      "snippet": "#8C0B0F13",
-      "line": 944
+      "line": 1288
     },
     {
       "rule": "DS-01",
       "file": "features/pencil/components/ActiveContent.ets",
       "snippet": "#06FFFFFF",
-      "line": 1085
+      "line": 1544
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/ActiveContent.ets",
+      "snippet": "#FA0A0D12",
+      "line": 1627
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/ActiveContent.ets",
+      "snippet": "#030606B8",
+      "line": 1637
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/ActiveContent.ets",
+      "snippet": "#13161A",
+      "line": 1733
+    },
+    {
+      "rule": "DS-01",
+      "file": "features/pencil/components/ActiveContent.ets",
+      "snippet": "#8C0B0F13",
+      "line": 1752
     },
     {
       "rule": "DS-01",
       "file": "features/pencil/components/HomeContent.ets",
       "snippet": "#08110D",
-      "line": 292
+      "line": 460
     },
     {
       "rule": "DS-01",
@@ -78,31 +72,31 @@
       "rule": "DS-01",
       "file": "features/pencil/components/PlanGroupDetailContent.ets",
       "snippet": "#F00D1117",
-      "line": 390
+      "line": 391
     },
     {
       "rule": "DS-01",
       "file": "features/pencil/components/PlanGroupDetailContent.ets",
       "snippet": "#D10A0D12",
-      "line": 469
+      "line": 470
     },
     {
       "rule": "DS-01",
       "file": "features/pencil/components/PlanGroupDetailContent.ets",
       "snippet": "#2450ECA7",
-      "line": 504
+      "line": 505
     },
     {
       "rule": "DS-01",
       "file": "features/pencil/components/PlanGroupDetailContent.ets",
       "snippet": "#151B20",
-      "line": 725
+      "line": 726
     },
     {
       "rule": "DS-01",
       "file": "features/pencil/components/PlanGroupDetailContent.ets",
       "snippet": "#EB0A0D12",
-      "line": 789
+      "line": 790
     },
     {
       "rule": "DS-01",
@@ -118,21 +112,9 @@
     },
     {
       "rule": "DS-01",
-      "file": "features/pencil/components/ProfileContent.ets",
-      "snippet": "#9EFFFFFF",
-      "line": 336
-    },
-    {
-      "rule": "DS-01",
       "file": "features/pencil/components/ProfileEditContent.ets",
       "snippet": "#E61A201E",
-      "line": 200
-    },
-    {
-      "rule": "DS-01",
-      "file": "features/pencil/components/ReviewContent.ets",
-      "snippet": "#20272F",
-      "line": 2522
+      "line": 1150
     },
     {
       "rule": "DS-01",
@@ -143,38 +125,14 @@
     {
       "rule": "DS-01",
       "file": "features/pencil/pages/PencilLoginPage.ets",
-      "snippet": "#A6FFFFFF",
-      "line": 339
-    },
-    {
-      "rule": "DS-01",
-      "file": "features/pencil/pages/PencilLoginPage.ets",
       "snippet": "#14D3B487",
-      "line": 356
+      "line": 363
     },
     {
       "rule": "DS-01",
       "file": "features/pencil/pages/PencilRegisterPage.ets",
       "snippet": "#14D3B487",
       "line": 224
-    },
-    {
-      "rule": "DS-01",
-      "file": "features/pencil/pages/PencilRegisterPage.ets",
-      "snippet": "#A6FFFFFF",
-      "line": 463
-    },
-    {
-      "rule": "DS-01",
-      "file": "features/pencil/pages/PencilRegisterPage.ets",
-      "snippet": "#FFD7C5",
-      "line": 557
-    },
-    {
-      "rule": "DS-01",
-      "file": "features/pencil/pages/PencilSplashPage.ets",
-      "snippet": "#0F50ECA7",
-      "line": 52
     },
     {
       "rule": "DS-01",
@@ -222,7 +180,7 @@
       "rule": "DS-01",
       "file": "features/workout/pages/WorkoutCompletePage.ets",
       "snippet": "#B8FFFFFF",
-      "line": 460
+      "line": 474
     }
   ]
 }

@@ -27,6 +27,12 @@
  * 覆盖其中 82.5%；其余为出现 <2 次的屏内专属值（个别动画关键帧色、单屏特例），
  * 按原约束「屏内特殊值就地直写」保留。
  *
+ * ── 「提 token」的判据（勿与屏内特殊值混淆）────────────────────────
+ * 判据是**原型跨屏分布**，不是鸿蒙代码里的复用频次：
+ *   - 原型 `:root` 在多个屏共用，或某组件的规范变量 → 收进本表，即使鸿蒙侧当前
+ *     只有 1 处引用（如 `WARN`、`SURFACE_2`）；
+ *   - 只在单屏出现一次、且无原型变量名的局部色 → 就地直写，配注释说明来源。
+ *
  * 跨目录复用实测（命中率 = 同值字面量可映射到本表成员的比例）：
  *   body 85% / settings 81% / workout 71% / welcome 70%；合计 196/269 = 73%。
  * 其余 feature 尚未迁移，新增 UI 请直接引用本表。
@@ -78,6 +84,28 @@ export class PrototypeTokens {
   /** `--on-accent` 强调色面之上的深色文本 */
   static readonly TEXT_ON_ACCENT: string = '#07100B'
 
+  // ── 警示色（原型 `--warn`，14 个原型屏文件 `:root` 同值共用）─────────
+  /**
+   * `--warn` 警示色：告警文本与告警填充。
+   *
+   * **原型分布**：原型 `src/` 中 14 个屏文件（auth / body-data / brand-identity /
+   * exercise-library / personal / plan-detail / plan-group-detail / review / settings /
+   * training-complete / training-preferences / training-preview / training / welcome-home）
+   * 的 `:root` **全部**定义 `--warn: #FFD7C5`，值逐字节一致——属跨屏语义警告色，
+   * 不是屏内特例；`TOKENS.md:68` 已收录该规范值。
+   *
+   * **鸿蒙唯一落地场景**：注册页错误消息文本 `PencilRegisterPage.ets:557`
+   * （`.fontColor(PrototypeTokens.WARN)`，`this.message` 非空时渲染）。全仓仅此 1 处。
+   *
+   * **提 token 判据（勿误读为「单次使用不该提」）**：本成员的依据是**原型跨屏规范值**，
+   * 而非鸿蒙侧的复用频次——二者在鸿蒙代码中各仅 1 处使用（`WARN` / `SURFACE_2`）。
+   * 文件头「出现 <2 次的屏内专属值就地直写」针对的是**无原型变量名的单屏局部色**，
+   * 不适用于本成员；后续 review 请勿因「只用了一次」把它回退成内联字面量。
+   *
+   * 派生描边 `--warn-border`（rgba(255,176,150,.55)）不在本表，需要时另行提取。
+   */
+  static readonly WARN: string = '#FFD7C5'
+
   // ── 背景 / 表面基色 ─────────────────────────────────────────────
   /** `--ink-0` 页面背景主色 */
   static readonly BG_INK: string = '#0B0F13'
@@ -97,6 +125,30 @@ export class PrototypeTokens {
   static readonly STREAK_BG: string = '#171C23'
   /** `--surface-stat` 回顾统计面 */
   static readonly SURFACE_STAT: string = '#171D24'
+  /**
+   * `--surface-2` 次层表面（回顾页肌肉详情进度条轨道底）。
+   *
+   * **原型分布**：`--surface-2` 是规范 surface 色族成员，原型 `src/` 内跨 6 个文件、
+   * 共 51 处出现（含定义与 `var(--surface-2)` 引用；`fittracker-review.html` 单文件
+   * 7 处引用）。同族另有 `--surface-stat`(#171D24，已收为 `SURFACE_STAT`)。
+   *
+   * **取值来源**：`fittracker-review.html:825` 的 openstats 作用域内
+   * `--surface-2: #20272F`——本成员取的就是这一份。
+   * **同名不同值的坑（勿「对齐」）**：
+   *   - `fittracker-webapp.html:13` 的 `:root --surface-2` 是 `#121A1E`；
+   *   - `fittracker-review-openstats-1to1.html` 是 `#2c2c2e`；
+   *   - `fittracker-brand-identity.html` 是 `#14241F`。
+   * 三者与本成员同名异值，不可相互替代。
+   *
+   * **鸿蒙唯一落地场景**：review 肌肉详情进度条轨道底 `ReviewContent.ets:2204`
+   * （`.backgroundColor(PrototypeTokens.SURFACE_2)`；轨道 Row 宽 74 高 5，上层填充条为
+   * `ACCENT`）。全仓仅此 1 处。
+   *
+   * **提 token 判据（勿误读为「单次使用不该提」）**：依据是**原型跨屏规范值**，而非
+   * 鸿蒙侧复用频次——它与 `WARN` 在鸿蒙各仅 1 处使用。文件头「出现 <2 次的屏内专属值
+   * 就地直写」针对无原型变量名的单屏局部色，本成员有原型变量名与跨文件分布，不适用。
+   */
+  static readonly SURFACE_2: string = '#20272F'
   /** `--complete-bg` / `--canvas` 完成页底 */
   static readonly COMPLETE_BG: string = '#07100F'
   /** `--complete-circle` 完成勾选圆池底 */

@@ -1,7 +1,10 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { resolveDevecoCliInvocation } from './check-gates.mjs'
+import { mkdtempSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { describeProfileDrift, fileSha256, resolveDevecoCliInvocation } from './check-gates.mjs'
 
 // 背景（2026-10-12 本机实测）：
 // Windows 上 npm 生成的 `devecocli.cmd` 是标准 shim，内部以 `node` 启动
@@ -62,4 +65,55 @@ test('解析结果必须自洽：直接调 cli.js 时不得再启用 shell', () 
     assert.equal(invocation.command, process.execPath, '应以当前 node 可执行文件直调 cli.js')
     assert.notEqual(invocation.useShell, true, '直调 cli.js 时不应启用 shell（避免再次走 .cmd shim）')
   }
+})
+
+// ---------------------------------------------------------------------------
+// build-profile.json5 安全不变式：「构建前 hash == 构建后 hash」。
+//
+// 历史事故形态：把某次 `git hash-object` 的结果（ad7ad40d…）当成绝对基线写进计划，
+// 而该文件工作区本就是脏的（含真实签名材料、用户未提交改动），于是门要么误报，
+// 要么把「build 真的改写了文件」掩盖掉。以下用例固定的是：判定只看前后两次快照，
+// 与任何写死的常量无关。纯函数，不需要 devecocli。
+// ---------------------------------------------------------------------------
+
+test('fileSha256：文件缺失返回 null，内容不变哈希稳定，内容改动哈希变化', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'ft-gate-profile-'))
+  const target = join(dir, 'build-profile.json5')
+
+  assert.equal(fileSha256(target), null, '文件不存在时应返回 null，而不是抛错或空串')
+
+  writeFileSync(target, '{"app":{}}\n', 'utf8')
+  const first = fileSha256(target)
+  assert.match(String(first), /^[0-9a-f]{64}$/, '应是 sha256 十六进制摘要')
+
+  assert.equal(fileSha256(target), first, '内容未变，哈希必须稳定')
+
+  writeFileSync(target, '{"app":{"signingConfigs":[]}}\n', 'utf8')
+  assert.notEqual(fileSha256(target), first, '内容变化必须反映到哈希上')
+})
+
+test('describeProfileDrift：前后一致即通过——不看任何绝对基线', () => {
+  assert.equal(describeProfileDrift(null, null), null, '构建前后都不存在 => 视为未变')
+  assert.equal(
+    describeProfileDrift('ad7ad40d1af353ccb07056fae5aabcf88382759d', 'ad7ad40d1af353ccb07056fae5aabcf88382759d'),
+    null,
+    '同一快照 => 未变；判据里没有「必须等于某个历史哈希」这一项'
+  )
+  // 反例：哪怕哈希「看起来像」历史基线，只要前后不同就必须报。
+  assert.notEqual(
+    describeProfileDrift('ad7ad40d1af353ccb07056fae5aabcf88382759d', '6bbf0e13b962749d16236d3b50706f31eb1d4d73'),
+    null,
+    '前后不一致必须判为变（否则门就丢了判据）'
+  )
+})
+
+test('describeProfileDrift：改写/新建/删除给出方向性说明', () => {
+  const rewritten = describeProfileDrift('aaa', 'bbb')
+  assert.ok(rewritten && rewritten.includes('aaa') && rewritten.includes('bbb'), '改写说明须带前后哈希')
+
+  const created = describeProfileDrift(null, 'bbb')
+  assert.ok(created && created.includes('出现'), '构建前不存在：须说明是被 build 写出来了')
+
+  const removed = describeProfileDrift('aaa', null)
+  assert.ok(removed && removed.includes('删除'), '构建后不存在：须说明是被 build 删掉了')
 })

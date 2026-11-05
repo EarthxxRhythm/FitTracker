@@ -460,7 +460,7 @@ struct PencilRegisterPage {
               Text('开始记录每一次训练，见证看得见的进步')
                 .fontFamily('Noto Sans SC')
                 .fontSize(15)
-                .fontColor('#A6FFFFFF')
+                .fontColor(PrototypeTokens.WHITE_A65)
                 .margin({ top: 11 })
               Text('手机号用户可在登录页用验证码直接登录（自动注册）')
                 .fontFamily('Noto Sans SC')
@@ -554,7 +554,7 @@ struct PencilRegisterPage {
                 Text(this.message)
                   .fontFamily('Noto Sans SC')
                   .fontSize(13)
-                  .fontColor('#FFD7C5')
+                  .fontColor(PrototypeTokens.WARN)
                   .width('100%')
               }
               if (this.hint.length > 0) {

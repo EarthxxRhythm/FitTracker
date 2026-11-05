@@ -301,7 +301,7 @@ export struct ProfileContent {
         Text('\u5b8c\u6210\u8bad\u7ec3\u540e\uff0c\u8fd9\u91cc\u4f1a\u663e\u793a\u4f60\u7684\u6210\u5c31\u3002')
           .fontFamily('Inter')
           .fontSize(12.5)
-          .fontColor('#9EFFFFFF')
+          .fontColor(PrototypeTokens.WHITE_A62)
           .padding({ top: 2, bottom: 2 })
       } else {
         ForEach(this.state.achievementRows, (row: AchievementRow) => {

@@ -49,7 +49,7 @@ struct PencilSplashPage {
         .width(120)
         .height(120)
         .borderRadius(60)
-        .backgroundColor('#0F50ECA7')
+        .backgroundColor(PrototypeTokens.ACCENT_A06)
         .border({ width: 2, color: PrototypeTokens.ACCENT })
 
       Column()
