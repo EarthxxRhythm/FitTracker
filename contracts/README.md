@@ -52,8 +52,17 @@
 | `nickname` | String | 用户昵称，空串表示不改 |
 | `avatar` | String | 头像标识 |
 | `weightUnit` | String | `"kg"` / `"lbs"` |
+| `heightCm` | Int? | 身高（cm），身体档案，用于 BMI / 基础代谢派生；旧信封无此字段时为 null |
+| `gender` | String? | 性别，身体档案；旧信封无此字段时为 null |
+| `birthYear` | Int? | 出生年，身体档案；旧信封无此字段时为 null |
+| `experience` | String? | 训练经验；旧信封无此字段时为 null（下行保留本地值） |
+| `avatarImage` | String? | 头像图片（压缩后 JPEG 的 base64，约 8～20KB）；空串表示无图；旧信封无此字段时为 null（下行保留本地头像） |
+| `avatarImageHash` | String? | 头像内容摘要（`avatarImage` 的 djb2）；**只**入变更检测视图，避免整段 base64 进入 canonical 串；同图在任何设备上摘要一致 |
 
-源：`apps/android/.../data/sync/LocalSnapshotStore.kt`（`CloudPayloadEnvelope`）
+> 新增的 6 个字段（`heightCm` / `gender` / `birthYear` / `experience` / `avatarImage` / `avatarImageHash`）为**向后兼容新增**：旧信封缺字段时按 null 处理、下行保留本地值，故**不升 `ENVELOPE_SCHEMA_VERSION`**（依据 §6「新增字段若做向后兼容，可不升版本」）。
+
+源：`apps/android/.../data/sync/LocalSnapshotStore.kt`（`CloudPayloadEnvelope`，11 字段）
+↔ 鸿蒙 `entry/src/main/ets/shared/services/CloudSyncService.ets:56`（`interface CloudPayloadEnvelope`，11 字段）；两端字段名/类型/可空语义逐条一致。
 
 ## 3. 云快照 `CloudSnapshot`
 
