@@ -164,6 +164,12 @@ STALE BASELINE: features/pencil/components/ReviewContent.ets|#9E040608  baseline
 
 ### 2.3 37 行 DS-01 命中的归属（全量，file:line）
 
+> **Wave 2 核实结论（2026-11-05）：下表「收敛难度」列不可直接当收敛依据。**
+> 该列是静态依赖判断，未查冻结原型 `:root`。逐值回查原型正式位置 `../FitTracker-design/06_prototype_redraw/src/*.html`（主仓 `.gitignore:175` 已排除 `/design/`，原型独立存放，不迁入主仓）后确认：
+> - **仅 7 处有原型依据、可安全收敛**（Wave 2 已提交 `0183a14`）：`#0B0F13`→`BG_INK`、`#9EFFFFFF`→`WHITE_A62`、`#A6FFFFFF`→`WHITE_A65`（2 处）、`#0F50ECA7`→`ACCENT_A06`、`#20272F`→新增 `SURFACE_2`（=原型 `--surface-2`）、`#FFD7C5`→新增 `WARN`（=原型 `--warn`）。
+> - **其余 30 处保留内联**（按 `PrototypeTokens` 既有约束「屏内特殊值就地直写」）：18 个值不在原型 `:root`（多为合成色，如 `#13161A` = `#0B0F13` + 3.1% 白 的等效色）；`#151D1B`/`#151B20` 是原型页面级 `background` 直写而非 `:root` 变量；2 处 `#000000` 语义存疑。
+> - 强行收敛会破坏「令牌层镜像原型」语义。**以本结论为准。**
+
 按层：`features/` 33 行 · `app/` 2 行 · 其余 2 行。
 
 | file:line | 值 | 收敛难度 |
@@ -220,7 +226,7 @@ STALE BASELINE: features/pencil/components/ReviewContent.ets|#9E040608  baseline
 | `features/settings/components/SettingsContent.ets` | 5 | 三元分支 | 可安全重构 |
 | `features/pencil/pages/PencilLoginPage.ets` | 5 | 三元分支 | 可安全重构 |
 | `features/pencil/components/HomeContent.ets` | 5 | 属性实参 + 渐变 | 可安全重构 |
-| `features/pencil/components/AvatarTint.ets` | 5（`:20/:23/:26/:29/:32`，每行 3 个值） | 头像色调三元组（fill/text/border） | **可安全重构**——这是最典型的 token 化候选，5 组 × 3 值 = 15 个字面量，全在一个 `return { fill, text, border }` 对象里 |
+| `features/pencil/components/AvatarTint.ets` | 5（`:20/:23/:26/:29/:32`，每行 3 个值） | 头像色调三元组（fill/text/border） | **禁动（双端契约色）**——15 值已集中在单一 `avatarTintOf` 函数，与 Android `ProfileScreen.kt:956 avatarTintOf` 逐字对应；token 化收益低且会把业务契约色塞进设计令牌层造成层级混乱。防漂移已由 `check-parity.mjs` 新增的对等校验覆盖（提交 `3365a44`），改一端必红 |
 | `app/PencilAppShell.ets` | 5 | 命名常量 + 属性实参 | 见 §2.3 |
 | `common/services/TrainingPlanService.ets` | 4（`:102 #43A047` / `:142 #FB8C00` / `:175 #1E88E5` / `:215 #E53935`） | **预置计划数据字段**（`mkPlan(id, name, color, ...)` 的第 3 参） | 🔴 **禁动**——这是**数据**不是主题：4 套预置计划的品牌色随计划一起入库/同步/备份，改值会改变已存用户数据的语义，且须与 Android 端 `PRESET_PLANS` 同步（跑 `check-parity` 前置） |
 | `features/pencil/pages/PencilPreviewPage.ets` | 3 | 三元分支 | 可安全重构 |
