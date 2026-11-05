@@ -8,8 +8,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.spring
@@ -916,6 +918,35 @@ private fun SetPill(
         },
     )
     val label = stringResource(R.string.active_set_pill_a11y_state, setNumber, stateLabel)
+    // 底色与边框宽度走同一拍：胶囊从「未做 / 当前」填成实心不是瞬跳，而是
+    // DURATION_MARKER(300ms) + EASE_MOTION 渐变——与鸿蒙 setPill 的
+    // `.animation({ duration: MotionTokens.DURATION_MARKER, curve: EASE_MOTION })` 同值。
+    // 只渐变颜色、宽度瞬跳，会看到边框「先塌再变色」的半截。
+    val fill by animateColorAsState(
+        targetValue = when {
+            done -> FtColor.accent
+            current -> FtColor.accent12
+            else -> FtColor.glass6
+        },
+        animationSpec = tween(FtMotion.DURATION_MARKER, easing = FtMotion.EASE_MOTION),
+        label = "setPillFill",
+    )
+    val borderWidth by animateDpAsState(
+        targetValue = when {
+            done -> 0.dp
+            current -> 1.5.dp
+            else -> 1.dp
+        },
+        animationSpec = tween(FtMotion.DURATION_MARKER, easing = FtMotion.EASE_MOTION),
+        label = "setPillBorderWidth",
+    )
+    // 边框色不套动画：current 的 alpha 每帧都在呼吸（currentBorderAlpha），
+    // 再叠一层补间会与呼吸互相拉扯，读成「描边在抖」。
+    val borderColor = when {
+        done -> Color.Transparent
+        current -> FtColor.accent.copy(alpha = currentBorderAlpha)
+        else -> FtColor.line10
+    }
     Box(
         modifier = modifier
             .height(26.dp)
@@ -923,18 +954,12 @@ private fun SetPill(
             // 三态底色：已完成填满 accent、当前组极淡 accent（「下一个待填满的位置」）、未做玻璃灰。
             // 当前组原先是透明底 + 虚线描边——26dp 高的细条上虚线只剩一两个 dash，
             // 读起来像「描边没画好」而不是「进行中」，改实线 + 淡底后层级才立得住。
-            .background(
-                when {
-                    done -> FtColor.accent
-                    current -> FtColor.accent12
-                    else -> FtColor.glass6
-                }
-            )
+            .background(fill)
             .then(
-                when {
-                    done -> Modifier
-                    current -> Modifier.border(1.5.dp, FtColor.accent.copy(alpha = currentBorderAlpha), FtShape.pill)
-                    else -> Modifier.border(1.dp, FtColor.line10, FtShape.pill)
+                if (borderWidth <= 0.dp) {
+                    Modifier
+                } else {
+                    Modifier.border(borderWidth, borderColor, FtShape.pill)
                 },
             )
             // 不渲染数字后，组号与三态都只保留在无障碍描述里
