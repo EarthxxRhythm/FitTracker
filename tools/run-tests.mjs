@@ -35,6 +35,7 @@ const groups = [
       'tools/content/build-exercise-gifs-photo.test.mjs',
       'tools/content/exercise-photo-sources.test.mjs',
       'tools/content/build-exercise-gifs-3d.test.mjs',
+      'tools/harmony-device.test.mjs',
     ],
   },
   {

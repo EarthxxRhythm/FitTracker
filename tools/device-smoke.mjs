@@ -10,9 +10,11 @@
 //   node tools/device-smoke.mjs --android-install   # 安卓安装 debug APK + 启动应用 + 等待渲染后截图
 //   node tools/device-smoke.mjs --android-launch    # 只启动应用 + 截图（APK 已装）
 //   node tools/device-smoke.mjs --android-any-device # 允许用实体机（默认只认 MuMu 模拟器）
+//   node tools/device-smoke.mjs --harmony-start "Pura 90"           # 起模拟器（须与后续动作同一次调用）
+//   node tools/device-smoke.mjs --harmony-start "Pura 90" --harmony-install  # 鸿蒙全链路：起 → 装 HAP → 启动 → 解锁 → 判读 → 截图
+//   node tools/device-smoke.mjs --harmony-launch    # 鸿蒙只启动应用 + 判读 + 截图（HAP 已装）
 //   node tools/device-smoke.mjs --harmony-test      # 鸿蒙额外跑 ohosTest（需已构建测试包）
 
-import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
@@ -21,68 +23,16 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const androidDir = path.join(repoRoot, 'apps', 'android');
 
+// HAP 产物与测试包的构建不属于本脚本：先 devecocli build --product default。
+// 三态口径：显式请求了动作（--harmony-start/--harmony-install/--harmony-launch/--harmony-test）时，
+// 动作链上任一步失败一律 FAIL——显式请求的失败不是「环境现状」；只有裸跑（未请求任何动作）
+// 且无设备才 SKIP，且 details 首项是机器可判标记串 SKIP:HARMONY_NO_TARGET（CI 可 grep）。
+
 const PASS = 'PASS';
 const FAIL = 'FAIL';
 const SKIP = 'SKIP';
 
-/** 解析 `hdc list targets -v`：UART 目标不可用于自动化（同 hdc-targets.ps1 的口径）。 */
-export function parseHdcTargets(raw) {
-  const out = [];
-  if (typeof raw !== 'string') return out;
-  for (const rawLine of raw.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (line.length === 0) continue;
-    if (line === '[Empty]') continue;
-    if (line.startsWith('[List')) continue;
-    const parts = line.split(/\s+/);
-    if (parts.length < 3) continue;
-    out.push({ id: parts[0], transport: parts[1], state: parts[2], raw: line });
-  }
-  return out;
-}
-
-/** 从 hdc 目标里挑出可用于自动化的（排除 UART，要求 Ready/Connected）。 */
-export function pickHdcTarget(targets) {
-  const usable = (targets || []).filter((t) => t.transport !== 'UART');
-  return usable.find((t) => t.state === 'Ready' || t.state === 'Connected') || null;
-}
-
-function runHdc() {
-  const res = spawnSync('hdc', ['list', 'targets', '-v'], { encoding: 'utf8' });
-  if (res.error) return { ok: false, reason: `hdc 调用失败：${res.error.message}`, raw: '' };
-  return { ok: true, raw: `${res.stdout || ''}${res.stderr || ''}` };
-}
-
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-/**
- * 轮询等待鸿蒙目标就绪。
- * 为什么必须轮询：模拟器 boot 完成前 hdc 会经历 `Offline → 短暂 Connected → Offline` 抖动
- * （实测：devecocli emulator start 后 10s 曾出现 Connected，随即转 Offline，boot 完成约需 50-60s）。
- * 单次采样会把这种抖动误判成"设备没起来"，从而把可用的设备报成 SKIP。
- */
-async function waitForHdcTarget({ maxWaitSeconds = 60, pollSeconds = 5, log = () => {} } = {}) {
-  const deadline = Date.now() + maxWaitSeconds * 1000;
-  let lastTargets = [];
-  let lastError = null;
-
-  for (;;) {
-    const hdc = runHdc();
-    if (!hdc.ok) {
-      lastError = hdc.reason;
-    } else {
-      lastTargets = parseHdcTargets(hdc.raw);
-      const target = pickHdcTarget(lastTargets);
-      if (target) return { target, targets: lastTargets, error: null };
-    }
-
-    if (Date.now() >= deadline) {
-      return { target: null, targets: lastTargets, error: lastError };
-    }
-    log(`等待鸿蒙目标就绪…（剩余 ${Math.max(0, Math.round((deadline - Date.now()) / 1000))}s）`);
-    await sleep(pollSeconds * 1000);
-  }
-}
 
 async function checkAndroid(flags, log) {
   // 复用 android-device.mjs 的执行层，避免第二套设备发现逻辑
@@ -137,38 +87,75 @@ async function checkAndroid(flags, log) {
   }
 }
 
+/**
+ * 鸿蒙端检查。执行层复用 apps\harmony\tools\harmony-device.mjs（动态 import，与安卓端形态同构）。
+ *
+ * 为什么执行层单独成文件：解析/判读纯函数要能被 node --test 覆盖、且 CLI/冒烟/测试三处
+ * 共用一套判据——「有没有装、起没起来、画面在哪」不能有第二套口径。
+ */
 async function checkHarmony(flags, log) {
+  const mod = await import(pathToFileURL(path.join(repoRoot, 'apps', 'harmony', 'tools', 'harmony-device.mjs')).href);
   const waitSeconds = Number(flags['harmony-wait']) > 0 ? Number(flags['harmony-wait']) : 60;
-  const { target, targets, error } = await waitForHdcTarget({ maxWaitSeconds: waitSeconds, pollSeconds: 5, log });
+  const explicitAction = Boolean(
+    flags['harmony-start'] || flags['harmony-install'] || flags['harmony-launch'] || flags['harmony-test'],
+  );
+  const startName = typeof flags['harmony-start'] === 'string' ? flags['harmony-start'] : '';
+  const details = [];
 
-  if (error) return { status: FAIL, details: [error] };
-
-  if (!target) {
-    const seen = targets.length ? targets.map((t) => `${t.id}/${t.transport}/${t.state}`).join(', ') : '（空）';
-    return {
-      status: SKIP,
-      details: [
-        `等待 ${waitSeconds}s 后仍无可用鸿蒙设备/模拟器`,
-        `hdc 现有目标：${seen}`,
-        '在持久终端里跑 devecocli emulator start "<name>"（本机可用：Pura 90），boot 约需 50-60s',
-      ],
-    };
-  }
-
-  const details = [`目标 ${target.id}（${target.transport}/${target.state}）`];
-  if (flags['harmony-test']) {
-    const script = path.join(repoRoot, 'apps', 'harmony', 'tools', 'ohos-test.ps1');
-    log(`执行 ohosTest：${path.relative(repoRoot, script)}`);
-    const res = spawnSync('powershell', ['-ExecutionPolicy', 'Bypass', '-File', script], {
-      stdio: 'inherit',
-      cwd: path.join(repoRoot, 'apps', 'harmony'),
-    });
-    if (res.status !== 0) {
-      return { status: FAIL, details: [...details, `ohos-test.ps1 退出码 ${res.status}`] };
+  try {
+    // 起模拟器（可选）：必须与后续动作同一次调用——模拟器随启动它的进程树回收（文档三次实测）。
+    if (startName) {
+      log(`启动模拟器 "${startName}"（约 50-70s，起+用须同一次调用）…`);
+      const started = await mod.startEmulator(startName, { timeoutSeconds: Math.max(waitSeconds, 120) });
+      details.push(`模拟器已起：${started.target.id}（${started.target.transport}/${started.target.state}）`);
     }
-    details.push('ohosTest：通过');
+
+    const { target } = await mod.ensureTarget({ timeoutSeconds: waitSeconds });
+    details.push(`目标 ${target.id}（${target.transport}/${target.state}）`);
+
+    if (flags['harmony-install']) {
+      const installed = mod.installHap({});
+      details.push(`安装：${path.basename(installed.hap)}`);
+    }
+
+    if (flags['harmony-install'] || flags['harmony-launch']) {
+      // 启动 + 判读：launchApp 只在 classifyPagePath === 'app' 时正常返回；
+      // 锁屏/桌面/未知一律 LAUNCH_FAILED——「aa start 返回 ok」不构成「应用已启动」的证据。
+      const launched = await mod.launchApp({ unlock: !flags['harmony-no-unlock'] });
+      details.push(
+        `启动：判读 ${launched.verdict}（pagePath=${launched.pagePath || '（空）'}${launched.unlocked ? '，经解锁' : ''}）`,
+      );
+      const out = path.join(
+        repoRoot,
+        'apps',
+        'harmony',
+        'test_run',
+        'harmony-smoke',
+        `device-smoke-${Date.now()}.jpeg`,
+      );
+      const shot = mod.shoot({ out });
+      details.push(`截图 ${path.relative(repoRoot, shot.path)}（${shot.bytes} 字节，${shot.format}）`);
+    }
+
+    if (flags['harmony-test']) {
+      log('执行 ohosTest（ohos-test.ps1）…');
+      mod.runOhosTest({ extraArgs: [] });
+      details.push('ohosTest：通过（只代表用例绿，不含应用内启动判读）');
+    }
+
+    return { status: PASS, details };
+  } catch (error) {
+    const code = error && error.code ? error.code : 'ERROR';
+    const message = error && error.message ? error.message : String(error);
+    // 裸跑且无设备 → SKIP（环境现状，不计为通过）；显式请求动作后失败 → FAIL。
+    if (code === 'NO_TARGETS' && !explicitAction) {
+      return {
+        status: SKIP,
+        details: ['SKIP:HARMONY_NO_TARGET', `等待 ${waitSeconds}s 后仍无可用鸿蒙设备/模拟器`, message],
+      };
+    }
+    return { status: FAIL, details: [...details, `${code}: ${message}`] };
   }
-  return { status: PASS, details };
 }
 
 function writeSummary(rows, outPath) {

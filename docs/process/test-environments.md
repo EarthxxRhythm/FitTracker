@@ -3,7 +3,7 @@
 > **层级**：L2 展开
 > **最后核对**：2026-11-01
 > **上位文档**：`AGENTS.md`（冲突以 L1 为准）
-> **状态**：现行（2026-11-01 安卓补测：应用内启动已验证落到登录页；instrumented 断言已修绿——`setCurrentState` 主线程崩溃已修、`am instrument` 报 OK 2 tests，但 gradle `connectedDebugAndroidTest` 仍因 instrumentation 进程退出码 -1 判 FAILED，遗留待查——见「安卓：MuMu 模拟器」与「本文的验证边界」）
+> **状态**：现行（2026-11-01 安卓补测：应用内启动已验证落到登录页；instrumented 断言已修绿——`setCurrentState` 主线程崩溃已修、`am instrument` 报 OK 2 tests，但 gradle `connectedDebugAndroidTest` 仍因 instrumentation 进程退出码 -1 判 FAILED，遗留待查——见「安卓：MuMu 模拟器」与「本文的验证边界」。鸿蒙端：脚本化入口已文档化，但**应用内启动仍为未验证**——判读口径见「本文的验证边界」）
 > **路径基准**：命令中 `tools\…` 相对 `apps\harmony\`；`gradlew` 相对 `apps\android\`
 > **适用端**：双端
 
@@ -21,16 +21,44 @@
 ```bash
 devecocli emulator start "<name>"    # 模拟器名，如 "Pura 90"
 devecocli run                        # 安装并启动当前构建产物
-devecocli ui screenshot --path <out> # 取图
+hdc shell snapshot_display -f /data/local/tmp/x.jpeg  # 取图（远端固件只认 .jpeg；`devecocli ui screenshot` 未取证，勿用）
 ```
 
 **证据**：`docs\ui\ui-final-acceptance-runbook.md:13`、`docs\release\gongan-beian-form.md:84`（`devecocli emulator start "Pura 90"`）。
+
+**取图口径（2026-11-01 收口）**：`devecocli ui screenshot` 在本仓库验证链里**没有取证记录**，不要照抄。现行取图是
+`hdc shell snapshot_display -f <remote>.jpeg` + `hdc file recv <remote> <local>`——**远端固件只接受 `.jpeg` 后缀**
+（先例：`tools\visual-diff\capture-screenshot.ps1` 顶部 Flow 注释、`tools\collect-screens.ps1:72`）。
+本地要 `.png` 须显式转换（PowerShell 无原生 PNG 编码器，见同一脚本 Flow 注释第 3 条）；不转换就按 `.jpeg` 落盘并校验 JPEG 魔数。
 
 **装 HAP**（已启动模拟器、`hdc` 可连时）：
 
 ```bash
 hdc install -r entry/build/default/outputs/default/entry-default-signed.hap
 ```
+
+**脚本化入口**（`apps\harmony` 下，本仓库新增；与安卓段 `android-device.mjs` 同构）：
+
+```bash
+node tools/harmony-device.mjs check                      # hdc 目标发现 + 就绪断言（无目标 → 退出码 1 + NO_TARGETS）
+node tools/harmony-device.mjs start --name "Pura 90"     # 起模拟器并等 boot（约 50–60s），起+用须同一次调用
+node tools/harmony-device.mjs install                    # 探测 unsigned→signed 候选 HAP，再 hdc install -r
+node tools/harmony-device.mjs launch                     # aa start 启动应用；命中锁屏尝试解锁并重试一次（解锁手段见 unlock 行；--no-unlock 关闭）
+node tools/harmony-device.mjs unlock                     # 只解锁（实现以探针 B 取证结论定稿；取证完成前不承诺具体手段）
+node tools/harmony-device.mjs shoot --out test_run/x.jpeg # hdc shell snapshot_display -f <remote>.jpeg + hdc file recv + JPEG|PNG 魔数校验
+node tools/harmony-device.mjs test                       # 转发 ohos-test.ps1（等价 device-smoke 的 --harmony-test）
+
+# 一条命令全链路（起模拟器 → 装 → 启动 → 解锁 → 截图）：
+node tools/device-smoke.mjs --harmony-start "Pura 90" --harmony-install
+```
+
+失败时统一以退出码 1 + `❌ <CODE>: <消息>` 收尾，不抛泛化错误（`HDC_NOT_FOUND` / `DEVECOCLI_NOT_FOUND` /
+`NO_TARGETS` / `EMULATOR_START_FAILED` / `HAP_NOT_FOUND` / `INSTALL_FAILED` / `LAUNCH_FAILED` /
+`SCREEN_LOCKED` / `SCREENSHOT_FAILED`）。`INSTALL_FAILED` 命中 `9568332` 时附加「设备上已装 signed 包」的指引。
+
+⚠️ **`start` 之后的使用动作必须落在同一次 shell 调用内**：模拟器随启动它的进程树一起被回收（见下「已知坑」
+的推论陷阱），单独一次调用 `start`、再另起一次调用 `launch` 一定拿不到设备。所以全链路请直接用上面那条
+`device-smoke --harmony-start ...`——它在同一次调用内完成「起 → 装 → 启动 → 解锁 → 截图」。
 
 **已知坑**：
 
@@ -192,11 +220,20 @@ node tools/device-smoke.mjs
 
 **SKIP 不等于 PASS**：设备没启动时该端标 SKIP 并在摘要里写明原因与下一步；退出码不因此变 1（未启动是环境状态不是代码缺陷），但摘要显式写「不计为通过」，避免"没验"被读成"验过了"。
 
-可选参数：`--android-install`（安卓额外构建并安装 debug APK）、`--harmony-test`（鸿蒙额外跑 `ohos-test.ps1`）。
+可选参数：`--android-install`（安卓额外构建并安装 debug APK）、`--android-launch`（安卓只启动 + 截图）、
+`--harmony-start <模拟器名>`（先起鸿蒙模拟器再继续后续动作）、`--harmony-install`（鸿蒙额外装 HAP + 启动 + 截图）、
+`--harmony-launch`（鸿蒙只启动 + 截图，HAP 已装）、`--harmony-test`（鸿蒙额外跑 `ohos-test.ps1`）、
+`--harmony-wait <秒>`（无设备时的轮询上限，默认 60——小于 boot 时间必然误报）。
 
+> **「起 + 用同一调用」是鸿蒙端的硬约束**：模拟器的存活绑定于启动它的那个进程树（见上文「模拟器的存活绑定」），
+> 跨调用复用一定得到 `SKIP`。因此 `--harmony-start` 不是可选项而是正常形态：它把 `devecocli emulator start`
+> 与随后的 `check` / `--harmony-install` / `--harmony-launch` / 截图**放进同一次调用**。
+> 不带 `--harmony-start` 时脚本只轮询已有目标——只有模拟器已在同一进程链内、或人工在持久终端里长驻时才可能命中。
+>
 > `--harmony-test` 会以脚本默认的 **unsigned** 包路径调用 `ohos-test.ps1`；设备上已装 signed 包时会撞 `code:9568332`，此时应绕开该开关、直接调 `ohos-test.ps1` 并显式传 `-DefaultHapPath` / `-TestHapPath` 指向 signed 包。
 >
-> 鸿蒙端跑这条命令前，模拟器必须在**同一次 shell 调用内**先启动（见上文「模拟器的存活绑定」）；跨调用复用一定得到 `SKIP`。
+> `--harmony-test` 的 PASS 判据**独立于**「应用内启动」：它只代表 `ohos-test.ps1` 退出码为 0（ohosTest 用例通过），
+> 不包含 `launch`/`shoot` 与界面判读——不要把「`ohosTest` 绿」读成「应用启动已验证」。
 
 ## 什么时候必须上设备
 
@@ -224,5 +261,15 @@ node tools/device-smoke.mjs
 - **安卓段（2026-10-27 实测）**：发现链路脚本化并单测覆盖（`apps\android\tools\android-device.test.mjs` 23 例，实测 **23/23 pass**（2026-11-01 复测；10-27 时为 16 例））；设备连通性**已通过**——MuMu 实例开机、`adb connect 127.0.0.1:16384` 后 `adb devices` 出现 `device`，`device-smoke` 判 PASS 并落截图。
 - **安卓段（2026-11-01 补测）**：应用内启动**已验证**（`am start` 后前台焦点=`com.earthrhythm.fittracker/MainActivity`，截图 `apps\test_run\android-e2e\app-launch.png`）；instrumented 断言**已修绿**（`am instrument` OK 2 tests / XML failures=0），但 gradle `connectedDebugAndroidTest` 因 instrumentation 退出码 -1 仍 FAILED（**遗留待查**，见「androidTest 实跑」节）。
 - **跨端**：`node tools\device-smoke.mjs` 2026-10-27 跑出双端 **PASS**，摘要 `test_run\device-smoke-summary.md`。
-- **仍未验证（不得称为已验）**：鸿蒙应用内启动（`test_run\harmony-smoke\smoke.png` 停在锁屏）、`ohos-test.ps1`（ohosTest 用例）、instrumentation 退出码 -1 的根因。
+- **鸿蒙「应用内启动」的判读口径（2026-11-01 复核：仍未达成）**：判为「已在应用内启动」须同时满足
+  ① 截图或 UI 树（`devecocli ui layout --format json` 或 `hdc shell uitest dumpLayout -p <remote>`；两条原语在仓库各有先例——
+     `tools\scroll-assert.py` / `tools\workout-chain-smoke.ps1:89`）命中**应用自家界面**（登录页文案如「欢迎回来」/「手机号」/「验证码」，或主壳底部 tab），且
+  ② **不命中**锁屏/桌面特征（锁屏样式页、桌面图标网格）。
+  ⚠️ 两条判读原语都**未在「解锁后的应用前台」这一场景取证**。若二者在该场景均不可用或返回不可解析内容，
+  本条判读降级为「截图留档 + 人工判读」，显式标注「UI 判读未自动化」——**不得**据此判 PASS。
+  特征集未校准前一律返回 `unknown`（fail-closed），`unknown` 绝不进入 PASS 分支。
+  ⇒ 「有截图文件」「模拟器在跑」「`aa start` 返回 ok」**三者单独都不构成证据**——画面停在锁屏或桌面一律判未验证。
+  当前最新证据仍是 `apps\harmony\test_run\harmony-smoke\smoke.png`（**画面停在锁屏**），故鸿蒙应用内启动**仍为未验证**。
+  闭合方式：脚本化入口（`harmony-device.mjs launch` 含锁屏检测 + 解锁重试（解锁手段取证中）+ `shoot`）落地后重跑，把新截图路径写进本节，才可移出下面的「仍未验证」清单。
+- **仍未验证（不得称为已验）**：鸿蒙应用内启动（判读口径见上一条；最新证据 `apps\harmony\test_run\harmony-smoke\smoke.png` 停在锁屏）、`ohos-test.ps1`（ohosTest 用例）、instrumentation 退出码 -1 的根因。
 - 本文档只覆盖模拟器路径，真机路径见各端的 release runbook
