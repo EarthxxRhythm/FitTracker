@@ -2,11 +2,14 @@
 // 双端对等校验：把「两端要同步」从口号变成可检查的约束。
 //
 // 为什么需要它：鸿蒙 19 个注册页、安卓 20 个 Screen 目录，跑同一套业务，但 apps/android/
-// 下此前零份 .md——「一端做了、另一端没做」类缺陷单看一端看不出来。本脚本校验四件事：
+// 下此前零份 .md——「一端做了、另一端没做」类缺陷单看一端看不出来。本脚本校验五件事：
 //   1. main_pages.json 的每个注册页，必须出现在 dual-platform-parity.md 的对等清单里
 //   2. 安卓 screens/ 下每个目录，必须在清单里有对应行，或在豁免表里
 //   3. 安卓 applicationId 必须等于鸿蒙 bundleName（上架身份统一）
 //   4. 豁免表每条都要写「理由」与「复核方式」——空白豁免等于没写
+//   5. 头像色键配色：AvatarTint.ets 的 15 个字面色值 vs ProfileScreen.kt avatarTintOf 的 15 个
+//      Color（按 ARGB 语义逐键逐值比对）。覆盖 5 个具名键；默认翡翠键走 PrototypeTokens /
+//      FtColor 两条 token 路径，本轮不覆盖——别把这条门禁读成「头像配色全量守恒」
 //
 // 规则说明见 docs/process/dual-platform-parity.md。
 // 运行：node tools/check-parity.mjs（cwd 任意，路径由本文件位置推导）
@@ -24,6 +27,14 @@ const MAIN_PAGES = resolve(appRoot, 'entry/src/main/resources/base/profile/main_
 const ANDROID_SCREENS = resolve(repoRoot, 'apps/android/app/src/main/java/com/fittracker/app/ui/screens')
 const ANDROID_GRADLE = resolve(repoRoot, 'apps/android/app/build.gradle.kts')
 const HARMONY_APP = resolve(appRoot, 'AppScope/app.json5')
+const HARMONY_AVATAR_TINT = resolve(
+  appRoot,
+  'entry/src/main/ets/features/pencil/components/AvatarTint.ets'
+)
+const ANDROID_PROFILE_SCREEN = resolve(
+  repoRoot,
+  'apps/android/app/src/main/java/com/fittracker/app/ui/screens/profile/ProfileScreen.kt'
+)
 
 function fail(message) {
   throw new Error(`[dual-platform] ${message}`)
@@ -60,6 +71,136 @@ function splitRow(line) {
 /** 去掉反引号与两端空白。 */
 function clean(text) {
   return text.replace(/^`+|`+$/g, '').trim()
+}
+
+/** 头像配色的具名色键（不含空串默认翡翠键）：与 AvatarTint.ets 的 5 个 if 分支同口径。 */
+const AVATAR_TINT_KEYS = ['gold', 'sky', 'rose', 'violet', 'amber']
+/** 每个色键的三个色值字段。 */
+const AVATAR_TINT_FIELDS = ['fill', 'text', 'border']
+/** 预期字面色值总数：5 键 × 3 值。 */
+const EXPECTED_TINT_VALUES = AVATAR_TINT_KEYS.length * AVATAR_TINT_FIELDS.length
+
+/**
+ * 归一成 8 位大写 ARGB（`#AARRGGBB`）。
+ * 鸿蒙侧 `#RRGGBB` 视为不透明，补 `FF` 前缀；已是 8 位的 `#AARRGGBB` 原样保留。
+ * 安卓 `Color(0xAARRGGBB)` 取 hex 后走同一函数，双端才可比。
+ */
+function normalizeArgb(value) {
+  const hex = String(value).replace(/^#/, '').replace(/^0x/i, '').toUpperCase()
+  return hex.length === 6 ? `#FF${hex}` : `#${hex}`
+}
+
+/**
+ * 解析鸿蒙 `AvatarTint.ets` 的 5 个具名色键配色。
+ *
+ * 只认 `if (key === 'gold') { return { fill: '#..', text: '#..', border: '#..' } }` 这一种写法；
+ * 结构被重构成 switch/Map 时正则失配 → `valueCount` 不达 15，由 checkAvatarTintParity 判红
+ * （「解析欠量即红」是这条门禁的硬前提，不是实现细节）。
+ *
+ * @param {string} text
+ * @returns {{tints: Record<string, {fill: string, text: string, border: string}>, valueCount: number}}
+ */
+export function parseHarmonyAvatarTints(text) {
+  const pattern =
+    /if\s*\(\s*key\s*===\s*['"]([A-Za-z]+)['"]\s*\)\s*\{\s*return\s*\{\s*fill:\s*['"](#[0-9A-Fa-f]{6,8})['"]\s*,\s*text:\s*['"](#[0-9A-Fa-f]{6,8})['"]\s*,\s*border:\s*['"](#[0-9A-Fa-f]{6,8})['"]/g
+  const tints = {}
+  let valueCount = 0
+  for (const match of text.matchAll(pattern)) {
+    tints[match[1]] = {
+      fill: normalizeArgb(match[2]),
+      text: normalizeArgb(match[3]),
+      border: normalizeArgb(match[4])
+    }
+    valueCount += AVATAR_TINT_FIELDS.length
+  }
+  return { tints, valueCount }
+}
+
+/**
+ * 解析安卓 `ProfileScreen.kt` 里 `avatarTintOf` 的 5 个 when 分支。
+ *
+ * 只认 `"gold" -> AvatarTint(Color(0xAARRGGBB), Color(..), Color(..))`。
+ * 同鸿蒙侧：匹配不足由 checkAvatarTintParity 判红，不允许静默通过。
+ *
+ * @param {string} text
+ * @returns {{tints: Record<string, {fill: string, text: string, border: string}>, valueCount: number}}
+ */
+export function parseAndroidAvatarTints(text) {
+  const pattern =
+    /"([A-Za-z]+)"\s*->\s*AvatarTint\(\s*Color\(\s*0x([0-9A-Fa-f]{8})\s*\)\s*,\s*Color\(\s*0x([0-9A-Fa-f]{8})\s*\)\s*,\s*Color\(\s*0x([0-9A-Fa-f]{8})\s*\)\s*\)/g
+  const tints = {}
+  let valueCount = 0
+  for (const match of text.matchAll(pattern)) {
+    tints[match[1]] = {
+      fill: normalizeArgb(match[2]),
+      text: normalizeArgb(match[3]),
+      border: normalizeArgb(match[4])
+    }
+    valueCount += AVATAR_TINT_FIELDS.length
+  }
+  return { tints, valueCount }
+}
+
+/**
+ * 头像配色双端比对（第 5 项校验）。
+ *
+ * 顺序即承诺：
+ *   1. 先断言「解析恰好 5 键 / 15 值」——欠量或超量一律红：正则失配会让门禁退化成永远通过的
+ *      no-op，比色值漂移本身更危险；
+ *   2. 再做键集合双向相等——只从鸿蒙遍历到安卓会漏掉「安卓单端新增色键」；
+ *   3. 最后逐键逐值按 ARGB 比，差异直接点名键与字段。
+ *
+ * @param {{tints: Record<string, object>, valueCount: number}} harmony
+ * @param {{tints: Record<string, object>, valueCount: number}} android
+ * @returns {string[]} findings
+ */
+export function checkAvatarTintParity(harmony, android) {
+  const findings = []
+  const harmonyKeys = Object.keys(harmony.tints)
+  const androidKeys = Object.keys(android.tints)
+
+  const describeMiss = (side, parsed, keys) =>
+    `${side}解析出 ${keys.length} 键 / ${parsed.valueCount} 值，预期 ${AVATAR_TINT_KEYS.length} 键 / ` +
+    `${EXPECTED_TINT_VALUES} 值——解析异常，门禁可能已失效（源码结构变了？先修解析再谈色值一致）`
+
+  if (
+    harmonyKeys.length !== AVATAR_TINT_KEYS.length ||
+    harmony.valueCount !== EXPECTED_TINT_VALUES
+  ) {
+    findings.push(describeMiss('AvatarTint.ets 头像配色', harmony, harmonyKeys))
+  }
+  if (
+    androidKeys.length !== AVATAR_TINT_KEYS.length ||
+    android.valueCount !== EXPECTED_TINT_VALUES
+  ) {
+    findings.push(describeMiss('ProfileScreen.kt avatarTintOf ', android, androidKeys))
+  }
+
+  for (const key of harmonyKeys) {
+    if (!Object.prototype.hasOwnProperty.call(android.tints, key)) {
+      findings.push(`头像色键「${key}」只在鸿蒙侧存在，安卓 avatarTintOf 缺该分支`)
+    }
+  }
+  for (const key of androidKeys) {
+    if (!Object.prototype.hasOwnProperty.call(harmony.tints, key)) {
+      findings.push(`头像色键「${key}」只在安卓侧存在，鸿蒙 AvatarTint.ets 缺该分支`)
+    }
+  }
+
+  for (const key of harmonyKeys) {
+    if (!Object.prototype.hasOwnProperty.call(android.tints, key)) continue
+    for (const field of AVATAR_TINT_FIELDS) {
+      const harmonyValue = harmony.tints[key][field]
+      const androidValue = android.tints[key][field]
+      if (harmonyValue !== androidValue) {
+        findings.push(
+          `头像色值漂移：键「${key}」的 ${field} 鸿蒙 ${harmonyValue} ≠ 安卓 ${androidValue}`
+        )
+      }
+    }
+  }
+
+  return findings
 }
 
 /**
@@ -234,6 +375,18 @@ function main() {
     bundleName: appText === null ? null : parseBundleName(appText)
   })
 
+  // 5. 头像色键配色：两端 15 个字面色值逐键逐值比（源码文件缺失即红，不退化成跳过）
+  const harmonyTintText = readOrNull(HARMONY_AVATAR_TINT)
+  if (harmonyTintText === null) fail(`鸿蒙头像配色文件不存在：${HARMONY_AVATAR_TINT}`)
+  const androidProfileText = readOrNull(ANDROID_PROFILE_SCREEN)
+  if (androidProfileText === null) fail(`安卓 ProfileScreen 文件不存在：${ANDROID_PROFILE_SCREEN}`)
+  findings.push(
+    ...checkAvatarTintParity(
+      parseHarmonyAvatarTints(harmonyTintText),
+      parseAndroidAvatarTints(androidProfileText)
+    )
+  )
+
   if (findings.length > 0) {
     console.error(`[dual-platform] ${findings.length} 处不一致：`)
     for (const finding of findings) console.error(`  - ${finding}`)
@@ -242,7 +395,8 @@ function main() {
 
   console.log(
     `[dual-platform] ${parsed.parity.length} 条对等关系、${parsed.exemptions.length} 条豁免、` +
-      `${screenDirs.length} 个安卓屏目录、身份 ${profile.src.length}/${screenDirs.length} 双向覆盖一致`
+      `${screenDirs.length} 个安卓屏目录、身份 ${profile.src.length}/${screenDirs.length} 双向覆盖一致、` +
+      `头像色 5 具名键 ${EXPECTED_TINT_VALUES} 字面值一致（默认翡翠键走 token，本轮不覆盖）`
   )
 }
 
