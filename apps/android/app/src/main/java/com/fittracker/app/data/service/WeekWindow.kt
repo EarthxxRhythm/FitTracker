@@ -57,8 +57,8 @@ object WeekWindow {
             timeInMillis = start
             add(Calendar.DAY_OF_MONTH, 6)
         }
-        return WorkoutSessionService.formatDate(start) to
-            WorkoutSessionService.formatDate(endInclusive.timeInMillis)
+        return DateUtils.formatDate(start) to
+            DateUtils.formatDate(endInclusive.timeInMillis)
     }
 
     /**

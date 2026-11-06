@@ -2,6 +2,7 @@ package com.fittracker.app.data.service.stats
 
 import com.fittracker.app.data.model.WorkoutSession
 import com.fittracker.app.data.model.WorkoutSet
+import com.fittracker.app.data.service.DateUtils
 import com.fittracker.app.data.service.WeekStart
 import com.fittracker.app.data.service.WeekWindow
 import java.util.Calendar
@@ -303,15 +304,8 @@ object StatsDashboardService {
         return "${date.get(Calendar.YEAR)} 年 ${date.get(Calendar.MONTH) + 1} 月"
     }
 
-    /** 源 `formatDate`（`:237`）：`YYYY-MM-DD`（本地时区）。 */
-    private fun formatDate(timestamp: Long): String {
-        val date = calendarFrom(timestamp)
-        return "${date.get(Calendar.YEAR)}-${padTwoDigits(date.get(Calendar.MONTH) + 1)}-" +
-            padTwoDigits(date.get(Calendar.DAY_OF_MONTH))
-    }
-
-    /** 源 `padTwoDigits`（`:243`）。 */
-    private fun padTwoDigits(value: Int): String = if (value < 10) "0$value" else value.toString()
+    /** 源 `formatDate`（`:237`）：`YYYY-MM-DD`（本地时区）。委托 [DateUtils]。 */
+    private fun formatDate(timestamp: Long): String = DateUtils.formatDate(timestamp)
 
     /** 内联自 `WorkoutSummaryService.ets:81 formatDuration`（该服务未在本次范围）。 */
     private fun formatDurationText(durationSeconds: Int): String {

@@ -179,12 +179,7 @@ object WorkoutSessionService {
      * 时间戳 → `YYYY-MM-DD`（本地时区）。口径与鸿蒙持久化桥
      * `WorkoutSessionPersistenceBridgeService.formatDate` 一致——用于周窗口边界与日期归一。
      */
-    fun formatDate(millis: Long): String {
-        val calendar: Calendar = Calendar.getInstance()
-        calendar.timeInMillis = millis
-        return "${calendar.get(Calendar.YEAR)}-${padTwoDigits(calendar.get(Calendar.MONTH) + 1)}-" +
-            padTwoDigits(calendar.get(Calendar.DAY_OF_MONTH))
-    }
+    fun formatDate(millis: Long): String = DateUtils.formatDate(millis)
 
     /** 当前星期（JS `Date.getDay()` 口径：0=周日…6=周六）。 */
     private fun jsDayOfWeek(millis: Long): Int {
@@ -192,7 +187,4 @@ object WorkoutSessionService {
         calendar.timeInMillis = millis
         return calendar.get(Calendar.DAY_OF_WEEK) - 1 // Calendar 周日=1 → 0=周日
     }
-
-    /** 源占位对象 `padTwoDigits`（桥内）——两位补零。 */
-    private fun padTwoDigits(value: Int): String = if (value < 10) "0$value" else value.toString()
 }

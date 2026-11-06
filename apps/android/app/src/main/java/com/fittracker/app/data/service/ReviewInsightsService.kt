@@ -413,15 +413,8 @@ object ReviewInsightsService {
         return floor(parsed).toInt()
     }
 
-    /** 源 `formatDate`（`ReviewInsightsService.ets:364`）：`YYYY-MM-DD`（本地时区）。 */
-    private fun formatDate(timestamp: Long): String {
-        val date = Calendar.getInstance().apply { timeInMillis = timestamp }
-        return "${date.get(Calendar.YEAR)}-${padTwoDigits(date.get(Calendar.MONTH) + 1)}-" +
-            padTwoDigits(date.get(Calendar.DAY_OF_MONTH))
-    }
-
-    /** 源 `padTwoDigits`（`ReviewInsightsService.ets:370`）。 */
-    private fun padTwoDigits(value: Int): String = if (value < 10) "0$value" else value.toString()
+    /** 源 `formatDate`（`ReviewInsightsService.ets:364`）：`YYYY-MM-DD`（本地时区）。委托 [DateUtils]。 */
+    private fun formatDate(timestamp: Long): String = DateUtils.formatDate(timestamp)
 
     /**
      * 内联自 `TrainingDayLabelService.ets:9 formatCompact`（该服务在 Kotlin 侧暂无独立单例；

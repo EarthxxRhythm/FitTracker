@@ -4,7 +4,7 @@ import com.fittracker.app.data.model.WorkoutSession
 import com.fittracker.app.data.model.WorkoutSet
 import com.fittracker.app.data.model.estimateOneRepMax
 import com.fittracker.app.data.service.ContentRepository
-import java.util.Calendar
+import com.fittracker.app.data.service.DateUtils
 import kotlin.math.roundToInt
 
 /** 单动作用户纪录（源 `PersonalRecordService.ets:9` `ExercisePersonalRecord`）。 */
@@ -253,13 +253,6 @@ object PersonalRecordService {
     /** 源 `getExerciseName`（`:240`）。内容库未命中回落 `exerciseId`。 */
     private fun getExerciseName(exerciseId: String): String = exerciseNameResolver(exerciseId) ?: exerciseId
 
-    /** 源 `formatDate`（`:248`）：`YYYY-MM-DD`（本地时区）。 */
-    private fun formatDate(timestamp: Long): String {
-        val date = Calendar.getInstance().apply { timeInMillis = timestamp }
-        return "${date.get(Calendar.YEAR)}-${padTwoDigits(date.get(Calendar.MONTH) + 1)}-" +
-            padTwoDigits(date.get(Calendar.DAY_OF_MONTH))
-    }
-
-    /** 源 `padTwoDigits`（`:254`）。 */
-    private fun padTwoDigits(value: Int): String = if (value < 10) "0$value" else value.toString()
+    /** 源 `formatDate`（`:248`）：`YYYY-MM-DD`（本地时区）。委托 [DateUtils]。 */
+    private fun formatDate(timestamp: Long): String = DateUtils.formatDate(timestamp)
 }

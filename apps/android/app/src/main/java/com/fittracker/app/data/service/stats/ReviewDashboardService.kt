@@ -5,8 +5,8 @@ import com.fittracker.app.data.model.UserGoal
 import com.fittracker.app.data.model.WorkoutSession
 import com.fittracker.app.data.model.WorkoutSet
 import com.fittracker.app.data.service.ContentRepository
+import com.fittracker.app.data.service.DateUtils
 import com.fittracker.app.data.service.generatePlan
-import java.util.Calendar
 
 /** 单条最近训练记录（源 `ReviewDashboardService.ets:31` `ReviewRecentSessionRecord`）。 */
 data class ReviewRecentSessionRecord(
@@ -472,15 +472,8 @@ object ReviewDashboardService {
         return values
     }
 
-    /** 源 `formatDate`（`:351`）：`YYYY-MM-DD`（本地时区）。 */
-    private fun formatDate(timestamp: Long): String {
-        val date = Calendar.getInstance().apply { timeInMillis = timestamp }
-        return "${date.get(Calendar.YEAR)}-${padTwoDigits(date.get(Calendar.MONTH) + 1)}-" +
-            padTwoDigits(date.get(Calendar.DAY_OF_MONTH))
-    }
-
-    /** 源 `padTwoDigits`（`:359`）。 */
-    private fun padTwoDigits(value: Int): String = if (value < 10) "0$value" else value.toString()
+    /** 源 `formatDate`（`:351`）：`YYYY-MM-DD`（本地时区）。委托 [DateUtils]。 */
+    private fun formatDate(timestamp: Long): String = DateUtils.formatDate(timestamp)
 
     /**
      * 内联自 `TrainingDayLabelService.ets:9 formatCompact`（该服务未在本次范围）。

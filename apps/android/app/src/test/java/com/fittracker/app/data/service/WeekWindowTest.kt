@@ -1,7 +1,12 @@
 package com.fittracker.app.data.service
 
+import com.fittracker.app.data.service.stats.StatsDashboardService
+import java.lang.reflect.Method
 import java.util.Calendar
+import java.util.TimeZone
+import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Test
 
 /**
@@ -125,5 +130,137 @@ class WeekWindowTest {
         assertEquals("Oct 4 – 10", WeekWindow.weekRangeText(wednesday, WeekStart.SUNDAY, "en"))
         val oct1 = at(2026, 9, 1) // 2026-10-01 周四
         assertEquals("Sep 28 – Oct 4", WeekWindow.weekRangeText(oct1, WeekStart.MONDAY, "en"))
+    }
+}
+
+/**
+ * 周窗口「委托等价」交叉校验——服务内私有 `createWeekStart` / `mondayStart` 与
+ * [WeekWindow.weekRange] 的**周首 millis 逐值相等**。
+ *
+ * 为什么要反射进私有方法：`mod-weekwindow-dedup` 要把三处 `createWeekStart`
+ * （`ReviewInsightsService` / `stats.StatsDashboardService`）与 `mondayStart`
+ * （`BodyRecordService`）改为委托 [WeekWindow]，「行为保持」若无可执行断言就只是承诺。
+ * 这三处现在是 `private`，测试唯一的对照入口就是反射调用——它测的正是「原实现」与
+ * 「委托目标」在同一时间戳上是否给出同一结果，即重构前后的逐字节等价。
+ *
+ * 断言语义（每个样例 × 周一/周日两态）：
+ * 1. 三家服务的周首 millis == `WeekWindow.weekRange(...).first`；
+ * 2. 周首的日期字符串也逐字节相等（防「millis 相等但日期口径不同」的巧合）；
+ * 3. 窗口终点 == 起点 + 7 个日历日的零点（与 `weekRange` 的 `add(DAY_OF_MONTH, 7)` 同口径）。
+ *
+ * 时区：本类固定为 `America/New_York`（@Before 设定、@After 还原）——该时区含 DST 切换，
+ * 等价性必须在「周内跨夏令时边界」仍成立；选它是因为其切换点在 02:00，本地零点始终存在。
+ */
+class WeekWindowDelegationParityTest {
+
+    private lateinit var originalTimeZone: TimeZone
+
+    @Before
+    fun pinTimeZone() {
+        originalTimeZone = TimeZone.getDefault()
+        TimeZone.setDefault(TimeZone.getTimeZone("America/New_York"))
+    }
+
+    @After
+    fun restoreTimeZone() {
+        TimeZone.setDefault(originalTimeZone)
+    }
+
+    /** 本地时间构造（[hour] 缺省 12 = 正午，避开 DST 与日界）。 */
+    private fun at(
+        year: Int,
+        month0: Int,
+        day: Int,
+        hour: Int = 12,
+        minute: Int = 0,
+        second: Int = 0,
+    ): Long = Calendar.getInstance().apply {
+        clear()
+        set(year, month0, day, hour, minute, second)
+    }.timeInMillis
+
+    /** 某日零点的 7 个日历日之后（Calendar 归一跨月/跨年），作为窗口终点的独立口径。 */
+    private fun sevenDaysLater(startMillis: Long): Long {
+        val start = Calendar.getInstance().apply { timeInMillis = startMillis }
+        return Calendar.getInstance().apply {
+            clear()
+            set(start.get(Calendar.YEAR), start.get(Calendar.MONTH), start.get(Calendar.DAY_OF_MONTH) + 7)
+        }.timeInMillis
+    }
+
+    /**
+     * 反射调用服务内私有周首计算，统一折算为 millis。
+     *
+     * 方法缺失即判失败并给出迁移指引——不静默跳过：静默跳过会让「等价性已证」变成又一次假门。
+     */
+    private fun weekStartVia(target: Any, methodName: String, millis: Long, weekStart: WeekStart): Long {
+        val method: Method = try {
+            target.javaClass.getDeclaredMethod(
+                methodName,
+                Long::class.javaPrimitiveType!!,
+                WeekStart::class.java,
+            )
+        } catch (e: NoSuchMethodException) {
+            throw AssertionError(
+                "私有辅助 ${target.javaClass.simpleName}.$methodName(Long, WeekStart) 已不存在——" +
+                    "本交叉校验依赖该签名保留（内部改为委托 WeekWindow）；若已删除或改名，" +
+                    "请把断言迁移到新的委托入口，不要删掉这条等价证据。",
+                e,
+            )
+        }
+        method.isAccessible = true
+        return when (val result = method.invoke(target, millis, weekStart)) {
+            is Calendar -> result.timeInMillis
+            is Long -> result
+            else -> throw AssertionError("$methodName 返回类型未知：${result?.javaClass?.name}")
+        }
+    }
+
+    @Test
+    fun `服务私有周首计算与 weekRange 起止逐值相等`() {
+        val samples: List<Pair<String, Long>> = listOf(
+            "周中 2026-10-07 周三" to at(2026, 9, 7),
+            "跨月 2026-10-01 周四" to at(2026, 9, 1),
+            "跨年 2026-01-01 周四" to at(2026, 0, 1),
+            "周末 2026-10-10 周六" to at(2026, 9, 10),
+            "周日深夜 2026-10-11" to at(2026, 9, 11, 23, 59, 59),
+            "周日零点后 2026-10-04" to at(2026, 9, 4, 0, 0, 30),
+            "闰日 2024-02-29 周四" to at(2024, 1, 29),
+            "DST 春切前 2026-03-07" to at(2026, 2, 7, 1, 30),
+            "DST 春切后 2026-03-09" to at(2026, 2, 9, 23, 30),
+            "DST 秋切前 2026-10-31" to at(2026, 9, 31, 23, 30),
+            "DST 秋切后 2026-11-02" to at(2026, 10, 2, 1, 30),
+        )
+
+        for ((label, millis) in samples) {
+            for (weekStart in listOf(WeekStart.MONDAY, WeekStart.SUNDAY)) {
+                val (expectStart, expectEnd) = WeekWindow.weekRange(millis, weekStart)
+
+                assertEquals(
+                    "$label / $weekStart / ReviewInsightsService.createWeekStart",
+                    expectStart,
+                    weekStartVia(ReviewInsightsService, "createWeekStart", millis, weekStart),
+                )
+                assertEquals(
+                    "$label / $weekStart / StatsDashboardService.createWeekStart",
+                    expectStart,
+                    weekStartVia(StatsDashboardService, "createWeekStart", millis, weekStart),
+                )
+                assertEquals(
+                    "$label / $weekStart / BodyRecordService.mondayStart",
+                    expectStart,
+                    weekStartVia(BodyRecordService, "mondayStart", millis, weekStart),
+                )
+
+                // 日期字符串逐字节相等（防 millis 相等而日期口径不同的巧合）
+                assertEquals(
+                    "$label / $weekStart / 周首日期口径",
+                    WorkoutSessionService.formatDate(expectStart),
+                    DateUtils.formatDate(expectStart),
+                )
+                // 窗口终点：7 个日历日后的零点
+                assertEquals("$label / $weekStart / 窗口终点", sevenDaysLater(expectStart), expectEnd)
+            }
+        }
     }
 }
