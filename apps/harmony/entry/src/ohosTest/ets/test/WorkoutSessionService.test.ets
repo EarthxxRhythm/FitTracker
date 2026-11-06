@@ -14,6 +14,25 @@ import WorkoutSessionService, {
 
 const KEY_SESSIONS = 'sessions'
 
+/** ArkTS 禁止嵌套函数：构造器提升到模块顶层，供 countDistinctPlanDays 用例复用。 */
+function makePlanDaySession(id: string, planId: string, dayLabel: string, createdAt: string): WorkoutSession {
+  const session: WorkoutSession = {
+    id: id,
+    planId: planId,
+    planName: 'P',
+    dayLabel: dayLabel,
+    startTime: 1000,
+    endTime: 2000,
+    durationSeconds: 1000,
+    totalSets: 1,
+    totalVolume: 10,
+    notes: '',
+    exercises: [],
+    createdAt: createdAt
+  }
+  return session
+}
+
 class FakePreferencesStore extends SessionPreferencesStore {
   private sessionsJson: string = '[]'
 
@@ -324,68 +343,50 @@ export default function workoutSessionLogicTest(): void {
       const weekEnd = '2026-11-08'
       const dayLabels: string[] = ['周一 胸', '周三 背', '周五 腿']
 
-      function makeSession(id: string, planId: string, dayLabel: string, createdAt: string): WorkoutSession {
-        const session: WorkoutSession = {
-          id: id,
-          planId: planId,
-          planName: 'P',
-          dayLabel: dayLabel,
-          startTime: 1000,
-          endTime: 2000,
-          durationSeconds: 1000,
-          totalSets: 1,
-          totalVolume: 10,
-          notes: '',
-          exercises: [],
-          createdAt: createdAt
-        }
-        return session
-      }
-
       it('same dayLabel twice in one day counts as 1', 0, () => {
         const sessions: WorkoutSession[] = [
-          makeSession('s1', 'p1', '周一 胸', '2026-11-03'),
-          makeSession('s2', 'p1', '周一 胸', '2026-11-03')
+          makePlanDaySession('s1', 'p1', '周一 胸', '2026-11-03'),
+          makePlanDaySession('s2', 'p1', '周一 胸', '2026-11-03')
         ]
         expect(countDistinctPlanDays(sessions, 'p1', dayLabels, weekStart, weekEnd)).assertEqual(1)
       })
 
       it('same dayLabel across two days still counts as 1 (keyed by plan day)', 0, () => {
         const sessions: WorkoutSession[] = [
-          makeSession('s1', 'p1', '周一 胸', '2026-11-03'),
-          makeSession('s2', 'p1', '周一 胸', '2026-11-05')
+          makePlanDaySession('s1', 'p1', '周一 胸', '2026-11-03'),
+          makePlanDaySession('s2', 'p1', '周一 胸', '2026-11-05')
         ]
         expect(countDistinctPlanDays(sessions, 'p1', dayLabels, weekStart, weekEnd)).assertEqual(1)
       })
 
       it('empty dayLabel sessions are not counted', 0, () => {
         const sessions: WorkoutSession[] = [
-          makeSession('s1', 'p1', '', '2026-11-03'),
-          makeSession('s2', 'p1', '周一 胸', '2026-11-04')
+          makePlanDaySession('s1', 'p1', '', '2026-11-03'),
+          makePlanDaySession('s2', 'p1', '周一 胸', '2026-11-04')
         ]
         expect(countDistinctPlanDays(sessions, 'p1', dayLabels, weekStart, weekEnd)).assertEqual(1)
       })
 
       it('dayLabel outside current plan days is not counted', 0, () => {
         const sessions: WorkoutSession[] = [
-          makeSession('s1', 'p1', '周一 胸', '2026-11-03'),
-          makeSession('s2', 'p1', '周日 休息', '2026-11-04')
+          makePlanDaySession('s1', 'p1', '周一 胸', '2026-11-03'),
+          makePlanDaySession('s2', 'p1', '周日 休息', '2026-11-04')
         ]
         expect(countDistinctPlanDays(sessions, 'p1', dayLabels, weekStart, weekEnd)).assertEqual(1)
       })
 
       it('other plan sessions and out-of-window sessions are excluded', 0, () => {
         const sessions: WorkoutSession[] = [
-          makeSession('s1', 'p1', '周一 胸', '2026-11-03'),
-          makeSession('s2', 'p2', '周一 胸', '2026-11-03'),
-          makeSession('s3', 'p1', '周三 背', '2026-11-10')
+          makePlanDaySession('s1', 'p1', '周一 胸', '2026-11-03'),
+          makePlanDaySession('s2', 'p2', '周一 胸', '2026-11-03'),
+          makePlanDaySession('s3', 'p1', '周三 背', '2026-11-10')
         ]
         expect(countDistinctPlanDays(sessions, 'p1', dayLabels, weekStart, weekEnd)).assertEqual(1)
       })
 
       it('empty planId or empty days returns 0', 0, () => {
         const sessions: WorkoutSession[] = [
-          makeSession('s1', 'p1', '周一 胸', '2026-11-03')
+          makePlanDaySession('s1', 'p1', '周一 胸', '2026-11-03')
         ]
         const emptyLabels: string[] = []
         expect(countDistinctPlanDays(sessions, '', dayLabels, weekStart, weekEnd)).assertEqual(0)

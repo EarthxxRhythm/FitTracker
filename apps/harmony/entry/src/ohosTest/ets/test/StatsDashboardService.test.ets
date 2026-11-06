@@ -7,6 +7,13 @@ import StatsDashboardService, {
   countDistinctPlanDaysById
 } from '../../../main/ets/shared/services/StatsDashboardService'
 
+/** ArkTS 禁止嵌套函数：构造器提升到模块顶层，供 countDistinctPlanDaysById 用例复用。 */
+function makePlanDayIdSession(sessionId: string, planId: string, dayId: string, startedAt: number): WorkoutSession {
+  return createWorkoutSession(
+    sessionId, planId, dayId, startedAt, startedAt + 3600000, 3600, 4, 100, 0, '', []
+  )
+}
+
 export default function statsDashboardServiceTest(): void {
   describe('StatsDashboardService', () => {
     it('summarizes current week sessions and builds a calendar heatmap', 0, () => {
@@ -280,56 +287,50 @@ export default function statsDashboardServiceTest(): void {
       const weekEndExclusive = weekStartTime + 7 * 86400000
       const dayIds: string[] = ['current_plan_day_1', 'current_plan_day_2', 'current_plan_day_3']
 
-      function makeSession(sessionId: string, planId: string, dayId: string, startedAt: number): WorkoutSession {
-        return createWorkoutSession(
-          sessionId, planId, dayId, startedAt, startedAt + 3600000, 3600, 4, 100, 0, '', []
-        )
-      }
-
       it('same dayId twice in one day counts as 1', 0, () => {
         const sessions: WorkoutSession[] = [
-          makeSession('s1', 'p1', 'current_plan_day_1', weekStartTime + 3600000),
-          makeSession('s2', 'p1', 'current_plan_day_1', weekStartTime + 7200000)
+          makePlanDayIdSession('s1', 'p1', 'current_plan_day_1', weekStartTime + 3600000),
+          makePlanDayIdSession('s2', 'p1', 'current_plan_day_1', weekStartTime + 7200000)
         ]
         expect(countDistinctPlanDaysById(sessions, 'p1', dayIds, weekStartTime, weekEndExclusive)).assertEqual(1)
       })
 
       it('same dayId across two days still counts as 1 (keyed by plan day)', 0, () => {
         const sessions: WorkoutSession[] = [
-          makeSession('s1', 'p1', 'current_plan_day_1', weekStartTime + 3600000),
-          makeSession('s2', 'p1', 'current_plan_day_1', weekStartTime + 3 * 86400000)
+          makePlanDayIdSession('s1', 'p1', 'current_plan_day_1', weekStartTime + 3600000),
+          makePlanDayIdSession('s2', 'p1', 'current_plan_day_1', weekStartTime + 3 * 86400000)
         ]
         expect(countDistinctPlanDaysById(sessions, 'p1', dayIds, weekStartTime, weekEndExclusive)).assertEqual(1)
       })
 
       it('empty dayId sessions are not counted', 0, () => {
         const sessions: WorkoutSession[] = [
-          makeSession('s1', 'p1', '', weekStartTime + 3600000),
-          makeSession('s2', 'p1', 'current_plan_day_1', weekStartTime + 7200000)
+          makePlanDayIdSession('s1', 'p1', '', weekStartTime + 3600000),
+          makePlanDayIdSession('s2', 'p1', 'current_plan_day_1', weekStartTime + 7200000)
         ]
         expect(countDistinctPlanDaysById(sessions, 'p1', dayIds, weekStartTime, weekEndExclusive)).assertEqual(1)
       })
 
       it('dayId outside current plan is not counted', 0, () => {
         const sessions: WorkoutSession[] = [
-          makeSession('s1', 'p1', 'current_plan_day_1', weekStartTime + 3600000),
-          makeSession('s2', 'p1', 'current_plan_day_9', weekStartTime + 7200000)
+          makePlanDayIdSession('s1', 'p1', 'current_plan_day_1', weekStartTime + 3600000),
+          makePlanDayIdSession('s2', 'p1', 'current_plan_day_9', weekStartTime + 7200000)
         ]
         expect(countDistinctPlanDaysById(sessions, 'p1', dayIds, weekStartTime, weekEndExclusive)).assertEqual(1)
       })
 
       it('other plan and out-of-window sessions are excluded', 0, () => {
         const sessions: WorkoutSession[] = [
-          makeSession('s1', 'p1', 'current_plan_day_1', weekStartTime + 3600000),
-          makeSession('s2', 'p2', 'current_plan_day_1', weekStartTime + 7200000),
-          makeSession('s3', 'p1', 'current_plan_day_2', weekEndExclusive + 3600000)
+          makePlanDayIdSession('s1', 'p1', 'current_plan_day_1', weekStartTime + 3600000),
+          makePlanDayIdSession('s2', 'p2', 'current_plan_day_1', weekStartTime + 7200000),
+          makePlanDayIdSession('s3', 'p1', 'current_plan_day_2', weekEndExclusive + 3600000)
         ]
         expect(countDistinctPlanDaysById(sessions, 'p1', dayIds, weekStartTime, weekEndExclusive)).assertEqual(1)
       })
 
       it('empty planId or empty dayIds returns 0', 0, () => {
         const sessions: WorkoutSession[] = [
-          makeSession('s1', 'p1', 'current_plan_day_1', weekStartTime + 3600000)
+          makePlanDayIdSession('s1', 'p1', 'current_plan_day_1', weekStartTime + 3600000)
         ]
         const emptyDayIds: string[] = []
         expect(countDistinctPlanDaysById(sessions, '', dayIds, weekStartTime, weekEndExclusive)).assertEqual(0)
