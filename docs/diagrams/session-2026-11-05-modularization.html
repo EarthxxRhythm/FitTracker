@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FitTracker · 模块化重构成果图 · 2026-11-05</title>
+<style>
+  :root{
+    --ink:#0B0F13;          /* PrototypeTokens.BG_INK */
+    --surface:#16211F;      /* SURFACE_PRIMARY */
+    --surface-strong:#20332E;/* SURFACE_STRONG */
+    --accent:#50ECA7;       /* ACCENT */
+    --accent-deep:#45C9A1;
+    --text-hi:#F7FBF8;      /* TEXT_HI */
+    --text-body:#AAB4BF;
+    --warn:#FFD7C5;         /* WARN（本次新增） */
+    --gold:#D3B487;
+    --line:#20332E;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--ink);color:var(--text-body);
+    font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:14px;line-height:1.7;-webkit-font-smoothing:antialiased}
+  body{padding:48px 32px 96px}
+  .page{max-width:1080px;margin:0 auto}
+  header{text-align:center;margin-bottom:44px}
+  h1{color:var(--text-hi);font-size:26px;font-weight:700;letter-spacing:.5px}
+  .sub{color:var(--accent);font-size:13px;margin-top:10px}
+  .sub .dim{color:var(--text-body)}
+  h2{color:var(--text-hi);font-size:15px;font-weight:600;letter-spacing:.3px;
+     margin:0 0 16px;display:flex;align-items:center;gap:10px}
+  h2 .idx{display:inline-flex;align-items:center;justify-content:center;
+     width:22px;height:22px;border-radius:6px;background:var(--accent);color:#07100B;
+     font-size:12px;font-weight:800}
+  .phase{margin-bottom:14px;padding-top:8px}
+  .domains{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:8px}
+  .dom{background:var(--surface);border:1px solid var(--line);border-radius:10px;
+       padding:12px 10px;text-align:center}
+  .dom .name{color:var(--text-hi);font-size:12px;font-weight:600;margin-bottom:6px}
+  .dom .stat{font-size:11px;color:var(--text-body)}
+  .dom .stat b{color:var(--accent);font-weight:700}
+  .dom .stat .off{color:var(--warn)}
+  .dom.zero{border-color:var(--surface-strong)}
+  .arrow{text-align:center;color:var(--accent);font-size:18px;margin:6px 0 4px}
+  .arrow .lbl{display:block;font-size:11px;color:var(--text-body);margin-top:2px;letter-spacing:.2px}
+  .wave{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);
+        border-radius:10px;padding:16px 20px;margin-bottom:6px}
+  .wave .head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:8px}
+  .wave .title{color:var(--text-hi);font-size:14px;font-weight:700}
+  .wave .hash{color:var(--accent);font-size:12px;font-weight:600;white-space:nowrap}
+  .wave ul{list-style:none;font-size:12.5px;color:var(--text-body)}
+  .wave li{padding:2px 0 2px 16px;position:relative}
+  .wave li::before{content:"▸";position:absolute;left:0;color:var(--accent-deep)}
+  .wave .tag{color:var(--text-hi);font-weight:600}
+  .wave .v{color:var(--accent)}
+  .wave .w{color:var(--warn)}
+  .gates{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:6px}
+  .gate{background:var(--surface);border:1px solid var(--line);border-radius:10px;
+        padding:14px;text-align:center}
+  .gate .g-name{color:var(--text-hi);font-size:12px;font-weight:600;margin-bottom:6px}
+  .gate .g-val{color:var(--accent);font-size:13px;font-weight:700}
+  .extra{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+  .extra .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .extra .card .t{color:var(--text-hi);font-size:13px;font-weight:600;margin-bottom:4px}
+  .extra .card .d{font-size:12px;color:var(--text-body)}
+  .extra .card .h{color:var(--accent);font-size:11px}
+  footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);
+         text-align:center;font-size:11.5px;color:var(--text-body)}
+  footer b{color:var(--accent)}
+  .legend{display:flex;justify-content:center;gap:24px;margin-top:14px;font-size:11px}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:3px}
+  .dot.g{background:var(--accent)}
+  .dot.w{background:var(--warn)}
+  .dot.n{background:var(--surface-strong)}
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>FitTracker · 模块化重构成果</h1>
+    <div class="sub">2026-11-05 · 8 次提交 · <span class="dim">审计 → 排期 → 行为保持重构 → 门禁全绿</span></div>
+  </header>
+
+  <!-- 阶段一 -->
+  <section class="phase">
+    <h2><span class="idx">1</span>全量审计基线 <span style="color:var(--accent);font-weight:400;font-size:12px">9b002b9 · 1192 行 / 426 file:line 锚点</span></h2>
+    <div class="domains">
+      <div class="dom"><div class="name">harmony</div><div class="stat"><b>55</b> / <span class="off">31</span></div></div>
+      <div class="dom zero"><div class="name">android</div><div class="stat"><b>0</b> / <span class="off">13</span></div></div>
+      <div class="dom zero"><div class="name">web-site</div><div class="stat"><b>0</b> / <span class="off">3</span></div></div>
+      <div class="dom zero"><div class="name">contracts</div><div class="stat"><b>0</b> / <span class="off">1</span></div></div>
+      <div class="dom zero"><div class="name">server-fn</div><div class="stat"><b>0</b> / <span class="off">4</span></div></div>
+      <div class="dom zero"><div class="name">tools-remotion</div><div class="stat"><b>0</b> / <span class="off">0</span></div></div>
+    </div>
+    <div style="text-align:center;font-size:11.5px;color:var(--text-body)">
+      绿 = 可安全重构 &nbsp;·&nbsp; <span style="color:var(--warn)">橙 = 禁动</span> &nbsp;·&nbsp; 结论：8 域中仅 harmony 有实质空间
+    </div>
+  </section>
+
+  <div class="arrow">↓<span class="lbl">排期评估：序 1-3 低风险 / 序 4 中 / 序 6-7 高风险（不做）</span></div>
+
+  <!-- 阶段二 -->
+  <section class="phase">
+    <h2><span class="idx">2</span>行为保持重构</h2>
+
+    <div class="wave">
+      <div class="head"><div class="title">Wave 1 · 纯搬迁</div><div class="hash">82403e9 + 53d68e8 + 1cf2e1e</div></div>
+      <ul>
+        <li><span class="tag">AppRoutes 下沉</span> common/，消除 <span class="v">shared→app 反向依赖 2→0</span></li>
+        <li>WorkoutCompletePage 自层绕行路径修正（<code>../../services</code>→<code>../services</code>）</li>
+        <li>mock/SeedPlanRules.ets 迁出 → shared/services/PlanRuleCatalog.ets</li>
+        <li>baseline 陈旧条目 38→37（line 字段 2792→2547 同步更正）</li>
+      </ul>
+    </div>
+
+    <div class="arrow" style="margin:2px 0">↓</div>
+
+    <div class="wave">
+      <div class="head"><div class="title">Wave 2 · 色值收敛</div><div class="hash">0183a14</div></div>
+      <ul>
+        <li><span class="tag">7 处内联色值 → token</span>：<span class="v">37→30</span>（非台账原写的 35 处）</li>
+        <li>新增 <code>SURFACE_2</code>(#20272F) / <code>WARN</code>(#FFD7C5)——均有原型 <code>:root</code> 依据</li>
+        <li>门禁增强：基线「只缩不增」闸门 + build-profile 哈希门 + 5 测试</li>
+        <li><span class="w">保留 30 处</span>：合成色 / 页面级直写 / 语义存疑，按「屏内特例就地直写」</li>
+      </ul>
+    </div>
+
+    <div class="arrow" style="margin:2px 0">↓</div>
+
+    <div class="wave">
+      <div class="head"><div class="title">序 5 · 双端 parity 校验</div><div class="hash">3365a44</div></div>
+      <ul>
+        <li><span class="tag">avatarTint 双端对等</span>：5 键 × 3 值 = 15 色值逐键比对</li>
+        <li>反向验证：临时改一端 → <span class="v">必红并点名键</span>（gold fill 鸿蒙 ≠ 安卓）</li>
+        <li>零源码改动，纯门禁增量；红时 exit 1，CI 可拦</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="arrow">↓</div>
+
+  <!-- 阶段三 -->
+  <section class="phase">
+    <h2><span class="idx">3</span>验证门禁（全部实跑）</h2>
+    <div class="gates">
+      <div class="gate"><div class="g-name">check-code-rules</div><div class="g-val">30 处 · 全绿</div></div>
+      <div class="gate"><div class="g-name">check-parity</div><div class="g-val">21 条 + avatar 校验</div></div>
+      <div class="gate"><div class="g-name">devecocli build</div><div class="g-val">BUILD SUCCESSFUL</div></div>
+    </div>
+    <div class="extra">
+      <div class="card"><div class="t">契约漂移 C-1 修复</div><div class="d">云信封 §2 补齐 6 个已实现字段，声明 5→11 与双端对齐</div><div class="h">e4d3886</div></div>
+      <div class="card"><div class="t">台账口径修正</div><div class="d">harmony.md §2.3「35 处可安全重构」→ 实测 7 处有原型依据；AvatarTint 改标禁动</div><div class="h">d9f1f71</div></div>
+    </div>
+  </section>
+
+  <footer>
+    安全红线：<b>build-profile.json5 哈希全程未变</b>（ad7ad40d…）·未纳任何提交&nbsp;|&nbsp;
+    未做：序 6/7（高风险低收益）&nbsp;|&nbsp; 冻结原型在独立仓 <code>../FitTracker-design</code>
+    <div class="legend">
+      <span><i class="dot g"></i>已交付</span>
+      <span><i class="dot w"></i>保留/禁动</span>
+      <span><i class="dot n"></i>无空间</span>
+    </div>
+  </footer>
+</div>
+</body>
+</html>
