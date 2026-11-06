@@ -119,10 +119,10 @@ devecocli signature generate --product default  # 生成材料并自动写入 bu
 - 一次 signed 包安装 / 启动验证
 - 一份 release closeout 或发布交付记录
 
-### 4.5 release 混淆（已开启配置，尚未实测）
+### 4.5 release 混淆（已开启配置，2026-09-13 与 2026-11-07 两次实测）
 
 - `entry/build-profile.json5` 的 `ruleOptions.enable` 已由 `false` 改为 `true`；规则文件 `entry/obfuscation-rules.txt` 启用了 `-enable-property-obfuscation` / `-enable-toplevel-obfuscation` / `-enable-filename-obfuscation` / `-enable-export-obfuscation`。
-- ⚠ **本轮只在配置层开启，未在 release 包上实测**（未构建、未装机）。开启混淆后至少需实测以下三条，缺一不可：
+- ✅ **更正（2026-11-07 核实）**：本节原写「未在 release 包上实测（未构建、未装机）」已过时——§10.1（2026-09-13）已在已签名 release 包上完成冷启动 / Tab 路由 / 子页 pushUrl / 冷启动重渲染 / 持久化往返（像素差 0.03）五项实测，结论为 filename 与 property 混淆均未破坏功能；2026-11-07 又复验 release 签名包冷启动与首页渲染（`apps\harmony\test_run\harmony-release\release-launch2.jpeg`）。下列三条的逐项覆盖状态以 §10.1 表格为准：
   1. **启动与日志**：release 包冷启动不崩，`devecocli log --level E` 无致命错误；
   2. **持久化 round-trip**：`common/services/*` 中 11 处 `JSON.parse(json) as Xxx`（`AuthService` / `SessionManager` / `TrainingPlanService` / `WorkoutSessionService` / `WorkoutDraftService` / `FavoriteExerciseService` / `GoalRepository` 等）在「写入 → 冷启动 → 读取」后数据完好；
   3. **页面路由**：`main_pages.json` 注册的 `@Entry` 页面在 filename 混淆后仍能正常加载。

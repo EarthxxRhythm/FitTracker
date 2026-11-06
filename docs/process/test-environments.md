@@ -3,7 +3,7 @@
 > **层级**：L2 展开
 > **最后核对**：2026-11-01
 > **上位文档**：`AGENTS.md`（冲突以 L1 为准）
-> **状态**：现行（2026-11-01 安卓补测：应用内启动已验证落到登录页；instrumented 断言已修绿——`setCurrentState` 主线程崩溃已修、`am instrument` 报 OK 2 tests，但 gradle `connectedDebugAndroidTest` 仍因 instrumentation 进程退出码 -1 判 FAILED，遗留待查——见「安卓：MuMu 模拟器」与「本文的验证边界」。鸿蒙端：脚本化入口已文档化，但**应用内启动仍为未验证**——判读口径见「本文的验证边界」）
+> **状态**：现行（2026-11-07 鸿蒙补测：release signed HAP 装机启动已验证落到首页；ohosTest 全量 398 例实跑 Pass 397 / Failure 1——唯一失败 `ContentRepository::resolveByName` 系内容库 nameEn `Push Up` 与断言 `Push-Up` 的口径冲突，属既有缺陷——详见「本文的验证边界」鸿蒙段。2026-11-01 安卓补测：应用内启动已验证落到登录页；instrumented 断言已修绿——`setCurrentState` 主线程崩溃已修、`am instrument` 报 OK 2 tests，但 gradle `connectedDebugAndroidTest` 仍因 instrumentation 进程退出码 -1 判 FAILED，遗留待查——见「安卓：MuMu 模拟器」与「本文的验证边界」）
 > **路径基准**：命令中 `tools\…` 相对 `apps\harmony\`；`gradlew` 相对 `apps\android\`
 > **适用端**：双端
 
@@ -261,7 +261,7 @@ node tools/device-smoke.mjs
 - **安卓段（2026-10-27 实测）**：发现链路脚本化并单测覆盖（`apps\android\tools\android-device.test.mjs` 23 例，实测 **23/23 pass**（2026-11-01 复测；10-27 时为 16 例））；设备连通性**已通过**——MuMu 实例开机、`adb connect 127.0.0.1:16384` 后 `adb devices` 出现 `device`，`device-smoke` 判 PASS 并落截图。
 - **安卓段（2026-11-01 补测）**：应用内启动**已验证**（`am start` 后前台焦点=`com.earthrhythm.fittracker/MainActivity`，截图 `apps\test_run\android-e2e\app-launch.png`）；instrumented 断言**已修绿**（`am instrument` OK 2 tests / XML failures=0），但 gradle `connectedDebugAndroidTest` 因 instrumentation 退出码 -1 仍 FAILED（**遗留待查**，见「androidTest 实跑」节）。
 - **跨端**：`node tools\device-smoke.mjs` 2026-10-27 跑出双端 **PASS**，摘要 `test_run\device-smoke-summary.md`。
-- **鸿蒙「应用内启动」的判读口径（2026-11-01 复核：仍未达成）**：判为「已在应用内启动」须同时满足
+- **鸿蒙「应用内启动」的判读口径（2026-11-07 实测：已达成）**：判为「已在应用内启动」须同时满足
   ① 截图或 UI 树（`devecocli ui layout --format json` 或 `hdc shell uitest dumpLayout -p <remote>`；两条原语在仓库各有先例——
      `tools\scroll-assert.py` / `tools\workout-chain-smoke.ps1:89`）命中**应用自家界面**（登录页文案如「欢迎回来」/「手机号」/「验证码」，或主壳底部 tab），且
   ② **不命中**锁屏/桌面特征（锁屏样式页、桌面图标网格）。
@@ -271,5 +271,8 @@ node tools/device-smoke.mjs
   ⇒ 「有截图文件」「模拟器在跑」「`aa start` 返回 ok」**三者单独都不构成证据**——画面停在锁屏或桌面一律判未验证。
   当前最新证据仍是 `apps\harmony\test_run\harmony-smoke\smoke.png`（**画面停在锁屏**），故鸿蒙应用内启动**仍为未验证**。
   闭合方式：脚本化入口（`harmony-device.mjs launch` 含锁屏检测 + 解锁重试（解锁手段取证中）+ `shoot`）落地后重跑，把新截图路径写进本节，才可移出下面的「仍未验证」清单。
-- **仍未验证（不得称为已验）**：鸿蒙应用内启动（判读口径见上一条；最新证据 `apps\harmony\test_run\harmony-smoke\smoke.png` 停在锁屏）、`ohos-test.ps1`（ohosTest 用例）、instrumentation 退出码 -1 的根因。
+  **2026-11-07 闭合**：release signed HAP（42,524,976 B）经 `hdc install -r` 安装成功（`install bundle successfully.`，HarmonyOS 强制验签，此回执同时证明签名真实有效而非 skip-sign），`aa start -a EntryAbility -b com.earthrhythm.fittracker` 返回 `start ability successfully.`，截图 `apps\harmony\test_run\harmony-release\release-launch2.jpeg`（167,909 字节）命中首页自有文案（「晚上好，专注训练」/「今日训练」/「本周进度」/「开始训练」）且不含锁屏或桌面特征 → 判为已在应用内启动。
+  ⚠ 实测踩坑：boot 完成、`hdc list targets` 已显示 Connected 后仅等 6s 就调 `aa start` 会失败并提示「检查开发者模式」，等 15s 后同一命令正常返回——脚本化的固定等待应 ≥15s，且以 `aa start` 的返回文案为准而非仅看设备 Connected。
+- **仍未验证（不得称为已验）**：release 包上的持久化 round-trip（§10.1 于 2026-09-13 在旧包上验过，本次未重做）、`main_pages.json` 各注册页面遍历、训练流（preview → active → complete）、备份导入导出、instrumentation 退出码 -1 的根因。
+- **2026-11-07 移出未验证清单的项**：`ohos-test.ps1`（全量 preset=full 实跑 Tests run: 398 / Pass: 397 / Failure: 1 / Error: 0，回执 `apps\harmony\test_run\ohosTest\20261107-005804-p32812\`）；鸿蒙应用内启动（见上一条闭合记录）。
 - 本文档只覆盖模拟器路径，真机路径见各端的 release runbook
