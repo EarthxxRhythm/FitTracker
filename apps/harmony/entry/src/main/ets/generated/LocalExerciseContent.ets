@@ -72,7 +72,7 @@ export const LOCAL_EXERCISES: ExerciseContent[] = [
     "ex_push_up",
     "俯卧撑",
     "Push Up",
-    ["pushup"],
+    ["pushup", "push-up", "Push-Up"],
     ["muscle_chest"],
     ["muscle_shoulders", "muscle_arms", "muscle_core"],
     ["eq_bodyweight"],
