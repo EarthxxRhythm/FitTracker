@@ -2,8 +2,9 @@
 // 代码规则门禁：把 AGENTS.md 的硬约束变成可执行的检查。
 //
 // rule id 与 docs/process/engineering-standards.md 一一对应，可双向 grep 追溯。
-// 七条规则的存量基线（2026-10-27 实测）：RT-01 有 1 条豁免、RT-02 为 0、SV-01 为 0、
-// AR-01/03 为 0、AR-02 有 3 条豁免、DS-01 存量走 code-rules-baseline.json——所以上线即绿。
+// 八条规则的存量基线（2026-10-27 实测）：RT-01 有 1 条豁免、RT-02 为 0、SV-01 为 0、
+// AR-01/03 为 0、AR-02 有 3 条豁免、AR-04 为 0（Wave 1 已把 shared→app 清零）、
+// DS-01 存量走 code-rules-baseline.json——所以上线即绿。
 // 该台账只允许缩小：`--write-baseline` 会拒绝写入任何新增的 file|snippet 组，
 // 见 classifyBaselineChange——否则新内联色值能被一键洗白回旧天花板。
 //
@@ -29,6 +30,7 @@ export const RULES = {
   'AR-01': 'common/** 不得依赖 features/**',
   'AR-02': 'shared/** 不得依赖 features/**（兼容层例外见 EXEMPTIONS）',
   'AR-03': 'components/** 不得依赖 features/**',
+  'AR-04': 'shared/** 不得依赖 app/**',
   'DS-01': '组件内联颜色必须走 DesignTokens 或 feature 内命名常量（存量见 baseline）'
 }
 
@@ -241,32 +243,39 @@ export function checkServiceSingles(files) {
 
 // ── AR-01/02/03：分层依赖方向 ────────────────────────────────────────────
 
+// 同一个 from 可以有多条方向规则（shared/ 既要挡 features/ 也要挡 app/），
+// 因此 forbidden 是数组、匹配用 filter 而非 find——否则后追加的规则会被前一条静默吞掉。
 const LAYER_RULES = [
-  { rule: 'AR-01', from: 'common/', forbidden: 'features/' },
-  { rule: 'AR-02', from: 'shared/', forbidden: 'features/' },
-  { rule: 'AR-03', from: 'components/', forbidden: 'features/' }
+  { rule: 'AR-01', from: 'common/', forbidden: ['features/'] },
+  { rule: 'AR-02', from: 'shared/', forbidden: ['features/'] },
+  { rule: 'AR-03', from: 'components/', forbidden: ['features/'] },
+  { rule: 'AR-04', from: 'shared/', forbidden: ['app/'] }
 ]
 
-/** AR-01/02/03：common / shared / components 不得依赖 features。 */
+/** AR-01/02/03/04：common / shared / components 不得依赖 features，shared 另不得依赖 app。 */
 export function checkLayering(files) {
   const findings = []
   for (const file of files) {
-    const sourceLayer = LAYER_RULES.find((item) => file.path.startsWith(item.from))
-    if (sourceLayer === undefined) continue
+    const sourceLayers = LAYER_RULES.filter((item) => file.path.startsWith(item.from))
+    if (sourceLayers.length === 0) continue
 
     const lines = file.text.split(/\r?\n/)
     for (let i = 0; i < lines.length; i += 1) {
       const match = lines[i].match(/from\s+'(\.[^']*)'/)
       if (match === null) continue
       const target = resolveImport(file.path, match[1])
-      if (!target.startsWith(sourceLayer.forbidden)) continue
-      if (isExempt(sourceLayer.rule, file.path)) continue
-      findings.push({
-        rule: sourceLayer.rule,
-        file: file.path,
-        line: i + 1,
-        message: `${sourceLayer.from} 不得依赖 ${sourceLayer.forbidden}，实际 import 了 ${target}`
-      })
+      for (const sourceLayer of sourceLayers) {
+        for (const forbidden of sourceLayer.forbidden) {
+          if (!target.startsWith(forbidden)) continue
+          if (isExempt(sourceLayer.rule, file.path)) continue
+          findings.push({
+            rule: sourceLayer.rule,
+            file: file.path,
+            line: i + 1,
+            message: `${sourceLayer.from} 不得依赖 ${forbidden}，实际 import 了 ${target}`
+          })
+        }
+      }
     }
   }
   return findings
