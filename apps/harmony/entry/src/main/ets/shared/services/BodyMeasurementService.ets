@@ -8,7 +8,7 @@
  */
 import { preferences } from '@kit.ArkData'
 import { Context } from '@kit.AbilityKit'
-import { FitTrackerStores } from '../../app/AppState'
+import { FitTrackerStores } from '../../common/constants/StoreNames'
 import { BodyMeasurement, MEASUREMENT_UNSET } from '../models/BodyModels'
 
 /** 偏好库内承载记录数组的键。 */

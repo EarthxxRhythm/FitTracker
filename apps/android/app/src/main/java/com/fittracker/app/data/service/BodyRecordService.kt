@@ -228,11 +228,8 @@ object BodyRecordService {
     }
 
     /** 当周周首 00:00（周首由 [weekStart] 决定；`Calendar.DAY_OF_WEEK`：周日=1..周六=7）。 */
-    private fun mondayStart(millis: Long, weekStart: WeekStart): Long {
-        val cal = Calendar.getInstance().apply { timeInMillis = millis }
-        val offset = WeekWindow.offsetFromWeekStart(cal.get(Calendar.DAY_OF_WEEK) - 1, weekStart)
-        return addDays(startOfDay(millis), -offset)
-    }
+    private fun mondayStart(millis: Long, weekStart: WeekStart): Long =
+        WeekWindow.weekRange(millis, weekStart).first
 
     /** 本地时区午夜 Calendar（对齐 JS `new Date(y, m, d)`）。 */
     private fun calendarAt(year: Int, month0: Int, dayOfMonth: Int): Calendar {

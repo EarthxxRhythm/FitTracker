@@ -234,16 +234,8 @@ object StatsDashboardService {
      * 源 `createWeekStart`（`:164`）。当周周首 00:00 —— 周首由 [weekStart] 决定
      * （周一/周日；JS `getDay`：周日=0）。
      */
-    private fun createWeekStart(timestamp: Long, weekStart: WeekStart): Calendar {
-        val value = calendarFrom(timestamp)
-        val jsDayOfWeek = value.get(Calendar.DAY_OF_WEEK) - 1 // 周日=0..周六=6
-        val offset = WeekWindow.offsetFromWeekStart(jsDayOfWeek, weekStart)
-        return calendarAt(
-            value.get(Calendar.YEAR),
-            value.get(Calendar.MONTH),
-            value.get(Calendar.DAY_OF_MONTH) - offset,
-        )
-    }
+    private fun createWeekStart(timestamp: Long, weekStart: WeekStart): Calendar =
+        calendarFrom(WeekWindow.weekRange(timestamp, weekStart).first)
 
     /** 源 `createHeatmapLevel`（`:174`）。0→0；≤500→1；≤1000→2；≤1500→3；否则 4。 */
     private fun createHeatmapLevel(totalVolume: Double): Int {

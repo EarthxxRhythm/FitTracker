@@ -343,17 +343,12 @@ object ReviewInsightsService {
     /**
      * 源 `createWeekStart`（`ReviewInsightsService.ets:306`）。当周周首 00:00 —— 周首由 [weekStart]
      * 决定（周一/周日；JS `getDay`：周日=0）。
+     *
+     * 委托 [WeekWindow.weekRange]：周窗口口径全项目单点，`[周首 00:00, 下个周首 00:00)`。
+     * 保留 `Calendar` 返回类型与 `calendarFrom` 语义（调用方读年/月/日字段与 `timeInMillis`）。
      */
-    private fun createWeekStart(timestamp: Long, weekStart: WeekStart): Calendar {
-        val value = calendarFrom(timestamp)
-        val jsDayOfWeek = value.get(Calendar.DAY_OF_WEEK) - 1 // 周日=0..周六=6
-        val offset = WeekWindow.offsetFromWeekStart(jsDayOfWeek, weekStart)
-        return calendarAt(
-            value.get(Calendar.YEAR),
-            value.get(Calendar.MONTH),
-            value.get(Calendar.DAY_OF_MONTH) - offset,
-        )
-    }
+    private fun createWeekStart(timestamp: Long, weekStart: WeekStart): Calendar =
+        calendarFrom(WeekWindow.weekRange(timestamp, weekStart).first)
 
     /** 源 `getTotalVolume`（`ReviewInsightsService.ets:316`）。优先 sets 现算，回落到 `session.totalVolume`。 */
     private fun getTotalVolume(session: WorkoutSession): Double {

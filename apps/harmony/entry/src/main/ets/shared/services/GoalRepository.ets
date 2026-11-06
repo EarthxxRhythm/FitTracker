@@ -4,7 +4,7 @@
  * Feature #6: startup route uses saved goal state.
  */
 import { preferences } from '@kit.ArkData'
-import { FitTrackerStores } from '../../app/AppState'
+import { FitTrackerStores } from '../../common/constants/StoreNames'
 import { UserGoal, createUserGoal } from '../models/TrainingModels'
 
 const KEY_CURRENT_GOAL = 'current_goal'

@@ -9,7 +9,7 @@
  */
 import { preferences } from '@kit.ArkData'
 import { Context } from '@kit.AbilityKit'
-import { FitTrackerStores } from '../../app/AppState'
+import { FitTrackerStores } from '../../common/constants/StoreNames'
 import { WeightRecord, BodyTrend } from '../models/BodyModels'
 import { WeekStart } from '../../common/utils/WeekUtils'
 

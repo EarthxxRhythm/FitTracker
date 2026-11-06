@@ -5,7 +5,7 @@
  */
 import { Context } from '@kit.AbilityKit'
 import { preferences } from '@kit.ArkData'
-import { FitTrackerStores } from '../../app/AppState'
+import { FitTrackerStores } from '../../common/constants/StoreNames'
 import {
   ContentSyncManifest,
   ContentSyncMetadata,

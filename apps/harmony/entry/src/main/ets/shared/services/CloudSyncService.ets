@@ -12,7 +12,7 @@
  */
 import { Context } from '@kit.AbilityKit'
 import { preferences } from '@kit.ArkData'
-import { FitTrackerStores } from '../../app/AppState'
+import { FitTrackerStores } from '../../common/constants/StoreNames'
 import CloudEnvironment, { CloudBackend } from '../../common/services/CloudEnvironment'
 import SessionManager from '../../common/services/SessionManager'
 import UserProfileService, { UserProfile } from '../../common/services/UserProfileService'
