@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -87,6 +86,7 @@ import com.fittracker.app.data.service.UserProfileService
 import com.fittracker.app.data.service.WeekStart
 import com.fittracker.app.data.service.currentLanguageTag
 import com.fittracker.app.data.service.WeightUnit
+import com.fittracker.app.ui.components.FtCard
 import com.fittracker.app.ui.components.FtSegmentedPill
 import com.fittracker.app.ui.components.SegContainer
 import com.fittracker.app.ui.components.clickableNoRipple
@@ -510,7 +510,12 @@ private fun CompositionCard(
     weightKg: Double?,
     now: Long,
 ) {
-    Card {
+    FtCard(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = CardFill, // rgba(255,255,255,.031)
+        borderColor = FtColor.line10,
+        shape = FtShape.panel, // radius 22px
+    ) {
         CardHead(
             title = stringResource(FtBodyModel.COMPOSITION_TITLE_RES),
             meta = stringResource(FtBodyModel.COMPOSITION_META_RES),
@@ -680,7 +685,12 @@ private fun MetricTile(metric: BodyMetric, modifier: Modifier = Modifier) {
  */
 @Composable
 private fun TrendCard(period: TrendPeriod, onPeriod: (TrendPeriod) -> Unit, series: TrendSeries?, caption: String) {
-    Card {
+    FtCard(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = CardFill, // rgba(255,255,255,.031)
+        borderColor = FtColor.line10,
+        shape = FtShape.panel, // radius 22px
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -835,7 +845,12 @@ private fun TrendChart(series: TrendSeries, modifier: Modifier = Modifier) {
 /** `.card` + 围度记录（L187-194）。 */
 @Composable
 private fun MeasurementsCard(latest: BodyMeasurement?, previous: BodyMeasurement?) {
-    Card {
+    FtCard(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = CardFill, // rgba(255,255,255,.031)
+        borderColor = FtColor.line10,
+        shape = FtShape.panel, // radius 22px
+    ) {
         CardHead(
             title = stringResource(FtBodyModel.MEASURE_TITLE_RES),
             meta = stringResource(FtBodyModel.MEASURE_META_RES),
@@ -1098,20 +1113,6 @@ private fun SheetButton(
 }
 
 // ── 共用外壳 ────────────────────────────────────────────────────
-
-/** `.card`（L129-132）：圆角 22、内边距 16；底/描边取「Card Surface v1」（L259-260）。 */
-@Composable
-private fun Card(content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(FtShape.panel) // radius 22px
-            .background(CardFill) // rgba(255,255,255,.031)
-            .border(1.dp, FtColor.line10, FtShape.panel)
-            .padding(16.dp),
-        content = content,
-    )
-}
 
 /** `.card-head` / `.card-title` / `.card-meta`（L138-140）：底对齐、两侧分布、下留 14。 */
 @Composable

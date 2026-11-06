@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.fittracker.app.ui.theme.FtColor
@@ -44,29 +45,36 @@ fun FtCard(
     modifier: Modifier = Modifier,
     level: FtCardLevel = FtCardLevel.Standard,
     padding: Dp = FtSpace.xl,
+    containerColor: Color? = null,
+    borderColor: Color? = null,
+    shape: Shape? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val bg: Color = when (level) {
+    val levelBg: Color = when (level) {
         FtCardLevel.Standard -> FtColor.surface
         FtCardLevel.Floating -> FtColor.surface2
         FtCardLevel.Focus -> FtColor.visualA
     }
-    val border: Color = when (level) {
+    val levelBorder: Color = when (level) {
         FtCardLevel.Standard -> FtColor.hairline
         FtCardLevel.Floating -> FtColor.line10
         FtCardLevel.Focus -> FtColor.accent12
     }
-    val shape: RoundedCornerShape = when (level) {
+    val levelShape: RoundedCornerShape = when (level) {
         FtCardLevel.Standard -> FtShape.md
         FtCardLevel.Floating -> FtShape.lg
         FtCardLevel.Focus -> FtShape.xl
     }
 
+    val bg: Color = containerColor ?: levelBg
+    val border: Color = borderColor ?: levelBorder
+    val resolvedShape: Shape = shape ?: levelShape
+
     Column(
         modifier = modifier
-            .clip(shape)
+            .clip(resolvedShape)
             .background(bg)
-            .border(BorderStroke(1.dp, border), shape)
+            .border(BorderStroke(1.dp, border), resolvedShape)
             .padding(padding),
         content = content,
     )

@@ -110,6 +110,7 @@ import com.fittracker.app.data.service.WorkoutSessionService
 import com.fittracker.app.data.service.stats.PersonalRecordService
 import com.fittracker.app.ui.FtChromeState
 import com.fittracker.app.ui.LocalFtChrome
+import com.fittracker.app.ui.components.FtCard
 import com.fittracker.app.ui.components.FtSegmentedPill
 import com.fittracker.app.ui.components.SegContainer
 import com.fittracker.app.ui.components.clickableNoRipple
@@ -550,7 +551,13 @@ private fun MuscleMapCard(
     onSelect: (String) -> Unit,
     onOpenRanking: () -> Unit,
 ) {
-    Card {
+    FtCard(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = CardFill,
+        borderColor = FtColor.line10,
+        shape = RoundedCornerShape(25.4.dp),
+        padding = 16.3.dp,
+    ) {
         CardTitle(title = stringResource(R.string.review_muscle_title), meta = stringResource(FtReviewModel.mmMetaRes(mode)))
         FtSegmentedPill(
             labels = MuscleMode.entries.map { stringResource(FtReviewModel.mmLabelRes(it)) },
@@ -793,7 +800,13 @@ private fun WeightGoalCard(
     onOpenGoal: () -> Unit,
 ) {
     val goalA11y = stringResource(R.string.review_weight_goal_a11y_open)
-    Card {
+    FtCard(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = CardFill,
+        borderColor = FtColor.line10,
+        shape = RoundedCornerShape(25.4.dp),
+        padding = 16.3.dp,
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -940,7 +953,13 @@ private fun WeightChart(
 private fun EffortCard(metric: EffortMetric, rpeValues: List<Int>, onMetric: (EffortMetric) -> Unit) {
     // 真实数据优先；无已评价训练时为空态（不再回落 RIR_DATA 样例行）。
     val view = remember(metric, rpeValues) { FtReviewModel.effortFrom(metric, rpeValues) }
-    Card {
+    FtCard(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = CardFill,
+        borderColor = FtColor.line10,
+        shape = RoundedCornerShape(25.4.dp),
+        padding = 16.3.dp,
+    ) {
         CardTitle(title = stringResource(R.string.review_effort_title), meta = stringResource(R.string.review_effort_meta))
         FtSegmentedPill(
             labels = EffortMetric.entries.map { it.display },
@@ -1045,7 +1064,13 @@ internal fun EffortBars(
 /** `.openstats .card` + 估算 1RM（L1352-1375）。 */
 @Composable
 private fun OneRmCard(rows: List<OneRmRow>) {
-    Card {
+    FtCard(
+        modifier = Modifier.fillMaxWidth(),
+        containerColor = CardFill,
+        borderColor = FtColor.line10,
+        shape = RoundedCornerShape(25.4.dp),
+        padding = 16.3.dp,
+    ) {
         CardTitle(title = stringResource(R.string.review_1rm_title), meta = stringResource(R.string.review_1rm_meta))
         rows.forEachIndexed { index, row ->
             Row(
@@ -1220,21 +1245,6 @@ private fun ModalButton(label: String, primary: Boolean, onClick: () -> Unit) {
 }
 
 // ── 共用卡片外壳 ────────────────────────────────────────────────
-
-/** `.openstats .card`（L941-947）+ Card Surface v1 覆盖：底 `rgba(255,255,255,.031)`、描边 `--line-10`、圆角 25.4。 */
-@Composable
-private fun Card(content: @Composable () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(25.4.dp))
-            .background(CardFill)
-            .border(1.dp, FtColor.line10, RoundedCornerShape(25.4.dp))
-            .padding(16.3.dp),
-    ) {
-        content()
-    }
-}
 
 /** `.card-title`（L948-957）：标题 + 右侧 meta，`margin-bottom: 14px`。 */
 @Composable
