@@ -112,6 +112,9 @@ Thumbs.db
 /.sisyphus/
 /.claude/
 /.rivet/
+# archify 每次产出的草稿工作目录（.archify/<type>-<slug>-<时间戳>/：candidate.json + 候选 HTML）
+# 正式产物按项目约定落 docs/diagrams/ 并入库
+/.archify/
 
 # Tianshu runtime local config (tool preset)
 /.rivet-config.json
