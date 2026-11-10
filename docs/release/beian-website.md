@@ -5,21 +5,38 @@
 > 这份是 **网站/域名备案**（域名 + 服务器）。两件都要办，互不替代。
 > 所有值取自当前工作树与线上实测，未核实项已显式标注。
 
+## 0. 触发事件：腾讯云整改通知（已处置）
+
+2026-11-10 收到腾讯云 ICP 备案整改通知，原文要点：
+
+| 项 | 内容 |
+| --- | --- |
+| 主体 | 李凡（腾讯云账号 ID `<ACCOUNT-ID-REDACTED>`） |
+| 已有备案号 | **`赣ICP备2026026335号-1A`**（APP 备案，已下号） |
+| 核查结果 | **不通过** |
+| 原因分类 | **APP备案域名对应网站未备案且开站** |
+| 开站域名 | `http://www.earthrhythm.cloud`、`https://www.earthrhythm.cloud` |
+| 整改到期 | **2026-11-13 23:59:00** |
+| 逾期后果 | 取消接入 / 注销，影响主体下 APP 备案正常使用 |
+
+**判定**：网站备案走腾讯云初审（1–3 工作日）+ 管局审核（20 个工作日内），3 天内不可能拿到备案号。
+期限内唯一可完成的整改动作是**停止网站域名访问**。已于 2026-11-10 16:56 执行，详见 §4.2。
+
 ## 1. 资格核对
 
 ### 1.1 已核实（有实测证据）
 
 | 项 | 实测值 | 依据 |
 | --- | --- | --- |
-| 站点线上状态 | `https://earthrhythm.cloud/` → **200**，证书校验通过 | `curl` 实测，2026-11-10 |
+| 站点线上状态 | **已停站**：4 个地址（http/https × 根域/www）全部 `Empty reply from server` | `curl` 实测，2026-11-10 16:56 |
 | DNS 解析 | `earthrhythm.cloud`、`www.earthrhythm.cloud` → `106.55.37.80` | `nslookup` 实测 |
 | 服务器 | 腾讯云 **Lighthouse**（轻量应用服务器），Ubuntu 24.04 / 4C4G | `server/deploy/README.md:6` |
 | 域名注册商 | **阿里云**（Alibaba Cloud Computing Ltd.，IANA ID 1599） | RDAP 记录 |
 | 域名 NS | `dns19.hichina.com` / `dns20.hichina.com`（万网） | RDAP 记录 |
 | 域名后缀资格 | `.cloud` 属**国家批复**后缀 | 工信部 **信管函〔2018〕367号**（同意北京艾鲁云铭科技成为 `.CLOUD` 顶级域注册管理机构，miit.gov.cn 原文） |
 | 境外注册商问题 | **不存在**——注册商在境内 | 同上 RDAP |
-| 隐私政策页 | `https://earthrhythm.cloud/legal/privacy.html` → **200** | `curl` 实测 |
-| 用户协议页 | `https://earthrhythm.cloud/legal/terms.html` → **200** | `curl` 实测 |
+| 隐私政策页 | 停站前 `200`；现随域名一并停服 | 源文件 `docs/legal/privacy-policy.md` |
+| 用户协议页 | 停站前 `200`；现随域名一并停服 | 源文件 `docs/legal/user-agreement.md` |
 | 备案号展示位 | 已有占位，待填真号 | `web/src/App.tsx:407` |
 
 > 前缀判定：`/privacy.html`、`/terms.html` 返回 404，正确路径带 `/legal/` 前缀。备案表单里填链接时用带前缀的地址。
@@ -110,22 +127,56 @@
 2. 样式复用 `web/src/legacy.css:421` 已调好的 `.pending` 对比度（5.44:1，达 WCAG AA），换号后不要退回低对比度写法。
 3. `npm run build` → 同步 `web/dist/` 到服务器 `/opt/fittracker/web/` → `docker restart fittracker-caddy`（**必须 restart，不能 reload**，见 `server/deploy/Caddyfile` 顶部注释）。
 
-### 4.2 备案期间网站状态（风险项，需先决策）
+### 4.2 官网停站（已执行 2026-11-10）
 
 腾讯云《首次备案》原文：「如果您的网站/域名……**从未办理过备案，在开通服务前，需在腾讯云备案系统进行首次备案的操作**。」
 
-当前 `https://earthrhythm.cloud/` 已在 443 对外提供服务，而备案尚未提交。两条路：
+腾讯云整改通知已直接点名 `http://www.earthrhythm.cloud` 与 `https://www.earthrhythm.cloud` 开站。已按整改要求停站。
 
-| 方案 | 做法 | 代价 |
-| --- | --- | --- |
-| **A（推荐）** | 备案提交前把官网块暂时摘除（Caddyfile 官网块停用或加 IP 白名单），通过后恢复 | 官网短暂不可访问；`api` 块不受影响 |
-| B | 保持在线直接提交 | 管局核验发现已开通服务，有驳回或云厂商阻断风险 |
+**做了什么**（服务器 `ubuntu@106.55.37.80`）：
 
-摘除只影响 `earthrhythm.cloud, www.earthrhythm.cloud` 这一块，Supabase API 走独立块，不受影响。
+| 项 | 内容 |
+| --- | --- |
+| 配置文件 | `/opt/fittracker/caddy/Caddyfile` |
+| 备份 | `/opt/fittracker/caddy/Caddyfile.bak-20261110` |
+| 改动 | 官网块 `earthrhythm.cloud, www.earthrhythm.cloud` 的 `root`/`file_server` 全段替换为 `abort`；**新增** `http://` 显式站点块同样 `abort` |
+| 为什么加 http 块 | 只删 `file_server` 时，Caddy 仍为 80 端口保留自动 308 → https 重定向，`http://` 会返回响应，备案核查仍判「开站」（实测首轮 `http://` 返回 308） |
+| inode | `398747` → `398747`（用 `cat >` 原地覆写，未用 `sed -i`，规避单文件 bind mount 陷阱） |
+| 生效方式 | `docker restart fittracker-caddy`（不能 reload） |
+
+**验证**（2026-11-10 16:56，本机 curl）：
+
+| 地址 | 结果 |
+| --- | --- |
+| `https://earthrhythm.cloud/` | `Empty reply from server`（curl 52） |
+| `https://www.earthrhythm.cloud/` | `Empty reply from server` |
+| `http://earthrhythm.cloud/` | `Empty reply from server` |
+| `http://www.earthrhythm.cloud/` | `Empty reply from server` |
+| `https://www.earthrhythm.cloud/legal/privacy.html` | `Empty reply from server` |
+| `https://api.earthrhythm.cloud/auth/v1/health` | **401**（链路正常，缺 apikey 属预期） |
+| `https://api.earthrhythm.cloud/rest/v1/` | **401**（同上） |
+
+`api` 子域不受影响：Caddy 日志确认证书管理仍覆盖三域名，库表与 APP 后端正常。
+
+**恢复方式**（备案下号后）：
+
+```bash
+cd /opt/fittracker/caddy
+cp -a Caddyfile.bak-20261110 Caddyfile   # 或手工把 abort 换回 root/file_server 块
+# 同时删掉新增的 http:// 站点块
+cat Caddyfile > /tmp/c && cat /tmp/c > Caddyfile   # 保持 inode（或直接 cp -a 覆盖前先确认挂载）
+docker restart fittracker-caddy
+```
+
+⚠ `cp -a` 会新建 inode，容器可能仍挂旧文件。稳妥做法：`cat 备份 > Caddyfile` 原地覆写，再 `docker restart`。
+
+**副作用**：官网与法务页对外不可访问期间，应用市场提审若要填「隐私政策链接」需改用其他可达地址（`apps/` 内零引用该域名，APP 内法务文档为本地资源，不受影响）。
 
 ### 4.3 内容一致性
 
-管局审核期间可能访问站点核验，页面内容需与备案填写的「服务内容」相符。当前首页为产品介绍 + 截图，法务页可访问，与「健身训练记录工具」一致。
+管局审核期间可能访问站点核验，页面内容需与备案填写的「服务内容」相符。
+
+当前官网处于**停站状态**（§4.2），管局核验时网站不可访问。备案通过后需恢复官网再完成一次内容一致性自查：首页为产品介绍 + 截图，法务页在 `/legal/` 前缀下，与「健身训练记录工具」一致。
 
 ## 5. 通过后：公安联网备案（网站业务）
 

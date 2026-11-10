@@ -40,6 +40,12 @@ api.example.com {
 # 与上面的 api 块共用同一 Caddy 实例与 443 端口，靠 SNI/Host 分流。
 # 产物链：cd web && npm run build → web/dist/ → 同步到 /opt/fittracker/web/
 # ⚠ www 需先配 DNS（CNAME → 根域）再启用，否则 Caddy 会为它反复申请证书失败。
+#
+# ⚠ 线上现状（2026-11-10）：`earthrhythm.cloud` / `www` 的官网块已被替换为 `abort`，
+#   并新增 `http://` 显式站点块同样 `abort`——因腾讯云备案整改（APP 备案
+#   赣ICP备2026026335号-1A 域名对应网站未备案且开站，整改截止 2026-11-13）。
+#   本站点走网站备案，下号前不得开站。恢复步骤见 docs/release/beian-website.md §4.2。
+#   ⚠ 只删 file_server 不够：Caddy 会保留 80 端口的自动 308 重定向，仍被判「开站」。
 earthrhythm.cloud, www.earthrhythm.cloud {
 	root * /opt/fittracker/web
 	encode zstd gzip
