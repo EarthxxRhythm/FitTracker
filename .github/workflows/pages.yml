@@ -12,7 +12,7 @@ on:
       - 'web/**'
       - 'docs/legal/**'
       - 'tools/build-site.mjs'
-      - '.github/workflows/pages.yml'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 permissions:
