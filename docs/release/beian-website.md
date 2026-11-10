@@ -232,7 +232,7 @@ sleep 6 && curl -sS -o /dev/null -w '%{http_code}\n' https://earthrhythm.cloud/
 
 ⚠ 境外托管不需要 ICP 备案，但这不等于备案义务消失——《互联网信息服务管理办法》要求境内提供互联网信息服务须备案。C 方案是「官网暂用境外地址过渡」，不是长期合规形态。
 
-`api.earthrhythm.cloud` 任何时候都不能动：它是 APP 后端（`apps/harmony/AppScope/resources/rawfile/supabase.json` 的 `"url": "https://api.earthrhythm.cloud"`）。
+`api.earthrhythm.cloud` 任何时候都不能动：它是 APP 后端（`rawfile/supabase.json`（鸿蒙端 AppScope 资源目录下，该文件被 gitignore、不入库） 的 `"url": "https://api.earthrhythm.cloud"`）。
 
 ## 5. 通过后：公安联网备案（网站业务）
 
@@ -280,5 +280,5 @@ sleep 6 && curl -sS -o /dev/null -w '%{http_code}\n' https://earthrhythm.cloud/
 三条互相印证的证据：
 
 1. **腾讯云整改通知的判词**：「APP备案域名对应网站未备案且开站」——它承认域名在 APP 备案里，同时判定网站服务项缺失。若 APP 备案能覆盖网站，这条通知不成立。
-2. **整改通知点名的开站地址只有 `http://www.earthrhythm.cloud` 与 `https://www.earthrhythm.cloud`**，未点 `api.earthrhythm.cloud`。而 APP 实际连的就是 api 子域（`apps/harmony/AppScope/resources/rawfile/supabase.json` 的 `"url": "https://api.earthrhythm.cloud"`），说明腾讯云认这个边界：接口归 APP 备案，网页归网站备案。
+2. **整改通知点名的开站地址只有 `http://www.earthrhythm.cloud` 与 `https://www.earthrhythm.cloud`**，未点 `api.earthrhythm.cloud`。而 APP 实际连的就是 api 子域（`rawfile/supabase.json`（鸿蒙端 AppScope 资源目录下，该文件被 gitignore、不入库） 的 `"url": "https://api.earthrhythm.cloud"`），说明腾讯云认这个边界：接口归 APP 备案，网页归网站备案。
 3. **办一次即可覆盖全部子域**：腾讯云文档原文「二级域名 ICP 备案后对应的三级域名、四级域名可以正常使用」。`earthrhythm.cloud` 的网站备案下来后，`www` 与 `api` 都在覆盖范围内，不必逐个备案。
