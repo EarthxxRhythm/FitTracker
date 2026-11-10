@@ -172,7 +172,42 @@ docker restart fittracker-caddy
 
 **副作用**：官网与法务页对外不可访问期间，应用市场提审若要填「隐私政策链接」需改用其他可达地址（`apps/` 内零引用该域名，APP 内法务文档为本地资源，不受影响）。
 
-### 4.3 内容一致性
+### 4.3 产物重新部署（2026-11-10，访问仍停）
+
+线上跑的是旧构建，本次重新构建并上传，**Caddy 保持 `abort`，对外访问未恢复**。
+
+| 项 | 值 |
+| --- | --- |
+| 构建 | `cd web && npm run build` → vite 445 modules，416ms |
+| 新产物 | `assets/index-tX7GjAhJ.js`（382.22 kB）、`assets/index-DN3xVpnF.css`（29.19 kB）、`JourneyFilm-Cv-6es3w.js` |
+| 旧产物（线上原样） | `index-DpuGIlpb.js`、`index-DjPt7lqD.css` |
+| 上传方式 | `tar czf` → `scp` → `tar xzf -C /opt/fittracker/web`（解包覆盖，**未删目录**——`/opt/fittracker/web` 是 bind mount，删目录重建会让容器挂旧 inode） |
+| 线上备份 | `/opt/fittracker/web.bak-20261110` |
+| 本地验证 | `vite preview`：`/` `200`、`/legal/privacy.html` `200`、`/legal/terms.html` `200`、JS/CSS `200` |
+| 线上验证 | 三个地址仍 `Empty reply from server`（停站状态未变） |
+
+旧哈希资源残留在 `assets/` 下。`index.html` 只引用新哈希，残留不影响访问，可择日清理。
+
+### 4.4 开站的前置条件
+
+**备案号未下发前不要恢复访问**。原因：
+
+1. 整改通知给的两条路是「提交网站备案」或「停止访问」，当前走的是第二条；
+2. 网站备案审核期间（管局 20 个工作日内）本身要求网站不开通服务；
+3. 开站后腾讯云自动核查会再次判定「未备案且开站」→ 逾期未整改 → 取消接入/注销，直接冲击 APP 备案 `赣ICP备2026026335号-1A`。
+
+恢复访问的命令（备案通过后执行）：
+
+```bash
+cd /opt/fittracker/caddy
+# 1) 把官网块的 abort 换回 root/file_server 原段
+# 2) 删掉新增的 http:// 站点块
+cat 新内容 > Caddyfile    # 原地覆写保持 inode，勿用 sed -i / mv
+docker restart fittracker-caddy
+sleep 6 && curl -sS -o /dev/null -w '%{http_code}\n' https://earthrhythm.cloud/
+```
+
+### 4.5 内容一致性
 
 管局审核期间可能访问站点核验，页面内容需与备案填写的「服务内容」相符。
 
