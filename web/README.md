@@ -107,6 +107,7 @@ Caddyfile 里的站点块 `root * /opt/fittracker/web`（`server/deploy/Caddyfil
 
 **公开前的合规前置**：确认根域 `earthrhythm.cloud` 的 **ICP 网站备案**状态。
 `docs/release/beian-materials.md` 记的是 **APP 备案**流程，两者不是一回事。
+网站备案的资格核对、表单照抄值、命名规则见 [`docs/release/beian-website.md`](../docs/release/beian-website.md)。
 
 ## 与 site/ 的关系
 

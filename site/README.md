@@ -62,4 +62,5 @@ node tools/serve-site.mjs
 
 公开 443 之前，先确认根域的 **ICP 网站备案**状态。仓库 `docs/release/beian-materials.md`
 记录的是 APP 备案流程，与网站备案不是同一件事；根域未完成网站备案就把站点挂上公网 443 存在合规风险。
+网站备案的执行清单见 `docs/release/beian-website.md`。
 备案未完成期间只做本地预览（`node tools/serve-site.mjs`）或内网访问。
