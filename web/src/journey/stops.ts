@@ -3,11 +3,19 @@
  * 真正的 composition（吃 Remotion 体积的那个）在 JourneyFilm.tsx 里，走 lazy。
  */
 
+/**
+ * 站点基路径。`vite.config.ts` 里 `base: './'`，构建后为 `./`：
+ * - 部署在根域（earthrhythm.cloud）时解析成 `/05-plans.jpg`
+ * - 部署在子路径（github.io/FitTracker/）时解析成 `/FitTracker/05-plans.jpg`
+ * 直接写 `/05-plans.jpg` 会在子路径部署下 404（图片全丢、布局塌陷）。
+ */
+const BASE = import.meta.env.BASE_URL
+
 export type JourneyStop = {
   id: string
   /** 时间轴上的短标签 */
   label: string
-  /** public 下的设备截图，路径相对站点根 */
+  /** public 下的设备截图，路径经 BASE 拼接，勿写死前导斜杠 */
   img: string
   title: string
   line: string
@@ -17,49 +25,49 @@ export const JOURNEY_STOPS: JourneyStop[] = [
   {
     id: 'plan',
     label: '选计划',
-    img: '/05-plans.jpg',
+    img: `${BASE}05-plans.jpg`,
     title: '先定下这周怎么练',
     line: '三分化、上下肢、推拉腿，展开就是一套完整计划，启用即用。'
   },
   {
     id: 'today',
     label: '今天',
-    img: '/01-home.jpg',
+    img: `${BASE}01-home.jpg`,
     title: '打开就知道练什么',
     line: '首页直接给出今天的训练，不用每天重新做决定。'
   },
   {
     id: 'train',
     label: '训练',
-    img: '/02-training.jpg',
+    img: `${BASE}02-training.jpg`,
     title: '一组一组记下来',
     line: '重量与次数逐组录入，组间自动计时。中途换动作也不丢已录的分组。'
   },
   {
     id: 'library',
     label: '动作库',
-    img: '/06-library.jpg',
+    img: `${BASE}06-library.jpg`,
     title: '想换动作，先看一眼怎么做',
     line: '102 个动作按部位与肌群筛选，每个都有演示与要点；常练的收起来，下次直接翻。'
   },
   {
     id: 'review',
     label: '复盘',
-    img: '/04-review.jpg',
+    img: `${BASE}04-review.jpg`,
     title: '练完立刻看得见',
     line: '周趋势、肌肉分布、动作个人纪录，练完自动汇总成一屏。'
   },
   {
     id: 'body',
     label: '身体',
-    img: '/07-body.jpg',
+    img: `${BASE}07-body.jpg`,
     title: '三个月后回头看',
     line: '体重、围度、体成分单独成线，和训练量放在同一条时间轴上。'
   },
   {
     id: 'profile',
     label: '资料',
-    img: '/08-profile.jpg',
+    img: `${BASE}08-profile.jpg`,
     title: '换机也不丢，记录跟着账号走',
     line: '头像与资料在线编辑，登录后整包快照同步到云端。'
   }
