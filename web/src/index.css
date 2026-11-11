@@ -101,7 +101,8 @@
     color: var(--color-fg);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
+    /* 不用 overflow-x: hidden 兜底：它会隐藏真实横向溢出，让响应式问题永远看不见。
+       窄屏溢出由 tools/check-web-overflow.mjs 在 390px 视口断言。 */
   }
   ::selection {
     background: color-mix(in srgb, var(--color-brand) 28%, transparent);
@@ -121,12 +122,15 @@
   }
 }
 
-/* 减弱动效：全站统一降级开关 */
+/* 减弱动效：只压持续的装饰动画，保留状态反馈。
+   - 组件侧（Aurora / PointerFx）在 reduce 时直接不挂载；
+   - legacy.css 已逐组件禁用具体动画（.aurora i / .ring-card / .hero-title .ch 等）；
+   - 因此这里**不能**再全局把 transition 压成 0.01ms——那会连 hover/focus/
+     开合的状态反馈一起抹掉，是审核明确点名的反模式（无反馈比有动画更难用）。 */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after {
     animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: .01ms !important;
   }
 }
