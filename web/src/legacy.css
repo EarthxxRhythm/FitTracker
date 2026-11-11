@@ -463,7 +463,8 @@ section { padding-block: var(--section-y); position: relative; scroll-margin-top
   *, *::before, *::after {
     animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: .01ms !important;
+    /* 不压 transition-duration：上面已逐组件禁用了具体动画，
+       再全局归零会把 hover/focus/开合的状态反馈一并抹掉（无反馈比有动画更难用）。 */
   }
   .ring-fill { transition: none; }
 }
