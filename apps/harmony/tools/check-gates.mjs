@@ -147,6 +147,12 @@ function main() {
       help: '文档/配置里引用了仓库内已不存在的路径。改为当前路径；若该引用本就是「已归档/已删除」说明，请在同一句带上失效措辞（脚本据此豁免）。'
     },
     {
+      name: 'web css vars',
+      command: 'node',
+      args: ['../../tools/check-web-css-vars.mjs'],
+      help: 'web 站点 CSS 引用了未定义的变量（var(--x) 无 fallback 且无 --x: 定义）。357b9d5 曾因此让圆角/过渡/间距整体失效。修法：在 web/src/index.css 的 :root 兼容层补上定义（颜色指向 @theme），或给引用加 fallback。'
+    },
+    {
       name: 'spec registry',
       command: 'node',
       args: ['tools/check-specs.mjs'],
