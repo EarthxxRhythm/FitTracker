@@ -39,6 +39,57 @@
                "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
 }
 
+/* ============================================================================
+   legacy.css 兼容层 —— 旧变量名 → @theme 单一真源
+   ----------------------------------------------------------------------------
+   背景：357b9d5 的「死类清理」把 legacy.css 顶部的 :root 令牌块整段删除，
+   而 legacy.css 全文仍在引用这些旧名，导致 34 个 var() 引用失去定义：
+   圆角回退 0（直角）、过渡回退 none（hover 无反馈）、内边距回退 0（间距塌陷）。
+
+   规则：
+     - 颜色**不在此层写死色值**，只指向 @theme 的 --color-*；改色仍只改一处。
+     - 时长 / 形态 / 布局量没有对应的 @theme 令牌，它们本身即唯一真源，登记在此。
+     - 运行时由 JS 写入的 --i / --mx / --my / --rx / --ry 不在此定义。
+     - 新增颜色只加到 @theme；若 legacy.css 要用，在此加一行映射。
+   ========================================================================== */
+:root {
+  /* 颜色 → @theme（values in @theme above） */
+  --bg: var(--color-ink);
+  --bg-2: var(--color-ink-2);
+  --surface: var(--color-surface);
+  --surface-2: var(--color-surface-2);
+  --border: var(--color-line);
+  --primary: var(--color-brand);
+  --primary-deep: var(--color-brand-deep);
+  --primary-soft: var(--color-brand-soft);
+  --gold: var(--color-gold);
+  --text: var(--color-fg);
+  --text-2: var(--color-fg-2);
+  --text-3: var(--color-fg-3);
+  --text-on-primary: #09100F; /* TEXT_ON_PRIMARY —— @theme 未收录，此前也无对应令牌 */
+
+  /* 时长 —— MotionTokens（DesignTokens.ets :362-:466） */
+  --dur-micro: 120ms;
+  --dur-fast: 150ms;
+  --dur-base: 250ms;
+  --dur-enter: 320ms;
+  --dur-stagger: 40ms;
+  --dur-ring: 1200ms;
+  --dur-pulse: 1600ms;
+
+  /* 形态 —— MotionTokens（:478 PRESS_DEPTH / :479 PRESS_SHIFT） */
+  --press-depth: 4px;
+  --press-shift: 2px;
+
+  /* 布局 */
+  --radius-card: 24px;
+  --radius-lg: 32px;
+  --radius-pill: 999px;
+  --maxw: 1120px;
+  --gutter: clamp(20px, 4vw, 40px);
+  --section-y: clamp(72px, 9vw, 132px);
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
